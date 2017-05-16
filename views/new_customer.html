@@ -1,0 +1,67 @@
+<% include partials/header %>
+	<form method="POST" action="/customers/customer/">
+    	<div class="col-sm-6 col-md-offset-3">
+            <h4>Add new customer:</h4>
+            <div class="panel panel-default">
+                <div class="panel-body form-horizontal payment-form">
+
+                	<div class="form-group">
+                        <label for="name" class="col-sm-3 control-label">Name</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="name" name="name" 
+                            value="">
+                        </div>
+                    </div> 
+
+                    <div class="form-group">
+                        <label for="email" class="col-sm-3 control-label">Email</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="email" name="email"
+                            value="">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address" class="col-sm-3 control-label">Address</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="address" name="address"
+                            value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cif" class="col-sm-3 control-label">CIF</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="cif" name="cif"
+                            value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="telephone" class="col-sm-3 control-label">TLF</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="telephone" name="telephone"
+                            value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="web" class="col-sm-3 control-label">WEB</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="web" name="web"
+                            value="">
+                        </div>
+                    </div>
+                    <!--campo oculto para decirle a express que es una petición put-->
+                    <input type="hidden" name="_method" value="POST">
+                    <!--campo oculto con el id-->
+                    
+                    <div class="form-group">
+                        <div class="col-sm-12 text-right">
+                            <button type="submit" class="btn btn-primary preview-edit-button">
+                                <span class="glyphicon glyphicon-edit"></span> Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>            
+        </div> <!-- / panel preview -->
+    </form>
+<% include partials/footer %>

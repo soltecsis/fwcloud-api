@@ -1,0 +1,187 @@
+[2017-02-21 11:12:54.005] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:23:50.128] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:29:45.261] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:29:58.611] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:30:12.579] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:30:38.199] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:30:40.864] [DEBUG] app - MOSTRANDO POLICY para firewall: 2
+[2017-02-21 11:30:44.917] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-21 11:30:44.961] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-24 17:30:21.916] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-24 17:30:22.648] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:30:27.732] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-24 17:30:32.927] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:31:42.160] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:35:00.362] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:35:00.607] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:44:31.197] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:44:34.130] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:44:34.253] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:44:34.403] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:44:34.502] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:44:34.618] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:44:34.716] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:44:34.834] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:44:34.914] [ERROR] app - Something went wrong:  Not Found
+[2017-02-24 17:47:38.853] [ERROR] app - Something went wrong:  Failed to lookup view "views/signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-24 17:48:08.373] [ERROR] app - Something went wrong:  Failed to lookup view "/views/signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 12:07:16.932] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 12:58:30.354] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 12:59:14.611] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 13:01:13.956] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 13:08:47.772] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 13:09:10.176] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 13:22:35.476] [ERROR] app - Something went wrong:  Failed to lookup view "signin" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 17:00:22.667] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 17:00:45.914] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 17:03:06.879] [ERROR] app - Something went wrong:  log is not defined
+[2017-02-27 17:04:37.104] [ERROR] app - Something went wrong:  Failed to lookup view "signup,ejs" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 17:08:55.905] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 17:10:46.576] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 17:25:17.987] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 17:25:35.258] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-27 17:25:55.951] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-27 17:26:12.866] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-27 17:26:18.226] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-27 17:26:18.365] [ERROR] app - Something went wrong:  Not Found
+[2017-02-27 17:28:15.079] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 09:27:00.651] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 09:27:00.857] [ERROR] app - Something went wrong:  Not Found
+[2017-02-28 10:08:53.463] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:08:57.233] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:08:57.925] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:31:05.884] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:31:56.586] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:33:14.622] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:33:19.822] [DEBUG] app - MOSTRANDO POLICY para firewall: policy_r
+[2017-02-28 10:33:23.756] [ERROR] app - Something went wrong:  /home/oskar/NetBeansProjects/nodeapi/views/update_policy_r.html:12
+    10|                         <div class="col-sm-9">
+    11|                             <input type="text" class="form-control" id="idgroup" name="idgroup" 
+ >> 12|                             value="<%=info[0].idgroup%>">
+    13|                         </div>
+    14|                     </div> 
+    15| 
+
+Cannot read property 'idgroup' of undefined
+[2017-02-28 10:33:34.916] [DEBUG] app - MOSTRANDO POLICY para firewall: policy_r
+[2017-02-28 10:33:40.412] [ERROR] app - Something went wrong:  Failed to lookup view "new_policy_r" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-28 10:33:58.042] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-28 10:34:18.145] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-28 10:34:35.280] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:35:00.336] [ERROR] app - Something went wrong:  Failed to lookup view "404" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-02-28 10:37:06.636] [ERROR] app - Something went wrong:  Can't set headers after they are sent.
+[2017-02-28 10:37:06.640] [ERROR] app - Something went wrong:  Can't set headers after they are sent.
+[2017-02-28 10:50:26.339] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:50:31.624] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:50:32.415] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-02-28 10:55:34.393] [ERROR] app - Something went wrong:  Not Found
+[2017-03-07 12:38:13.776] [ERROR] app - Something went wrong:  Not Found
+[2017-03-07 12:40:11.604] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-03-07 13:29:03.451] [ERROR] app - Something went wrong:  Not Found
+[2017-03-24 10:54:24.199] [ERROR] app - Something went wrong:  Not Found
+[2017-03-24 12:52:48.009] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-03-28 09:52:37.136] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 15:36:30.461] [ERROR] app - Something went wrong:  Failed to lookup view "update_user" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-03-28 15:51:10.113] [ERROR] app - Something went wrong:  name is not defined
+[2017-03-28 15:51:21.874] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:27:23.801] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:27:47.348] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:28:49.446] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:29:05.431] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:31:03.887] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:31:33.716] [ERROR] app - Something went wrong:  Failed to lookup view "update_user" in views directory "/home/oskar/NetBeansProjects/nodeapi/views"
+[2017-03-28 16:39:27.913] [ERROR] app - Something went wrong:  Not Found
+[2017-03-28 16:40:17.753] [ERROR] app - Something went wrong:  Not Found
+[2017-03-29 11:20:22.908] [ERROR] app - Something went wrong:  Not Found
+[2017-03-30 13:26:21.831] [ERROR] app - Something went wrong:  Not Found
+[2017-03-30 17:13:56.751] [ERROR] app - Something went wrong:  Not Found
+[2017-03-30 17:14:26.937] [ERROR] app - Something went wrong:  Not Found
+[2017-03-31 09:44:26.757] [ERROR] app - Something went wrong:  Not Found
+[2017-03-31 09:46:29.201] [ERROR] app - Something went wrong:  Not Found
+[2017-03-31 14:51:30.306] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 09:22:00.264] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 10:40:56.958] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 11:03:13.942] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 11:14:14.044] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 11:31:08.163] [DEBUG] app - MOSTRANDO POLICY para firewall: 2
+[2017-04-03 11:31:11.677] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-03 11:31:14.558] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:36:48.502] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 12:36:48.566] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 12:54:57.874] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 12:54:57.923] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 12:55:12.849] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:56:39.913] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:56:39.940] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:57:26.692] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:57:26.711] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:58:39.135] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-03 12:58:39.150] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-03 12:58:58.655] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 12:58:58.685] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:06:09.299] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:06:09.353] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:07:03.569] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:07:03.586] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:08:19.806] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:11:09.517] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:15:01.374] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:17:52.193] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:18:07.952] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:19:02.257] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:19:51.863] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:22:04.545] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:23:36.547] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:37:12.110] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:55:08.761] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:56:10.081] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-03 13:56:10.934] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 13:59:20.129] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 15:51:27.480] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 15:51:28.043] [ERROR] app - Something went wrong:  Not Found
+[2017-04-03 16:42:12.711] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 16:42:47.674] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-03 16:42:49.746] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-03 16:45:37.101] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 09:15:31.442] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 09:15:31.828] [ERROR] app - Something went wrong:  Not Found
+[2017-04-04 10:05:29.744] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 10:05:46.783] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 10:06:32.416] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 13:13:34.450] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 13:22:30.163] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-04 13:22:31.972] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 16:53:17.422] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-04 16:53:51.757] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-04-04 16:53:52.560] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-07 12:52:38.755] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-07 12:52:39.075] [ERROR] app - Something went wrong:  Not Found
+[2017-04-07 13:06:01.275] [ERROR] app - Something went wrong:  Not Found
+[2017-04-07 13:06:03.152] [ERROR] app - Something went wrong:  Can't set headers after they are sent.
+[2017-04-07 13:06:03.155] [ERROR] app - Something went wrong:  Can't set headers after they are sent.
+[2017-04-25 13:44:47.225] [ERROR] app - Something went wrong:  Not Found
+[2017-04-25 13:46:03.100] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-25 14:38:59.680] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-04-25 14:39:01.261] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-04 09:46:18.479] [ERROR] app - Something went wrong:  Not Found
+[2017-05-05 09:25:10.345] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-05 09:25:10.675] [ERROR] app - Something went wrong:  Not Found
+[2017-05-08 16:19:29.798] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-08 16:19:30.109] [ERROR] app - Something went wrong:  Not Found
+[2017-05-08 16:56:12.309] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-08 17:14:50.463] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 10:48:51.073] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 10:48:51.873] [ERROR] app - Something went wrong:  Not Found
+[2017-05-11 10:52:01.689] [ERROR] app - Something went wrong:  Not Found
+[2017-05-11 11:03:50.529] [ERROR] app - Something went wrong:  Not Found
+[2017-05-11 11:11:30.989] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:12:11.789] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-05-11 11:12:12.433] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:23:17.327] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-05-11 11:23:18.850] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:36:09.046] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:36:34.856] [DEBUG] app - MOSTRANDO POLICY para firewall: 3
+[2017-05-11 11:36:41.853] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:40:38.556] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 11:54:24.256] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
+[2017-05-11 12:23:11.044] [ERROR] app - Something went wrong:  Not Found

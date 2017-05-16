@@ -1,0 +1,54 @@
+<% include partials/header %>
+	<form method="POST" action="/firewalls/firewall/">
+    	<div class="col-sm-6 col-md-offset-3">
+            <h4>Add new customer:</h4>
+            <div class="panel panel-default">
+                <div class="panel-body form-horizontal payment-form">
+
+                	<div class="form-group">
+                        <label for="name" class="col-sm-3 control-label">Name</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="name" name="name" 
+                            value="">
+                        </div>
+                    </div> 
+
+                    <div class="form-group">
+                        <label for="cluster" class="col-sm-3 control-label">Cluster</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="cluster" name="cluster"
+                            value="">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="comment" class="col-sm-3 control-label">Comment</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="comment" name="comment"
+                            value="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="iduser" class="col-sm-3 control-label">User</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="iduser" name="iduser"
+                            value="">
+                        </div>
+                    </div>
+                    </div>
+                    <!--campo oculto para decirle a express que es una petición put-->
+                    <input type="hidden" name="_method" value="POST">
+                    <!--campo oculto con el id-->
+                    
+                    <div class="form-group">
+                        <div class="col-sm-12 text-right">
+                            <button type="submit" class="btn btn-primary preview-edit-button">
+                                <span class="glyphicon glyphicon-edit"></span> Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>            
+        </div> <!-- / panel preview -->
+    </form>
+<% include partials/footer %>

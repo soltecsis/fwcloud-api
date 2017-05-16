@@ -1,0 +1,37 @@
+<% include partials/header %>
+	<% if (users.length) { %>
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Username</th>
+				<th>Email</th>
+				<th>Edit</th>
+				<th>Delete</th>
+			</tr>
+		</thead>
+		<tbody>	
+		    <% users.forEach(function(user) { %> 
+			    <tr>
+					<td><%= user.username %></td>
+					<td><%= user.email %></td>
+					<td><a href="/user/<%=user.id%>" class="btn btn-success">
+							<span class="glyphicon glyphicon-edit"></span> Edit
+						</a>
+					</td>
+					<td>
+						<form method="POST" action="/user">
+							<input type="hidden" name="_method" value="DELETE">
+		                    <input type="hidden" name="id" value="<%= user.id %>">
+	                        <button type="submit" class="btn btn-danger preview-add-button">
+	                            <span class="glyphicon glyphicon-plus"></span> Delete
+	                        </button>
+						</form>
+					</td>
+				</tr>
+			<% }); %>
+		</tbody>
+	</table>
+	<% }else{ %>
+		<div class="alert alert-danger">Actualmente no hay usuarios</div>
+	<% } %>
+<% include partials/footer %>
