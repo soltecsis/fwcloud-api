@@ -35,7 +35,7 @@ router.get('/:customer', function (req, res)
 //            });
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //other we show an error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -43,7 +43,7 @@ router.get('/:customer', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los users por customer y username*/
+/* Get all users from Custormer and username*/
 router.get('/:customer/username/:username', function (req, res)
 {
     var customer=req.params.customer;
@@ -63,16 +63,16 @@ router.get('/:customer/username/:username', function (req, res)
     });
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* form for new users */
 router.get('/user', function (req, res)
 {
     res.render('new_user', {title: 'Servicio rest con nodejs, express 4 y mysql'});
 });
 
-/* Creamos un nuevo user */
+/* new user */
 router.post("/user", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del user
+    //Objet to create new user
     var userData = {
         id: null,
         customer: req.body.customer,
@@ -85,7 +85,7 @@ router.post("/user", function (req, res)
     };
     UserModel.insertUser(userData, function (error, data)
     {
-        //si el user se ha insertado correctamente mostramos su info
+        //User created  ok
         if (data && data.insertId)
         {
             //res.redirect("/users/user/" + data.insertId);
@@ -97,14 +97,14 @@ router.post("/user", function (req, res)
     });
 });
 
-/* Actualizamos un user existente */
+/* udate user */
 router.put('/user/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save user data into objet
     var userData = {id: req.param('id'), customer: req.param('customer'), username: req.param('username'), allowed_ip: req.param('allowed_ip'), name: req.param('name'), email: req.param('email'), password: req.param('password'), role: req.param('role')};
     UserModel.updateUser(userData, function (error, data)
     {
-        //si el user se ha actualizado correctamente mostramos un mensaje
+        //Message if user ok
         if (data && data.msg)
         {
             //res.redirect("/users/user/" + req.param('id'));
@@ -116,7 +116,7 @@ router.put('/user/', function (req, res)
     });
 });
 
-/* Obtenemos un user por su id y lo mostramos en un formulario para editar */
+/* Get User by id */
 router.get('/:customer/user/:id', function (req, res)
 {
      var customer=req.params.customer;
@@ -126,24 +126,24 @@ router.get('/:customer/user/:id', function (req, res)
     {
         UserModel.getUser(customer,id, function (error, data)
         {
-            //si existe el user mostramos el formulario
+            //If exists show de form
             if (typeof data !== 'undefined' && data.length > 0)
             {
                 //res.render("update_user",{ 
-                //    title : "Servicio rest con nodejs, express 4 y mysql", 
+                //    title : "", 
                 //    info : data
                 //});
                 res.json(200, {"data": data});
 
             }
-            //en otro caso mostramos un error
+            //Error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //Id must be numeric 
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -153,10 +153,10 @@ router.get('/:customer/user/:id', function (req, res)
 
 
 
-/* ELiminamos un user */
+/* remove the user */
 router.delete("/user/", function (req, res)
 {
-    //id del user a eliminar
+    //User id
     var id = req.param('id');
     UserModel.deleteUser(id, function (error, data)
     {

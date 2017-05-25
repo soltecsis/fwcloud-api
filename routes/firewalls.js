@@ -12,24 +12,24 @@ var isAuthenticated = function (req, res, next) {
 //    return next();
 //});
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 router.get('/firewall', function (req, res)
 {
     res.render('new_firewall', {title: 'Crear nuevo firewall'});
 });
 
-/* Obtenemos y mostramos todos los firewalls por usuario*/
+/* Get firewall by User*/
 router.get('/:iduser', function (req, res)
 {
     var iduser = req.params.iduser;
     FirewallModel.getFirewalls(iduser,function (error, data)
     {
-        //si existe el firewall mostramos el formulario
+        //Get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -37,19 +37,19 @@ router.get('/:iduser', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos  firewall por id y  por usuario*/
+/* Get firewall by id and user*/
 router.get('/:iduser/:id', function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
     FirewallModel.getFirewall(iduser,id,function (error, data)
     {
-        //si existe el firewall mostramos el formulario
+        //Get Data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -57,19 +57,19 @@ router.get('/:iduser/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los firewalls por nombre y por usuario*/
+/* Get firewalls by firewall name and User*/
 router.get('/:iduser/fwname/:name', function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
     FirewallModel.getFirewallName(iduser,name,function (error, data)
     {
-        //si existe el firewall mostramos el formulario
+        //Get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -77,19 +77,19 @@ router.get('/:iduser/fwname/:name', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los firewalls por nombre y por usuario*/
+/* Get firewalls by cluster */
 router.get('/:iduser/cluster/:idcluster', function (req, res)
 {
     var iduser = req.params.iduser;
     var idcluster = req.params.idcluster;
     FirewallModel.getFirewallCluster(iduser,idcluster,function (error, data)
     {
-        //si existe el firewall mostramos el formulario
+        //get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -99,10 +99,10 @@ router.get('/:iduser/cluster/:idcluster', function (req, res)
 
 
 
-/* Creamos un nuevo firewall */
+/* New firewall */
 router.post("/firewall", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del firewall
+    
     var firewallData = {
         id: null,
         cluster: req.body.cluster,
@@ -112,7 +112,7 @@ router.post("/firewall", function (req, res)
     var iduser= req.body.iduser;
     FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
     {
-        //si el firewall se ha insertado correctamente mostramos su info
+        
         if (data && data.insertId)
         {
             //res.redirect("/firewalls/firewall/" + data.insertId);
@@ -124,14 +124,14 @@ router.post("/firewall", function (req, res)
     });
 });
 
-/* Actualizamos un firewall existente */
+/* Update firewall */
 router.put('/firewall/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save firewall data into objet
     var firewallData = {id: req.param('id'), name: req.param('name'), cluster: req.param('cluster'), user: req.param('user'), comment: req.param('comment')};
     FirewallModel.updateFirewall(firewallData, function (error, data)
     {
-        //si el firewall se ha actualizado correctamente mostramos un mensaje
+        //Saved ok
         if (data && data.msg)
         {
             //res.redirect("/firewalls/firewall/" + req.param('id'));
@@ -143,17 +143,17 @@ router.put('/firewall/', function (req, res)
     });
 });
 
-/* Obtenemos un firewall por su id y lo mostramos en un formulario para editar */
+/* Get firewall by Id */
 router.get('/:iduser/firewall/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
-    //solo actualizamos si la id es un número
+    
     if (!isNaN(id))
     {
         FirewallModel.getFirewall(iduser,id, function (error, data)
         {
-            //si existe el firewall mostramos el formulario
+            //get firewall data
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_firewall",{ 
@@ -163,44 +163,44 @@ router.get('/:iduser/firewall/:id', function (req, res)
                 res.json(200, {"data": data});
 
             }
-            //en otro caso mostramos un error
+            //get error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
     }
 });
 
-/* Obtenemos un firewall por su name y  */
+/* Get firewall by firewall name  */
 router.get('/:iduser/firewall/name/:name', function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
-    //solo actualizamos si la id es un número
+    
     if (name.length>0)
     {
         FirewallModel.getFirewallName(iduser,name, function (error, data)
         {
-            //si existe el firewall mostramos el formulario
+            //get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
                 res.json(200, {"data": data});
 
             }
-            //en otro caso mostramos un error
+            //get error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -209,10 +209,10 @@ router.get('/:iduser/firewall/name/:name', function (req, res)
 
 
 
-/* ELiminamos un firewall */
+/* remove firewall */
 router.delete("/firewall/", function (req, res)
 {
-    //id del firewall a eliminar
+    
     var id = req.param('id');
     var iduser = req.param('iduser');
     FirewallModel.deleteFirewall(iduser,id, function (error, data)
