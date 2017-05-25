@@ -1,4 +1,4 @@
-//llamamos al paquete mysql que hemos instalado
+
 var mysql = require('mysql')
   , async = require('async');
 

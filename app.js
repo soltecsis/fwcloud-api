@@ -1,4 +1,4 @@
-//Entrada inicial de aplicación
+//main App Entry 
 
 var express = require('express');
 var path = require('path');
@@ -14,7 +14,6 @@ var LocalStrategy = require('passport-local').Strategy;
 
 
 
-//necesario para utilizar los verbos put y delete en formularios
 var methodOverride = require('method-override');
 
 // custom libraries
