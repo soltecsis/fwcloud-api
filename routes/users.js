@@ -26,7 +26,7 @@ router.get('/:customer', function (req, res)
     var customer=req.params.customer;
     UserModel.getUsers(customer,function (error, data)
     {
-        //si existe el user mostramos el formulario
+        //show user form
         if (typeof data !== 'undefined')
         {
 //            res.render("show_users",{ 
