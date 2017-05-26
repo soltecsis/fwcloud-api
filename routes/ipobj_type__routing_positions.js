@@ -7,11 +7,11 @@ var isAuthenticated = function (req, res, next) {
     return next();
   res.redirect('/');
 };
-
+/*
 router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
-
+*/
 /* get data para crear nuevos */
 router.get('/ipobj-type__routing-position', function (req, res)
 {
