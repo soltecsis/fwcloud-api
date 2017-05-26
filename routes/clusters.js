@@ -12,11 +12,7 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
-//router.get('/', function(req, res) 
-//{
-//  res.render('index', { title: 'Mostrando listado de Clusters'});
-//});
+
 
 /* Get all clusters */
 router.get('/', function (req, res)
