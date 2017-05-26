@@ -12,18 +12,14 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
-//router.get('/', function(req, res) 
-//{
-//  res.render('index', { title: 'Mostrando listado de Customers'});
-//});
 
-/* Obtenemos y mostramos todos los customers */
+
+/* Get all customers */
 router.get('/', function (req, res)
 {
     CustomerModel.getCustomers(function (error, data)
     {
-        //si existe el customer mostramos el formulario
+        //Get data
         if (typeof data !== 'undefined')
         {
 //            res.render("show_customers",{ 
@@ -32,7 +28,7 @@ router.get('/', function (req, res)
 //            });
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -40,16 +36,16 @@ router.get('/', function (req, res)
     });
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Form for new customers */
 router.get('/customer', function (req, res)
 {
     res.render('new_customer', {title: 'Servicio rest con nodejs, express 4 y mysql'});
 });
 
-/* Creamos un nuevo customer */
+/* New customer */
 router.post("/customer", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del customer
+    //New object with customer data
     var customerData = {
         id: null,
         name: req.body.name,
@@ -61,7 +57,7 @@ router.post("/customer", function (req, res)
     };
     CustomerModel.insertCustomer(customerData, function (error, data)
     {
-        //si el customer se ha insertado correctamente mostramos su info
+        //Get info
         if (data && data.insertId)
         {
             //res.redirect("/customers/customer/" + data.insertId);
@@ -73,14 +69,14 @@ router.post("/customer", function (req, res)
     });
 });
 
-/* Actualizamos un customer existente */
+/* update customer */
 router.put('/customer/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save customer data into object
     var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
     CustomerModel.updateCustomer(customerData, function (error, data)
     {
-        //si el customer se ha actualizado correctamente mostramos un mensaje
+        //saved ok
         if (data && data.msg)
         {
             //res.redirect("/customers/customer/" + req.param('id'));
@@ -92,16 +88,16 @@ router.put('/customer/', function (req, res)
     });
 });
 
-/* Obtenemos un customer por su id y lo mostramos en un formulario para editar */
+/* Get customer by Id */
 router.get('/customer/:id', function (req, res)
 {
     var id = req.params.id;
-    //solo actualizamos si la id es un número
+    
     if (!isNaN(id))
     {
         CustomerModel.getCustomer(id, function (error, data)
         {
-            //si existe el customer mostramos el formulario
+            //Get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_customer",{ 
@@ -111,14 +107,14 @@ router.get('/customer/:id', function (req, res)
                 res.json(200, data);
 
             }
-            //en otro caso mostramos un error
+            //Get error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -127,10 +123,10 @@ router.get('/customer/:id', function (req, res)
 
 
 
-/* ELiminamos un customer */
+/* remove customer */
 router.delete("/customer/", function (req, res)
 {
-    //id del customer a eliminar
+
     var id = req.param('id');
     CustomerModel.deleteCustomer(id, function (error, data)
     {
