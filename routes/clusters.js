@@ -18,12 +18,12 @@ router.get('/*',isAuthenticated, function (req, res, next){
 //  res.render('index', { title: 'Mostrando listado de Clusters'});
 //});
 
-/* Obtenemos y mostramos todos los clusters */
+/* Get all clusters */
 router.get('/', function (req, res)
 {
     ClusterModel.getClusters(function (error, data)
     {
-        //si existe el cluster mostramos el formulario
+        //Get data
         if (typeof data !== 'undefined')
         {
 //            res.render("show_clusters",{ 
@@ -32,7 +32,7 @@ router.get('/', function (req, res)
 //            });
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //get error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -40,23 +40,23 @@ router.get('/', function (req, res)
     });
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* New cluster form */
 router.get('/cluster', function (req, res)
 {
     res.render('new_cluster', {title: 'Servicio rest con nodejs, express 4 y mysql'});
 });
 
-/* Creamos un nuevo cluster */
+/* New cluster */
 router.post("/cluster", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del cluster
+    //new objet with Cluster data
     var clusterData = {
         id: null,
         name: req.body.name
     };
     ClusterModel.insertCluster(clusterData, function (error, data)
     {
-        //si el cluster se ha insertado correctamente mostramos su info
+        //get cluster info
         if (data && data.insertId)
         {
             //res.redirect("/clusters/cluster/" + data.insertId);
@@ -68,14 +68,14 @@ router.post("/cluster", function (req, res)
     });
 });
 
-/* Actualizamos un cluster existente */
+/* cluster update */
 router.put('/cluster/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save cluster data into objet 
     var clusterData = {id: req.param('id'), name: req.param('name')};
     ClusterModel.updateCluster(clusterData, function (error, data)
     {
-        //si el cluster se ha actualizado correctamente mostramos un mensaje
+        //cluster ok
         if (data && data.msg)
         {
             //res.redirect("/clusters/cluster/" + req.param('id'));
@@ -87,33 +87,33 @@ router.put('/cluster/', function (req, res)
     });
 });
 
-/* Obtenemos un cluster por su id y lo mostramos en un formulario para editar */
+/* Get cluster by Id */
 router.get('/cluster/:id', function (req, res)
 {
     var id = req.params.id;
-    //solo actualizamos si la id es un número
+    
     if (!isNaN(id))
     {
         ClusterModel.getCluster(id, function (error, data)
         {
-            //si existe el cluster mostramos el formulario
+            //cluster ok
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_cluster",{ 
-//                    title : "Servicio rest con nodejs, express 4 y mysql", 
+//                    title : "", 
 //                    info : data
 //                });
                 res.json(200, data);
 
             }
-            //en otro caso mostramos un error
+            //Get error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -122,10 +122,10 @@ router.get('/cluster/:id', function (req, res)
 
 
 
-/* ELiminamos un cluster */
+/* Remove cluster */
 router.delete("/cluster/", function (req, res)
 {
-    //id del cluster a eliminar
+    
     var id = req.param('id');
     ClusterModel.deleteCluster(id, function (error, data)
     {
