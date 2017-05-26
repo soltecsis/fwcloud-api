@@ -6,7 +6,7 @@ var bcrypt = require('bcrypt-nodejs');
 // model
 var Model = require('./model');
 
-// index
+// index app
 var index = function(req, res, next) {
    if(!req.isAuthenticated()) {
       res.redirect('/signin');
