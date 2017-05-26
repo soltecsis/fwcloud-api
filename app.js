@@ -62,7 +62,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.engine("html", require("ejs").renderFile);
 app.set('view engine', 'html');
 
-//configuración para Logger y morgan
+//configuración para Logger and morgan
 
 
 var logger = log4js.getLogger('app');

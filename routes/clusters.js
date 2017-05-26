@@ -39,7 +39,7 @@ router.get('/', function (req, res)
 /* New cluster form */
 router.get('/cluster', function (req, res)
 {
-    res.render('new_cluster', {title: 'Servicio rest con nodejs, express 4 y mysql'});
+    res.render('new_cluster', {title: 'Servicio rest con nodejs, express 4 and mysql'});
 });
 
 /* New cluster */

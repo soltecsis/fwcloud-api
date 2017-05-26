@@ -12,13 +12,13 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 router.get('/routing-r__ipobj', function (req, res)
 {
     res.render('new_routing_r__ipobj', {title: 'Crear nuevo routing_r__ipobj'});
 });
 
-/* Obtenemos y mostramos todos los routing_r__ipobjs por rule*/
+/* Get all routing_r__ipobjs by rule*/
 
 router.get('/:rule', function (req, res)
 {
@@ -26,12 +26,12 @@ router.get('/:rule', function (req, res)
     
     Routing_r__ipobjModel.getRouting_r__ipobjs(rule,function (error, data)
     {
-        //si existe el routing_r__ipobj mostramos el formulario
+        //If exists routing_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -40,7 +40,7 @@ router.get('/:rule', function (req, res)
     
 });
 
-/* Obtenemos y mostramos todos los routing_r__ipobjs por rule y posicion*/
+/* Get all routing_r__ipobjs by rule and posicion*/
 
 router.get('/:rule/:position', function (req, res)
 {
@@ -49,12 +49,12 @@ router.get('/:rule/:position', function (req, res)
     
     Routing_r__ipobjModel.getRouting_r__ipobjs_position(rule,position,function (error, data)
     {
-        //si existe el routing_r__ipobj mostramos el formulario
+        //If exists routing_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -64,7 +64,7 @@ router.get('/:rule/:position', function (req, res)
 });
 
 
-/* Obtenemos y mostramos  routing_r__ipobj por id  */
+/* Get  routing_r__ipobj by id  */
 
 router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
 {
@@ -74,7 +74,7 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
     var position = req.params.position;
     Routing_r__ipobjModel.getRouting_r__ipobj(rule,ipobj,ipobj_g,position,function (error, data)
     {
-        //si existe el routing_r__ipobj mostramos el formulario
+        //If exists routing_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
             res.render("update_routing_r__ipobj",{ 
@@ -83,7 +83,7 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
                 });            
             //res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -93,10 +93,10 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
 
 
 
-/* Creamos un nuevo routing_r__ipobj */
+/* Create New routing_r__ipobj */
 router.post("/routing-r__ipobj", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del routing_r__ipobj
+    //Create New objet with data routing_r__ipobj
     var routing_r__ipobjData = {
         rule: req.body.rule,
         ipobj: req.body.ipobj,
@@ -107,7 +107,7 @@ router.post("/routing-r__ipobj", function (req, res)
     
     Routing_r__ipobjModel.insertRouting_r__ipobj(routing_r__ipobjData, function (error, data)
     {
-        //si el routing_r__ipobj se ha insertado correctamente mostramos su info
+        //If saved routing_r__ipobj Get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + data.insertId);
@@ -119,7 +119,7 @@ router.post("/routing-r__ipobj", function (req, res)
     });
 });
 
-/* Actualizamos un routing_r__ipobj existente */
+/* Update routing_r__ipobj that exist */
 router.put('/routing-r__ipobj', function (req, res)
 {
     var rule = req.body.get_rule;
@@ -128,7 +128,7 @@ router.put('/routing-r__ipobj', function (req, res)
     var position = req.body.get_position;
     var position_order = req.body.get_position_order;
     
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var routing_r__ipobjData = {
         rule: req.body.rule,
         ipobj: req.body.ipobj,
@@ -138,7 +138,7 @@ router.put('/routing-r__ipobj', function (req, res)
     };
     Routing_r__ipobjModel.updateRouting_r__ipobj(rule,ipobj,ipobj_g,position, position_order,routing_r__ipobjData, function (error, data)
     {
-        //si el routing_r__ipobj se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_r__ipobj saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
@@ -150,7 +150,7 @@ router.put('/routing-r__ipobj', function (req, res)
     });
 });
 
-/* Actualizamos un POSITION routing_r__ipobj existente */
+/* Update POSITION routing_r__ipobj that exist */
 router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
 {
     var rule = req.params.rule;
@@ -164,7 +164,7 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
 
     Routing_r__ipobjModel.updateRouting_r__ipobj_position(rule,ipobj,ipobj_g,position,position_order,new_position,new_order, function (error, data)
     {
-        //si el routing_r__ipobj se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_r__ipobj saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
@@ -176,7 +176,7 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
     });
 });
 
-/* Actualizamos un ORDER routing_r__ipobj existente */
+/* Update ORDER routing_r__ipobj that exist */
 router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_order', function (req, res)
 {
     var rule = req.params.rule;
@@ -190,7 +190,7 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
 
     Routing_r__ipobjModel.updateRouting_r__ipobj_position_order(rule,ipobj,ipobj_g,position,position_order,new_order, function (error, data)
     {
-        //si el routing_r__ipobj se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_r__ipobj saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
@@ -205,10 +205,10 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
 
 
 
-/* ELiminamos un routing_r__ipobj */
+/* Remove routing_r__ipobj */
 router.delete("/routing-r__ipobj/", function (req, res)
 {
-    //id del routing_r__ipobj a eliminar
+    //Id from routing_r__ipobj to remove
     var rule = req.body.rule;
     var ipobj = req.body.ipobj;
     var ipobj_g = req.body.ipobj_g;

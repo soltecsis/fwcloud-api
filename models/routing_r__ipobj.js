@@ -1,14 +1,14 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_r__ipobjModel = {};
 var tableModel = "routing_r__ipobj";
 
 
 
 
-//obtenemos todos los routing_r__ipobj por Routing_r (rule)
+//Get All routing_r__ipobj by Routing_r (rule)
 routing_r__ipobjModel.getRouting_r__ipobjs = function (rule, callback) {
     
     db.get(function (error, connection) {
@@ -27,7 +27,7 @@ routing_r__ipobjModel.getRouting_r__ipobjs = function (rule, callback) {
     
 };
 
-//obtenemos todos los routing_r__ipobj por Routing_r (rule) y position
+//Get All routing_r__ipobj by Routing_r (rule) and position
 routing_r__ipobjModel.getRouting_r__ipobjs_position = function (rule,position, callback) {
     
     db.get(function (error, connection) {
@@ -46,7 +46,7 @@ routing_r__ipobjModel.getRouting_r__ipobjs_position = function (rule,position, c
     
 };
 
-//obtenemos  routing_r__ipobj por primarykey
+//Get  routing_r__ipobj by primarykey
 routing_r__ipobjModel.getRouting_r__ipobj = function (rule,ipobj,ipobj_g, position, callback) {
 
     db.get(function (error, connection) {
@@ -73,7 +73,7 @@ routing_r__ipobjModel.getRouting_r__ipobj = function (rule,ipobj,ipobj_g, positi
 
 
 
-//añadir un nuevo routing_r__ipobj 
+//Add new routing_r__ipobj 
 routing_r__ipobjModel.insertRouting_r__ipobj = function (routing_r__ipobjData, callback) {
     OrderList(routing_r__ipobjData.position_order, routing_r__ipobjData.rule, routing_r__ipobjData.position, 999999);
     db.get(function (error, connection) {
@@ -91,7 +91,7 @@ routing_r__ipobjModel.insertRouting_r__ipobj = function (routing_r__ipobjData, c
     
 };
 
-//actualizar un routing_r__ipobj
+//Update routing_r__ipobj
 routing_r__ipobjModel.updateRouting_r__ipobj = function (rule,ipobj,ipobj_g, position, position_order, routing_r__ipobjData, callback) {
     if (position!== routing_r__ipobjData.position){
          //ordenamos posicion antigua
@@ -124,7 +124,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
     });
 };
 
-//actualizar un routing_r__ipobj Position ORDER
+//Update routing_r__ipobj Position ORDER
 routing_r__ipobjModel.updateRouting_r__ipobj_position_order = function (rule,ipobj,ipobj_g, position, position_order,new_order, callback) {
      
     OrderList(new_order, rule, position, position_order);
@@ -147,8 +147,8 @@ routing_r__ipobjModel.updateRouting_r__ipobj_position_order = function (rule,ipo
     });
 };
 
-//actualizar un routing_r__ipobj position
-//Al actualizar position ordenamos antigua y nueva POSITION
+//Update routing_r__ipobj position
+//Al Update position ordenamos antigua and nueva POSITION
 routing_r__ipobjModel.updateRouting_r__ipobj_position = function (rule,ipobj,ipobj_g, position,position_order, new_position, new_order, callback) {
 
     //ordenamos posicion antigua
@@ -198,7 +198,7 @@ function OrderList(new_order, rule, position, old_order){
     
 };
 
-//eliminar un routing_r__ipobj 
+//Remove routing_r__ipobj 
 routing_r__ipobjModel.deleteRouting_r__ipobj = function (rule,ipobj,ipobj_g, position, position_order, callback) {
     
     OrderList(999999, rule, position, position_order);
@@ -211,7 +211,7 @@ routing_r__ipobjModel.deleteRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
         
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_r__ipobj a eliminar
+            //If exists Id from routing_r__ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel +
@@ -233,5 +233,5 @@ routing_r__ipobjModel.deleteRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_r__ipobjModel;

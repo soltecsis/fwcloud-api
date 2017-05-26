@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_gModel = {};
 var tableModel = "policy_g";
 
 
-//obtenemos todos los policy_g por firewall
+//Get All policy_g by firewall
 policy_gModel.getPolicy_gs = function (idfirewall, callback) {
 
     db.get(function (error, connection) {
@@ -22,7 +22,7 @@ policy_gModel.getPolicy_gs = function (idfirewall, callback) {
     });
 };
 
-//obtenemos todos los policy_g por firewall y grupo padre
+//Get All policy_g by firewall and group father
 policy_gModel.getPolicy_gs_group = function (idfirewall, idgroup, callback) {
 
     db.get(function (error, connection) {
@@ -40,7 +40,7 @@ policy_gModel.getPolicy_gs_group = function (idfirewall, idgroup, callback) {
 
 
 
-//obtenemos un policy_g por su id y firewall
+//Get policy_g by  id and firewall
 policy_gModel.getPolicy_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -55,7 +55,7 @@ policy_gModel.getPolicy_g = function (idfirewall, id, callback) {
     });
 };
 
-//obtenemos un routing por su nombre y firewall
+//Get routing by name and firewall
 policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -74,7 +74,7 @@ policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
 
 
 
-//añadir un nuevo policy_g de usuario
+//Add new policy_g from user
 policy_gModel.insertPolicy_g = function (policy_gData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -90,7 +90,7 @@ policy_gModel.insertPolicy_g = function (policy_gData, callback) {
     });
 };
 
-//actualizar un policy_g de usuario
+//Update policy_g from user
 policy_gModel.updatePolicy_g = function ( policy_gData, callback) {
 
     db.get(function (error, connection) {
@@ -111,7 +111,7 @@ policy_gModel.updatePolicy_g = function ( policy_gData, callback) {
     });
 };
 
-//eliminar un policy_g pasando la id a eliminar
+//Remove policy_g with id to remove
 //FALTA BORRADO EN CASCADA 
 policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
@@ -119,7 +119,7 @@ policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_g a eliminar
+            //If exists Id from policy_g to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -138,5 +138,5 @@ policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_gModel;

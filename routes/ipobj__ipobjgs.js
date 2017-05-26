@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/ipobj__ipobjg', function (req, res)
 {
     res.render('new_ipobj__ipobjg', {title: 'Crear nuevo ipobj__ipobjg'});
 });
 
-/* Obtenemos y mostramos todos los ipobj__ipobjgs por grupo*/
+/* Get all ipobj__ipobjgs by group*/
 router.get('/:ipobjg', function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     Ipobj__ipobjgModel.getIpobj__ipobjgs(ipobjg,function (error, data)
     {
-        //si existe el ipobj__ipobjg mostramos el formulario
+        //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,19 +39,19 @@ router.get('/:ipobjg', function (req, res)
 
 
 
-/* Obtenemos y mostramos  ipobj__ipobjg por id */
+/* Get  ipobj__ipobjg by id */
 router.get('/:ipobjg/:ipobj', function (req, res)
 {    
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
     Ipobj__ipobjgModel.getIpobj__ipobjg(ipobjg, ipobj,function (error, data)
     {
-        //si existe el ipobj__ipobjg mostramos el formulario
+        //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -60,10 +60,10 @@ router.get('/:ipobjg/:ipobj', function (req, res)
 });
 
 
-/* Creamos un nuevo ipobj__ipobjg */
+/* Create New ipobj__ipobjg */
 router.post("/ipobj__ipobjg", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del ipobj__ipobjg
+    //Create New objet with data ipobj__ipobjg
     var ipobj__ipobjgData = {
         ipobj_g: req.body.ipobj_g,
         ipobj: req.body.ipobj
@@ -71,7 +71,7 @@ router.post("/ipobj__ipobjg", function (req, res)
     
     Ipobj__ipobjgModel.insertIpobj__ipobjg(ipobj__ipobjgData, function (error, data)
     {
-        //si el ipobj__ipobjg se ha insertado correctamente mostramos su info
+        //If saved ipobj__ipobjg Get data
         if (data && data.msg)
         {
             //res.redirect("/ipobj__ipobjgs/ipobj__ipobjg/" + data.insertId);
@@ -83,16 +83,16 @@ router.post("/ipobj__ipobjg", function (req, res)
     });
 });
 
-/* Actualizamos un ipobj__ipobjg existente */
+/* Update ipobj__ipobjg that exist */
 router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var ipobj__ipobjgData = {ipobj_g: req.param('new_ipobj_g'), ipobj: req.param('new_ipobj') };
     Ipobj__ipobjgModel.updateIpobj__ipobjg(ipobjg, ipobj,ipobj__ipobjgData, function (error, data)
     {
-        //si el ipobj__ipobjg se ha actualizado correctamente mostramos un mensaje
+        //If saved ipobj__ipobjg saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/ipobj__ipobjgs/ipobj__ipobjg/" + req.param('id'));
@@ -106,10 +106,10 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
 
 
 
-/* ELiminamos un ipobj__ipobjg */
+/* Remove ipobj__ipobjg */
 router.delete("/ipobj__ipobjg/", function (req, res)
 {
-    //id del ipobj__ipobjg a eliminar
+    //Id from ipobj__ipobjg to remove
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
     Ipobj__ipobjgModel.deleteIpobj__ipobjgidfirewall(ipobjg,ipobj, function (error, data)

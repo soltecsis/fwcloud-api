@@ -1,14 +1,14 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_r__ipobjModel = {};
 var tableModel = "policy_r__ipobj";
 
 
 
 
-//obtenemos todos los policy_r__ipobj por Policy_r (rule)
+//Get All policy_r__ipobj by Policy_r (rule)
 policy_r__ipobjModel.getPolicy_r__ipobjs = function (rule, callback) {
     
     db.get(function (error, connection) {
@@ -27,7 +27,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs = function (rule, callback) {
     
 };
 
-//obtenemos todos los policy_r__ipobj por Policy_r (rule) y position
+//Get All policy_r__ipobj by Policy_r (rule) and position
 policy_r__ipobjModel.getPolicy_r__ipobjs_position = function (rule,position, callback) {
     
     db.get(function (error, connection) {
@@ -46,7 +46,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_position = function (rule,position, cal
     
 };
 
-//obtenemos  policy_r__ipobj por primarykey
+//Get  policy_r__ipobj by primarykey
 policy_r__ipobjModel.getPolicy_r__ipobj = function (rule,ipobj,ipobj_g, position, callback) {
 
     db.get(function (error, connection) {
@@ -73,7 +73,7 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule,ipobj,ipobj_g, position
 
 
 
-//añadir un nuevo policy_r__ipobj 
+//Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, callback) {
     OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
     db.get(function (error, connection) {
@@ -91,7 +91,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, call
     
 };
 
-//actualizar un policy_r__ipobj
+//Update policy_r__ipobj
 policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule,ipobj,ipobj_g, position, position_order, policy_r__ipobjData, callback) {
 
     if (position!== policy_r__ipobjData.position){
@@ -125,7 +125,7 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule,ipobj,ipobj_g, posit
     });
 };
 
-//actualizar un policy_r__ipobj Position ORDER
+//Update policy_r__ipobj Position ORDER
 policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule,ipobj,ipobj_g, position, position_order,new_order, callback) {
 
     OrderList(new_order, rule, position, position_order);
@@ -148,8 +148,8 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule,ipobj
     });
 };
 
-//actualizar un policy_r__ipobj position
-//Al actualizar position ordenamos antigua y nueva POSITION
+//Update policy_r__ipobj position
+//Al Update position ordenamos antigua and nueva POSITION
 policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule,ipobj,ipobj_g, position,position_order, new_position, new_order, callback) {
 
     //ordenamos posicion antigua
@@ -200,7 +200,7 @@ function OrderList(new_order, rule, position, old_order){
     
 };
 
-//eliminar un policy_r__ipobj 
+//Remove policy_r__ipobj 
 policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule,ipobj,ipobj_g, position, position_order, callback) {
     
     OrderList(999999, rule, position, position_order);
@@ -213,7 +213,7 @@ policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule,ipobj,ipobj_g, posit
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
         
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_r__ipobj a eliminar
+            //If exists Id from policy_r__ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel +
@@ -235,5 +235,5 @@ policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule,ipobj,ipobj_g, posit
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_r__ipobjModel;

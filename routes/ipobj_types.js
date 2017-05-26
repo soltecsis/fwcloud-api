@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/ipobj-type', function (req, res)
 {
     res.render('new_ipobj_type', {title: 'Crear nuevo ipobj_type'});
 });
 
-/* Obtenemos y mostramos todos los ipobj_types*/
+/* Get all ipobj_types*/
 router.get('/', function (req, res)
 {
 
     Ipobj_typeModel.getIpobj_types(function (error, data)
     {
-        //si existe el ipobj_type mostramos el formulario
+        //If exists ipobj_type get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,18 +39,18 @@ router.get('/', function (req, res)
 
 
 
-/* Obtenemos y mostramos  ipobj_type por id */
+/* Get  ipobj_type by id */
 router.get('/:id', function (req, res)
 {    
     var id = req.params.id;
     Ipobj_typeModel.getIpobj_type(id,function (error, data)
     {
-        //si existe el ipobj_type mostramos el formulario
+        //If exists ipobj_type get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -58,18 +58,18 @@ router.get('/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los ipobj_types por nombre */
+/* Get all ipobj_types by nombre */
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
     Ipobj_typeModel.getIpobj_typeName(name,function (error, data)
     {
-        //si existe el ipobj_type mostramos el formulario
+        //If exists ipobj_type get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -80,10 +80,10 @@ router.get('/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo ipobj_type */
+/* Create New ipobj_type */
 router.post("/ipobj-type", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del ipobj_type
+    //Create New objet with data ipobj_type
     var ipobj_typeData = {
         id: req.body.id,
         type: req.body.type
@@ -91,7 +91,7 @@ router.post("/ipobj-type", function (req, res)
     
     Ipobj_typeModel.insertIpobj_type(ipobj_typeData, function (error, data)
     {
-        //si el ipobj_type se ha insertado correctamente mostramos su info
+        //If saved ipobj_type Get data
         if (data && data.insertId)
         {
             //res.redirect("/ipobj-types/ipobj-type/" + data.insertId);
@@ -103,17 +103,17 @@ router.post("/ipobj-type", function (req, res)
     });
 });
 
-/* Actualizamos un ipobj_type existente */
+/* Update ipobj_type that exist */
 router.put('/ipobj-type/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var ipobj_typeData = {
         id: req.param('id'), 
         type: req.param('type')
     };
     Ipobj_typeModel.updateIpobj_type(ipobj_typeData, function (error, data)
     {
-        //si el ipobj_type se ha actualizado correctamente mostramos un mensaje
+        //If saved ipobj_type saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/ipobj-types/ipobj-type/" + req.param('id'));
@@ -127,10 +127,10 @@ router.put('/ipobj-type/', function (req, res)
 
 
 
-/* ELiminamos un ipobj_type */
+/* Remove ipobj_type */
 router.delete("/ipobj-type/", function (req, res)
 {
-    //id del ipobj_type a eliminar
+    //Id from ipobj_type to remove
     var id = req.param('id');
     Ipobj_typeModel.deleteIpobj_type(id, function (error, data)
     {

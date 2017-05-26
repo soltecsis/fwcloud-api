@@ -157,7 +157,7 @@ router.get('/:iduser/firewall/:id', function (req, res)
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_firewall",{ 
-//                    title : "Servicio rest con nodejs, express 4 y mysql", 
+//                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
                 res.json(200, {"data": data});

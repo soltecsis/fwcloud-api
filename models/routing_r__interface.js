@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_r__interfaceModel = {};
 var tableModel="routing_r__interface";
 
 
-//obtenemos todos los routing_r__interface por policy_r
+//Get All routing_r__interface by policy_r
 routing_r__interfaceModel.getRouting_r__interfaces_rule = function (interface,callback) {
 
     db.get(function (error, connection) {
@@ -21,7 +21,7 @@ routing_r__interfaceModel.getRouting_r__interfaces_rule = function (interface,ca
     });
 };
 
-//obtenemos todos los routing_r__interface por policy_r
+//Get All routing_r__interface by policy_r
 routing_r__interfaceModel.getRouting_r__interfaces_interface = function (rule,callback) {
 
     db.get(function (error, connection) {
@@ -39,7 +39,7 @@ routing_r__interfaceModel.getRouting_r__interfaces_interface = function (rule,ca
 
 
 
-//obtenemos un routing_r__interface por su rule y  interface
+//Get routing_r__interface by  rule and  interface
 routing_r__interfaceModel.getRouting_r__interface = function (interface, rule, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -55,7 +55,7 @@ routing_r__interfaceModel.getRouting_r__interface = function (interface, rule, c
 
 
 
-//añadir un nuevo routing_r__interface
+//Add new routing_r__interface
 routing_r__interfaceModel.insertRouting_r__interface = function (routing_r__interfaceData, callback) {
     OrderList(routing_r__interfaceData.column_order, routing_r__interfaceData.rule, 999999);
     db.get(function (error, connection) {
@@ -72,7 +72,7 @@ routing_r__interfaceModel.insertRouting_r__interface = function (routing_r__inte
     });
 };
 
-//actualizar un routing_r__interface
+//Update routing_r__interface
 routing_r__interfaceModel.updateRouting_r__interface = function (old_order,routing_r__interfaceData, callback) {
 
     OrderList(routing_r__interfaceData.column_order, routing_r__interfaceData.rule, old_order);
@@ -93,7 +93,7 @@ routing_r__interfaceModel.updateRouting_r__interface = function (old_order,routi
 };
 
 
-//actualizar ORDER un routing_r__interface
+//Update ORDER routing_r__interface
 routing_r__interfaceModel.updateRouting_r__interface_order = function (rule, interface, old_order, new_order, callback) {
 
     OrderList(new_order, rule, old_order);
@@ -138,7 +138,7 @@ function OrderList(new_order, rule, old_order){
     
 };
 
-//eliminar un routing_r__interface pasando la id a eliminar
+//Remove routing_r__interface with id to remove
 routing_r__interfaceModel.deleteRouting_r__interface = function (rule, interface,old_order, callback) {
     OrderList(999999, rule,old_order );
     
@@ -146,7 +146,7 @@ routing_r__interfaceModel.deleteRouting_r__interface = function (rule, interface
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_r__interface a eliminar
+            //If exists Id from routing_r__interface to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
@@ -167,5 +167,5 @@ routing_r__interfaceModel.deleteRouting_r__interface = function (rule, interface
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_r__interfaceModel;

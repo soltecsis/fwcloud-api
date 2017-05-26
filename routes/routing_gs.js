@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 router.get('/routing-g', function (req, res)
 {
     res.render('new_routing_g', {title: 'Crear nuevo routing_g'});
 });
 
-/* Obtenemos y mostramos todos los routing_gs por firewall*/
+/* Get all routing_gs by firewall*/
 router.get('/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     Routing_gModel.getRouting_gs(idfirewall,function (error, data)
     {
-        //si existe el routing_g mostramos el formulario
+        //If exists routing_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -37,19 +37,19 @@ router.get('/:idfirewall', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los routing_gs por firewall*/
+/* Get all routing_gs by firewall*/
 router.get('/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
     Routing_gModel.getRouting_gs_group(idfirewall, idgroup,function (error, data)
     {
-        //si existe el routing_g mostramos el formulario
+        //If exists routing_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -57,19 +57,19 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos  routing_g por id y  por firewall*/
+/* Get  routing_g by id and  by firewall*/
 router.get('/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
     Routing_gModel.getRouting_g(idfirewall,id,function (error, data)
     {
-        //si existe el routing_g mostramos el formulario
+        //If exists routing_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -77,19 +77,19 @@ router.get('/:idfirewall/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los routing_gs por nombre y por firewall*/
+/* Get all routing_gs by nombre and by firewall*/
 router.get('/:idfirewall/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
     Routing_gModel.getRouting_gName(idfirewall,name,function (error, data)
     {
-        //si existe el routing_g mostramos el formulario
+        //If exists routing_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -101,10 +101,10 @@ router.get('/:idfirewall/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo routing_g */
+/* Create New routing_g */
 router.post("/routing-g", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del routing_g
+    //Create New objet with data routing_g
     var routing_gData = {
         id: null,
         firewall: req.body.firewall,
@@ -114,7 +114,7 @@ router.post("/routing-g", function (req, res)
     
     Routing_gModel.insertRouting_g(routing_gData, function (error, data)
     {
-        //si el routing_g se ha insertado correctamente mostramos su info
+        //If saved routing_g Get data
         if (data && data.insertId)
         {
             //res.redirect("/routing-gs/routing-g/" + data.insertId);
@@ -126,14 +126,14 @@ router.post("/routing-g", function (req, res)
     });
 });
 
-/* Actualizamos un routing_g existente */
+/* Update routing_g that exist */
 router.put('/routing-g/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var routing_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment')};
     Routing_gModel.updateRouting_g(routing_gData, function (error, data)
     {
-        //si el routing_g se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_g saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-gs/routing-g/" + req.param('id'));
@@ -147,10 +147,10 @@ router.put('/routing-g/', function (req, res)
 
 
 
-/* ELiminamos un routing_g */
+/* Remove routing_g */
 router.delete("/routing-g/", function (req, res)
 {
-    //id del routing_g a eliminar
+    //Id from routing_g to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     Routing_gModel.deleteRouting_gidfirewall(idfirewall,id, function (error, data)

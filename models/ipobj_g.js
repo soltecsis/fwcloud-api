@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var ipobj_gModel = {};
 var tableModel="ipobj_g";
 
 
-//obtenemos todos los ipobj_g
+//Get All ipobj_g
 ipobj_gModel.getIpobj_gs = function (fwcloud,callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ ipobj_gModel.getIpobj_gs = function (fwcloud,callback) {
 
 
 
-//obtenemos un ipobj_g por su id
+//Get ipobj_g by  id
 ipobj_gModel.getIpobj_g = function (fwcloud,id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ ipobj_gModel.getIpobj_g = function (fwcloud,id, callback) {
     });
 };
 
-//obtenemos un ipobj_g por su nombre
+//Get ipobj_g by name
 ipobj_gModel.getIpobj_gName = function (fwcloud,name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -53,7 +53,7 @@ ipobj_gModel.getIpobj_gName = function (fwcloud,name, callback) {
     });
 };
 
-//obtenemos un ipobj_g por su tipo
+//Get ipobj_g by  tipo
 ipobj_gModel.getIpobj_gType = function (fwcloud,type, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -67,7 +67,7 @@ ipobj_gModel.getIpobj_gType = function (fwcloud,type, callback) {
     });
 };
 
-//añadir un nuevo ipobj_g
+//Add new ipobj_g
 ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -83,7 +83,7 @@ ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
     });
 };
 
-//actualizar un ipobj_g
+//Update ipobj_g
 ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 
     db.get(function (error, connection) {
@@ -104,13 +104,13 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
     });
 };
 
-//eliminar un ipobj_g pasando la id a eliminar
+//Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del ipobj_g a eliminar
+            //If exists Id from ipobj_g to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -131,5 +131,5 @@ ipobj_gModel.deleteIpobj_g = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = ipobj_gModel;

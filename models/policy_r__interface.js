@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_r__interfaceModel = {};
 var tableModel="policy_r__interface";
 
 
-//obtenemos todos los policy_r__interface por policy_r
+//Get All policy_r__interface by policy_r
 policy_r__interfaceModel.getPolicy_r__interfaces_rule = function (interface,callback) {
 
     db.get(function (error, connection) {
@@ -21,7 +21,7 @@ policy_r__interfaceModel.getPolicy_r__interfaces_rule = function (interface,call
     });
 };
 
-//obtenemos todos los policy_r__interface por policy_r
+//Get All policy_r__interface by policy_r
 policy_r__interfaceModel.getPolicy_r__interfaces_interface = function (rule,callback) {
 
     db.get(function (error, connection) {
@@ -39,7 +39,7 @@ policy_r__interfaceModel.getPolicy_r__interfaces_interface = function (rule,call
 
 
 
-//obtenemos un policy_r__interface por su rule y  interface
+//Get policy_r__interface by  rule and  interface
 policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -55,7 +55,7 @@ policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, cal
 
 
 
-//añadir un nuevo policy_r__interface
+//Add new policy_r__interface
 policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfaceData, callback) {
     OrderList(policy_r__interfaceData.column_order, policy_r__interfaceData.rule, 999999);
     db.get(function (error, connection) {
@@ -72,7 +72,7 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
     });
 };
 
-//actualizar un policy_r__interface
+//Update policy_r__interface
 policy_r__interfaceModel.updatePolicy_r__interface = function (old_order,policy_r__interfaceData, callback) {
 
     OrderList(policy_r__interfaceData.column_order, policy_r__interfaceData.rule, old_order);
@@ -93,7 +93,7 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (old_order,policy_
 };
 
 
-//actualizar ORDER un policy_r__interface
+//Update ORDER policy_r__interface
 policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, interface, old_order, new_order, callback) {
 
     OrderList(new_order, rule, old_order);
@@ -138,7 +138,7 @@ function OrderList(new_order, rule, old_order){
     
 };
 
-//eliminar un policy_r__interface pasando la id a eliminar
+//Remove policy_r__interface with id to remove
 policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface,old_order, callback) {
     OrderList(999999, rule,old_order );
     
@@ -146,7 +146,7 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface,o
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_r__interface a eliminar
+            //If exists Id from policy_r__interface to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
@@ -167,5 +167,5 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface,o
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_r__interfaceModel;

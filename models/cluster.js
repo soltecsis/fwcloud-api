@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var clusterModel = {};
 var tableModel="cluster";
 
 
-//obtenemos todos los cluster
+//Get All cluster
 clusterModel.getClusters = function (callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ clusterModel.getClusters = function (callback) {
 
 
 
-//obtenemos un cluster por su id
+//Get cluster by  id
 clusterModel.getCluster = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ clusterModel.getCluster = function (id, callback) {
     });
 };
 
-//obtenemos un cluster por su nombre
+//Get cluster by name
 clusterModel.getClusterName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -52,7 +52,7 @@ clusterModel.getClusterName = function (name, callback) {
     });
 };
 
-//añadir un nuevo cluster
+//Add new cluster
 clusterModel.insertCluster = function (clusterData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -68,7 +68,7 @@ clusterModel.insertCluster = function (clusterData, callback) {
     });
 };
 
-//actualizar un cluster
+//Update cluster
 clusterModel.updateCluster = function (clusterData, callback) {
 
     db.get(function (error, connection) {
@@ -87,13 +87,13 @@ clusterModel.updateCluster = function (clusterData, callback) {
     });
 };
 
-//eliminar un cluster pasando la id a eliminar
+//Remove cluster with id to remove
 clusterModel.deleteCluster = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del cluster a eliminar
+            //If exists Id from cluster to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -114,5 +114,5 @@ clusterModel.deleteCluster = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = clusterModel;

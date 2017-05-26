@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/ipobj-g', function (req, res)
 {
     res.render('new_ipobj_g', {title: 'Crear nuevo ipobj_g'});
 });
 
-/* Obtenemos y mostramos todos los ipobj_gs*/
+/* Get all ipobj_gs*/
 router.get('/:fwcloud', function (req, res)
 {
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gs(fwcloud,function (error, data)
     {
-        //si existe el ipobj_g mostramos el formulario
+        //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -40,19 +40,19 @@ router.get('/:fwcloud', function (req, res)
 
 
 
-/* Obtenemos y mostramos  ipobj_g por id */
+/* Get  ipobj_g by id */
 router.get('/:fwcloud/:id', function (req, res)
 {    
     var id = req.params.id;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_g(fwcloud,id,function (error, data)
     {
-        //si existe el ipobj_g mostramos el formulario
+        //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -60,19 +60,19 @@ router.get('/:fwcloud/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los ipobj_gs por nombre */
+/* Get all ipobj_gs by nombre */
 router.get('/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gName(fwcloud,name,function (error, data)
     {
-        //si existe el ipobj_g mostramos el formulario
+        //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -80,19 +80,19 @@ router.get('/:fwcloud/name/:name', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los ipobj_gs por tipo */
+/* Get all ipobj_gs by tipo */
 router.get('/:fwcloud/type/:type', function (req, res)
 {
     var type = req.params.type;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gtype(fwcloud,type,function (error, data)
     {
-        //si existe el ipobj_g mostramos el formulario
+        //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -104,10 +104,10 @@ router.get('/:fwcloud/type/:type', function (req, res)
 
 
 
-/* Creamos un nuevo ipobj_g */
+/* Create New ipobj_g */
 router.post("/ipobj-g", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del ipobj_g
+    //Create New objet with data ipobj_g
     var ipobj_gData = {
         id: null,
         name: req.body.name,
@@ -117,7 +117,7 @@ router.post("/ipobj-g", function (req, res)
     
     Ipobj_gModel.insertIpobj_g(ipobj_gData, function (error, data)
     {
-        //si el ipobj_g se ha insertado correctamente mostramos su info
+        //If saved ipobj_g Get data
         if (data && data.insertId)
         {
             //res.redirect("/ipobj-gs/ipobj-g/" + data.insertId);
@@ -129,14 +129,14 @@ router.post("/ipobj-g", function (req, res)
     });
 });
 
-/* Actualizamos un ipobj_g existente */
+/* Update ipobj_g that exist */
 router.put('/ipobj-g/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var ipobj_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'),fwcloud: req.param('fwcloud')};
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
     {
-        //si el ipobj_g se ha actualizado correctamente mostramos un mensaje
+        //If saved ipobj_g saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/ipobj-gs/ipobj-g/" + req.param('id'));
@@ -150,10 +150,10 @@ router.put('/ipobj-g/', function (req, res)
 
 
 
-/* ELiminamos un ipobj_g */
+/* Remove ipobj_g */
 router.delete("/ipobj-g/", function (req, res)
 {
-    //id del ipobj_g a eliminar
+    //Id from ipobj_g to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     Ipobj_gModel.deleteIpobj_gidfirewall(idfirewall,id, function (error, data)

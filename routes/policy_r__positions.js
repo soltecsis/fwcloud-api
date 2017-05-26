@@ -12,24 +12,24 @@ var isAuthenticated = function (req, res, next) {
 //    return next();
 //});
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/policy-r__position', function (req, res)
 {
     res.render('new_policy_r__position', {title: 'Crear nuevo policy_r__position'});
 });
 
-/* Obtenemos y mostramos todos los policy_r__positions*/
+/* Get all policy_r__positions*/
 router.get('/:rule', function (req, res)
 {
     var rule = req.params.rule;
     Policy_r__positionModel.getPolicy_r__positions(rule,function (error, data)
     {
-        //si existe el policy_r__position mostramos el formulario
+        //If exists policy_r__position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,19 +39,19 @@ router.get('/:rule', function (req, res)
 
 
 
-/* Obtenemos y mostramos  policy_r__position por rule y position */
+/* Get  policy_r__position by rule and position */
 router.get('/:rule/:position', function (req, res)
 {    
     var rule = req.params.rule;
     var position = req.params.position;
     Policy_r__positionModel.getPolicy_r__position(rule, position,function (error, data)
     {
-        //si existe el policy_r__position mostramos el formulario
+        //If exists policy_r__position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -63,10 +63,10 @@ router.get('/:rule/:position', function (req, res)
 
 
 
-/* Creamos un nuevo policy_r__position */
+/* Create New policy_r__position */
 router.post("/policy-r__position", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del policy_r__position
+    //Create New objet with data policy_r__position
     var policy_r__positionData = {
         rule: req.body.rule,
         position: req.body.position,
@@ -76,7 +76,7 @@ router.post("/policy-r__position", function (req, res)
     
     Policy_r__positionModel.insertPolicy_r__position(policy_r__positionData, function (error, data)
     {
-        //si el policy_r__position se ha insertado correctamente mostramos su info
+        //If saved policy_r__position Get data
         if (data && data.msg)
         {
             //res.redirect("/policy-r__positions/policy-r__position/" + data.insertId);
@@ -88,11 +88,11 @@ router.post("/policy-r__position", function (req, res)
     });
 });
 
-/* Actualizamos un policy_r__position existente */
+/* Update policy_r__position that exist */
 router.put('/policy-r__position', function (req, res)
 {
     var old_order = req.body.get_column_order;
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var policy_r__positionData = {
         rule: req.body.rule, 
         position: req.body.position, 
@@ -101,7 +101,7 @@ router.put('/policy-r__position', function (req, res)
     };
     Policy_r__positionModel.updatePolicy_r__position(old_order,policy_r__positionData, function (error, data)
     {
-        //si el policy_r__position se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_r__position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-r__positions/policy-r__position/" + req.param('id'));
@@ -113,7 +113,7 @@ router.put('/policy-r__position', function (req, res)
     });
 });
 
-/* Actualizamos NEGATE de un policy_r__position existente */
+/* Update NEGATE de policy_r__position that exist */
 router.put('/policy-r__position/:rule/:position/negate/:negate', function (req, res)
 {
     var rule = req.param('rule');
@@ -123,7 +123,7 @@ router.put('/policy-r__position/:rule/:position/negate/:negate', function (req, 
 
     Policy_r__positionModel.updatePolicy_r__position_negate(rule, position,negate, function (error, data)
     {
-        //si el policy_r__position se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_r__position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-r__positions/policy-r__position/" + req.param('id'));
@@ -135,7 +135,7 @@ router.put('/policy-r__position/:rule/:position/negate/:negate', function (req, 
     });
 });
 
-/* Actualizamos ORDER de un policy_r__position existente */
+/* Update ORDER de policy_r__position that exist */
 router.put('/policy-r__position/:rule/:position/order/:old_order/:new_order', function (req, res)
 {
     var rule = req.param('rule');
@@ -145,7 +145,7 @@ router.put('/policy-r__position/:rule/:position/order/:old_order/:new_order', fu
 
     Policy_r__positionModel.updatePolicy_r__position_order(rule, position,old_order,new_order, function (error, data)
     {
-        //si el policy_r__position se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_r__position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-r__positions/policy-r__position/" + req.param('id'));
@@ -159,10 +159,10 @@ router.put('/policy-r__position/:rule/:position/order/:old_order/:new_order', fu
 
 
 
-/* ELiminamos un policy_r__position */
+/* Remove policy_r__position */
 router.delete("/policy-r__position/", function (req, res)
 {
-    //id del policy_r__position a eliminar
+    //Id from policy_r__position to remove
     var rule = req.param('rule');
     var position = req.param('position');
     var old_order = req.param('old_order');

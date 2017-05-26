@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/policy-g', function (req, res)
 {
     res.render('new_policy_g', {title: 'Crear nuevo policy_g'});
 });
 
-/* Obtenemos y mostramos todos los policy_gs por firewall*/
+/* Get all policy_gs by firewall*/
 router.get('/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     Policy_gModel.getPolicy_gs(idfirewall,function (error, data)
     {
-        //si existe el policy_g mostramos el formulario
+        //If exists policy_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -37,19 +37,19 @@ router.get('/:idfirewall', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los policy_gs por firewall y grupo padre*/
+/* Get all policy_gs by firewall and group father*/
 router.get('/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
     Policy_gModel.getPolicy_gs_group(idfirewall,idgroup,function (error, data)
     {
-        //si existe el policy_g mostramos el formulario
+        //If exists policy_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -57,19 +57,19 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos  policy_g por id y  por firewall*/
+/* Get  policy_g by id and  by firewall*/
 router.get('/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
     Policy_gModel.getPolicy_g(idfirewall,id,function (error, data)
     {
-        //si existe el policy_g mostramos el formulario
+        //If exists policy_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -77,19 +77,19 @@ router.get('/:idfirewall/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los policy_gs por nombre y por firewall*/
+/* Get all policy_gs by nombre and by firewall*/
 router.get('/:idfirewall/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
     Policy_gModel.getPolicy_gName(idfirewall,name,function (error, data)
     {
-        //si existe el policy_g mostramos el formulario
+        //If exists policy_g get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -101,10 +101,10 @@ router.get('/:idfirewall/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo policy_g */
+/* Create New policy_g */
 router.post("/policy-g", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del policy_g
+    //Create New objet with data policy_g
     var policy_gData = {
         id: null,
         firewall: req.body.firewall,
@@ -114,7 +114,7 @@ router.post("/policy-g", function (req, res)
     
     Policy_gModel.insertPolicy_g(policy_gData, function (error, data)
     {
-        //si el policy_g se ha insertado correctamente mostramos su info
+        //If saved policy_g Get data
         if (data && data.insertId)
         {
             //res.redirect("/policy-gs/policy-g/" + data.insertId);
@@ -126,14 +126,14 @@ router.post("/policy-g", function (req, res)
     });
 });
 
-/* Actualizamos un policy_g existente */
+/* Update policy_g that exist */
 router.put('/policy-g/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var policy_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment')};
     Policy_gModel.updatePolicy_g(policy_gData, function (error, data)
     {
-        //si el policy_g se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_g saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-gs/policy-g/" + req.param('id'));
@@ -147,10 +147,10 @@ router.put('/policy-g/', function (req, res)
 
 
 
-/* ELiminamos un policy_g */
+/* Remove policy_g */
 router.delete("/policy-g/", function (req, res)
 {
-    //id del policy_g a eliminar
+    //Id from policy_g to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     Policy_gModel.deletePolicy_gidfirewall(idfirewall,id, function (error, data)

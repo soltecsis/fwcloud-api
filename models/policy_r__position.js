@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_r__positionModel = {};
 var tableModel="policy_r__position";
 
 
-//obtenemos todos los policy_r__position por policy_r
+//Get All policy_r__position by policy_r
 policy_r__positionModel.getPolicy_r__positions = function (rule,callback) {
 
     db.get(function (error, connection) {
@@ -25,7 +25,7 @@ policy_r__positionModel.getPolicy_r__positions = function (rule,callback) {
 
 
 
-//obtenemos un policy_r__position por su rule y  position
+//Get policy_r__position by  rule and  position
 policy_r__positionModel.getPolicy_r__position = function (rule,position, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -41,7 +41,7 @@ policy_r__positionModel.getPolicy_r__position = function (rule,position, callbac
 
 
 
-//añadir un nuevo policy_r__position
+//Add new policy_r__position
 policy_r__positionModel.insertPolicy_r__position = function (policy_r__positionData, callback) {
     OrderList(policy_r__positionData.column_order, policy_r__positionData.rule, 999999);
     db.get(function (error, connection) {
@@ -58,7 +58,7 @@ policy_r__positionModel.insertPolicy_r__position = function (policy_r__positionD
     });
 };
 
-//actualizar un policy_r__position
+//Update policy_r__position
 policy_r__positionModel.updatePolicy_r__position = function (old_order,policy_r__positionData, callback) {
 
     OrderList(policy_r__positionData.column_order, policy_r__positionData.rule, old_order);
@@ -79,7 +79,7 @@ policy_r__positionModel.updatePolicy_r__position = function (old_order,policy_r_
     });
 };
 
-//actualizar NEGATE un policy_r__position
+//Update NEGATE policy_r__position
 policy_r__positionModel.updatePolicy_r__position_negate = function (rule, position, negate, callback) {
 
     db.get(function (error, connection) {
@@ -99,7 +99,7 @@ policy_r__positionModel.updatePolicy_r__position_negate = function (rule, positi
     });
 };
 
-//actualizar ORDER un policy_r__position
+//Update ORDER policy_r__position
 policy_r__positionModel.updatePolicy_r__position_order = function (rule, position, old_order, new_order, callback) {
 
     OrderList(new_order, rule, old_order);
@@ -144,7 +144,7 @@ function OrderList(new_order, rule, old_order){
     
 };
 
-//eliminar un policy_r__position pasando la id a eliminar
+//Remove policy_r__position with id to remove
 policy_r__positionModel.deletePolicy_r__position = function (rule, position,old_order, callback) {
     OrderList(999999, rule,old_order );
     
@@ -152,7 +152,7 @@ policy_r__positionModel.deletePolicy_r__position = function (rule, position,old_
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  position = ' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_r__position a eliminar
+            //If exists Id from policy_r__position to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  position = ' + connection.escape(position);
@@ -173,5 +173,5 @@ policy_r__positionModel.deletePolicy_r__position = function (rule, position,old_
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_r__positionModel;

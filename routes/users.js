@@ -14,13 +14,13 @@ router.get('/*',isAuthenticated, function (req, res, next){
 });
 */
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 //router.get('/', function(req, res) 
 //{
 //  res.render('index', { title: 'Mostrando listado de Users'});
 //});
 
-/* Obtenemos y mostramos todos los users por customer*/
+/* Get all users by customer*/
 router.get('/:customer', function (req, res)
 {
     var customer=req.params.customer;
@@ -50,12 +50,12 @@ router.get('/:customer/username/:username', function (req, res)
     var username=req.params.username;
     UserModel.getUserName(customer, username, function (error, data)
     {
-        //si existe el user mostramos el formulario
+        //If exists user get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -66,7 +66,7 @@ router.get('/:customer/username/:username', function (req, res)
 /* form for new users */
 router.get('/user', function (req, res)
 {
-    res.render('new_user', {title: 'Servicio rest con nodejs, express 4 y mysql'});
+    res.render('new_user', {title: 'Servicio rest con nodejs, express 4 and mysql'});
 });
 
 /* new user */
@@ -121,7 +121,7 @@ router.get('/:customer/user/:id', function (req, res)
 {
      var customer=req.params.customer;
     var id = req.params.id;
-    //solo actualizamos si la id es un número
+    //
     if (!isNaN(id))
     {
         UserModel.getUser(customer,id, function (error, data)

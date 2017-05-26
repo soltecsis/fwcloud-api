@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var userModel = {};
 
 
 
-//obtenemos todos los usuarios
+//Get all users
 userModel.getUsers = function (customer, callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ userModel.getUsers = function (customer, callback) {
 
 
 
-//obtenemos un usuario por su id
+//Get user by  id
 userModel.getUser = function (customer, id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ userModel.getUser = function (customer, id, callback) {
     });
 };
 
-//obtenemos un usuario por su username
+//Get user by  username
 userModel.getUserName = function (customer,username, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -53,7 +53,7 @@ userModel.getUserName = function (customer,username, callback) {
     });
 };
 
-//añadir un nuevo usuario
+//Add new user
 userModel.insertUser = function (userData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -69,7 +69,7 @@ userModel.insertUser = function (userData, callback) {
     });
 };
 
-//actualizar un usuario
+//Update user
 userModel.updateUser = function (userData, callback) {
 
     db.get(function (error, connection) {
@@ -93,13 +93,13 @@ userModel.updateUser = function (userData, callback) {
     });
 };
 
-//eliminar un usuario pasando la id a eliminar
+//Remove user with id to remove
 userModel.deleteUser = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM user WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del usuario a eliminar
+            //If exists Id from user to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM user WHERE id = ' + connection.escape(id);
@@ -120,5 +120,5 @@ userModel.deleteUser = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = userModel;

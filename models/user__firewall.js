@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var user__firewallModel = {};
 
 
 
-//obtenemos todos los firewall del usuario
+//Get All firewall del user
 user__firewallModel.getUser__firewalls = function (id_user, callback) {
 
     db.get(function (error, connection) {
@@ -20,7 +20,7 @@ user__firewallModel.getUser__firewalls = function (id_user, callback) {
     });
 };
 
-//obtenemos por id
+//Get by id
 user__firewallModel.getUser__firewalls = function (id_user,id_firewall, callback) {
 
     db.get(function (error, connection) {
@@ -36,7 +36,7 @@ user__firewallModel.getUser__firewalls = function (id_user,id_firewall, callback
 
 
 
-//añadir un nuevo usuario
+//Add new user
 user__firewallModel.insertUser__firewall = function (user__firewallData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -73,14 +73,14 @@ user__firewallModel.updateUser__firewall = function (user__firewallData, callbac
     });
 };
 
-//eliminar un usuario pasando la id a eliminar
+//Remove user with id to remove
 user__firewallModel.deleteUser__firewall = function (id_user, id_firewall, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM user__firewall WHERE id_user = ' + connection.escape(id_user) + 
             ' AND id_firewall='  + connection.escape(id_firewall) ;
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del usuario a eliminar
+            //If exists Id from user to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM user__firewall  WHERE id_user = ' + connection.escape(id_user) + 
@@ -102,5 +102,5 @@ user__firewallModel.deleteUser__firewall = function (id_user, id_firewall, callb
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = user__firewallModel;

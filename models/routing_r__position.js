@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_r__positionModel = {};
 var tableModel="routing_r__position";
 
 
-//obtenemos todos los routing_r__position por policy_r
+//Get All routing_r__position by policy_r
 routing_r__positionModel.getRouting_r__positions = function (rule,callback) {
 
     db.get(function (error, connection) {
@@ -25,7 +25,7 @@ routing_r__positionModel.getRouting_r__positions = function (rule,callback) {
 
 
 
-//obtenemos un routing_r__position por su rule y  position
+//Get routing_r__position by  rule and  position
 routing_r__positionModel.getRouting_r__position = function (rule,position, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -41,7 +41,7 @@ routing_r__positionModel.getRouting_r__position = function (rule,position, callb
 
 
 
-//añadir un nuevo routing_r__position
+//Add new routing_r__position
 routing_r__positionModel.insertRouting_r__position = function (routing_r__positionData, callback) {
     OrderList(routing_r__positionData.column_order, routing_r__positionData.rule, 999999);
     db.get(function (error, connection) {
@@ -58,7 +58,7 @@ routing_r__positionModel.insertRouting_r__position = function (routing_r__positi
     });
 };
 
-//actualizar un routing_r__position
+//Update routing_r__position
 routing_r__positionModel.updateRouting_r__position = function (old_order,routing_r__positionData, callback) {
 
     OrderList(routing_r__positionData.column_order, routing_r__positionData.rule, old_order);
@@ -79,7 +79,7 @@ routing_r__positionModel.updateRouting_r__position = function (old_order,routing
     });
 };
 
-//actualizar NEGATE un routing_r__position
+//Update NEGATE routing_r__position
 routing_r__positionModel.updateRouting_r__position_negate = function (rule, position, negate, callback) {
 
     db.get(function (error, connection) {
@@ -99,7 +99,7 @@ routing_r__positionModel.updateRouting_r__position_negate = function (rule, posi
     });
 };
 
-//actualizar ORDER un routing_r__position
+//Update ORDER routing_r__position
 routing_r__positionModel.updateRouting_r__position_order = function (rule, position, old_order, new_order, callback) {
 
     OrderList(new_order, rule, old_order);
@@ -144,7 +144,7 @@ function OrderList(new_order, rule, old_order){
     
 };
 
-//eliminar un routing_r__position pasando la id a eliminar
+//Remove routing_r__position with id to remove
 routing_r__positionModel.deleteRouting_r__position = function (rule, position,old_order, callback) {
     OrderList(999999, rule,old_order );
     
@@ -152,7 +152,7 @@ routing_r__positionModel.deleteRouting_r__position = function (rule, position,ol
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  position = ' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_r__position a eliminar
+            //If exists Id from routing_r__position to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  position = ' + connection.escape(position);
@@ -173,5 +173,5 @@ routing_r__positionModel.deleteRouting_r__position = function (rule, position,ol
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_r__positionModel;

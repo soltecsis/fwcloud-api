@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var macModel = {};
 var tableModel = "mac";
 
 
-//obtenemos todos los interface por interface
+//Get All interface by interface
 macModel.getMacs = function (interface, callback) {
 
     db.get(function (error, connection) {
@@ -26,7 +26,7 @@ macModel.getMacs = function (interface, callback) {
 
 
 
-//obtenemos un interface por su id y interface
+//Get interface by  id and interface
 macModel.getMac = function (interface, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -41,7 +41,7 @@ macModel.getMac = function (interface, id, callback) {
     });
 };
 
-//obtenemos un routing por su nombre y interface
+//Get routing by name and interface
 macModel.getMacName = function (interface, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -58,7 +58,7 @@ macModel.getMacName = function (interface, name, callback) {
     });
 };
 
-//obtenemos un routing por su address y interface
+//Get routing by  address and interface
 macModel.getMacAddress = function (interface, address, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -77,7 +77,7 @@ macModel.getMacAddress = function (interface, address, callback) {
 
 
 
-//añadir un nuevo interface de usuario
+//Add new interface from user
 macModel.insertMac = function (interfaceData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -93,7 +93,7 @@ macModel.insertMac = function (interfaceData, callback) {
     });
 };
 
-//actualizar un interface de usuario
+//Update interface from user
 macModel.updateMac = function ( interfaceData, callback) {
 
     db.get(function (error, connection) {
@@ -115,7 +115,7 @@ macModel.updateMac = function ( interfaceData, callback) {
     });
 };
 
-//eliminar un interface pasando la id a eliminar
+//Remove interface with id to remove
 //FALTA BORRADO EN CASCADA ROUTING_R
 macModel.deleteMac = function (interface, id, callback) {
     db.get(function (error, connection) {
@@ -123,7 +123,7 @@ macModel.deleteMac = function (interface, id, callback) {
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface=' +  connection.escape(interface);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del interface a eliminar
+            //If exists Id from interface to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -142,5 +142,5 @@ macModel.deleteMac = function (interface, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = macModel;

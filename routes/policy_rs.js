@@ -14,44 +14,44 @@ var isAuthenticated = function (req, res, next) {
 //    return next();
 //});
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 router.get('/policy-r', function (req, res)
 {
     res.render('new_policy_r', {title: 'Crear nuevo policy_r'});
 });
 
-/* Obtenemos y mostramos todos los policy_rs por firewall y grupo*/
+/* Get all policy_rs by firewall and group*/
 router.get('/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
     Policy_rModel.getPolicy_rs(idfirewall,idgroup,function (error, data)
     {
-        //si existe el policy_r mostramos el formulario
+        //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
         }
     });
 });
-/* Obtenemos y mostramos todos los policy_rs por firewall */
+/* Get all policy_rs by firewall */
 router.get('/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;    
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
     Policy_rModel.getPolicy_rs(idfirewall,'',function (error, data)
     {
-        //si existe el policy_r mostramos el formulario
+        //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -59,7 +59,7 @@ router.get('/:idfirewall', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos  policy_r por id y  por firewall y grupo */
+/* Get  policy_r by id and  by firewall and group */
 router.get('/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
@@ -67,7 +67,7 @@ router.get('/:idfirewall/:id', function (req, res)
     
     Policy_rModel.getPolicy_r(idfirewall,id,function (error, data)
     {
-        //si existe el policy_r mostramos el formulario
+        //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
 //            res.render("update_policy_r",{ 
@@ -76,7 +76,7 @@ router.get('/:idfirewall/:id', function (req, res)
 //                });  
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -84,7 +84,7 @@ router.get('/:idfirewall/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los policy_rs por nombre y por firewall*/
+/* Get all policy_rs by nombre and by firewall*/
 router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
@@ -92,12 +92,12 @@ router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
     var idgroup = req.params.idgroup;
     Policy_rModel.getPolicy_rName(idfirewall,idgroup,name,function (error, data)
     {
-        //si existe el policy_r mostramos el formulario
+        //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
             res.json(200, {"data": data});
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -109,10 +109,10 @@ router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo policy_r */
+/* Create New policy_r */
 router.post("/policy-r", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del policy_r
+    //Create New objet with data policy_r
     var policy_rData = {
         id: null,
         idgroup: req.body.idgroup,
@@ -131,7 +131,7 @@ router.post("/policy-r", function (req, res)
     
     Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
     {
-        //si el policy_r se ha insertado correctamente mostramos su info
+        //If saved policy_r Get data
         if (data && data.insertId)
         {
             //res.redirect("/policy-rs/policy-r/" + data.insertId);
@@ -143,15 +143,15 @@ router.post("/policy-r", function (req, res)
     });
 });
 
-/* Actualizamos un policy_r existente */
+/* Update policy_r that exist */
 router.put('/policy-r/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var policy_rData = {id: req.param('id'), idgroup: req.param('idgroup'), firewall: req.param('firewall'),  rule_order: req.param('rule_order'),  direction: req.param('direction'), options: req.param('options'), action: req.param('action'), time_start: req.param('time_start'), time_end: req.param('time_end'), comment: req.param('comment'), active: req.param('active'), type: req.param('type'), interface_negate: req.param('interface_negate')};
     var old_order=req.param('old_order');
     Policy_rModel.updatePolicy_r(old_order,policy_rData, function (error, data)
     {
-        //si el policy_r se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_r saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
@@ -163,10 +163,10 @@ router.put('/policy-r/', function (req, res)
     });
 });
 
-/* Actualizamos ORDER de un policy_r existente */
+/* Update ORDER de policy_r that exist */
 router.put('/policy-r/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     var rule_order = req.param('rule_order');    
@@ -174,7 +174,7 @@ router.put('/policy-r/', function (req, res)
     
     Policy_rModel.updatePolicy_r_order(idfirewall,id, rule_order, old_order, function (error, data)
     {
-        //si el policy_r se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_r saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
@@ -188,10 +188,10 @@ router.put('/policy-r/', function (req, res)
 
 
 
-/* ELiminamos un policy_r */
+/* Remove policy_r */
 router.delete("/policy-r/", function (req, res)
 {
-    //id del policy_r a eliminar
+    //Id from policy_r to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     var rule_order = req.param('rule_order');

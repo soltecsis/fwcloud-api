@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var ipobj_type__routing_positionModel = {};
 var tableModel="ipobj_type__routing_position";
 
 
-//obtenemos todos los ipobj_type__routing_position
+//Get All ipobj_type__routing_position
 ipobj_type__routing_positionModel.getIpobj_type__routing_positions = function (callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ ipobj_type__routing_positionModel.getIpobj_type__routing_positions = function (c
 
 
 
-//obtenemos un ipobj_type__routing_position por su id
+//Get ipobj_type__routing_position by  id
 ipobj_type__routing_positionModel.getIpobj_type__routing_position = function (type, position, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -39,7 +39,7 @@ ipobj_type__routing_positionModel.getIpobj_type__routing_position = function (ty
 };
 
 
-//añadir un nuevo ipobj_type__routing_position
+//Add new ipobj_type__routing_position
 ipobj_type__routing_positionModel.insertIpobj_type__routing_position = function (ipobj_type__routing_positionData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -55,7 +55,7 @@ ipobj_type__routing_positionModel.insertIpobj_type__routing_position = function 
     });
 };
 
-//actualizar un ipobj_type__routing_position
+//Update ipobj_type__routing_position
 ipobj_type__routing_positionModel.updateIpobj_type__routing_position = function (ipobj_type__routing_positionData, callback) {
 
     db.get(function (error, connection) {
@@ -73,13 +73,13 @@ ipobj_type__routing_positionModel.updateIpobj_type__routing_position = function 
     });
 };
 
-//eliminar un ipobj_type__routing_position pasando la id a eliminar
+//Remove ipobj_type__routing_position with id to remove
 ipobj_type__routing_positionModel.deleteIpobj_type__routing_position = function (type, position, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del ipobj_type__routing_position a eliminar
+            //If exists Id from ipobj_type__routing_position to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
@@ -100,5 +100,5 @@ ipobj_type__routing_positionModel.deleteIpobj_type__routing_position = function 
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = ipobj_type__routing_positionModel;

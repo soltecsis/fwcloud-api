@@ -12,19 +12,19 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 //router.get('/', function(req, res) 
 //{
 //  res.render('index', { title: 'Mostrando listado de User__firewalls'});
 //});
 
-/* Obtenemos y mostramos todos los user__firewalls de usuario */
+/* Get all user__firewalls from user */
 router.get('/:id_user', function (req, res)
 {
     var id_user = req.params.id_user;
     User__firewallModel.getUser__firewalls(id_user, function (error, data)
     {
-        //si existe el user__firewall mostramos el formulario
+        //If exists user__firewall get data
         if (typeof data !== 'undefined')
         {
 //            res.render("show_user__firewalls",{ 
@@ -33,7 +33,7 @@ router.get('/:id_user', function (req, res)
 //            });
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -41,34 +41,34 @@ router.get('/:id_user', function (req, res)
     });
 });
 
-/* Obtenemos un user__firewall por su id  */
+/* Get user__firewall by  id  */
 router.get('/user__firewall/:id_user/:id_firewall', function (req, res)
 {
     var id_user = req.params.id_user;
     var id_firewall = req.params.id_firewall;
-    //solo actualizamos si la id es un número
+    //
     if (!isNaN(id_user))
     {
         User__firewallModel.getUser__firewall(id_user, id_firewall, function (error, data)
         {
-            //si existe el user__firewall mostramos el formulario
+            //If exists user__firewall get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_user__firewall",{ 
-//                    title : "Servicio rest con nodejs, express 4 y mysql", 
+//                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
                 res.json(200, data);
 
             }
-            //en otro caso mostramos un error
+            //Get Error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //Id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -77,23 +77,23 @@ router.get('/user__firewall/:id_user/:id_firewall', function (req, res)
 
 
 
-/* Mostramos el formulario para crear usuarios nuevos */
+/* Show form */
 router.get('/user__firewall', function (req, res)
 {
-    res.render('new_user__firewall', {title: 'Servicio rest con nodejs, express 4 y mysql'});
+    res.render('new_user__firewall', {title: 'Servicio rest con nodejs, express 4 and mysql'});
 });
 
-/* Creamos un nuevo user__firewall */
+/* Create New user__firewall */
 router.post("/user__firewall", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del user__firewall
+    //Create New objet with data user__firewall
     var user__firewallData = {
         id_user: req.body.id_user,
         id_firewall: req.body.id_firewall
     };
     User__firewallModel.insertUser__firewall(user__firewallData, function (error, data)
     {
-        //si el user__firewall se ha insertado correctamente mostramos su info
+        //If saved user__firewall Get data
         if (data && data.insertId)
         {
             //res.redirect("/user__firewalls/user__firewall/" + data.insertId);
@@ -105,14 +105,14 @@ router.post("/user__firewall", function (req, res)
     });
 });
 
-/* Actualizamos un user__firewall existente */
+/* Update user__firewall that exist */
 router.put('/user__firewall/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var user__firewallData = {id_user: req.param('id_user'), id_firewall: req.param('id_firewall')};
     User__firewallModel.updateUser__firewall(user__firewallData, function (error, data)
     {
-        //si el user__firewall se ha actualizado correctamente mostramos un mensaje
+        //If saved user__firewall saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/user__firewalls/user__firewall/" + req.param('id'));
@@ -126,7 +126,7 @@ router.put('/user__firewall/', function (req, res)
 
 
 
-/* ELiminamos un user__firewall */
+/* Remove user__firewall */
 router.delete("/user__firewall/", function (req, res)
 {
     var id_user = req.params.id_user;

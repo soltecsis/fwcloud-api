@@ -1,14 +1,14 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_rModel = {};
 var tableModel = "routing_r";
 
 
 
 
-//obtenemos todos los routing_r por firewall y grupo
+//Get All routing_r by firewall and group
 routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
 
     db.get(function (error, connection) {
@@ -33,7 +33,7 @@ routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
 
 
 
-//obtenemos un routing_r por su id y grupo y firewall
+//Get routing_r by  id and group and firewall
 routing_rModel.getRouting_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -49,7 +49,7 @@ routing_rModel.getRouting_r = function (idfirewall, id, callback) {
     });
 };
 
-//obtenemos un routing por su nombre y firewall y grupo
+//Get routing by name and firewall and group
 routing_rModel.getRouting_rName = function (idfirewall,idgroup, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -72,7 +72,7 @@ routing_rModel.getRouting_rName = function (idfirewall,idgroup, name, callback) 
 
 
 
-//añadir un nuevo routing_r de usuario
+//Add new routing_r from user
 routing_rModel.insertRouting_r = function (routing_rData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -88,7 +88,7 @@ routing_rModel.insertRouting_r = function (routing_rData, callback) {
     });
 };
 
-//actualizar un routing_r de usuario
+//Update routing_r from user
 routing_rModel.updateRouting_r = function ( routing_rData, callback) {
 
     db.get(function (error, connection) {
@@ -113,14 +113,14 @@ routing_rModel.updateRouting_r = function ( routing_rData, callback) {
     });
 };
 
-//eliminar un routing_r pasando la id a eliminar
+//Remove routing_r with id to remove
 routing_rModel.deleteRouting_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_r a eliminar
+            //If exists Id from routing_r to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -139,5 +139,5 @@ routing_rModel.deleteRouting_r = function (idfirewall, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_rModel;

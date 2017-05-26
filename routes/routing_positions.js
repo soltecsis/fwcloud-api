@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/routing-position', function (req, res)
 {
     res.render('new_routing_position', {title: 'Crear nuevo routing_position'});
 });
 
-/* Obtenemos y mostramos todos los routing_positions*/
+/* Get all routing_positions*/
 router.get('/', function (req, res)
 {
 
     Routing_positionModel.getRouting_positions(function (error, data)
     {
-        //si existe el routing_position mostramos el formulario
+        //If exists routing_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,18 +39,18 @@ router.get('/', function (req, res)
 
 
 
-/* Obtenemos y mostramos  routing_position por id */
+/* Get  routing_position by id */
 router.get('/:id', function (req, res)
 {    
     var id = req.params.id;
     Routing_positionModel.getRouting_position(id,function (error, data)
     {
-        //si existe el routing_position mostramos el formulario
+        //If exists routing_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -58,18 +58,18 @@ router.get('/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los routing_positions por nombre */
+/* Get all routing_positions by nombre */
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
     Routing_positionModel.getRouting_positionName(name,function (error, data)
     {
-        //si existe el routing_position mostramos el formulario
+        //If exists routing_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -80,10 +80,10 @@ router.get('/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo routing_position */
+/* Create New routing_position */
 router.post("/routing-position", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del routing_position
+    //Create New objet with data routing_position
     var routing_positionData = {
         id: req.body.id,
         name: req.body.comment
@@ -91,7 +91,7 @@ router.post("/routing-position", function (req, res)
     
     Routing_positionModel.insertRouting_position(routing_positionData, function (error, data)
     {
-        //si el routing_position se ha insertado correctamente mostramos su info
+        //If saved routing_position Get data
         if (data && data.insertId)
         {
             //res.redirect("/routing-positions/routing-position/" + data.insertId);
@@ -103,14 +103,14 @@ router.post("/routing-position", function (req, res)
     });
 });
 
-/* Actualizamos un routing_position existente */
+/* Update routing_position that exist */
 router.put('/routing-position/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var routing_positionData = {id: req.param('id'), name: req.param('name')};
     Routing_positionModel.updateRouting_position(routing_positionData, function (error, data)
     {
-        //si el routing_position se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-positions/routing-position/" + req.param('id'));
@@ -124,10 +124,10 @@ router.put('/routing-position/', function (req, res)
 
 
 
-/* ELiminamos un routing_position */
+/* Remove routing_position */
 router.delete("/routing-position/", function (req, res)
 {
-    //id del routing_position a eliminar
+    //Id from routing_position to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     Routing_positionModel.deleteRouting_positionidfirewall(idfirewall,id, function (error, data)

@@ -1,14 +1,14 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_rModel = {};
 var tableModel = "policy_r";
 
 
 
 
-//obtenemos todos los policy_r por firewall y grupo
+//Get All policy_r by firewall and group
 policy_rModel.getPolicy_rs = function (idfirewall,idgroup, callback) {
 
     db.get(function (error, connection) {
@@ -29,7 +29,7 @@ policy_rModel.getPolicy_rs = function (idfirewall,idgroup, callback) {
 };
 
 
-//obtenemos un policy_r por su id  y firewall
+//Get policy_r by  id  and firewall
 policy_rModel.getPolicy_r = function (idfirewall,  id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -45,7 +45,7 @@ policy_rModel.getPolicy_r = function (idfirewall,  id, callback) {
     });
 };
 
-//obtenemos un routing por su nombre y firewall y grupo
+//Get routing by name and firewall and group
 policy_rModel.getPolicy_rName = function (idfirewall,idgroup, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -68,7 +68,7 @@ policy_rModel.getPolicy_rName = function (idfirewall,idgroup, name, callback) {
 
 
 
-//añadir un nuevo policy_r de usuario
+//Add new policy_r from user
 policy_rModel.insertPolicy_r = function (policy_rData, callback) {
     OrderList(policy_rData.rule_order, policy_rData.firewall,  999999);
     db.get(function (error, connection) {
@@ -85,7 +85,7 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
     });
 };
 
-//actualizar un policy_r de usuario
+//Update policy_r from user
 policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
 
     OrderList(policy_rData.rule_order, policy_rData.firewall,  old_order);
@@ -117,7 +117,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
     });
 };
 
-//actualizar ORDER de un policy_r 
+//Update ORDER de policy_r 
 policy_rModel.updatePolicy_r_order = function (idfirewall,id, rule_order, old_order, callback) {
 
     OrderList(rule_order, idfirewall,  old_order);
@@ -162,7 +162,7 @@ function OrderList(new_order, idfirewall,  old_order){
     
 };
 
-//eliminar un policy_r pasando la id a eliminar
+//Remove policy_r with id to remove
 policy_rModel.deletePolicy_r = function (idfirewall, id,rule_order, callback) {
     OrderList(999999, idfirewall,  rule_order);
     db.get(function (error, connection) {
@@ -170,7 +170,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id,rule_order, callback) {
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_r a eliminar
+            //If exists Id from policy_r to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -189,5 +189,5 @@ policy_rModel.deletePolicy_r = function (idfirewall, id,rule_order, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_rModel;

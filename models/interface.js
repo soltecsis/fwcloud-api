@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var interfaceModel = {};
 var tableModel = "interface";
 
 
-//obtenemos todos los interface por firewall
+//Get All interface by firewall
 interfaceModel.getInterfaces = function (idfirewall, callback) {
 
     db.get(function (error, connection) {
@@ -26,7 +26,7 @@ interfaceModel.getInterfaces = function (idfirewall, callback) {
 
 
 
-//obtenemos un interface por su id y interface
+//Get interface by  id and interface
 interfaceModel.getInterface = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -41,7 +41,7 @@ interfaceModel.getInterface = function (idfirewall, id, callback) {
     });
 };
 
-//obtenemos un interfaz por su nombre y interface
+//Get interfaz by name and interface
 interfaceModel.getInterfaceName = function (idfirewall, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -60,7 +60,7 @@ interfaceModel.getInterfaceName = function (idfirewall, name, callback) {
 
 
 
-//añadir un nuevo interface de usuario
+//Add new interface from user
 interfaceModel.insertInterface = function (interfaceData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -76,7 +76,7 @@ interfaceModel.insertInterface = function (interfaceData, callback) {
     });
 };
 
-//actualizar un interface de usuario
+//Update interface from user
 interfaceModel.updateInterface = function ( interfaceData, callback) {
 
     db.get(function (error, connection) {
@@ -99,7 +99,7 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
     });
 };
 
-//eliminar un interface pasando la id a eliminar
+//Remove interface with id to remove
 //FALTA BORRADO EN CASCADA 
 interfaceModel.deleteInterface = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
@@ -107,7 +107,7 @@ interfaceModel.deleteInterface = function (idfirewall, id, callback) {
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del interface a eliminar
+            //If exists Id from interface to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -126,5 +126,5 @@ interfaceModel.deleteInterface = function (idfirewall, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = interfaceModel;

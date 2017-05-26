@@ -1697,7 +1697,7 @@ Expr = Sizzle.selectors = {
 				5 sign of xn-component
 				6 x of xn-component
 				7 sign of y-component
-				8 y of y-component
+				8 and of y-component
 			*/
 			match[1] = match[1].toLowerCase();
 
@@ -1707,7 +1707,7 @@ Expr = Sizzle.selectors = {
 					Sizzle.error( match[0] );
 				}
 
-				// numeric x and y parameters for Expr.filter.CHILD
+				// numeric x and and parameters for Expr.filter.CHILD
 				// remember that false/true cast respectively to 0/1
 				match[4] = +( match[4] ? match[5] + (match[6] || 1) : 2 * ( match[3] === "even" || match[3] === "odd" ) );
 				match[5] = +( ( match[7] + match[8] ) || match[3] === "odd" );

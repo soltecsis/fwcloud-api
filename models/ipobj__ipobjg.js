@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var ipobj__ipobjgModel = {};
 var tableModel="ipobj__ipobjg";
 
 
-//obtenemos todos los ipobj__ipobjg por grupo
+//Get All ipobj__ipobjg by group
 ipobj__ipobjgModel.getIpobj__ipobjgs = function (ipobjg, callback) {
 
     db.get(function (error, connection) {
@@ -22,7 +22,7 @@ ipobj__ipobjgModel.getIpobj__ipobjgs = function (ipobjg, callback) {
 
 
 
-//obtenemos un ipobj__ipobjg por su id
+//Get ipobj__ipobjg by  id
 ipobj__ipobjgModel.getIpobj__ipobjg = function (ipobjg,ipobj, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ ipobj__ipobjgModel.getIpobj__ipobjg = function (ipobjg,ipobj, callback) {
 
 
 
-//añadir un nuevo ipobj__ipobjg
+//Add new ipobj__ipobjg
 ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -54,7 +54,7 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) 
     });
 };
 
-//actualizar un ipobj__ipobjg
+//Update ipobj__ipobjg
 ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj,ipobj__ipobjgData, callback) {
 
     db.get(function (error, connection) {
@@ -74,13 +74,13 @@ ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj,ipobj__ipobjgD
     });
 };
 
-//eliminar un ipobj__ipobjg pasando la id a eliminar
+//Remove ipobj__ipobjg with id to remove
 ipobj__ipobjgModel.deleteIpobj__ipobjg = function (ipobj_g, ipobj, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' +  connection.escape(ipobj);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del ipobj__ipobjg a eliminar
+            //If exists Id from ipobj__ipobjg to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' +  connection.escape(ipobj);
@@ -101,5 +101,5 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (ipobj_g, ipobj, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = ipobj__ipobjgModel;

@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear  nuevos */
+/* get data para crear  nuevos */
 router.get('/mac', function (req, res)
 {
     res.render('new_mac', {title: 'Crear nuevo mac'});
 });
 
-/* Obtenemos y mostramos todos los macs por intreface*/
+/* Get all macs by intreface*/
 router.get('/:interface', function (req, res)
 {
     var interface = req.params.interface;
     MacModel.getMacs(interface,function (error, data)
     {
-        //si existe el mac mostramos el formulario
+        //If exists mac get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -37,19 +37,19 @@ router.get('/:interface', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos  mac por id y  por interface*/
+/* Get  mac by id and  by interface*/
 router.get('/:interface/:id', function (req, res)
 {
     var interface = req.params.interface;
     var id = req.params.id;
     MacModel.getMac(interface,id,function (error, data)
     {
-        //si existe el mac mostramos el formulario
+        //If exists mac get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -57,19 +57,19 @@ router.get('/:interface/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los macs por nombre y por interface*/
+/* Get all macs by nombre and by interface*/
 router.get('/:interface/name/:name', function (req, res)
 {
     var interface = req.params.interface;
     var name = req.params.name;
     MacModel.getMacName(interface,name,function (error, data)
     {
-        //si existe el mac mostramos el formulario
+        //If exists mac get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -77,19 +77,19 @@ router.get('/:interface/name/:name', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los macs por address y por interface*/
+/* Get all macs by address and by interface*/
 router.get('/:interface/address/:address', function (req, res)
 {
     var interface = req.params.interface;
     var address = req.params.address;
     MacModel.getMacAddress(interface,address,function (error, data)
     {
-        //si existe el mac mostramos el formulario
+        //If exists mac get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -99,10 +99,10 @@ router.get('/:interface/address/:address', function (req, res)
 
 
 
-/* Creamos un nuevo mac */
+/* Create New mac */
 router.post("/mac", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del mac
+    //Create New objet with data mac
     var macData = {
         id: null,
         interface: req.body.interface,
@@ -113,7 +113,7 @@ router.post("/mac", function (req, res)
     var interface= req.body.interface;
     MacModel.insertMac(interface, macData, function (error, data)
     {
-        //si el mac se ha insertado correctamente mostramos su info
+        //If saved mac Get data
         if (data && data.insertId)
         {
             //res.redirect("/macs/mac/" + data.insertId);
@@ -125,14 +125,14 @@ router.post("/mac", function (req, res)
     });
 });
 
-/* Actualizamos un mac existente */
+/* Update mac that exist */
 router.put('/mac/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var macData = {id: req.param('id'), name: req.param('name'), interface: req.param('interface'), address: req.param('address'), comment: req.param('comment')};
     MacModel.updateMac(macData, function (error, data)
     {
-        //si el mac se ha actualizado correctamente mostramos un mensaje
+        //If saved mac saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/macs/mac/" + req.param('id'));
@@ -144,61 +144,61 @@ router.put('/mac/', function (req, res)
     });
 });
 
-/* Obtenemos un mac por su id y lo mostramos en un formulario para editar */
+/* Get mac by  id and lo mostramos en formulario para editar */
 router.get('/:interface/mac/:id', function (req, res)
 {
     var id = req.params.id;
     var interface = req.params.interface;
-    //solo actualizamos si la id es un número
+    //
     if (!isNaN(id))
     {
         MacModel.getMac(interface,id, function (error, data)
         {
-            //si existe el mac mostramos el formulario
+            //If exists mac get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
 
                 res.json(200, data);
 
             }
-            //en otro caso mostramos un error
+            //Get Error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //Id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
     }
 });
 
-/* Obtenemos un mac por su name y  */
+/* Get mac by  name and  */
 router.get('/:interface/mac/name/:name', function (req, res)
 {
     var interface = req.params.interface;
     var name = req.params.name;
-    //solo actualizamos si la id es un número
+    //
     if (name.length>0)
     {
         MacModel.getMacName(interface,name, function (error, data)
         {
-            //si existe el mac mostramos el formulario
+            //If exists mac get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
                 res.json(200, data);
 
             }
-            //en otro caso mostramos un error
+            //Get Error
             else
             {
                 res.json(404, {"msg": "notExist"});
             }
         });
     }
-    //si la id no es numerica mostramos un error de servidor
+    //Id must be numeric
     else
     {
         res.json(500, {"msg": "The id must be numeric"});
@@ -207,10 +207,10 @@ router.get('/:interface/mac/name/:name', function (req, res)
 
 
 
-/* ELiminamos un mac */
+/* Remove mac */
 router.delete("/mac/", function (req, res)
 {
-    //id del mac a eliminar
+    //Id from mac to remove
     var id = req.param('id');
     var interface = req.param('interface');
     MacModel.deleteMac(interface,id, function (error, data)

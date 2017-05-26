@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var policy_positionModel = {};
 var tableModel="policy_position";
 
 
-//obtenemos todos los policy_position
+//Get All policy_position
 policy_positionModel.getPolicy_positions = function (callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ policy_positionModel.getPolicy_positions = function (callback) {
 
 
 
-//obtenemos un policy_position por su id
+//Get policy_position by  id
 policy_positionModel.getPolicy_position = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ policy_positionModel.getPolicy_position = function (id, callback) {
     });
 };
 
-//obtenemos un policy_position por su nombre
+//Get policy_position by name
 policy_positionModel.getPolicy_positionName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -55,7 +55,7 @@ policy_positionModel.getPolicy_positionName = function (name, callback) {
 
 
 
-//añadir un nuevo policy_position
+//Add new policy_position
 policy_positionModel.insertPolicy_position = function (policy_positionData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -71,7 +71,7 @@ policy_positionModel.insertPolicy_position = function (policy_positionData, call
     });
 };
 
-//actualizar un policy_position
+//Update policy_position
 policy_positionModel.updatePolicy_position = function (policy_positionData, callback) {
 
     db.get(function (error, connection) {
@@ -90,13 +90,13 @@ policy_positionModel.updatePolicy_position = function (policy_positionData, call
     });
 };
 
-//eliminar un policy_position pasando la id a eliminar
+//Remove policy_position with id to remove
 policy_positionModel.deletePolicy_position = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del policy_position a eliminar
+            //If exists Id from policy_position to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -117,5 +117,5 @@ policy_positionModel.deletePolicy_position = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = policy_positionModel;

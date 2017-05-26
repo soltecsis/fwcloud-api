@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_positionModel = {};
 var tableModel="routing_position";
 
 
-//obtenemos todos los routing_position
+//Get All routing_position
 routing_positionModel.getRouting_positions = function (callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ routing_positionModel.getRouting_positions = function (callback) {
 
 
 
-//obtenemos un routing_position por su id
+//Get routing_position by  id
 routing_positionModel.getRouting_position = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ routing_positionModel.getRouting_position = function (id, callback) {
     });
 };
 
-//obtenemos un routing_position por su nombre
+//Get routing_position by name
 routing_positionModel.getRouting_positionName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -55,7 +55,7 @@ routing_positionModel.getRouting_positionName = function (name, callback) {
 
 
 
-//añadir un nuevo routing_position
+//Add new routing_position
 routing_positionModel.insertRouting_position = function (routing_positionData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -71,7 +71,7 @@ routing_positionModel.insertRouting_position = function (routing_positionData, c
     });
 };
 
-//actualizar un routing_position
+//Update routing_position
 routing_positionModel.updateRouting_position = function (routing_positionData, callback) {
 
     db.get(function (error, connection) {
@@ -90,13 +90,13 @@ routing_positionModel.updateRouting_position = function (routing_positionData, c
     });
 };
 
-//eliminar un routing_position pasando la id a eliminar
+//Remove routing_position with id to remove
 routing_positionModel.deleteRouting_position = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_position a eliminar
+            //If exists Id from routing_position to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -117,5 +117,5 @@ routing_positionModel.deleteRouting_position = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_positionModel;

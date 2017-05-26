@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var firewallModel = {};
 var tableModel = "firewall";
 
 
-//obtenemos todos los firewall por usuario
+//Get All firewall by user
 firewallModel.getFirewalls = function (iduser, callback) {
 
     db.get(function (error, connection) {
@@ -27,7 +27,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
 
 
 
-//obtenemos un firewall por su id y usuario
+//Get firewall by  id and user
 firewallModel.getFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -42,7 +42,7 @@ firewallModel.getFirewall = function (iduser, id, callback) {
     });
 };
 
-//obtenemos un firewall por su nombre y usuario
+//Get firewall by name and user
 firewallModel.getFirewallName = function (iduser, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -59,7 +59,7 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
     });
 };
 
-//obtenemos un firewall por cluster y usuario
+//Get firewall by cluster and user
 firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -75,7 +75,7 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     });
 };
 
-//añadir un nuevo firewall de usuario
+//Add new firewall from user
 firewallModel.insertFirewall = function (iduser, firewallData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -98,7 +98,7 @@ firewallModel.insertFirewall = function (iduser, firewallData, callback) {
     });
 };
 
-//actualizar un firewall de usuario
+//Update firewall from user
 firewallModel.updateFirewall = function (iduser, firewallData, callback) {
 
     db.get(function (error, connection) {
@@ -120,14 +120,14 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
     });
 };
 
-//eliminar un firewall pasando la id a eliminar
+//Remove firewall with id to remove
 firewallModel.deleteFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sqlExists = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del firewall a eliminar
+            //If exists Id from firewall to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -153,5 +153,5 @@ firewallModel.deleteFirewall = function (iduser, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = firewallModel;

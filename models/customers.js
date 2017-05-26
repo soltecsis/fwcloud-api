@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var customerModel = {};
 var tableModel="customer";
 
 
-//obtenemos todos los customer
+//Get All customer
 customerModel.getCustomers = function (callback) {
 
     db.get(function (error, connection) {
@@ -24,7 +24,7 @@ customerModel.getCustomers = function (callback) {
 
 
 
-//obtenemos un customer por su id
+//Get customer by  id
 customerModel.getCustomer = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -38,7 +38,7 @@ customerModel.getCustomer = function (id, callback) {
     });
 };
 
-//obtenemos un customer por su nombre
+//Get customer by name
 customerModel.getCustomerName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -52,7 +52,7 @@ customerModel.getCustomerName = function (name, callback) {
     });
 };
 
-//añadir un nuevo customer
+//Add new customer
 customerModel.insertCustomer = function (customerData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
@@ -68,7 +68,7 @@ customerModel.insertCustomer = function (customerData, callback) {
     });
 };
 
-//actualizar un customer
+//Update customer
 customerModel.updateCustomer = function (customerData, callback) {
 
     db.get(function (error, connection) {
@@ -91,13 +91,13 @@ customerModel.updateCustomer = function (customerData, callback) {
     });
 };
 
-//eliminar un customer pasando la id a eliminar
+//Remove customer with id to remove
 customerModel.deleteCustomer = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del customer a eliminar
+            //If exists Id from customer to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -118,5 +118,5 @@ customerModel.deleteCustomer = function (id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = customerModel;

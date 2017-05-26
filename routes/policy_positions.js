@@ -12,24 +12,24 @@ var isAuthenticated = function (req, res, next) {
 //    return next();
 //});
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/policy-position', function (req, res)
 {
     res.render('new_policy_position', {title: 'Crear nuevo policy_position'});
 });
 
-/* Obtenemos y mostramos todos los policy_positions*/
+/* Get all policy_positions*/
 router.get('/', function (req, res)
 {
 
     Policy_positionModel.getPolicy_positions(function (error, data)
     {
-        //si existe el policy_position mostramos el formulario
+        //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,18 +39,18 @@ router.get('/', function (req, res)
 
 
 
-/* Obtenemos y mostramos  policy_position por id */
+/* Get  policy_position by id */
 router.get('/:id', function (req, res)
 {    
     var id = req.params.id;
     Policy_positionModel.getPolicy_position(id,function (error, data)
     {
-        //si existe el policy_position mostramos el formulario
+        //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -58,18 +58,18 @@ router.get('/:id', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los policy_positions por nombre */
+/* Get all policy_positions by nombre */
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
     Policy_positionModel.getPolicy_positionName(name,function (error, data)
     {
-        //si existe el policy_position mostramos el formulario
+        //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -80,10 +80,10 @@ router.get('/name/:name', function (req, res)
 
 
 
-/* Creamos un nuevo policy_position */
+/* Create New policy_position */
 router.post("/policy-position", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del policy_position
+    //Create New objet with data policy_position
     var policy_positionData = {
         id: req.body.id,
         name: req.body.comment
@@ -91,7 +91,7 @@ router.post("/policy-position", function (req, res)
     
     Policy_positionModel.insertPolicy_position(policy_positionData, function (error, data)
     {
-        //si el policy_position se ha insertado correctamente mostramos su info
+        //If saved policy_position Get data
         if (data && data.insertId)
         {
             //res.redirect("/policy-positions/policy-position/" + data.insertId);
@@ -103,14 +103,14 @@ router.post("/policy-position", function (req, res)
     });
 });
 
-/* Actualizamos un policy_position existente */
+/* Update policy_position that exist */
 router.put('/policy-position/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var policy_positionData = {id: req.param('id'), name: req.param('name')};
     Policy_positionModel.updatePolicy_position(policy_positionData, function (error, data)
     {
-        //si el policy_position se ha actualizado correctamente mostramos un mensaje
+        //If saved policy_position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/policy-positions/policy-position/" + req.param('id'));
@@ -124,10 +124,10 @@ router.put('/policy-position/', function (req, res)
 
 
 
-/* ELiminamos un policy_position */
+/* Remove policy_position */
 router.delete("/policy-position/", function (req, res)
 {
-    //id del policy_position a eliminar
+    //Id from policy_position to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
     Policy_positionModel.deletePolicy_positionidfirewall(idfirewall,id, function (error, data)

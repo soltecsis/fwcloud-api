@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var routing_gModel = {};
 var tableModel = "routing_g";
 
 
-//obtenemos todos los routing_g por firewall
+//Get All routing_g by firewall
 routing_gModel.getRouting_gs = function (idfirewall, callback) {
 
     db.get(function (error, connection) {
@@ -22,7 +22,7 @@ routing_gModel.getRouting_gs = function (idfirewall, callback) {
     });
 };
 
-//obtenemos todos los routing_g por firewall y grupo padre
+//Get All routing_g by firewall and group father
 routing_gModel.getRouting_gs_group = function (idfirewall, idgroup, callback) {
 
     db.get(function (error, connection) {
@@ -40,7 +40,7 @@ routing_gModel.getRouting_gs_group = function (idfirewall, idgroup, callback) {
 
 
 
-//obtenemos un routing_g por su id y routing_g
+//Get routing_g by  id and routing_g
 routing_gModel.getRouting_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -55,7 +55,7 @@ routing_gModel.getRouting_g = function (idfirewall, id, callback) {
     });
 };
 
-//obtenemos un routing por su nombre y routing_g
+//Get routing by name and routing_g
 routing_gModel.getRouting_gName = function (idfirewall, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -74,7 +74,7 @@ routing_gModel.getRouting_gName = function (idfirewall, name, callback) {
 
 
 
-//añadir un nuevo routing_g de usuario
+//Add new routing_g from user
 routing_gModel.insertRouting_g = function (routing_gData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -90,7 +90,7 @@ routing_gModel.insertRouting_g = function (routing_gData, callback) {
     });
 };
 
-//actualizar un routing_g de usuario
+//Update routing_g from user
 routing_gModel.updateRouting_g = function ( routing_gData, callback) {
 
     db.get(function (error, connection) {
@@ -112,7 +112,7 @@ routing_gModel.updateRouting_g = function ( routing_gData, callback) {
     });
 };
 
-//eliminar un routing_g pasando la id a eliminar
+//Remove routing_g with id to remove
 //FALTA BORRADO EN CASCADA ROUTING_R
 routing_gModel.deleteRouting_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
@@ -120,7 +120,7 @@ routing_gModel.deleteRouting_g = function (idfirewall, id, callback) {
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del routing_g a eliminar
+            //If exists Id from routing_g to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
@@ -139,5 +139,5 @@ routing_gModel.deleteRouting_g = function (idfirewall, id, callback) {
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = routing_gModel;

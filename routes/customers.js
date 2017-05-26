@@ -39,7 +39,7 @@ router.get('/', function (req, res)
 /* Form for new customers */
 router.get('/customer', function (req, res)
 {
-    res.render('new_customer', {title: 'Servicio rest con nodejs, express 4 y mysql'});
+    res.render('new_customer', {title: 'Servicio rest con nodejs, express 4 and mysql'});
 });
 
 /* New customer */
@@ -101,7 +101,7 @@ router.get('/customer/:id', function (req, res)
             if (typeof data !== 'undefined' && data.length > 0)
             {
 //                res.render("update_customer",{ 
-//                    title : "Servicio rest con nodejs, express 4 y mysql", 
+//                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
                 res.json(200, data);

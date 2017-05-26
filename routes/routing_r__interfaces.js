@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/routing-r__interface', function (req, res)
 {
     res.render('new_routing_r__interface', {title: 'Crear nuevo routing_r__interface'});
 });
 
-/* Obtenemos y mostramos todos los IPOBJ de una interface*/
+/* Get all IPOBJ de una interface*/
 router.get('/:interface', function (req, res)
 {
     var interface = req.params.interface;
     Routing_r__interfaceModel.getRouting_r__interfaces_rule(interface,function (error, data)
     {
-        //si existe el routing_r__interface mostramos el formulario
+        //If exists routing_r__interface get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -37,18 +37,18 @@ router.get('/:interface', function (req, res)
     });
 });
 
-/* Obtenemos y mostramos todos los interface de un IPOBJ */
+/* Get all interface de IPOBJ */
 router.get('/:rule', function (req, res)
 {
     var rule = req.params.rule;
     Routing_r__interfaceModel.getRouting_r__interfaces_interface(rule,function (error, data)
     {
-        //si existe el routing_r__interface mostramos el formulario
+        //If exists routing_r__interface get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -58,7 +58,7 @@ router.get('/:rule', function (req, res)
 
 
 
-/* Obtenemos y mostramos  routing_r__interface por rule y interface */
+/* Get  routing_r__interface by rule and interface */
 router.get('/:interface/:rule', function (req, res)
 {    
     var interface = req.params.interface;
@@ -66,12 +66,12 @@ router.get('/:interface/:rule', function (req, res)
     
     Routing_r__interfaceModel.getRouting_r__interface(interface, rule,function (error, data)
     {
-        //si existe el routing_r__interface mostramos el formulario
+        //If exists routing_r__interface get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -83,10 +83,10 @@ router.get('/:interface/:rule', function (req, res)
 
 
 
-/* Creamos un nuevo routing_r__interface */
+/* Create New routing_r__interface */
 router.post("/routing-r__interface", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del routing_r__interface
+    //Create New objet with data routing_r__interface
     var routing_r__interfaceData = {
         rule: req.body.rule,
         interface: req.body.interface,
@@ -95,7 +95,7 @@ router.post("/routing-r__interface", function (req, res)
     
     Routing_r__interfaceModel.insertRouting_r__interface(routing_r__interfaceData, function (error, data)
     {
-        //si el routing_r__interface se ha insertado correctamente mostramos su info
+        //If saved routing_r__interface Get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + data.insertId);
@@ -107,11 +107,11 @@ router.post("/routing-r__interface", function (req, res)
     });
 });
 
-/* Actualizamos un routing_r__interface existente */
+/* Update routing_r__interface that exist */
 router.put('/routing-r__interface', function (req, res)
 {
     var old_order = req.body.get_column_order;
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var routing_r__interfaceData = {
         rule: req.body.rule, 
         interface: req.body.interface, 
@@ -119,7 +119,7 @@ router.put('/routing-r__interface', function (req, res)
     };
     Routing_r__interfaceModel.updateRouting_r__interface(old_order,routing_r__interfaceData, function (error, data)
     {
-        //si el routing_r__interface se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_r__interface saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + req.param('id'));
@@ -133,7 +133,7 @@ router.put('/routing-r__interface', function (req, res)
 
 
 
-/* Actualizamos ORDER de un routing_r__interface existente */
+/* Update ORDER de routing_r__interface that exist */
 router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', function (req, res)
 {
     var rule = req.param('rule');
@@ -143,7 +143,7 @@ router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', 
 
     Routing_r__interfaceModel.updateRouting_r__interface_order(rule, interface,old_order,new_order, function (error, data)
     {
-        //si el routing_r__interface se ha actualizado correctamente mostramos un mensaje
+        //If saved routing_r__interface saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + req.param('id'));
@@ -157,10 +157,10 @@ router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', 
 
 
 
-/* ELiminamos un routing_r__interface */
+/* Remove routing_r__interface */
 router.delete("/routing-r__interface/", function (req, res)
 {
-    //id del routing_r__interface a eliminar
+    //Id from routing_r__interface to remove
     var rule = req.param('rule');
     var interface = req.param('interface');
     var old_order = req.param('old_order');

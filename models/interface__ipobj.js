@@ -1,12 +1,12 @@
 var db = require('../db.js');
 
 
-//creamos un objeto para ir almacenando todo lo que necesitemos
+//create object
 var interface__ipobjModel = {};
 var tableModel = "interface__ipobj";
 
 
-//obtenemos todos los interface__ipobj por intreface
+//Get All interface__ipobj by intreface
 interface__ipobjModel.getInterface__ipobjs_interface = function (interface, callback) {
 
     db.get(function (error, connection) {
@@ -22,7 +22,7 @@ interface__ipobjModel.getInterface__ipobjs_interface = function (interface, call
     });
 };
 
-//obtenemos todos los interface__ipobj por ipobj
+//Get All interface__ipobj by ipobj
 interface__ipobjModel.getInterface__ipobjs_ipobj = function (ipobj, callback) {
 
     db.get(function (error, connection) {
@@ -40,7 +40,7 @@ interface__ipobjModel.getInterface__ipobjs_ipobj = function (ipobj, callback) {
 
 
 
-//obtenemos un interface__ipobj por interface y ipobj
+//Get interface__ipobj by interface and ipobj
 interface__ipobjModel.getInterface__ipobj = function (interface, ipobj, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -56,7 +56,7 @@ interface__ipobjModel.getInterface__ipobj = function (interface, ipobj, callback
 };
 
 
-//añadir un nuevo interface__ipobj 
+//Add new interface__ipobj 
 interface__ipobjModel.insertInterface__ipobj = function (interface__ipobjData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -73,7 +73,7 @@ interface__ipobjModel.insertInterface__ipobj = function (interface__ipobjData, c
     });
 };
 
-//actualizar un interface__ipobj 
+//Update interface__ipobj 
 interface__ipobjModel.updateInterface__ipobj = function (get_interface, get_ipobj,get_interface_order, interface__ipobjData, callback) {
 
     OrderList(interface__ipobjData.interface_order,get_interface,  get_interface_order);
@@ -96,7 +96,7 @@ interface__ipobjModel.updateInterface__ipobj = function (get_interface, get_ipob
     });
 };
 
-//actualizar ORDER un interface__ipobj
+//Update ORDER interface__ipobj
 interface__ipobjModel.updateInterface__ipobj_order = function (new_order,interface__ipobjData, callback) {
 
     OrderList(new_order, interface__ipobjData.interface, interface__ipobjData.interface_order);
@@ -142,7 +142,7 @@ function OrderList(new_order, interface, old_order){
 }
 
 
-//eliminar un interface__ipobj pasando la id a eliminar
+//Remove interface__ipobj with id to remove
 //FALTA BORRADO EN CASCADA 
 interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callback) {
     db.get(function (error, connection) {
@@ -150,7 +150,7 @@ interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callb
             return done('Database problem');
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE interface = ' + connection.escape(interface) + ' AND ipobj=' + connection.escape(ipobj);
         connection.query(sqlExists, function (error, row) {
-            //si existe la id del interface__ipobj a eliminar
+            //If exists Id from interface__ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE interface = ' + connection.escape(interface) + ' AND ipobj=' + connection.escape(ipobj);
@@ -169,5 +169,5 @@ interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callb
     });
 };
 
-//exportamos el objeto para tenerlo disponible en la zona de rutas
+//Export the object
 module.exports = interface__ipobjModel;

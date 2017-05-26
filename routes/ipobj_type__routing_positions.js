@@ -12,24 +12,24 @@ router.get('/*',isAuthenticated, function (req, res, next){
     return next();
 });
 
-/* Mostramos el formulario para crear nuevos */
+/* get data para crear nuevos */
 router.get('/ipobj-type__routing-position', function (req, res)
 {
     res.render('new_ipobj_type__routing_position', {title: 'Crear nuevo ipobj_type__routing_position'});
 });
 
-/* Obtenemos y mostramos todos los ipobj_type__routing_positions*/
+/* Get all ipobj_type__routing_positions*/
 router.get('/', function (req, res)
 {
 
     Ipobj_type__routing_positionModel.getIpobj_type__routing_positions(function (error, data)
     {
-        //si existe el ipobj_type__routing_position mostramos el formulario
+        //If exists ipobj_type__routing_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -39,7 +39,7 @@ router.get('/', function (req, res)
 
 
 
-/* Obtenemos y mostramos  ipobj_type__routing_position por id */
+/* Get  ipobj_type__routing_position by id */
 router.get('/:type/:position', function (req, res)
 {    
     var type = req.params.type;
@@ -47,12 +47,12 @@ router.get('/:type/:position', function (req, res)
     
     Ipobj_type__routing_positionModel.getIpobj_type__routing_position(type, position,function (error, data)
     {
-        //si existe el ipobj_type__routing_position mostramos el formulario
+        //If exists ipobj_type__routing_position get data
         if (typeof data !== 'undefined')
         {
             res.json(200, data);
         }
-        //en otro caso mostramos un error
+        //Get Error
         else
         {
             res.json(404, {"msg": "notExist"});
@@ -62,10 +62,10 @@ router.get('/:type/:position', function (req, res)
 
 
 
-/* Creamos un nuevo ipobj_type__routing_position */
+/* Create New ipobj_type__routing_position */
 router.post("/ipobj-type__routing-position", function (req, res)
 {
-    //creamos un objeto con los datos a insertar del ipobj_type__routing_position
+    //Create New objet with data ipobj_type__routing_position
     var ipobj_type__routing_positionData = {
         type: req.body.type,
         position: req.body.position,
@@ -74,7 +74,7 @@ router.post("/ipobj-type__routing-position", function (req, res)
     
     Ipobj_type__routing_positionModel.insertIpobj_type__routing_position(ipobj_type__routing_positionData, function (error, data)
     {
-        //si el ipobj_type__routing_position se ha insertado correctamente mostramos su info
+        //If saved ipobj_type__routing_position Get data
         if (data && data.insertId)
         {
             //res.redirect("/ipobj-type__routing-positions/ipobj-type__routing-position/" + data.insertId);
@@ -86,10 +86,10 @@ router.post("/ipobj-type__routing-position", function (req, res)
     });
 });
 
-/* Actualizamos un ipobj_type__routing_position existente */
+/* Update ipobj_type__routing_position that exist */
 router.put('/ipobj-type__routing-position/', function (req, res)
 {
-    //almacenamos los datos del formulario en un objeto
+    //Save data into object
     var ipobj_type__routing_positionData = {        
         type: req.param('type'),
         position: req.param('position'),
@@ -97,7 +97,7 @@ router.put('/ipobj-type__routing-position/', function (req, res)
     };
     Ipobj_type__routing_positionModel.updateIpobj_type__routing_position(ipobj_type__routing_positionData, function (error, data)
     {
-        //si el ipobj_type__routing_position se ha actualizado correctamente mostramos un mensaje
+        //If saved ipobj_type__routing_position saved ok, get data
         if (data && data.msg)
         {
             //res.redirect("/ipobj-type__routing-positions/ipobj-type__routing-position/" + req.param('id'));
@@ -111,10 +111,10 @@ router.put('/ipobj-type__routing-position/', function (req, res)
 
 
 
-/* ELiminamos un ipobj_type__routing_position */
+/* Remove ipobj_type__routing_position */
 router.delete("/ipobj-type__routing-position/", function (req, res)
 {
-    //id del ipobj_type__routing_position a eliminar
+    //Id from ipobj_type__routing_position to remove
     var type = req.params.type;
     var position = req.params.position;
     
