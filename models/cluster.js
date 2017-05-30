@@ -6,7 +6,7 @@ var clusterModel = {};
 var tableModel="cluster";
 
 
-//Get All cluster
+//Get All clusters
 clusterModel.getClusters = function (callback) {
 
     db.get(function (error, connection) {
@@ -38,7 +38,7 @@ clusterModel.getCluster = function (id, callback) {
     });
 };
 
-//Get cluster by name
+//Get clusters by name
 clusterModel.getClusterName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
