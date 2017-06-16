@@ -20,7 +20,7 @@ router.get('/policy-r__ipobj', function (req, res)
 
 /* Get all policy_r__ipobjs by rule*/
 
-router.get('/:rule', function (req, res)
+router.get('/:firewall/:rule', function (req, res)
 {
     var rule = req.params.rule;
     
@@ -42,7 +42,7 @@ router.get('/:rule', function (req, res)
 
 /* Get all policy_r__ipobjs by rule and posicion*/
 
-router.get('/:rule/:position', function (req, res)
+router.get('/:firewall/:rule/:position', function (req, res)
 {
     var rule = req.params.rule;
     var position = req.params.position;
@@ -66,7 +66,7 @@ router.get('/:rule/:position', function (req, res)
 
 /* Get  policy_r__ipobj by id  */
 
-router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
+router.get('/:firewall/:rule/:ipobj/:ipobj_g/:position', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -102,9 +102,9 @@ router.post("/policy-r__ipobj", function (req, res)
         ipobj: req.body.ipobj,
         ipobj_g: req.body.ipobj_g,
         position: req.body.position,
-        position_order: req.body.position_order
+        position_order: req.body.position_order        
     };
-    
+    console.log(policy_r__ipobjData);
     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, function (error, data)
     {
         //If saved policy_r__ipobj Get data
@@ -128,6 +128,7 @@ router.put('/policy-r__ipobj', function (req, res)
     var position = req.body.get_position;
     var position_order = req.body.get_position_order;
     
+    
     //Save data into object
     var policy_r__ipobjData = {
         rule: req.body.rule,
@@ -135,7 +136,9 @@ router.put('/policy-r__ipobj', function (req, res)
         ipobj_g: req.body.ipobj_g,
         position: req.body.position,
         position_order: req.body.position_order
+       
     };
+    console.log(policy_r__ipobjData);
     Policy_r__ipobjModel.updatePolicy_r__ipobj(rule,ipobj,ipobj_g,position, position_order,policy_r__ipobjData, function (error, data)
     {
         //If saved policy_r__ipobj saved ok, get data
@@ -151,7 +154,7 @@ router.put('/policy-r__ipobj', function (req, res)
 });
 
 /* Update POSITION policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
+router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -163,6 +166,29 @@ router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:ne
     
 
     Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule,ipobj,ipobj_g,position,position_order,new_position,new_order, function (error, data)
+    {
+        //If saved policy_r__ipobj saved ok, get data
+        if (data && data.msg)
+        {
+            //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
+            res.json(200, data.msg);
+        } else
+        {
+            res.json(500, {"msg": error});
+        }
+    });
+});
+
+/* Update NEGATE policy_r__ipobj that exist */
+/* Update ALL IPOBJ/POLICY_R TO new NEGATE satus*/
+router.put('/policy-r__ipobj/:firewall/:rule/:position/:negate', function (req, res)
+{
+    var rule = req.params.rule;
+    var position = req.params.position;
+    var negate = req.params.negate;
+    
+
+    Policy_r__ipobjModel.updatePolicy_r__ipobj_negate(rule,position,negate, function (error, data)
     {
         //If saved policy_r__ipobj saved ok, get data
         if (data && data.msg)

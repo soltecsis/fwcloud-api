@@ -79,6 +79,8 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (old_order,policy_
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET interface_order = ' + connection.escape(policy_r__interfaceData.interface_order) + ',' +                            
+                'direction = ' + connection.escape(policy_r__interfaceData.direction) + ',' +                            
+                'negate = ' + connection.escape(policy_r__interfaceData.negate) +                             
             ' WHERE rule = ' + policy_r__interfaceData.rule  + ' AND  interface = ' + policy_r__interfaceData.interface;
             
         connection.query(sql, function (error, result) {
@@ -92,6 +94,25 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (old_order,policy_
     });
 };
 
+//Update NEGATE policy_r__interface
+policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, interface, negate, callback) {
+
+    db.get(function (error, connection) {
+        if (error) return done('Database problem');
+        var sql = 'UPDATE ' + tableModel + ' SET ' +            
+                ' negate = ' + connection.escape(negate) + ' ' +            
+            ' WHERE rule = ' + rule  + ' AND  interface = ' + interface;
+            
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            }
+            else {
+                callback(null, { "msg": "success" });
+            }
+        });
+    });
+};
 
 //Update ORDER policy_r__interface
 policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, interface, old_order, new_order, callback) {
