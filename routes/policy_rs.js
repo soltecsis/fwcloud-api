@@ -10,9 +10,9 @@ var isAuthenticated = function (req, res, next) {
   res.redirect('/');
 };
 
-//router.get('/*',isAuthenticated, function (req, res, next){
-//    return next();
-//});
+router.get('/*',isAuthenticated, function (req, res, next){
+    return next();
+});
 
 /* Show form */
 router.get('/policy-r', function (req, res)
@@ -118,15 +118,13 @@ router.post("/policy-r", function (req, res)
         idgroup: req.body.idgroup,
         firewall: req.body.firewall,        
         rule_order: req.body.rule_order,        
-        direction: req.body.direction,
         action: req.body.action,
         time_start: req.body.time_start,
         time_end: req.body.time_end,
         active: req.body.active,
         options: req.body.options,
         comment: req.body.comment,
-        type: req.body.type,
-        interface_negate: req.body.interface_negate
+        type: req.body.type        
     };
     
     Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
@@ -147,7 +145,7 @@ router.post("/policy-r", function (req, res)
 router.put('/policy-r/', function (req, res)
 {
     //Save data into object
-    var policy_rData = {id: req.param('id'), idgroup: req.param('idgroup'), firewall: req.param('firewall'),  rule_order: req.param('rule_order'),  direction: req.param('direction'), options: req.param('options'), action: req.param('action'), time_start: req.param('time_start'), time_end: req.param('time_end'), comment: req.param('comment'), active: req.param('active'), type: req.param('type'), interface_negate: req.param('interface_negate')};
+    var policy_rData = {id: req.param('id'), idgroup: req.param('idgroup'), firewall: req.param('firewall'),  rule_order: req.param('rule_order'),   options: req.param('options'), action: req.param('action'), time_start: req.param('time_start'), time_end: req.param('time_end'), comment: req.param('comment'), active: req.param('active'), type: req.param('type')};
     var old_order=req.param('old_order');
     Policy_rModel.updatePolicy_r(old_order,policy_rData, function (error, data)
     {

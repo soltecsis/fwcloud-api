@@ -97,15 +97,13 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                 'idgroup = ' + connection.escape(policy_rData.idgroup) + ',' +
                 'firewall = ' + connection.escape(policy_rData.firewall) + ',' +                
                 'rule_order = ' + connection.escape(policy_rData.rule_order) + ',' +                
-                'direction = ' + connection.escape(policy_rData.direction) + ',' +
                 'action = ' + connection.escape(policy_rData.action) + ',' +
                 'time_start = ' + connection.escape(policy_rData.time_start) + ',' +
                 'time_end = ' + connection.escape(policy_rData.time_end) + ',' +
                 'options = ' + connection.escape(policy_rData.options) + ',' +                
                 'active = ' + connection.escape(policy_rData.active) + ',' +                
                 'comment = ' + connection.escape(policy_rData.comment) + ' ' +
-                'type = ' + connection.escape(policy_rData.type) + ' ' +
-                'interface_negate = ' + connection.escape(policy_rData.interface_negate) + ' ' +
+                'type = ' + connection.escape(policy_rData.type) + ' ' +                
                 ' WHERE id = ' + policy_rData.id;
         connection.query(sql, function (error, result) {
             if (error) {

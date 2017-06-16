@@ -2,16 +2,16 @@ var db = require('../db.js');
 
 
 //create object
-var policy_positionModel = {};
-var tableModel="policy_position";
+var policy_typeModel = {};
+var tableModel="policy_type";
 
 
-//Get All policy_position
-policy_positionModel.getPolicy_positions = function (callback) {
+//Get All policy_type
+policy_typeModel.getPolicy_types = function (callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
+        connection.query('SELECT * FROM ' + tableModel + ' ORDER BY type_order', function (error, rows) {
             if (error)
                 callback(error, null);
             else
@@ -22,11 +22,13 @@ policy_positionModel.getPolicy_positions = function (callback) {
 
 
 
-//Get policy_position by  type
-policy_positionModel.getPolicy_positionsType = function (p_type, callback) {
+
+
+//Get policy_type by  type
+policy_typeModel.getPolicy_type = function (type, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE policy_type = ' + connection.escape(p_type) + ' ORDER BY id' ;
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -36,26 +38,12 @@ policy_positionModel.getPolicy_positionsType = function (p_type, callback) {
     });
 };
 
-//Get policy_position by  id
-policy_positionModel.getPolicy_position = function (id, callback) {
-    db.get(function (error, connection) {
-        if (error) return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
-};
-
-//Get policy_position by name
-policy_positionModel.getPolicy_positionName = function (name, callback) {
+//Get policy_type by name
+policy_typeModel.getPolicy_typeName = function (name, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var namesql = '%' + name + '%';
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) ;
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -67,11 +55,11 @@ policy_positionModel.getPolicy_positionName = function (name, callback) {
 
 
 
-//Add new policy_position
-policy_positionModel.insertPolicy_position = function (policy_positionData, callback) {
+//Add new policy_type
+policy_typeModel.insertPolicy_type = function (policy_typeData, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_positionData, function (error, result) {
+        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_typeData, function (error, result) {
             if (error) {
                 callback(error, null);
             }
@@ -83,15 +71,13 @@ policy_positionModel.insertPolicy_position = function (policy_positionData, call
     });
 };
 
-//Update policy_position
-policy_positionModel.updatePolicy_position = function (policy_positionData, callback) {
+//Update policy_type
+policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_positionData.name) + ' ' +            
-                'policy_type = ' + connection.escape(policy_positionData.poicy_type) + ' ' +            
-                'position_order = ' + connection.escape(policy_positionData.position_order) + ' ' +                            
-            ' WHERE id = ' + policy_positionData.id;
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_typeData.name) + ' ' +            
+            ' WHERE type = ' + policy_typeData.type;
             console.log(sql);
         connection.query(sql, function (error, result) {
             if (error) {
@@ -104,16 +90,16 @@ policy_positionModel.updatePolicy_position = function (policy_positionData, call
     });
 };
 
-//Remove policy_position with id to remove
-policy_positionModel.deletePolicy_position = function (id, callback) {
+//Remove policy_type with type to remove
+policy_typeModel.deletePolicy_type = function (type, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type);
         connection.query(sqlExists, function (error, row) {
-            //If exists Id from policy_position to remove
+            //If exists Id from policy_type to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE type = ' + connection.escape(type);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
@@ -132,4 +118,4 @@ policy_positionModel.deletePolicy_position = function (id, callback) {
 };
 
 //Export the object
-module.exports = policy_positionModel;
+module.exports = policy_typeModel;

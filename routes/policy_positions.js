@@ -37,6 +37,24 @@ router.get('/', function (req, res)
     });
 });
 
+/* Get all policy_positions by Type*/
+router.get('/type/:type', function (req, res)
+{
+    var p_type = req.params.type;
+    Policy_positionModel.getPolicy_positionsType(p_type, function (error, data)
+    {
+        //If exists policy_position get data
+        if (typeof data !== 'undefined')
+        {
+            res.json(200, data);
+        }
+        //Get Error
+        else
+        {
+            res.json(404, {"msg": "notExist"});
+        }
+    });
+});
 
 
 /* Get  policy_position by id */
@@ -107,7 +125,7 @@ router.post("/policy-position", function (req, res)
 router.put('/policy-position/', function (req, res)
 {
     //Save data into object
-    var policy_positionData = {id: req.param('id'), name: req.param('name')};
+    var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order')};
     Policy_positionModel.updatePolicy_position(policy_positionData, function (error, data)
     {
         //If saved policy_position saved ok, get data

@@ -74,7 +74,7 @@ router.put('/customer/', function (req, res)
 {
     //Save customer data into object
     var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
-    CustomerModel.updateCustomer(customerData, function (error, data)
+    CustomerModel.updateCustomer(customerData, function (error, data)    
     {
         //saved ok
         if (data && data.msg)
