@@ -11,7 +11,7 @@ ipobj_type__policy_positionModel.getIpobj_type__policy_positions = function (cal
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('SELECT * FROM ' + tableModel + ' ORDER BY position', function (error, rows) {
+        connection.query('SELECT type, position, allowed FROM ' + tableModel + ' ORDER BY type, position', function (error, rows) {
             if (error)
                 callback(error, null);
             else
@@ -28,7 +28,8 @@ ipobj_type__policy_positionModel.getIpobj_type__policy_positions = function (cal
 ipobj_type__policy_positionModel.getIpobj_type__policy_position = function (type, position, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
+        var sql = 'SELECT type, position, allowed FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
+        console.log(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);

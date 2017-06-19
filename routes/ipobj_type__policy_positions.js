@@ -8,9 +8,9 @@ var isAuthenticated = function (req, res, next) {
   res.redirect('/');
 };
 
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
+//router.get('/*',isAuthenticated, function (req, res, next){
+//    return next();
+//});
 
 /* get data para crear nuevos */
 router.get('/ipobj-type__policy-position', function (req, res)
