@@ -104,7 +104,7 @@ router.post("/policy-r__ipobj", function (req, res)
         position: req.body.position,
         position_order: req.body.position_order        
     };
-    console.log(policy_r__ipobjData);
+    
     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, function (error, data)
     {
         //If saved policy_r__ipobj Get data
@@ -138,7 +138,7 @@ router.put('/policy-r__ipobj', function (req, res)
         position_order: req.body.position_order
        
     };
-    console.log(policy_r__ipobjData);
+    
     Policy_r__ipobjModel.updatePolicy_r__ipobj(rule,ipobj,ipobj_g,position, position_order,policy_r__ipobjData, function (error, data)
     {
         //If saved policy_r__ipobj saved ok, get data

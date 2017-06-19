@@ -68,27 +68,21 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, positi
 };
 
 
-
-
-
-
-
 //Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, callback) {
     OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
 
-
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.position, function (error, data) {
         if (error) {
-            console.log("ERROR : ", error);
+            callback(error, {"error": "error"});
         } else {
             allowed = data;
             if (allowed) {
                 //Check if the IPOBJ in this position are negated
                 getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
                     if (error) {
-                        console.log("ERROR : ", error);
+                        callback(error, {"error": "error"});
                     } else {
                         negate = data;
 
@@ -107,7 +101,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, call
                     }
                 });
             } else {
-                callback(error, {"error": "NOT ALLOWED"});
+                callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
             }
         }
     });
@@ -125,33 +119,46 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, pos
     } else
         OrderList(policy_r__ipobjData.position_order, rule, position, position_order);
 
-    getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
+    //Check if IPOBJ TYPE is ALLOWED in this Position
+    checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.position, function (error, data) {
         if (error) {
-            console.log("ERROR : ", error);
+            callback(error, {"error": "error"});
         } else {
-            negate = data;
-            console.log("RULE: " + policy_r__ipobjData.rule, +"  Position: " + policy_r__ipobjData.position + "  NEGATE: " + negate);
-            db.get(function (error, connection) {
-                if (error)
-                    return done('Database problem');
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'rule = ' + connection.escape(policy_r__ipobjData.rule) + ',' +
-                        'ipobj = ' + connection.escape(policy_r__ipobjData.ipobj) + ',' +
-                        'ipobj_g = ' + connection.escape(policy_r__ipobjData.ipobj_g) + ',' +
-                        'position = ' + connection.escape(policy_r__ipobjData.position) + ',' +
-                        'position_order = ' + connection.escape(policy_r__ipobjData.position_order) + ', ' +
-                        'negate = ' + connection.escape(negate) + ' ' +
-                        ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
-                        ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
-
-                connection.query(sql, function (error, result) {
+            allowed = data;
+            if (allowed) {
+                //Check if the IPOBJ in this position are negated
+                getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
                     if (error) {
-                        callback(error, null);
+                        console.log("ERROR : ", error);
                     } else {
-                        callback(null, {"msg": "success"});
+                        negate = data;
+                        console.log("RULE: " + policy_r__ipobjData.rule, +"  Position: " + policy_r__ipobjData.position + "  NEGATE: " + negate);
+                        db.get(function (error, connection) {
+                            if (error)
+                                return done('Database problem');
+                            var sql = 'UPDATE ' + tableModel + ' SET ' +
+                                    'rule = ' + connection.escape(policy_r__ipobjData.rule) + ',' +
+                                    'ipobj = ' + connection.escape(policy_r__ipobjData.ipobj) + ',' +
+                                    'ipobj_g = ' + connection.escape(policy_r__ipobjData.ipobj_g) + ',' +
+                                    'position = ' + connection.escape(policy_r__ipobjData.position) + ',' +
+                                    'position_order = ' + connection.escape(policy_r__ipobjData.position_order) + ', ' +
+                                    'negate = ' + connection.escape(negate) + ' ' +
+                                    ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
+                                    ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
+
+                            connection.query(sql, function (error, result) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    callback(null, {"msg": "success"});
+                                }
+                            });
+                        });
                     }
                 });
-            });
+            } else {
+                callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
+            }
         }
     });
 };
@@ -187,28 +194,39 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
     OrderList(999999, rule, position, position_order);
     //ordenamos posicion nueva
     OrderList(new_order, rule, new_position, 999999);
-
-    getNegateRulePosition(rule, position, function (error, data) {
+    //Check if IPOBJ TYPE is ALLOWED in this Position
+    checkIpobjPosition(rule, ipobj, position, function (error, data) {
         if (error) {
-            console.log("ERROR : ", error);
+            callback(error, {"error": "error"});
         } else {
-            negate = data;
-            db.get(function (error, connection) {
-                if (error)
-                    return done('Database problem');
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'position = ' + connection.escape(new_position) + ', ' +
-                        'negate = ' + connection.escape(negate) + ' ' +
-                        ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
-                        ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
-                connection.query(sql, function (error, result) {
+            allowed = data;
+            if (allowed) {
+                getNegateRulePosition(rule, position, function (error, data) {
                     if (error) {
-                        callback(error, null);
+                        console.log("ERROR : ", error);
                     } else {
-                        callback(null, {"msg": "success"});
+                        negate = data;
+                        db.get(function (error, connection) {
+                            if (error)
+                                return done('Database problem');
+                            var sql = 'UPDATE ' + tableModel + ' SET ' +
+                                    'position = ' + connection.escape(new_position) + ', ' +
+                                    'negate = ' + connection.escape(negate) + ' ' +
+                                    ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
+                                    ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
+                            connection.query(sql, function (error, result) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    callback(null, {"msg": "success"});
+                                }
+                            });
+                        });
                     }
                 });
-            });
+            } else {
+                callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
+            }
         }
     });
 };
@@ -253,7 +271,6 @@ function OrderList(new_order, rule, position, old_order) {
         connection.query(sql);
     });
 }
-;
 
 
 function checkIpobjPosition(rule, ipobj, position, callback) {
@@ -262,19 +279,15 @@ function checkIpobjPosition(rule, ipobj, position, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(null, 0);
-
         var sql = 'select A.allowed from ipobj O ' +
                 'inner join ipobj_type T on O.type=T.id ' +
                 'inner join ipobj_type__policy_position A on A.type=O.type ' +
                 ' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position);
-
-        console.log('SQL: ' + sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
                 allowed = rows[0].allowed;
-                console.log('ALLOWED: ' + allowed);
                 if (allowed > 0)
                     callback(null, 1);
                 else
