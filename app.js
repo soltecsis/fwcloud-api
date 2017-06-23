@@ -162,6 +162,7 @@ var routing_r__interfaces = require('./routes/routing_r__interfaces');
 var interface__ipobjs = require('./routes/interface__ipobjs');
 var ipobj_type__policy_positions = require('./routes/ipobj_type__policy_positions');
 var ipobj_type__routing_positions = require('./routes/ipobj_type__routing_positions');
+var policy_positions = require('./routes/policy_positions');
 
 
 //app.use('/', routes);
@@ -188,6 +189,8 @@ app.use('/routing-r__interfaces', routing_r__interfaces);
 app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
+app.use('/policy-positions', policy_positions);
+
 
 // Connect to MySQL on start
 db.connect(db.MODE_PRODUCTION, function(err) {
