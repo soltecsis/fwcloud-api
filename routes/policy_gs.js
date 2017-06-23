@@ -2,16 +2,6 @@ var express = require('express');
 var router = express.Router();
 var Policy_gModel = require('../models/policy_g');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
-
 /* get data para crear nuevos */
 router.get('/policy-g', function (req, res)
 {

@@ -2,17 +2,6 @@ var express = require('express');
 var router = express.Router();
 var UserModel = require('../models/user');
 
-/*
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
-*/
 
 /* Show form */
 //router.get('/', function(req, res) 

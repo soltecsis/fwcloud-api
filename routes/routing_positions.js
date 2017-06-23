@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var Routing_positionModel = require('../models/routing_position');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 /* get data para crear nuevos */
 router.get('/routing-position', function (req, res)

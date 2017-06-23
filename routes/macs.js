@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var MacModel = require('../models/mac');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 /* get data para crear  nuevos */
 router.get('/mac', function (req, res)

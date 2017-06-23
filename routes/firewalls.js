@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var FirewallModel = require('../models/firewall');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-//router.get('/*',isAuthenticated, function (req, res, next){
-//    return next();
-//});
 
 /* Show form */
 router.get('/firewall', function (req, res)

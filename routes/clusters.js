@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var ClusterModel = require('../models/cluster');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 
 

@@ -2,15 +2,7 @@ var express = require('express');
 var router = express.Router();
 var Ipobj_type__policy_positionModel = require('../models/ipobj_type__policy_position');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
 
-//router.get('/*',isAuthenticated, function (req, res, next){
-//    return next();
-//});
 
 /* get data para crear nuevos */
 router.get('/ipobj-type__policy-position', function (req, res)

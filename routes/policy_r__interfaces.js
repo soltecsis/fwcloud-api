@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-//router.get('/*',isAuthenticated, function (req, res, next){
-//    return next();
-//});
 
 /* get data para crear nuevos */
 router.get('/policy-r__interface', function (req, res)
@@ -92,8 +83,9 @@ router.post("/policy-r__interface", function (req, res)
         interface: req.body.interface,
         interface_order: req.body.interface_order,
         direction: req.body.direction,
-        negate: req.body.negate
-        
+        negate: req.body.negate,
+        position: req.body.position,
+        position_order: req.body.position_order        
     };
     
     Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
@@ -120,7 +112,9 @@ router.put('/policy-r__interface', function (req, res)
         interface: req.body.interface, 
         interface_order: req.body.interface_order,
         direction: req.body.direction,
-        negate: req.body.negate
+        negate: req.body.negate,
+        position: req.body.position,
+        position_order: req.body.position_order        
     };
     Policy_r__interfaceModel.updatePolicy_r__interface(old_order,policy_r__interfaceData, function (error, data)
     {

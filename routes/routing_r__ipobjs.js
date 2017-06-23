@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var Routing_r__ipobjModel = require('../models/routing_r__ipobj');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 /* Show form */
 router.get('/routing-r__ipobj', function (req, res)

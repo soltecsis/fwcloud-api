@@ -4,15 +4,6 @@ var Policy_rModel = require('../models/policy_r');
 
 var logger = require('log4js').getLogger("app");
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 /* Show form */
 router.get('/policy-r', function (req, res)

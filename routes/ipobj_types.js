@@ -2,15 +2,6 @@ var express = require('express');
 var router = express.Router();
 var Ipobj_typeModel = require('../models/ipobj_type');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
 
 /* get data para crear nuevos */
 router.get('/ipobj-type', function (req, res)

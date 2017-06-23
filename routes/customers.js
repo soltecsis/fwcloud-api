@@ -2,17 +2,6 @@ var express = require('express');
 var router = express.Router();
 var CustomerModel = require('../models/customers');
 
-var isAuthenticated = function (req, res, next) {
-  if (req.isAuthenticated())
-    return next();
-  res.redirect('/');
-};
-
-router.get('/*',isAuthenticated, function (req, res, next){
-    return next();
-});
-
-
 
 /* Get all customers */
 router.get('/', function (req, res)
