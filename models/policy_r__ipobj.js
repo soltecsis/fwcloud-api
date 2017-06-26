@@ -276,7 +276,7 @@ function OrderList(new_order, rule, position, old_order) {
     });
 }
 
-//FALTA CONTROLAR CUANDO ES UNA INTERFACE O UN GRUPO
+
 function checkIpobjPosition(rule, ipobj,ipobj_g, interface, position, callback) {
 
     var allowed = 0;
@@ -294,13 +294,13 @@ function checkIpobjPosition(rule, ipobj,ipobj_g, interface, position, callback) 
             sql = 'select A.allowed from ipobj_g O ' +
                 'inner join ipobj_type T on O.type=T.id ' +
                 'inner join ipobj_type__policy_position A on A.type=O.type ' +
-                ' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position);
+                ' WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position);
         }
         else if (interface>0){
-            sql = 'select A.allowed from ipobj O ' +
-                'inner join ipobj_type T on O.type=T.id ' +
-                'inner join ipobj_type__policy_position A on A.type=O.type ' +
-                ' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position);
+            sql = 'select A.allowed from intreface O ' +
+                'inner join ipobj_type T on O.interface_type=T.id ' +
+                'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
+                ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position);
         }
         connection.query(sql, function (error, rows) {
             if (error)
