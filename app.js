@@ -14,6 +14,7 @@ var LocalStrategy = require('passport-local').Strategy;
 
 
 
+
 var methodOverride = require('method-override');
 
 // custom libraries
@@ -163,6 +164,7 @@ var interface__ipobjs = require('./routes/interface__ipobjs');
 var ipobj_type__policy_positions = require('./routes/ipobj_type__policy_positions');
 var ipobj_type__routing_positions = require('./routes/ipobj_type__routing_positions');
 var policy_positions = require('./routes/policy_positions');
+var fwc_tree = require('./routes/fwc_tree');
 
 
 //app.use('/', routes);
@@ -190,6 +192,7 @@ app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
 app.use('/policy-positions', policy_positions);
+app.use('/fwc-tree', fwc_tree);
 
 
 // Connect to MySQL on start
