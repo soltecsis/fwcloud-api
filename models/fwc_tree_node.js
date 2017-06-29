@@ -13,6 +13,7 @@ function fwc_tree_node(node_data) {
     this.api_call= node_data.api_call;
     this.obj_type= node_data.obj_type;
     this.id_obj= node_data.id_obj;
+    this.node_level= node_data.node_level;
 
 }
 

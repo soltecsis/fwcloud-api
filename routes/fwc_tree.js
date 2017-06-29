@@ -17,7 +17,7 @@ router.get('/firewalls/:iduser', function (req, res)
 {
     var iduser = req.params.iduser;
 
-    fwcTreemodel.getFwc_TreeUserFWFolder(iduser, function (error, rows)
+    fwcTreemodel.getFwc_TreeUserFolder(iduser,"FDF", function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
@@ -27,7 +27,6 @@ router.get('/firewalls/:iduser', function (req, res)
             
             console.log(root_node);
             var tree = new Tree(root_node);
-
 
             fwcTreemodel.getFwc_TreeUserFull(iduser, root_node.id, tree, function (error, data)
             {
@@ -49,10 +48,50 @@ router.get('/firewalls/:iduser', function (req, res)
             res.json(404, {"msg": "notExist"});
         }
     });
-
-
 });
 
+
+/* Get all fwc_tree NODE OBJECTS by User*/
+//objs -> Standar objects (without fwcloud)
+//objc -> fwcloud objects
+router.get('/objects/:objs/:objc/:iduser', function (req, res)
+{
+    var iduser = req.params.iduser;
+    var get_objs = req.params.objs;
+    var get_objc = req.params.objc;
+
+    fwcTreemodel.getFwc_TreeUserFolder(iduser,"FDO",function (error, rows)
+    {
+        if (typeof rows !== 'undefined')
+        {
+            var row=rows[0];
+            //create object
+            var root_node = new fwc_tree_node(row);
+            
+            
+            var tree = new Tree(root_node);
+
+            fwcTreemodel.getFwc_TreeUserFull(iduser, root_node.id, tree, function (error, data)
+            {
+                //If exists fwc_tree get data
+                if (typeof data !== 'undefined')
+                {                    
+                    res.json(200, data);
+                }
+                //Get Error
+                else
+                {
+                    res.json(404, {"msg": "notExist"});
+                }
+            });
+        }
+        //Get Error
+        else
+        {
+            res.json(404, {"msg": "notExist"});
+        }
+    });
+});
 
 /* Get  fwc_tree by id  */
 router.get('/:iduser/:id', function (req, res)

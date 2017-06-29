@@ -1,8 +1,0 @@
-[2017-02-20 16:05:59.810] [INFO] dataserver - Hola estoy aqui
-[2017-02-20 16:06:21.023] [DEBUG] dataserver - ::ffff:127.0.0.1 - - [Mon, 20 Feb 2017 15:06:21 GMT] "GET /policy-rs/1 HTTP/1.1" 304 - "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"
-
-[2017-02-20 16:08:10.213] [INFO] dataserver - Hola estoy aqui
-[2017-02-20 16:12:40.341] [INFO] dataserver - Hola estoy aqui
-[2017-02-20 16:15:21.740] [INFO] dataserver - Hola estoy aqui
-[2017-02-20 16:53:53.826] [INFO] dataserver - Hola estoy aqui
-[2017-02-20 16:54:04.710] [INFO] dataserver - Hola estoy aqui

@@ -47,13 +47,13 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
 };
 
 //Get firewall node Id
-fwc_treeModel.getFwc_TreeUserFWFolder = function (iduser, callback) {
+fwc_treeModel.getFwc_TreeUserFolder = function (iduser,foldertype, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND node_type="FWF" AND id_parent=0 ORDER BY id limit 1';
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND node_type=' + connection.escape(foldertype) + ' AND id_parent=0 ORDER BY id limit 1';
         console.log(sql);
         connection.query(sql, function (error, rows) {
             if (error)
@@ -72,7 +72,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, AllDone) {
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' AND id_parent=' + connection.escape(idparent) + ' ORDER BY node_order';
-        //console.log(sql);
+        console.log(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -116,21 +116,6 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, AllDone) {
             }
         });
 
-
-//                for (var i = 0; i < rows.length; i++) {
-//                    var row = rows[i];                  
-//                    fwc_treeModel.getFwc_TreeUserFull(iduser, row.id, treeArray, function (error, data) {                                                
-//                        if (typeof data !== '')
-//                        {                            
-//                            children = ', children : [' +  data + ']';                            
-//                        }                        
-//                    });
-//                    
-//
-//                }
-//                callback(null, treeArray);
-//            }
-//        });
     });
 };
 
