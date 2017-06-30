@@ -32,7 +32,7 @@ router.get('/firewalls/:iduser', function (req, res)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
-                {                    
+                {             
                     res.json(200, {"data": data});
                 }
                 //Get Error
@@ -51,6 +51,8 @@ router.get('/firewalls/:iduser', function (req, res)
 });
 
 
+
+ 
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
@@ -76,7 +78,7 @@ router.get('/objects/:objs/:objc/:iduser', function (req, res)
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
                 {                    
-                    res.json(200, data);
+                    res.json(200, {"data": data});
                 }
                 //Get Error
                 else
@@ -103,7 +105,7 @@ router.get('/:iduser/:id', function (req, res)
         //If exists fwc_tree get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -123,7 +125,7 @@ router.get('/:iduser/name/:name', function (req, res)
         //If exists fwc_tree get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

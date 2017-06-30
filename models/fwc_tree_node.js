@@ -3,8 +3,8 @@
 
 function fwc_tree_node(node_data) {
     this.id = node_data.id;
-    this.name= node_data.name;
-    this.idparent= node_data.id_parent;
+    this.text= node_data.name;
+    this.pid= node_data.id_parent;
     this.node_order= node_data.node_order;
     this.icon= node_data.node_icon;
     this.allowdrag=0;
