@@ -72,7 +72,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, AllDone) {
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' AND id_parent=' + connection.escape(idparent) + ' ORDER BY node_order';
-        console.log(sql);
+        //console.log(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -84,7 +84,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, AllDone) {
                     async.forEachSeries(rows,
                             function (row, callback) {
                                 hasLines(row.id, function (t) {
-                                    console.log(row);
+                                    //console.log(row);
                                     var tree_node = new fwc_tree_node(row);
                                     if (!t) {
                                         //Añadimos nodo hijo
