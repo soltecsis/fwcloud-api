@@ -19,7 +19,7 @@ router.get('/firewalls/:iduser', function (req, res)
 
     fwcTreemodel.getFwc_TreeUserFolder(iduser,"FDF", function (error, rows)
     {
-        if (typeof rows !== 'undefined')
+        if (typeof rows !== 'undefined'  && rows.length>0)
         {
             var row=rows[0];
             //create object
