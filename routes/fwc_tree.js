@@ -33,7 +33,7 @@ router.get('/firewalls/:iduser', function (req, res)
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
                 {                    
-                    res.json(200, data);
+                    res.json(200, {"data": data});
                 }
                 //Get Error
                 else
