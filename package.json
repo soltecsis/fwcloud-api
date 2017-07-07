@@ -25,6 +25,8 @@
     "passport": "*",
     "passport-local": "*",
     "serve-favicon": "~2.3.0",
-    "when": "^3.7.7"
+    "when": "^3.7.7",
+    "xml2js": "*",
+    "fs": "*"
   }
 }
