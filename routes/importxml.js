@@ -9,8 +9,8 @@ var Ipobj_gModel = require('../models/ipobj_g');
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 
 
-var fs = require('fs'),
-        xml2js = require('xml2js');
+var fs = require('fs');
+var xml2js = require('xml2js');
 
 
 
