@@ -28,7 +28,7 @@ router.get('/firewalls/:iduser', function (req, res)
             //console.log(root_node);
             var tree = new Tree(root_node);
 
-            fwcTreemodel.getFwc_TreeUserFull(iduser, root_node.id, tree, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, root_node.id, tree,1,1, function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
