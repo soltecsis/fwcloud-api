@@ -166,6 +166,8 @@ var ipobj_type__routing_positions = require('./routes/ipobj_type__routing_positi
 var policy_positions = require('./routes/policy_positions');
 var fwc_tree = require('./routes/fwc_tree');
 
+var importxml= require('./routes/importxml');
+app.use('/importxml', importxml);
 
 //app.use('/', routes);
 app.use('/users', users);
