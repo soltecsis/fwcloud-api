@@ -3,3 +3,5 @@
 /.vscode/
 /nbproject/
 /logs/*
+/node_modules
+/node_modules/*
