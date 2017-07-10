@@ -179,7 +179,23 @@ router.get('/:iduser/name/:name', function (req, res)
 });
 
 
-
+/* Create New fwc_tree Firewall node*/
+router.get("/create-firewalls/user/:iduser", function (req, res)
+{
+    var iduser = req.params.iduser;
+    
+    fwcTreemodel.insertFwc_Tree_firewalls(iduser, "FDF", function (error, data)
+    {
+        //If saved fwc-tree Get data
+        if (data && data.msg)
+        {
+            res.json(200, {"msg": data.msg});
+        } else
+        {
+            res.json(500, {"msg": error});
+        }
+    });
+});
 
 
 /* Create New fwc_tree Objects*/

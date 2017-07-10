@@ -7,7 +7,8 @@ var InterfaceModel = require('../models/interface');
 var Interface__ipobjModel = require('../models/interface__ipobj');
 var Ipobj_gModel = require('../models/ipobj_g');
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
-
+var FirewallModel = require('../models/firewall');
+var InterfaceModel = require('../models/interface');
 
 var fs = require('fs');
 var xml2js = require('xml2js');
@@ -29,6 +30,183 @@ router.get('/foo', function (req, res)
     });
 
 });
+
+router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', function (req, res)
+{
+    var parser = new xml2js.Parser();
+    var fwcloud = null;
+    var fwc_file = "";
+
+    var library = req.params.library.toUpperCase();
+    var iduser = req.params.iduser;
+    var searchlibrary = "";
+    console.log("READING LIBRARY: " + library);
+
+    if (library === "STANDARD") {
+        fwcloud = null;
+        fwc_file = "/xml/FW-TEST_STANDAR.fwb";
+        searchlibrary = "Standard";
+    } else if (library === "USER") {
+        fwcloud = 1;
+        fwc_file = "/xml/FW-TEST_USER.fwb";
+        searchlibrary = "User";
+    }
+
+    fs.readFile(__dirname + fwc_file, function (error, data) {
+        if (error) {
+            console.log(error);
+            res.json(500, {"error": error});
+        } else {
+            parser.parseString(data, function (err, result) {
+
+                try {
+                    var jsonstr = JSON.stringify(result);
+                    var obj = JSON.parse(jsonstr);
+                } catch (e) {
+                    console.log(e);
+                }
+
+                try {
+                    var row;
+                    //Buscamos libreria 
+                    var library;
+                    SearchNode(obj.FWObjectDatabase.Library, searchlibrary, function (row) {
+                        console.log("-------> DEVUELTO Library : " + row.$.name);
+                        library = row;
+                    });
+
+                } catch (e) {
+                    console.log("ERROR : " + e);
+                }
+
+                //ObjectGroup - Firewall
+                try {
+                    var rows;
+                    SearchNode(library.ObjectGroup, "Firewalls", function (row) {
+                        console.log("-------> DEVUELTO GRUPO : " + row.$.name);
+                        rows = row;
+                    });
+                    //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
+                    var i = 0;
+                    async.forEach(rows.Firewall,
+                            function (row, callback) {
+                                i++;
+                                console.log("Añadiendo FIREWALL :" + i + " - " + row.$.name);
+                                AddFirewall(iduser, row.$, fwcloud, function (error, data) {
+                                    if (error)
+                                        console.log("ERROR Añadiendo Firewall : " + error);
+                                    else {
+                                        console.log("Añadido Firewall con ID: " + data.insertId);
+                                        var idfirewall = data.insertId;
+
+                                        //añadimos Interfaces
+                                        //ObjectGroup - Interface
+                                        try {
+                                            var i = 0;
+                                            async.forEach(row.Interface,
+                                                    function (rowI, callback) {
+                                                        i++;
+                                                        console.log("Añadiendo OBJETO Interface:" + i + " - " + rowI.$.name);                                                        
+                                                        AddInterfaceFw(idfirewall, rowI.$, function (error, data) {
+                                                            if (error)
+                                                                console.log("ERROR Añadiendo Interface : " + error);
+                                                            else {
+                                                                console.log("Añadido Interface con ID: " + data.insertId);
+                                                                var idinterface = data.insertId;
+                                                                //Añadimos OBJECTS IP de Interface
+                                                                async.forEach(rowI.IPv4,
+                                                                        function (rowIP, callback) {                                                                            
+                                                                            console.log("Añadiendo OBJETO Address:" + rowIP.$.name);
+                                                                            AddIpobjectAddress(rowIP.$, 5, 'IPv4',idinterface, fwcloud);
+                                                                        }
+                                                                );
+                                                            }
+
+                                                        });
+                                                    }
+                                            );
+                                        } catch (e) {
+                                            console.log("ERROR Objects Interface: " + e);
+                                        }
+
+
+
+                                    }
+                                });
+                            }
+                    );
+                } catch (e) {
+                    console.log("ERROR Objects FIREWALL: " + e);
+                }
+
+                res.json(200, {"data": result});
+            });
+        }
+    });
+
+
+});
+
+
+/* New firewall */
+function AddFirewall(iduser, row, fwcloud, callback)
+{
+    var firewallData = {
+        id: null,
+        cluster: null,
+        fwcloud: fwcloud,
+        name: row.name,
+        comment: row.comment,
+        id_fwb: row.id
+    };
+
+    FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
+    {
+        if (data && data.insertId)
+        {
+            console.log("INSERT OK InsertId: " + data.insertId);
+            callback(null, {"insertId": data.insertId});
+        } else
+        {
+            callback(error, null);
+        }
+    });
+}
+
+/* Create New interface */
+function AddInterfaceFw(idfirewall, row, callback)
+{
+    //Create New objet with data interface
+    var interfaceData = {
+        id: null,
+        firewall: idfirewall,
+        name: row.name,
+        labelName: row.label,
+        type: '',
+        securityLevel: row.security_level,
+        comment: row.comment,
+        interface_type: 10,
+        id_fwb: row.id
+    };
+    //Set type 
+    if (row.unnum === "True")
+        interfaceData.type = "Unnumbered";
+    else if (row.unprotected === "True")
+        interfaceData.type = "Unprotected";
+
+    InterfaceModel.insertInterface(interfaceData, function (error, data)
+    {
+        //If saved interface Get data
+        if (data && data.insertId)
+        {
+            console.log("INSERT Interface OK InsertId: " + data.insertId);
+            callback(null, {"insertId": data.insertId});
+        } else
+        {
+            callback(error, null);
+        }
+    });
+}
 
 router.get('/importobj/:library', function (req, res)
 {
@@ -57,15 +235,11 @@ router.get('/importobj/:library', function (req, res)
         } else {
             parser.parseString(data, function (err, result) {
 
-                //console.dir(result);
+
                 //KK  console.log(util.inspect(result, false, null));
                 console.log('Done');
-//                var response = '';
                 try {
                     var jsonstr = JSON.stringify(result);
-//                    console.log("INI JSON STR: ");
-//                    console.log(jsonstr);
-//                    console.log("END JSON STR: ");
                     var obj = JSON.parse(jsonstr);
                 } catch (e) {
                     console.log(e);
@@ -77,7 +251,7 @@ router.get('/importobj/:library', function (req, res)
 
                 try {
                     var row;
-                    //Buscamos libreria Standard
+                    //Buscamos libreria
                     var library;
                     SearchNode(obj.FWObjectDatabase.Library, searchlibrary, function (row) {
                         console.log("-------> DEVUELTO Library : " + row.$.name);
@@ -290,7 +464,7 @@ router.get('/importobj/:library', function (req, res)
                 } catch (e) {
                     console.log("ERROR Service IP: " + e);
                 }
-                
+
                 //ServiceGroup - TCP
                 try {
                     var rows;
@@ -310,7 +484,7 @@ router.get('/importobj/:library', function (req, res)
                 } catch (e) {
                     console.log("ERROR Service TCP: " + e);
                 }
-                
+
                 //ServiceGroup - UDP
                 try {
                     var rows;
@@ -330,7 +504,7 @@ router.get('/importobj/:library', function (req, res)
                 } catch (e) {
                     console.log("ERROR Service UDP: " + e);
                 }
-                
+
                 //ServiceGroup - ICMP
                 try {
                     var rows;
@@ -523,11 +697,11 @@ function AddIpobjectAddress(row, obj_type, ipversion, id_interface, fwcloud) {
         //If saved ipobj Get data
         if (data && data.insertId)
         {
-            console.log("INSERT OK InsertId: " + data.insertId);
+            console.log("INSERT IpobjectAddress OK InsertId: " + data.insertId);
 
         } else
         {
-            console.log("ERROR INSERT insertIpobj: " + error);
+            console.log("ERROR IpobjectAddress INSERT insertIpobj: " + error);
         }
     });
 
@@ -648,10 +822,10 @@ function AddServiceIP(row, obj_type, fwcloud) {
         //If saved ipobj Get data
         if (data && data.insertId)
         {
-            console.log("INSERT OK IP Service InsertId: " + data.insertId);            
+            console.log("INSERT OK IP Service InsertId: " + data.insertId);
         } else
         {
-            console.log("ERROR INSERT IP Service: " + error);            
+            console.log("ERROR INSERT IP Service: " + error);
         }
     });
 
@@ -688,7 +862,7 @@ function AddServiceTCP(row, obj_type, fwcloud) {
         //If saved ipobj Get data
         if (data && data.insertId)
         {
-            console.log("INSERT OK TCP Service InsertId: " + data.insertId);            
+            console.log("INSERT OK TCP Service InsertId: " + data.insertId);
         } else
         {
             console.log("ERROR INSERT TCP Service : " + error);
@@ -729,7 +903,7 @@ function AddServiceUDP(row, obj_type, fwcloud) {
         //If saved ipobj Get data
         if (data && data.insertId)
         {
-            console.log("INSERT OK UDP Service InsertId: " + data.insertId);            
+            console.log("INSERT OK UDP Service InsertId: " + data.insertId);
         } else
         {
             console.log("ERROR INSERT UDP Service : " + error);
@@ -771,7 +945,7 @@ function AddServiceICMP(row, obj_type, fwcloud) {
         //If saved ipobj Get data
         if (data && data.insertId)
         {
-            console.log("INSERT OK ICMP Service InsertId: " + data.insertId);            
+            console.log("INSERT OK ICMP Service InsertId: " + data.insertId);
         } else
         {
             console.log("ERROR INSERT ICMP Service : " + error);
