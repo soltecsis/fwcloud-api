@@ -9,6 +9,9 @@ var Ipobj_gModel = require('../models/ipobj_g');
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 var FirewallModel = require('../models/firewall');
 var InterfaceModel = require('../models/interface');
+var Policy_rModel = require('../models/policy_r');
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
 var fs = require('fs');
 var xml2js = require('xml2js');
@@ -106,7 +109,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                             async.forEach(row.Interface,
                                                     function (rowI, callback) {
                                                         i++;
-                                                        console.log("Añadiendo OBJETO Interface:" + i + " - " + rowI.$.name);                                                        
+                                                        console.log("Añadiendo OBJETO Interface:" + i + " - " + rowI.$.name);
                                                         AddInterfaceFw(idfirewall, rowI.$, function (error, data) {
                                                             if (error)
                                                                 console.log("ERROR Añadiendo Interface : " + error);
@@ -115,9 +118,9 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                                 var idinterface = data.insertId;
                                                                 //Añadimos OBJECTS IP de Interface
                                                                 async.forEach(rowI.IPv4,
-                                                                        function (rowIP, callback) {                                                                            
+                                                                        function (rowIP, callback) {
                                                                             console.log("Añadiendo OBJETO Address:" + rowIP.$.name);
-                                                                            AddIpobjectAddress(rowIP.$, 5, 'IPv4',idinterface, fwcloud);
+                                                                            AddIpobjectAddress(rowIP.$, 5, 'IPv4', idinterface, fwcloud);
                                                                         }
                                                                 );
                                                             }
@@ -127,6 +130,85 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                             );
                                         } catch (e) {
                                             console.log("ERROR Objects Interface: " + e);
+                                        }
+
+                                        //añadimos NAT
+                                        //ObjectGroup - NAT - NATRule
+                                        try {
+                                            var n = 0;
+                                            var NATGroup = row.NAT[0];
+                                            async.forEach(NATGroup.NATRule,
+                                                    function (rowNR, callback1) {
+                                                        n++;
+                                                        console.log("Añadiendo NAT RULE:" + n + " - " + rowNR.$.id);
+                                                        AddPolicyRule(idfirewall, rowNR.$, "N", function (error, data) {
+                                                            if (data)
+                                                            {
+                                                                console.log("Añadido NATRule con ID: " + data.insertId);
+                                                                var idPolicy = data.insertId;
+                                                                //Añadimos Objetos de Regla NAT
+                                                                AddPolicyObj(idPolicy, rowNR.OSrc, 11);
+                                                                AddPolicyObj(idPolicy, rowNR.ODst, 12);
+                                                                AddPolicyObj(idPolicy, rowNR.OSrv, 13);
+                                                                AddPolicyObj(idPolicy, rowNR.TSrc, 14);
+                                                                AddPolicyObj(idPolicy, rowNR.TDst, 15);
+                                                                AddPolicyObj(idPolicy, rowNR.TSrv, 16);
+                                                                AddPolicyObj(idPolicy, rowNR.ItfInb, 23);
+                                                                AddPolicyObj(idPolicy, rowNR.ItfOutb, 24);
+                                                            } else
+                                                                console.log("ERROR Añadiendo NATRule : " + error);
+
+                                                        });
+                                                    }
+                                            );
+                                        } catch (e) {
+                                            console.log("ERROR NAT RULES: " + e);
+                                        }
+
+                                        //añadimos POLICY
+                                        //ObjectGroup - Policy - PolicyRule
+                                        try {
+                                            var n = 0;
+                                            var PolicyGroup = row.Policy[0];
+                                            async.forEach(PolicyGroup.PolicyRule,
+                                                    function (rowPR, callback2) {
+                                                        n++;
+                                                        var rule_type = '';
+                                                        var position = [];
+                                                        console.log("Añadiendo POLICY RULE:" + n + " - " + rowPR.$.id + " - DIRECTION: " + rowPR.$.direction);
+                                                        switch (rowPR.$.direction) {
+                                                            case "Outbound":
+                                                                rule_type = 'O';
+                                                                position = [4, 5, 6, 21];
+                                                                break;
+                                                            case "Inbound":
+                                                                rule_type = 'I';
+                                                                position = [1, 2, 3, 20];
+                                                                break;
+                                                            case "Both":
+                                                                rule_type = 'F';
+                                                                position = [7, 8, 9, 22];
+                                                                break;
+                                                        }
+                                                        AddPolicyRule(idfirewall, rowPR.$, rule_type, function (error, data) {
+                                                            if (data)
+                                                            {
+                                                                console.log("Añadido POLICY RULE con ID: " + data.insertId);
+                                                                var idPolicy = data.insertId;
+                                                                //Añadimos Objetos de Regla 
+                                                                AddPolicyObj(idPolicy, rowPR.Src, position[0]);
+                                                                AddPolicyObj(idPolicy, rowPR.Dst, position[1]);
+                                                                AddPolicyObj(idPolicy, rowPR.Srv, position[2]);
+                                                                AddPolicyObj(idPolicy, rowPR.Itf, position[3]);
+                                                            } else {
+                                                                console.log("ERROR Añadiendo POLICY RULE : " + error);
+                                                            }
+
+                                                        });
+                                                    }
+                                            );
+                                        } catch (e) {
+                                            console.log("ERROR NAT RULES: " + e);
                                         }
 
 
@@ -208,6 +290,113 @@ function AddInterfaceFw(idfirewall, row, callback)
     });
 }
 
+/* Create New policy_r */
+function AddPolicyRule(idfirewall, row, type, callback)
+{
+    switch (row.action) {
+        case "Continue":
+            action = 5;
+            break;
+        case "Accept":
+            action = 1;
+            break;
+        case "Deny":
+            action = 2;
+            break;
+        case "Reject":
+            action = 3;
+            break;
+        case "Translate":
+            action = 4;
+            break;
+        default:
+            action = 1;
+            break;
+    }
+
+    //Create New objet with data policy_r
+    var policy_rData = {
+        id: null,
+        idgroup: null,
+        firewall: idfirewall,
+        rule_order: row.position,
+        direction: null,
+        action: action,
+        time_start: null,
+        time_end: null,
+        active: 1,
+        options: null,
+        comment: row.comment,
+        type: type
+    };
+    if (row.disabled === "True")
+        policy_rData.active = 0;
+
+
+    Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
+    {
+        //If saved policy_r Get data
+        if (data && data.insertId)
+        {
+            console.log("INSERT PolicyRule OK InsertId: " + data.insertId + "  TYPE: " + type);
+            callback(null, {"insertId": data.insertId});
+        } else
+        {
+            callback(error, null);
+        }
+    });
+}
+
+
+/* Create New policy_r__ipobj */
+function AddPolicyObj(idPolicy, row, position)
+{
+    var n = 0;
+    var obj = row[0];
+    var negate = ((obj.$.neg === 'True') ? 1 : 0);
+
+    async.forEach(obj.ObjectRef,
+            function (rowRef, callback) {
+                n++;
+                var ref = rowRef.$.ref;
+                console.log("BUSCANDO OBJREF: " + ref);
+                IpobjModel.getIpobj_fwb(ref, function (error, data) {
+                    if (data[0] && data[0].id) {
+                        var idobj = data[0].id;
+                        console.log("ENCONTRADO IPOBJ: " + idobj);
+                        //Create New objet with data policy_r__ipobj
+                        var policy_r__ipobjData = {
+                            rule: idPolicy,
+                            ipobj: idobj,
+                            ipobj_g: 0,
+                            interface: 0,
+                            position: position,
+                            position_order: n
+                        };
+
+                        Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, negate, function (error, data)
+                        {
+                            //If saved policy_r__ipobj Get data
+                            if (data && data.msg)
+                            {
+                                console.log("INSERT PolicyRule_IPObj OK : " + idPolicy + " - " + idobj);
+                                callback(null, {"msg": data.msg});
+                            } else
+                            {
+                                console.log("-----> ERROR INSERT PolicyRule_IPObj : " + idPolicy + " - " + idobj + "  ERROR: " + error);
+                                callback(error, null);
+                            }
+                        });
+                    } else {
+                        console.log("NO ECONTRADO REF : " + ref);
+                    }
+                });
+            });
+
+}
+
+
+
 router.get('/importobj/:library', function (req, res)
 {
     var parser = new xml2js.Parser();
@@ -259,6 +448,15 @@ router.get('/importobj/:library', function (req, res)
                     }
                     );
 
+                    //añadimos objetos ANY                    
+                    console.log("Añadiendo OBJETO ANYNETWORK: " + library.AnyNetwork[0].$.name);
+                    AddIpobjectAddress(library.AnyNetwork[0].$, 5, '', null, fwcloud);
+
+                    console.log("Añadiendo OBJETO ANYSERVICE: " + library.AnyIPService[0].$.name);
+                    AddServiceIP(library.AnyIPService[0].$, 1, fwcloud);
+
+                    console.log("Añadiendo OBJETO ANYINTERVAL: " + library.AnyInterval[0].$.name);
+                    //KK AddServiceIP(library.AnyIPService.$, 1, fwcloud);
 
                     var objectsGroup;
                     //Buscamos Grupo Objects

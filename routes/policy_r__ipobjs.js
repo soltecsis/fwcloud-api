@@ -99,7 +99,7 @@ router.post("/policy-r__ipobj", function (req, res)
         
     };
     
-    Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, function (error, data)
+    Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData,0, function (error, data)
     {
         //If saved policy_r__ipobj Get data
         if (data && data.msg)

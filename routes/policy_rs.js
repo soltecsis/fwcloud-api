@@ -30,12 +30,13 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
         }
     });
 });
-/* Get all policy_rs by firewall */
-router.get('/:idfirewall', function (req, res)
+/* Get all policy_rs by firewall and type */
+router.get('/:idfirewall/type/:type', function (req, res)
 {
     var idfirewall = req.params.idfirewall;    
+    var type = req.params.type;    
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
-    Policy_rModel.getPolicy_rs(idfirewall,'',function (error, data)
+    Policy_rModel.getPolicy_rs_type(idfirewall,type,function (error, data)
     {
         //If exists policy_r get data
         if (typeof data !== 'undefined')
@@ -50,7 +51,7 @@ router.get('/:idfirewall', function (req, res)
     });
 });
 
-/* Get  policy_r by id and  by firewall and group */
+/* Get  policy_r by id and  by Id */
 router.get('/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
@@ -76,7 +77,7 @@ router.get('/:idfirewall/:id', function (req, res)
 });
 
 /* Get all policy_rs by nombre and by firewall*/
-router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
+router.get('/:idfirewall/group/:idgroup/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;

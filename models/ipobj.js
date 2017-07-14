@@ -23,6 +23,22 @@ ipobjModel.getIpobj = function ( id, callback) {
     });
 };
 
+//Get ipobj by  id_fwb
+ipobjModel.getIpobj_fwb = function ( id_fwb, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT * FROM ' + tableModel +  ' WHERE id_fwb = ' + connection.escape(id_fwb) ;        
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
 //Get All ipobj by group
 ipobjModel.getIpobjsGroup = function (idgroup, callback) {
 

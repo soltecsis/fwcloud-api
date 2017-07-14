@@ -69,13 +69,13 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g,interfa
 
 
 //Add new policy_r__ipobj 
-policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, callback) {
+policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData,set_negate, callback) {
     OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj,policy_r__ipobjData.ipobj_g,policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
         if (error) {
-            callback(error, {"error": "error"});
+            callback(error, {"error": error});
         } else {
             allowed = data;
             if (allowed) {
@@ -83,8 +83,10 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, call
                 getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
                     if (error) {
                         callback(error, {"error": "error"});
-                    } else {
+                    } else {                        
                         negate = data;
+                        if (set_negate)
+                                negate=1;
 
                         db.get(function (error, connection) {
                             if (error)
@@ -325,13 +327,13 @@ function getNegateRulePosition(rule, position, callback) {
         var sql = 'SELECT count(negate) as neg FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                 ' AND negate=1';
-        console.log('SQL: ' + sql);
+        //console.log('SQL: ' + sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
                 Nneg = rows[0].neg;
-                console.log('Nneg 1: ' + Nneg);
+                //console.log('Nneg 1: ' + Nneg);
                 if (Nneg > 0)
                     callback(null, 1);
                 else
