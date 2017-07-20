@@ -26,7 +26,7 @@ policy_positionModel.getPolicy_positions = function (callback) {
 policy_positionModel.getPolicy_positionsType = function (p_type, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE policy_type = ' + connection.escape(p_type) + ' ORDER BY id' ;
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE policy_type = ' + connection.escape(p_type) + ' ORDER BY position_order' ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
