@@ -104,8 +104,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, AllDone) {
                                 async.forEachSeries(data_positions, function (row_position, callback2) {
                                     j++;
                                     console.log(j + " - DENTRO de POSITION: " + row_position.name);
-                                    var position_node = new data_policy_positions(row_position);
-                                    console.log(position_node);
+                                    var position_node = new data_policy_positions(row_position);                                    
 
                                     //Buscamos IPOBJS por POSITION
                                     Policy_r__ipobjModel.getPolicy_r__ipobjs_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
@@ -138,8 +137,8 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, AllDone) {
                                                         //Añadimos ipobj a array de position
                                                         position_node.ipobjs.push(ipobj_node);
                                                         //console.log("IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
-                                                        console.log("--------POSITION NODE DENTRO de BUCLE IPOBJS");
-                                                        console.log(position_node);                                                        
+                                                        //console.log("--------POSITION NODE DENTRO de BUCLE IPOBJS");
+                                                        //console.log(position_node);                                                        
                                                         callback3();
                                                     }
                                                     //Get Error
@@ -155,11 +154,8 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, AllDone) {
                                                     function (err) {                                                                                                                
                                                         //console.log("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
                                                         console.log("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id );
-                                                        console.log(position_node);
-                                                        console.log("------------ FINAL IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
-                                                        policy_node.positions.push(position_node);
-                                                        console.log("  POLICY_LENGTH:" + policy.length + "   POSITION LENGTH: " + policy_node.positions.length + "  IPOBJ LENGTH: " + position_node.ipobjs.length);
-                                                        //console.log("  POLICY_CONT:" + policy_cont + "   POSITION CONT: " + position_cont);
+                                                        console.log(position_node);                                                        
+                                                        policy_node.positions.push(position_node);                                                        
                                                         
                                                         if (policy_node.positions.length >= position_cont) {
                                                             policy.push(policy_node);

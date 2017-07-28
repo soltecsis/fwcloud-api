@@ -41,6 +41,21 @@ interfaceModel.getInterface = function (idfirewall, id, callback) {
     });
 };
 
+//Get interface by  id fwb
+interfaceModel.getInterface_fwb = function (idfirewall, id_fwb, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb) + ' AND firewall=' + connection.escape(idfirewall);
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
 //Get interfaz by name and interface
 interfaceModel.getInterfaceName = function (idfirewall, name, callback) {
     db.get(function (error, connection) {
