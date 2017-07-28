@@ -1,9 +1,16 @@
 var db = require('../db.js');
+var async = require('async');
 
 
 //create object
 var policy_rModel = {};
 var tableModel = "policy_r";
+var Policy_positionModel = require('../models/policy_position');
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var IpobjModel = require('../models/ipobj');
+var data_policy_r = require('../models/data_policy_r');
+var data_policy_positions = require('../models/data_policy_positions');
+var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs');
 
 
 
@@ -29,21 +36,34 @@ policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
 };
 
 //Get All policy_r by firewall and type
-policy_rModel.getPolicy_rs_type = function (idfirewall, type, callback) {
+policy_rModel.getPolicy_rs_type = function (idfirewall, type, AllDone) {
 
     var rule_type;
     switch (type) {
-        case "I" : rule_type= "I";
+        case "I" :
+            rule_type = "I";
             break;
-        case "O": rule_type= "O";
+        case "O":
+            rule_type = "O";
             break;
-        case "F": rule_type= "F";
+        case "F":
+            rule_type = "F";
             break;
-        case "N": rule_type= "N";
+        case "N":
+            rule_type = "N";
             break;
-        default: rule_type= "I";
+        default:
+            rule_type = "I";
             break;
     }
+    var policy = [];
+    var policy_cont = 0;
+    var position_cont = 0;
+    var ipobj_cont = 0;
+    var i, j, k;
+    
+    
+
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
@@ -52,9 +72,156 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, callback) {
         console.log(sql);
         connection.query(sql, function (error, rows) {
             if (error)
-                callback(error, null);
-            else
-                callback(null, rows);
+                AllDone(error, null);
+            else {
+                if (rows) {
+                    i = 0;
+                    policy_cont = rows.length;
+                    //for (i = 0; i < rows.length; i++) {
+                    //--------------------------------------------------------------------------------------------------
+                    async.forEachSeries(rows, function (row_rule, callback1) {
+                        i++;
+                        var policy_node = new data_policy_r(row_rule);
+
+
+                        var rule_id = row_rule.id;
+                        console.log(i + " ---> DENTRO de REGLA: " + rule_id);
+
+                        //Buscamos POSITIONS de REGLA
+                        Policy_positionModel.getPolicy_positionsType(type, function (error, data_positions)
+                        {
+                            //If exists policy_position get data
+                            if (typeof data_positions !== 'undefined')
+                            {
+                                console.log("REGLA: " + rule_id + "  POSITIONS: " + data_positions.length);
+                                j = 0;
+                                //for (j = 0; j < data_positions.length; j++) {
+
+                                position_cont = data_positions.length;
+                                policy_node.positions= new Array();
+                                
+                                //--------------------------------------------------------------------------------------------------
+                                async.forEachSeries(data_positions, function (row_position, callback2) {
+                                    j++;
+                                    console.log(j + " - DENTRO de POSITION: " + row_position.name);
+                                    var position_node = new data_policy_positions(row_position);
+                                    console.log(position_node);
+
+                                    //Buscamos IPOBJS por POSITION
+                                    Policy_r__ipobjModel.getPolicy_r__ipobjs_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
+                                    {        
+                                        //console.log(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
+                                        //If exists policy_r__ipobj get data
+                                        //if (typeof data__rule_ipobjs !== 'undefined' && data__rule_ipobjs.length > 0)
+                                        if (typeof data__rule_ipobjs !== 'undefined')
+                                        {                                            
+                                            
+                                            //obtenemos IPOBJS
+                                            k = 0;
+                                            //for (k = 0; k < data__rule_ipobjs.length; k++) {
+                                            ipobj_cont = data__rule_ipobjs.length;
+                                            //creamos array de ipobj
+                                            position_node.ipobjs= new Array();
+                                            //--------------------------------------------------------------------------------------------------
+                                            async.forEachSeries(data__rule_ipobjs, function (row_ipobj, callback3 ) {
+                                                k++;
+                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" +  row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj);
+                                                IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
+                                                {    
+                                                    //If exists ipobj get data
+                                                    if (typeof data_ipobjs !== 'undefined')
+                                                    {
+                                                        var ipobj=data_ipobjs[0];
+                                                        var Jipobj = JSON.stringify(data_ipobjs);
+                                                        //console.log(Jipobj);
+                                                        var ipobj_node = new data_policy_position_ipobjs(ipobj);
+                                                        //Añadimos ipobj a array de position
+                                                        position_node.ipobjs.push(ipobj_node);
+                                                        //console.log("IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
+                                                        console.log("--------POSITION NODE DENTRO de BUCLE IPOBJS");
+                                                        console.log(position_node);                                                        
+                                                        callback3();
+                                                    }
+                                                    //Get Error
+                                                    else
+                                                    {
+                                                        console.log("ERROR getIpobj: " + error);
+                                                        callback3();
+                                                    }
+                                                });
+                                                
+
+                                            }, //Fin de bucle de IPOBJS
+                                                    function (err) {                                                                                                                
+                                                        //console.log("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
+                                                        console.log("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id );
+                                                        console.log(position_node);
+                                                        console.log("------------ FINAL IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
+                                                        policy_node.positions.push(position_node);
+                                                        console.log("  POLICY_LENGTH:" + policy.length + "   POSITION LENGTH: " + policy_node.positions.length + "  IPOBJ LENGTH: " + position_node.ipobjs.length);
+                                                        //console.log("  POLICY_CONT:" + policy_cont + "   POSITION CONT: " + position_cont);
+                                                        
+                                                        if (policy_node.positions.length >= position_cont) {
+                                                            policy.push(policy_node);
+                                                            console.log("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id );
+                                                            if (policy.length >= policy_cont) {
+                                                                console.log("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
+                                                                //console.log(policy);
+                                                                AllDone(null, policy);
+                                                            }
+                                                        }                                                        
+
+                                                    });
+                                        }
+
+                                    });
+
+                                    callback2();
+
+                                }, //Fin de bucle Positions                                
+                                        function (err) {
+                                            console.log("J=" + j + " ---------- FINAL BUCLE 2 --------");
+                                            console.log('iterating2 done   CONT=' + policy_cont);
+//                                            if (err)
+//                                                callback2(err, null);
+//                                            else
+//                                                callback2(null, policy);
+
+                                            console.log("añadiendo POLICY NODE");
+                                            //policy.push(policy_node);
+                                            console.log("LENGHT E2: " + policy.length);
+                                            if (policy.length >= policy_cont) {
+                                                console.log("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=" + i + " - J=" + j + " - K=" + k);
+                                            }
+                                        });
+
+
+                                //console.log(policy);
+
+
+                            }
+                            //Get Error
+                            else
+                            {
+                                console.log("ERROR getPolicy_positionsType: " + error);
+                            }
+                        });
+
+                        callback1();
+
+
+                    }, //Fin de bucle Reglas                    
+                            function (err) {
+                                console.log("---------- FINAL BUCLE 1 --------");
+                                console.log('iterating1 done   CONT=' + policy_cont);
+                                console.log(err);
+                                console.log(policy);
+                                console.log("LENGHT E1: " + policy.length);
+
+                            });
+                }
+
+            }
         });
     });
 };

@@ -13,12 +13,14 @@ ipobjModel.getIpobj = function ( id, callback) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel +  ' WHERE id = ' + connection.escape(id) ;
+        var sql = 'SELECT * FROM ' + tableModel +  ' WHERE id = ' + connection.escape(id) ;        
         connection.query(sql, function (error, row) {
-            if (error)
+            if (error){
                 callback(error, null);
-            else
+            }
+            else{
                 callback(null, row);
+            }
         });
     });
 };
