@@ -11,7 +11,7 @@ policy_positionModel.getPolicy_positions = function (callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
+        connection.query('SELECT * FROM ' + tableModel + ' ORDER BY position_order', function (error, rows) {
             if (error)
                 callback(error, null);
             else
