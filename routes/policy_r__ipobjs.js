@@ -54,6 +54,29 @@ router.get('/:firewall/:rule/:position', function (req, res)
     
 });
 
+/* Get all policy_r__ipobjs by rule and posicion with IPOBJ DATA*/
+
+router.get('/data/:firewall/:rule/:position', function (req, res)
+{
+    var rule = req.params.rule;
+    var position = req.params.position;
+    
+    Policy_r__ipobjModel.getPolicy_r__ipobjs_position_data(rule,position,function (error, data)
+    {
+        //If exists policy_r__ipobj get data
+        if (typeof data !== 'undefined' && data.length>0)
+        {
+            res.json(200, {"data": data});
+        }
+        //Get Error
+        else
+        {
+            res.json(404, {"msg": "notExist"});
+        }
+    });
+    
+});
+
 
 /* Get  policy_r__ipobj by id  */
 

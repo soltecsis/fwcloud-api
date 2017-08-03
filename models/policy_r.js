@@ -129,8 +129,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.forEachSeries(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
-                                                console.log(row_ipobj);
+                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);                                                
                                                 IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                 {
                                                     //If exists ipobj get data

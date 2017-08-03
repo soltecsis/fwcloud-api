@@ -46,6 +46,26 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_position = function (rule, position, ca
 
 };
 
+//Get All policy_r__ipobj by Policy_r (rule) and position
+policy_r__ipobjModel.getPolicy_r__ipobjs_position_data = function (rule, position, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql_obj=" INNER JOIN ipobj O on O.id=P.ipobj ";
+        var sql = 'SELECT * FROM ' + tableModel + ' P ' +  sql_obj  +' WHERE P.rule=' + connection.escape(rule) + ' AND P.position=' + connection.escape(position) + ' ORDER BY P.position_order';
+console.log(sql);
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
+
+};
+
 //Get  policy_r__ipobj by primarykey
 policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g,interface, position, callback) {
 
