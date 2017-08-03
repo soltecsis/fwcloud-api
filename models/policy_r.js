@@ -79,7 +79,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
             if (error)
                 AllDone(error, null);
             else {
-                if (rows) {
+                if (rows.length>0) {
                     i = 0;
                     policy_cont = rows.length;
                     //for (i = 0; i < rows.length; i++) {
@@ -129,7 +129,8 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.forEachSeries(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj);
+                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                console.log(row_ipobj);
                                                 IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                 {
                                                     //If exists ipobj get data
@@ -138,7 +139,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                         var ipobj = data_ipobjs[0];
                                                         var Jipobj = JSON.stringify(data_ipobjs);
                                                         //console.log(Jipobj);
-                                                        var ipobj_node = new data_policy_position_ipobjs(ipobj);
+                                                        var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate);
                                                         //Añadimos ipobj a array de position
                                                         position_node.ipobjs.push(ipobj_node);
                                                         //console.log("IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
@@ -220,6 +221,11 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                 console.log("LENGHT E1: " + policy.length);
 
                             });
+                }
+                else{
+                    //NO existe regla
+                    console.log("NO HAY REGLAS");
+                    AllDone("", null);
                 }
 
             }
