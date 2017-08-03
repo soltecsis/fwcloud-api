@@ -8,6 +8,7 @@ var tableModel = "policy_r";
 var Policy_positionModel = require('../models/policy_position');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var IpobjModel = require('../models/ipobj');
+var InterfaceModel = require('../models/interface');
 var data_policy_r = require('../models/data_policy_r');
 var data_policy_positions = require('../models/data_policy_positions');
 var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs');
@@ -79,7 +80,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
             if (error)
                 AllDone(error, null);
             else {
-                if (rows.length>0) {
+                if (rows.length > 0) {
                     i = 0;
                     policy_cont = rows.length;
                     //for (i = 0; i < rows.length; i++) {
@@ -108,11 +109,11 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                 //--------------------------------------------------------------------------------------------------
                                 async.forEachSeries(data_positions, function (row_position, callback2) {
                                     j++;
-                                    console.log(j + " - DENTRO de POSITION: " + row_position.name);
+                                    console.log(j + " - DENTRO de POSITION: " + row_position.id + " - " + row_position.name + "     ORDER:" + row_position.position_order);
                                     var position_node = new data_policy_positions(row_position);
 
                                     //Buscamos IPOBJS por POSITION
-                                    Policy_r__ipobjModel.getPolicy_r__ipobjs_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
+                                    Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
                                     {
                                         //console.log(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
                                         //If exists policy_r__ipobj get data
@@ -120,7 +121,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                         if (typeof data__rule_ipobjs !== 'undefined')
                                         {
 
-                                            //obtenemos IPOBJS
+                                            //obtenemos IPOBJS o INTERFACES
                                             k = 0;
                                             //for (k = 0; k < data__rule_ipobjs.length; k++) {
                                             ipobj_cont = data__rule_ipobjs.length;
@@ -129,37 +130,62 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.forEachSeries(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);                                                
-                                                IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
-                                                {
-                                                    //If exists ipobj get data
-                                                    if (typeof data_ipobjs !== 'undefined')
+                                                console.log("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                if (row_ipobj.ipobj > 0 && row_ipobj.type==='O') {
+                                                    IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
-                                                        var ipobj = data_ipobjs[0];
-                                                        var Jipobj = JSON.stringify(data_ipobjs);
-                                                        //console.log(Jipobj);
-                                                        var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate);
-                                                        //Añadimos ipobj a array de position
-                                                        position_node.ipobjs.push(ipobj_node);
-                                                        //console.log("IPOBJS ARRAY: " + position_node.ipobjs.length + "      K=" + k);
-                                                        //console.log("--------POSITION NODE DENTRO de BUCLE IPOBJS");
-                                                        //console.log(position_node);                                                        
-                                                        callback3();
-                                                    }
-                                                    //Get Error
-                                                    else
-                                                    {
-                                                        console.log("ERROR getIpobj: " + error);
-                                                        callback3();
-                                                    }
-                                                });
+                                                        //If exists ipobj get data
+                                                        if (typeof data_ipobjs !== 'undefined')
+                                                        {
+                                                            var ipobj = data_ipobjs[0];
+                                                            var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, true);
+                                                            //Añadimos ipobj a array de position
+                                                            position_node.ipobjs.push(ipobj_node);
+
+                                                            callback3();
+                                                        }
+                                                        //Get Error
+                                                        else
+                                                        {
+                                                            console.log("ERROR getIpobj: " + error);
+                                                            callback3();
+                                                        }
+                                                    });
+                                                }
+                                                else if (row_ipobj.interface > 0 || row_ipobj.type==='I') {
+                                                    var idInterface=row_ipobj.interface;
+                                                    if (row_ipobj.type==='I')
+                                                            idInterface=row_ipobj.ipobj;
+                                                    InterfaceModel.getInterface(idfirewall,idInterface,function (error, data_interface)                                                    
+                                                    {                                                        
+                                                        if (typeof data_interface !== 'undefined')
+                                                        {
+                                                            var interface = data_interface[0];
+                                                            //console.log(interface);
+                                                            var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, false);
+                                                            //Añadimos ipobj a array de position
+                                                            position_node.ipobjs.push(ipobj_node);
+
+                                                            callback3();
+                                                        }
+                                                        //Get Error
+                                                        else
+                                                        {
+                                                            console.log("ERROR getInterface: " + error);
+                                                            callback3();
+                                                        }
+                                                    });
+                                                }
+                                                else{
+                                                    callback3();
+                                                }
 
 
                                             }, //Fin de bucle de IPOBJS
                                                     function (err) {
                                                         //console.log("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
                                                         console.log("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
-                                                        console.log(position_node);
+                                                        //console.log(position_node);
                                                         policy_node.positions.push(position_node);
 
                                                         if (policy_node.positions.length >= position_cont) {
@@ -220,8 +246,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                 console.log("LENGHT E1: " + policy.length);
 
                             });
-                }
-                else{
+                } else {
                     //NO existe regla
                     console.log("NO HAY REGLAS");
                     AllDone("", null);
