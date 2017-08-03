@@ -63,7 +63,7 @@ router.get('/:idfirewall/type/:type/rule/:rule', function (req, res)
     Policy_rModel.getPolicy_rs_type(idfirewall,type,rule,function (error, data)
     {
         //If exists policy_r get data
-        if (typeof data !== 'undefined')
+        if (data !== null)
         {
             res.json(200, {"data": data});
         }
