@@ -115,7 +115,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                     //Buscamos IPOBJS por POSITION
                                     Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
                                     {
-                                        //console.log(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
+                                        console.log(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
                                         //If exists policy_r__ipobj get data
                                         //if (typeof data__rule_ipobjs !== 'undefined' && data__rule_ipobjs.length > 0)
                                         if (typeof data__rule_ipobjs !== 'undefined')
@@ -179,8 +179,6 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                 else{
                                                     callback3();
                                                 }
-
-
                                             }, //Fin de bucle de IPOBJS
                                                     function (err) {
                                                         //console.log("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
@@ -189,6 +187,11 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                         policy_node.positions.push(position_node);
 
                                                         if (policy_node.positions.length >= position_cont) {
+                                                            
+                                                            policy_node.positions.sort(function(a, b){
+                                                                return a.position_order-b.position_order;
+                                                            });
+                                                            console.log(policy_node.positions);
                                                             policy.push(policy_node);
                                                             console.log("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
                                                             if (policy.length >= policy_cont) {
