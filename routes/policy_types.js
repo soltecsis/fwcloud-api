@@ -18,7 +18,7 @@ router.get('/', function (req, res)
         //If exists policy_type get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -39,7 +39,7 @@ router.get('/:type', function (req, res)
         //If exists policy_type get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -58,7 +58,7 @@ router.get('/name/:name', function (req, res)
         //If exists policy_type get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

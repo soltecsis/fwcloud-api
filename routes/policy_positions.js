@@ -17,7 +17,7 @@ router.get('/', function (req, res)
         //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -36,7 +36,7 @@ router.get('/type/:type', function (req, res)
         //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -56,7 +56,7 @@ router.get('/:id', function (req, res)
         //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -75,7 +75,7 @@ router.get('/name/:name', function (req, res)
         //If exists policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -121,8 +121,8 @@ router.put('/policy-position/', function (req, res)
         //If saved policy_position saved ok, get data
         if (data && data.msg)
         {
-            //res.redirect("/policy-positions/policy-position/" + req.param('id'));
-            res.json(200, data.msg);
+            //res.redirect("/policy-positions/policy-position/" + req.param('id'));            
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
@@ -142,8 +142,8 @@ router.delete("/policy-position/", function (req, res)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
-            //res.redirect("/policy-positions/");
-            res.json(200, data.msg);
+            //res.redirect("/policy-positions/");            
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});

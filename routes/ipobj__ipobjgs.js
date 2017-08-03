@@ -18,7 +18,7 @@ router.get('/:ipobjg', function (req, res)
         //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -40,7 +40,7 @@ router.get('/:ipobjg/:ipobj', function (req, res)
         //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

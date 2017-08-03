@@ -18,7 +18,7 @@ router.get('/:interface', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -38,7 +38,7 @@ router.get('/:interface/:id', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -58,7 +58,7 @@ router.get('/:interface/name/:name', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -78,7 +78,7 @@ router.get('/:interface/address/:address', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -149,7 +149,7 @@ router.get('/:interface/mac/:id', function (req, res)
             if (typeof data !== 'undefined' && data.length > 0)
             {
 
-                res.json(200, data);
+                res.json(200, {"data": data});
 
             }
             //Get Error
@@ -179,7 +179,7 @@ router.get('/:interface/mac/name/:name', function (req, res)
             //If exists mac get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
-                res.json(200, data);
+                res.json(200, {"data": data});
 
             }
             //Get Error

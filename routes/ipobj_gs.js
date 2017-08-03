@@ -19,7 +19,7 @@ router.get('/:fwcloud', function (req, res)
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -42,7 +42,7 @@ router.get('/:fwcloud/:id', function (req, res)
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -62,7 +62,7 @@ router.get('/:fwcloud/name/:name', function (req, res)
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -82,7 +82,7 @@ router.get('/:fwcloud/type/:type', function (req, res)
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

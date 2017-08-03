@@ -18,7 +18,7 @@ router.get('/interface/:interface', function (req, res)
         //If exists interface__ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -37,7 +37,7 @@ router.get('/ipobj/:ipobj', function (req, res)
         //If exists interface__ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -61,7 +61,7 @@ router.get('/interface__ipobj/:interface/:ipobj', function (req, res)
                     title : "FWBUILDER", 
                     info : data
                 });
-            //res.json(200, data);
+            //res.json(200, {"data": data});
         }
         //Get Error
         else

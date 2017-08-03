@@ -23,7 +23,7 @@ router.get('/:id_user', function (req, res)
 //                title : "Mostrando listado de User__firewalls", 
 //                user__firewalls : data
 //            });
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -50,7 +50,7 @@ router.get('/user__firewall/:id_user/:id_firewall', function (req, res)
 //                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
-                res.json(200, data);
+                res.json(200, {"data": data});
 
             }
             //Get Error

@@ -35,8 +35,32 @@ router.get('/:idfirewall/type/:type', function (req, res)
 {
     var idfirewall = req.params.idfirewall;    
     var type = req.params.type;    
+    var rule="";
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
-    Policy_rModel.getPolicy_rs_type(idfirewall,type,function (error, data)
+    Policy_rModel.getPolicy_rs_type(idfirewall,type,rule,function (error, data)
+    {
+        //If exists policy_r get data
+        if (typeof data !== 'undefined')
+        {
+            res.json(200, {"data": data});
+        }
+        //Get Error
+        else
+        {
+            res.json(404, {"msg": "notExist"});
+        }
+    });
+});
+/* Get all policy_rs by firewall and type and Rule */
+router.get('/:idfirewall/type/:type/rule/:rule', function (req, res)
+{
+    var idfirewall = req.params.idfirewall;    
+    var type = req.params.type;    
+    var rule = req.params.rule;    
+    
+    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
+    console.log("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
+    Policy_rModel.getPolicy_rs_type(idfirewall,type,rule,function (error, data)
     {
         //If exists policy_r get data
         if (typeof data !== 'undefined')

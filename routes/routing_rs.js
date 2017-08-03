@@ -19,7 +19,7 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -37,7 +37,7 @@ router.get('/:idfirewall', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -57,7 +57,7 @@ router.get('/:idfirewall/:id', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -78,7 +78,7 @@ router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

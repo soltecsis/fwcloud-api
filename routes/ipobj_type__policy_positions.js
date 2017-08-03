@@ -19,7 +19,7 @@ router.get('/', function (req, res)
         //If exists ipobj_type__policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -42,7 +42,7 @@ router.get('/:type/:position', function (req, res)
         //If exists ipobj_type__policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

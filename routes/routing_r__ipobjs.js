@@ -20,7 +20,7 @@ router.get('/:rule', function (req, res)
         //If exists routing_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -43,7 +43,7 @@ router.get('/:rule/:position', function (req, res)
         //If exists routing_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -72,7 +72,7 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
                     title : "FWBUILDER", 
                     info : data
                 });            
-            //res.json(200, data);
+            //res.json(200, {"data": data});
         }
         //Get Error
         else

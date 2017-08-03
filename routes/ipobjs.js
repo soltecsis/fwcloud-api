@@ -18,7 +18,7 @@ router.get('/group/:idgroup', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -39,7 +39,7 @@ router.get('/group/:idgroup/:id', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -59,7 +59,7 @@ router.get('/:id', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -79,7 +79,7 @@ router.get('/group/:idgroup/name/:name', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else

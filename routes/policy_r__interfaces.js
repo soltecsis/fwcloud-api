@@ -18,7 +18,7 @@ router.get('/:interface', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -37,7 +37,7 @@ router.get('/:rule', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
@@ -60,7 +60,7 @@ router.get('/:interface/:rule', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, data);
+            res.json(200, {"data": data});
         }
         //Get Error
         else
