@@ -101,7 +101,7 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
                 'firewall = ' + connection.escape(interfaceData.firewall) + ',' +
                 'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
                 'type = ' + connection.escape(interfaceData.type) + ', ' +
-                'securityLevel = ' + connection.escape(interfaceData.securityLevel0) + ' ' +
+                'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
         console.log(sql);
         connection.query(sql, function (error, result) {
