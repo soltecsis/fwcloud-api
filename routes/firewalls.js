@@ -357,8 +357,10 @@ router.post("/firewall", function (req, res)
 */
 router.put('/firewall/', function (req, res)
 {
+    console.log("DENTRO de PUT UPDATE");    
     //Save firewall data into objet
     var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment };
+    console.log(firewallData);
     FirewallModel.updateFirewall(firewallData, function (error, data)
     {
         //Saved ok
