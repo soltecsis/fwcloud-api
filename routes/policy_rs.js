@@ -169,7 +169,7 @@ router.put('/policy-r/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
-            res.json(200, {"data": data}.msg);
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
@@ -192,7 +192,7 @@ router.put('/policy-r/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
-            res.json(200, {"data": data}.msg);
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
@@ -214,7 +214,7 @@ router.delete("/policy-r/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/policy-rs/");
-            res.json(200, {"data": data}.msg);
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
