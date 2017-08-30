@@ -1,12 +1,57 @@
 var db = require('../db.js');
 
+/**
+* Module to manage Firewalls data
+*
+* @module FirewallModel
+* 
+* @requires db
+* 
+*/
 
-//create object
+/**
+* Class to manage firewalls data
+*
+* @class FirewallModel
+* @uses db
+* 
+*/
 var firewallModel = {};
+
+/**
+* Property Table
+*
+* @property tableModel
+* @type "firewall"
+* 
+*/
 var tableModel = "firewall";
 
 
-//Get All firewall by user
+/**
+* Get Firewalls by User
+*  
+* @method getFirewalls
+* 
+* @param {Integer} iduser User identifier
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {ARRAY of Firewall objects} Returns `ARRAY OBJECT FIREWALL DATA` 
+* 
+* Table: __firewall__
+* 
+*           id	int(11) AI PK
+*           cluster	int(11)
+*           fwcloud	int(11)
+*           name	varchar(255)
+*           comment	longtext
+*           created_at	datetime
+*           updated_at	datetime
+*           by_user	int(11)
+*           id_fwb	varchar(45)
+*/
 firewallModel.getFirewalls = function (iduser, callback) {
 
     db.get(function (error, connection) {
@@ -25,9 +70,31 @@ firewallModel.getFirewalls = function (iduser, callback) {
 
 
 
-
-
-//Get firewall by  id and user
+/**
+* Get Firewalls by User and ID
+*  
+* @method getFirewall
+* 
+* @param {Integer} iduser User identifier
+* @param {Integer} id firewall identifier
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {Firewall object} Returns `OBJECT FIREWALL DATA` 
+* 
+* Table: __firewall__
+* 
+*           id	int(11) AI PK
+*           cluster	int(11)
+*           fwcloud	int(11)
+*           name	varchar(255)
+*           comment	longtext
+*           created_at	datetime
+*           updated_at	datetime
+*           by_user	int(11)
+*           id_fwb	varchar(45)
+*/
 firewallModel.getFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -42,7 +109,31 @@ firewallModel.getFirewall = function (iduser, id, callback) {
     });
 };
 
-//Get firewall by name and user
+/**
+* Get Firewalls by User and Name
+*  
+* @method getFirewallName
+* 
+* @param {Integer} iduser User identifier
+* @param {String} Name Firewall Name
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {ARRAY of Firewall objects} Returns `ARRAY OBJECT FIREWALL DATA` 
+* 
+* Table: __firewall__
+* 
+*           id	int(11) AI PK
+*           cluster	int(11)
+*           fwcloud	int(11)
+*           name	varchar(255)
+*           comment	longtext
+*           created_at	datetime
+*           updated_at	datetime
+*           by_user	int(11)
+*           id_fwb	varchar(45)
+*/
 firewallModel.getFirewallName = function (iduser, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -59,7 +150,31 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
     });
 };
 
-//Get firewall by cluster and user
+/**
+* Get Firewalls by User and Cluster
+*  
+* @method getFirewallCluster
+* 
+* @param {Integer} iduser User identifier
+* @param {Integer} idcluster Cluster identifier
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {ARRAY of Firewall objects} Returns `ARRAY OBJECT FIREWALL DATA` 
+* 
+* Table: __firewall__
+* 
+*           id	int(11) AI PK
+*           cluster	int(11)
+*           fwcloud	int(11)
+*           name	varchar(255)
+*           comment	longtext
+*           created_at	datetime
+*           updated_at	datetime
+*           by_user	int(11)
+*           id_fwb	varchar(45)
+*/
 firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -75,7 +190,35 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     });
 };
 
-//Add new firewall from user
+
+/**
+* ADD New Firewall
+*  
+* @method insertFirewall
+* 
+* @param iduser {Integer}  User identifier
+* @param firewallData {Firewall Object}  Firewall Object data
+*       @param firewallData.id {NULL} 
+*       @param firewallData.cluster {Integer} Cluster ID
+*       @param firewallData.fwcloud {Integer} FWcloud ID
+*       @param firewallData.name {string} Firewall Name
+*       @param [firewallData.comment] {String}  comment text 
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {CALLBACK RESPONSE}
+* 
+* @example
+* #### RESPONSE OK:
+*    
+*       callback(null, {"insertId": fwid});
+*       
+* #### RESPONSE ERROR:
+*    
+*       callback(error, null);
+*       
+*/
 firewallModel.insertFirewall = function (iduser, firewallData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -98,15 +241,42 @@ firewallModel.insertFirewall = function (iduser, firewallData, callback) {
     });
 };
 
-//Update firewall from user
-firewallModel.updateFirewall = function (iduser, firewallData, callback) {
+/**
+* UPDATE Firewall
+*  
+* @method updateFirewall
+* 
+* @param iduser {Integer}  User identifier
+* @param firewallData {Firewall Object}  Firewall Object data
+*       @param firewallData.id {NULL} 
+*       @param firewallData.cluster {Integer} Cluster ID
+*       @param firewallData.fwcloud {Integer} FWcloud ID
+*       @param firewallData.name {string} Firewall Name
+*       @param [firewallData.comment] {String}  comment text 
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {CALLBACK RESPONSE}
+* 
+* @example
+* #### RESPONSE OK:
+*    
+*       callback(null, {"msg": "success"});
+*       
+* #### RESPONSE ERROR:
+*    
+*       callback(error, null);
+*       
+*/
+firewallModel.updateFirewall = function (firewallData, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
                 'cluster = ' + connection.escape(firewallData.cluster) + ',' +
-                'user = ' + connection.escape(firewallData.user) + ',' +
+                'by_user = ' + connection.escape(firewallData.user) + ',' +
                 'comment = ' + connection.escape(firewallData.comment) + ' ' +
                 ' WHERE id = ' + firewallData.id;
         console.log(sql);
@@ -120,7 +290,29 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
     });
 };
 
-//Remove firewall with id to remove
+/**
+* DELETE Firewall
+*  
+* @method deleteFirewall
+* 
+* @param iduser {Integer}  User identifier
+* @param id {Integer}  Firewall identifier
+* @param {Function} callback    Function callback response
+* 
+*       callback(error, Rows)
+* 
+* @return {CALLBACK RESPONSE}
+* 
+* @example
+* #### RESPONSE OK:
+*    
+*       callback(null, {"msg": "deleted"});
+*       
+* #### RESPONSE ERROR:
+*    
+*       callback(null, {"msg": "notExist"});
+*       
+*/
 firewallModel.deleteFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
