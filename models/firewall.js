@@ -275,8 +275,7 @@ firewallModel.updateFirewall = function (firewallData, callback) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
-                'cluster = ' + connection.escape(firewallData.cluster) + ',' +
-                'by_user = ' + connection.escape(firewallData.user) + ',' +
+                'cluster = ' + connection.escape(firewallData.cluster) + ',' +                
                 'comment = ' + connection.escape(firewallData.comment) + ' ' +
                 ' WHERE id = ' + firewallData.id;
         console.log(sql);
