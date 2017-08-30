@@ -99,8 +99,8 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(interfaceData.name) + ',' +
                 'firewall = ' + connection.escape(interfaceData.firewall) + ',' +
-                'labelName = ' + connection.escape(interfaceData.labelName) + ' ' +
-                'type = ' + connection.escape(interfaceData.type) + ' ' +
+                'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
+                'type = ' + connection.escape(interfaceData.type) + ', ' +
                 'securityLevel = ' + connection.escape(interfaceData.securityLevel0) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
         console.log(sql);
