@@ -110,7 +110,7 @@ router.put('/interface/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/interfaces/interface/" + req.param('id'));
-            res.json(200, {"data": data}.msg);
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
@@ -131,7 +131,7 @@ router.delete("/interface/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/interfaces/");
-            res.json(200, {"data": data}.msg);
+            res.json(200, {"data": data.msg});
         } else
         {
             res.json(500, {"msg": error});
