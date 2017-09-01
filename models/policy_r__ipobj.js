@@ -338,7 +338,7 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback)
                     'inner join ipobj_type__policy_position A on A.type=O.type ' +
                     ' WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position);
         } else if (interface > 0) {
-            sql = 'select A.allowed from intreface O ' +
+            sql = 'select A.allowed from interface O ' +
                     'inner join ipobj_type T on O.interface_type=T.id ' +
                     'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
                     ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position);
