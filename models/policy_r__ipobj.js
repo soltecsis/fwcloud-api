@@ -163,7 +163,8 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
         OrderList(policy_r__ipobjData.position_order, rule, position, position_order);
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.position, function (error, data) {
+    //checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
+    checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj,policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
         } else {
