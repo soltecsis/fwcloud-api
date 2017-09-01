@@ -241,13 +241,13 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
     //ordenamos posicion nueva
     OrderList(new_order, rule, new_position, 999999);
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkIpobjPosition(rule, ipobj, position, function (error, data) {
+    checkIpobjPosition(rule, ipobj, new_position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
         } else {
             allowed = data;
             if (allowed) {
-                getNegateRulePosition(rule, position, function (error, data) {
+                getNegateRulePosition(rule, new_position, function (error, data) {
                     if (error) {
                         console.log("ERROR : ", error);
                     } else {
