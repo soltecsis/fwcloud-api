@@ -343,6 +343,7 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback)
                     'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
                     ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position);
         }
+        console.log(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
