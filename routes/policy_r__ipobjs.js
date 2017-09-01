@@ -178,7 +178,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:position/:position
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
     var ipobj_g = req.params.ipobj_g;
-    var interface = req.body.get_interface;
+    var interface = req.params.interface;
     var position = req.params.position;
     var position_order = req.params.position_order;
     var new_position = req.params.new_position;
@@ -228,7 +228,7 @@ router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:ne
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
     var ipobj_g = req.params.ipobj_g;
-    var interface = req.body.get_interface;
+    var interface = req.params.interface;
     var position = req.params.position;
     var position_order = req.params.position_order;
     var new_order = req.params.new_order;
@@ -259,7 +259,7 @@ router.delete("/policy-r__ipobj/", function (req, res)
     var rule = req.body.rule;
     var ipobj = req.body.ipobj;
     var ipobj_g = req.body.ipobj_g;
-    var interface = req.body.get_interface;
+    var interface = req.body.interface;
     var position = req.body.position;
     var position_order = req.body.position_order;
     
