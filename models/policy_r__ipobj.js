@@ -236,13 +236,13 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule, ipob
 //Update policy_r__ipobj POSITION
 //When Update position we order New and Old POSITION
 policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipobj_g, interface, position, position_order, new_position, new_order, callback) {
-
 //ordenamos posicion antigua
     OrderList(999999, rule, position, position_order);
     //ordenamos posicion nueva
     OrderList(new_order, rule, new_position, 999999);
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkIpobjPosition(rule, ipobj, new_position, function (error, data) {
+    
+    checkIpobjPosition(rule, ipobj,ipobj_g, interface ,new_position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
         } else {
