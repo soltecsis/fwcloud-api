@@ -96,9 +96,10 @@ policy_positionModel.updatePolicy_position = function (policy_positionData, call
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_positionData.name) + ' ' +            
-                'policy_type = ' + connection.escape(policy_positionData.poicy_type) + ' ' +            
-                'position_order = ' + connection.escape(policy_positionData.position_order) + ' ' +                            
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_positionData.name) + ', ' +            
+                'policy_type = ' + connection.escape(policy_positionData.poicy_type) + ', ' +            
+                'position_order = ' + connection.escape(policy_positionData.position_order) + ', ' +                            
+                'content = ' + connection.escape(policy_positionData.content) + ' ' +                            
             ' WHERE id = ' + policy_positionData.id;
             logger.debug(sql);
         connection.query(sql, function (error, result) {
