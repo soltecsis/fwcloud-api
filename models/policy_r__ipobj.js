@@ -139,6 +139,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
                         db.get(function (error, connection) {
                             if (error)
                                 return done('Database problem');
+                            logger.debug(policy_r__ipobjData);
                             connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
                                 if (error) {
                                     callback(error, {"error": error});
