@@ -44,7 +44,7 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' ORDER BY id_parent,node_order';
-        logger.debug(sql);
+        
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -62,7 +62,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, foldertype, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND node_type=' + connection.escape(foldertype) + ' AND id_parent=0 ORDER BY id limit 1';
-        logger.debug(sql);
+        
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -88,14 +88,14 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, objs, objc
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' AND id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY node_order';
-        logger.debug(sql);
+        
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
 
                 if (rows) {
-                    logger.debug("---> DENTRO de PADRE: " + idparent);
+                    //logger.debug("---> DENTRO de PADRE: " + idparent);
 
                     async.forEachSeries(rows,
                             function (row, callback) {
@@ -105,15 +105,15 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, objs, objc
                                     if (!t) {
                                         //Añadimos nodo hijo
 
-                                        logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
+                                        //logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
 
                                         tree.append([], tree_node);
 
                                         callback();
                                     } else {
                                         //dig(row.tree_id, treeArray, callback);
-                                        logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
-                                        logger.debug("-------> LLAMANDO A HIJO: " + row.id);
+                                        //logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
+                                        //logger.debug("-------> LLAMANDO A HIJO: " + row.id);
 
                                         var treeP = new Tree(tree_node);
                                         tree.append([], treeP);
@@ -177,7 +177,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.id_user=' + connection.escape(iduser) + ' order by T1.node_order';
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error) {
                 callback(error, null);
@@ -186,7 +186,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                 if (rows) {
                     async.forEach(rows, function (row, callback) {
                         //logger.debug(row);
-                        logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+                        //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                         var tree_node = new fwc_tree_node(row);
                         //Añadimos nodos hijos tipo firewall
                         sqlnodes = 'SELECT  F.id,F.name,F.fwcloud, F.comment FROM firewall F inner join user__firewall U on U.id_firewall=F.id and U.id_user=' + connection.escape(iduser);
@@ -215,7 +215,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                             if (error) {
                                                 logger.debug("ERROR FIREWALL INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
                                             } else {
-                                                logger.debug("INSERT FIREWALL OK NODE: " + rnode.id + " - " + rnode.name);
+                                                //logger.debug("INSERT FIREWALL OK NODE: " + rnode.id + " - " + rnode.name);
                                                 parent_firewall = result.insertId;
 
                                                 //Insertamos nodo POLICY IN
@@ -375,7 +375,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND T1.id_user=' + connection.escape(iduser) + ' order by T1.node_order';
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql,
                 function (error, rows) {
                     if (error) {
@@ -386,7 +386,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
                             async.forEachSeries(rows,
                                     function (row, callback) {
                                         //logger.debug(row);
-                                        logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+                                        //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                                         var tree_node = new fwc_tree_node(row);
                                         //Añadimos nodos hijos del tipo
                                         sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null';
