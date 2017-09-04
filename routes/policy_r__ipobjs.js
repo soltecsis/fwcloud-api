@@ -181,7 +181,7 @@ router.put('/policy-r__ipobj', function (req, res)
 });
 
 /* Update POSITION policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
+router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_rule/:new_position/:new_order', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -189,11 +189,12 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:position/:position
     var interface = req.params.interface;
     var position = req.params.position;
     var position_order = req.params.position_order;
+    var new_rule = req.params.new_rule;
     var new_position = req.params.new_position;
     var new_order = req.params.new_order;
     
     
-    Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule,ipobj,ipobj_g,interface,position,position_order,new_position,new_order, function (error, data)
+    Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule,ipobj,ipobj_g,interface,position,position_order,new_rule,new_position,new_order, function (error, data)
     {
         //If saved policy_r__ipobj saved ok, get data
         if (data && data.msg)

@@ -103,7 +103,11 @@ router.post("/policy-position", function (req, res)
     //Create New objet with data policy_position
     var policy_positionData = {
         id: req.body.id,
-        name: req.body.comment
+        name: req.body.name,
+        policy_type: req.body.policy_type,
+        position_order: req.body.position_order,
+        content: req.body.content
+                
     };
     
     Policy_positionModel.insertPolicy_position(policy_positionData, function (error, data)
@@ -124,7 +128,7 @@ router.post("/policy-position", function (req, res)
 router.put('/policy-position/', function (req, res)
 {
     //Save data into object
-    var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order')};
+    var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order'),content: req.param('content')};
     Policy_positionModel.updatePolicy_position(policy_positionData, function (error, data)
     {
         //If saved policy_position saved ok, get data
