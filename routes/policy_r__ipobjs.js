@@ -11,6 +11,66 @@ var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 */
 var logger = require('log4js').getLogger("app");
 
+
+router.param('rule', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))
+        res.status(404).json( {"msg": "param rule Error"});
+    else
+        next(); 
+});
+router.param('ipobj', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    
+        req.ipobj=0;
+            
+        next(); 
+});
+router.param('ipobj_g', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.ipobj_g=0;
+    }
+    next(); 
+});
+router.param('interface', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.interface=0;
+    }
+    next(); 
+});
+router.param('position', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        res.status(404).json( {"msg": "param position Error"});
+    }
+    else
+        next(); 
+});
+router.param('position_order', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.position=1;
+    }
+    next(); 
+});
+router.param('new_rule', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))
+        res.status(404).json( {"msg": "param new_rule Error"});
+    else
+        next(); 
+});
+router.param('new_position', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        res.status(404).json( {"msg": "param new_position Error"});
+    }
+    else
+        next(); 
+});
+router.param('new_order', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.new_order=1;
+    }
+    next(); 
+});
+
+
+
 /* Show form */
 router.get('/policy-r__ipobj', function (req, res)
 {
@@ -27,7 +87,7 @@ router.get('/:firewall/:rule', function (req, res)
     {
         //If exists policy_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
-        {
+        {            
             res.status(200).json( {"data": data});
         }
         //Get Error
@@ -100,11 +160,8 @@ router.get('/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (re
         //If exists policy_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.render("update_policy_r__ipobj",{ 
-                    title : "FWBUILDER", 
-                    info : data
-                });            
-            //res.status(200).json( {"data": data});
+
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
@@ -114,7 +171,16 @@ router.get('/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (re
     });
 });
 
-
+function checkPostParameters(obj){
+    for(var propt in obj){
+        logger.debug(propt + ': ' + obj[propt]);
+        if (obj[propt]===undefined){
+            logger.debug("PARAMETRO UNDEFINED: " + propt);
+            obj[propt]=0;
+        }
+    }
+    return obj;
+}
 
 /* Create New policy_r__ipobj */
 router.post("/policy-r__ipobj", function (req, res)
@@ -129,6 +195,12 @@ router.post("/policy-r__ipobj", function (req, res)
         position_order: req.body.position_order        
         
     };
+    
+    
+    policy_r__ipobjData=checkPostParameters(policy_r__ipobjData);
+    
+    logger.debug(policy_r__ipobjData);
+
     
     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData,0, function (error, data)
     {
@@ -153,7 +225,7 @@ router.put('/policy-r__ipobj', function (req, res)
     var interface = req.body.get_interface;
     var position = req.body.get_position;
     var position_order = req.body.get_position_order;
-    
+        
     
     //Save data into object
     var policy_r__ipobjData = {
@@ -165,6 +237,11 @@ router.put('/policy-r__ipobj', function (req, res)
         position_order: req.body.position_order
        
     };
+    
+    policy_r__ipobjData=checkPostParameters(policy_r__ipobjData);
+    
+    logger.debug(policy_r__ipobjData);
+    
     
     Policy_r__ipobjModel.updatePolicy_r__ipobj(rule,ipobj,ipobj_g,interface,position, position_order,policy_r__ipobjData, function (error, data)
     {

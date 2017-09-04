@@ -116,23 +116,8 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 };
 
 
-function checkUndefined(value, defaultvalue){
-    if (value===undefined){
-        return defaultvalue;
-    }
-    else
-        return value;
-}
-
 //Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate, callback) {
-    
-    policy_r__ipobjData.rule=checkUndefined(policy_r__ipobjData.rule,0);
-    policy_r__ipobjData.ipobj=checkUndefined(policy_r__ipobjData.ipobj,0);
-    policy_r__ipobjData.ipobj_g=checkUndefined(policy_r__ipobjData.ipobj_g,0);
-    policy_r__ipobjData.interface=checkUndefined(policy_r__ipobjData.interface,0);
-    policy_r__ipobjData.position=checkUndefined(policy_r__ipobjData.position,0);
-    
     
     OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
 
