@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var MacModel = require('../models/mac');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* get data para crear  nuevos */
 router.get('/mac', function (req, res)
@@ -18,12 +26,12 @@ router.get('/:interface', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -38,12 +46,12 @@ router.get('/:interface/:id', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -58,12 +66,12 @@ router.get('/:interface/name/:name', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -78,12 +86,12 @@ router.get('/:interface/address/:address', function (req, res)
         //If exists mac get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -108,10 +116,10 @@ router.post("/mac", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/macs/mac/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -127,10 +135,10 @@ router.put('/mac/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/macs/mac/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -149,20 +157,20 @@ router.get('/:interface/mac/:id', function (req, res)
             if (typeof data !== 'undefined' && data.length > 0)
             {
 
-                res.json(200, {"data": data});
+                res.status(200).json( {"data": data});
 
             }
             //Get Error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //Id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -179,20 +187,20 @@ router.get('/:interface/mac/name/:name', function (req, res)
             //If exists mac get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
-                res.json(200, {"data": data});
+                res.status(200).json( {"data": data});
 
             }
             //Get Error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //Id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -209,10 +217,10 @@ router.delete("/mac/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/macs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

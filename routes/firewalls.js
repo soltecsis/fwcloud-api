@@ -8,6 +8,7 @@ var express = require('express');
 * 
 * @requires express
 * @requires FirewallModel
+* @requires log4js
 * 
 */
 var router = express.Router();
@@ -21,6 +22,14 @@ var router = express.Router();
 */
 var FirewallModel = require('../models/firewall');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /**
 * Class to manage firewalls routing
@@ -85,12 +94,12 @@ router.get('/:iduser', function (req, res)
         //Get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json({"data": data});            
         }
         //Get error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -136,12 +145,12 @@ router.get('/:iduser/:id', function (req, res)
         //Get Data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json({"data": data});
         }
         //get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -190,12 +199,12 @@ router.get('/:iduser/fwname/:name', function (req, res)
         //Get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -244,12 +253,12 @@ router.get('/:iduser/cluster/:idcluster', function (req, res)
         //get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -309,10 +318,10 @@ router.post("/firewall", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/firewalls/firewall/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -357,20 +366,20 @@ router.post("/firewall", function (req, res)
 */
 router.put('/firewall/', function (req, res)
 {
-    console.log("DENTRO de PUT UPDATE");    
+    
     //Save firewall data into objet
     var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment };
-    console.log(firewallData);
+    logger.debug(firewallData);
     FirewallModel.updateFirewall(firewallData, function (error, data)
     {
         //Saved ok
         if (data && data.msg)
         {
             //res.redirect("/firewalls/firewall/" + req.param('id'));
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -405,20 +414,20 @@ router.get('/:iduser/firewall/:id', function (req, res)
 //                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
-                res.json(200, {"data": data});
+                res.status(200).json({"data": data});
 
             }
             //get error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(505).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -448,20 +457,20 @@ router.get('/:iduser/firewall/name/:name', function (req, res)
             //get data
             if (typeof data !== 'undefined' && data.length > 0)
             {
-                res.json(200, {"data": data});
+                res.status(200).json({"data": data});
 
             }
             //get error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -510,10 +519,10 @@ router.delete("/firewall/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/firewalls/");
-            res.json(200, {"data": data}.msg);
+            res.status(200).json( {"data": data}.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

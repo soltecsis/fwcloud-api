@@ -5,6 +5,14 @@ var db = require('../db.js');
 var clusterModel = {};
 var tableModel="cluster";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All clusters
 clusterModel.getClusters = function (callback) {
@@ -75,7 +83,7 @@ clusterModel.updateCluster = function (clusterData, callback) {
         if (error) return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ' ' +
             ' WHERE id = ' + clusterData.id;
-            console.log(sql);
+            logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/policy-r__ipobj', function (req, res)
@@ -20,12 +28,12 @@ router.get('/:firewall/:rule', function (req, res)
         //If exists policy_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
     
@@ -43,12 +51,12 @@ router.get('/:firewall/:rule/:position', function (req, res)
         //If exists policy_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
     
@@ -66,12 +74,12 @@ router.get('/data/:firewall/:rule/:position', function (req, res)
         //If exists policy_r__ipobj get data
         if (typeof data !== 'undefined' && data.length>0)
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
     
@@ -96,12 +104,12 @@ router.get('/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (re
                     title : "FWBUILDER", 
                     info : data
                 });            
-            //res.json(200, {"data": data});
+            //res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -128,10 +136,10 @@ router.post("/policy-r__ipobj", function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + data.insertId);
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -164,10 +172,10 @@ router.put('/policy-r__ipobj', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -191,10 +199,10 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:position/:position
         if (data && data.msg)
         {
             //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -214,10 +222,10 @@ router.put('/policy-r__ipobj/:firewall/:rule/:position/:negate', function (req, 
         if (data && data.msg)
         {
             //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -241,10 +249,10 @@ router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:ne
         if (data && data.msg)
         {
             //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -268,10 +276,10 @@ router.delete("/policy-r__ipobj/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/policy-r__ipobjs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

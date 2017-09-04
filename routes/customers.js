@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var CustomerModel = require('../models/customers');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Get all customers */
 router.get('/', function (req, res)
@@ -15,12 +23,12 @@ router.get('/', function (req, res)
 //                title : "Mostrando listado de Customers", 
 //                customers : data
 //            });
-            res.json(200, data);
+            res.status(200).json( data);
         }
         //Get error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -50,10 +58,10 @@ router.post("/customer", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/customers/customer/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": "Error"});
+            res.status(500).json( {"msg": "Error"});
         }
     });
 });
@@ -69,10 +77,10 @@ router.put('/customer/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/customers/customer/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": "Error"});
+            res.status(500).json( {"msg": "Error"});
         }
     });
 });
@@ -93,20 +101,20 @@ router.get('/customer/:id', function (req, res)
 //                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
-                res.json(200, data);
+                res.status(200).json( data);
 
             }
             //Get error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -122,10 +130,10 @@ router.delete("/customer/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/customers/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": "Error"});
+            res.status(500).json( {"msg": "Error"});
         }
     });
 });

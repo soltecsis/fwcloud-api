@@ -1,11 +1,51 @@
 var express = require('express');
+/**
+* Module to routing CLUSTER requests
+* <br>BASE ROUTE CALL: <b>/clusters</b>
+*
+* @module ClusterRouter
+* 
+* @requires express
+* @requires Clustermodel
+* 
+*/
 var router = express.Router();
+
+
 var ClusterModel = require('../models/cluster');
 
+/**
+* Modulo para gestionar los datos del Cluster
+* <br>BASE ROUTE CALL: <b>/clusters</b>
+*
+* @class ClusterRouter
+* 
+*/
+
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 
-
-/* Get all clusters */
+/**
+* My method description.  Like other pieces of your comment blocks, 
+* this can span multiple lines.
+* ROUTE CALL:  /
+*
+* @method getclusters
+* 
+* @param {String} foo Argument 1
+* @param {Object} config A config object
+* @param {String} config.name The name on the config object
+* @param {Function} config.callback A callback function on the config object
+* @param {Boolean} [extra=false] Do extra, optional work
+* @return {Boolean} Returns true on success
+*/
 router.get('/', function (req, res)
 {
     ClusterModel.getClusters(function (error, data)
@@ -17,17 +57,26 @@ router.get('/', function (req, res)
 //                title : "Mostrando listado de Clusters", 
 //                clusters : data
 //            });
-            res.json(200, data);
+            res.status(200).json( data);
         }
         //get error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
 
-/* New cluster form */
+
+/**
+* My method description.  Like other pieces of your comment blocks, 
+* this can span multiple lines.
+*
+* @method Newcluster
+* @param {String} foo Argument 1
+* @param {Object} config A config object
+* @return {Boolean} Returns true on success
+*/
 router.get('/cluster', function (req, res)
 {
     res.render('new_cluster', {title: 'Servicio rest con nodejs, express 4 and mysql'});
@@ -47,10 +96,10 @@ router.post("/cluster", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/clusters/cluster/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -66,10 +115,10 @@ router.put('/cluster/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/clusters/cluster/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -90,20 +139,20 @@ router.get('/cluster/:id', function (req, res)
 //                    title : "", 
 //                    info : data
 //                });
-                res.json(200, data);
+                res.status(200).json( data);
 
             }
             //Get error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -119,10 +168,10 @@ router.delete("/cluster/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/clusters/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

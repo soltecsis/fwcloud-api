@@ -6,7 +6,14 @@ var routing_rModel = {};
 var tableModel = "routing_r";
 
 
-
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All routing_r by firewall and group
 routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
@@ -19,7 +26,7 @@ routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
             whereGroup=' AND idgroup=' + connection.escape(idgroup);
         }
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + whereGroup + ' ORDER BY rule_order';
-        console.log("sql : " + sql);
+        logger.debug("sql : " + sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -60,7 +67,7 @@ routing_rModel.getRouting_rName = function (idfirewall,idgroup, name, callback) 
             whereGroup=' AND group=' + connection.escape(idgroup);
         }
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND firewall=' + connection.escape(idfirewall) + whereGroup;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -102,7 +109,7 @@ routing_rModel.updateRouting_r = function ( routing_rData, callback) {
                 'options = ' + connection.escape(routing_rData.options) + ',' +                
                 'comment = ' + connection.escape(routing_rData.comment) + ' ' +
                 ' WHERE id = ' + routing_rData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

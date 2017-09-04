@@ -29,6 +29,16 @@ var tableModel = "firewall";
 
 
 /**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
+
+
+/**
 * Get Firewalls by User
 *  
 * @method getFirewalls
@@ -58,7 +68,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
         if (error)
             return done('Database problem');
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' ORDER BY id';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -140,7 +150,7 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE name like  ' + connection.escape(namesql) + '';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -180,7 +190,7 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
         if (error)
             return done('Database problem');        
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE cluster =  ' + connection.escape(idcluster) + '';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -278,7 +288,7 @@ firewallModel.updateFirewall = function (firewallData, callback) {
                 'cluster = ' + connection.escape(firewallData.cluster) + ',' +                
                 'comment = ' + connection.escape(firewallData.comment) + ' ' +
                 ' WHERE id = ' + firewallData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

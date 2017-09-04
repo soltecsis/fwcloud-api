@@ -5,7 +5,14 @@ var db = require('../db.js');
 var policy_r__ipobjModel = {};
 var tableModel = "policy_r__ipobj";
 
-
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 
 //Get All policy_r__ipobj by Policy_r (rule)
@@ -76,7 +83,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_position_data = function (rule, positio
 
         var sql_obj = " INNER JOIN ipobj O on O.id=P.ipobj ";
         var sql = 'SELECT * FROM ' + tableModel + ' P ' + sql_obj + ' WHERE P.rule=' + connection.escape(rule) + ' AND P.position=' + connection.escape(position) + ' ORDER BY P.position_order';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -173,10 +180,10 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
                 //Check if the IPOBJ in this position are negated
                 getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
                     if (error) {
-                        console.log("ERROR : ", error);
+                        logger.debug("ERROR : ", error);
                     } else {
                         negate = data;
-                        console.log("RULE: " + policy_r__ipobjData.rule, +"  Position: " + policy_r__ipobjData.position + "  NEGATE: " + negate);
+                        logger.debug("RULE: " + policy_r__ipobjData.rule, +"  Position: " + policy_r__ipobjData.position + "  NEGATE: " + negate);
                         db.get(function (error, connection) {
                             if (error)
                                 return done('Database problem');
@@ -250,7 +257,7 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
             if (allowed) {
                 getNegateRulePosition(rule, new_position, function (error, data) {
                     if (error) {
-                        console.log("ERROR : ", error);
+                        logger.debug("ERROR : ", error);
                     } else {
                         negate = data;
                         db.get(function (error, connection) {
@@ -344,7 +351,7 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback)
                     'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
                     ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position);
         }
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -368,13 +375,13 @@ function getNegateRulePosition(rule, position, callback) {
         var sql = 'SELECT count(negate) as neg FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                 ' AND negate=1';
-        //console.log('SQL: ' + sql);
+        //logger.debug('SQL: ' + sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
                 Nneg = rows[0].neg;
-                //console.log('Nneg 1: ' + Nneg);
+                //logger.debug('Nneg 1: ' + Nneg);
                 if (Nneg > 0)
                     callback(null, 1);
                 else

@@ -5,6 +5,14 @@ var db = require('../db.js');
 var policy_gModel = {};
 var tableModel = "policy_g";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All policy_g by firewall
 policy_gModel.getPolicy_gs = function (idfirewall, callback) {
@@ -62,7 +70,7 @@ policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -100,7 +108,7 @@ policy_gModel.updatePolicy_g = function ( policy_gData, callback) {
                 'firewall = ' + connection.escape(policy_gData.firewall) + ',' +
                 'comment = ' + connection.escape(policy_gData.comment) + ' ' +
                 ' WHERE id = ' + policy_gData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

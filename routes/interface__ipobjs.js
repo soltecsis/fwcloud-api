@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Interface__ipobjModel = require('../models/interface__ipobj');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/interface__ipobj', function (req, res)
@@ -18,12 +26,12 @@ router.get('/interface/:interface', function (req, res)
         //If exists interface__ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -37,12 +45,12 @@ router.get('/ipobj/:ipobj', function (req, res)
         //If exists interface__ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -61,12 +69,12 @@ router.get('/interface__ipobj/:interface/:ipobj', function (req, res)
                     title : "FWBUILDER", 
                     info : data
                 });
-            //res.json(200, {"data": data});
+            //res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -89,10 +97,10 @@ router.post("/interface__ipobj", function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/interface__ipobjs/interface__ipobj/" + data.insertId);
-            res.json(200, {"msh": data.msg});
+            res.status(200).json( {"msh": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -111,10 +119,10 @@ router.put('/interface__ipobj/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/interface__ipobjs/interface__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -130,10 +138,10 @@ router.put('/interface__ipobj/order/:new_order', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/interface__ipobjs/interface__ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -151,10 +159,10 @@ router.delete("/interface__ipobj/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/interface__ipobjs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

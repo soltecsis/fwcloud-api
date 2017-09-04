@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Routing_rModel = require('../models/routing_r');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/routing-r', function (req, res)
@@ -19,12 +27,12 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -37,12 +45,12 @@ router.get('/:idfirewall', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -57,12 +65,12 @@ router.get('/:idfirewall/:id', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -78,12 +86,12 @@ router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
         //If exists routing_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -112,10 +120,10 @@ router.post("/routing-r", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/routing-rs/routing-r/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -131,10 +139,10 @@ router.put('/routing-r/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/routing-rs/routing-r/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -152,10 +160,10 @@ router.delete("/routing-r/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/routing-rs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */
 router.get('/policy-r__interface', function (req, res)
@@ -18,12 +26,12 @@ router.get('/:interface', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -37,12 +45,12 @@ router.get('/:rule', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -60,12 +68,12 @@ router.get('/:interface/:rule', function (req, res)
         //If exists policy_r__interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -94,10 +102,10 @@ router.post("/policy-r__interface", function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-r__interfaces/policy-r__interface/" + data.insertId);
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -122,10 +130,10 @@ router.put('/policy-r__interface', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -144,10 +152,10 @@ router.put('/policy-r__interface/:interface/:rule/:position/negate/:negate', fun
         if (data && data.msg)
         {
             //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -166,10 +174,10 @@ router.put('/policy-r__interface/:interface/:rule/:position/order/:old_order/:ne
         if (data && data.msg)
         {
             //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });
@@ -189,10 +197,10 @@ router.delete("/policy-r__interface/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/policy-r__interfaces/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });

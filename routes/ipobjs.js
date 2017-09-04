@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var IpobjModel = require('../models/ipobj');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/ipobj', function (req, res)
@@ -18,12 +26,12 @@ router.get('/group/:idgroup', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -39,12 +47,12 @@ router.get('/group/:idgroup/:id', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -59,12 +67,12 @@ router.get('/:id', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -79,12 +87,12 @@ router.get('/group/:idgroup/name/:name', function (req, res)
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -127,10 +135,10 @@ router.post("/ipobj", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/ipobjs/ipobj/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -146,10 +154,10 @@ router.put('/ipobj/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/ipobjs/ipobj/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -167,10 +175,10 @@ router.delete("/ipobj/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/ipobjs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

@@ -2,7 +2,14 @@ var express = require('express');
 var router = express.Router();
 var User__firewallModel = require('../models/user__firewall');
 
-
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 //router.get('/', function(req, res) 
@@ -23,12 +30,12 @@ router.get('/:id_user', function (req, res)
 //                title : "Mostrando listado de User__firewalls", 
 //                user__firewalls : data
 //            });
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -50,20 +57,20 @@ router.get('/user__firewall/:id_user/:id_firewall', function (req, res)
 //                    title : "Servicio rest con nodejs, express 4 and mysql", 
 //                    info : data
 //                });
-                res.json(200, {"data": data});
+                res.status(200).json( {"data": data});
 
             }
             //Get Error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //Id must be numeric
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -89,10 +96,10 @@ router.post("/user__firewall", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/user__firewalls/user__firewall/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, data.error);
+            res.status(500).json( data.error);
         }
     });
 });
@@ -108,10 +115,10 @@ router.put('/user__firewall/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/user__firewalls/user__firewall/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, data.error);
+            res.status(500).json( data.error);
         }
     });
 });
@@ -128,10 +135,10 @@ router.delete("/user__firewall/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/user__firewalls/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"error": error});
+            res.status(500).json( {"error": error});
         }
     });
 });

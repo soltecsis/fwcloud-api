@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */
 router.get('/ipobj__ipobjg', function (req, res)
@@ -18,12 +26,12 @@ router.get('/:ipobjg', function (req, res)
         //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -40,12 +48,12 @@ router.get('/:ipobjg/:ipobj', function (req, res)
         //If exists ipobj__ipobjg get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -66,10 +74,10 @@ router.post("/ipobj__ipobjg", function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/ipobj__ipobjgs/ipobj__ipobjg/" + data.insertId);
-            res.json(200, {"msg": data.msg});
+            res.status(200).json( {"msg": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -87,10 +95,10 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/ipobj__ipobjgs/ipobj__ipobjg/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -108,10 +116,10 @@ router.delete("/ipobj__ipobjg/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/ipobj__ipobjgs/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

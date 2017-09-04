@@ -2,7 +2,14 @@ var express = require('express');
 var router = express.Router();
 var Ipobj_type__policy_positionModel = require('../models/ipobj_type__policy_position');
 
-
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */
 router.get('/ipobj-type__policy-position', function (req, res)
@@ -19,12 +26,12 @@ router.get('/', function (req, res)
         //If exists ipobj_type__policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -42,12 +49,12 @@ router.get('/:type/:position', function (req, res)
         //If exists ipobj_type__policy_position get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -70,10 +77,10 @@ router.post("/ipobj-type__policy-position", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/ipobj-type__policy-positions/ipobj-type__policy-position/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -93,10 +100,10 @@ router.put('/ipobj-type__policy-position/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/ipobj-type__policy-positions/ipobj-type__policy-position/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -115,10 +122,10 @@ router.delete("/ipobj-type__policy-position/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/ipobj-type__policy-positions/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

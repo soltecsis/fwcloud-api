@@ -1,0 +1,838 @@
+{
+    "project": {
+        "name": "FWCloud API REST Documentation",
+        "description": "[SOLTECSIS] FWCloud API REST code documentation",
+        "version": "1.0.0",
+        "url": "http://foswiki.soltecsis.com/codedoc/",
+        "logo": "http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png"
+    },
+    "files": {
+        "models/firewall.js": {
+            "name": "models/firewall.js",
+            "modules": {
+                "FirewallModel": 1
+            },
+            "classes": {
+                "FirewallModel": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/book.js": {
+            "name": "routes/book.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/clusters.js": {
+            "name": "routes/clusters.js",
+            "modules": {
+                "ClusterRouter": 1
+            },
+            "classes": {
+                "ClusterRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/firewalls.js": {
+            "name": "routes/firewalls.js",
+            "modules": {
+                "FirewallRouter": 1
+            },
+            "classes": {
+                "FirewallRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        }
+    },
+    "modules": {
+        "FirewallModel": {
+            "name": "FirewallModel",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "FirewallModel": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "models/firewall.js",
+            "line": 12,
+            "description": "Module to manage Firewalls data",
+            "requires": [
+                "db"
+            ]
+        },
+        "ClusterRouter": {
+            "name": "ClusterRouter",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "ClusterRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/clusters.js",
+            "line": 17,
+            "description": "Module to routing CLUSTER requests\n<br>BASE ROUTE CALL: <b>/clusters</b>",
+            "requires": [
+                "express",
+                "Clustermodel"
+            ]
+        },
+        "FirewallRouter": {
+            "name": "FirewallRouter",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "FirewallRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/firewalls.js",
+            "line": 25,
+            "description": "Module to routing Firewalls requests\n<br>BASE ROUTE CALL: <b>/firewalls</b>",
+            "requires": [
+                "express",
+                "FirewallModel"
+            ]
+        }
+    },
+    "classes": {
+        "FirewallModel": {
+            "name": "FirewallModel",
+            "shortname": "FirewallModel",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [
+                "FirewallRouter"
+            ],
+            "module": "FirewallModel",
+            "namespace": "",
+            "file": "models/firewall.js",
+            "line": 12,
+            "description": "Class to manage firewalls data",
+            "uses": [
+                "db"
+            ]
+        },
+        "ClusterRouter": {
+            "name": "ClusterRouter",
+            "shortname": "ClusterRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "ClusterRouter",
+            "namespace": "",
+            "file": "routes/clusters.js",
+            "line": 17,
+            "description": "Modulo para gestionar los datos del Cluster\n<br>BASE ROUTE CALL: <b>/clusters</b>"
+        },
+        "FirewallRouter": {
+            "name": "FirewallRouter",
+            "shortname": "FirewallRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "FirewallRouter",
+            "namespace": "",
+            "file": "routes/firewalls.js",
+            "line": 25,
+            "description": "Class to manage firewalls routing",
+            "uses": [
+                "FirewallModel"
+            ]
+        }
+    },
+    "elements": {},
+    "classitems": [
+        {
+            "file": "models/firewall.js",
+            "line": 21,
+            "description": "Property Table",
+            "itemtype": "property",
+            "name": "tableModel",
+            "type": "\"firewall\"",
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 31,
+            "description": "Get Firewalls by User",
+            "itemtype": "method",
+            "name": "getFirewalls",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 73,
+            "description": "Get Firewalls by User and ID",
+            "itemtype": "method",
+            "name": "getFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "Firewall object"
+            },
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 112,
+            "description": "Get Firewalls by User and Name",
+            "itemtype": "method",
+            "name": "getFirewallName",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "Name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 153,
+            "description": "Get Firewalls by User and Cluster",
+            "itemtype": "method",
+            "name": "getFirewallCluster",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idcluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 194,
+            "description": "ADD New Firewall",
+            "itemtype": "method",
+            "name": "insertFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "firewallData",
+                    "description": "Firewall Object data",
+                    "type": "Firewall Object",
+                    "props": [
+                        {
+                            "name": "id",
+                            "description": "",
+                            "type": "NULL"
+                        },
+                        {
+                            "name": "cluster",
+                            "description": "Cluster ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "fwcloud",
+                            "description": "FWcloud ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "name",
+                            "description": "Firewall Name",
+                            "type": "String"
+                        },
+                        {
+                            "name": "comment",
+                            "description": "comment text",
+                            "type": "String",
+                            "optional": true
+                        }
+                    ]
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"insertId\": fwid});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 244,
+            "description": "UPDATE Firewall",
+            "itemtype": "method",
+            "name": "updateFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "firewallData",
+                    "description": "Firewall Object data",
+                    "type": "Firewall Object",
+                    "props": [
+                        {
+                            "name": "id",
+                            "description": "",
+                            "type": "NULL"
+                        },
+                        {
+                            "name": "cluster",
+                            "description": "Cluster ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "fwcloud",
+                            "description": "FWcloud ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "name",
+                            "description": "Firewall Name",
+                            "type": "String"
+                        },
+                        {
+                            "name": "comment",
+                            "description": "comment text",
+                            "type": "String",
+                            "optional": true
+                        }
+                    ]
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"msg\": \"success\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 293,
+            "description": "DELETE Firewall",
+            "itemtype": "method",
+            "name": "deleteFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"msg\": \"deleted\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(null, {\"msg\": \"notExist\"});\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "routes/book.js",
+            "line": 1,
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "routes/book.js",
+            "line": 7,
+            "description": "Represents a book.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "title",
+                    "description": "- The title of the book.",
+                    "type": "String"
+                },
+                {
+                    "name": "author",
+                    "description": "- The author of the book.",
+                    "type": "String"
+                }
+            ],
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 28,
+            "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.\nROUTE CALL:  /",
+            "itemtype": "method",
+            "name": "getclusters",
+            "params": [
+                {
+                    "name": "foo",
+                    "description": "Argument 1",
+                    "type": "String"
+                },
+                {
+                    "name": "config",
+                    "description": "A config object",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "name",
+                            "description": "The name on the config object",
+                            "type": "String"
+                        },
+                        {
+                            "name": "callback",
+                            "description": "A callback function on the config object",
+                            "type": "Function"
+                        }
+                    ]
+                },
+                {
+                    "name": "extra",
+                    "description": "Do extra, optional work",
+                    "type": "Boolean",
+                    "optional": true,
+                    "optdefault": "false"
+                }
+            ],
+            "return": {
+                "description": "Returns true on success",
+                "type": "Boolean"
+            },
+            "class": "ClusterRouter",
+            "module": "ClusterRouter"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 64,
+            "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.",
+            "itemtype": "method",
+            "name": "Newcluster",
+            "params": [
+                {
+                    "name": "foo",
+                    "description": "Argument 1",
+                    "type": "String"
+                },
+                {
+                    "name": "config",
+                    "description": "A config object",
+                    "type": "Object"
+                }
+            ],
+            "return": {
+                "description": "Returns true on success",
+                "type": "Boolean"
+            },
+            "class": "ClusterRouter",
+            "module": "ClusterRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 15,
+            "description": "Property Model to manage Firewall Data",
+            "itemtype": "property",
+            "name": "FirewallModel",
+            "type": "/models/firewall",
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 33,
+            "description": "Show form to add new Firewall\n\n<br>ROUTE CALL:  /firewall",
+            "itemtype": "method",
+            "name": "showForm",
+            "return": {
+                "description": "Returns true on success",
+                "type": "Boolean"
+            },
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 48,
+            "description": "Get Firewalls by User\n\n\n> ROUTE CALL:  __/firewalls/:iduser__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 99,
+            "description": "Get Firewalls by User and ID\n\n\n> ROUTE CALL:  __/firewalls/:iduser/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Id",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall        \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         }\n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 151,
+            "description": "Get Firewalls by User and Name\n\n\n> ROUTE CALL:  __/firewalls/:iduser/fwname/:name__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Name",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "firewall name",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 205,
+            "description": "Get Firewalls by Cluster\n\n\n> ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Cluster",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idcluster",
+                    "description": "Cluster identifier",
+                    "type": "Number"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 260,
+            "description": "CREATE New firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __POST__",
+            "itemtype": "method",
+            "name": "AddFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier (AUTO)",
+                    "type": "Integer"
+                },
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "cluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "comment",
+                    "description": "Firewall comment",
+                    "type": "String",
+                    "optional": true
+                }
+            ],
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"insertId : ID,   //firewall identifier           \n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 321,
+            "description": "UPDATE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __PUT__",
+            "itemtype": "method",
+            "name": "UpdateFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "cluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "comment",
+                    "description": "Firewall comment",
+                    "type": "String"
+                }
+            ],
+            "optional": 1,
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"msg : \"success\",   //result\n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 377,
+            "description": "Get Firewalls by ID and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>\n<br>METHOD: <b>GET</b>",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_ID_V2",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns Json Data from Firewall",
+                "type": "JSON"
+            },
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 424,
+            "description": "Get Firewalls by Name and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>\n<br>METHOD: <b>GET</b>",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Name_V2",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns Json Data from Firewall",
+                "type": "JSON"
+            },
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 468,
+            "description": "DELETE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __DELETE__",
+            "itemtype": "method",
+            "name": "DeleteFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "optional": 1,
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"msg : \"success\",   //result\n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        }
+    ],
+    "warnings": [
+        {
+            "message": "Missing item type",
+            "line": " routes/book.js:1"
+        },
+        {
+            "message": "Missing item type\nRepresents a book.",
+            "line": " routes/book.js:7"
+        }
+    ]
+}

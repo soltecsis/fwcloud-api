@@ -5,6 +5,14 @@ var db = require('../db.js');
 var ipobj_typeModel = {};
 var tableModel="ipobj_type";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All ipobj_type
 ipobj_typeModel.getIpobj_types = function (callback) {

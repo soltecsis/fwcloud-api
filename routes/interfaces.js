@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var InterfaceModel = require('../models/interface');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/interface', function (req, res)
@@ -18,12 +26,12 @@ router.get('/:idfirewall', function (req, res)
         //If exists interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -38,12 +46,12 @@ router.get('/:idfirewall/interface/:id', function (req, res)
         //If exists interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -58,12 +66,12 @@ router.get('/:idfirewall/name/:name', function (req, res)
         //If exists interface get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -91,10 +99,10 @@ router.post("/interface", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/interfaces/interface/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -110,10 +118,10 @@ router.put('/interface/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/interfaces/interface/" + req.param('id'));
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -131,10 +139,10 @@ router.delete("/interface/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/interfaces/");
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

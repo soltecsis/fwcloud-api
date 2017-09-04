@@ -5,6 +5,14 @@ var db = require('../db.js');
 var ipobj_type__policy_positionModel = {};
 var tableModel="ipobj_type__policy_position";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All ipobj_type__policy_position
 ipobj_type__policy_positionModel.getIpobj_type__policy_positions = function (callback) {
@@ -29,7 +37,7 @@ ipobj_type__policy_positionModel.getIpobj_type__policy_position = function (type
     db.get(function (error, connection) {
         if (error) return done('Database problem');
         var sql = 'SELECT type, position, allowed FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);

@@ -5,6 +5,15 @@ var db = require('../db.js');
 var interface__ipobjModel = {};
 var tableModel = "interface__ipobj";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
+
 
 //Get All interface__ipobj by intreface
 interface__ipobjModel.getInterface__ipobjs_interface = function (interface, callback) {

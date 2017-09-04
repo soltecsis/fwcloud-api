@@ -1,6 +1,14 @@
 var db = require('../db.js');
 var async = require('async');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //create object
 var fwc_treeModel = {};
@@ -36,7 +44,7 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' ORDER BY id_parent,node_order';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -54,7 +62,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, foldertype, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND node_type=' + connection.escape(foldertype) + ' AND id_parent=0 ORDER BY id limit 1';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -80,32 +88,32 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, objs, objc
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' AND id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY node_order';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
 
                 if (rows) {
-                    console.log("---> DENTRO de PADRE: " + idparent);
+                    logger.debug("---> DENTRO de PADRE: " + idparent);
 
                     async.forEachSeries(rows,
                             function (row, callback) {
                                 hasLines(row.id, function (t) {
-                                    //console.log(row);
+                                    //logger.debug(row);
                                     var tree_node = new fwc_tree_node(row);
                                     if (!t) {
                                         //Añadimos nodo hijo
 
-                                        console.log("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
+                                        logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
 
                                         tree.append([], tree_node);
 
                                         callback();
                                     } else {
                                         //dig(row.tree_id, treeArray, callback);
-                                        console.log("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
-                                        console.log("-------> LLAMANDO A HIJO: " + row.id);
+                                        logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
+                                        logger.debug("-------> LLAMANDO A HIJO: " + row.id);
 
                                         var treeP = new Tree(tree_node);
                                         tree.append([], treeP);
@@ -169,7 +177,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.id_user=' + connection.escape(iduser) + ' order by T1.node_order';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error) {
                 callback(error, null);
@@ -177,12 +185,12 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                 //For each node Select Objects by  type
                 if (rows) {
                     async.forEach(rows, function (row, callback) {
-                        //console.log(row);
-                        console.log("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+                        //logger.debug(row);
+                        logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                         var tree_node = new fwc_tree_node(row);
                         //Añadimos nodos hijos tipo firewall
                         sqlnodes = 'SELECT  F.id,F.name,F.fwcloud, F.comment FROM firewall F inner join user__firewall U on U.id_firewall=F.id and U.id_user=' + connection.escape(iduser);
-                        //console.log(sqlnodes);
+                        //logger.debug(sqlnodes);
                         connection.query(sqlnodes, function (error, rowsnodes) {
                             if (error)
                                 callback(error, null);
@@ -201,13 +209,13 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                 i + ',' + (row.node_level + 1) + ',"FW",' +
                                                 '0,0,' + connection.escape(rnode.id) + ',0,' +
                                                 connection.escape(rnode.fwcloud) + ")";
-                                        //console.log(sqlinsert);
+                                        //logger.debug(sqlinsert);
                                         var parent_firewall;
                                         connection.query(sqlinsert, function (error, result) {
                                             if (error) {
-                                                console.log("ERROR FIREWALL INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
+                                                logger.debug("ERROR FIREWALL INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
                                             } else {
-                                                console.log("INSERT FIREWALL OK NODE: " + rnode.id + " - " + rnode.name);
+                                                logger.debug("INSERT FIREWALL OK NODE: " + rnode.id + " - " + rnode.name);
                                                 parent_firewall = result.insertId;
 
                                                 //Insertamos nodo POLICY IN
@@ -215,35 +223,35 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                         ' VALUES (' + connection.escape(iduser) + ',"Policy IN","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"PI",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";                                                
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR PI : " + error);
+                                                        logger.debug("ERROR PI : " + error);
                                                 });
                                                 //Insertamos nodo POLICY OUT
                                                 sqlinsert = 'INSERT INTO ' + tableModel + '(id_user, name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
                                                         ' VALUES (' + connection.escape(iduser) + ',"Policy OUT","",' + parent_firewall + ',2,' + (row.node_level + 2) + ',"PO",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR PO : " + error);
+                                                        logger.debug("ERROR PO : " + error);
                                                 });
                                                 //Insertamos nodo POLICY FORWARD
                                                 sqlinsert = 'INSERT INTO ' + tableModel + '(id_user, name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
                                                         ' VALUES (' + connection.escape(iduser) + ',"Policy FORWARD","",' + parent_firewall + ',3,' + (row.node_level + 2) + ',"PF",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR PF: " + error);
+                                                        logger.debug("ERROR PF: " + error);
                                                 });
                                                 //Insertamos nodo NAT
                                                 sqlinsert = 'INSERT INTO ' + tableModel + '(id_user, name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
                                                         ' VALUES (' + connection.escape(iduser) + ',"NAT","",' + parent_firewall + ',4,' + (row.node_level + 2) + ',"NAT",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR NAT: " + error);
+                                                        logger.debug("ERROR NAT: " + error);
                                                 });
                                                 //Insertamos nodo ROUTING
                                                 sqlinsert = 'INSERT INTO ' + tableModel + '(id_user, name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
                                                         ' VALUES (' + connection.escape(iduser) + ',"Routing","",' + parent_firewall + ',4,' + (row.node_level + 2) + ',"RR",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR RR : " + error);
+                                                        logger.debug("ERROR RR : " + error);
                                                 });
 
                                                 var nodeInterfaces;
@@ -252,7 +260,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                         ' VALUES (' + connection.escape(iduser) + ',"Interfaces","",' + parent_firewall + ',5,' + (row.node_level + 2) + ',"FDI",0,0,null,10,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
-                                                        console.log("ERROR FDI: " + error);
+                                                        logger.debug("ERROR FDI: " + error);
                                                     else
                                                         nodeInterfaces = result.insertId;
                                                 });
@@ -262,13 +270,13 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                 sqlInt = 'SELECT  id,name,labelName FROM interface where interface_type=10 AND  firewall=' + connection.escape(idfirewall);
                                                 connection.query(sqlInt, function (error, rowsnodesInt) {
                                                     if (error){
-                                                        console.log("Error Select interface");
+                                                        logger.debug("Error Select interface");
                                                         callback2(error, null);
                                                     }
                                                     else {
                                                         var j = 0;
                                                         if (rowsnodesInt) {
-                                                            console.log("INTERFACES: " + rowsnodesInt.length);
+                                                            logger.debug("INTERFACES: " + rowsnodesInt.length);
                                                             async.forEach(rowsnodesInt, function (rnodeInt, callback3) {
                                                                 j++;
                                                                 //Insertamos nodos Interfaces
@@ -284,9 +292,9 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                                 connection.query(sqlinsert, function (error, result) {
                                                                     var idinterface;
                                                                     if (error) {
-                                                                        console.log("ERROR INTERFACE INSERT : " + rnodeInt.id + " - " + rnodeInt.name + " -> " + error);
+                                                                        logger.debug("ERROR INTERFACE INSERT : " + rnodeInt.id + " - " + rnodeInt.name + " -> " + error);
                                                                     } else {
-                                                                        console.log("INSERT INTERFACE OK NODE: " + rnodeInt.id + " - " + rnodeInt.name);
+                                                                        logger.debug("INSERT INTERFACE OK NODE: " + rnodeInt.id + " - " + rnodeInt.name);
                                                                         idinterface = result.insertId;
                                                                     }
                                                                     //Insertamos objetos IP de Interface
@@ -298,7 +306,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                                         else {
                                                                             var k = 0;
                                                                             if (rowsnodesIP) {
-                                                                                console.log("OBJS IP: " + rowsnodesIP.length);
+                                                                                logger.debug("OBJS IP: " + rowsnodesIP.length);
                                                                                 async.forEach(rowsnodesIP, function (rnodeIP, callback) {
                                                                                     k++;
                                                                                     //Insertamos nodos IP
@@ -312,9 +320,9 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                                                             connection.escape(rnode.fwcloud) + ")";
                                                                                     connection.query(sqlinsert, function (error, result) {
                                                                                         if (error) {
-                                                                                            console.log("ERROR IP OBJECT INSERT : " + rnodeIP.id + " - " + rnodeIP.name + " -> " + error);
+                                                                                            logger.debug("ERROR IP OBJECT INSERT : " + rnodeIP.id + " - " + rnodeIP.name + " -> " + error);
                                                                                         } else {
-                                                                                            console.log("INSERT IPOBJ OK NODE: " + rnodeIP.id + " - " + rnodeIP.name);
+                                                                                            logger.debug("INSERT IPOBJ OK NODE: " + rnodeIP.id + " - " + rnodeIP.name);
                                                                                         }
                                                                                     });
                                                                                 });
@@ -367,7 +375,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND T1.id_user=' + connection.escape(iduser) + ' order by T1.node_order';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql,
                 function (error, rows) {
                     if (error) {
@@ -377,12 +385,12 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
                         if (rows) {
                             async.forEachSeries(rows,
                                     function (row, callback) {
-                                        //console.log(row);
-                                        console.log("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+                                        //logger.debug(row);
+                                        logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                                         var tree_node = new fwc_tree_node(row);
                                         //Añadimos nodos hijos del tipo
                                         sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null';
-                                        //console.log(sqlnodes);
+                                        //logger.debug(sqlnodes);
                                         connection.query(sqlnodes, function (error, rowsnodes) {
                                             if (error)
                                                 callback(error, null);
@@ -401,13 +409,13 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
                                                                         i + ',' + (row.node_level + 1) + ',' + connection.escape(row.node_type) + ',' +
                                                                         '0,0,' + connection.escape(rnode.id) + ',' + connection.escape(rnode.type) + ',' +
                                                                         connection.escape(rnode.fwcloud) + ")";
-                                                                //console.log(sqlinsert);
+                                                                //logger.debug(sqlinsert);
                                                                 connection.query(sqlinsert, function (error, result) {
                                                                     if (error) {
-                                                                        console.log("ERROR INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
+                                                                        logger.debug("ERROR INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
 
                                                                     } else {
-                                                                        console.log("INSERT OK NODE: " + rnode.id + " - " + rnode.name);
+                                                                        logger.debug("INSERT OK NODE: " + rnode.id + " - " + rnode.name);
 
                                                                     }
                                                                 });

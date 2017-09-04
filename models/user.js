@@ -4,7 +4,14 @@ var db = require('../db.js');
 //create object
 var userModel = {};
 
-
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get all users
 userModel.getUsers = function (customer, callback) {

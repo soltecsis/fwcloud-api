@@ -5,6 +5,15 @@ var fwcTreemodel = require('../models/fwc_tree');
 var Tree = require('easy-tree');
 var fwc_tree_node= require("../models/fwc_tree_node.js");
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
+
 
 /* Show form */
 //router.get('/fwc-tree', function (req, res)
@@ -33,19 +42,19 @@ router.get('/firewalls/:iduser', function (req, res)
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
                 {             
-                    res.json(200, {"data": data});
+                    res.status(200).json( {"data": data});
                 }
                 //Get Error
                 else
                 {
-                    res.json(404, {"msg": "notExist"});
+                    res.status(404).json( {"msg": "notExist"});
                 }
             });
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -78,19 +87,19 @@ router.get('/objects/user/:iduser/:standard/:fwcloud/', function (req, res)
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
                 {                    
-                    res.json(200, {"data": data});
+                    res.status(200).json( {"data": data});
                 }
                 //Get Error
                 else
                 {
-                    res.json(404, {"msg": "notExist"});
+                    res.status(404).json( {"msg": "notExist"});
                 }
             });
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -120,19 +129,19 @@ router.get('/services/user/:iduser/:standard/:fwcloud/', function (req, res)
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
                 {                    
-                    res.json(200, {"data": data});
+                    res.status(200).json( {"data": data});
                 }
                 //Get Error
                 else
                 {
-                    res.json(404, {"msg": "notExist"});
+                    res.status(404).json( {"msg": "notExist"});
                 }
             });
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -148,12 +157,12 @@ router.get('/:iduser/:id', function (req, res)
         //If exists fwc_tree get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -168,12 +177,12 @@ router.get('/:iduser/name/:name', function (req, res)
         //If exists fwc_tree get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -189,10 +198,10 @@ router.get("/create-firewalls/user/:iduser", function (req, res)
         //If saved fwc-tree Get data
         if (data && data.msg)
         {
-            res.json(200, {"msg": data.msg});
+            res.status(200).json( {"msg": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -208,10 +217,10 @@ router.get("/create-objects/user/:iduser", function (req, res)
         //If saved fwc-tree Get data
         if (data && data.msg)
         {
-            res.json(200, {"msg": data.msg});
+            res.status(200).json( {"msg": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -226,10 +235,10 @@ router.get("/create-services/user/:iduser", function (req, res)
         //If saved fwc-tree Get data
         if (data && data.msg)
         {
-            res.json(200, {"msg": data.msg});
+            res.status(200).json( {"msg": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -245,10 +254,10 @@ router.put('/fwc-tree/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/fwc_tree/fwc_tree/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -266,10 +275,10 @@ router.delete("/fwc-tree/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/fwc_tree/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

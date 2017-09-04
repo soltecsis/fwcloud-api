@@ -5,6 +5,14 @@ var db = require('../db.js');
 var policy_typeModel = {};
 var tableModel="policy_type";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All policy_type
 policy_typeModel.getPolicy_types = function (callback) {
@@ -78,7 +86,7 @@ policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
         if (error) return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_typeData.name) + ' ' +            
             ' WHERE type = ' + policy_typeData.type;
-            console.log(sql);
+            logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

@@ -5,6 +5,14 @@ var db = require('../db.js');
 var routing_r__interfaceModel = {};
 var tableModel="routing_r__interface";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All routing_r__interface by policy_r
 routing_r__interfaceModel.getRouting_r__interfaces_rule = function (interface,callback) {
@@ -131,7 +139,7 @@ function OrderList(new_order, rule, old_order){
                 'interface_order = interface_order' + increment + 
                 ' WHERE rule = ' + connection.escape(rule)  + 
                 ' AND interface_order>=' + order1 + ' AND interface_order<=' + order2;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql);        
         
     });

@@ -2,6 +2,14 @@ var express = require('express');
 var router = express.Router();
 var UserModel = require('../models/user');
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 //router.get('/', function(req, res) 
@@ -22,12 +30,12 @@ router.get('/:customer', function (req, res)
 //                title : "Mostrando listado de Users", 
 //                users : data
 //            });
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //other we show an error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -42,12 +50,12 @@ router.get('/:customer/username/:username', function (req, res)
         //If exists user get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -78,10 +86,10 @@ router.post("/user", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/users/user/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -97,10 +105,10 @@ router.put('/user/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/users/user/" + req.param('id'));
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -122,20 +130,20 @@ router.get('/:customer/user/:id', function (req, res)
                 //    title : "", 
                 //    info : data
                 //});
-                res.json(200, {"data": data});
+                res.status(200).json( {"data": data});
 
             }
             //Error
             else
             {
-                res.json(404, {"msg": "notExist"});
+                res.status(404).json( {"msg": "notExist"});
             }
         });
     }
     //Id must be numeric 
     else
     {
-        res.json(500, {"msg": "The id must be numeric"});
+        res.status(500).json( {"msg": "The id must be numeric"});
     }
 });
 
@@ -152,10 +160,10 @@ router.delete("/user/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/users/");
-            res.json(200, data.msg);
+            res.status(200).json( data.msg);
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

@@ -5,6 +5,14 @@ var db = require('../db.js');
 var ipobjModel = {};
 var tableModel = "ipobj";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 
 //Get ipobj by  id 
@@ -50,7 +58,7 @@ ipobjModel.getIpobjsGroup = function (idgroup, callback) {
 
         var innergroup=' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
         var sql = 'SELECT * FROM ' + tableModel + innergroup +  ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' ORDER BY id';
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);

@@ -5,6 +5,14 @@ var db = require('../db.js');
 var policy_positionModel = {};
 var tableModel="policy_position";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All policy_position
 policy_positionModel.getPolicy_positions = function (callback) {
@@ -92,7 +100,7 @@ policy_positionModel.updatePolicy_position = function (policy_positionData, call
                 'policy_type = ' + connection.escape(policy_positionData.poicy_type) + ' ' +            
                 'position_order = ' + connection.escape(policy_positionData.position_order) + ' ' +                            
             ' WHERE id = ' + policy_positionData.id;
-            console.log(sql);
+            logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

@@ -1,4 +1,10 @@
-//main App Entry FWCloud nodeapi
+/**
+* FWCloud NET APP ENTRY POINT
+* 
+*
+* @module APP
+* 
+*/
 
 var express = require('express');
 var path = require('path');

@@ -5,6 +5,14 @@ var db = require('../db.js');
 var routing_positionModel = {};
 var tableModel="routing_position";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All routing_position
 routing_positionModel.getRouting_positions = function (callback) {
@@ -78,7 +86,7 @@ routing_positionModel.updateRouting_position = function (routing_positionData, c
         if (error) return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(routing_positionData.name) + ' ' +            
             ' WHERE id = ' + routing_positionData.id;
-            console.log(sql);
+            logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

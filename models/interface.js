@@ -5,6 +5,14 @@ var db = require('../db.js');
 var interfaceModel = {};
 var tableModel = "interface";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All interface by firewall
 interfaceModel.getInterfaces = function (idfirewall, callback) {
@@ -103,7 +111,7 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
                 'type = ' + connection.escape(interfaceData.type) + ', ' +
                 'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

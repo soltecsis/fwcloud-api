@@ -5,6 +5,14 @@ var db = require('../db.js');
 var policy_r__interfaceModel = {};
 var tableModel = "policy_r__interface";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All policy_r__interface by policy_r
 policy_r__interfaceModel.getPolicy_r__interfaces_rule = function (interface, callback) {
@@ -178,7 +186,7 @@ function OrderList(new_order, rule, old_order) {
                 'interface_order = interface_order' + increment +
                 ' WHERE rule = ' + connection.escape(rule) +
                 ' AND interface_order>=' + order1 + ' AND interface_order<=' + order2;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql);
 
     });
@@ -219,13 +227,13 @@ function getNegateRulePosition(rule, position, callback) {
         var sql = 'SELECT count(negate) as neg FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                 ' AND negate=1';
-        console.log('SQL: ' + sql);
+        logger.debug('SQL: ' + sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
                 Nneg = rows[0].neg;
-                console.log('Nneg 1: ' + Nneg);
+                logger.debug('Nneg 1: ' + Nneg);
                 if (Nneg > 0)
                     callback(null, 1);
                 else

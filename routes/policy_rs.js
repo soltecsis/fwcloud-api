@@ -2,8 +2,15 @@ var express = require('express');
 var router = express.Router();
 var Policy_rModel = require('../models/policy_r');
 
-var logger = require('log4js').getLogger("app");
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 /* Show form */
 router.get('/policy-r', function (req, res)
@@ -21,12 +28,12 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
         //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -42,12 +49,12 @@ router.get('/:idfirewall/type/:type', function (req, res)
         //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -59,18 +66,18 @@ router.get('/:idfirewall/type/:type/rule/:rule', function (req, res)
     var rule = req.params.rule;    
     
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
-    console.log("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
+    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
     Policy_rModel.getPolicy_rs_type(idfirewall,type,rule,function (error, data)
     {
         //If exists policy_r get data
         if (data !== null)
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -90,12 +97,12 @@ router.get('/:idfirewall/:id', function (req, res)
 //                    title : "FWBUILDER", 
 //                    info : data
 //                });  
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -111,12 +118,12 @@ router.get('/:idfirewall/group/:idgroup/name/:name', function (req, res)
         //If exists policy_r get data
         if (typeof data !== 'undefined')
         {
-            res.json(200, {"data": data});
+            res.status(200).json( {"data": data});
         }
         //Get Error
         else
         {
-            res.json(404, {"msg": "notExist"});
+            res.status(404).json( {"msg": "notExist"});
         }
     });
 });
@@ -149,10 +156,10 @@ router.post("/policy-r", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/policy-rs/policy-r/" + data.insertId);
-            res.json(200, {"insertId": data.insertId});
+            res.status(200).json( {"insertId": data.insertId});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -169,10 +176,10 @@ router.put('/policy-r/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -192,10 +199,10 @@ router.put('/policy-r/', function (req, res)
         if (data && data.msg)
         {
             //res.redirect("/policy-rs/policy-r/" + req.param('id'));
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });
@@ -214,10 +221,10 @@ router.delete("/policy-r/", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             //res.redirect("/policy-rs/");
-            res.json(200, {"data": data.msg});
+            res.status(200).json( {"data": data.msg});
         } else
         {
-            res.json(500, {"msg": error});
+            res.status(500).json( {"msg": error});
         }
     });
 });

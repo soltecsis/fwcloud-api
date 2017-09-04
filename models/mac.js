@@ -5,6 +5,14 @@ var db = require('../db.js');
 var macModel = {};
 var tableModel = "mac";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All interface by interface
 macModel.getMacs = function (interface, callback) {
@@ -48,7 +56,7 @@ macModel.getMacName = function (interface, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  interface=' + connection.escape(interface);
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -65,7 +73,7 @@ macModel.getMacAddress = function (interface, address, callback) {
             return done('Database problem');
         var addresssql = '%' + address + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE address like  ' + connection.escape(addresssql) + ' AND  interface=' + connection.escape(interface);
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -104,7 +112,7 @@ macModel.updateMac = function ( interfaceData, callback) {
                 'address = ' + connection.escape(interfaceData.address) + ' ' +
                 'comment = ' + connection.escape(interfaceData.comment) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

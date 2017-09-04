@@ -5,6 +5,14 @@ var db = require('../db.js');
 var routing_gModel = {};
 var tableModel = "routing_g";
 
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require('log4js').getLogger("app");
 
 //Get All routing_g by firewall
 routing_gModel.getRouting_gs = function (idfirewall, callback) {
@@ -62,7 +70,7 @@ routing_gModel.getRouting_gName = function (idfirewall, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -101,7 +109,7 @@ routing_gModel.updateRouting_g = function ( routing_gData, callback) {
                 'idgroup = ' + connection.escape(routing_gData.idgroup) + ',' +
                 'comment = ' + connection.escape(routing_gData.comment) + ' ' +
                 ' WHERE id = ' + routing_gData.id;
-        console.log(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
