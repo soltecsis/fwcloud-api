@@ -117,15 +117,17 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 
 
 function checkUndefined(value, defaultvalue){
-    if (value==='undefined')
+    logger.debug("Comprobando: " + value);
+    if (value===undefined){
+        logger.debug("ENCONTRADO VALOR UNDEFINED");
         return defaultvalue;
+    }
     else
         return value;
 }
 
 //Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate, callback) {
-    OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
     
     policy_r__ipobjData.rule=checkUndefined(policy_r__ipobjData.rule,0);
     policy_r__ipobjData.ipobj=checkUndefined(policy_r__ipobjData.ipobj,0);
@@ -134,6 +136,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
     policy_r__ipobjData.position=checkUndefined(policy_r__ipobjData.position,0);
     
     
+    OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
@@ -153,8 +156,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
 
                         db.get(function (error, connection) {
                             if (error)
-                                return done('Database problem');
-                            logger.debug(policy_r__ipobjData);
+                                return done('Database problem');                            
                             connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
                                 if (error) {
                                     callback(error, {"error": error});
