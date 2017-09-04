@@ -117,9 +117,7 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 
 
 function checkUndefined(value, defaultvalue){
-    logger.debug("Comprobando: " + value);
     if (value===undefined){
-        logger.debug("ENCONTRADO VALOR UNDEFINED");
         return defaultvalue;
     }
     else
