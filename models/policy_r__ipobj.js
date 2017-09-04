@@ -6,12 +6,12 @@ var policy_r__ipobjModel = {};
 var tableModel = "policy_r__ipobj";
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 
@@ -141,7 +141,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
                                 return done('Database problem');
                             connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
                                 if (error) {
-                                    callback(error, {"error": "error"});
+                                    callback(error, {"error": error});
                                 } else {
                                     //devolvemos la última id insertada
                                     callback(null, {"msg": "success"});
@@ -171,7 +171,7 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
     //checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
-    checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj,policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
+    checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
         } else {
@@ -242,20 +242,21 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule, ipob
 
 //Update policy_r__ipobj POSITION
 //When Update position we order New and Old POSITION
-policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipobj_g, interface, position, position_order, new_position, new_order, callback) {
-//ordenamos posicion antigua
-    OrderList(999999, rule, position, position_order);
-    //ordenamos posicion nueva
-    OrderList(new_order, rule, new_position, 999999);
+policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, callback) {
+
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    
-    checkIpobjPosition(rule, ipobj,ipobj_g, interface ,new_position, function (error, data) {
+    logger.debug("ORDEN DONE");
+    checkIpobjPosition(new_rule, ipobj, ipobj_g, interface, new_position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
         } else {
             allowed = data;
             if (allowed) {
-                getNegateRulePosition(rule, new_position, function (error, data) {
+                //ordenamos posicion antigua
+                OrderList(999999, rule, position, position_order);
+                
+
+                getNegateRulePosition(new_rule, new_position, function (error, data) {
                     if (error) {
                         logger.debug("ERROR : ", error);
                     } else {
@@ -264,11 +265,13 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
                             if (error)
                                 return done('Database problem');
                             var sql = 'UPDATE ' + tableModel + ' SET ' +
+                                    'rule = ' + connection.escape(new_rule) + ', ' +
                                     'position = ' + connection.escape(new_position) + ', ' +
                                     'negate = ' + connection.escape(negate) + ' ' +
                                     ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                                     ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                                     ' AND interface=' + connection.escape(interface);
+                            logger.debug(sql);
                             connection.query(sql, function (error, result) {
                                 if (error) {
                                     callback(error, null);
@@ -279,6 +282,8 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
                         });
                     }
                 });
+                //ordenamos posicion nueva
+                OrderList(new_order, new_rule, new_position, 999999);
             } else {
                 callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
             }
