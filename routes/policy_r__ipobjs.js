@@ -122,9 +122,9 @@ router.post("/policy-r__ipobj", function (req, res)
     //Create New objet with data policy_r__ipobj
     var policy_r__ipobjData = {
         rule: req.body.rule,
-        ipobj: req.body.ipobj,
-        ipobj_g: req.body.ipobj_g,
-        interface: req.body.interface,
+        ipobj: (req.body.ipobj!=='undefined'?req.body.ipobj:0),
+        ipobj_g: (req.body.ipobj_g!=='undefined'?req.body.ipobj_g:0),
+        interface: (req.body.interface!=='undefined'?req.body.interface:0),
         position: req.body.position,
         position_order: req.body.position_order        
         
