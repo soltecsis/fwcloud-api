@@ -252,9 +252,6 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
         } else {
             allowed = data;
             if (allowed) {
-                //ordenamos posicion antigua
-                OrderList(999999, rule, position, position_order);
-
                 getNegateRulePosition(new_rule, new_position, function (error, data) {
                     if (error) {
                         logger.debug("ERROR : ", error);
@@ -263,9 +260,13 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
                         db.get(function (error, connection) {
                             if (error)
                                 return done('Database problem');
+                            //Order New position
+                            OrderList(new_order, new_rule, new_position, 999999);
+                            
                             var sql = 'UPDATE ' + tableModel + ' SET ' +
                                     'rule = ' + connection.escape(new_rule) + ', ' +
                                     'position = ' + connection.escape(new_position) + ', ' +
+                                    'position_order = ' + connection.escape(new_order) + ', ' +
                                     'negate = ' + connection.escape(negate) + ' ' +
                                     ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                                     ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
@@ -275,14 +276,16 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
                                 if (error) {
                                     callback(error, null);
                                 } else {
+                                    //Order Old position
+                                    OrderList(999999, rule, position, position_order);                                    
+                                    
                                     callback(null, {"msg": "success"});
                                 }
                             });
                         });
                     }
                 });
-                //ordenamos posicion nueva
-                OrderList(new_order, new_rule, new_position, 999999);
+
             } else {
                 callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
             }
@@ -319,6 +322,7 @@ function OrderList(new_order, rule, position, old_order) {
         order1 = old_order;
         order2 = new_order;
     }
+    logger.debug("---> ORDENANDO RULE: " + rule + " POSITION: " + position + "  OLD_ORDER: " + old_order + "  NEW_ORDER: " + new_order);
 
     db.get(function (error, connection) {
         if (error)
@@ -327,6 +331,7 @@ function OrderList(new_order, rule, position, old_order) {
                 'position_order = position_order' + increment +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                 ' AND position_order>=' + order1 + ' AND position_order<=' + order2;
+        logger.debug(sql);
         connection.query(sql);
     });
 }
@@ -449,7 +454,7 @@ policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
                                 ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
-                        logger.debug(sql);
+                        //logger.debug(sql);
                         connection.query(sql, function (error, result) {
                             if (error) {
                                 callback1();
@@ -473,9 +478,9 @@ policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
 };
 
 //Order policy_r__ipobj Position
-policy_r__ipobjModel.orderPolicy = function (rule,callback) {
+policy_r__ipobjModel.orderPolicy = function (rule, callback) {
 
-    logger.debug("DENTRO ORDER : " + rule );
+    logger.debug("DENTRO ORDER : " + rule);
 
     db.get(function (error, connection) {
         if (error)
@@ -485,22 +490,21 @@ policy_r__ipobjModel.orderPolicy = function (rule,callback) {
         connection.query(sqlRule, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
-                var prev_position=0;
+                var prev_position = 0;
                 async.map(rows, function (row, callback1) {
-                    var position= row.position;
-                    if (position!==prev_position){
-                        order=1;
-                        prev_position=position;
-                    }
-                    else
+                    var position = row.position;
+                    if (position !== prev_position) {
+                        order = 1;
+                        prev_position = position;
+                    } else
                         order++;
-                    
+
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
-                        logger.debug(sql);
+                        //logger.debug(sql);
                         connection.query(sql, function (error, result) {
                             if (error) {
                                 callback1();
@@ -536,25 +540,24 @@ policy_r__ipobjModel.orderAllPolicy = function (callback) {
         connection.query(sqlRule, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
-                var prev_rule=0;
-                var prev_position=0;
+                var prev_rule = 0;
+                var prev_position = 0;
                 async.map(rows, function (row, callback1) {
-                    var position= row.position;
-                    var rule=row.rule;
-                    if (position!==prev_position || rule!==prev_rule){
-                        order=1;
-                        prev_rule=rule;
-                        prev_position=position;
-                    }
-                    else
+                    var position = row.position;
+                    var rule = row.rule;
+                    if (position !== prev_position || rule !== prev_rule) {
+                        order = 1;
+                        prev_rule = rule;
+                        prev_position = position;
+                    } else
                         order++;
-                    
+
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
-                        logger.debug(sql);
+                        //logger.debug(sql);
                         connection.query(sql, function (error, result) {
                             if (error) {
                                 callback1();

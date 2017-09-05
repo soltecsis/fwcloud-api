@@ -278,6 +278,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
     var new_position = req.params.new_position;
     var new_order = req.params.new_order;
 
+    logger.debug("DENTRO de Update POSITION policy_r__ipobj ");
     
     Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
     {
@@ -393,7 +394,7 @@ router.put("/policy-r__ipobj/order/:rule", function (req, res)
 {
     logger.debug("DENTRO de PUT ORDER Policy");
     var rule = req.params.rule;
-    Policy_r__ipobjModel.orderPolicy( function (error, data)
+    Policy_r__ipobjModel.orderPolicy(rule, function (error, data)
     {
         if (data && data.msg === "success" || data.msg === "notExist")
         {
