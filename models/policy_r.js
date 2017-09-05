@@ -339,6 +339,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                 'comment = ' + connection.escape(policy_rData.comment) + ' ' +
                 'type = ' + connection.escape(policy_rData.type) + ' ' +
                 ' WHERE id = ' + policy_rData.id;
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
