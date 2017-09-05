@@ -342,6 +342,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
+                logger.error(error);
                 callback(error, null);
             } else {
                 callback(null, {"msg": "success"});
