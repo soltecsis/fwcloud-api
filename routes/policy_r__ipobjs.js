@@ -348,12 +348,12 @@ router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:ne
 router.delete("/policy-r__ipobj/", function (req, res)
 {
     //Id from policy_r__ipobj to remove
-    var rule = req.body.rule;
-    var ipobj = req.body.ipobj;
-    var ipobj_g = req.body.ipobj_g;
-    var interface = req.body.interface;
-    var position = req.body.position;
-    var position_order = req.body.position_order;
+    var rule = req.params.rule;
+    var ipobj = req.params.ipobj;
+    var ipobj_g = req.params.ipobj_g;
+    var interface = req.params.interface;
+    var position = req.params.position;
+    var position_order = req.params.position_order;
     
     Policy_r__ipobjModel.deletePolicy_r__ipobj(rule,ipobj,ipobj_g,interface, position, position_order, function (error, data)
     {
