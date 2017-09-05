@@ -14,7 +14,7 @@ var logger = require('log4js').getLogger("app");
 
 router.param('rule', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
-        res.status(404).json({"msg": "param rule Error"});
+        res.status(404).json({"msg": "param rule Error : " + param});
     else
         next();
 });
@@ -55,7 +55,7 @@ router.param('new_rule', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
         res.status(404).json({"msg": "param new_rule Error"});
     else
-        next();
+next();
 });
 router.param('new_position', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
@@ -369,5 +369,42 @@ router.delete("/policy-r__ipobj/", function (req, res)
         }
     });
 });
+
+
+/* Reorder ALL rule positions  */
+router.put("/policy-r__ipobj/order/:rule", function (req, res)
+{
+    logger.debug("DENTRO de PUT ORDER");
+    var rule = req.params.rule;
+    Policy_r__ipobjModel.orderAllPolicyPosition( rule, function (error, data)
+    {
+        if (data && data.msg === "success" || data.msg === "notExist")
+        {
+            res.status(200).json(data.msg);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+/* Reorder rule Positions */
+//router.get("/policy-r__ipobj/order/:rule/:position", function (req, res)
+//{
+//    //Id from policy_r__ipobj to remove
+//    var rule = req.params.rule;
+//    var position = req.params.position;
+//    
+//    logger.debug("ORDENANDO REGLA: " + rule + '  Position: ' + position);
+//    Policy_r__ipobjModel.orderPolicyPosition(rule,  position,  function (error, data)
+//    {
+//        if (data && data.msg === "success" || data.msg === "notExist")
+//        {
+//            res.status(200).json(data.msg);
+//        } else
+//        {
+//            res.status(500).json({"msg": error});
+//        }
+//    });
+//});
 
 module.exports = router;

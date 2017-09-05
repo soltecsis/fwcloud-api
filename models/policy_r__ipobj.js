@@ -1,5 +1,5 @@
 var db = require('../db.js');
-
+var async = require('async');
 
 //create object
 var policy_r__ipobjModel = {};
@@ -118,7 +118,7 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 
 //Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate, callback) {
-    
+
     OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999);
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -139,7 +139,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
 
                         db.get(function (error, connection) {
                             if (error)
-                                return done('Database problem');                            
+                                return done('Database problem');
                             connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
                                 if (error) {
                                     callback(error, {"error": error});
@@ -245,8 +245,7 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule, ipob
 //When Update position we order New and Old POSITION
 policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, callback) {
 
-    //Check if IPOBJ TYPE is ALLOWED in this Position
-    logger.debug("ORDEN DONE");
+    //Check if IPOBJ TYPE is ALLOWED in this Position    
     checkIpobjPosition(new_rule, ipobj, ipobj_g, interface, new_position, function (error, data) {
         if (error) {
             callback(error, {"error": "error"});
@@ -255,7 +254,6 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
             if (allowed) {
                 //ordenamos posicion antigua
                 OrderList(999999, rule, position, position_order);
-                
 
                 getNegateRulePosition(new_rule, new_position, function (error, data) {
                     if (error) {
@@ -429,5 +427,101 @@ policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
         });
     });
 };
+
+
+//Order policy_r__ipobj Position
+policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
+
+    logger.debug("DENTRO ORDER   Rule: " + rule + '  Position: ' + position);
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
+        logger.debug(sqlPos);
+        connection.query(sqlPos, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                async.map(rows, function (row, callback1) {
+                    order++;
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
+                                ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Order policy_r__ipobj Position
+policy_r__ipobjModel.orderAllPolicyPosition = function (rule,callback) {
+
+    logger.debug("DENTRO ORDER : " + rule );
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
+        logger.debug(sqlRule);
+        connection.query(sqlRule, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                var prev_position=0;
+                async.map(rows, function (row, callback1) {
+                    var position= row.position;
+                    if (position!==prev_position){
+                        order=1;
+                        prev_position=position;
+                    }
+                    else
+                        order++;
+                    
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
+                                ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
 //Export the object
 module.exports = policy_r__ipobjModel;

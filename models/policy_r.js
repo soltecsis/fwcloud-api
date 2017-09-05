@@ -138,12 +138,12 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                //logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
                                                 if (row_ipobj.ipobj > 0 && row_ipobj.type==='O') {
                                                     IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
                                                         //If exists ipobj get data
-                                                        if (typeof data_ipobjs !== 'undefined')
+                                                        if (typeof data_ipobjs !== 'undefined' && data_ipobjs.length>0)
                                                         {
                                                             var ipobj = data_ipobjs[0];
                                                             var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, true);
