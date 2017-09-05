@@ -336,7 +336,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                 'time_end = ' + connection.escape(policy_rData.time_end) + ',' +
                 'options = ' + connection.escape(policy_rData.options) + ',' +
                 'active = ' + connection.escape(policy_rData.active) + ',' +
-                'comment = ' + connection.escape(policy_rData.comment) + ' ' +
+                'comment = ' + connection.escape(policy_rData.comment) + ', ' +
                 'type = ' + connection.escape(policy_rData.type) + ' ' +
                 ' WHERE id = ' + policy_rData.id;
         logger.debug(sql);
