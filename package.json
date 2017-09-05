@@ -8,13 +8,14 @@
   "dependencies": {
     "async": "^2.5.0",
     "bcrypt-nodejs": "*",
-    "body-parser": "~1.15.2",
+    "body-parser": "^1.15.2",
     "bookshelf": "*",
     "cookie-parser": "~1.4.3",
     "debug": "~2.2.0",
     "ejs": "^2.5.5",
     "express": "^4.14.1",
     "express-session": "*",
+    "fs": "*",
     "jade": "~1.11.0",
     "knex": "^0.12.6",
     "lodash": "^4.17.4",
@@ -26,7 +27,6 @@
     "passport-local": "*",
     "serve-favicon": "~2.3.0",
     "when": "^3.7.7",
-    "xml2js": "*",
-    "fs": "*"
+    "xml2js": "*"
   }
 }

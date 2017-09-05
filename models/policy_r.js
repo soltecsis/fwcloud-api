@@ -83,7 +83,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
         }
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND  type= ' + connection.escape(type) + sqlRule + ' ORDER BY rule_order';
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 AllDone(error, null);
@@ -99,7 +99,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
 
 
                         var rule_id = row_rule.id;
-                        logger.debug(i + " ---> DENTRO de REGLA: " + rule_id);
+                        //logger.debug(i + " ---> DENTRO de REGLA: " + rule_id);
 
                         //Buscamos POSITIONS de REGLA
                         Policy_positionModel.getPolicy_positionsType(type, function (error, data_positions)
@@ -107,7 +107,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                             //If exists policy_position get data
                             if (typeof data_positions !== 'undefined')
                             {
-                                logger.debug("REGLA: " + rule_id + "  POSITIONS: " + data_positions.length);
+                                //logger.debug("REGLA: " + rule_id + "  POSITIONS: " + data_positions.length);
                                 j = 0;
                                 //for (j = 0; j < data_positions.length; j++) {
 
@@ -123,7 +123,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                     //Buscamos IPOBJS por POSITION
                                     Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
                                     {
-                                        logger.debug(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
+                                        //logger.debug(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
                                         //If exists policy_r__ipobj get data
                                         //if (typeof data__rule_ipobjs !== 'undefined' && data__rule_ipobjs.length > 0)
                                         if (typeof data__rule_ipobjs !== 'undefined')
@@ -138,7 +138,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                //logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
                                                 if (row_ipobj.ipobj > 0 && row_ipobj.type==='O') {
                                                     IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
@@ -190,7 +190,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             }, //Fin de bucle de IPOBJS
                                                     function (err) {
                                                         //logger.debug("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
-                                                        logger.debug("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
+                                                        //logger.debug("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
                                                         //logger.debug(position_node);
                                                         policy_node.positions.push(position_node);
 
@@ -200,9 +200,9 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                                 return a.position_order-b.position_order;
                                                             });                                                            
                                                             policy.push(policy_node);
-                                                            logger.debug("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
+                                                            //logger.debug("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
                                                             if (policy.length >= policy_cont) {
-                                                                logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
+                                                                //logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
                                                                 
                                                                 AllDone(null, policy);
                                                             }
@@ -217,18 +217,18 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
 
                                 }, //Fin de bucle Positions                                
                                         function (err) {
-                                            logger.debug("J=" + j + " ---------- FINAL BUCLE 2 --------");
-                                            logger.debug('iterating2 done   CONT=' + policy_cont);
+                                            //logger.debug("J=" + j + " ---------- FINAL BUCLE 2 --------");
+                                            //logger.debug('iterating2 done   CONT=' + policy_cont);
 //                                            if (err)
 //                                                callback2(err, null);
 //                                            else
 //                                                callback2(null, policy);
 
-                                            logger.debug("añadiendo POLICY NODE");
+                                            //logger.debug("añadiendo POLICY NODE");
                                             //policy.push(policy_node);
-                                            logger.debug("LENGHT E2: " + policy.length);
+                                            //logger.debug("LENGHT E2: " + policy.length);
                                             if (policy.length >= policy_cont) {
-                                                logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=" + i + " - J=" + j + " - K=" + k);
+                                                //logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=" + i + " - J=" + j + " - K=" + k);
                                             }
                                         });
 
@@ -249,12 +249,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
 
                     }, //Fin de bucle Reglas                    
                             function (err) {
-                                logger.debug("---------- FINAL BUCLE 1 --------");
-                                logger.debug('iterating1 done   CONT=' + policy_cont);
-                                logger.debug(err);
-                                logger.debug(policy);
-                                logger.debug("LENGHT E1: " + policy.length);
-
+                                //logger.debug("---------- FINAL BUCLE 1 --------");
                             });
                 } else {
                     //NO existe regla

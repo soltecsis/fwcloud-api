@@ -66,7 +66,6 @@ router.get('/:idfirewall/type/:type/rule/:rule', function (req, res)
     var rule = req.params.rule;    
     
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
-    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule);
     Policy_rModel.getPolicy_rs_type(idfirewall,type,rule,function (error, data)
     {
         //If exists policy_r get data

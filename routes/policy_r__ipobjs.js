@@ -68,7 +68,26 @@ router.param('new_order', function(req, res, next, param) {
     }
     next(); 
 });
+router.param('negate', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.negate=0;
+    }
+    next(); 
+});
 
+
+function checkPostParameters(obj){
+    logger.debug(obj);
+    
+    for(var propt in obj){
+        logger.debug(propt + ': ' + obj[propt]);
+        if (obj[propt]===undefined){
+            logger.debug("PARAMETRO UNDEFINED: " + propt);
+            obj[propt]=0;
+        }
+    }
+    return obj;
+}
 
 
 /* Show form */
@@ -155,6 +174,7 @@ router.get('/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (re
     var ipobj_g = req.params.ipobj_g;
     var interface = req.params.interface;
     var position = req.params.position;
+    
     Policy_r__ipobjModel.getPolicy_r__ipobj(rule,ipobj,ipobj_g,interface,position,function (error, data)
     {
         //If exists policy_r__ipobj get data
@@ -171,16 +191,6 @@ router.get('/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (re
     });
 });
 
-function checkPostParameters(obj){
-    for(var propt in obj){
-        logger.debug(propt + ': ' + obj[propt]);
-        if (obj[propt]===undefined){
-            logger.debug("PARAMETRO UNDEFINED: " + propt);
-            obj[propt]=0;
-        }
-    }
-    return obj;
-}
 
 /* Create New policy_r__ipobj */
 router.post("/policy-r__ipobj", function (req, res)
@@ -198,9 +208,7 @@ router.post("/policy-r__ipobj", function (req, res)
     
     
     policy_r__ipobjData=checkPostParameters(policy_r__ipobjData);
-    
-    logger.debug(policy_r__ipobjData);
-
+        
     
     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData,0, function (error, data)
     {
@@ -227,7 +235,7 @@ router.put('/policy-r__ipobj', function (req, res)
     var position_order = req.body.get_position_order;
         
     
-    //Save data into object
+    //Save new data into object
     var policy_r__ipobjData = {
         rule: req.body.rule,
         ipobj: req.body.ipobj,
@@ -239,9 +247,7 @@ router.put('/policy-r__ipobj', function (req, res)
     };
     
     policy_r__ipobjData=checkPostParameters(policy_r__ipobjData);
-    
-    logger.debug(policy_r__ipobjData);
-    
+      
     
     Policy_r__ipobjModel.updatePolicy_r__ipobj(rule,ipobj,ipobj_g,interface,position, position_order,policy_r__ipobjData, function (error, data)
     {

@@ -5,6 +5,7 @@
         this.name= data.name;
         this.policy_type=data.policy_type;
         this.position_order=data.position_order;
+        this.content=data.content;
         this.ipobjs=[];
     };
 
