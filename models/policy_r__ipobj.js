@@ -322,7 +322,7 @@ function OrderList(new_order, rule, position, old_order) {
         order1 = old_order;
         order2 = new_order;
     }
-    logger.debug("---> ORDENANDO RULE: " + rule + " POSITION: " + position + "  OLD_ORDER: " + old_order + "  NEW_ORDER: " + new_order);
+    logger.debug("---> ORDENANDO RULE IPOBJ: " + rule + " POSITION: " + position + "  OLD_ORDER: " + old_order + "  NEW_ORDER: " + new_order);
 
     db.get(function (error, connection) {
         if (error)

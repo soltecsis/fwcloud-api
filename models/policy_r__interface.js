@@ -6,12 +6,12 @@ var policy_r__interfaceModel = {};
 var tableModel = "policy_r__interface";
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 //Get All policy_r__interface by policy_r
@@ -68,7 +68,7 @@ policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, cal
 
 //Add new policy_r__interface
 policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfaceData, callback) {
-    OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, 999999);
+    OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule,policy_r__interfaceData.position, 999999);
 
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -96,9 +96,7 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
 };
 
 //Update policy_r__interface
-policy_r__interfaceModel.updatePolicy_r__interface = function (old_order, policy_r__interfaceData, callback) {
-
-    OrderList(policy_r__interfaceData.column_order, policy_r__interfaceData.rule, old_order);
+policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, old_position, old_position_order, policy_r__interfaceData, callback) {
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkInterfacePosition(policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
@@ -107,11 +105,12 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (old_order, policy
         } else {
             allowed = data;
             if (allowed) {
+                OrderList(policy_r__interfaceData.position_order, rule, old_position_order);
+
                 db.get(function (error, connection) {
                     if (error)
                         return done('Database problem');
-                    var sql = 'UPDATE ' + tableModel + ' SET interface_order = ' + connection.escape(policy_r__interfaceData.interface_order) + ',' +
-                            'direction = ' + connection.escape(policy_r__interfaceData.direction) + ',' +
+                    var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
                             'negate = ' + connection.escape(policy_r__interfaceData.negate) +
                             ' WHERE rule = ' + policy_r__interfaceData.rule + ' AND  interface = ' + policy_r__interfaceData.interface;
 
@@ -123,6 +122,52 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (old_order, policy
                         }
                     });
                 });
+            }
+        }
+    });
+};
+
+//Update policy_r__interface POSITION AND RULE
+policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
+
+    //Check if IPOBJ TYPE is ALLOWED in this Position
+    checkInterfacePosition(new_rule, interface, new_position, function (error, data) {
+        if (error) {
+            callback(error, {"error": "error"});
+        } else {
+            allowed = data;
+            if (allowed) {
+                getNegateRulePosition(new_rule, new_position, function (error, data) {
+                    if (error) {
+                        logger.debug("ERROR : ", error);
+                    } else {
+                        negate = data;
+                        db.get(function (error, connection) {
+                            if (error)
+                                return done('Database problem');
+                            //Order New position
+                            OrderList(new_order, new_rule, new_position, 999999);
+                            
+                            var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(new_position) + ',' +
+                                    'negate = ' + connection.escape(negate) + ', ' +
+                                    'rule = ' + connection.escape(new_rule) + ', ' +
+                                    ' WHERE rule = ' + rule + ' AND  interface = ' + interface + ' AND position=' + connection.escape(old_position);
+                            logger.debug(sql);
+                            connection.query(sql, function (error, result) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    //Order OLD position
+                                    OrderList(999999, rule, old_position, old_position_order);
+
+                                    callback(null, {"msg": "success"});
+                                }
+                            });
+                        });
+                    }
+                });
+            }else {
+                callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
             }
         }
     });
@@ -156,7 +201,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, inter
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
-                ' interface_order = ' + connection.escape(new_order) + ' ' +
+                ' position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + rule + ' AND  interface = ' + interface;
 
         connection.query(sql, function (error, result) {
@@ -169,7 +214,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, inter
     });
 };
 
-function OrderList(new_order, rule, old_order) {
+function OrderList(new_order, rule,position, old_order) {
     var increment = '+1';
     var order1 = new_order;
     var order2 = old_order;
@@ -179,13 +224,15 @@ function OrderList(new_order, rule, old_order) {
         order2 = new_order;
     }
 
+    logger.debug("---> ORDENANDO RULE INTERFACE: " + rule + " POSITION: " + position + "  OLD_ORDER: " + old_order + "  NEW_ORDER: " + new_order);
+    
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
-                'interface_order = interface_order' + increment +
-                ' WHERE rule = ' + connection.escape(rule) +
-                ' AND interface_order>=' + order1 + ' AND interface_order<=' + order2;
+                'position_order = position_order' + increment +
+                ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
+                ' AND position_order>=' + order1 + ' AND position_order<=' + order2;
         logger.debug(sql);
         connection.query(sql);
 

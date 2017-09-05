@@ -318,7 +318,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:position/:negate', function (req, 
 });
 
 /* Update ORDER policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_order', function (req, res)
+router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_order', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;

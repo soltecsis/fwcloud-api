@@ -11,6 +11,70 @@ var Policy_r__interfaceModel = require('../models/policy_r__interface');
 */
 var logger = require('log4js').getLogger("app");
 
+router.param('rule', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))
+        res.status(404).json( {"msg": "param rule Error"});
+    else
+        next(); 
+});
+
+router.param('interface', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))
+        res.status(404).json( {"msg": "param interface Error"});
+    else
+        next(); 
+});
+router.param('position', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        res.status(404).json( {"msg": "param position Error"});
+    }
+    else
+        next(); 
+});
+router.param('position_order', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.params.position=1;
+    }
+    next(); 
+});
+router.param('new_rule', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))
+        res.status(404).json( {"msg": "param new_rule Error"});
+    else
+        next(); 
+});
+router.param('new_position', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        res.status(404).json( {"msg": "param new_position Error"});
+    }
+    else
+        next(); 
+});
+router.param('new_order', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.params.new_order=1;
+    }
+    next(); 
+});
+router.param('negate', function(req, res, next, param) {
+    if (param===undefined || param==='' || isNaN(param))    {
+        req.params.negate=0;
+    }
+    next(); 
+});
+
+function checkPostParameters(obj){
+    logger.debug(obj);
+    for(var propt in obj){
+        logger.debug(propt + ': ' + obj[propt]);
+        if (obj[propt]===undefined){
+            logger.debug("PARAMETRO UNDEFINED: " + propt);
+            obj[propt]=0;
+        }
+    }
+    return obj;
+}
+
 /* get data para crear nuevos */
 router.get('/policy-r__interface', function (req, res)
 {
@@ -18,7 +82,7 @@ router.get('/policy-r__interface', function (req, res)
 });
 
 /* Get all IPOBJ de una interface*/
-router.get('/:interface', function (req, res)
+router.get('/:firewall/:interface', function (req, res)
 {
     var interface = req.params.interface;
     Policy_r__interfaceModel.getPolicy_r__interfaces_rule(interface,function (error, data)
@@ -37,7 +101,7 @@ router.get('/:interface', function (req, res)
 });
 
 /* Get all interface for a rule */
-router.get('/:rule', function (req, res)
+router.get('/:firewall/:rule', function (req, res)
 {
     var rule = req.params.rule;
     Policy_r__interfaceModel.getPolicy_r__interfaces_interface(rule,function (error, data)
@@ -58,7 +122,7 @@ router.get('/:rule', function (req, res)
 
 
 /* Get  policy_r__interface by rule and interface */
-router.get('/:interface/:rule', function (req, res)
+router.get('/:firewall/:rule/:interface', function (req, res)
 {    
     var interface = req.params.interface;
     var rule = req.params.rule;
@@ -89,12 +153,12 @@ router.post("/policy-r__interface", function (req, res)
     var policy_r__interfaceData = {
         rule: req.body.rule,
         interface: req.body.interface,
-        interface_order: req.body.interface_order,
-        direction: req.body.direction,
         negate: req.body.negate,
         position: req.body.position,
         position_order: req.body.position_order        
     };
+    
+    policy_r__interfaceData=checkPostParameters(policy_r__interfaceData);
     
     Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
     {
@@ -113,18 +177,22 @@ router.post("/policy-r__interface", function (req, res)
 /* Update policy_r__interface that exist */
 router.put('/policy-r__interface', function (req, res)
 {
-    var old_order = req.body.get_column_order;
-    //Save data into object
+    var rule = req.body.get_rule;    
+    var interface = req.body.get_interface;
+    var position = req.body.get_position;
+    var position_order = req.body.get_position_order;
+    
+    //Save New data into object
     var policy_r__interfaceData = {
         rule: req.body.rule, 
         interface: req.body.interface, 
-        interface_order: req.body.interface_order,
-        direction: req.body.direction,
         negate: req.body.negate,
         position: req.body.position,
         position_order: req.body.position_order        
     };
-    Policy_r__interfaceModel.updatePolicy_r__interface(old_order,policy_r__interfaceData, function (error, data)
+    policy_r__interfaceData=checkPostParameters(policy_r__interfaceData);
+    
+    Policy_r__interfaceModel.updatePolicy_r__interface(rule, interface, position, position_order,policy_r__interfaceData, function (error, data)
     {
         //If saved policy_r__interface saved ok, get data
         if (data && data.msg)
@@ -138,9 +206,34 @@ router.put('/policy-r__interface', function (req, res)
     });
 });
 
+/* Update POSITION policy_r__interface that exist */
+router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_order/:new_rule/:new_position/:new_order', function (req, res)
+{
+    var rule = req.params.rule;
+    var interface = req.params.interface;
+    var position = req.params.position;
+    var position_order = req.params.position_order;
+    var new_rule = req.params.new_rule;
+    var new_position = req.params.new_position;
+    var new_order = req.params.new_order;
+    
+    
+    Policy_r__interfaceModel.updatePolicy_r__interface_position(rule,interface,position,position_order,new_rule,new_position,new_order, function (error, data)
+    {
+        //If saved policy_r__ipobj saved ok, get data
+        if (data && data.msg)
+        {
+            res.status(200).json( data.msg);
+        } else
+        {
+            res.status(500).json( {"msg": error});
+        }
+    });
+});
+
 
 /* Update NEGATE de policy_r__interface that exist */
-router.put('/policy-r__interface/:interface/:rule/:position/negate/:negate', function (req, res)
+router.put('/policy-r__interface/:firewall/:rule/:interface/:position/negate/:negate', function (req, res)
 {
     var rule = req.param('rule');
     var interface = req.param('interface');
@@ -161,7 +254,7 @@ router.put('/policy-r__interface/:interface/:rule/:position/negate/:negate', fun
 });
 
 /* Update ORDER de policy_r__interface that exist */
-router.put('/policy-r__interface/:interface/:rule/:position/order/:old_order/:new_order', function (req, res)
+router.put('/policy-r__interface/:firewall/:rule/:interface/:position/order/:old_order/:new_order', function (req, res)
 {
     var rule = req.param('rule');
     var interface = req.param('interface');
