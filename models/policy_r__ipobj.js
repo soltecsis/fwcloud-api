@@ -473,7 +473,7 @@ policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
 };
 
 //Order policy_r__ipobj Position
-policy_r__ipobjModel.orderAllPolicyPosition = function (rule,callback) {
+policy_r__ipobjModel.orderPolicy = function (rule,callback) {
 
     logger.debug("DENTRO ORDER : " + rule );
 
@@ -511,6 +511,61 @@ policy_r__ipobjModel.orderAllPolicyPosition = function (rule,callback) {
                     });
                 }, //Fin de bucle
                         function (err) {
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Order policy_r__ipobj Position
+policy_r__ipobjModel.orderAllPolicy = function (callback) {
+
+    logger.debug("DENTRO ORDER ALL: ");
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
+        logger.debug(sqlRule);
+        connection.query(sqlRule, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                var prev_rule=0;
+                var prev_position=0;
+                async.map(rows, function (row, callback1) {
+                    var position= row.position;
+                    var rule=row.rule;
+                    if (position!==prev_position || rule!==prev_rule){
+                        order=1;
+                        prev_rule=rule;
+                        prev_position=position;
+                    }
+                    else
+                        order++;
+                    
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
+                                ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            logger.debug("FIN De BUCLE");
                             callback(null, {"msg": "success"});
                         }
 
