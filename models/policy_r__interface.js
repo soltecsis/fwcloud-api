@@ -68,7 +68,6 @@ policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, cal
 
 //Add new policy_r__interface
 policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfaceData, callback) {
-    OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule,policy_r__interfaceData.position, 999999);
 
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -85,8 +84,13 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
                         if (error) {
                             callback(error, null);
                         } else {
-                            //devolvemos la última id insertada
-                            callback(null, {"msg": "success"});
+                            if (result.affectedRows > 0) {
+                                OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
+
+                                callback(null, {"msg": "success"});
+                            } else {
+                                callback(null, {"msg": "nothing"});
+                            }
                         }
                     });
                 });
@@ -105,7 +109,6 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, 
         } else {
             allowed = data;
             if (allowed) {
-                OrderList(policy_r__interfaceData.position_order, rule, old_position_order);
 
                 db.get(function (error, connection) {
                     if (error)
@@ -118,7 +121,12 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, 
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "success"});
+                            if (result.affectedRows > 0) {
+                                OrderList(policy_r__interfaceData.position_order, rule, old_position_order, interface);
+                                callback(null, {"msg": "success"});
+                            } else {
+                                callback(null, {"msg": "nothing"});
+                            }
                         }
                     });
                 });
@@ -145,28 +153,37 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
                         db.get(function (error, connection) {
                             if (error)
                                 return done('Database problem');
-                            //Order New position
-                            OrderList(new_order, new_rule, new_position, 999999);
-                            
+
+
                             var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(new_position) + ',' +
                                     'negate = ' + connection.escape(negate) + ', ' +
                                     'rule = ' + connection.escape(new_rule) + ', ' +
+                                    'position_order = ' + connection.escape(new_order) + ' ' +
                                     ' WHERE rule = ' + rule + ' AND  interface = ' + interface + ' AND position=' + connection.escape(old_position);
                             logger.debug(sql);
                             connection.query(sql, function (error, result) {
                                 if (error) {
                                     callback(error, null);
                                 } else {
-                                    //Order OLD position
-                                    OrderList(999999, rule, old_position, old_position_order);
+                                    if (result.affectedRows > 0) {
+                                        //Order New position
+                                        OrderList(new_order, new_rule, new_position, 999999, interface);
 
-                                    callback(null, {"msg": "success"});
+                                        logger.debug("ORDENANDO OLD POSITION");
+                                        logger.debug(result);
+                                        //Order OLD position
+                                        OrderList(999999, rule, old_position, old_position_order, interface);
+
+                                        callback(null, {"msg": "success"});
+                                    } else {
+                                        callback(null, {"msg": "nothing"});
+                                    }
                                 }
                             });
                         });
                     }
                 });
-            }else {
+            } else {
                 callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
             }
         }
@@ -174,14 +191,14 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
 };
 
 //Update NEGATE policy_r__interface for all interface in the rule
-policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, interface, negate, callback) {
+policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, interface, position, negate, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' negate = ' + connection.escape(negate) + ' ' +
-                ' WHERE rule = ' + rule;
+                ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position);
 
         connection.query(sql, function (error, result) {
             if (error) {
@@ -194,9 +211,9 @@ policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, inte
 };
 
 //Update ORDER policy_r__interface
-policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, interface, old_order, new_order, callback) {
+policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, interface, position, old_order, new_order, callback) {
 
-    OrderList(new_order, rule, old_order);
+    OrderList(new_order, rule, position, old_order, interface);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
@@ -214,7 +231,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, inter
     });
 };
 
-function OrderList(new_order, rule,position, old_order) {
+function OrderList(new_order, rule, position, old_order, interface) {
     var increment = '+1';
     var order1 = new_order;
     var order2 = old_order;
@@ -225,14 +242,15 @@ function OrderList(new_order, rule,position, old_order) {
     }
 
     logger.debug("---> ORDENANDO RULE INTERFACE: " + rule + " POSITION: " + position + "  OLD_ORDER: " + old_order + "  NEW_ORDER: " + new_order);
-    
+
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position_order = position_order' + increment +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
-                ' AND position_order>=' + order1 + ' AND position_order<=' + order2;
+                ' AND position_order>=' + order1 + ' AND position_order<=' + order2 +
+                ' AND interface<>' + interface;
         logger.debug(sql);
         connection.query(sql);
 
@@ -291,23 +309,29 @@ function getNegateRulePosition(rule, position, callback) {
 }
 
 //Remove policy_r__interface with id to remove
-policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, old_order, callback) {
-    OrderList(999999, rule, old_order);
+policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, position, old_order, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
+        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface) + ' AND position=' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r__interface to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface) + ' AND position=' + connection.escape(position);
+                    logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            if (result.affectedRows > 0) {
+                                OrderList(999999, rule, position, old_order, interface);
+                                callback(null, {"msg": "deleted"});
+                            }
+                            else{
+                                callback(null, {"msg": "notExist"});
+                            }
                         }
                     });
                 });

@@ -235,11 +235,12 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
 /* Update NEGATE de policy_r__interface that exist */
 router.put('/policy-r__interface/:firewall/:rule/:interface/:position/negate/:negate', function (req, res)
 {
-    var rule = req.param('rule');
-    var interface = req.param('interface');
-    var negate = req.param('negate');
+    var rule = req.params.rule;
+    var interface = req.params.interface;
+    var negate = req.params.negate;
+    var position = req.params.position;
 
-    Policy_r__interfaceModel.updatePolicy_r__interface_negate(rule, interface,negate, function (error, data)
+    Policy_r__interfaceModel.updatePolicy_r__interface_negate(rule, interface,position, negate, function (error, data)
     {
         //If saved policy_r__interface saved ok, get data
         if (data && data.msg)
@@ -256,12 +257,13 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/negate/:ne
 /* Update ORDER de policy_r__interface that exist */
 router.put('/policy-r__interface/:firewall/:rule/:interface/:position/order/:old_order/:new_order', function (req, res)
 {
-    var rule = req.param('rule');
-    var interface = req.param('interface');
-    var old_order = req.param('old_order');
-    var new_order = req.param('new_order');    
+    var rule = req.params.rule;
+    var interface = req.params.interface;
+    var position = req.params.position;
+    var old_order = req.params.old_order;
+    var new_order = req.params.new_order;    
 
-    Policy_r__interfaceModel.updatePolicy_r__interface_order(rule, interface,old_order,new_order, function (error, data)
+    Policy_r__interfaceModel.updatePolicy_r__interface_order(rule, interface,position,old_order,new_order, function (error, data)
     {
         //If saved policy_r__interface saved ok, get data
         if (data && data.msg)
@@ -278,14 +280,16 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/order/:old
 
 
 /* Remove policy_r__interface */
-router.delete("/policy-r__interface/", function (req, res)
+router.delete("/policy-r__interface/:firewall/:rule/:interface/:position/:position_order", function (req, res)
 {
     //Id from policy_r__interface to remove
-    var rule = req.param('rule');
-    var interface = req.param('interface');
-    var old_order = req.param('old_order');
+    var rule = req.params.rule;
+    var interface = req.params.interface;
+    var position = req.params.position;
+    var old_order = req.params.position_order;
     
-    Policy_r__interfaceModel.deletePolicy_r__interfaceidfirewall(rule, interface,old_order, function (error, data)
+        
+    Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, function (error, data)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
