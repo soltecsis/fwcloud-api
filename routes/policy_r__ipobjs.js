@@ -374,11 +374,9 @@ router.delete("/policy-r__ipobj/", function (req, res)
 /* Reorder ALL rule positions  */
 router.put("/policy-r__ipobj/order", function (req, res)
 {
-    logger.debug("DENTRO de PUT ORDER ALL Policy");
     
     Policy_r__ipobjModel.orderAllPolicy(  function (error, data)
     {
-        logger.debug("......DE VUELTA.....");
         if (data && data.msg === "success" || data.msg === "notExist")
         {
             res.status(200).json(data.msg);
@@ -391,8 +389,7 @@ router.put("/policy-r__ipobj/order", function (req, res)
 
 /* Reorder ALL rule positions  */
 router.put("/policy-r__ipobj/order/:rule", function (req, res)
-{
-    logger.debug("DENTRO de PUT ORDER Policy");
+{    
     var rule = req.params.rule;
     Policy_r__ipobjModel.orderPolicy(rule, function (error, data)
     {

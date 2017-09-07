@@ -1,5 +1,5 @@
 var db = require('../db.js');
-
+var async = require('async');
 
 //create object
 var policy_r__interfaceModel = {};
@@ -335,6 +335,151 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, 
                         }
                     });
                 });
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Order policy_r__interfaces Position
+policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callback) {
+
+    logger.debug("DENTRO ORDER   Rule: " + rule + '  Position: ' + position);
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
+        logger.debug(sqlPos);
+        connection.query(sqlPos, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                async.map(rows, function (row, callback1) {
+                    order++;
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) + 
+                                ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        //logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Order policy_r__interfaces Position
+policy_r__interfaceModel.orderPolicy = function (rule, callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
+        logger.debug(sqlRule);
+        connection.query(sqlRule, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                var prev_position = 0;
+                async.map(rows, function (row, callback1) {
+                    var position = row.position;
+                    if (position !== prev_position) {
+                        order = 1;
+                        prev_position = position;
+                    } else
+                        order++;
+
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) + 
+                                ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        //logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Order policy_r__interfaces Position
+policy_r__interfaceModel.orderAllPolicy = function (callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
+        logger.debug(sqlRule);
+        connection.query(sqlRule, function (error, rows) {
+            if (rows.length > 0) {
+                var order = 0;
+                var prev_rule = 0;
+                var prev_position = 0;
+                async.map(rows, function (row, callback1) {
+                    var position = row.position;
+                    var rule = row.rule;
+                    if (position !== prev_position || rule !== prev_rule) {
+                        order = 1;
+                        prev_rule = rule;
+                        prev_position = position;
+                    } else
+                        order++;
+
+                    db.get(function (error, connection) {
+                        sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
+                                ' WHERE rule = ' + connection.escape(row.rule) +
+                                ' AND position=' + connection.escape(row.position) +
+                                ' AND interface=' + connection.escape(row.interface);
+                        //logger.debug(sql);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                callback1();
+                            } else {
+                                callback1();
+                            }
+                        });
+                    });
+                }, //Fin de bucle
+                        function (err) {
+                            logger.debug("FIN De BUCLE");
+                            callback(null, {"msg": "success"});
+                        }
+
+                );
+
             } else {
                 callback(null, {"msg": "notExist"});
             }

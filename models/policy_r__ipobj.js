@@ -480,7 +480,6 @@ policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
 //Order policy_r__ipobj Position
 policy_r__ipobjModel.orderPolicy = function (rule, callback) {
 
-    logger.debug("DENTRO ORDER : " + rule);
 
     db.get(function (error, connection) {
         if (error)
@@ -530,7 +529,6 @@ policy_r__ipobjModel.orderPolicy = function (rule, callback) {
 //Order policy_r__ipobj Position
 policy_r__ipobjModel.orderAllPolicy = function (callback) {
 
-    logger.debug("DENTRO ORDER ALL: ");
 
     db.get(function (error, connection) {
         if (error)

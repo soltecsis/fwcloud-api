@@ -302,4 +302,36 @@ router.delete("/policy-r__interface/:firewall/:rule/:interface/:position/:positi
     });
 });
 
+/* Reorder ALL rule positions  */
+router.put("/policy-r__interface/order", function (req, res)
+{
+    
+    Policy_r__interfaceModel.orderAllPolicy(  function (error, data)
+    {
+        if (data && data.msg === "success" || data.msg === "notExist")
+        {
+            res.status(200).json(data.msg);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
+/* Reorder ALL rule positions  */
+router.put("/policy-r__interface/order/:rule", function (req, res)
+{
+    var rule = req.params.rule;
+    Policy_r__interfaceModel.orderPolicy(rule, function (error, data)
+    {
+        if (data && data.msg === "success" || data.msg === "notExist")
+        {
+            res.status(200).json(data.msg);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
 module.exports = router;
