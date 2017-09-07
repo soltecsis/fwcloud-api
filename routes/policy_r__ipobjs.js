@@ -348,7 +348,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
 
 
 /* Remove policy_r__ipobj */
-router.delete("/policy-r__ipobj/", function (req, res)
+router.delete("/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order", function (req, res)
 {
     //Id from policy_r__ipobj to remove
     var rule = req.params.rule;
