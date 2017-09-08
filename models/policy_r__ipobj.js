@@ -424,6 +424,40 @@ function getNegateRulePosition(rule, position, callback) {
         });
     });
 }
+policy_r__ipobjModel.getTypePositions = function (position,new_position, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT id, content FROM policy_position ' +
+                ' WHERE id = ' + connection.escape(position) + '  OR id='+  connection.escape(new_position);
+        logger.debug('SQL: ' + sql);
+        connection.query(sql, function (error, rows) {            
+            if (error)
+                callback(error, null);
+            else {                
+                var content1, content2;
+                if (rows.length > 0) {
+                    if (rows[0].id==position){
+                        content1 = rows[0].content;
+                        content2 = rows[1].content;
+                    }
+                    else{
+                        content1 = rows[1].content;
+                        content2 = rows[0].content;
+                    }
+                    
+                    
+                    logger.debug('Position: ' + position + '  Content: ' + content1 +  '  New Position: ' + new_position + '  Content: ' + content2);
+                    callback(null, {"content1": content1, "content2": content2});
+                }
+                else{
+                    callback(null, null);
+                }
+            }
+        });
+    });
+};
 
 //Remove policy_r__ipobj 
 policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule, ipobj, ipobj_g, interface, position, position_order, callback) {

@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
 /**
  * Property Logger to manage App logs
@@ -55,7 +56,7 @@ router.param('new_rule', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
         res.status(404).json({"msg": "param new_rule Error"});
     else
-next();
+        next();
 });
 router.param('new_position', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
@@ -278,20 +279,77 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
     var new_position = req.params.new_position;
     var new_order = req.params.new_order;
 
-    logger.debug("DENTRO de Update POSITION policy_r__ipobj ");
+    var content1 = 'O', content2 = 'O';
+
+    logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
     
-    Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
+    //Get position type
+    Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
     {
-        //If saved policy_r__ipobj saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-r__ipobjs/policy-r__ipobj/" + req.param('id'));
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"msg": error});
+        logger.debug(data);
+        if (data) {
+            content1 = data.content1;
+            content2 = data.content2;
+
+            if (content1 === content2) { //SAME POSITION
+                Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
+                {
+                    //If saved policy_r__ipobj saved ok, get data
+                    if (data && data.msg)
+                    {
+                        res.status(200).json(data.msg);
+                    } else
+                    {
+                        res.status(500).json({"msg": error});
+                    }
+                });
+            } else {//DIFFERENTS POSITIONS
+                if (content1 === 'I' && content2 === 'O') {
+                    //Create New Position 'O'
+                    //Create New objet with data policy_r__ipobj
+                    var policy_r__ipobjData = {
+                        rule: new_rule,
+                        ipobj: ipobj,
+                        ipobj_g: ipobj_g,
+                        interface: interface,
+                        position: new_position,
+                        position_order: new_order
+                    };
+
+                    policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
+
+                    Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
+                    {
+                        //If saved policy_r__ipobj Get data
+                        if (data && data.msg)
+                        {
+                            //Delete position 'I'
+                            Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function (error, data)
+                            {
+                                if (data && data.msg === "deleted" || data.msg === "notExist")
+                                {
+                                    res.status(200).json({"msg": "success"});
+                                } else
+                                {
+                                    res.status(500).json({"error": error});
+                                }
+                            });
+                        } else
+                        {
+                            res.status(500).json({"error": error});
+                        }
+                    });
+
+
+
+                }
+            }
         }
     });
+
+
+
+
 });
 
 /* Update NEGATE policy_r__ipobj that exist */
@@ -374,8 +432,8 @@ router.delete("/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:posi
 /* Reorder ALL rule positions  */
 router.put("/policy-r__ipobj/order", function (req, res)
 {
-    
-    Policy_r__ipobjModel.orderAllPolicy(  function (error, data)
+
+    Policy_r__ipobjModel.orderAllPolicy(function (error, data)
     {
         if (data && data.msg === "success" || data.msg === "notExist")
         {
@@ -389,7 +447,7 @@ router.put("/policy-r__ipobj/order", function (req, res)
 
 /* Reorder ALL rule positions  */
 router.put("/policy-r__ipobj/order/:rule", function (req, res)
-{    
+{
     var rule = req.params.rule;
     Policy_r__ipobjModel.orderPolicy(rule, function (error, data)
     {
