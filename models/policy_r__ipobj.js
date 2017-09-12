@@ -424,36 +424,36 @@ function getNegateRulePosition(rule, position, callback) {
         });
     });
 }
-policy_r__ipobjModel.getTypePositions = function (position,new_position, callback) {
+policy_r__ipobjModel.getTypePositions = function (position, new_position, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT id, content FROM policy_position ' +
-                ' WHERE id = ' + connection.escape(position) + '  OR id='+  connection.escape(new_position);
-        logger.debug('SQL: ' + sql);
-        connection.query(sql, function (error, rows) {            
+        var sql1 = 'SELECT id, content FROM policy_position  WHERE id = ' + connection.escape(position);
+        var sql2 = 'SELECT id, content FROM policy_position  WHERE id = ' + connection.escape(new_position);
+        //logger.debug('SQL: ' + sql1);
+        connection.query(sql1, function (error, rows) {
             if (error)
                 callback(error, null);
-            else {                
-                var content1, content2;
+            else {
+                var content1;
                 if (rows.length > 0) {
-                    if (rows[0].id==position){
-                        content1 = rows[0].content;
-                        content2 = rows[1].content;
-                    }
-                    else{
-                        content1 = rows[1].content;
-                        content2 = rows[0].content;
-                    }
-                    
-                    
-                    logger.debug('Position: ' + position + '  Content: ' + content1 +  '  New Position: ' + new_position + '  Content: ' + content2);
-                    callback(null, {"content1": content1, "content2": content2});
+                    content1 = rows[0].content;
                 }
-                else{
-                    callback(null, null);
-                }
+
+                connection.query(sql2, function (error, rows2) {
+                    if (error)
+                        callback(error, null);
+                    else {
+                        var content2;
+                        if (rows2.length > 0) {
+                            content2 = rows2[0].content;
+                        }
+
+                        logger.debug('Position: ' + position + '  Content: ' + content1 + '  New Position: ' + new_position + '  Content: ' + content2);
+                        callback(null, {"content1": content1, "content2": content2});
+                    }
+                });
             }
         });
     });

@@ -431,8 +431,7 @@ router.delete("/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:posi
 
 /* Reorder ALL rule positions  */
 router.put("/policy-r__ipobj/order", function (req, res)
-{
-
+{    
     Policy_r__ipobjModel.orderAllPolicy(function (error, data)
     {
         if (data && data.msg === "success" || data.msg === "notExist")
