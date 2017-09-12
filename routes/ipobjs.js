@@ -1,14 +1,16 @@
 var express = require('express');
 var router = express.Router();
 var IpobjModel = require('../models/ipobj');
+var fwcTreemodel = require('../models/fwc_tree');
+var fwc_tree_node = require("../models/fwc_tree_node.js");
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 /* Show form */
@@ -19,40 +21,40 @@ router.get('/ipobj', function (req, res)
 
 /* Get all ipobjs by  group*/
 router.get('/group/:idgroup', function (req, res)
-{    
+{
     var idgroup = req.params.idgroup;
-    IpobjModel.getIpobjsGroup(idgroup,function (error, data)
+    IpobjModel.getIpobjsGroup(idgroup, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.status(200).json( {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            res.status(404).json({"msg": "notExist"});
         }
     });
 });
 
 /* Get all ipobjs by  group e id*/
 router.get('/group/:idgroup/:id', function (req, res)
-{    
+{
     var idgroup = req.params.idgroup;
     var id = req.params.id;
-    
-    IpobjModel.getIpobjsGroup(idgroup,id,function (error, data)
+
+    IpobjModel.getIpobjsGroup(idgroup, id, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.status(200).json( {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            res.status(404).json({"msg": "notExist"});
         }
     });
 });
@@ -62,17 +64,17 @@ router.get('/group/:idgroup/:id', function (req, res)
 router.get('/:id', function (req, res)
 {
     var id = req.params.id;
-    IpobjModel.getIpobj(id,function (error, data)
+    IpobjModel.getIpobj(id, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.status(200).json( {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            res.status(404).json({"msg": "notExist"});
         }
     });
 });
@@ -82,17 +84,17 @@ router.get('/group/:idgroup/name/:name', function (req, res)
 {
     var name = req.params.name;
     var idgroup = req.params.idgroup;
-    IpobjModel.getIpobjName(idgroup,name,function (error, data)
+    IpobjModel.getIpobjName(idgroup, name, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
         {
-            res.status(200).json( {"data": data});
+            res.status(200).json({"data": data});
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            res.status(404).json({"msg": "notExist"});
         }
     });
 });
@@ -102,8 +104,14 @@ router.get('/group/:idgroup/name/:name', function (req, res)
 
 
 /* Create New ipobj */
-router.post("/ipobj", function (req, res)
+router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", function (req, res)
 {
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var node_parent = req.params.node_parent;
+    var node_order = req.params.node_order;
+    var node_type = req.params.node_type;
+    
     //Create New objet with data ipobj
     var ipobjData = {
         id: null,
@@ -124,61 +132,136 @@ router.post("/ipobj", function (req, res)
         source_port_start: req.body.source_port_start,
         source_port_end: req.body.source_port_end,
         destination_port_start: req.body.destination_port_start,
-        destination_port_end: req.body.destination_port_end,       
+        destination_port_end: req.body.destination_port_end,
         options: req.body.options,
         comment: req.body.comment
     };
+
+    ipobjData = checkParameters(ipobjData);
     
+
     IpobjModel.insertIpobj(ipobjData, function (error, data)
     {
-        //If saved ipobj Get data
-        if (data && data.insertId)
-        {
-            //res.redirect("/ipobjs/ipobj/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
-        } else
-        {
-            res.status(500).json( {"msg": error});
+        if (error)
+            res.status(500).json({"msg": error});
+        else {
+            //If saved ipobj Get data
+            if (data && data.insertId>0)
+            {
+                var id = data.insertId;
+                logger.debug("INSERTADO NUEVO IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+                ipobjData.id=id;
+                //INSERT IN TREE
+                fwcTreemodel.insertFwc_TreeIPOBJ(iduser, fwcloud, node_parent, node_order, node_type,ipobjData, function (error, data) {
+                    if (data && data.insertId) {
+                        res.status(200).json({"insertId": data.insertId});
+                    } else {
+                        logger.debug(error);
+                        res.status(500).json({"msg": error});
+                    }
+                });
+            } else
+            {
+                res.status(500).json({"msg": error});
+            }
         }
     });
+
 });
 
-/* Update ipobj that exist */
-router.put('/ipobj/', function (req, res)
-{
-    //Save data into object
-    var ipobjData = {id: req.param('id'),fwcloud: req.param('fwcloud'),  interface: req.param('interface'), name: req.param('name'), type: req.param('type'), protocol: req.param('protocol'), address: req.param('address'),  netmask: req.param('netmask'), diff_serv: req.param('diff_serv'), ip_version: req.param('ip_version'), code: req.param('code'), tcp_flags_mask: req.param('tcp_flags_mask'), tcp_flags_settings: req.param('tcp_flags_settings'),range_start: req.param('range_start'), range_end: req.param('range_end'),source_port_start: req.param('source_port_start'), source_port_end: req.param('source_port_end'),destination_port_start: req.param('destination_port_start'), destination_port_end: req.param('destination_port_end'), options: req.param('options'), comment: req.param('comment')};
-    IpobjModel.updateIpobj(ipobjData, function (error, data)
-    {
-        //If saved ipobj saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/ipobjs/ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
-        } else
-        {
-            res.status(500).json( {"msg": error});
+function checkParameters(obj) {
+    for (var propt in obj) {
+        logger.debug(propt + ': ' + obj[propt]);
+        if (obj[propt] === undefined) {
+            //logger.debug("PARAMETRO UNDEFINED: " + propt);
+            obj[propt] = null;
         }
-    });
+    }
+    return obj;
+}
+
+/* Update ipobj that exist */
+router.put('/ipobj/:iduser/:fwcloud', function (req, res)
+{
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    //Save data into object
+    var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, code: req.body.code, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
+
+    ipobjData = checkParameters(ipobjData);
+
+    if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
+        IpobjModel.updateIpobj(ipobjData, function (error, data)
+        {
+            if (error)
+                res.status(500).json({"msg": error});
+            else {
+                //If saved ipobj saved ok, get data
+                if (data && data.msg)
+                {
+                    if (data.msg === 'success') {
+                        //UPDATE TREE            
+                        fwcTreemodel.updateFwc_Tree_IPOBJ(iduser, fwcloud, ipobjData , function (error, data) {
+                            if (data && data.msg) {
+                                res.status(200).json(data.msg);
+                            } else {
+                                logger.debug(error);
+                                res.status(500).json({"msg": error});
+                            }
+                        });
+                    } else {
+                        logger.debug("TREE NOT UPDATED");
+                        res.status(200).json(data.msg);
+                    }
+
+                } else
+                {
+                    logger.debug(error);
+                    res.status(500).json({"msg": error});
+                }
+            }
+        });
+    } else
+        res.status(500).json({"msg": "Null identifiers"});
 });
 
 
 
 /* Remove ipobj */
-router.delete("/ipobj/", function (req, res)
+router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
 {
     //Id from ipobj to remove
-    var idfirewall = req.param('idfirewall');
-    var id = req.param('id');
-    IpobjModel.deleteIpobj(idfirewall,id, function (error, data)
+    //var idfirewall = req.params.idfirewall;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id = req.params.id;
+    var type = req.params.type;
+
+    IpobjModel.deleteIpobj(id,type, fwcloud, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
-        {
-            //res.redirect("/ipobjs/");
-            res.status(200).json( data.msg);
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
+        {            
+            if (data.msg === "deleted") {
+                //DELETE FROM TREE
+                fwcTreemodel.deleteFwc_Tree(iduser,fwcloud,id,type, function (error, data) {
+                    if (data && data.msg) {
+                        res.status(200).json(data.msg);
+                    } else {
+                        logger.debug(error);
+                        res.status(500).json({"msg": error});
+                    }
+                });
+
+                //DELETE FROM RULES
+            }
+            else
+                res.status(200).json(data.msg);
         } else
         {
-            res.status(500).json( {"msg": error});
+            res.status(500).json({"msg": error});
         }
     });
 });

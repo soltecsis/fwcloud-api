@@ -643,5 +643,33 @@ policy_r__ipobjModel.orderAllPolicy = function (callback) {
     });
 };
 
+
+//check if IPOBJ Exists in any rule
+policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("CHECK DELETING ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + 'INNER JOIN firewall F on F.id=R.firewall '
+                + ' WHERE O.ipobj=' + connection.escape(ipobj) + ' AND O.type=' + connection.escape(type) +' AND F.fwcloud=' + connection.escape(fwcloud);
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error)
+                if (rows.length > 0) {
+                    if (rows[0].n > 0) {
+                        logger.debug("ALERT DELETING ipobj:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        callback(null, {"result": true});
+                    } else {
+                        callback(null, {"result": false});
+                    }
+                } else
+                    callback(null, {"result": false});
+            else
+                callback(null, {"result": false});
+        });
+    });
+};
+
 //Export the object
 module.exports = policy_r__ipobjModel;

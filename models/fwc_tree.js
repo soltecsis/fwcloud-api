@@ -2,12 +2,12 @@ var db = require('../db.js');
 var async = require('async');
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 //create object
@@ -44,7 +44,7 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' ORDER BY id_parent,node_order';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -54,7 +54,7 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
     });
 };
 
-//Get firewall node Id
+//Get firewall node by folder
 fwc_treeModel.getFwc_TreeUserFolder = function (iduser, foldertype, callback) {
 
     db.get(function (error, connection) {
@@ -62,7 +62,25 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, foldertype, callback) {
             return done('Database problem');
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND node_type=' + connection.escape(foldertype) + ' AND id_parent=0 ORDER BY id limit 1';
-        
+
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
+};
+
+//Get firewall node ID
+fwc_treeModel.getFwc_TreeId = function (iduser, id, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + '  AND id=' + connection.escape(id);
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -88,7 +106,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, idparent, tree, objs, objc
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' AND id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY node_order';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -220,7 +238,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
 
                                                 //Insertamos nodo POLICY IN
                                                 sqlinsert = 'INSERT INTO ' + tableModel + '(id_user, name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
-                                                        ' VALUES (' + connection.escape(iduser) + ',"Policy IN","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"PI",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";                                                
+                                                        ' VALUES (' + connection.escape(iduser) + ',"Policy IN","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"PI",0,0,null,null,' + connection.escape(rnode.fwcloud) + ")";
                                                 connection.query(sqlinsert, function (error, result) {
                                                     if (error)
                                                         logger.debug("ERROR PI : " + error);
@@ -269,11 +287,10 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
                                                 //Insertamos nodos Interface
                                                 sqlInt = 'SELECT  id,name,labelName FROM interface where interface_type=10 AND  firewall=' + connection.escape(idfirewall);
                                                 connection.query(sqlInt, function (error, rowsnodesInt) {
-                                                    if (error){
+                                                    if (error) {
                                                         logger.debug("Error Select interface");
                                                         callback2(error, null);
-                                                    }
-                                                    else {
+                                                    } else {
                                                         var j = 0;
                                                         if (rowsnodesInt) {
                                                             logger.debug("INTERFACES: " + rowsnodesInt.length);
@@ -342,7 +359,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (iduser, folder, AllDone) {
 
                                             }
 
-                                        });                                        
+                                        });
                                         callback2();
                                     }
 
@@ -459,6 +476,45 @@ fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
     });
 };
 
+//Add new NODE from IPOBJ NEW
+fwc_treeModel.insertFwc_TreeIPOBJ = function (iduser, fwcloud, node_parent, node_order, node_type, ipobjData, callback) {
+
+    var fwc_treeData = {
+        id: null,
+        id_user: iduser,
+        name: ipobjData.name,
+        id_parent: node_parent,
+        node_order: node_order,
+        node_icon: null,
+        expanded: 0,
+        node_type: node_type,
+        api_call: null,
+        obj_type: ipobjData.type,
+        id_obj: ipobjData.id,
+        node_level: 0,
+        fwcloud: fwcloud,
+        comment: ipobjData.comment
+    };
+    
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        connection.query('INSERT INTO ' + tableModel + ' SET ?', fwc_treeData, function (error, result) {
+            if (error) {
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    logger.debug("Insertado nuevo NODO id:" + result.insertId);
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                }
+                else
+                    callback(null, {"insertId": 0});
+            }
+        });
+    });
+};
+
 //Update NODE from user
 fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 
@@ -480,23 +536,52 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
     });
 };
 
-//FALTA BORRADO EN CASCADA
-//Remove NODE with id to remove
-fwc_treeModel.deleteFwc_Tree = function (iduser, id, callback) {
+//Update NODE from IPOBJ UPDATE
+fwc_treeModel.updateFwc_Tree_IPOBJ = function (iduser, fwcloud, ipobjData, callback) {
+
+
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id_user = ' + connection.escape(iduser) + ' AND id = ' + connection.escape(id);
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'name = ' + connection.escape(ipobjData.name) + ' ' +
+                ' WHERE id_obj = ' + ipobjData.id + ' AND obj_type=' + ipobjData.type + ' AND fwcloud=' + fwcloud + ' AND id_user=' + iduser;
+        logger.debug(sql);
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) 
+                    callback(null, {"msg": "success"});
+                else
+                    callback(null, {"msg": "nothing"});
+            }
+        });
+    });
+};
+
+
+//FALTA BORRADO EN CASCADA
+//Remove NODE with id to remove
+fwc_treeModel.deleteFwc_Tree = function (iduser,fwcloud, id, type, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id_user = ' + connection.escape(iduser) + ' AND id = ' + connection.escape(id)  + ' AND obj_type=' + connection.escape(type);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id_user = ' + connection.escape(iduser) + ' AND id = ' + connection.escape(id);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id_user = ' + connection.escape(iduser) + ' AND id_obj = ' + connection.escape(id) + ' AND obj_type=' + connection.escape(type);
+                    logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            if (result.affectedRows > 0) 
+                                callback(null, {"msg": "deleted"});
+                            else
+                                callback(null, {"msg": "nothing"});
                         }
                     });
                 });

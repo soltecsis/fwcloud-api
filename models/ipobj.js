@@ -1,32 +1,31 @@
 var db = require('../db.js');
-
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 
 //create object
 var ipobjModel = {};
 var tableModel = "ipobj";
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 
 //Get ipobj by  id 
-ipobjModel.getIpobj = function ( id, callback) {
+ipobjModel.getIpobj = function (id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel +  ' WHERE id = ' + connection.escape(id) ;        
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
-            if (error){
+            if (error) {
                 callback(error, null);
-            }
-            else{
+            } else {
                 callback(null, row);
             }
         });
@@ -34,12 +33,12 @@ ipobjModel.getIpobj = function ( id, callback) {
 };
 
 //Get ipobj by  id_fwb
-ipobjModel.getIpobj_fwb = function ( id_fwb, callback) {
+ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel +  ' WHERE id_fwb = ' + connection.escape(id_fwb) ;        
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -54,10 +53,10 @@ ipobjModel.getIpobjsGroup = function (idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');        
+            return done('Database problem');
 
-        var innergroup=' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup +  ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' ORDER BY id';
+        var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' ORDER BY id';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
@@ -69,13 +68,13 @@ ipobjModel.getIpobjsGroup = function (idgroup, callback) {
 };
 
 //Get ipobj by  id and group 
-ipobjModel.getIpobjGroup = function ( idgroup, id, callback) {
+ipobjModel.getIpobjGroup = function (idgroup, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var innergroup=' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup +  ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup);        
+        var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -92,8 +91,8 @@ ipobjModel.getIpobjName = function (name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) ;
-        
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql);
+
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -114,15 +113,18 @@ ipobjModel.insertIpobj = function (ipobjData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"insertId": result.insertId});
+                if (result.affectedRows > 0) {
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                } else
+                    callback(null, {"insertId": 0});
             }
         });
     });
 };
 
 //Update ipobj from user
-ipobjModel.updateIpobj = function ( ipobjData, callback) {
+ipobjModel.updateIpobj = function (ipobjData, callback) {
 
     db.get(function (error, connection) {
         if (error)
@@ -133,13 +135,13 @@ ipobjModel.updateIpobj = function ( ipobjData, callback) {
                 'name = ' + connection.escape(ipobjData.name) + ',' +
                 'type = ' + connection.escape(ipobjData.type) + ',' +
                 'protocol = ' + connection.escape(ipobjData.protocol) + ',' +
-                'address = ' + connection.escape(ipobjData.address) + ',' +                
+                'address = ' + connection.escape(ipobjData.address) + ',' +
                 'netmask = ' + connection.escape(ipobjData.netmask) + ',' +
                 'diff_serv = ' + connection.escape(ipobjData.diff_serv) + ',' +
                 'ip_version = ' + connection.escape(ipobjData.ip_version) + ',' +
                 'code = ' + connection.escape(ipobjData.code) + ',' +
-                'tcp_flags_mask = ' + connection.escape(ipobjData.tcp_flags_mask) + ',' +                
-                'tcp_flags_settings = ' + connection.escape(ipobjData.tcp_flags_settings) + ',' +                
+                'tcp_flags_mask = ' + connection.escape(ipobjData.tcp_flags_mask) + ',' +
+                'tcp_flags_settings = ' + connection.escape(ipobjData.tcp_flags_settings) + ',' +
                 'range_start = ' + connection.escape(ipobjData.range_start) + ',' +
                 'range_end = ' + connection.escape(ipobjData.range_end) + ',' +
                 'source_port_start = ' + connection.escape(ipobjData.source_port_start) + ',' +
@@ -147,42 +149,54 @@ ipobjModel.updateIpobj = function ( ipobjData, callback) {
                 'destination_port_start = ' + connection.escape(ipobjData.destination_port_start) + ',' +
                 'destination_port_end = ' + connection.escape(ipobjData.destination_port_end) + ',' +
                 'options = ' + connection.escape(ipobjData.options) + ',' +
-                'comment = ' + connection.escape(ipobjData.comment) + ' ' +                
-                ' WHERE id = ' + ipobjData.id;
-        
+                'comment = ' + connection.escape(ipobjData.comment) + ' ' +
+                ' WHERE id = ' + ipobjData.id + ' AND fwcloud=' + connection.escape(ipobjData.fwcloud);
+        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                if (result.affectedRows > 0) {
+                    callback(null, {"msg": "success"});
+                } else {
+                    callback(null, {"msg": "nothing"});
+                }
             }
         });
     });
 };
 
 //Remove ipobj with id to remove
-ipobjModel.deleteIpobj = function ( id, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) ;
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from ipobj to remove
-            if (row) {
+ipobjModel.deleteIpobj = function (id,type, fwcloud, callback) {
+
+    Policy_r__ipobjModel.checkIpobjInRule(id, type, fwcloud, function (error, data) {
+        if (error) {
+            callback(error, null);
+        } else {
+            logger.debug(data);
+            if (!data.result) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                    if (error)
+                        return done('Database problem');
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+                    logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            if (result.affectedRows > 0) {
+                                callback(null, {"msg": "deleted"});
+                            } else {
+                                callback(null, {"msg": "notExist"});
+                            }
                         }
                     });
+
                 });
-            } else {
-                callback(null, {"msg": "notExist"});
-            }
-        });
+
+            } else
+                callback(null, {"msg": "Restricted"});
+        }
     });
 };
 
