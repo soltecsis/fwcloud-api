@@ -310,6 +310,7 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
             return done('Database problem');
         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_rData, function (error, result) {
             if (error) {
+                logger.debug(error);
                 callback(error, null);
             } else {
                 //devolvemos la última id insertada
