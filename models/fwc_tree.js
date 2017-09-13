@@ -476,24 +476,24 @@ fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
     });
 };
 
-//Add new NODE from IPOBJ NEW
-fwc_treeModel.insertFwc_TreeIPOBJ = function (iduser, fwcloud, node_parent, node_order, node_type, ipobjData, callback) {
+//Add new NODE from IPOBJ or Interface
+fwc_treeModel.insertFwc_TreeOBJ = function (iduser, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
 
     var fwc_treeData = {
         id: null,
         id_user: iduser,
-        name: ipobjData.name,
+        name: node_Data.name,
         id_parent: node_parent,
         node_order: node_order,
         node_icon: null,
         expanded: 0,
         node_type: node_type,
         api_call: null,
-        obj_type: ipobjData.type,
-        id_obj: ipobjData.id,
+        obj_type: node_Data.type,
+        id_obj: node_Data.id,
         node_level: 0,
         fwcloud: fwcloud,
-        comment: ipobjData.comment
+        comment: node_Data.comment
     };
     
     db.get(function (error, connection) {
@@ -536,16 +536,16 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
     });
 };
 
-//Update NODE from IPOBJ UPDATE
-fwc_treeModel.updateFwc_Tree_IPOBJ = function (iduser, fwcloud, ipobjData, callback) {
+//Update NODE from IPOBJ or INTERFACE UPDATE
+fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
-                'name = ' + connection.escape(ipobjData.name) + ' ' +
-                ' WHERE id_obj = ' + ipobjData.id + ' AND obj_type=' + ipobjData.type + ' AND fwcloud=' + fwcloud + ' AND id_user=' + iduser;
+                ' name = ' + connection.escape(ipobjData.name) + ' , comment= ' + connection.escape(ipobjData.comment) +
+                ' WHERE id_obj = ' + connection.escape(ipobjData.id)  + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND id_user=' + connection.escape(iduser);
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {

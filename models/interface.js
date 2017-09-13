@@ -1,4 +1,6 @@
 var db = require('../db.js');
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
 
 //create object
@@ -6,12 +8,12 @@ var interfaceModel = {};
 var tableModel = "interface";
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 //Get All interface by firewall
@@ -71,7 +73,7 @@ interfaceModel.getInterfaceName = function (idfirewall, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-        
+
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -90,17 +92,21 @@ interfaceModel.insertInterface = function (interfaceData, callback) {
             return done('Database problem');
         connection.query('INSERT INTO ' + tableModel + ' SET ?', interfaceData, function (error, result) {
             if (error) {
+                logger.debug(error);
                 callback(error, null);
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"insertId": result.insertId});
+                if (result.affectedRows > 0) {
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                } else
+                    callback(null, {"insertId": 0});
             }
         });
     });
 };
 
 //Update interface from user
-interfaceModel.updateInterface = function ( interfaceData, callback) {
+interfaceModel.updateInterface = function (interfaceData, callback) {
 
     db.get(function (error, connection) {
         if (error)
@@ -109,14 +115,21 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
                 'firewall = ' + connection.escape(interfaceData.firewall) + ',' +
                 'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
                 'type = ' + connection.escape(interfaceData.type) + ', ' +
+                'interface_type = ' + connection.escape(interfaceData.interface_type) + ', ' +
+                'comment = ' + connection.escape(interfaceData.comment) + ', ' +
                 'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ' ' +
-                ' WHERE id = ' + interfaceData.id;
+                ' WHERE id = ' + interfaceData.id + ' AND firewall=' + connection.escape(interfaceData.firewall);
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
+                logger.debug(error);
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                if (result.affectedRows > 0) {
+                    callback(null, {"msg": "success"});
+                } else {
+                    callback(null, {"msg": "nothing"});
+                }
             }
         });
     });
@@ -124,30 +137,57 @@ interfaceModel.updateInterface = function ( interfaceData, callback) {
 
 //Remove interface with id to remove
 //FALTA BORRADO EN CASCADA 
-interfaceModel.deleteInterface = function (idfirewall, id, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from interface to remove
-            if (row) {
-                db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            callback(null, {"msg": "deleted"});
-                        }
-                    });
+interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callback) {
+
+    //Check interface in RULE O POSITIONS
+    Policy_r__ipobjModel.checkInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
+        if (error) {
+            callback(error, null);
+        } else {
+            logger.debug(data);
+            if (!data.result) {
+                //Check interface in RULE I POSITIONS
+
+                Policy_r__interfaceModel.checkInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        logger.debug(data);
+                        if (!data.result) {
+                            db.get(function (error, connection) {
+                                if (error)
+                                    return done('Database problem');
+                                var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                                connection.query(sqlExists, function (error, row) {
+                                    //If exists Id from interface to remove
+                                    if (row) {
+                                        db.get(function (error, connection) {
+                                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                                            connection.query(sql, function (error, result) {
+                                                if (error) {
+                                                    logger.debug(error);
+                                                    callback(error, null);
+                                                } else {
+                                                    if (result.affectedRows > 0)
+                                                        callback(null, {"msg": "deleted"});
+                                                    else
+                                                        callback(null, {"msg": "notExist"});
+                                                }
+                                            });
+                                        });
+                                    } else {
+                                        callback(null, {"msg": "notExist"});
+                                    }
+                                });
+                            });
+                        } else
+                            callback(null, {"msg": "Restricted"});
+                    }
                 });
-            } else {
-                callback(null, {"msg": "notExist"});
-            }
-        });
+            } else
+                callback(null, {"msg": "Restricted"});
+        }
     });
 };
-
 //Export the object
 module.exports = interfaceModel;

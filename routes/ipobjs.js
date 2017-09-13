@@ -3,6 +3,8 @@ var router = express.Router();
 var IpobjModel = require('../models/ipobj');
 var fwcTreemodel = require('../models/fwc_tree');
 var fwc_tree_node = require("../models/fwc_tree_node.js");
+var utilsModel = require("../utils/utils.js");
+
 
 /**
  * Property Logger to manage App logs
@@ -111,7 +113,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
-    
+
     //Create New objet with data ipobj
     var ipobjData = {
         id: null,
@@ -137,8 +139,11 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
         comment: req.body.comment
     };
 
-    ipobjData = checkParameters(ipobjData);
-    
+
+    utilsModel.checkParameters(ipobjData, function (obj) {
+        ipobjData = obj;
+    });
+
 
     IpobjModel.insertIpobj(ipobjData, function (error, data)
     {
@@ -146,13 +151,13 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
             res.status(500).json({"msg": error});
         else {
             //If saved ipobj Get data
-            if (data && data.insertId>0)
+            if (data && data.insertId > 0)
             {
                 var id = data.insertId;
-                logger.debug("INSERTADO NUEVO IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-                ipobjData.id=id;
+                logger.debug("NEW IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+                ipobjData.id = id;
                 //INSERT IN TREE
-                fwcTreemodel.insertFwc_TreeIPOBJ(iduser, fwcloud, node_parent, node_order, node_type,ipobjData, function (error, data) {
+                fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
                     if (data && data.insertId) {
                         res.status(200).json({"insertId": data.insertId});
                     } else {
@@ -169,16 +174,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
 
 });
 
-function checkParameters(obj) {
-    for (var propt in obj) {
-        logger.debug(propt + ': ' + obj[propt]);
-        if (obj[propt] === undefined) {
-            //logger.debug("PARAMETRO UNDEFINED: " + propt);
-            obj[propt] = null;
-        }
-    }
-    return obj;
-}
+
 
 /* Update ipobj that exist */
 router.put('/ipobj/:iduser/:fwcloud', function (req, res)
@@ -188,7 +184,10 @@ router.put('/ipobj/:iduser/:fwcloud', function (req, res)
     //Save data into object
     var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, code: req.body.code, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
 
-    ipobjData = checkParameters(ipobjData);
+    utilsModel.checkParameters(ipobjData, function (obj) {
+        ipobjData = obj;
+    });
+
 
     if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
         IpobjModel.updateIpobj(ipobjData, function (error, data)
@@ -200,8 +199,9 @@ router.put('/ipobj/:iduser/:fwcloud', function (req, res)
                 if (data && data.msg)
                 {
                     if (data.msg === 'success') {
+                        logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
                         //UPDATE TREE            
-                        fwcTreemodel.updateFwc_Tree_IPOBJ(iduser, fwcloud, ipobjData , function (error, data) {
+                        fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, function (error, data) {
                             if (data && data.msg) {
                                 res.status(200).json(data.msg);
                             } else {
@@ -237,16 +237,16 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
     var id = req.params.id;
     var type = req.params.type;
 
-    IpobjModel.deleteIpobj(id,type, fwcloud, function (error, data)
+    IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
     {
         if (error)
             res.status(500).json({"msg": error});
         else
         if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
-        {            
+        {
             if (data.msg === "deleted") {
                 //DELETE FROM TREE
-                fwcTreemodel.deleteFwc_Tree(iduser,fwcloud,id,type, function (error, data) {
+                fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                     if (data && data.msg) {
                         res.status(200).json(data.msg);
                     } else {
@@ -256,8 +256,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
                 });
 
                 //DELETE FROM RULES
-            }
-            else
+            } else
                 res.status(200).json(data.msg);
         } else
         {
