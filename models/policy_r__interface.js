@@ -342,6 +342,40 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, 
     });
 };
 
+//Remove policy_r__interface with id to remove
+policy_r__interfaceModel.deletePolicy_r__All = function (rule, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) ;
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from policy_r__interface to remove
+            if (row) {
+                logger.debug("DELETING INTERFACES FROM RULE: " + rule );
+                db.get(function (error, connection) {
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) ;                    
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            logger.debug(error);
+                            callback(error, null);
+                        } else {
+                            if (result.affectedRows > 0) {                                
+                                callback(null, {"msg": "deleted"});
+                            }
+                            else{
+                                callback(null, {"msg": "notExist"});
+                            }
+                        }
+                    });
+                });
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
 //Order policy_r__interfaces Position
 policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callback) {
 

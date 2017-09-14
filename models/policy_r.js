@@ -1,6 +1,7 @@
 var db = require('../db.js');
 var async = require('async');
-
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
 //create object
 var policy_rModel = {};
@@ -15,12 +16,12 @@ var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs
 
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 
@@ -139,11 +140,11 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
                                                 logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
-                                                if (row_ipobj.ipobj > 0 && row_ipobj.type==='O') {
+                                                if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
                                                     IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
                                                         //If exists ipobj get data
-                                                        if (typeof data_ipobjs !== 'undefined' && data_ipobjs.length>0)
+                                                        if (typeof data_ipobjs !== 'undefined' && data_ipobjs.length > 0)
                                                         {
                                                             var ipobj = data_ipobjs[0];
                                                             var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, true);
@@ -159,17 +160,16 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                             callback3();
                                                         }
                                                     });
-                                                }
-                                                else if (row_ipobj.interface > 0 || row_ipobj.type==='I') {
-                                                    var idInterface=row_ipobj.interface;
-                                                    if (row_ipobj.type==='I')
-                                                            idInterface=row_ipobj.ipobj;
-                                                    InterfaceModel.getInterface(idfirewall,idInterface,function (error, data_interface)                                                    
-                                                    {                                                        
-                                                        if (typeof data_interface !== 'undefined')
+                                                } else if (row_ipobj.interface > 0 || row_ipobj.type === 'I') {
+                                                    var idInterface = row_ipobj.interface;
+                                                    if (row_ipobj.type === 'I')
+                                                        idInterface = row_ipobj.ipobj;
+
+                                                    InterfaceModel.getInterface(idfirewall, idInterface, function (error, data_interface)
+                                                    {
+                                                        if (typeof data_interface !== 'undefined' && data_interface.length > 0)
                                                         {
                                                             var interface = data_interface[0];
-                                                            //logger.debug(interface);
                                                             var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, false);
                                                             //Añadimos ipobj a array de position
                                                             position_node.ipobjs.push(ipobj_node);
@@ -183,8 +183,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                             callback3();
                                                         }
                                                     });
-                                                }
-                                                else{
+                                                } else {
                                                     callback3();
                                                 }
                                             }, //Fin de bucle de IPOBJS
@@ -195,15 +194,15 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                         policy_node.positions.push(position_node);
 
                                                         if (policy_node.positions.length >= position_cont) {
-                                                            
-                                                            policy_node.positions.sort(function(a, b){
-                                                                return a.position_order-b.position_order;
-                                                            });                                                            
+
+                                                            policy_node.positions.sort(function (a, b) {
+                                                                return a.position_order - b.position_order;
+                                                            });
                                                             policy.push(policy_node);
                                                             //logger.debug("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
                                                             if (policy.length >= policy_cont) {
                                                                 //logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
-                                                                
+
                                                                 AllDone(null, policy);
                                                             }
                                                         }
@@ -304,17 +303,23 @@ policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
 
 //Add new policy_r from user
 policy_rModel.insertPolicy_r = function (policy_rData, callback) {
-    OrderList(policy_rData.rule_order, policy_rData.firewall, 999999);
+
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
+        logger.debug("NEW RULE:");
+        logger.debug(policy_rData);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_rData, function (error, result) {
             if (error) {
                 logger.debug(error);
                 callback(error, null);
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"insertId": result.insertId});
+                if (result.affectedRows > 0) {
+                    OrderList(policy_rData.rule_order, policy_rData.firewall, 999999, result.insertId);
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                } else
+                    callback(null, {"msg": "notExist"});
             }
         });
     });
@@ -323,11 +328,14 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 //Update policy_r from user
 policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
 
-    OrderList(policy_rData.rule_order, policy_rData.firewall, old_order);
+
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
+        logger.debug("UPDATE RULE:");
+        logger.debug(policy_rData);
+        
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'idgroup = ' + connection.escape(policy_rData.idgroup) + ',' +
                 'firewall = ' + connection.escape(policy_rData.firewall) + ',' +
@@ -340,41 +348,48 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                 'comment = ' + connection.escape(policy_rData.comment) + ', ' +
                 'type = ' + connection.escape(policy_rData.type) + ' ' +
                 ' WHERE id = ' + policy_rData.id;
-        logger.debug(sql);
+        
         connection.query(sql, function (error, result) {
             if (error) {
                 logger.error(error);
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                if (result.affectedRows > 0) {
+                    OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
+                    callback(null, {"msg": "success"});
+                } else
+                    callback(null, {"msg": "notExist"});
             }
         });
     });
 };
 
 //Update ORDER de policy_r 
-policy_rModel.updatePolicy_r_order = function (idfirewall, id, rule_order, old_order, callback) {
-
-    OrderList(rule_order, idfirewall, old_order);
+policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET ' +
-                'rule_order = ' + connection.escape(rule_order) + ' ' +
-                ' WHERE id = ' + id;
+                'rule_order = ' + connection.escape(new_order) + ' ' +
+                ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) +
+                ' AND rule_order=' + connection.escape(old_order);
 
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                if (result.affectedRows > 0) {
+                    OrderList(new_order, idfirewall, old_order, id);
+                    callback(null, {"msg": "success"});
+                } else
+                    callback(null, {"msg": "notExist"});
             }
         });
     });
 };
 
-function OrderList(new_order, idfirewall, old_order) {
+function OrderList(new_order, idfirewall, old_order, id) {
     var increment = '+1';
     var order1 = new_order;
     var order2 = old_order;
@@ -390,7 +405,8 @@ function OrderList(new_order, idfirewall, old_order) {
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'rule_order = rule_order' + increment +
                 ' WHERE firewall = ' + connection.escape(idfirewall) +
-                ' AND rule_order>=' + order1 + ' AND rule_order<=' + order2;
+                ' AND rule_order>=' + order1 + ' AND rule_order<=' + order2 +
+                ' AND id<>' + connection.escape(id);
         connection.query(sql);
 
     });
@@ -400,23 +416,47 @@ function OrderList(new_order, idfirewall, old_order) {
 
 //Remove policy_r with id to remove
 policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
-    OrderList(999999, idfirewall, rule_order);
+
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND rule_order=' + connection.escape(rule_order);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r to remove
             if (row) {
-                db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            callback(null, {"msg": "deleted"});
-                        }
-                    });
+                logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall);
+                //DELETE FROM policy_r__ipobj
+                Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
+                {
+                    if (error)
+                        callback(error, null);
+                    else {
+                        //DELETE FROM policy_r__interface
+                        Policy_r__interfaceModel.deletePolicy_r__All(id, function (error, data)
+                        {
+                            if (error)
+                                callback(error, null);
+                            else {
+                                db.get(function (error, connection) {
+                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND rule_order=' + connection.escape(rule_order);
+                                    connection.query(sql, function (error, result) {
+                                        if (error) {
+                                            logger.debug(error);
+                                            callback(error, null);
+                                        } else {
+                                            if (result.affectedRows > 0) {
+                                                OrderList(999999, idfirewall, rule_order, id);
+                                                callback(null, {"msg": "deleted"});
+                                            } else {
+                                                callback(null, {"msg": "notExist"});
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+
                 });
             } else {
                 callback(null, {"msg": "notExist"});

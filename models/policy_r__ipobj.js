@@ -497,6 +497,41 @@ policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
     });
 };
 
+//Remove policy_r__ipobj 
+policy_r__ipobjModel.deletePolicy_r__All = function (rule,  callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlExists = 'SELECT * FROM ' + tableModel +
+                ' WHERE rule = ' + connection.escape(rule) ;
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from policy_r__ipobj to remove
+            if (row) {
+                logger.debug("DELETING IPOBJ FROM RULE: " + rule );
+                db.get(function (error, connection) {
+                    var sql = 'DELETE FROM ' + tableModel +
+                            ' WHERE rule = ' + connection.escape(rule) ;
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            logger.debug(error);
+                            callback(error, null);
+                        } else {
+                            if (result.affectedRows > 0) {                                
+                                callback(null, {"msg": "deleted"});
+                            } else {
+                                callback(null, {"msg": "notExist"});
+                            }
+                        }
+                    });
+                });
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
 
 //Order policy_r__ipobj Position
 policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
