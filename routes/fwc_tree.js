@@ -286,11 +286,50 @@ router.get("/create-services/user/:iduser", function (req, res)
     });
 });
 
+/* Create ALL nodes*/
+router.get("/create-ALL/user/:iduser", function (req, res)
+{
+    var iduser = req.params.iduser;
+
+    fwcTreemodel.insertFwc_Tree_firewalls(iduser, "FDF", function (error, data)
+    {
+        //If saved fwc-tree Get data
+        if (data && data.msg)
+        {
+            fwcTreemodel.insertFwc_Tree_objects(iduser, "FDO", function (error, data)
+            {
+                //If saved fwc-tree Get data
+                if (data && data.msg)
+                {
+                    fwcTreemodel.insertFwc_Tree_objects(iduser, "FDS", function (error, data)
+                    {
+                        //If saved fwc-tree Get data
+                        if (data && data.msg)
+                        {
+                            res.status(200).json({"msg": data.msg});
+                        } else
+                        {
+                            res.status(500).json({"msg": error});
+                        }
+                    });                    
+                } else
+                {
+                    res.status(500).json({"msg": error});
+                }
+            });
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
+
 /* Update fwc_tree that exist */
 router.put('/fwc-tree/', function (req, res)
 {
     //Save data into object
-    var fwc_treeData = {id: req.param('id'), fwcloud: req.param('fwcloud'), interface: req.param('interface'), name: req.param('name'), type: req.param('type'), protocol: req.param('protocol'), address: req.param('address'), netmask: req.param('netmask'), diff_serv: req.param('diff_serv'), ip_version: req.param('ip_version'), code: req.param('code'), tcp_flags_mask: req.param('tcp_flags_mask'), tcp_flags_settings: req.param('tcp_flags_settings'), range_start: req.param('range_start'), range_end: req.param('range_end'), source_port_start: req.param('source_port_start'), source_port_end: req.param('source_port_end'), destination_port_start: req.param('destination_port_start'), destination_port_end: req.param('destination_port_end'), options: req.param('options'), comment: req.param('comment')};    
+    var fwc_treeData = {id: req.param('id'), fwcloud: req.param('fwcloud'), interface: req.param('interface'), name: req.param('name'), type: req.param('type'), protocol: req.param('protocol'), address: req.param('address'), netmask: req.param('netmask'), diff_serv: req.param('diff_serv'), ip_version: req.param('ip_version'), code: req.param('code'), tcp_flags_mask: req.param('tcp_flags_mask'), tcp_flags_settings: req.param('tcp_flags_settings'), range_start: req.param('range_start'), range_end: req.param('range_end'), source_port_start: req.param('source_port_start'), source_port_end: req.param('source_port_end'), destination_port_start: req.param('destination_port_start'), destination_port_end: req.param('destination_port_end'), options: req.param('options'), comment: req.param('comment')};
     fwcTreemodel.updateIpobj(fwc_treeData, function (error, data)
     {
         //If saved fwc_tree saved ok, get data
