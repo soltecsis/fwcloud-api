@@ -392,7 +392,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND T1.id_user=' + connection.escape(iduser) + ' order by T1.node_order';
-        //logger.debug(sql);
+        logger.debug(sql);
         connection.query(sql,
                 function (error, rows) {
                     if (error) {
@@ -403,11 +403,16 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
                             async.forEachSeries(rows,
                                     function (row, callback) {
                                         //logger.debug(row);
-                                        //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+                                        logger.debug("---> DENTRO de NODO: " + row.name + " - Node_Type:" + row.node_type + "  Obj_type:" + row.obj_type);
                                         var tree_node = new fwc_tree_node(row);
                                         //Añadimos nodos hijos del tipo
-                                        sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null';
-                                        //logger.debug(sqlnodes);
+                                        if (row.node_type==="OIG" || row.node_type==="SOG"){
+                                            sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj_g  where type=' + row.obj_type ;
+                                        }
+                                        else
+                                            sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null';
+                                        
+                                        logger.debug(sqlnodes);
                                         connection.query(sqlnodes, function (error, rowsnodes) {
                                             if (error)
                                                 callback(error, null);
@@ -426,13 +431,14 @@ fwc_treeModel.insertFwc_Tree_objects = function (iduser, folder, AllDone) {
                                                                         i + ',' + (row.node_level + 1) + ',' + connection.escape(row.node_type) + ',' +
                                                                         '0,0,' + connection.escape(rnode.id) + ',' + connection.escape(rnode.type) + ',' +
                                                                         connection.escape(rnode.fwcloud) + ")";
-                                                                //logger.debug(sqlinsert);
+                                                                if (row.node_type==="OIG" || row.node_type==="SOG")
+                                                                    logger.debug(sqlinsert);
                                                                 connection.query(sqlinsert, function (error, result) {
                                                                     if (error) {
-                                                                        logger.debug("ERROR INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
+                                                                        logger.debug("ERROR INSERT : " + rnode.id + " - " + rnode.name + " Type: " + rnode.type + " --> " + error);
 
                                                                     } else {
-                                                                        logger.debug("INSERT OK NODE: " + rnode.id + " - " + rnode.name);
+                                                                        logger.debug("INSERT OK NODE: " + rnode.id + " - " + rnode.name + "  Type: " + rnode.type);
 
                                                                     }
                                                                 });

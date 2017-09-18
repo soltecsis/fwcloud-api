@@ -111,7 +111,8 @@ router.post("/ipobj-g", function (req, res)
         id: null,
         name: req.body.name,
         type: req.body.comment,
-        fwcloud: req.body.fwcloud
+        fwcloud: req.body.fwcloud,
+        comment: req.body.comment
     };
     
     Ipobj_gModel.insertIpobj_g(ipobj_gData, function (error, data)
@@ -132,7 +133,7 @@ router.post("/ipobj-g", function (req, res)
 router.put('/ipobj-g/', function (req, res)
 {
     //Save data into object
-    var ipobj_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'),fwcloud: req.param('fwcloud')};
+    var ipobj_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'),fwcloud: req.param('fwcloud') };
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
     {
         //If saved ipobj_g saved ok, get data
@@ -147,8 +148,7 @@ router.put('/ipobj-g/', function (req, res)
     });
 });
 
-
-
+//FALTA BORRADO DE TABLA de RELACION
 /* Remove ipobj_g */
 router.delete("/ipobj-g/", function (req, res)
 {
