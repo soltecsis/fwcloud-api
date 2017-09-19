@@ -1,5 +1,6 @@
 var db = require('../db.js');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Policy_r__interfaceModel = require('../models/policy_r__interface');
 
 //create object
 var ipobjModel = {};
@@ -166,36 +167,67 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
     });
 };
 
+//FALTA DELETE INTERFACE y OBJETOS de HOST
 //Remove ipobj with id to remove
-ipobjModel.deleteIpobj = function (id,type, fwcloud, callback) {
+ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
 
+    //CHECK IPOBJ OR GROUP IN RULE
     Policy_r__ipobjModel.checkIpobjInRule(id, type, fwcloud, function (error, data) {
         if (error) {
             callback(error, null);
         } else {
-            logger.debug(data);
             if (!data.result) {
-                db.get(function (error, connection) {
-                    if (error)
-                        return done('Database problem');
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-                    logger.debug(sql);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            if (result.affectedRows > 0) {
-                                callback(null, {"msg": "deleted"});
-                            } else {
-                                callback(null, {"msg": "notExist"});
-                            }
-                        }
-                    });
+                //CHECK INTERFACES UNDER HOST "O" Positions
+                Policy_r__ipobjModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        if (!data.result) {
+                            //CHECK INTERFACES UNDER HOST "I" Positions
+                            Policy_r__interfaceModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    if (!data.result) {
+                                        //CHECK ALL IPOBJ FROM ALL INTERFACES 
+                                        Policy_r__ipobjModel.checkHostAllInterfaceAllIpobjInRule(id, fwcloud, function (error, data) {
+                                            if (error) {
+                                                callback(error, null);
+                                            } else {
+                                                if (!data.result) {
+                                                    db.get(function (error, connection) {
+                                                        if (error)
+                                                            return done('Database problem');
+                                                        var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+                                                        logger.debug(sql);
+                                                        connection.query(sql, function (error, result) {
+                                                            if (error) {
+                                                                callback(error, null);
+                                                            } else {
+                                                                if (result.affectedRows > 0) {
+                                                                    callback(null, {"msg": "deleted"});
+                                                                } else {
+                                                                    callback(null, {"msg": "notExist"});
+                                                                }
+                                                            }
+                                                        });
 
+                                                    });
+                                                } else
+                                                    callback(null, {"msg": "Restricted Interface IPOBJ"});
+                                            }
+                                        });
+                                    } else
+                                        callback(null, {"msg": "Restricted Interface I"});
+                                }
+                            });
+                        } else
+                            callback(null, {"msg": "Restricted Interface O"});
+                    }
                 });
 
             } else
-                callback(null, {"msg": "Restricted"});
+                callback(null, {"msg": "Restricted IPOBJ or GROUP"});
         }
     });
 };

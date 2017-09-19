@@ -551,5 +551,34 @@ policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwclo
     });
 };
 
+//check if HOST ALL INTERFACEs Exists in any rule
+policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fwcloud,firewall, callback) {
+
+    logger.debug("CHECK DELETING HOST ALL interfaces I POSITIONS:" + ipobj_host + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+                ' inner join interface__ipobj J on J.interface=O.interface  ' +
+                ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    if (rows[0].n > 0) {
+                        logger.debug("ALERT DELETING HOST ALL interfaces IN RULE:" + ipobj_host + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        callback(null, {"result": true});
+                    } else {
+                        callback(null, {"result": false});
+                    }
+                } else {
+                    callback(null, {"result": false});
+                }
+            } else
+                callback(null, {"result": false});
+        });
+    });
+};
+
 //Export the object
 module.exports = policy_r__interfaceModel;

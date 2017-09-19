@@ -147,45 +147,67 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
             logger.debug(data);
             if (!data.result) {
                 //Check interface in RULE I POSITIONS
-
                 Policy_r__interfaceModel.checkInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
                     if (error) {
                         callback(error, null);
                     } else {
                         logger.debug(data);
                         if (!data.result) {
-                            db.get(function (error, connection) {
-                                if (error)
-                                    return done('Database problem');
-                                var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                                connection.query(sqlExists, function (error, row) {
-                                    //If exists Id from interface to remove
-                                    if (row) {
-                                        db.get(function (error, connection) {
-                                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                                            connection.query(sql, function (error, result) {
-                                                if (error) {
-                                                    logger.debug(error);
-                                                    callback(error, null);
-                                                } else {
-                                                    if (result.affectedRows > 0)
-                                                        callback(null, {"msg": "deleted"});
-                                                    else
-                                                        callback(null, {"msg": "notExist"});
-                                                }
-                                            });
+                            //CHECK IPOBJ UNDER INTEFACE in RULE
+                            Policy_r__ipobjModel.checkOBJInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    logger.debug(data);
+                                    if (!data.result) {
+
+                                        //CHECK HOST INTEFACE in RULE
+                                        Policy_r__ipobjModel.checkHOSTInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
+                                            if (error) {
+                                                callback(error, null);
+                                            } else {
+                                                logger.debug(data);
+                                                if (!data.result) {
+                                                    db.get(function (error, connection) {
+                                                        if (error)
+                                                            return done('Database problem');
+                                                        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                                                        connection.query(sqlExists, function (error, row) {
+                                                            //If exists Id from interface to remove
+                                                            if (row) {
+                                                                db.get(function (error, connection) {
+                                                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                                                                    connection.query(sql, function (error, result) {
+                                                                        if (error) {
+                                                                            logger.debug(error);
+                                                                            callback(error, null);
+                                                                        } else {
+                                                                            if (result.affectedRows > 0)
+                                                                                callback(null, {"msg": "deleted"});
+                                                                            else
+                                                                                callback(null, {"msg": "notExist"});
+                                                                        }
+                                                                    });
+                                                                });
+                                                            } else {
+                                                                callback(null, {"msg": "notExist"});
+                                                            }
+                                                        });
+                                                    });
+                                                } else
+                                                    callback(null, {"msg": "Restricted by HOST"});
+                                            }
                                         });
-                                    } else {
-                                        callback(null, {"msg": "notExist"});
-                                    }
-                                });
+                                    } else
+                                        callback(null, {"msg": "Restricted by IPOBJ"});
+                                }
                             });
                         } else
-                            callback(null, {"msg": "Restricted"});
+                            callback(null, {"msg": "Restricted Inteface I"});
                     }
                 });
             } else
-                callback(null, {"msg": "Restricted"});
+                callback(null, {"msg": "Restricted Interface O"});
         }
     });
 };
