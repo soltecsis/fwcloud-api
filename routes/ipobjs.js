@@ -4,7 +4,7 @@ var IpobjModel = require('../models/ipobj');
 var fwcTreemodel = require('../models/fwc_tree');
 var fwc_tree_node = require("../models/fwc_tree_node.js");
 var utilsModel = require("../utils/utils.js");
-
+var Interface__ipobjModel = require('../models/interface__ipobj');
 
 /**
  * Property Logger to manage App logs
@@ -113,6 +113,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
+    
 
     //Create New objet with data ipobj
     var ipobjData = {
@@ -245,6 +246,9 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
         if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
         {
             if (data.msg === "deleted") {
+                //DELETE FROM interface_ipobj
+                 Interface__ipobjModel.deleteInterface(null, id, function (error, data)
+                    {});
                 //DELETE FROM TREE
                 fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                     if (data && data.msg) {

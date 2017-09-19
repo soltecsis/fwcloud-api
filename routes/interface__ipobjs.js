@@ -154,7 +154,7 @@ router.delete("/interface__ipobj/", function (req, res)
     //Id from interface__ipobj to remove
     var interface = req.param('interface');
     var ipobj = req.param('ipobj');
-    Interface__ipobjModel.deleteInterface__ipobjidfirewall(interface,ipobj, function (error, data)
+    Interface__ipobjModel.deleteInterface__ipobj(interface,ipobj, function (error, data)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {

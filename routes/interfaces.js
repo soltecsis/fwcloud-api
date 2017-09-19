@@ -4,6 +4,7 @@ var InterfaceModel = require('../models/interface');
 var fwcTreemodel = require('../models/fwc_tree');
 var fwc_tree_node = require("../models/fwc_tree_node.js");
 var utilsModel = require("../utils/utils.js");
+var Interface__ipobjModel = require('../models/interface__ipobj');
 
 /**
  * Property Logger to manage App logs
@@ -84,13 +85,18 @@ router.get('/:idfirewall/name/:name', function (req, res)
 
 
 /* Create New interface */
-router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type", function (req, res)
+router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:host", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
+    var host = req.params.host;
+
+    if (host === undefined || host === '') {
+        host = null;
+    }
 
     //Create New objet with data interface
     var interfaceData = {
@@ -116,6 +122,27 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type", f
             //If saved interface Get data
             if (data && data.insertId > 0)
             {
+                if (host !== null) {
+                    //INSERT INTERFACE UNDER IPOBJ HOST
+                    //Create New objet with data interface__ipobj
+                    var interface__ipobjData = {
+                        interface: data.insertId,
+                        ipobj: host,
+                        interface_order: 1
+                    };
+
+                    Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
+                    {
+                        //If saved interface__ipobj Get data
+                        if (data && data.msg)
+                        {
+                            logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
+                        } else
+                        {
+                            logger.debug(error);
+                        }
+                    });
+                }
                 var id = data.insertId;
                 logger.debug("NEW INTERFACE id:" + id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
                 interfaceData.id = id;
@@ -203,6 +230,9 @@ router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req
             if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
             {
                 if (data.msg === "deleted") {
+                    //DELETE FROM interface_ipobj
+                    Interface__ipobjModel.deleteInterface__ipobj(id,null, function (error, data)
+                    {});
                     //DELETE FROM TREE
                     fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                         if (data && data.msg) {
