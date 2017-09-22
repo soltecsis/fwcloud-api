@@ -154,7 +154,7 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
                         logger.debug(data);
                         if (!data.result) {
                             //CHECK IPOBJ UNDER INTEFACE in RULE
-                            Policy_r__ipobjModel.checkOBJInterfaceInRule(id, type, fwcloud, idfirewall, function (error, data) {
+                            Policy_r__ipobjModel.checkOBJInterfaceInRule(id, fwcloud, function (error, data) {
                                 if (error) {
                                     callback(error, null);
                                 } else {
@@ -195,19 +195,19 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
                                                         });
                                                     });
                                                 } else
-                                                    callback(null, {"msg": "Restricted by HOST"});
+                                                    callback(null, {"msg": "Restricted","by":"by HOST"});
                                             }
                                         });
                                     } else
-                                        callback(null, {"msg": "Restricted by IPOBJ"});
+                                        callback(null, {"msg": "Restricted","by":"by IPOBJ"});
                                 }
                             });
                         } else
-                            callback(null, {"msg": "Restricted Inteface I"});
+                            callback(null, {"msg": "Restricted","by":"by Inteface I"});
                     }
                 });
             } else
-                callback(null, {"msg": "Restricted Interface O"});
+                callback(null, {"msg": "Restricted","by":"by Interface O"});
         }
     });
 };

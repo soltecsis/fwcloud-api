@@ -13,12 +13,17 @@ var user__firewallModel = {};
 */
 var logger = require('log4js').getLogger("app");
 
-//Get All firewall del user
-user__firewallModel.getUser__firewalls = function (id_user, callback) {
+//Get All firewalls from user and cloud
+user__firewallModel.getUser__firewalls = function (id_user, fwcloud, access, callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('SELECT * FROM user__firewall WHERE id_user=' + connection.escape(id_user) + ' ORDER BY id_firewall', function (error, rows) {
+        var sql= 'SELECT * FROM user__firewall U inner join firewall F on F.id=U.id_firewall ' + 
+                ' WHERE U.id_user=' + connection.escape(id_user) + ' AND F.fwcloud=' + connection.escape(fwcloud) +
+                ' AND U.allow_access=' +  connection.escape(access)  +  
+                ' ORDER BY F.name';
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else
@@ -27,16 +32,42 @@ user__firewallModel.getUser__firewalls = function (id_user, callback) {
     });
 };
 
-//Get by id
-user__firewallModel.getUser__firewalls = function (id_user,id_firewall, callback) {
+//Get firewall from user an firewall id
+user__firewallModel.getUser__firewall = function (id_user, fwcloud, idfirewall, access, callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        connection.query('SELECT * FROM user__firewall WHERE id_user=' + connection.escape(id_user) + ' AND id_firewall=' + connection.escape(id_firewall), function (error, row) {
+        var sql= 'SELECT * FROM user__firewall U inner join firewall F on F.id=U.id_firewall ' + 
+                ' WHERE U.id_user=' + connection.escape(id_user) + ' AND F.fwcloud=' + connection.escape(fwcloud) +
+                ' AND U.allow_access=' +  connection.escape(access)  +  ' AND F.id=' + connection.escape(idfirewall) +
+                ' ORDER BY F.name';
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else
-                callback(null, row);
+                callback(null, rows);
+        });
+    });
+};
+
+//Get cloud list
+user__firewallModel.getUser__firewall_clouds = function (id_user, callback) {
+
+    db.get(function (error, connection) {
+        if (error) return done('Database problem');
+        var sql= 'SELECT distinctrow C.id, C.name FROM user__firewall U ' + 
+                ' inner join firewall F on F.id=U.id_firewall ' + 
+                ' inner join fwcloud C On C.id=F.fwcloud ' +
+                ' WHERE U.id_user=' + connection.escape(id_user) + 
+                ' AND U.allow_access=1' + 
+                ' ORDER BY C.name';                
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
         });
     });
 };

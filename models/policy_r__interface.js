@@ -529,9 +529,11 @@ policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwclo
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + 
+                ' INNER JOIN firewall F on F.id=R.firewall ' +
+                ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
                 ' inner join interface I on I.id=O.interface ' +
-                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
+                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
@@ -552,15 +554,18 @@ policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwclo
 };
 
 //check if HOST ALL INTERFACEs Exists in any rule
-policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fwcloud,firewall, callback) {
+policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fwcloud, callback) {
 
     logger.debug("CHECK DELETING HOST ALL interfaces I POSITIONS:" + ipobj_host + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' + 
                 ' inner join interface__ipobj J on J.interface=O.interface  ' +
-                ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
+                ' INNER JOIN policy_r R on R.id=O.rule ' + 
+                ' INNER JOIN firewall F on F.id=R.firewall ' +
+                ' inner join fwcloud C on C.id=F.fwcloud ' +                
+                ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND C.id=' + connection.escape(fwcloud);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {

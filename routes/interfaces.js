@@ -224,13 +224,15 @@ router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req
 
     InterfaceModel.deleteInterface(fwcloud, idfirewall, id, type, function (error, data)
     {
+        logger.debug(data);
         if (error)
             res.status(500).json({"msg": error});
         else {
             if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
             {
                 if (data.msg === "deleted") {
-                    //DELETE FROM interface_ipobj
+                    //DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
+                    //DELETE  ALL IPOBJ UNDER INTERFACE
                     Interface__ipobjModel.deleteInterface__ipobj(id,null, function (error, data)
                     {});
                     //DELETE FROM TREE

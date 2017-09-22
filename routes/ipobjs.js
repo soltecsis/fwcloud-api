@@ -240,15 +240,18 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
 
     IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
     {
+        logger.debug(data);
         if (error)
             res.status(500).json({"msg": error});
         else
         if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
         {
             if (data.msg === "deleted") {
-                //DELETE FROM interface_ipobj
-                 Interface__ipobjModel.deleteInterface(null, id, function (error, data)
-                    {});
+                //DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
+                //IF HOST -> DELETE ALL INTERFACE UNDER HOST and ALL IPOBJ UNDER INTERFACES
+                
+                // Interface__ipobjModel.deleteInterface(fwcloud, iduser,idinterface , function (error, data)
+                //    {});
                 //DELETE FROM TREE
                 fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                     if (data && data.msg) {

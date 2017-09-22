@@ -180,18 +180,21 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
                 //CHECK INTERFACES UNDER HOST "O" Positions
                 Policy_r__ipobjModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
                     if (error) {
+                        logger.debug(error);
                         callback(error, null);
                     } else {
                         if (!data.result) {
                             //CHECK INTERFACES UNDER HOST "I" Positions
                             Policy_r__interfaceModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
                                 if (error) {
+                                    logger.debug(error);
                                     callback(error, null);
                                 } else {
                                     if (!data.result) {
                                         //CHECK ALL IPOBJ FROM ALL INTERFACES 
                                         Policy_r__ipobjModel.checkHostAllInterfaceAllIpobjInRule(id, fwcloud, function (error, data) {
                                             if (error) {
+                                                logger.debug(error);
                                                 callback(error, null);
                                             } else {
                                                 if (!data.result) {
@@ -202,6 +205,7 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
                                                         logger.debug(sql);
                                                         connection.query(sql, function (error, result) {
                                                             if (error) {
+                                                                logger.debug(error);
                                                                 callback(error, null);
                                                             } else {
                                                                 if (result.affectedRows > 0) {
@@ -214,20 +218,20 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
 
                                                     });
                                                 } else
-                                                    callback(null, {"msg": "Restricted Interface IPOBJ"});
+                                                    callback(null, {"msg": "Restricted","by": "by Interface IPOBJ"});
                                             }
                                         });
                                     } else
-                                        callback(null, {"msg": "Restricted Interface I"});
+                                        callback(null, {"msg": "Restricted","by": "by Interface I"});
                                 }
                             });
                         } else
-                            callback(null, {"msg": "Restricted Interface O"});
+                            callback(null, {"msg": "Restricted","by": "by Interface O"});
                     }
                 });
 
             } else
-                callback(null, {"msg": "Restricted IPOBJ or GROUP"});
+                callback(null, {"msg": "Restricted","by": "by IPOBJ or GROUP"});
         }
     });
 };
