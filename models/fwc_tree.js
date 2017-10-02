@@ -55,17 +55,26 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
 };
 
 //Get firewall node by folder
-fwc_treeModel.getFwc_TreeUserFolder = function (fwcloud, foldertype, callback) {
+fwc_treeModel.getFwc_TreeUserFolder = function (iduser,fwcloud, foldertype, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE  fwcloud=' + connection.escape(fwcloud) + '  AND node_type=' + connection.escape(foldertype) + ' AND id_parent=0 ORDER BY id limit 1';
+        var sql = 'SELECT * FROM ' + tableModel + ' T' +
+                ' inner join fwcloud C on C.id=T.fwcloud ' +
+                ' inner join firewall F on F.fwcloud=C.id ' + 
+                ' inner join user__firewall U on U.id_firewall=F.id ' +
+                ' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent=0 ' + 
+                ' AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
+                ' ORDER BY T.id limit 1';
+        logger.debug(sql);
 
         connection.query(sql, function (error, rows) {
-            if (error)
+            if (error){
+                logger.error(error);
                 callback(error, null);
+            }
             else
                 callback(null, rows);
         });
@@ -90,7 +99,7 @@ fwc_treeModel.getFwc_TreeId = function (fwcloud, id, callback) {
     });
 };
 //Get COMPLETE TREE by user
-fwc_treeModel.getFwc_TreeUserFull = function (fwcloud, idparent, tree, objStandard, objCloud, AllDone) {
+fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, objStandard, objCloud,node_type, AllDone) {
 
     db.get(function (error, connection) {
         if (error)
@@ -107,14 +116,16 @@ fwc_treeModel.getFwc_TreeUserFull = function (fwcloud, idparent, tree, objStanda
 
         //Get ALL CHILDREN NODES FROM idparent
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY node_order';
-        //logger.debug(sql);    
+        logger.debug(sql);    
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
 
                 if (rows) {
-                    //logger.debug("---> DENTRO de PADRE: " + idparent);
+                    logger.debug("---> DENTRO de PADRE: " + idparent + "  NODE TYPE: " + node_type);
+                    //FIREWALL CONTROL ACCESS
+                    
 
                     async.forEachSeries(rows,
                             function (row, callback) {
@@ -132,11 +143,11 @@ fwc_treeModel.getFwc_TreeUserFull = function (fwcloud, idparent, tree, objStanda
                                     } else {
                                         //dig(row.tree_id, treeArray, callback);
                                         //logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
-                                        //logger.debug("-------> LLAMANDO A HIJO: " + row.id);
+                                        logger.debug("-------> LLAMANDO A HIJO: " + row.id + "   Node Type: " + row.node_type);
 
                                         var treeP = new Tree(tree_node);
                                         tree.append([], treeP);
-                                        fwc_treeModel.getFwc_TreeUserFull(fwcloud, row.id, treeP, objStandard, objCloud, callback);
+                                        fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type ,callback);
                                     }
                                 });
                             },
@@ -193,6 +204,8 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
+        
+        //QUITAR PARA MERMITIR VARIOS CLOUD
         //DELETE PREVIUS DATA
         //sqldelete = "delete from fwc_tree where fwcloud=" +  connection.escape(fwcloud) ;
         sqldelete = "truncate table fwc_tree ";
@@ -322,7 +335,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                         //logger.debug(row);
                         //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                         var tree_node = new fwc_tree_node(row);
-                        //Añadimos nodos hijos tipo firewall
+                        //Añadimos nodos FIREWALL del CLOUD
                         sqlnodes = 'SELECT  F.id,F.name,F.fwcloud, F.comment FROM firewall F inner join fwcloud C on C.id=F.fwcloud WHERE C.id=' + connection.escape(fwcloud);
                         //logger.debug(sqlnodes);
                         connection.query(sqlnodes, function (error, rowsnodes) {
@@ -678,7 +691,7 @@ fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
 };
 
 //Add new NODE from IPOBJ or Interface
-fwc_treeModel.insertFwc_TreeOBJ = function (fwcloud, node_parent, node_order, node_type, node_Data, callback) {
+fwc_treeModel.insertFwc_TreeOBJ = function (id_user,fwcloud, node_parent, node_order, node_type, node_Data, callback) {
 
     var fwc_treeData = {
         id: null,
