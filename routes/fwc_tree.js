@@ -77,7 +77,8 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
+                                            //(iduser, fwcloud, idparent, tree, objStandard, objCloud,node_type, AllDone)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc,"FDO" ,function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -116,7 +117,7 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc,"FDO", function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -154,7 +155,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc,"FDS", function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -193,7 +194,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', fun
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc,"FDS", function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
