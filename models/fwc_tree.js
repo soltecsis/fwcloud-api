@@ -61,7 +61,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser,fwcloud, foldertype, call
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' T' +
+        var sql = 'SELECT T.* FROM ' + tableModel + ' T' +
                 ' inner join fwcloud C on C.id=T.fwcloud ' +
                 ' inner join firewall F on F.fwcloud=C.id ' + 
                 ' inner join user__firewall U on U.id_firewall=F.id ' +

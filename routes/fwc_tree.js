@@ -69,14 +69,18 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
+    
+    
     fwcTreemodel.getFwc_TreeUserFolder(iduser,fwcloud, "FDO", function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
             var row = rows[0];
+    
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
+    
                                             //(iduser, fwcloud, idparent, tree, objStandard, objCloud,node_type, AllDone)
             fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc,"FDO" ,function (error, data)
             {
