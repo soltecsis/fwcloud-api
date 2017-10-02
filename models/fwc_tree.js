@@ -21,7 +21,7 @@ var fwc_tree_node = require("./fwc_tree_node.js");
 
 
 //Get fwc_tree by  id 
-fwc_treeModel.getFwc_TreeId = function (iduser, id, callback) {
+fwc_treeModel.getFwc_TreeId = function (iduser,fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');

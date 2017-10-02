@@ -69,7 +69,7 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
-    fwcTreemodel.getFwc_TreeUserFolder(fwcloud, "FDO", function (error, rows)
+    fwcTreemodel.getFwc_TreeUserFolder(iduser,fwcloud, "FDO", function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
@@ -108,7 +108,7 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
     var objc = req.params.objCloud;
     var idNode = req.params.id;
     var fwcloud = req.params.fwcloud;
-    fwcTreemodel.getFwc_TreeId(fwcloud, idNode, function (error, rows)
+    fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
@@ -146,7 +146,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
-    fwcTreemodel.getFwc_TreeUserFolder(fwcloud, "FDS", function (error, rows)
+    fwcTreemodel.getFwc_TreeUserFolder(iduser,fwcloud, "FDS", function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
@@ -185,7 +185,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', fun
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
     var idNode = req.params.id;
-    fwcTreemodel.getFwc_TreeId(fwcloud, idNode, function (error, rows)
+    fwcTreemodel.getFwc_TreeId(iduser,fwcloud, idNode, function (error, rows)
     {
         if (typeof rows !== 'undefined')
         {
@@ -220,7 +220,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     var iduser = req.params.iduser;
     var id = req.params.id;
     var fwcloud = req.params.fwcloud;
-    fwcTreemodel.getFwc_TreeId(fwcloud, id, function (error, data)
+    fwcTreemodel.getFwc_TreeId(iduser, fwcloud, id, function (error, data)
     {
         //If exists fwc_tree get data
         if (typeof data !== 'undefined')
