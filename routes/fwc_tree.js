@@ -22,48 +22,44 @@ var logger = require('log4js').getLogger("app");
 //    res.render('new_fwc_tree', {title: 'Crear nuevo fwc_tree'});
 //});
 
+
 /* Get all fwc_tree NODE FIREWALL by User*/
 router.get('/firewalls/:iduser/:fwcloud', function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-
-    fwcTreemodel.getFwc_TreeUserFolder(fwcloud, "FDF", function (error, rows)
+    fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
     {
-        if (typeof rows !== 'undefined' && rows.length > 0)
+        utilsModel.checkEmptyRow(rows, function (notempty)
         {
-            var row = rows[0];
-            //create object
-            var root_node = new fwc_tree_node(row);
-
-            //console.log(root_node);
-            var tree = new Tree(root_node);
-
-            fwcTreemodel.getFwc_TreeUserFull(fwcloud, root_node.id, tree, 1, 1, function (error, data)
-            {
-                //If exists fwc_tree get data
-                if (typeof data !== 'undefined')
+            if (notempty) {
+                var row = rows[0];
+                //create object
+                var root_node = new fwc_tree_node(row);
+                //console.log(root_node);
+                var tree = new Tree(root_node);
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1,"FDF", function (error, data)
                 {
-                    res.status(200).json({"data": data});
-                }
-                //Get Error
-                else
-                {
-                    res.status(404).json({"msg": "notExist"});
-                }
-            });
-        }
-        //Get Error
-        else
-        {
-            res.status(404).json({"msg": "notExist"});
-        }
+                    //If exists fwc_tree get data
+                    if (typeof data !== 'undefined')
+                    {
+                        res.status(200).json({"data": data});
+                    }
+                    //Get Error
+                    else
+                    {
+                        res.status(404).json({"msg": "notExist"});
+                    }
+                });
+            }
+            else{
+                res.status(404).json({"msg": "notExist"});
+            }
+        });
+
+
     });
 });
-
-
-
-
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
@@ -73,7 +69,6 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.getFwc_TreeUserFolder(fwcloud, "FDO", function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -81,11 +76,8 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
             var row = rows[0];
             //create object
             var root_node = new fwc_tree_node(row);
-
-
             var tree = new Tree(root_node);
-
-            fwcTreemodel.getFwc_TreeUserFull(fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -106,7 +98,6 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/', functio
         }
     });
 });
-
 /* Get fwc_tree NODE OBJECTS by User and by ID*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
@@ -117,7 +108,6 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
     var objc = req.params.objCloud;
     var idNode = req.params.id;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.getFwc_TreeId(fwcloud, idNode, function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -125,11 +115,8 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
             var row = rows[0];
             //create object
             var root_node = new fwc_tree_node(row);
-
-
             var tree = new Tree(root_node);
-
-            fwcTreemodel.getFwc_TreeUserFull(fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -150,7 +137,6 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
         }
     });
 });
-
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
@@ -160,7 +146,6 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.getFwc_TreeUserFolder(fwcloud, "FDS", function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -168,11 +153,8 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
             var row = rows[0];
             //create object
             var root_node = new fwc_tree_node(row);
-
-
             var tree = new Tree(root_node);
-
-            fwcTreemodel.getFwc_TreeUserFull(fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -193,7 +175,6 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
         }
     });
 });
-
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
@@ -204,7 +185,6 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', fun
     var objc = req.params.objCloud;
     var fwcloud = req.params.fwcloud;
     var idNode = req.params.id;
-
     fwcTreemodel.getFwc_TreeId(fwcloud, idNode, function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -212,11 +192,8 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', fun
             var row = rows[0];
             //create object
             var root_node = new fwc_tree_node(row);
-
-
             var tree = new Tree(root_node);
-
-            fwcTreemodel.getFwc_TreeUserFull(fwcloud, root_node.id, tree, objs, objc, function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, function (error, data)
             {
                 //If exists fwc_tree get data
                 if (typeof data !== 'undefined')
@@ -237,15 +214,12 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', fun
         }
     });
 });
-
-
 /* Get  fwc_tree by id  */
 router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.getFwc_TreeId(fwcloud, id, function (error, data)
     {
         //If exists fwc_tree get data
@@ -260,14 +234,12 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
         }
     });
 });
-
 /* Get all fwc_tree by name */
 router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.getFwc_TreeName(fwcloud, name, function (error, data)
     {
         //If exists fwc_tree get data
@@ -282,14 +254,11 @@ router.get('/:iduser/:fwcloud/name/:name', function (req, res)
         }
     });
 });
-
-
 /* Create New fwc_tree Firewall node*/
 router.get("/create-firewalls/user/:iduser/:fwcloud", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -302,14 +271,11 @@ router.get("/create-firewalls/user/:iduser/:fwcloud", function (req, res)
         }
     });
 });
-
-
 /* Create New fwc_tree Objects*/
 router.get("/create-objects/user/:iduser/:fwcloud", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.insertFwc_Tree_objects(fwcloud, "FDO", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -322,13 +288,11 @@ router.get("/create-objects/user/:iduser/:fwcloud", function (req, res)
         }
     });
 });
-
 /* Create New fwc_tree Services*/
 router.get("/create-services/user/:iduser/:fwcloud", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-
     fwcTreemodel.insertFwc_Tree_objects(fwcloud, "FDS", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -341,13 +305,13 @@ router.get("/create-services/user/:iduser/:fwcloud", function (req, res)
         }
     });
 });
-
-//ACCESO ADMIN
+//FALTA AÑADIR CONTROL ACCESO ADMIN
 /* Create ALL nodes*/
 router.get("/create-ALL/user/:iduser/:fwcloud", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
+    //AÑADIR CONTROL de ACCESO de USUARIO a FWCLOUD
 
     logger.debug("------------- CREATING FWCTREE INIT");
     fwcTreemodel.insertFwc_Tree_init(fwcloud, function (error, data)
@@ -392,7 +356,6 @@ router.get("/create-ALL/user/:iduser/:fwcloud", function (req, res)
         }
     });
 });
-
 ///FALTA ACABAR
 /* Update fwc_tree that exist */
 router.put('/fwc-tree/', function (req, res)
@@ -411,8 +374,6 @@ router.put('/fwc-tree/', function (req, res)
         }
     });
 });
-
-
 //FALTA ACABAR
 /* Remove fwc_tree */
 router.delete("/fwc-tree/", function (req, res)
@@ -432,5 +393,4 @@ router.delete("/fwc-tree/", function (req, res)
         }
     });
 });
-
 module.exports = router;
