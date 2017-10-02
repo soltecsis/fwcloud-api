@@ -11,7 +11,7 @@ var utilModel = {};
 var logger = require('log4js').getLogger("app");
 
 
-utilModel.checkParameters = function checkParameters(obj, callback) {
+utilModel.checkParameters = function (obj, callback) {
     for (var propt in obj) {
         logger.debug(propt + ': ' + obj[propt]);
         if (obj[propt] === undefined) {
@@ -20,6 +20,19 @@ utilModel.checkParameters = function checkParameters(obj, callback) {
         }
     }
     callback(obj);
+};
+
+utilModel.checkEmptyRow = function (obj, callback) {
+    var resp = true;
+    logger.debug(obj);
+    if (obj === null)
+        resp = false;
+    else if (obj === undefined)
+        resp = false;
+    else if (obj.length === 0)
+        resp = false;
+    logger.debug(resp);
+    callback(resp);
 };
 
 
