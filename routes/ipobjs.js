@@ -104,7 +104,7 @@ router.get('/group/:idgroup/name/:name', function (req, res)
 
 
 
-
+//FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
 /* Create New ipobj */
 router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", function (req, res)
 {
@@ -113,7 +113,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
-    
+
 
     //Create New objet with data ipobj
     var ipobjData = {
@@ -239,8 +239,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
     var type = req.params.type;
 
     IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
-    {
-        logger.debug(data);
+    {        
         if (error)
             res.status(500).json({"msg": error});
         else
@@ -249,17 +248,21 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
             if (data.msg === "deleted") {
                 //DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
                 //IF HOST -> DELETE ALL INTERFACE UNDER HOST and ALL IPOBJ UNDER INTERFACES
-                
+
                 // Interface__ipobjModel.deleteInterface(fwcloud, iduser,idinterface , function (error, data)
                 //    {});
-                //DELETE FROM TREE
-                fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-                    if (data && data.msg) {
-                        res.status(200).json(data.msg);
-                    } else {
-                        logger.debug(error);
-                        res.status(500).json({"msg": error});
-                    }
+                //REORDER TREE
+
+                fwcTreemodel.orderTreeNodeDeleted( fwcloud, id, function (error, data) {
+                    //DELETE FROM TREE
+                    fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
+                        if (data && data.msg) {
+                            res.status(200).json(data.msg);
+                        } else {
+                            logger.debug(error);
+                            res.status(500).json({"msg": error});
+                        }
+                    });
                 });
 
                 //DELETE FROM RULES

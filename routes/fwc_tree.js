@@ -113,6 +113,9 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
     var objc = req.params.objCloud;
     var idNode = req.params.id;
     var fwcloud = req.params.fwcloud;
+    logger.debug(req.params);
+    logger.debug("IDNODE: " + idNode);
+    
     fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -361,6 +364,50 @@ router.get("/create-ALL/user/:iduser/:fwcloud", function (req, res)
         }
     });
 });
+
+
+router.get("/order/:iduser/:fwcloud/ipobj/:id_obj", function (req, res)
+{
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id_obj = req.params.id_obj;
+    
+    fwcTreemodel.orderTreeNodeDeleted(fwcloud,id_obj, function (error, data)
+    {
+        //If saved fwc_tree saved ok, get data
+        if (data && data.msg)
+        {
+            res.status(200).json(data.msg);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+    
+
+});
+router.get("/order/:iduser/:fwcloud/parent/:id_parent", function (req, res)
+{
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id_parent = req.params.id_parent;
+    
+    fwcTreemodel.orderTreeNode(fwcloud,id_parent, function (error, data)
+    {
+        //If saved fwc_tree saved ok, get data
+        if (data && data.msg)
+        {
+            res.status(200).json(data.msg);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+    
+
+});
+
+
 ///FALTA ACABAR
 /* Update fwc_tree that exist */
 router.put('/fwc-tree/', function (req, res)
