@@ -22,7 +22,7 @@ interfaceModel.getInterfaces = function (idfirewall, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -41,7 +41,8 @@ interfaceModel.getInterface = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -56,7 +57,7 @@ interfaceModel.getInterface_fwb = function (idfirewall, id_fwb, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb) + ' AND firewall=' + connection.escape(idfirewall);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb) + ' AND (firewall=' + connection.escape(idfirewall)+ ' OR firewall is NULL)';
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -72,7 +73,7 @@ interfaceModel.getInterfaceName = function (idfirewall, name, callback) {
         if (error)
             return done('Database problem');
         var namesql = '%' + name + '%';
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
 
         connection.query(sql, function (error, row) {
             if (error)

@@ -111,7 +111,7 @@ router.delete("/ipobj__ipobjg/", function (req, res)
     //Id from ipobj__ipobjg to remove
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
-    Ipobj__ipobjgModel.deleteIpobj__ipobjgidfirewall(ipobjg,ipobj, function (error, data)
+    Ipobj__ipobjgModel.deleteIpobj__ipobjg(ipobjg,ipobj, function (error, data)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {

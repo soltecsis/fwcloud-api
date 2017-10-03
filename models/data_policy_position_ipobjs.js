@@ -1,12 +1,12 @@
 
 //Create New objet with data policy_r
-function policy_position_ipobjs_data(data, order, negate, bIpobj) {
+function policy_position_ipobjs_data(data, order, negate, type) {
     this.id = data.id;
     this.name = data.name;
     this.position_order = order;
     this.negate = negate;
-    
-    if (bIpobj) {
+
+    if (type === 'O') {
         this.type = data.type;
         this.fwcloud = data.fwcloud;
         this.interface = data.interface;
@@ -26,10 +26,14 @@ function policy_position_ipobjs_data(data, order, negate, bIpobj) {
         this.destination_port_end = data.destination_port_end;
         this.options = data.options;
         this.comment = data.comment;
-    } else {
+    } 
+    else if (type === 'I') {
         this.type = data.interface_type;
-        this.labelName= data.labelName;
-        this.securityLevel= data.securityLevel;
+        this.labelName = data.labelName;
+        this.securityLevel = data.securityLevel;
+    } 
+    else if (type === 'G') {
+        this.type = data.type;
     }
 
 

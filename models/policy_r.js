@@ -9,6 +9,7 @@ var tableModel = "policy_r";
 var Policy_positionModel = require('../models/policy_position');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var IpobjModel = require('../models/ipobj');
+var Ipobj_gModel = require('../models/ipobj_g');
 var InterfaceModel = require('../models/interface');
 var data_policy_r = require('../models/data_policy_r');
 var data_policy_positions = require('../models/data_policy_positions');
@@ -46,7 +47,7 @@ policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
 };
 
 //Get All policy_r by firewall and type
-policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
+policy_rModel.getPolicy_rs_type = function (fwcloud,idfirewall, type, rule, AllDone) {
 
     var rule_type;
     switch (type) {
@@ -130,7 +131,7 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                         if (typeof data__rule_ipobjs !== 'undefined')
                                         {
 
-                                            //obtenemos IPOBJS o INTERFACES
+                                            //obtenemos IPOBJS o INTERFACES o GROUPS
                                             k = 0;
                                             //for (k = 0; k < data__rule_ipobjs.length; k++) {
                                             ipobj_cont = data__rule_ipobjs.length;
@@ -139,15 +140,16 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                             //--------------------------------------------------------------------------------------------------
                                             async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                 k++;
-                                                logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type +  "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+                                                // GET IPOBJs  Position O
                                                 if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
                                                     IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
                                                         //If exists ipobj get data
-                                                        if (typeof data_ipobjs !== 'undefined' && data_ipobjs.length > 0)
+                                                        if (data_ipobjs.length > 0)
                                                         {
                                                             var ipobj = data_ipobjs[0];
-                                                            var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, true);
+                                                            var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'O');
                                                             //Añadimos ipobj a array de position
                                                             position_node.ipobjs.push(ipobj_node);
 
@@ -160,17 +162,41 @@ policy_rModel.getPolicy_rs_type = function (idfirewall, type, rule, AllDone) {
                                                             callback3();
                                                         }
                                                     });
-                                                } else if (row_ipobj.interface > 0 || row_ipobj.type === 'I') {
+                                                } 
+                                                //GET GROUPS  Position O
+                                                else if (row_ipobj.ipobj_g > 0 && row_ipobj.type === 'O') {
+                                                    Ipobj_gModel.getIpobj_g(fwcloud, row_ipobj.ipobj_g, function (error, data_ipobjs)                                                    
+                                                    {
+                                                        //If exists ipobj_g get data
+                                                        if (data_ipobjs.length > 0)
+                                                        {
+                                                            var ipobj = data_ipobjs[0];
+                                                            var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'G');
+                                                            //Añadimos ipobj a array de position
+                                                            position_node.ipobjs.push(ipobj_node);
+
+                                                            callback3();
+                                                        }
+                                                        //Get Error
+                                                        else
+                                                        {
+                                                            logger.debug("ERROR getIpobj: " + error);
+                                                            callback3();
+                                                        }
+                                                    });
+                                                }
+                                                //GET INTERFACES Position I and O
+                                                else if (row_ipobj.interface > 0 || row_ipobj.type === 'I') {
                                                     var idInterface = row_ipobj.interface;
                                                     if (row_ipobj.type === 'I')
                                                         idInterface = row_ipobj.ipobj;
 
                                                     InterfaceModel.getInterface(idfirewall, idInterface, function (error, data_interface)
                                                     {
-                                                        if (typeof data_interface !== 'undefined' && data_interface.length > 0)
+                                                        if (data_interface.length > 0)
                                                         {
                                                             var interface = data_interface[0];
-                                                            var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, false);
+                                                            var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, 'I');
                                                             //Añadimos ipobj a array de position
                                                             position_node.ipobjs.push(ipobj_node);
 
