@@ -17,12 +17,12 @@ var logger = require('log4js').getLogger("app");
 
 
 //Get ipobj by  id 
-ipobjModel.getIpobj = function (id, callback) {
+ipobjModel.getIpobj = function (fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND (fwcloud=' +  connection.escape(fwcloud)  + ' OR fwcloud IS NULL)';
         connection.query(sql, function (error, row) {
             if (error) {
                 callback(error, null);
@@ -50,14 +50,14 @@ ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
 };
 
 //Get All ipobj by group
-ipobjModel.getIpobjsGroup = function (idgroup, callback) {
+ipobjModel.getIpobjsGroup = function (fwcloud, idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' ORDER BY id';
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ORDER BY id';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
@@ -69,13 +69,13 @@ ipobjModel.getIpobjsGroup = function (idgroup, callback) {
 };
 
 //Get ipobj by  id and group 
-ipobjModel.getIpobjGroup = function (idgroup, id, callback) {
+ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup);
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ';
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -86,13 +86,13 @@ ipobjModel.getIpobjGroup = function (idgroup, id, callback) {
 };
 
 //Get ipobj by name 
-ipobjModel.getIpobjName = function (name, callback) {
+ipobjModel.getIpobjName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var namesql = '%' + name + '%';
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ';
 
         connection.query(sql, function (error, row) {
             if (error)

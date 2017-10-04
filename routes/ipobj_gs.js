@@ -16,8 +16,9 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all ipobj_gs*/
-router.get('/:fwcloud', function (req, res)
+router.get('/:iduser/:fwcloud', function (req, res)
 {
+    var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gs(fwcloud, function (error, data)
     {
@@ -38,9 +39,10 @@ router.get('/:fwcloud', function (req, res)
 
 
 /* Get  ipobj_g by id */
-router.get('/:fwcloud/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
+    var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_g(fwcloud, id, function (error, data)
     {
@@ -57,9 +59,32 @@ router.get('/:fwcloud/:id', function (req, res)
     });
 });
 
-/* Get all ipobj_gs by nombre */
-router.get('/:fwcloud/name/:name', function (req, res)
+/* Get  ipobj_g by id */
+router.get('/:iduser/:fwcloud/full/:id', function (req, res)
 {
+    var id = req.params.id;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    
+    Ipobj_gModel.getIpobj_g_Full(fwcloud, id, function (error, data)
+    {
+        //If exists ipobj_g get data
+        if (typeof data !== 'undefined')
+        {
+            res.status(200).json({"data": data});
+        }
+        //Get Error
+        else
+        {
+            res.status(404).json({"msg": "notExist"});
+        }
+    });
+});
+
+/* Get all ipobj_gs by nombre */
+router.get('/:iduser/:fwcloud/name/:name', function (req, res)
+{
+    var iduser = req.params.iduser;
     var name = req.params.name;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gName(fwcloud, name, function (error, data)
@@ -78,8 +103,9 @@ router.get('/:fwcloud/name/:name', function (req, res)
 });
 
 /* Get all ipobj_gs by tipo */
-router.get('/:fwcloud/type/:type', function (req, res)
+router.get('/:iduser/:fwcloud/type/:type', function (req, res)
 {
+    var iduser = req.params.iduser;
     var type = req.params.type;
     var fwcloud = req.params.fwcloud;
     Ipobj_gModel.getIpobj_gtype(fwcloud, type, function (error, data)

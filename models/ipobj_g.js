@@ -1,5 +1,9 @@
 var db = require('../db.js');
-
+//var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
+var IpobjModel = require('../models/ipobj');
+var async = require('async');
+var ipobj_g_Data = require('../models/data_ipobj_g');
+var ipobj_Data = require('../models/data_ipobj');
 
 //create object
 var ipobj_gModel = {};
@@ -20,7 +24,7 @@ ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        connection.query('SELECT * FROM ' + tableModel + ' WHERE fwcloud= ' + connection.escape(fwcloud) + ' ORDER BY id', function (error, rows) {
+        connection.query('SELECT * FROM ' + tableModel + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
             else
@@ -42,12 +46,80 @@ ipobj_gModel.getIpobj_g = function (fwcloud, id, callback) {
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
-            else
+            else {
                 callback(null, row);
+            }
         });
     });
 };
 
+//Get ipobj_g by  id AND ALL IPOBjs
+ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
+
+    var groups = [];
+    var group_cont = 0;
+    var ipobjs_cont = 0;
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ';
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else if (rows.length > 0) {
+                group_cont = rows.length;
+                var row = rows[0];
+                var group_node = new ipobj_g_Data(row);
+
+                logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
+                var idgroup = row.id;
+                //GET ALL GROUP OBJECTs
+                IpobjModel.getIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+                    if (data_ipobjs.length > 0) {
+                        ipobjs_cont = data_ipobjs.length;
+                        group_node.ipobjs = new Array();
+                        logger.debug("CONTADOR de IPOBJ: " + ipobjs_cont);
+
+                        async.map(data_ipobjs, function (data_ipobj, callback2) {
+                            //GET OBJECTS
+                            logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type)
+
+                            var ipobj_node = new ipobj_Data(data_ipobj);
+                            //Añadimos ipobj a array Grupo
+                            group_node.ipobjs.push(ipobj_node);
+                            callback2();
+                        });
+                    } else{
+                        logger.debug("SIN DATOS de GRUPO");
+                        AllDone("", null);
+                    }
+                }, //Fin de bucle de IPOBJS
+                        function (err) {
+                            logger.debug("FIN DE BUCLE");
+
+                            if (group_node.ipobjs.length >= ipobjs_cont) {
+                                groups.push(group_node);
+                                if (groups.length >= group_cont) {
+                                    logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE ----------------");
+                                    
+                                    AllDone(null, groups);
+                                }
+
+
+                            }
+                        }
+                );
+
+            }
+            else{
+                logger.debug("SIN GRUPOS");
+                AllDone("", null);
+            }
+        });
+    });
+};
 //Get ipobj_g by name
 ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
@@ -63,7 +135,6 @@ ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
         });
     });
 };
-
 //Get ipobj_g by  tipo
 ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
     db.get(function (error, connection) {
@@ -78,7 +149,6 @@ ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
         });
     });
 };
-
 //Add new ipobj_g
 ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
     db.get(function (error, connection) {
@@ -94,7 +164,6 @@ ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
         });
     });
 };
-
 //Update ipobj_g
 ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 
@@ -105,7 +174,6 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
                 ' ,type = ' + connection.escape(ipobj_gData.type) + ',' +
                 ' ,fwcloud = ' + connection.escape(ipobj_gData.fwcloud) + ' ' +
                 ' WHERE id = ' + ipobj_gData.id;
-
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -115,9 +183,8 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
         });
     });
 };
-
 //Remove ipobj_g with id to remove
-ipobj_gModel.deleteIpobj_g = function (fwcloud, id,type, callback) {
+ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
@@ -131,9 +198,10 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id,type, callback) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            //CASCADE DELETE GROUP MEMBERS RELATION
-                            
-                            callback(null, {"msg": "deleted"});
+                            if (result.affectedRows > 0)
+                                callback(null, {"msg": "deleted"});
+                            else
+                                callback(null, {"msg": "notExist"});
                         }
                     });
                 });
@@ -143,6 +211,5 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id,type, callback) {
         });
     });
 };
-
 //Export the object
 module.exports = ipobj_gModel;

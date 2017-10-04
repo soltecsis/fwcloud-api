@@ -15,17 +15,15 @@ var Interface__ipobjModel = require('../models/interface__ipobj');
  */
 var logger = require('log4js').getLogger("app");
 
-/* Show form */
-router.get('/ipobj', function (req, res)
-{
-    res.render('new_ipobj', {title: 'Crear nuevo ipobj'});
-});
 
 /* Get all ipobjs by  group*/
-router.get('/group/:idgroup', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
 {
     var idgroup = req.params.idgroup;
-    IpobjModel.getIpobjsGroup(idgroup, function (error, data)
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    
+    IpobjModel.getIpobjsGroup(fwcloud, idgroup, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
@@ -41,12 +39,14 @@ router.get('/group/:idgroup', function (req, res)
 });
 
 /* Get all ipobjs by  group e id*/
-router.get('/group/:idgroup/:id', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
 {
     var idgroup = req.params.idgroup;
     var id = req.params.id;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
 
-    IpobjModel.getIpobjsGroup(idgroup, id, function (error, data)
+    IpobjModel.getIpobjsGroup(fwcloud, idgroup, id, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
@@ -63,10 +63,13 @@ router.get('/group/:idgroup/:id', function (req, res)
 
 
 /* Get  ipobj by id  */
-router.get('/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
-    IpobjModel.getIpobj(id, function (error, data)
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    
+    IpobjModel.getIpobj(fwcloud, id, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
@@ -82,11 +85,14 @@ router.get('/:id', function (req, res)
 });
 
 /* Get all ipobjs by nombre and by group*/
-router.get('/group/:idgroup/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup/name/:name', function (req, res)
 {
     var name = req.params.name;
     var idgroup = req.params.idgroup;
-    IpobjModel.getIpobjName(idgroup, name, function (error, data)
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    
+    IpobjModel.getIpobjName(fwcloud, idgroup, name, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
