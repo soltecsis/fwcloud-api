@@ -46,7 +46,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type', function (req, res)
     var fwcloud = req.params.fwcloud;
 
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
-    Policy_rModel.getPolicy_rs_type(idfirewall, type, rule, function (error, data)
+    Policy_rModel.getPolicy_rs_type(fwcloud,idfirewall, type, rule, function (error, data)
     {
         //If exists policy_r get data
         if (typeof data !== 'undefined')
