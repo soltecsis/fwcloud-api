@@ -143,7 +143,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud,idfirewall, type, rule, AllD
                                                 logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type +  "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
                                                 // GET IPOBJs  Position O
                                                 if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
-                                                    IpobjModel.getIpobj(row_ipobj.ipobj, function (error, data_ipobjs)
+                                                    IpobjModel.getIpobj(fwcloud,row_ipobj.ipobj, function (error, data_ipobjs)
                                                     {
                                                         //If exists ipobj get data
                                                         if (data_ipobjs.length > 0)
