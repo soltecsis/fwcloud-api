@@ -68,7 +68,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
         if (id !== '')
             sqlId = ' AND id = ' + connection.escape(id);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ' + sqlId;
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -86,7 +86,6 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                     IpobjModel.getIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
                         if (data_ipobjs.length > 0) {
                             ipobjs_cont = data_ipobjs.length;
-                            logger.debug("CONTADOR de IPOBJ: " + ipobjs_cont);
 
                             async.map(data_ipobjs, function (data_ipobj, callback2) {
                                 //GET OBJECTS
@@ -98,12 +97,10 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                                 callback2();
                             }, //Fin de bucle de IPOBJS
                                     function (err) {
-                                        logger.debug("FIN DE BUCLE IPOBJS  Groups length:" + groups.length + "  Count:" + group_cont);
 
                                         if (group_node.ipobjs.length >= ipobjs_cont) {
                                             groups.push(group_node);
                                             if (groups.length >= group_cont) {
-                                                logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE IPOJS ----------------");
                                                 AllDone(null, groups);
                                             }
 
@@ -112,11 +109,8 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                                     }
                             );
                         } else {
-                            logger.debug("SIN DATOS de GRUPO: " + row.id);
                             groups.push(group_node);
-                            logger.debug("SIN DATOS  Groups length:" + groups.length + "  Count:" + group_cont);
                             if (groups.length >= group_cont) {
-                                logger.debug("-------------------- HEMOS LLLEGADO aL FINAL SIN DATOS ----------------");
                                 AllDone(null, groups);
                             }
                         }
@@ -125,17 +119,13 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                     callback1();
                 }, //Fin de bucle de GROUPS
                         function (err) {
-                            logger.debug("FIN DE BUCLE GROUPS  Groups length:" + groups.length + "  Count:" + group_cont);
-
                             if (groups.length >= group_cont) {
-                                logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE GROUPS ----------------");
 
                                 AllDone(null, groups);
                             }
                         }
                 );
             } else {
-                logger.debug("SIN GRUPOS");
                 AllDone("", null);
             }
         });
