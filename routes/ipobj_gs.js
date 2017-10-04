@@ -20,7 +20,7 @@ router.get('/:iduser/:fwcloud', function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    Ipobj_gModel.getIpobj_gs(fwcloud, function (error, data)
+    Ipobj_gModel.getIpobj_g_Full(fwcloud,'', function (error, data)
     {
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
@@ -34,7 +34,6 @@ router.get('/:iduser/:fwcloud', function (req, res)
         }
     });
 });
-
 
 
 
@@ -44,28 +43,6 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     var id = req.params.id;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    Ipobj_gModel.getIpobj_g(fwcloud, id, function (error, data)
-    {
-        //If exists ipobj_g get data
-        if (typeof data !== 'undefined')
-        {
-            res.status(200).json({"data": data});
-        }
-        //Get Error
-        else
-        {
-            res.status(404).json({"msg": "notExist"});
-        }
-    });
-});
-
-/* Get  ipobj_g by id */
-router.get('/:iduser/:fwcloud/full/:id', function (req, res)
-{
-    var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
-    
     Ipobj_gModel.getIpobj_g_Full(fwcloud, id, function (error, data)
     {
         //If exists ipobj_g get data
@@ -80,6 +57,7 @@ router.get('/:iduser/:fwcloud/full/:id', function (req, res)
         }
     });
 });
+
 
 /* Get all ipobj_gs by nombre */
 router.get('/:iduser/:fwcloud/name/:name', function (req, res)
