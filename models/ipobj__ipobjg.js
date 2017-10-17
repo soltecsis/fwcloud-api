@@ -117,7 +117,10 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (ipobj_g, ipobj, callback) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            if (result.affectedRows > 0)
+                                callback(null, {"msg": "deleted"});
+                            else
+                                callback(null, {"msg": "notExist"});
                         }
                     });
                 });

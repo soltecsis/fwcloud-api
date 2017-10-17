@@ -106,7 +106,7 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
 
 
 /* Remove ipobj__ipobjg */
-router.delete("/ipobj__ipobjg/", function (req, res)
+router.delete("/ipobj__ipobjg/:ipobjg/:ipobj", function (req, res)
 {
     //Id from ipobj__ipobjg to remove
     var ipobjg = req.params.ipobjg;
@@ -115,7 +115,6 @@ router.delete("/ipobj__ipobjg/", function (req, res)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
-            //res.redirect("/ipobj__ipobjgs/");
             res.status(200).json( data.msg);
         } else
         {
