@@ -152,13 +152,12 @@ router.post("/ipobj-g/:iduser/:fwcloud/:node_parent/:node_order/:node_type", fun
 router.put('/ipobj-g/', function (req, res)
 {
     //Save data into object
-    var ipobj_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'), fwcloud: req.param('fwcloud')};
+    var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
     {
         //If saved ipobj_g saved ok, get data
         if (data && data.msg)
         {
-            //res.redirect("/ipobj-gs/ipobj-g/" + req.param('id'));
             res.status(200).json(data.msg);
         } else
         {

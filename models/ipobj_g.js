@@ -182,11 +182,12 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
-                ' ,type = ' + connection.escape(ipobj_gData.type) + ',' +
-                ' ,fwcloud = ' + connection.escape(ipobj_gData.fwcloud) + ' ' +
-                ' WHERE id = ' + ipobj_gData.id;
+                ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +                
+                ' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
         connection.query(sql, function (error, result) {
             if (error) {
+                logger.debug(sql);
+                logger.debug(error);
                 callback(error, null);
             } else {
                 callback(null, {"msg": "success"});
