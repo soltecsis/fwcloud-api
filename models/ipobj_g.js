@@ -182,7 +182,8 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
-                ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +                
+                ' ,type = ' + connection.escape(ipobj_gData.type) + ', ' +                
+                ' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +                
                 ' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
         connection.query(sql, function (error, result) {
             if (error) {
