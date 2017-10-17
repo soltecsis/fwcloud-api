@@ -726,7 +726,7 @@ policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback
 };
 
 //check if IPOBJ GROUP OR IPOBJS in GROUP Exists in any rule
-policy_r__ipobjModel.checkIpobjInRule = function (ipobj_g, type, fwcloud, callback) {
+policy_r__ipobjModel.checkIpobjGroupInRule = function (ipobj_g, type, fwcloud, callback) {
 
     logger.debug("CHECK DELETING ipobj GROUP:" + ipobj_g + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
