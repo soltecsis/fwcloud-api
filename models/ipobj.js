@@ -50,7 +50,7 @@ ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
 };
 
 //Get All ipobj by group
-ipobjModel.getIpobjsGroup = function (fwcloud, idgroup, callback) {
+ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
@@ -58,7 +58,7 @@ ipobjModel.getIpobjsGroup = function (fwcloud, idgroup, callback) {
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
         var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ORDER BY id';
-        logger.debug(sql);
+        
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -76,11 +76,12 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
         var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ';
-        connection.query(sql, function (error, row) {
+        
+        connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else
-                callback(null, row);
+                callback(null, rows[0]);
         });
     });
 };

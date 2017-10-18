@@ -23,7 +23,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     
-    IpobjModel.getIpobjsGroup(fwcloud, idgroup, function (error, data)
+    IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
@@ -38,7 +38,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
     });
 });
 
-/* Get all ipobjs by  group e id*/
+/* Get ipobjs by  group e id*/
 router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
 {
     var idgroup = req.params.idgroup;
@@ -46,7 +46,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
 
-    IpobjModel.getIpobjsGroup(fwcloud, idgroup, id, function (error, data)
+    IpobjModel.getIpobjGroup(fwcloud, idgroup, id, function (error, data)
     {
         //If exists ipobj get data
         if (typeof data !== 'undefined')
@@ -270,8 +270,6 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
                         }
                     });
                 });
-
-                //DELETE FROM RULES
             } else
                 res.status(200).json(data.msg);
         } else

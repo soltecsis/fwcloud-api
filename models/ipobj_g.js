@@ -4,6 +4,8 @@ var IpobjModel = require('../models/ipobj');
 var async = require('async');
 var ipobj_g_Data = require('../models/data_ipobj_g');
 var ipobj_Data = require('../models/data_ipobj');
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 
 //create object
 var ipobj_gModel = {};
@@ -169,8 +171,11 @@ ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"insertId": result.insertId});
+                if (result.affectedRows > 0) {
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                } else
+                    callback(error, null);
             }
         });
     });
@@ -182,8 +187,8 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
         if (error)
             return done('Database problem');
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
-                ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +                
-                ' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +                
+                ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +
+                ' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +
                 ' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
         connection.query(sql, function (error, result) {
             if (error) {
@@ -198,31 +203,53 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 };
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from ipobj_g to remove
-            if (row) {
+    //CHECK IPOBJ OR GROUP IN RULE
+    Policy_r__ipobjModel.checkGroupInRule(id, type, fwcloud, function (error, data) {
+        if (error) {
+            logger.error(error);
+            callback(error, null);
+        } else {
+            if (!data.result) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
+                    if (error)
+                        return done('Database problem');
+                    var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+                    connection.query(sqlExists, function (error, row) {
+                        //If exists Id from ipobj_g to remove
+                        if (row) {
+                            db.get(function (error, connection) {
+                                //DELETE CHILDREN
+                                Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(id, function (error, data) {
+                                    if (error) {
+                                        logger.error(error);
+                                        callback(error, null);
+                                    } else {
+                                        var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+                                        connection.query(sql, function (error, result) {
+                                            if (error) {
+                                                logger.error(error);
+                                                callback(error, null);
+                                            } else {
+                                                if (result.affectedRows > 0)
+                                                    callback(null, {"msg": "deleted"});
+                                                else
+                                                    callback(null, {"msg": "notExist"});
+                                            }
+                                        });
+                                    }
+                                });
+                            });
                         } else {
-                            if (result.affectedRows > 0)
-                                callback(null, {"msg": "deleted"});
-                            else
-                                callback(null, {"msg": "notExist"});
+                            callback(null, {"msg": "notExist"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"msg": "Restricted", "by": "by GROUP"});
             }
-        });
+        }
     });
+
 };
 //Export the object
 module.exports = ipobj_gModel;

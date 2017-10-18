@@ -567,7 +567,8 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                                                                     ' FROM fwcloud_db.ipobj O ' +
                                                                                     ' INNER JOIN ipobj__ipobjg G on O.id=G.ipobj ' +
                                                                                     ' inner join fwc_tree_node_types T on T.obj_type=O.type ' +
-                                                                                    ' WHERE G.ipobj_g=' + rnode.id;
+                                                                                    ' WHERE G.ipobj_g=' + rnode.id +
+                                                                                    ' ORDER BY G.id_gi';
                                                                             //logger.debug(sqlinsert);
                                                                             connection.query(sqlinsert, function (error, result) {
                                                                                 if (error) {
@@ -745,9 +746,10 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' name = ' + connection.escape(ipobjData.name) + ' , comment= ' + connection.escape(ipobjData.comment) +
                 ' WHERE id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud);
-        logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
+                logger.debug(sql);
+                logger.debug(error);
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0)
@@ -760,27 +762,65 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 };
 
 
-//FALTA BORRADO EN CASCADA
-//Remove NODE with id_obj to remove
-fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id, type, callback) {
+//Remove ALL NODES with id_obj to remove
+fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id) + ' AND obj_type=' + connection.escape(type);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from ipobj to remove
+            if (row) {
+                var id_parent = row.id;
+                db.get(function (error, connection) {
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            logger.debug(sql);
+                            callback(error, null);
+                        } else {
+                            if (result.affectedRows > 0) {
+                                //CASCADE DELETE
+                                var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent = ' + connection.escape(id_parent);
+                                connection.query(sql, function (error, result) {
+                                    if (error) {
+                                        logger.debug(sql);
+                                        logger.debug(error);
+                                        callback(error, null);
+                                    } else {
+                                        callback(null, {"msg": "deleted"});
+                                    }
+                                });
+                            } else
+                                callback(null, {"msg": "nothing"});
+                        }
+                    });
+                });
+            } else {
+                callback(null, {"msg": "notExist"});
+            }
+        });
+    });
+};
+
+//Remove NODE FROM GROUP with id_obj to remove
+fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_obj,  callback) {
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND id_parent = ' + connection.escape(id_parent);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id) + ' AND obj_type=' + connection.escape(type);
-                    logger.debug(sql);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND id_parent = ' + connection.escape(id_parent);
+                    //logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
+                            logger.debug(sql);
                             callback(error, null);
                         } else {
-                            if (result.affectedRows > 0)
-                                callback(null, {"msg": "deleted"});
-                            else
-                                callback(null, {"msg": "nothing"});
+                            callback(null, {"msg": "deleted"});
                         }
                     });
                 });
@@ -851,11 +891,12 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
                 ' AND node_order>=' + order1 + ' AND node_order<=' + order2 +
                 ' AND id<>' + connection.escape(id);
         connection.query(sql);
-        logger.debug(sql);
+        //logger.debug(sql);
     });
 
 }
-
+//Busca todos los padres donde aparece el IPOBJ a borrar
+//Ordena todos los nodos padres sin contar el nodo del IPOBJ
 //Order Tree Node by IPOBJ
 fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback) {
     db.get(function (error, connection) {

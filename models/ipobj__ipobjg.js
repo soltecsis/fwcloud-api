@@ -55,10 +55,15 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) 
             return done('Database problem');
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj__ipobjgData, function (error, result) {
             if (error) {
+                logger.error(error);
                 callback(error, null);
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"msg": "success"});
+                if (result.affectedRows > 0) {
+                    //devolvemos la última id insertada
+                    callback(null, {"insertId": result.insertId});
+                }
+                else
+                    callback(error, null);
             }
         });
     });

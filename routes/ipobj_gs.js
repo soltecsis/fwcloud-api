@@ -20,7 +20,7 @@ router.get('/:iduser/:fwcloud', function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    Ipobj_gModel.getIpobj_g_Full(fwcloud,'', function (error, data)
+    Ipobj_gModel.getIpobj_g_Full(fwcloud, '', function (error, data)
     {
         //If exists ipobj_g get data
         if (typeof data !== 'undefined')
@@ -149,8 +149,11 @@ router.post("/ipobj-g/:iduser/:fwcloud/:node_parent/:node_order/:node_type", fun
 });
 
 /* Update ipobj_g that exist */
-router.put('/ipobj-g/', function (req, res)
+router.put('/ipobj-g/:iduser/:fwcloud', function (req, res)
 {
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+
     //Save data into object
     var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
@@ -158,7 +161,16 @@ router.put('/ipobj-g/', function (req, res)
         //If saved ipobj_g saved ok, get data
         if (data && data.msg)
         {
-            res.status(200).json(data.msg);
+            logger.debug("UPDATE IPOBJ GROUP id:" + ipobj_gData.id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
+            //UPDATE TREE            
+            fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function (error, data) {
+                if (data && data.msg) {
+                    res.status(200).json(data.msg);
+                } else {
+                    logger.debug(error);
+                    res.status(500).json({"msg": error});
+                }
+            });
         } else
         {
             res.status(500).json({"msg": error});
@@ -166,7 +178,7 @@ router.put('/ipobj-g/', function (req, res)
     });
 });
 
-//FALTA CONTROL de RESTRICCION de BORRADO
+
 /* Remove ipobj_g */
 router.delete("/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
 {
@@ -178,20 +190,21 @@ router.delete("/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
 
     Ipobj_gModel.deleteIpobj_g(fwcloud, id, type, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
         {
             if (data.msg === "deleted") {
-                Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(id, function (error, data)
-                {
-                    if (data && data.msg === "deleted" || data.msg === "notExist")
-                    {
-                        //res.redirect("/ipobj__ipobjgs/");
-                        res.status(200).json(data.msg);
-                    } else
-                    {
-                        res.status(500).json({"msg": error});
-                    }
+                fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
+                    //DELETE FROM TREE
+                    fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
+                        if (data && data.msg) {
+                            res.status(200).json(data.msg);
+                        } else {
+                            logger.debug(error);
+                            res.status(500).json({"msg": error});
+                        }
+                    });
                 });
+
             } else
                 res.status(200).json(data.msg);
         } else
