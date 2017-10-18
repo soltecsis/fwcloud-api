@@ -85,7 +85,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                     var idgroup = row.id;
                     group_node.ipobjs = new Array();
                     //GET ALL GROUP OBJECTs
-                    IpobjModel.getIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+                    IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
                         if (data_ipobjs.length > 0) {
                             ipobjs_cont = data_ipobjs.length;
 

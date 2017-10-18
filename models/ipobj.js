@@ -57,7 +57,7 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
             return done('Database problem');
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ORDER BY id';
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ORDER BY G.id_gi';
         
         connection.query(sql, function (error, rows) {
             if (error)
