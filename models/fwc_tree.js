@@ -804,16 +804,17 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
 };
 
 //Remove NODE FROM GROUP with id_obj to remove
-fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_obj,  callback) {
+fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent,id_group, id_obj,  callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND id_parent = ' + connection.escape(id_parent);
+            
+        var sqlExists = 'SELECT * FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND id_parent = ' + connection.escape(id_parent);
+                    var sql = 'DELETE FROM ' + tableModel + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
                     //logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {

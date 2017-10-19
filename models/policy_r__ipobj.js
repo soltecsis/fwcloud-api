@@ -726,24 +726,24 @@ policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback
 };
 
 //check if IPOBJ GROUP OR IPOBJS in GROUP Exists in any rule
-policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, type, fwcloud, callback) {
+policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
 
-    logger.debug("CHECK DELETING  GROUP:" + ipobj_g + " Type:" + type + "  fwcloud:" + fwcloud);
+    logger.debug("CHECK DELETING  GROUP:" + ipobj_g + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
         var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN  ipobj_g G on G.id=O.ipobj_g ' +
-                ' WHERE O.ipobj_g=' + connection.escape(ipobj_g) + ' AND G.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+                ' WHERE O.ipobj_g=' + connection.escape(ipobj_g) +  ' AND F.fwcloud=' + connection.escape(fwcloud);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
                     if (rows[0].n > 0) {
-                        logger.debug("ALERT DELETING ipobj GROUP IN RULE:" + ipobj_g + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        logger.debug("ALERT DELETING ipobj GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
                         callback(null, {"result": true});
                     } else {
-                        logger.debug("OK DELETING ipobj GROUP IN RULE:" + ipobj_g + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        logger.debug("OK DELETING ipobj GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
                         callback(null, {"result": false});
                     }
                 } else

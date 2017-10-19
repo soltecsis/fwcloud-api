@@ -144,7 +144,7 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
 
 
 /* Remove ipobj__ipobjg */
-router.delete("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj/:type", function (req, res)
+router.delete("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -153,15 +153,15 @@ router.delete("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj/:type
     //Id from ipobj__ipobjg to remove
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
-    var type = req.params.type;
+    
 
-    Ipobj__ipobjgModel.deleteIpobj__ipobjg(ipobjg, ipobj, function (error, data)
+    Ipobj__ipobjgModel.deleteIpobj__ipobjg(fwcloud,ipobjg, ipobj, function (error, data)
     {
         if (data && data.msg === "deleted" || data.msg === "notExist")
         {
             if (data.msg === "deleted") {
                 //DELETE FROM TREE
-                fwcTreemodel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobj, function (error, data) {
+                fwcTreemodel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function (error, data) {
                     if (data && data.msg) {
                         fwcTreemodel.orderTreeNode(fwcloud, node_parent, function (error, data) {
                              res.status(200).json({"msg": "deleted"});

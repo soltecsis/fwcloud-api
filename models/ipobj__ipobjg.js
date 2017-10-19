@@ -1,5 +1,5 @@
 var db = require('../db.js');
-
+var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 
 //create object
 var ipobj__ipobjgModel = {};
@@ -61,8 +61,7 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) 
                 if (result.affectedRows > 0) {
                     //devolvemos la última id insertada
                     callback(null, {"insertId": result.insertId});
-                }
-                else
+                } else
                     callback(error, null);
             }
         });
@@ -107,32 +106,42 @@ ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj, ipobj__ipobjg
     });
 };
 
+//FALTA comprobar si el Grupo está en alguna Regla
 //Remove ipobj__ipobjg with id to remove
-ipobj__ipobjgModel.deleteIpobj__ipobjg = function (ipobj_g, ipobj, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from ipobj__ipobjg to remove
-            if (row) {
+ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callback) {
+    //CHECK IPOBJ OR GROUP IN RULE
+    Policy_r__ipobjModel.checkGroupInRule(ipobj_g,  fwcloud, function (error, data) {
+        if (error) {
+            callback(error, null);
+        } else {
+            if (!data.result) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
+                    if (error)
+                        return done('Database problem');
+                    var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
+                    connection.query(sqlExists, function (error, row) {
+                        //If exists Id from ipobj__ipobjg to remove
+                        if (row) {
+                            db.get(function (error, connection) {
+                                var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
+                                connection.query(sql, function (error, result) {
+                                    if (error) {
+                                        callback(error, null);
+                                    } else {
+                                        if (result.affectedRows > 0)
+                                            callback(null, {"msg": "deleted"});
+                                        else
+                                            callback(null, {"msg": "notExist"});
+                                    }
+                                });
+                            });
                         } else {
-                            if (result.affectedRows > 0)
-                                callback(null, {"msg": "deleted"});
-                            else
-                                callback(null, {"msg": "notExist"});
+                            callback(null, {"msg": "notExist"});
                         }
                     });
                 });
-            } else {
-                callback(null, {"msg": "notExist"});
             }
-        });
+        }
     });
 };
 
@@ -140,7 +149,7 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (ipobj_g, ipobj, callback) {
 ipobj__ipobjgModel.deleteIpobj__ipobjgAll = function (ipobj_g, callback) {
     db.get(function (error, connection) {
 
-        var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) ;
+        var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g);
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

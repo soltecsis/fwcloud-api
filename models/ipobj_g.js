@@ -204,7 +204,7 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
     //CHECK IPOBJ OR GROUP IN RULE
-    Policy_r__ipobjModel.checkGroupInRule(id, type, fwcloud, function (error, data) {
+    Policy_r__ipobjModel.checkGroupInRule(id, fwcloud, function (error, data) {
         if (error) {
             logger.error(error);
             callback(error, null);
