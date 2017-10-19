@@ -166,7 +166,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
                 //INSERT IN TREE
                 fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
                     if (data && data.insertId) {
-                        res.status(200).json({"insertId": data.insertId});
+                        res.status(200).json({"insertId": id, "TreeinsertId": data.insertId });
                     } else {
                         logger.debug(error);
                         res.status(500).json({"msg": error});
