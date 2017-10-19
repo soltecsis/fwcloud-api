@@ -22,7 +22,7 @@ ipobjModel.getIpobj = function (fwcloud, id, callback) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND (fwcloud=' +  connection.escape(fwcloud)  + ' OR fwcloud IS NULL)';
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud IS NULL)';
         connection.query(sql, function (error, row) {
             if (error) {
                 callback(error, null);
@@ -57,8 +57,8 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
             return done('Database problem');
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ORDER BY G.id_gi';
-        
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ORDER BY G.id_gi';
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -75,8 +75,8 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
             return done('Database problem');
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ';
-        
+        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -93,7 +93,7 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' +  connection.escape(fwcloud)  + ' OR T.fwcloud IS NULL) ';
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
 
         connection.query(sql, function (error, row) {
             if (error)
@@ -172,70 +172,110 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
 //Remove ipobj with id to remove
 ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
 
-    //CHECK IPOBJ OR GROUP IN RULE
-    Policy_r__ipobjModel.checkIpobjInRule(id, type, fwcloud, function (error, data) {
+    //CHECK IPOBJ IN GROUP 
+    this.checkIpobjInGroup(id, type, fwcloud, function (error, data) {
         if (error) {
             callback(error, null);
         } else {
             if (!data.result) {
-                //CHECK INTERFACES UNDER HOST "O" Positions
-                Policy_r__ipobjModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
+                //CHECK IPOBJ OR GROUP IN RULE
+                Policy_r__ipobjModel.checkIpobjInRule(id, type, fwcloud, function (error, data) {
                     if (error) {
-                        logger.debug(error);
                         callback(error, null);
                     } else {
                         if (!data.result) {
-                            //CHECK INTERFACES UNDER HOST "I" Positions
-                            Policy_r__interfaceModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
+                            //CHECK INTERFACES UNDER HOST "O" Positions
+                            Policy_r__ipobjModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
                                 if (error) {
                                     logger.debug(error);
                                     callback(error, null);
                                 } else {
                                     if (!data.result) {
-                                        //CHECK ALL IPOBJ FROM ALL INTERFACES 
-                                        Policy_r__ipobjModel.checkHostAllInterfaceAllIpobjInRule(id, fwcloud, function (error, data) {
+                                        //CHECK INTERFACES UNDER HOST "I" Positions
+                                        Policy_r__interfaceModel.checkHostAllInterfacesInRule(id, fwcloud, function (error, data) {
                                             if (error) {
                                                 logger.debug(error);
                                                 callback(error, null);
                                             } else {
                                                 if (!data.result) {
-                                                    db.get(function (error, connection) {
-                                                        if (error)
-                                                            return done('Database problem');
-                                                        var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-                                                        logger.debug(sql);
-                                                        connection.query(sql, function (error, result) {
-                                                            if (error) {
-                                                                logger.debug(error);
-                                                                callback(error, null);
-                                                            } else {
-                                                                if (result.affectedRows > 0) {
-                                                                    callback(null, {"msg": "deleted"});
-                                                                } else {
-                                                                    callback(null, {"msg": "notExist"});
-                                                                }
-                                                            }
-                                                        });
+                                                    //CHECK ALL IPOBJ FROM ALL INTERFACES 
+                                                    Policy_r__ipobjModel.checkHostAllInterfaceAllIpobjInRule(id, fwcloud, function (error, data) {
+                                                        if (error) {
+                                                            logger.debug(error);
+                                                            callback(error, null);
+                                                        } else {
+                                                            if (!data.result) {
+                                                                db.get(function (error, connection) {
+                                                                    if (error)
+                                                                        return done('Database problem');
+                                                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+                                                                    logger.debug(sql);
+                                                                    connection.query(sql, function (error, result) {
+                                                                        if (error) {
+                                                                            logger.debug(error);
+                                                                            callback(error, null);
+                                                                        } else {
+                                                                            if (result.affectedRows > 0) {
+                                                                                callback(null, {"msg": "deleted"});
+                                                                            } else {
+                                                                                callback(null, {"msg": "notExist"});
+                                                                            }
+                                                                        }
+                                                                    });
 
+                                                                });
+                                                            } else
+                                                                callback(null, {"msg": "Restricted", "by": "by Interface IPOBJ"});
+                                                        }
                                                     });
                                                 } else
-                                                    callback(null, {"msg": "Restricted","by": "by Interface IPOBJ"});
+                                                    callback(null, {"msg": "Restricted", "by": "by Interface I"});
                                             }
                                         });
                                     } else
-                                        callback(null, {"msg": "Restricted","by": "by Interface I"});
+                                        callback(null, {"msg": "Restricted", "by": "by Interface O"});
                                 }
                             });
+
                         } else
-                            callback(null, {"msg": "Restricted","by": "by Interface O"});
+                            callback(null, {"msg": "Restricted", "by": "by IPOBJ or GROUP"});
                     }
                 });
-
             } else
-                callback(null, {"msg": "Restricted","by": "by IPOBJ or GROUP"});
+                callback(null, {"msg": "Restricted", "by": "by IPOBJ IN GROUP"});
         }
     });
 };
 
+
+//check if IPOBJ Exists in any Group
+ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("CHECK DELETING FROM GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' I ' +
+                ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    if (rows[0].n > 0) {
+                        logger.debug("ALERT DELETING ipobj IN GROUP:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " GROUPS");
+                        callback(null, {"result": true});
+                    } else {
+                        callback(null, {"result": false});
+                    }
+                } else
+                    callback(null, {"result": false});
+            } else{
+                logger.error(error);
+                callback(null, {"result": false});
+            }
+        });
+    });
+
+};
 //Export the object
 module.exports = ipobjModel;
