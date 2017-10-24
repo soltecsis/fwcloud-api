@@ -23,8 +23,9 @@ interfaceModel.getInterfaces = function (idfirewall, fwcloud, callback) {
         if (error)
             return done('Database problem');
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
-        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +  
+        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud   FROM ' + tableModel + ' I ' +  
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ')';
         
         
@@ -44,9 +45,9 @@ interfaceModel.getInterfacesHost = function (idhost, fwcloud, callback) {
         if (error)
             return done('Database problem');
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
-        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +  
+        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +  
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
-                ' inner join interface__ipobj O on O.interface=I.id ' +
+                ' inner join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj' +
                 ' WHERE (O.ipobj=' + connection.escape(idhost) + ')';
         
         
@@ -67,10 +68,11 @@ interfaceModel.getInterface = function (idfirewall,fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +  
+        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +  
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
                 ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -103,8 +105,9 @@ interfaceModel.getInterfaceName = function (idfirewall,fwcloud, name, callback) 
         var namesql = '%' + name + '%';
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
 
-        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +  
+        var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +  
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
                 ' WHERE I.name like ' + connection.escape(namesql) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
         
         connection.query(sql, function (error, row) {
