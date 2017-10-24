@@ -93,7 +93,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 
                             async.map(data_ipobjs, function (data_ipobj, callback2) {
                                 //GET OBJECTS
-                                logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type)
+                                logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
                                 var ipobj_node = new ipobj_Data(data_ipobj);
                                 //Añadimos ipobj a array Grupo

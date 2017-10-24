@@ -61,6 +61,7 @@ router.get('/firewalls/:iduser/:fwcloud', function (req, res)
     });
 });
 
+//FALTA HACER FILTRO POR NODO PADRE
 /* Get all fwc_tree NODE FIREWALL by IdFirewall*/
 router.get('/firewalls/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
