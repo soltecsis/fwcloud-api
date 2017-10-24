@@ -22,7 +22,11 @@ ipobjModel.getIpobj = function (fwcloud, id, callback) {
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud IS NULL)';
+        var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                ' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' ;
+                
         connection.query(sql, function (error, row) {
             if (error) {
                 callback(error, null);
@@ -56,8 +60,15 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
         if (error)
             return done('Database problem');
 
-        var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-        var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ORDER BY G.id_gi';
+        var innergroup = ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ';
+        //var sql = 'SELECT * FROM ' + tableModel + ' I ' + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
+        
+        var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' + innergroup +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                ' WHERE G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
+                ' ORDER BY G.id_gi';
+        logger.debug(sql);
 
         connection.query(sql, function (error, rows) {
             if (error)
@@ -93,7 +104,12 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
             return done('Database problem');
         var namesql = '%' + name + '%';
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
+        var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                ' WHERE I.name like  = ' + connection.escape(namesql) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' ;
+        
+        //var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
 
         connection.query(sql, function (error, row) {
             if (error)

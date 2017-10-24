@@ -15,17 +15,33 @@ var Interface__ipobjModel = require('../models/interface__ipobj');
  */
 var logger = require('log4js').getLogger("app");
 
-/* Show form */
-router.get('/interface', function (req, res)
-{
-    res.render('new_interface', {title: 'Crear nuevo interface'});
-});
 
 /* Get all interfaces by firewall*/
-router.get('/:idfirewall', function (req, res)
+router.get('/:idfirewall/:fwcloud', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
-    InterfaceModel.getInterfaces(idfirewall, function (error, data)
+    var fwcloud = req.params.fwcloud;
+    InterfaceModel.getInterfaces(idfirewall, fwcloud, function (error, data)
+    {
+        //If exists interface get data
+        if (typeof data !== 'undefined')
+        {
+            res.status(200).json({"data": data});
+        }
+        //Get Error
+        else
+        {
+            res.status(404).json({"msg": "notExist"});
+        }
+    });
+});
+
+/* Get all interfaces by HOST*/
+router.get('/:fwcloud/host/:idhost', function (req, res)
+{
+    var idhost = req.params.idhost;
+    var fwcloud = req.params.fwcloud;
+    InterfaceModel.getInterfacesHost(idhost, fwcloud, function (error, data)
     {
         //If exists interface get data
         if (typeof data !== 'undefined')
@@ -41,11 +57,12 @@ router.get('/:idfirewall', function (req, res)
 });
 
 /* Get  interface by id and  by firewall*/
-router.get('/:idfirewall/interface/:id', function (req, res)
+router.get('/:idfirewall/:fwcloud/interface/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
+    var fwcloud = req.params.fwcloud;
     var id = req.params.id;
-    InterfaceModel.getInterface(idfirewall, id, function (error, data)
+    InterfaceModel.getInterface(idfirewall, fwcloud, id, function (error, data)
     {
         //If exists interface get data
         if (typeof data !== 'undefined')
@@ -61,11 +78,12 @@ router.get('/:idfirewall/interface/:id', function (req, res)
 });
 
 /* Get all interfaces by nombre and by firewall*/
-router.get('/:idfirewall/name/:name', function (req, res)
+router.get('/:idfirewall/:fwcloud/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
+    var fwcloud = req.params.fwcloud;
     var name = req.params.name;
-    InterfaceModel.getInterfaceName(idfirewall, name, function (error, data)
+    InterfaceModel.getInterfaceName(idfirewall,fwcloud, name, function (error, data)
     {
         //If exists interface get data
         if (typeof data !== 'undefined')

@@ -60,6 +60,47 @@ router.get('/firewalls/:iduser/:fwcloud', function (req, res)
 
     });
 });
+
+/* Get all fwc_tree NODE FIREWALL by IdFirewall*/
+router.get('/firewalls/:iduser/:fwcloud/:idfirewall', function (req, res)
+{
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var idfirewall = req.params.idfirewall;
+    
+    fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
+    {
+        utilsModel.checkEmptyRow(rows, function (notempty)
+        {
+            if (notempty) {
+                var row = rows[0];
+                //create object
+                var root_node = new fwc_tree_node(row);
+                //console.log(root_node);
+                var tree = new Tree(root_node);
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1,"FDF", function (error, data)
+                {
+                    //If exists fwc_tree get data
+                    if (typeof data !== 'undefined')
+                    {
+                        res.status(200).json({"data": data});
+                    }
+                    //Get Error
+                    else
+                    {
+                        res.status(404).json({"msg": "notExist"});
+                    }
+                });
+            }
+            else{
+                res.status(404).json({"msg": "notExist"});
+            }
+        });
+
+
+    });
+});
+
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
@@ -113,13 +154,13 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', func
     var objc = req.params.objCloud;
     var idNode = req.params.id;
     var fwcloud = req.params.fwcloud;
-    logger.debug(req.params);
-    logger.debug("IDNODE: " + idNode);
+    
     
     fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
-    {
-        if (typeof rows !== 'undefined')
-        {
+    {    
+   
+        if (typeof rows !== 'undefined' && rows!== null  && rows.length>0)
+        {            
             var row = rows[0];
             //create object
             var root_node = new fwc_tree_node(row);

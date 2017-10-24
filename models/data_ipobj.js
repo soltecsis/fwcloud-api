@@ -21,6 +21,8 @@ function ipobjs_Data(data) {
     this.destination_port_end = data.destination_port_end;
     this.options = data.options;
     this.comment = data.comment;
+    this.id_node=data.id_node;
+    this.id_parent_node= data.id_parent_node;
 }
 ;
 

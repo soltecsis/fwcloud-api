@@ -68,8 +68,10 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 
         var sqlId = '';
         if (id !== '')
-            sqlId = ' AND id = ' + connection.escape(id);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ' + sqlId;
+            sqlId = ' AND G.id = ' + connection.escape(id);
+        var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' + 
+                  'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                  ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
         //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
