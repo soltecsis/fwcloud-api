@@ -191,7 +191,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud,idfirewall, type, rule, AllD
                                                     if (row_ipobj.type === 'I')
                                                         idInterface = row_ipobj.ipobj;
 
-                                                    InterfaceModel.getInterface(idfirewall, idInterface, function (error, data_interface)
+                                                    InterfaceModel.getInterface(idfirewall, fwcloud, idInterface, function (error, data_interface)
                                                     {
                                                         if (data_interface.length > 0)
                                                         {
