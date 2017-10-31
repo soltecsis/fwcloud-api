@@ -141,6 +141,8 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callb
                     });
                 });
             }
+            else
+                callback(null, {"msg": "Restricted"});
         }
     });
 };

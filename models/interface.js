@@ -119,6 +119,37 @@ interfaceModel.getInterfaceName = function (idfirewall,fwcloud, name, callback) 
     });
 };
 
+interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
+    //SEARCH INTERFACE IN RULES
+    Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
+        if (error) {
+            callback(error, null);
+        } else {
+            //SEARCH IPOBJ IN GROUPS
+            Policy_r__ipobjModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+                if (error) {
+                    callback(error, null);
+                } else {
+                    //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES
+                    Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud, function (error, data_ipobj_interfaces) {
+                        if (error) {
+                            callback(error, null);
+                        } else {
+                            //logger.debug(data_ipobj);
+                            if (data_ipobj.found !== "" || data_group.found !== "" || data_ipobj_interfaces.found !== "") {
+                                callback(null, {"result": true, "msg": "IPOBJ FOUND",
+                                    "IpobjInRules": data_ipobj, "IpobjInGroup": data_group, "IpobjInterfaces": data_ipobj_interfaces});
+                            } else {
+                                callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "IpobjInRules": "", "IpobjInGroup": "", "IpobjInterfaces": ""});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+};
+
 
 
 //Add new interface from user

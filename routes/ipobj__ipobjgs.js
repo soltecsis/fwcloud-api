@@ -1,3 +1,4 @@
+
 var express = require('express');
 var router = express.Router();
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
@@ -157,12 +158,13 @@ router.delete("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj", fun
 
     Ipobj__ipobjgModel.deleteIpobj__ipobjg(fwcloud,ipobjg, ipobj, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.msg === "deleted" || data.msg === "notExist"  || data.msg === "Restricted")
         {
             if (data.msg === "deleted") {
                 //DELETE FROM TREE
                 fwcTreemodel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function (error, data) {
                     if (data && data.msg) {
+                        logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
                         fwcTreemodel.orderTreeNode(fwcloud, node_parent, function (error, data) {
                              res.status(200).json({"msg": "deleted"});
                         });
@@ -173,7 +175,7 @@ router.delete("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj", fun
                 });
 
             } else
-                res.status(404).json({"msg": "notExist"});
+                res.status(200).json(data.msg);
         } else
         {
             res.status(500).json({"msg": error});

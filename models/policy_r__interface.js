@@ -268,15 +268,19 @@ function checkInterfacePosition(rule, id, position, callback) {
             callback(null, 0);
         var sql = 'select A.allowed from ipobj_type__policy_position A  ' +
                 'inner join interface I on A.type=I.interface_type ' +
-                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position);
+                'inner join policy_position P on P.id=A.position ' +
+                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) + ' AND P.content="I"';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
-                allowed = rows[0].allowed;
-                if (allowed > 0)
-                    callback(null, 1);
-                else
+                if (rows.affectedRows > 0) {
+                    allowed = rows[0].allowed;
+                    if (allowed > 0)
+                        callback(null, 1);
+                    else
+                        callback(null, 0);
+                } else
                     callback(null, 0);
             }
         });
@@ -328,8 +332,7 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, 
                             if (result.affectedRows > 0) {
                                 OrderList(999999, rule, position, old_order, interface);
                                 callback(null, {"msg": "deleted"});
-                            }
-                            else{
+                            } else {
                                 callback(null, {"msg": "notExist"});
                             }
                         }
@@ -348,22 +351,21 @@ policy_r__interfaceModel.deletePolicy_r__All = function (rule, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) ;
+        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r__interface to remove
             if (row) {
-                logger.debug("DELETING INTERFACES FROM RULE: " + rule );
+                logger.debug("DELETING INTERFACES FROM RULE: " + rule);
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) ;                    
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             logger.debug(error);
                             callback(error, null);
                         } else {
-                            if (result.affectedRows > 0) {                                
+                            if (result.affectedRows > 0) {
                                 callback(null, {"msg": "deleted"});
-                            }
-                            else{
+                            } else {
                                 callback(null, {"msg": "notExist"});
                             }
                         }
@@ -393,7 +395,7 @@ policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callbac
                     order++;
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
-                                ' WHERE rule = ' + connection.escape(row.rule) + 
+                                ' WHERE rule = ' + connection.escape(row.rule) +
                                 ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                         //logger.debug(sql);
@@ -442,7 +444,7 @@ policy_r__interfaceModel.orderPolicy = function (rule, callback) {
 
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
-                                ' WHERE rule = ' + connection.escape(row.rule) + 
+                                ' WHERE rule = ' + connection.escape(row.rule) +
                                 ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                         //logger.debug(sql);
@@ -523,13 +525,13 @@ policy_r__interfaceModel.orderAllPolicy = function (callback) {
 
 
 //check if INTERFACE Exists in any rule
-policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwcloud,firewall, callback) {
+policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwcloud, firewall, callback) {
 
     logger.debug("CHECK DELETING interface I POSITIONS:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + 
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
                 ' inner join interface I on I.id=O.interface ' +
@@ -560,11 +562,11 @@ policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fw
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' + 
+        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' +
                 ' inner join interface__ipobj J on J.interface=O.interface  ' +
-                ' INNER JOIN policy_r R on R.id=O.rule ' + 
+                ' INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
-                ' inner join fwcloud C on C.id=F.fwcloud ' +                
+                ' inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND C.id=' + connection.escape(fwcloud);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
@@ -585,5 +587,41 @@ policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fw
     });
 };
 
+//Search if HOST ALL INTERFACEs Exists in any rule
+//SEARCH IPOBJ UNDER INTERFACES IN RULES  'I'  POSITIONS
+policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, callback) {
+
+    logger.debug("SEARCH IPOBJ  interfaces I POSITIONS:" + ipobj + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM  policy_r__interface O  ' +
+                'INNER JOIN interface K on K.id=O.interface ' +
+                'INNEr JOIN ipobj J ON J.interface=K.id ' +
+                'INNER JOIN policy_r R on R.id=O.rule  ' +
+                'INNER JOIN firewall F on F.id=R.firewall ' +
+                'inner join fwcloud C on C.id=F.fwcloud  ' +
+                'inner join ipobj_type T on T.id=K.interface_type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                ' WHERE J.id=' + connection.escape(ipobj) + ' AND C.id=' + connection.escape(fwcloud);
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND interfaces IN RULE:" + ipobj + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                     callback(null, {"found": rows});
+
+                } else {
+                     callback(null, {"found": ""});
+                }
+            } else
+                 callback(null, {"found": ""});
+        });
+    });
+};
 //Export the object
 module.exports = policy_r__interfaceModel;

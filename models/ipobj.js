@@ -8,6 +8,7 @@ var interface_Data = require('../models/data_interface');
 var ipobj_Data = require('../models/data_ipobj');
 
 
+
 //create object
 var ipobjModel = {};
 var tableModel = "ipobj";
@@ -458,6 +459,99 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
                 callback(null, {"result": false});
             }
         });
+    });
+
+};
+
+ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
+    //SEARCH IPOBJ IN RULES
+    Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
+        if (error) {
+            callback(error, null);
+        } else {
+            //logger.debug(data_ipobj);
+            //SEARCH IPOBJ GROUP IN RULES
+            Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
+                if (error) {
+                    callback(error, null);
+                } else {
+                    //SEARCH IPOBJ IN GROUPS
+                    Policy_r__ipobjModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+                        if (error) {
+                            callback(error, null);
+                        } else {
+                            //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
+                            Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    //SEARCH INTERFACES WITH IPOBJ UNDER  IN RULES  'I'  POSITIONS
+                                    Policy_r__interfaceModel.searchInterfacesInRule(id, fwcloud, function (error, data_interfaces_f) {
+                                        if (error) {
+                                            callback(error, null);
+                                        } else {
+                                            //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITIONS
+                                            Policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_ipobj_interfaces) {
+                                                if (error) {
+                                                    callback(error, null);
+                                                } else {
+                                                    if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
+                                                            || data_interfaces.found !== "" || data_ipobj_interfaces.found !== ""
+                                                            || data_interfaces_f.found !== "") {
+                                                        callback(null, {"result": true, "msg": "IPOBJ FOUND",
+                                                            "IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
+                                                            "InterfacesIpobjInRules": data_interfaces, "InterfacesFIpobjInRules": data_interfaces_f,
+                                                            "IpobjInterfacesIpobjInRules": data_ipobj_interfaces});
+                                                    } else {
+                                                        callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "IpobjInRules": "", "GroupInRules": "",
+                                                            "IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
+                                                            "IpobjInterfacesIpobjInRules": ""});
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+    });
+};
+
+ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
+    //SEARCH IPOBJ IN RULES
+    Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
+        if (error) {
+            callback(error, null);
+        } else {
+            //SEARCH IPOBJ IN GROUPS
+            Policy_r__ipobjModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+                if (error) {
+                    callback(error, null);
+                } else {
+                    //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
+                    Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud, function (error, data_ipobj_interfaces) {
+                        if (error) {
+                            callback(error, null);
+                        } else {
+
+                            //logger.debug(data_ipobj);
+                            if (data_ipobj.found !== "" || data_group.found !== "" || data_ipobj_interfaces.found !== "") {
+                                callback(null, {"result": true, "msg": "IPOBJ FOUND",
+                                    "IpobjInRules": data_ipobj, "IpobjInGroup": data_group, "IpobjInterfaces": data_ipobj_interfaces});
+                            } else {
+                                callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "IpobjInRules": "", "IpobjInGroup": "", "IpobjInterfaces": ""});
+                            }
+
+                        }
+                    });
+                }
+            });
+        }
     });
 
 };

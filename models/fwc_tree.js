@@ -814,7 +814,7 @@ fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent,id
             //If exists Id from ipobj to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
+                    var sql = 'DELETE T.* FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
                     //logger.debug(sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
@@ -977,6 +977,8 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
                         }
                 );
             }
+            else
+                callback(null, {"msg": "success"});
         });
     });
 };

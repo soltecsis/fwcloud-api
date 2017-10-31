@@ -120,7 +120,7 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate, callback) {
 
 
-    //Check if IPOBJ TYPE is ALLOWED in this Position
+    //Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
     checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
         if (error) {
             callback(error, {"error": error});
@@ -362,7 +362,7 @@ function OrderList(new_order, rule, position, old_order, ipobj, ipobj_g, interfa
 }
 
 
-function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
+function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position,  callback) {
 
     var allowed = 0;
     db.get(function (error, connection) {
@@ -373,26 +373,33 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback)
             sql = 'select A.allowed from ipobj O ' +
                     'inner join ipobj_type T on O.type=T.id ' +
                     'inner join ipobj_type__policy_position A on A.type=O.type ' +
-                    ' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position);
+                    'inner join policy_position P on P.id=A.position ' +
+                    ' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"' ;
         } else if (ipobj_g > 0) {
             sql = 'select A.allowed from ipobj_g O ' +
                     'inner join ipobj_type T on O.type=T.id ' +
                     'inner join ipobj_type__policy_position A on A.type=O.type ' +
-                    ' WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position);
+                    'inner join policy_position P on P.id=A.position ' +
+                    ' WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"' ;
         } else if (interface > 0) {
             sql = 'select A.allowed from interface O ' +
                     'inner join ipobj_type T on O.interface_type=T.id ' +
                     'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
-                    ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position);
+                    'inner join policy_position P on P.id=A.position ' +
+                    ' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
         }
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
-                allowed = rows[0].allowed;
-                if (allowed > 0)
-                    callback(null, 1);
+                if (rows.affectedRows > 0) {
+                    allowed = rows[0].allowed;
+                    if (allowed > 0)
+                        callback(null, 1);
+                    else
+                        callback(null, 0);
+                }
                 else
                     callback(null, 0);
             }
@@ -679,6 +686,8 @@ policy_r__ipobjModel.orderAllPolicy = function (callback) {
 };
 
 
+//FALTA CORREGIR PROBLEMA AL CONTABILIZAR REGISTROS EXISTENTES 
+
 //check if IPOBJ Exists in any rule
 policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback) {
 
@@ -734,16 +743,16 @@ policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
             return done('Database problem');
         var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN  ipobj_g G on G.id=O.ipobj_g ' +
-                ' WHERE O.ipobj_g=' + connection.escape(ipobj_g) +  ' AND F.fwcloud=' + connection.escape(fwcloud);
+                ' WHERE O.ipobj_g=' + connection.escape(ipobj_g) + ' AND F.fwcloud=' + connection.escape(fwcloud);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
                     if (rows[0].n > 0) {
-                        logger.debug("ALERT DELETING ipobj GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        logger.debug("ALERT DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
                         callback(null, {"result": true});
                     } else {
-                        logger.debug("OK DELETING ipobj GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                        logger.debug("OK DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
                         callback(null, {"result": false});
                     }
                 } else
@@ -907,6 +916,231 @@ policy_r__ipobjModel.checkHOSTInterfaceInRule = function (interface, type, fwclo
         });
     });
 };
+
+
+//------------------- SEARCH METHODS -----------------------------------------------
+//FALTA BUSQUEDA de OBJETOS STANDAR SIN FWCLOUD
+//check if IPOBJ Exists in any rule
+policy_r__ipobjModel.searchIpobjInRule = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH IN RULES ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name, ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O ' +
+                'INNER JOIN policy_r R on R.id=O.rule  ' +
+                'INNER JOIN firewall F on F.id=R.firewall  ' +
+                'INNER JOIN  ipobj I on I.id=O.ipobj ' +
+                'inner join ipobj_type T on T.id=I.type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE O.ipobj=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND ipobj IN RULES:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if IPOBJ Exists in GROUP and GROUP in any rule
+policy_r__ipobjModel.searchIpobjGroupInRule = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH GROUP IN RULES ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,   ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O ' +
+                'INNER JOIN policy_r R on R.id=O.rule  ' +
+                'INNER JOIN firewall F on F.id=R.firewall  ' +
+                'INNER JOIN ipobj__ipobjg G ON G.ipobj_g=O.ipobj_g ' +
+                'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
+                'INNER JOIN  ipobj I on I.id=G.ipobj ' +
+                'inner join ipobj_type T on T.id=GR.type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND ipobj GROUP IN RULES:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if IPOBJ Exists in GROUP 
+policy_r__ipobjModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type ' +
+                'FROM ipobj__ipobjg G  ' +
+                'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
+                'INNER JOIN  ipobj I on I.id=G.ipobj ' +
+                'inner join ipobj_type T on T.id=I.type ' +
+                'inner join fwcloud C on C.id=I.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND ipobj IN  GROUP :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " GROUPS");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if Exist INTERFACES UNDER IPOBJ HOST that Exists in any rule
+policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN interface__ipobj J on J.interface=O.interface  ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNER JOIN  ipobj I on I.id=J.ipobj ' +
+                'INNER JOIN interface K on K.id=J.interface ' +
+                'inner join ipobj_type T on T.id=K.interface_type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND INTERFACES UNDER ipobj HOST :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if Exist IPOBJS under INTERFACES UNDER IPOBJ HOST that Exists in any rule
+policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH IPOBJ UNDER INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj obj_id,IR.name obj_name, IR.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN ipobj IR ON IR.id=O.ipobj ' +
+                'INNER JOIN interface__ipobj J on J.interface=IR.interface ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNER JOIN  ipobj I on I.id=J.ipobj ' +
+                'INNER JOIN interface K on K.id=J.interface ' +
+                'inner join ipobj_type T on T.id=IR.type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud  ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND IPOBJ UNDER INTERFACES UNDER ipobj HOST :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if Exist IPOBJS under INTERFACES  
+policy_r__ipobjModel.searchIpobjInterfaces = function (ipobj, type, fwcloud, callback) {
+
+    logger.debug("SEARCH IPOBJ UNDER INTERFACES :" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, K.id interface_id, K.name interface_name, K.interface_type interface_type_id, TK.type interface_type ' +
+                'FROM ipobj I ' +
+                'INNER JOIN interface K on K.id=I.interface ' +
+                'inner join ipobj_type T on T.id=I.type ' +
+                'inner join ipobj_type TK on TK.id=K.interface_type ' +
+                'inner join fwcloud C on C.id=I.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND IPOBJ UNDER INTERFACES  :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " INTERFACES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
 
 //Export the object
 module.exports = policy_r__ipobjModel;

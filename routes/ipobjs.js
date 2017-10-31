@@ -22,7 +22,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
     var idgroup = req.params.idgroup;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
+
     IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data)
     {
         //If exists ipobj get data
@@ -68,7 +68,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     var id = req.params.id;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
+
     IpobjModel.getIpobj(fwcloud, id, function (error, data)
     {
         //If exists ipobj get data
@@ -91,7 +91,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup/name/:name', function (req, res)
     var idgroup = req.params.idgroup;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
+
     IpobjModel.getIpobjName(fwcloud, idgroup, name, function (error, data)
     {
         //If exists ipobj get data
@@ -107,7 +107,55 @@ router.get('/:iduser/:fwcloud/group/:idgroup/name/:name', function (req, res)
     });
 });
 
+/* Search ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules */
+router.get("/ipobj_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
+{
+    //Id from ipobj to remove
+    //var idfirewall = req.params.idfirewall;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id = req.params.id;
+    var type = req.params.type;
+    
+    IpobjModel.searchIpobjInRules(id, type, fwcloud, function (error, data)
+    {
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data)
+        {
+            res.status(200).json(data);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
 
+/* Search where is used ipobj  */
+router.get("/ipobj_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
+{
+    //Id from ipobj to remove
+    //var idfirewall = req.params.idfirewall;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id = req.params.id;
+    var type = req.params.type;
+
+    IpobjModel.searchIpobj(id, type, fwcloud, function (error, data)
+    {
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data)
+        {
+            res.status(200).json(data);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
@@ -166,7 +214,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
                 //INSERT IN TREE
                 fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
                     if (data && data.insertId) {
-                        res.status(200).json({"insertId": id, "TreeinsertId": data.insertId });
+                        res.status(200).json({"insertId": id, "TreeinsertId": data.insertId});
                     } else {
                         logger.debug(error);
                         res.status(500).json({"msg": error});
@@ -245,7 +293,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
     var type = req.params.type;
 
     IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
-    {        
+    {
         if (error)
             res.status(500).json({"msg": error});
         else
@@ -259,7 +307,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
                 //    {});
                 //REORDER TREE
 
-                fwcTreemodel.orderTreeNodeDeleted( fwcloud, id, function (error, data) {
+                fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
                     //DELETE FROM TREE
                     fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                         if (data && data.msg) {
