@@ -468,8 +468,7 @@ ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
     Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
         if (error) {
             callback(error, null);
-        } else {
-            //logger.debug(data_ipobj);
+        } else {            
             //SEARCH IPOBJ GROUP IN RULES
             Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
                 if (error) {
