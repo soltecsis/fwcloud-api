@@ -763,7 +763,7 @@ policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
     });
 };
 
-//check if INTERFACE Exists in any rule
+//check if INTERFACE Exists in any rule 'O' POSITIONS
 policy_r__ipobjModel.checkInterfaceInRule = function (interface, type, fwcloud, firewall, callback) {
 
     logger.debug("CHECK DELETING interface O POSITIONS:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);

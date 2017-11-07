@@ -99,6 +99,30 @@ router.get('/:idfirewall/:fwcloud/name/:name', function (req, res)
 });
 
 
+/* Search where is used interface in RULES  */
+router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
+{
+    
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var id = req.params.id;
+    var type = req.params.type;
+
+    InterfaceModel.searchInterfaceInrules(id, type, fwcloud, function (error, data)
+    {
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data)
+        {
+            res.status(200).json(data);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
 /* Search where is used interface  */
 router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
 {
@@ -108,7 +132,7 @@ router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, r
     var id = req.params.id;
     var type = req.params.type;
 
-    InterfaceModel.searchIpobj(id, type, fwcloud, function (error, data)
+    InterfaceModel.searchInterface(id, type, fwcloud, function (error, data)
     {
         if (error)
             res.status(500).json({"msg": error});
