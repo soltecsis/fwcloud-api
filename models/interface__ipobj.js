@@ -15,7 +15,7 @@ var tableModel = "interface__ipobj";
 var logger = require('log4js').getLogger("app");
 
 
-//Get All interface__ipobj by intreface
+//Get All interface__ipobj by interface
 interface__ipobjModel.getInterface__ipobjs_interface = function (interface, callback) {
 
     db.get(function (error, connection) {
@@ -64,6 +64,34 @@ interface__ipobjModel.getInterface__ipobj = function (interface, ipobj, callback
     });
 };
 
+//Search Interface in hosts
+interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name ' +
+                'FROM fwcloud_db.interface__ipobj O ' +
+                'inner join  interface I on I.id=O.interface ' +
+                'inner join ipobj_type T on T.id=I.interface_type ' +
+                'inner join ipobj H on H.id=O.ipobj ' +
+                'inner join fwcloud C on C.id=H.fwcloud ' +
+                ' WHERE O.interface=' + connection.escape(interface) + ' AND H.fwcloud=' + connection.escape(fwcloud) + ' ORDER BY interface_order';
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(null, {"found": ""});
+            else {
+                if (rows.length > 0) {                    
+                    callback(null, {"found": rows});                    
+                }
+                else
+                    callback(null, {"found": ""});
+            }
+        });
+    });
+};
 
 //Add new interface__ipobj 
 interface__ipobjModel.insertInterface__ipobj = function (interface__ipobjData, callback) {

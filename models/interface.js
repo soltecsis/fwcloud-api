@@ -1,7 +1,7 @@
 var db = require('../db.js');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
-
+var Interface__ipobjModel = require('../models/interface__ipobj');
 
 
 //create object
@@ -153,27 +153,27 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
 
 interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
     //SEARCH INTERFACE IN RULES
-    Policy_r__interfaceModel.searchInterfaceInRule(id, type, fwcloud, function (error, data_ipobj) {
+    Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, function (error, data_rules) {
         if (error) {
             callback(error, null);
         } else {
-            //SEARCH IPOBJ IN GROUPS
-            Policy_r__ipobjModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+            //SEARCH INTERFACE IN FIREWALL
+            interfaceModel.searchInterfaceInFirewalls(id, type, fwcloud, function (error, data_firewalls) {
                 if (error) {
                     callback(error, null);
                 } else {
-                    //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
-                    Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud, function (error, data_ipobj_interfaces) {
+                    //SEARCH INTERFACE IN HOSTS
+                    Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud, function (error, data_hosts) {
                         if (error) {
                             callback(error, null);
                         } else {
 
                             //logger.debug(data_ipobj);
-                            if (data_ipobj.found !== "" || data_group.found !== "" || data_ipobj_interfaces.found !== "") {
+                            if (data_rules.found !== "" || data_firewalls.found !== "" || data_hosts.found !== "") {
                                 callback(null, {"result": true, "msg": "IPOBJ FOUND",
-                                    "IpobjInRules": data_ipobj, "IpobjInGroup": data_group, "IpobjInterfaces": data_ipobj_interfaces});
+                                    "InterfaceInRules": data_rules, "InterfaceInFirewalls": data_firewalls, "InterfaceInHosts": data_hosts});
                             } else {
-                                callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "IpobjInRules": "", "IpobjInGroup": "", "IpobjInterfaces": ""});
+                                callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "InterfaceInRules": "", "InterfaceInFirewalls": "", "InterfaceInHosts": ""});
                             }
 
                         }
@@ -181,6 +181,35 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
                 }
             });
         }
+    });
+
+};
+
+//Search Interfaces in Firewalls
+interfaceModel.searchInterfaceInFirewalls = function (interface, type, fwcloud, callback) {
+
+    db.get(function (error, connection) {
+
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name   ' +
+                'from interface I ' +
+                'inner join ipobj_type T on T.id=I.interface_type ' +
+                'INNER JOIN firewall F on F.id=I.firewall   ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {                                            
+                        callback(null, {"found": rows});
+                    
+                } else
+                    callback(null, {"found": ""});
+            } else {
+                logger.error(error);
+                callback(null, {"found": ""});
+            }
+        });
     });
 
 };

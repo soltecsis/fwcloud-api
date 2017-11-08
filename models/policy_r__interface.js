@@ -613,44 +613,48 @@ policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, call
             if (!error) {
                 if (rows.length > 0) {
                     logger.debug("FOUND interfaces IN RULE:" + ipobj + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
-                     callback(null, {"found": rows});
+                    callback(null, {"found": rows});
 
                 } else {
-                     callback(null, {"found": ""});
+                    callback(null, {"found": ""});
                 }
             } else
-                 callback(null, {"found": ""});
+                callback(null, {"found": ""});
         });
     });
 };
 
 //search if INTERFACE Exists in any rule
-policy_r__interfaceModel.SearchInterfaceInRule = function (interface, type, fwcloud, firewall, callback) {
+policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwcloud,  callback) {
 
     logger.debug("SEARCH interface I POSITIONS:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' +
-                ' INNER JOIN firewall F on F.id=R.firewall ' +
-                ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
-                ' inner join interface I on I.id=O.interface ' +
-                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
+        var sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
+                'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__interface O ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNEr JOIN interface I on I.id=O.interface ' +
+                'inner join ipobj_type T on T.id=I.interface_type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud) ;
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
-                    if (rows[0].n > 0) {
-                        logger.debug("ALERT DELETING interface IN RULE:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
-                        callback(null, {"result": true});
-                    } else {
-                        callback(null, {"result": false});
-                    }
+                    logger.debug("FOUND interface IN RULES:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    callback(null, {"found": rows});
+
                 } else {
-                    callback(null, {"result": false});
+                    callback(null, {"found": ""});
                 }
             } else
-                callback(null, {"result": false});
+                callback(null, {"found": ""});
         });
     });
 };
