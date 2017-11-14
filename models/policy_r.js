@@ -217,6 +217,11 @@ policy_rModel.getPolicy_rs_type = function (fwcloud,idfirewall, type, rule, AllD
                                                         //logger.debug("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
                                                         //logger.debug("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
                                                         //logger.debug(position_node);
+                                                                                                                
+                                                         position_node.ipobjs.sort(function (a, b) {
+                                                                return a.position_order - b.position_order;
+                                                            });
+                                                        
                                                         policy_node.positions.push(position_node);
 
                                                         if (policy_node.positions.length >= position_cont) {
