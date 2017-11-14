@@ -393,7 +393,6 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position,  callback
             if (error)
                 callback(error, null);
             else {
-                logger.debug("ROWS: " + rows.length);
                 if (rows.length > 0) {
                     allowed = rows[0].allowed;
                     logger.debug("ALLOWED: " + allowed);
