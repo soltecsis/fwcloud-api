@@ -393,8 +393,9 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position,  callback
             if (error)
                 callback(error, null);
             else {
-                if (rows.affectedRows > 0) {
+                if (rows.length > 0) {
                     allowed = rows[0].allowed;
+                    logger.debug("ALLOWED: " + allowed);
                     if (allowed > 0)
                         callback(null, 1);
                     else
@@ -764,7 +765,7 @@ policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
 };
 
 //check if INTERFACE Exists in any rule 'O' POSITIONS
-policy_r__ipobjModel.checkInterfaceInRule = function (interface, type, fwcloud, firewall, callback) {
+policy_r__ipobjModel.checkInterfaceInRule = function (interface, type, fwcloud,  callback) {
 
     logger.debug("CHECK DELETING interface O POSITIONS:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
@@ -774,7 +775,8 @@ policy_r__ipobjModel.checkInterfaceInRule = function (interface, type, fwcloud, 
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
                 ' inner join interface I on I.id=O.interface ' +
-                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
+                ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + 
+                ' AND C.id=' + connection.escape(fwcloud) ;
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
@@ -957,6 +959,47 @@ policy_r__ipobjModel.searchIpobjInRule = function (ipobj, type, fwcloud, callbac
     });
 };
 
+//check if INTERFACE Exists in any rule
+policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud, firewall, callback) {
+
+    logger.debug("SEARCH IN RULES interface:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  firewall: " + firewall);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name, ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O ' +
+                'INNER JOIN policy_r R on R.id=O.rule  ' +
+                'INNER JOIN firewall F on F.id=R.firewall  ' +
+                'INNER JOIN  interface I on I.id=O.interface ' +
+                'inner join ipobj_type T on T.id=I.interface_type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE O.interface=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + 
+                ' AND C.id=' + connection.escape(fwcloud);
+        if (firewall!==null){
+            sql = sql + ' AND F.id=' + connection.escape(firewall);
+        }
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND INTERFACE IN RULES:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
 //check if IPOBJ Exists in GROUP and GROUP in any rule
 policy_r__ipobjModel.searchIpobjGroupInRule = function (ipobj, type, fwcloud, callback) {
 
@@ -1029,8 +1072,8 @@ policy_r__ipobjModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback
     });
 };
 
-//check if Exist INTERFACES UNDER IPOBJ HOST that Exists in any rule
-policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fwcloud, callback) {
+//Search INTERFACES UNDER IPOBJ HOST that Exists in any rule
+policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fwcloud,  callback) {
 
     logger.debug("SEARCH INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
@@ -1052,7 +1095,7 @@ policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fw
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
-        logger.debug(sql);
+        logger.debug("SQL HOST: " + sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
@@ -1068,7 +1111,48 @@ policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fw
     });
 };
 
-//check if Exist IPOBJS under INTERFACES UNDER IPOBJ HOST that Exists in any rule
+//SEARCH INTERFACES UNDER IPOBJ HOST WITH HOST IN RULES
+policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type, fwcloud, firewall, callback) {
+
+    logger.debug("SEARCH INTERFACES UNDER HOST ipobj:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN interface__ipobj J on J.interface=O.interface  ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNER JOIN  ipobj I on I.id=J.ipobj ' +
+                'INNER JOIN interface K on K.id=J.interface ' +
+                'inner join ipobj_type T on T.id=I.type ' +
+                'inner join policy_position P on P.id=O.position ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join fwcloud C on C.id=F.fwcloud ' +
+                ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+        if (firewall!==null)
+            sql =sql + ' AND F.id=' + connection.escape(firewall);
+
+        logger.debug("SQL HOST: " + sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND INTERFACES UNDER ipobj HOST :" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//Search IPOBJS under INTERFACES UNDER IPOBJ HOST that Exists in any rule
 policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule = function (ipobj, type, fwcloud, callback) {
 
     logger.debug("SEARCH IPOBJ UNDER INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
@@ -1130,6 +1214,48 @@ policy_r__ipobjModel.searchIpobjInterfaces = function (ipobj, type, fwcloud, cal
             if (!error) {
                 if (rows.length > 0) {
                     logger.debug("FOUND IPOBJ UNDER INTERFACES  :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " INTERFACES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if Exist IPOBJS under INTERFACES  IN RULES 
+policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, fwcloud, firewall, callback) {
+
+    logger.debug("SEARCH IPOBJ UNDER INTERFACE in RULES:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name , ' +
+                'O.rule rule_id, R.rule_order,R.type rule_type,  PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O ' +
+                'INNER JOIN ipobj I ON I.id=O.ipobj ' +
+                'INNER JOIN interface K on K.id=I.interface  ' +
+                'inner join ipobj_type T on T.id=I.type  ' +
+                'inner join ipobj_type TK on TK.id=K.interface_type  ' +
+                'INNER JOIN policy_r R on R.id=O.rule    ' +
+                'INNER JOIN firewall F on F.id=R.firewall    ' +
+                'inner join fwcloud C on C.id=I.fwcloud  ' +
+                'inner join policy_position P on P.id=O.position  ' +
+                'inner join policy_type PT on PT.type=R.type ' +
+                ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + 
+                ' AND I.fwcloud=' + connection.escape(fwcloud);
+        if (firewall!==null)
+            sql=sql + ' AND F.id=' + connection.escape(firewall);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND IPOBJ UNDER INTERFACES  :" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " INTERFACES");
                     //logger.debug(rows);
                     callback(null, {"found": rows});
 
