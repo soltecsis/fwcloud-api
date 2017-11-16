@@ -43,7 +43,7 @@ var corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   }
-}
+};
 
 app.use(cors(corsOptions));
 
