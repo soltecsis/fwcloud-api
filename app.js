@@ -33,7 +33,19 @@ var Model = require('./model');
 
 var app = express();
 
-app.use(cors());
+
+var whitelist = ['http://localhost', 'http://webtest.fwcloud.net'];
+var corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}
+
+app.use(cors(corsOptions));
 
 passport.use(new LocalStrategy(function(username, password, done) {
    new Model.User({username: username}).fetch().then(function(data) {
