@@ -17,6 +17,7 @@ var session = require('express-session');
 var bcrypt = require('bcrypt-nodejs');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
+var cors = require('cors');
 
 
 
@@ -31,6 +32,8 @@ var Model = require('./model');
 
 
 var app = express();
+
+app.use(cors());
 
 passport.use(new LocalStrategy(function(username, password, done) {
    new Model.User({username: username}).fetch().then(function(data) {
