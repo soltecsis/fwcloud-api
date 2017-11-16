@@ -297,7 +297,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
         if (error)
             res.status(500).json({"msg": error});
         else
-        if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
+        if (data && (data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted"))
         {
             if (data.msg === "deleted") {
                 //DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
@@ -319,7 +319,7 @@ router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
                     });
                 });
             } else
-                res.status(200).json(data.msg);
+                res.status(200).json(data);
         } else
         {
             res.status(500).json({"msg": error});

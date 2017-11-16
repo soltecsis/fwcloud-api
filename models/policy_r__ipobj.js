@@ -1039,38 +1039,7 @@ policy_r__ipobjModel.searchIpobjGroupInRule = function (ipobj, type, fwcloud, ca
     });
 };
 
-//check if IPOBJ Exists in GROUP 
-policy_r__ipobjModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) {
 
-    logger.debug("SEARCH GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
-    db.get(function (error, connection) {
-        if (error)
-            return done('Database problem');
-
-        var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-                'C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type ' +
-                'FROM ipobj__ipobjg G  ' +
-                'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
-                'INNER JOIN  ipobj I on I.id=G.ipobj ' +
-                'inner join ipobj_type T on T.id=I.type ' +
-                'inner join fwcloud C on C.id=I.fwcloud ' +
-                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
-
-        logger.debug(sql);
-        connection.query(sql, function (error, rows) {
-            if (!error) {
-                if (rows.length > 0) {
-                    logger.debug("FOUND ipobj IN  GROUP :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " GROUPS");
-                    //logger.debug(rows);
-                    callback(null, {"found": rows});
-
-                } else
-                    callback(null, {"found": ""});
-            } else
-                callback(error, null);
-        });
-    });
-};
 
 //Search INTERFACES UNDER IPOBJ HOST that Exists in any rule
 policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fwcloud,  callback) {
@@ -1155,7 +1124,7 @@ policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type,
 //Search IPOBJS under INTERFACES UNDER IPOBJ HOST that Exists in any rule
 policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule = function (ipobj, type, fwcloud, callback) {
 
-    logger.debug("SEARCH IPOBJ UNDER INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    logger.debug("XXX SEARCH IPOBJ UNDER INTERFACES UNDER ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
@@ -1184,10 +1153,14 @@ policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule = function (ipobj, typ
                     //logger.debug(rows);
                     callback(null, {"found": rows});
 
-                } else
+                } else{
+                    logger.debug("NOT FOUND IPOBJ UNDER INTERFACES UNDER ipobj HOST :" + ipobj + " type: " + type + " fwcloud:" + fwcloud );
                     callback(null, {"found": ""});
-            } else
+                }
+            } else{
+                logger.debug(error);
                 callback(error, null);
+            }
         });
     });
 };

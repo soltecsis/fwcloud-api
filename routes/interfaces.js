@@ -315,7 +315,7 @@ router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req
 
                 } else
                 {
-                    res.status(500).json({"msg": error});
+                    res.status(500).json(data);
                 }
             }
         }
