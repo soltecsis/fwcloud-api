@@ -40,8 +40,9 @@ policy_typeModel.getPolicy_type = function (type, callback) {
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
-            else
+            else{                
                 callback(null, row);
+            }
         });
     });
 };
@@ -84,7 +85,9 @@ policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
 
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_typeData.name) + ' ' +            
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
+                ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
+                ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
             ' WHERE type = ' + policy_typeData.type;
             logger.debug(sql);
         connection.query(sql, function (error, result) {
