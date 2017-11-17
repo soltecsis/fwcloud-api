@@ -612,7 +612,7 @@ policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, call
                 'inner join fwcloud C on C.id=F.fwcloud  ' +
                 'inner join ipobj_type T on T.id=K.interface_type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE J.id=' + connection.escape(ipobj) + ' AND C.id=' + connection.escape(fwcloud);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
@@ -649,7 +649,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'INNEr JOIN interface I on I.id=O.interface ' +
                     'inner join ipobj_type T on T.id=I.interface_type ' +
                     'inner join policy_position P on P.id=O.position ' +
-                    'inner join policy_type PT on PT.type=R.type ' +
+                    'inner join policy_type PT on PT.id=R.type ' +
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud);
         } else {
@@ -664,7 +664,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'INNEr JOIN interface I on I.id=O.interface ' +
                     'inner join ipobj_type T on T.id=I.interface_type ' +
                     'inner join policy_position P on P.id=O.position ' +
-                    'inner join policy_type PT on PT.type=R.type ' +
+                    'inner join policy_type PT on PT.id=R.type ' +
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + 
                     ' AND C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall) ;

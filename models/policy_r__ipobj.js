@@ -139,8 +139,10 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
                         db.get(function (error, connection) {
                             if (error)
                                 return done('Database problem');
+                            
                             connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
                                 if (error) {
+                                    logger.debug(error);
                                     callback(error, {"error": error});
                                 } else {
                                     if (result.affectedRows > 0) {
@@ -939,7 +941,7 @@ policy_r__ipobjModel.searchIpobjInRule = function (ipobj, type, fwcloud, callbac
                 'INNER JOIN  ipobj I on I.id=O.ipobj ' +
                 'inner join ipobj_type T on T.id=I.type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE O.ipobj=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -976,7 +978,7 @@ policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud,
                 'INNER JOIN  interface I on I.id=O.interface ' +
                 'inner join ipobj_type T on T.id=I.interface_type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE O.interface=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + 
                 ' AND C.id=' + connection.escape(fwcloud);
@@ -1019,7 +1021,7 @@ policy_r__ipobjModel.searchIpobjGroupInRule = function (ipobj, type, fwcloud, ca
                 'INNER JOIN  ipobj I on I.id=G.ipobj ' +
                 'inner join ipobj_type T on T.id=GR.type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -1058,7 +1060,7 @@ policy_r__ipobjModel.searchIpobjInGroupInRule = function (idg,  fwcloud, callbac
                 'INNER JOIN ipobj_g GR ON GR.id= G.ipobj_g ' +
                 'inner join ipobj_type T on T.id=I.type  ' +
                 'inner join policy_position P on P.id=O.position  ' +
-                'inner join policy_type PT on PT.type=R.type  ' +
+                'inner join policy_type PT on PT.id=R.type  ' +
                 'inner join fwcloud C on C.id=F.fwcloud  ' +
                 ' WHERE GR.id=' + connection.escape(idg) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -1095,7 +1097,7 @@ policy_r__ipobjModel.searchGroupInRule = function (idg,  fwcloud, callback) {
                 'INNER JOIN ipobj_g GR ON GR.id=O.ipobj_g  ' +
                 'inner join ipobj_type T on T.id=GR.type  ' +
                 'inner join policy_position P on P.id=O.position  ' +
-                'inner join policy_type PT on PT.type=R.type  ' +
+                'inner join policy_type PT on PT.id=R.type  ' +
                 'inner join fwcloud C on C.id=F.fwcloud  ' +
                 ' WHERE GR.id=' + connection.escape(idg) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -1135,7 +1137,7 @@ policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fw
                 'INNER JOIN interface K on K.id=J.interface ' +
                 'inner join ipobj_type T on T.id=K.interface_type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -1174,7 +1176,7 @@ policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type,
                 'INNER JOIN interface K on K.id=J.interface ' +
                 'inner join ipobj_type T on T.id=I.type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
         if (firewall!==null)
@@ -1216,7 +1218,7 @@ policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule = function (ipobj, typ
                 'INNER JOIN interface K on K.id=J.interface ' +
                 'inner join ipobj_type T on T.id=IR.type ' +
                 'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 'inner join fwcloud C on C.id=F.fwcloud  ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
@@ -1293,7 +1295,7 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
                 'INNER JOIN firewall F on F.id=R.firewall    ' +
                 'inner join fwcloud C on C.id=I.fwcloud  ' +
                 'inner join policy_position P on P.id=O.position  ' +
-                'inner join policy_type PT on PT.type=R.type ' +
+                'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + 
                 ' AND I.fwcloud=' + connection.escape(fwcloud);
         if (firewall!==null)

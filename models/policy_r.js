@@ -90,11 +90,11 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
             if (error)
                 AllDone(error, null);
             else {
-                if (data_types.length>0)
-                    type=data_types[0].id;
+                if (data_types.length > 0)
+                    type = data_types[0].id;
                 else
-                    type=1;
-                
+                    type = 1;
+
                 var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND  type= ' + connection.escape(type) + sqlRule + ' ORDER BY rule_order';
                 //logger.debug(sql);
                 connection.query(sql, function (error, rows) {
@@ -373,65 +373,81 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 
 //Update policy_r from user
 policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
-
-
-
-    db.get(function (error, connection) {
+    Policy_typeModel.getPolicy_type(policy_rData.type, function (error, data_types) {
         if (error)
-            return done('Database problem');
-        logger.debug("UPDATE RULE:");
-        logger.debug(policy_rData);
+            AllDone(error, null);
+        else {
+            if (data_types.length > 0)
+                type = data_types[0].id;
+            else
+                type = 1;
+            db.get(function (error, connection) {
+                if (error)
+                    return done('Database problem');
+                logger.debug("UPDATE RULE:");
+                logger.debug(policy_rData);
 
-        var sql = 'UPDATE ' + tableModel + ' SET ' +
-                'idgroup = ' + connection.escape(policy_rData.idgroup) + ',' +
-                'firewall = ' + connection.escape(policy_rData.firewall) + ',' +
-                'rule_order = ' + connection.escape(policy_rData.rule_order) + ',' +
-                'action = ' + connection.escape(policy_rData.action) + ',' +
-                'time_start = ' + connection.escape(policy_rData.time_start) + ',' +
-                'time_end = ' + connection.escape(policy_rData.time_end) + ',' +
-                'options = ' + connection.escape(policy_rData.options) + ',' +
-                'active = ' + connection.escape(policy_rData.active) + ',' +
-                'comment = ' + connection.escape(policy_rData.comment) + ', ' +
-                'type = ' + connection.escape(policy_rData.type) + ' ' +
-                ' WHERE id = ' + policy_rData.id;
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'idgroup = ' + connection.escape(policy_rData.idgroup) + ',' +
+                        'firewall = ' + connection.escape(policy_rData.firewall) + ',' +
+                        'rule_order = ' + connection.escape(policy_rData.rule_order) + ',' +
+                        'action = ' + connection.escape(policy_rData.action) + ',' +
+                        'time_start = ' + connection.escape(policy_rData.time_start) + ',' +
+                        'time_end = ' + connection.escape(policy_rData.time_end) + ',' +
+                        'options = ' + connection.escape(policy_rData.options) + ',' +
+                        'active = ' + connection.escape(policy_rData.active) + ',' +
+                        'comment = ' + connection.escape(policy_rData.comment) + ', ' +
+                        'type = ' + connection.escape(type) + ' ' +
+                        ' WHERE id = ' + policy_rData.id;
 
-        connection.query(sql, function (error, result) {
-            if (error) {
-                logger.error(error);
-                callback(error, null);
-            } else {
-                if (result.affectedRows > 0) {
-                    OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
-                    callback(null, {"msg": "success"});
-                } else
-                    callback(null, {"msg": "notExist"});
-            }
-        });
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
+                            callback(null, {"msg": "success"});
+                        } else
+                            callback(null, {"msg": "notExist"});
+                    }
+                });
+            });
+        }
     });
 };
 
 //Update ORDER de policy_r 
 policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, callback) {
-
-    db.get(function (error, connection) {
+    Policy_typeModel.getPolicy_type(type, function (error, data_types) {
         if (error)
-            return done('Database problem');
-        var sql = 'UPDATE ' + tableModel + ' SET ' +
-                'rule_order = ' + connection.escape(new_order) + ' ' +
-                ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) +
-                ' AND rule_order=' + connection.escape(old_order);
+            AllDone(error, null);
+        else {
+            if (data_types.length > 0)
+                type = data_types[0].id;
+            else
+                type = 1;
+            db.get(function (error, connection) {
+                if (error)
+                    return done('Database problem');
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'rule_order = ' + connection.escape(new_order) + ' ' +
+                        ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) +
+                        ' AND rule_order=' + connection.escape(old_order);
 
-        connection.query(sql, function (error, result) {
-            if (error) {
-                callback(error, null);
-            } else {
-                if (result.affectedRows > 0) {
-                    OrderList(new_order, idfirewall, old_order, id);
-                    callback(null, {"msg": "success"});
-                } else
-                    callback(null, {"msg": "notExist"});
-            }
-        });
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            OrderList(new_order, idfirewall, old_order, id);
+                            callback(null, {"msg": "success"});
+                        } else
+                            callback(null, {"msg": "notExist"});
+                    }
+                });
+            });
+        }
     });
 };
 

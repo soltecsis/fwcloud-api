@@ -22,21 +22,21 @@ router.param('rule', function (req, res, next, param) {
 router.param('ipobj', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: ipobj");
-        req.params.ipobj = null;
+        req.params.ipobj = -1;
     }
     next();
 });
 router.param('ipobj_g', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: ipobj_g");
-        req.params.ipobj_g = null;
+        req.params.ipobj_g = -1;
     }
     next();
 });
 router.param('interface', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: interface");
-        req.params.interface = null;
+        req.params.interface = -1;
     }
     next();
 });
@@ -86,7 +86,7 @@ function checkPostParameters(obj) {
         logger.debug(propt + ': ' + obj[propt]);
         if (obj[propt] === undefined) {
             logger.debug("PARAMETRO UNDEFINED: " + propt);
-            obj[propt] = 0;
+            obj[propt] = -1;
         }
     }
     return obj;
