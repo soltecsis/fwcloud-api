@@ -22,21 +22,21 @@ router.param('rule', function (req, res, next, param) {
 router.param('ipobj', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: ipobj");
-        req.params.ipobj = 0;
+        req.params.ipobj = null;
     }
     next();
 });
 router.param('ipobj_g', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: ipobj_g");
-        req.params.ipobj_g = 0;
+        req.params.ipobj_g = null;
     }
     next();
 });
 router.param('interface', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
         logger.error("DETECTED UNDEFINED: interface");
-        req.params.interface = 0;
+        req.params.interface = null;
     }
     next();
 });
