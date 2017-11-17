@@ -69,9 +69,9 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
         var sqlId = '';
         if (id !== '')
             sqlId = ' AND G.id = ' + connection.escape(id);
-        var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' + 
-                  'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
-                  ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
+        var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
+                'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
         //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
@@ -164,6 +164,56 @@ ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
         });
     });
 };
+
+
+/* Search where is used GROUP  */
+ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
+    //SEARCH IPOBJ GROUP IN RULES
+    Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
+        if (error) {
+            callback(error, null);
+        } else {
+
+            if (data_grouprule.found !== "") {
+                callback(null, {"result": true, "msg": "GROUP FOUND", "search": [{
+                            "groupInRules": data_grouprule}]});
+            } else {
+                callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": [{
+                            "groupInRules": ""}]});
+            }
+
+        }
+    });
+
+};
+
+/* Search where is used GROUP IN RULES AND MEMBERS */
+ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
+    //SEARCH IPOBJ GROUP IN RULES
+    Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
+        if (error) {
+            callback(error, null);
+        } else {
+            //SEARCH IPOBJ GROUP IN RULES
+            Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud, function (error, data_ipobjrule) {
+                if (error) {
+                    callback(error, null);
+                } else {
+
+                    if (data_grouprule.found !== "" || data_ipobjrule.found !== "") {
+                        callback(null, {"result": true, "msg": "GROUP FOUND", "search": [{
+                                    "groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}]});
+                    } else {
+                        callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": [{
+                                    "groupInRules": "", "ipobjInGroupInRules": ""}]});
+                    }
+                }
+            });
+        }
+    });
+
+};
+
 //Add new ipobj_g
 ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
     db.get(function (error, connection) {
@@ -206,12 +256,16 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
     //CHECK IPOBJ OR GROUP IN RULE
-    Policy_r__ipobjModel.checkGroupInRule(id, fwcloud, function (error, data) {
+    this.searchGroupInRules(id, fwcloud, function (error, data) {
         if (error) {
             logger.error(error);
             callback(error, null);
         } else {
-            if (!data.result) {
+            //CHECK RESULTS
+            if (data.result) {
+                logger.debug("RESTRICTED GROUP: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
+                callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
+            } else {
                 db.get(function (error, connection) {
                     if (error)
                         return done('Database problem');
@@ -246,9 +300,7 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
                         }
                     });
                 });
-            } else {
-                callback(null, {"msg": "Restricted", "by": "by GROUP"});
-            }
+            }            
         }
     });
 

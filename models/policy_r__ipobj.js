@@ -735,7 +735,7 @@ policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback
     });
 };
 
-//check if IPOBJ GROUP OR IPOBJS in GROUP Exists in any rule
+//check if IPOBJ GROUP  Exists in any rule
 policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
 
     logger.debug("CHECK DELETING  GROUP:" + ipobj_g + "  fwcloud:" + fwcloud);
@@ -1029,6 +1029,81 @@ policy_r__ipobjModel.searchIpobjGroupInRule = function (ipobj, type, fwcloud, ca
                 if (rows.length > 0) {
                     logger.debug("FOUND ipobj GROUP IN RULES:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
                     //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if IPOBJ's in GROUP Exists in any rule
+policy_r__ipobjModel.searchIpobjInGroupInRule = function (idg,  fwcloud, callback) {
+
+    logger.debug("SEARCH IPOBJ IN GROUP IN RULES :" + idg + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment  ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNER JOIN  ipobj I on I.id=O.ipobj ' +
+                'INNER JOIN ipobj__ipobjg G ON G.ipobj=I.id ' +
+                'INNER JOIN ipobj_g GR ON GR.id= G.ipobj_g ' +
+                'inner join ipobj_type T on T.id=I.type  ' +
+                'inner join policy_position P on P.id=O.position  ' +
+                'inner join policy_type PT on PT.type=R.type  ' +
+                'inner join fwcloud C on C.id=F.fwcloud  ' +
+                ' WHERE GR.id=' + connection.escape(idg) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND ipobjs IN GROUP IN RULES:" + idg +  " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//check if GROUP Exists in any rule
+policy_r__ipobjModel.searchGroupInRule = function (idg,  fwcloud, callback) {
+
+    logger.debug("SEARCH GROUP IN RULES :" + idg +  "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment  ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN policy_r R on R.id=O.rule   ' +
+                'INNER JOIN firewall F on F.id=R.firewall   ' +
+                'INNER JOIN ipobj_g GR ON GR.id=O.ipobj_g  ' +
+                'inner join ipobj_type T on T.id=GR.type  ' +
+                'inner join policy_position P on P.id=O.position  ' +
+                'inner join policy_type PT on PT.type=R.type  ' +
+                'inner join fwcloud C on C.id=F.fwcloud  ' +
+                ' WHERE GR.id=' + connection.escape(idg) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND GROUP IN RULES:" + idg + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");                    
                     callback(null, {"found": rows});
 
                 } else

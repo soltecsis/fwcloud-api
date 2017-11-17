@@ -102,6 +102,53 @@ router.get('/:iduser/:fwcloud/type/:type', function (req, res)
 });
 
 
+/* Search GROUPS AND members in Rules */
+router.get("/ipobj_g_search_rules/:iduser/:fwcloud/:idg", function (req, res)
+{
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var idg = req.params.idg;
+    
+    
+    Ipobj_gModel.searchGroupInRules(idg, fwcloud, function (error, data)
+    {
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data)
+        {
+            res.status(200).json(data);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
+/* Search where is used Group  */
+router.get("/ipobj_g_search_used/:iduser/:fwcloud/:idg", function (req, res)
+{
+  
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    var idg = req.params.idg;
+    
+
+    Ipobj_gModel.searchGroup(idg, fwcloud, function (error, data)
+    {
+        if (error)
+            res.status(500).json({"msg": error});
+        else
+        if (data)
+        {
+            res.status(200).json(data);
+        } else
+        {
+            res.status(500).json({"msg": error});
+        }
+    });
+});
+
 
 
 
@@ -206,7 +253,7 @@ router.delete("/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
                 });
 
             } else
-                res.status(200).json(data.msg);
+                res.status(200).json(data);
         } else
         {
             res.status(500).json({"msg": error});
