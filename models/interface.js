@@ -312,6 +312,7 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
                 'interface_type = ' + connection.escape(interfaceData.interface_type) + ', ' +
                 'comment = ' + connection.escape(interfaceData.comment) + ', ' +
                 'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ' ' +
+                'mac = ' + connection.escape(interfaceData.mac) + ' ' +
                 ' WHERE id = ' + interfaceData.id + ' AND firewall=' + connection.escape(interfaceData.firewall);
         logger.debug(sql);
         connection.query(sql, function (error, result) {

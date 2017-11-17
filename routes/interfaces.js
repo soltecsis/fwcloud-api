@@ -172,7 +172,8 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:ho
         type: req.body.type,
         interface_type: req.body.interface_type,
         securityLevel: req.body.securityLevel,
-        comment: req.body.comment
+        comment: req.body.comment,
+        mac: req.body.mac
     };
 
     utilsModel.checkParameters(interfaceData, function (obj) {
@@ -236,7 +237,7 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     //Save data into object
-    var interfaceData = {id: req.body.id, name: req.body.name, firewall: req.body.firewall, interface_type: req.body.interface_type, labelName: req.body.labelName, type: req.body.type, securityLevel: req.body.securityLevel, comment: req.body.comment};
+    var interfaceData = {id: req.body.id, name: req.body.name, firewall: req.body.firewall, interface_type: req.body.interface_type, labelName: req.body.labelName, type: req.body.type, securityLevel: req.body.securityLevel, comment: req.body.comment, mac: req.body.mac};
 
     utilsModel.checkParameters(interfaceData, function (obj) {
         interfaceData = obj;
