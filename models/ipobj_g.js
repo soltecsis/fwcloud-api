@@ -287,9 +287,9 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
                                                 callback(error, null);
                                             } else {
                                                 if (result.affectedRows > 0)
-                                                    callback(null, {"msg": "deleted"});
+                                                    callback(null, {"result": true,"msg": "deleted"});
                                                 else
-                                                    callback(null, {"msg": "notExist"});
+                                                    callback(null, {"result": false,"msg": "notExist"});
                                             }
                                         });
                                     }
