@@ -5,10 +5,11 @@ function policy_position_ipobjs_data(data, order, negate, type) {
     this.name = data.name;
     this.position_order = order;
     this.negate = negate;
-
+    this.fwcloud = data.fwcloud;
+    this.comment = data.comment;
+    
     if (type === 'O') {
-        this.type = data.type;
-        this.fwcloud = data.fwcloud;
+        this.type = data.type;        
         this.interface = data.interface;
         this.protocol = data.protocol;
         this.address = data.address;
@@ -25,7 +26,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
         this.destination_port_start = data.destination_port_start;
         this.destination_port_end = data.destination_port_end;
         this.options = data.options;
-        this.comment = data.comment;
+        
     } 
     else if (type === 'I') {
         this.type = data.interface_type;
