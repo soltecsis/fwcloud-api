@@ -161,7 +161,7 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
                                     if (error) {
                                         callback(error, null);
                                     } else {
-                                        //SEARCH INTERFACES UNDER IPOBJ HOST WITH HOST IN RULES
+                                        //SEARCH HOST with INTERFACE UNDER IPOBJ HOST WITH HOST IN RULES
                                         Policy_r__ipobjModel.searchHostInterfacesHostInRule(id, type, fwcloud, firewall, function (error, data_host_interfaces) {
                                             if (error) {
                                                 callback(error, null);
@@ -169,7 +169,8 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
                                                 //logger.debug(data_ipobj);
                                                 if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
                                                     callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": {
-                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces, "IpobjInterfaceInrules": data_ipobj_interfaces}});
+                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces, 
+                                                                "IpobjInterfaceInrules": data_ipobj_interfaces}});
                                                 } else {
                                                     callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
                                                                 "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});

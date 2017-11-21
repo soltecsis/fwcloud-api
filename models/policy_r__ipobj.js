@@ -969,7 +969,7 @@ policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud,
         if (error)
             return done('Database problem');
 
-        var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+        var sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
                 'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name, ' +
                 'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
                 'FROM policy_r__ipobj O ' +
@@ -1130,15 +1130,15 @@ policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fw
                 'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
                 'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
                 'FROM policy_r__ipobj O  ' +
-                'INNER JOIN interface__ipobj J on J.interface=O.interface  ' +
-                'INNER JOIN policy_r R on R.id=O.rule   ' +
-                'INNER JOIN firewall F on F.id=R.firewall   ' +
-                'INNER JOIN  ipobj I on I.id=J.ipobj ' +
-                'INNER JOIN interface K on K.id=J.interface ' +
-                'inner join ipobj_type T on T.id=K.interface_type ' +
-                'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.id=R.type ' +
-                'inner join fwcloud C on C.id=F.fwcloud ' +
+                'INNER JOIN interface K ON K.id = O.interface ' +
+                'INNER JOIN interface__ipobj J ON J.interface = K.id ' +
+                'INNER JOIN ipobj I ON I.id = J.ipobj         ' +
+                'INNER JOIN policy_r R ON R.id = O.rule ' +
+                'INNER JOIN firewall F ON F.id = R.firewall			 ' +
+                'INNER JOIN ipobj_type T ON T.id = K.interface_type ' +
+                'INNER JOIN policy_position P ON P.id = O.position ' +
+                'INNER JOIN policy_type PT ON PT.id = R.type ' +
+                'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
 
         logger.debug("SQL HOST: " + sql);
@@ -1146,6 +1146,44 @@ policy_r__ipobjModel.searchInterfacesIpobjHostInRule = function (ipobj, type, fw
             if (!error) {
                 if (rows.length > 0) {
                     logger.debug("FOUND INTERFACES UNDER ipobj HOST :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    //logger.debug(rows);
+                    callback(null, {"found": rows});
+
+                } else
+                    callback(null, {"found": ""});
+            } else
+                callback(error, null);
+        });
+    });
+};
+
+//Search INTERFACES ABOVE IPOBJ  that Exists in any rule
+policy_r__ipobjModel.searchInterfacesAboveIpobjInRule = function (ipobj, type, fwcloud,  callback) {
+
+    logger.debug("SEARCH INTERFACES ABOVE ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+    db.get(function (error, connection) {
+        if (error)
+            return done('Database problem');
+
+        var sql = 'SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name, ' +
+                'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
+                'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+                'FROM policy_r__ipobj O  ' +
+                'INNER JOIN interface K ON K.id = O.interface ' +                
+                'INNER JOIN ipobj I ON I.interface = K.id         ' +
+                'INNER JOIN policy_r R ON R.id = O.rule ' +
+                'INNER JOIN firewall F ON F.id = R.firewall			 ' +
+                'INNER JOIN ipobj_type T ON T.id = K.interface_type ' +
+                'INNER JOIN policy_position P ON P.id = O.position ' +
+                'INNER JOIN policy_type PT ON PT.id = R.type ' +
+                'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
+
+        logger.debug("SQL HOST: " + sql);
+        connection.query(sql, function (error, rows) {
+            if (!error) {
+                if (rows.length > 0) {
+                    logger.debug("FOUND INTERFACES ABOVE ipobj :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
                     //logger.debug(rows);
                     callback(null, {"found": rows});
 
@@ -1169,15 +1207,15 @@ policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type,
                 'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
                 'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
                 'FROM policy_r__ipobj O  ' +
-                'INNER JOIN interface__ipobj J on J.interface=O.interface  ' +
-                'INNER JOIN policy_r R on R.id=O.rule   ' +
-                'INNER JOIN firewall F on F.id=R.firewall   ' +
-                'INNER JOIN  ipobj I on I.id=J.ipobj ' +
-                'INNER JOIN interface K on K.id=J.interface ' +
-                'inner join ipobj_type T on T.id=I.type ' +
-                'inner join policy_position P on P.id=O.position ' +
-                'inner join policy_type PT on PT.id=R.type ' +
-                'inner join fwcloud C on C.id=F.fwcloud ' +
+                'INNER JOIN ipobj I ON I.id = O.ipobj ' +
+                'INNER JOIN interface__ipobj J ON J.ipobj = I.id                 ' +
+                'INNER JOIN interface K ON K.id = J.interface	 ' +
+                'INNER JOIN ipobj_type T ON T.id = I.type         ' +
+                'INNER JOIN policy_r R ON R.id = O.rule ' +
+                'INNER JOIN firewall F ON F.id = R.firewall ' +
+                'INNER JOIN policy_position P ON P.id = O.position ' +
+                'INNER JOIN policy_type PT ON PT.id = R.type ' +
+                'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
         if (firewall!==null)
             sql =sql + ' AND F.id=' + connection.escape(firewall);
@@ -1336,11 +1374,11 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
                 'inner join ipobj_type TK on TK.id=K.interface_type  ' +
                 'INNER JOIN policy_r R on R.id=O.rule    ' +
                 'INNER JOIN firewall F on F.id=R.firewall    ' +
-                'inner join fwcloud C on C.id=I.fwcloud  ' +
+                'inner join fwcloud C on C.id=F.fwcloud  ' +
                 'inner join policy_position P on P.id=O.position  ' +
                 'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + 
-                ' AND I.fwcloud=' + connection.escape(fwcloud);
+                ' AND F.fwcloud=' + connection.escape(fwcloud);
         if (firewall!==null)
             sql=sql + ' AND F.id=' + connection.escape(firewall);
 
