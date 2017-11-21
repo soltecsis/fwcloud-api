@@ -305,15 +305,13 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
     db.get(function (error, connection) {
         if (error)
             return done('Database problem');
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(interfaceData.name) + ',' +
-                'firewall = ' + connection.escape(interfaceData.firewall) + ',' +
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(interfaceData.name) + ',' +               
                 'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
-                'type = ' + connection.escape(interfaceData.type) + ', ' +
-                'interface_type = ' + connection.escape(interfaceData.interface_type) + ', ' +
+                'type = ' + connection.escape(interfaceData.type) + ', ' +               
                 'comment = ' + connection.escape(interfaceData.comment) + ', ' +
                 'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ', ' +
                 'mac = ' + connection.escape(interfaceData.mac) + ' ' +
-                ' WHERE id = ' + interfaceData.id + ' AND firewall=' + connection.escape(interfaceData.firewall);
+                ' WHERE id = ' + interfaceData.id ;
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
