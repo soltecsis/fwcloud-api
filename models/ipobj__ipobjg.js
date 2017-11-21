@@ -178,8 +178,8 @@ ipobj__ipobjgModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) 
                 'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
                 'INNER JOIN  ipobj I on I.id=G.ipobj ' +
                 'inner join ipobj_type T on T.id=I.type ' +
-                'inner join fwcloud C on C.id=I.fwcloud ' +
-                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
+                'left join fwcloud C on C.id=I.fwcloud ' +
+                ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
 
         logger.debug(sql);
         connection.query(sql, function (error, rows) {

@@ -168,11 +168,11 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
                                             } else {
                                                 //logger.debug(data_ipobj);
                                                 if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
-                                                    callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": [{
-                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces, "IpobjInterfaceInrules": data_ipobj_interfaces}]});
+                                                    callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": {
+                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces, "IpobjInterfaceInrules": data_ipobj_interfaces}});
                                                 } else {
-                                                    callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": [{
-                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}]});
+                                                    callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
                                                 }
                                             }
                                         });
@@ -183,8 +183,8 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
                     }
                 });
             } else
-                callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": [{
-                            "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}]});
+                callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                            "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
         }
     });
 };
@@ -224,11 +224,11 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
 
                                                 //logger.debug(data_ipobj);
                                                 if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_firewalls.found !== "" || data_hosts.found !== "") {
-                                                    callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": [{
-                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "InterfaceInFirewalls": data_firewalls, "InterfaceInHosts": data_hosts}]});
+                                                    callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": {
+                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "InterfaceInFirewalls": data_firewalls, "InterfaceInHosts": data_hosts}});
                                                 } else {
-                                                    callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": [{
-                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "InterfaceInFirewalls": "", "InterfaceInHosts": ""}]});
+                                                    callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "InterfaceInFirewalls": "", "InterfaceInHosts": ""}});
                                                 }
 
                                             }
@@ -240,8 +240,8 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
                     }
                 });
             } else {
-                callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": [{
-                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "InterfaceInFirewalls": "", "InterfaceInHosts": ""}]});
+                callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "InterfaceInFirewalls": "", "InterfaceInHosts": ""}});
             }
         }
     });

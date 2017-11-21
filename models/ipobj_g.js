@@ -175,11 +175,11 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
         } else {
 
             if (data_grouprule.found !== "") {
-                callback(null, {"result": true, "msg": "GROUP FOUND", "search": [{
-                            "groupInRules": data_grouprule}]});
+                callback(null, {"result": true, "msg": "GROUP FOUND", "search": {
+                            "groupInRules": data_grouprule}});
             } else {
-                callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": [{
-                            "groupInRules": ""}]});
+                callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": {
+                            "groupInRules": ""}});
             }
 
         }
