@@ -77,8 +77,8 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
                 'inner join ipobj_type T on T.id=I.interface_type ' +
                 'inner join ipobj H on H.id=O.ipobj ' +
                 'inner join ipobj_type TH on TH.id=H.type ' +
-                'inner join fwcloud C on C.id=H.fwcloud ' +
-                ' WHERE O.interface=' + connection.escape(interface) + ' AND H.fwcloud=' + connection.escape(fwcloud) + ' ORDER BY interface_order';
+                'left join fwcloud C on C.id=H.fwcloud ' +
+                ' WHERE O.interface=' + connection.escape(interface) + ' AND (H.fwcloud=' + connection.escape(fwcloud) + ' OR H.fwcloud is NULL)  ORDER BY interface_order';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
