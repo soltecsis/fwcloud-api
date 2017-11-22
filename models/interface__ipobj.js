@@ -71,11 +71,12 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
         if (error)
             return done('Database problem');
         var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-                'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name ' +
+                'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
                 'FROM fwcloud_db.interface__ipobj O ' +
                 'inner join  interface I on I.id=O.interface ' +
                 'inner join ipobj_type T on T.id=I.interface_type ' +
                 'inner join ipobj H on H.id=O.ipobj ' +
+                'inner join ipobj_type TH on TH.id=H.type ' +
                 'inner join fwcloud C on C.id=H.fwcloud ' +
                 ' WHERE O.interface=' + connection.escape(interface) + ' AND H.fwcloud=' + connection.escape(fwcloud) + ' ORDER BY interface_order';
         logger.debug(sql);
