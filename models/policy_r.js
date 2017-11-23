@@ -86,7 +86,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
         if (rule !== "") {
             sqlRule = " AND id=" + connection.escape(rule);
         }
-        Policy_typeModel.getPolicy_type(rule_type, function (error, data_types) {
+        Policy_typeModel.getPolicy_type(type, function (error, data_types) {
             if (error)
                 AllDone(error, null);
             else {
