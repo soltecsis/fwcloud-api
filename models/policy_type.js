@@ -33,10 +33,10 @@ policy_typeModel.getPolicy_types = function (callback) {
 
 
 //Get policy_type by  type
-policy_typeModel.getPolicy_type = function (type, callback) {
+policy_typeModel.getPolicy_type = function (id, callback) {
     db.get(function (error, connection) {
         if (error) return done('Database problem');
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(type);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);

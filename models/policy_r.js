@@ -50,26 +50,7 @@ policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
 //Get All policy_r by firewall and type
 policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, AllDone) {
 
-    var rule_type;
-
-
-    switch (type) {
-        case "I" :
-            rule_type = "I";
-            break;
-        case "O":
-            rule_type = "O";
-            break;
-        case "F":
-            rule_type = "F";
-            break;
-        case "N":
-            rule_type = "N";
-            break;
-        default:
-            rule_type = "I";
-            break;
-    }
+     
     var policy = [];
     var policy_cont = 0;
     var position_cont = 0;
