@@ -116,7 +116,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined,'http://localhost:4200', 'http://webtest.fwcloud.net'];
+var whitelist = [undefined,'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
 var corsOptions = {
   origin: function (origin, callback) {
       logger.debug("ORIGIN: " + origin);
