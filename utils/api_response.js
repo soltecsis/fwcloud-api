@@ -1,0 +1,139 @@
+//create object
+var respModel = {};
+
+const VError = require('verror').VError;
+const WError = require('verror').WError;
+
+respModel.ACR_ERROR = 'ACR_ERROR';
+respModel.ACR_OK = 'ACR_OK';
+respModel.ACR_NOTEXIST = 'ACR_NOTEXIST';
+respModel.ACR_MISSING = 'ACR_MISSING';
+respModel.ACR_DELETED_OK = 'ACR_DELETED_OK';
+respModel.ACR_RESTRICTED = 'ACR_RESTRICTED';
+respModel.ACR_INSERTED_OK = 'ACR_INSERTED_OK';
+respModel.ACR_UPDATED_OK = 'ACR_UPDATED_OK';
+respModel.ACR_DATA_ERROR = 'ACR_DATA_ERROR';
+respModel.ACR_NOT_ALLOWED = 'ACR_NOT_ALLOWED';
+respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
+
+/**
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
+var logger = require('log4js').getLogger("app");
+
+/* para control de errores
+ const errReqFail = new Error('Request failed');
+ const errReqStatus = new VError(errReqFail, 'Unexpected status code "%s"', '500');
+ const errReq = new WError(errReqStatus, 'Internal error');
+ 
+ console.error(errReq.message); //Internal error:
+ // get some real data for logging
+ console.info(errReq.toString()); //
+ */
+
+
+respModel.getJson = function (data, respCode, custom_response, custom_obj, error, callback) {
+    var resp_json = "";
+    var error_code = "";
+    var error_msg = "";
+
+
+    if (error) {
+        error_code = error.code;
+        error_msg = error.message;
+        logger.debug(error);
+    }
+    if (data=== null)
+        data={};
+    this.getMsgCodeResp(respCode, custom_obj, error, function (respStatus, respMsg) {
+        resp_json = {"response": {
+                "respStatus": respStatus,
+                "respCode": respCode,
+                "respCodeMsg": respMsg,
+                "respMsg": custom_response,
+                "errorCode": error_code,
+                "errorMsg": error_msg},
+            "data": data};
+
+        callback(resp_json);
+    });
+
+
+};
+
+respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
+    var msg = "";
+    var status = false;
+
+    switch (respCode) {
+        case this.ACR_ERROR:
+            status = false;
+            if (error) {
+                switch (error.code) {
+                    case 'ER_NO_REFERENCED_ROW_2' :
+                        msg = 'foreign Data reference error';
+                        break;
+                    case 'ER_DUP_ENTRY':
+                        msg = 'Duplicated Data';
+                        break;
+                    default:
+                        msg = "Internal Error";
+                }
+            }            
+            break;
+        case this.ACR_OK:
+            status = true;
+            msg = "Ok";
+            break;
+        case this.ACR_NOTEXIST:
+            status = false;
+            msg = custom_obj + " not exist";
+            break;
+        case this.ACR_MISSING:
+            status = false;
+            msg = custom_obj + " not exist";
+            break;
+        case this.ACR_DATA_ERROR:
+            status = false;
+            msg = custom_obj + " Data error";
+            break;    
+        case this.ACR_DELETED_OK:
+            status = true;
+            msg = custom_obj + " delete success";
+            break;
+        case this.ACR_INSERTED_OK:
+            status = true;
+            msg = custom_obj + " insert success";
+            break;
+        case this.ACR_UPDATED_OK:
+            status = true;
+            msg = custom_obj + " update success";
+            break;
+        case this.ACR_RESTRICTED:
+            status = false;
+            msg = custom_obj + " restricted";
+            break;
+        case this.ACR_NOT_ALLOWED:
+            status = false;
+            msg = custom_obj + " not allowed";
+            break;    
+        case this.ACR_PARAM_ERROR:
+            status = false;
+            msg = custom_obj + " param error";
+            break;        
+        default:
+            status = false;
+            msg = "unknown error";
+    }
+
+    callback(status, msg);
+};
+
+
+
+//Export the object
+module.exports = respModel;
