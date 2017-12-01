@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 ipobj_type__routing_positionModel.getIpobj_type__routing_positions = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY position', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ ipobj_type__routing_positionModel.getIpobj_type__routing_positions = function (c
 //Get ipobj_type__routing_position by  id
 ipobj_type__routing_positionModel.getIpobj_type__routing_position = function (type, position, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
         connection.query(sql, function (error, row) {
             if (error)
@@ -50,7 +50,7 @@ ipobj_type__routing_positionModel.getIpobj_type__routing_position = function (ty
 //Add new ipobj_type__routing_position
 ipobj_type__routing_positionModel.insertIpobj_type__routing_position = function (ipobj_type__routing_positionData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_type__routing_positionData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -67,7 +67,7 @@ ipobj_type__routing_positionModel.insertIpobj_type__routing_position = function 
 ipobj_type__routing_positionModel.updateIpobj_type__routing_position = function (ipobj_type__routing_positionData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET type = ' + connection.escape(ipobj_type__routing_positionData.type) + ' ' +            
             ' WHERE type = ' + connection.escape(ipobj_type__routing_positionData.type) + ' position = ' + connection.escape(ipobj_type__routing_positionData.position);
         connection.query(sql, function (error, result) {
@@ -75,7 +75,7 @@ ipobj_type__routing_positionModel.updateIpobj_type__routing_position = function 
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -84,7 +84,7 @@ ipobj_type__routing_positionModel.updateIpobj_type__routing_position = function 
 //Remove ipobj_type__routing_position with id to remove
 ipobj_type__routing_positionModel.deleteIpobj_type__routing_position = function (type, position, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj_type__routing_position to remove
@@ -96,13 +96,13 @@ ipobj_type__routing_positionModel.deleteIpobj_type__routing_position = function 
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

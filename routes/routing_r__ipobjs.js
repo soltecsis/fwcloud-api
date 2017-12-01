@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var Routing_r__ipobjModel = require('../models/routing_r__ipobj');
+var api_resp = require('../utils/api_response');
+var objModel='ROUTING IPOBJ';
 
 /**
 * Property Logger to manage App logs
@@ -26,14 +28,18 @@ router.get('/:rule', function (req, res)
     Routing_r__ipobjModel.getRouting_r__ipobjs(rule,function (error, data)
     {
         //If exists routing_r__ipobj get data
-        if (typeof data !== 'undefined' && data.length>0)
+        if (data && data.length>0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
     
@@ -49,14 +55,18 @@ router.get('/:rule/:position', function (req, res)
     Routing_r__ipobjModel.getRouting_r__ipobjs_position(rule,position,function (error, data)
     {
         //If exists routing_r__ipobj get data
-        if (typeof data !== 'undefined' && data.length>0)
+        if (data && data.length>0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
     
@@ -74,18 +84,22 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
     Routing_r__ipobjModel.getRouting_r__ipobj(rule,ipobj,ipobj_g,position,function (error, data)
     {
         //If exists routing_r__ipobj get data
-        if (typeof data !== 'undefined' && data.length>0)
+        if (data && data.length>0)
         {
             res.render("update_routing_r__ipobj",{ 
                     title : "FWBUILDER", 
                     info : data
                 });            
-            //res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -107,10 +121,12 @@ router.post("/routing-r__ipobj", function (req, res)
     Routing_r__ipobjModel.insertRouting_r__ipobj(routing_r__ipobjData, function (error, data)
     {
         //If saved routing_r__ipobj Get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + data.insertId);
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});
@@ -138,13 +154,17 @@ router.put('/routing-r__ipobj', function (req, res)
     Routing_r__ipobjModel.updateRouting_r__ipobj(rule,ipobj,ipobj_g,position, position_order,routing_r__ipobjData, function (error, data)
     {
         //If saved routing_r__ipobj saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -164,13 +184,17 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
     Routing_r__ipobjModel.updateRouting_r__ipobj_position(rule,ipobj,ipobj_g,position,position_order,new_position,new_order, function (error, data)
     {
         //If saved routing_r__ipobj saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -190,13 +214,17 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
     Routing_r__ipobjModel.updateRouting_r__ipobj_position_order(rule,ipobj,ipobj_g,position,position_order,new_order, function (error, data)
     {
         //If saved routing_r__ipobj saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__ipobjs/routing-r__ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -216,13 +244,17 @@ router.delete("/routing-r__ipobj/", function (req, res)
     
     Routing_r__ipobjModel.deleteRouting_r__ipobj(rule,ipobj,ipobj_g,position, position_order, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/routing-r__ipobjs/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });

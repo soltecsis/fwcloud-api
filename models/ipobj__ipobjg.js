@@ -19,7 +19,7 @@ ipobj__ipobjgModel.getIpobj__ipobjgs = function (ipobjg, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' WHERE ipobj_g=' + connection.escape(ipobjg) + ' ORDER BY ipobj', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ ipobj__ipobjgModel.getIpobj__ipobjgs = function (ipobjg, callback) {
 ipobj__ipobjgModel.getIpobj__ipobjg = function (ipobjg, ipobj, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobjg) + ' AND ipobj = ' + connection.escape(ipobj);
         connection.query(sql, function (error, row) {
             if (error)
@@ -52,7 +52,7 @@ ipobj__ipobjgModel.getIpobj__ipobjg = function (ipobjg, ipobj, callback) {
 ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj__ipobjgData, function (error, result) {
             if (error) {
                 logger.error(error);
@@ -72,7 +72,7 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) 
 ipobj__ipobjgModel.insertIpobj__ipobjg_objref = function (idgroup, objref, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'INSERT INTO ' + tableModel + ' SET ipobj_g=' + connection.escape(idgroup) + ', ipobj=(select id from ipobj where id_fwb=' + connection.escape(objref) + ')';
 
         connection.query(sql, function (error, result) {
@@ -80,7 +80,7 @@ ipobj__ipobjgModel.insertIpobj__ipobjg_objref = function (idgroup, objref, callb
                 callback(error, null);
             } else {
                 //devolvemos la última id insertada
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -91,7 +91,7 @@ ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj, ipobj__ipobjg
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ipobj_g = ' + connection.escape(ipobj__ipobjgData.ipobj_g) + ' ' +
                 ' ,ipobj = ' + connection.escape(ipobj__ipobjgData.ipobj) + ' ' +
                 ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
@@ -100,7 +100,7 @@ ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj, ipobj__ipobjg
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -117,7 +117,7 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callb
             if (!data.result) {
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
                     connection.query(sqlExists, function (error, row) {
                         //If exists Id from ipobj__ipobjg to remove
@@ -129,14 +129,14 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callb
                                         callback(error, null);
                                     } else {
                                         if (result.affectedRows > 0)
-                                            callback(null, {"msg": "deleted"});
+                                            callback(null, {"result": true, "msg": "deleted"});
                                         else
-                                            callback(null, {"msg": "notExist"});
+                                            callback(null, {"result": false});
                                     }
                                 });
                             });
                         } else {
-                            callback(null, {"msg": "notExist"});
+                            callback(null, {"result": false});
                         }
                     });
                 });
@@ -156,7 +156,7 @@ ipobj__ipobjgModel.deleteIpobj__ipobjgAll = function (ipobj_g, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "deleted"});
+                callback(null, {"result": true, "msg": "deleted"});
             }
         });
 
@@ -170,7 +170,7 @@ ipobj__ipobjgModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) 
     logger.debug("SEARCH GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
                 'C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type ' +

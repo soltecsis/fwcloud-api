@@ -32,7 +32,7 @@ policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var whereGroup = '';
         if (idgroup !== '') {
             whereGroup = ' AND idgroup=' + connection.escape(idgroup);
@@ -62,7 +62,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         if (rule !== "") {
             sqlRule = " AND id=" + connection.escape(rule);
@@ -293,7 +293,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
 policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sql, function (error, row) {
@@ -309,7 +309,7 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
 policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         var whereGroup = '';
         if (idgroup !== '') {
@@ -333,7 +333,7 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         logger.debug("NEW RULE:");
         logger.debug(policy_rData);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_rData, function (error, result) {
@@ -344,9 +344,9 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
                 if (result.affectedRows > 0) {
                     OrderList(policy_rData.rule_order, policy_rData.firewall, 999999, result.insertId);
                     //devolvemos la última id insertada
-                    callback(null, {"insertId": result.insertId});
+                    callback(null, {"result": true, "insertId": result.insertId});
                 } else
-                    callback(null, {"msg": "notExist"});
+                    callback(null, {"result": false});
             }
         });
     });
@@ -364,7 +364,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                 type = 1;
             db.get(function (error, connection) {
                 if (error)
-                    return done('Database problem');
+                    callback(error, null);
                 logger.debug("UPDATE RULE:");
                 logger.debug(policy_rData);
 
@@ -388,9 +388,9 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                     } else {
                         if (result.affectedRows > 0) {
                             OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         } else
-                            callback(null, {"msg": "notExist"});
+                            callback(null, {"result": false});
                     }
                 });
             });
@@ -410,7 +410,7 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                 type = 1;
             db.get(function (error, connection) {
                 if (error)
-                    return done('Database problem');
+                    callback(error, null);
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
                         'rule_order = ' + connection.escape(new_order) + ' ' +
                         ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) +
@@ -422,9 +422,9 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                     } else {
                         if (result.affectedRows > 0) {
                             OrderList(new_order, idfirewall, old_order, id);
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         } else
-                            callback(null, {"msg": "notExist"});
+                            callback(null, {"result": false});
                     }
                 });
             });
@@ -444,7 +444,7 @@ function OrderList(new_order, idfirewall, old_order, id) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'rule_order = rule_order' + increment +
                 ' WHERE firewall = ' + connection.escape(idfirewall) +
@@ -462,7 +462,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND rule_order=' + connection.escape(rule_order);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r to remove
@@ -489,9 +489,9 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
                                         } else {
                                             if (result.affectedRows > 0) {
                                                 OrderList(999999, idfirewall, rule_order, id);
-                                                callback(null, {"msg": "deleted"});
+                                                callback(null, {"result": true, "msg": "deleted"});
                                             } else {
-                                                callback(null, {"msg": "notExist"});
+                                                callback(null, {"result": false, "msg": "notExist"});
                                             }
                                         }
                                     });
@@ -502,7 +502,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
 
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false, "msg": "notExist"});
             }
         });
     });

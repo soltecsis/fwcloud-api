@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 customerModel.getCustomers = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ customerModel.getCustomers = function (callback) {
 //Get customer by  id
 customerModel.getCustomer = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -49,7 +49,7 @@ customerModel.getCustomer = function (id, callback) {
 //Get customer by name
 customerModel.getCustomerName = function (name, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  "%' + connection.escape(name) + '%"';
         connection.query(sql, function (error, row) {
             if (error)
@@ -63,7 +63,7 @@ customerModel.getCustomerName = function (name, callback) {
 //Add new customer
 customerModel.insertCustomer = function (customerData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', customerData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -80,7 +80,7 @@ customerModel.insertCustomer = function (customerData, callback) {
 customerModel.updateCustomer = function (customerData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(customerData.name) + ',' +
             'email = ' + connection.escape(customerData.email) + ',' +
             'address = ' + connection.escape(customerData.address) + ',' +
@@ -93,7 +93,7 @@ customerModel.updateCustomer = function (customerData, callback) {
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -102,7 +102,7 @@ customerModel.updateCustomer = function (customerData, callback) {
 //Remove customer with id to remove
 customerModel.deleteCustomer = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from customer to remove
@@ -114,13 +114,13 @@ customerModel.deleteCustomer = function (id, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

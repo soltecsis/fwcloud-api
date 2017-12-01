@@ -20,7 +20,7 @@ routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');        
+            callback(error, null);        
         var whereGroup='';
         if (idgroup!==''){
             whereGroup=' AND idgroup=' + connection.escape(idgroup);
@@ -44,7 +44,7 @@ routing_rModel.getRouting_rs = function (idfirewall,idgroup, callback) {
 routing_rModel.getRouting_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) ;
         connection.query(sql, function (error, row) {
@@ -60,7 +60,7 @@ routing_rModel.getRouting_r = function (idfirewall, id, callback) {
 routing_rModel.getRouting_rName = function (idfirewall,idgroup, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         var whereGroup='';
         if (idgroup!==''){
@@ -83,7 +83,7 @@ routing_rModel.getRouting_rName = function (idfirewall,idgroup, name, callback) 
 routing_rModel.insertRouting_r = function (routing_rData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', routing_rData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -100,7 +100,7 @@ routing_rModel.updateRouting_r = function ( routing_rData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'idgroup = ' + connection.escape(routing_rData.idgroup) + ',' +
                 'firewall = ' + connection.escape(routing_rData.firewall) + ',' +
@@ -114,7 +114,7 @@ routing_rModel.updateRouting_r = function ( routing_rData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -124,7 +124,7 @@ routing_rModel.updateRouting_r = function ( routing_rData, callback) {
 routing_rModel.deleteRouting_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from routing_r to remove
@@ -135,12 +135,12 @@ routing_rModel.deleteRouting_r = function (idfirewall, id, callback) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            callback(null, {"result": true, "msg": "deleted"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });

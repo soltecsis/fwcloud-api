@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var UserModel = require('../models/user');
+var api_resp = require('../utils/api_response');
+var objModel='USER';
 
 /**
 * Property Logger to manage App logs
@@ -24,18 +26,22 @@ router.get('/:customer', function (req, res)
     UserModel.getUsers(customer,function (error, data)
     {
         //show user form
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
 //            res.render("show_users",{ 
 //                title : "Mostrando listado de Users", 
 //                users : data
 //            });
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //other we show an error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -48,14 +54,18 @@ router.get('/:customer/username/:username', function (req, res)
     UserModel.getUserName(customer, username, function (error, data)
     {
         //If exists user get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -86,10 +96,15 @@ router.post("/user", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/users/user/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -102,13 +117,17 @@ router.put('/user/', function (req, res)
     UserModel.updateUser(userData, function (error, data)
     {
         //Message if user ok
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/users/user/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -124,19 +143,23 @@ router.get('/:customer/user/:id', function (req, res)
         UserModel.getUser(customer,id, function (error, data)
         {
             //If exists show de form
-            if (typeof data !== 'undefined' && data.length > 0)
+            if (data && data.length > 0)
             {
                 //res.render("update_user",{ 
                 //    title : "", 
                 //    info : data
                 //});
-                res.status(200).json( {"data": data});
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
 
             }
             //Error
             else
             {
-                res.status(404).json( {"msg": "notExist"});
+                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
         });
     }
@@ -157,13 +180,17 @@ router.delete("/user/", function (req, res)
     var id = req.param('id');
     UserModel.deleteUser(id, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/users/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });

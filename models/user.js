@@ -17,7 +17,7 @@ var logger = require('log4js').getLogger("app");
 userModel.getUsers = function (customer, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT *  FROM user WHERE customer=' + connection.escape(customer) + ' ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -34,7 +34,7 @@ userModel.getUsers = function (customer, callback) {
 //Get user by  id
 userModel.getUser = function (customer, id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM user WHERE customer=' + connection.escape(customer) + ' AND id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -48,7 +48,7 @@ userModel.getUser = function (customer, id, callback) {
 //Get user by  username
 userModel.getUserName = function (customer,username, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM user WHERE customer=' + connection.escape(customer) +  ' AND username like  ' + connection.escape('%'+username+'%') + ' ORDER BY username';
         
         connection.query(sql, function (error, row) {
@@ -63,7 +63,7 @@ userModel.getUserName = function (customer,username, callback) {
 //Add new user
 userModel.insertUser = function (userData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO user SET ?', userData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -80,7 +80,7 @@ userModel.insertUser = function (userData, callback) {
 userModel.updateUser = function (userData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE user SET username = ' + connection.escape(userData.username) + ',' +
             'email = ' + connection.escape(userData.email) + ',' +
             'name = ' + connection.escape(userData.name) + ',' +
@@ -94,7 +94,7 @@ userModel.updateUser = function (userData, callback) {
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -103,7 +103,7 @@ userModel.updateUser = function (userData, callback) {
 //Remove user with id to remove
 userModel.deleteUser = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM user WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from user to remove
@@ -115,13 +115,13 @@ userModel.deleteUser = function (id, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

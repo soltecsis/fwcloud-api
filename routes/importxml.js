@@ -149,7 +149,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                         n++;
                                                         logger.debug("Añadiendo NAT RULE:" + n + " - " + rowNR.$.id);
                                                         AddPolicyRule(idfirewall, rowNR.$, "N", function (error, data) {
-                                                            if (data)
+                                                            if (data && data.length > 0)
                                                             {
                                                                 logger.debug("Añadido NATRule con ID: " + data.insertId);
                                                                 var idPolicy = data.insertId;
@@ -203,7 +203,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                                 break;
                                                         }
                                                         AddPolicyRule(idfirewall, rowPR.$, rule_type, function (error, data) {
-                                                            if (data)
+                                                            if (data && data.length > 0)
                                                             {
                                                                 logger.debug("Añadido POLICY RULE con ID: " + data.insertId + "   REF: " + rowPR.$.id);
                                                                 var idPolicy = data.insertId;
@@ -397,7 +397,7 @@ function AddPolicyObj(idPolicy, row, position, typeObj)
                         Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, negate, function (error, data)
                         {
                             //If saved policy_r__ipobj Get data
-                            if (data && data.msg)
+                            if (data && data.result)
                             {
                                 logger.debug("INSERT PolicyRule_IPObj OK : " + idPolicy + " - " + idobj);
                                 callback(null, {"msg": data.msg});
@@ -450,7 +450,7 @@ function AddPolicyInterface(idfirewall, idPolicy, row, position)
                         Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
                         {
                             //If saved policy_r__interface Get data
-                            if (data && data.msg)
+                            if (data && data.result)
                             {
                                 logger.debug("INSERT PolicyRule_INTERFACE OK : " + idPolicy + " - " + ref);
                                 callback(null, {"msg": data.msg});
@@ -926,7 +926,7 @@ function AddInterfaceHost_Relation(id_interface, id_ipobj, order, callback)
     Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
     {
         //If saved interface__ipobj Get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             callback(null, {"msg": data.msg});
         } else

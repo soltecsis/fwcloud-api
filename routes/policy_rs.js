@@ -2,7 +2,8 @@ var express = require('express');
 var router = express.Router();
 var Policy_rModel = require('../models/policy_r');
 var utilsModel = require("../utils/utils.js");
-
+var api_resp = require('../utils/api_response');
+var objModel='POLICY';
 
 /**
  * Property Logger to manage App logs
@@ -25,14 +26,18 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
     Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
     {
         //If exists policy_r get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -46,17 +51,21 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type', function (req, res)
     var fwcloud = req.params.fwcloud;
 
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
-    Policy_rModel.getPolicy_rs_type(fwcloud,idfirewall, type, rule, function (error, data)
+    Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
     {
         //If exists policy_r get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -70,18 +79,22 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type/rule/:rule', function (req,
     var fwcloud = req.params.fwcloud;
 
 
-    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type );
+    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type);
     Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
     {
         //If exists policy_r get data
-        if (data !== null)
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -97,18 +110,18 @@ router.get('/:iduser/:fwcloud/:idfirewall/:id', function (req, res)
     Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
     {
         //If exists policy_r get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-//            res.render("update_policy_r",{ 
-//                    title : "FWBUILDER", 
-//                    info : data
-//                });  
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -119,20 +132,24 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup/name/:name', function (
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
     var idgroup = req.params.idgroup;
-     var iduser = req.params.iduser;
+    var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
+
     Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
     {
         //If exists policy_r get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -165,14 +182,24 @@ router.post("/policy-r", function (req, res)
 
     Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
     {
-        //If saved policy_r Get data
-        if (data && data.insertId)
-        {
-            //res.redirect("/policy-rs/policy-r/" + data.insertId);
-            res.status(200).json({"insertId": data.insertId});
-        } else
-        {
-            res.status(500).json({"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', 'POLICY', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r Get data
+            if (data && data.result)
+            {
+                var dataresp = {"insertId": data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'Policy INSERTED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -192,14 +219,23 @@ router.put('/policy-r/', function (req, res)
 
     Policy_rModel.updatePolicy_r(old_order, policy_rData, function (error, data)
     {
-        //If saved policy_r saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-rs/policy-r/" + req.param('id'));
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -217,13 +253,23 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
 
     Policy_rModel.updatePolicy_r_order(idfirewall, type, id, new_order, old_order, function (error, data)
     {
-        //If saved policy_r saved ok, get data
-        if (data && data.msg)
-        {
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY ORDER', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ORDER UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -242,15 +288,20 @@ router.delete("/policy-r/:iduser/:idfirewall/:id/:rule_order", function (req, re
     Policy_rModel.deletePolicy_r(idfirewall, id, rule_order, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', 'POLICY', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
-
-            res.status(200).json(data.msg);
+            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
 
     });

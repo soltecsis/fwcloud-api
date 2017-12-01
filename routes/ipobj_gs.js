@@ -3,7 +3,8 @@ var router = express.Router();
 var Ipobj_gModel = require('../models/ipobj_g');
 var fwcTreemodel = require('../models/fwc_tree');
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
-
+var api_resp = require('../utils/api_response');
+var objModel = 'GROUP';
 
 /**
  * Property Logger to manage App logs
@@ -23,14 +24,18 @@ router.get('/:iduser/:fwcloud', function (req, res)
     Ipobj_gModel.getIpobj_g_Full(fwcloud, '', function (error, data)
     {
         //If exists ipobj_g get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -46,14 +51,18 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     Ipobj_gModel.getIpobj_g_Full(fwcloud, id, function (error, data)
     {
         //If exists ipobj_g get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -68,14 +77,18 @@ router.get('/:iduser/:fwcloud/name/:name', function (req, res)
     Ipobj_gModel.getIpobj_gName(fwcloud, name, function (error, data)
     {
         //If exists ipobj_g get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -89,14 +102,18 @@ router.get('/:iduser/:fwcloud/type/:type', function (req, res)
     Ipobj_gModel.getIpobj_gtype(fwcloud, type, function (error, data)
     {
         //If exists ipobj_g get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -108,19 +125,25 @@ router.get("/ipobj_g_search_rules/:iduser/:fwcloud/:idg", function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     var idg = req.params.idg;
-    
-    
+
+
     Ipobj_gModel.searchGroupInRules(idg, fwcloud, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else
-        if (data)
+        if (data && data.length > 0)
         {
-            res.status(200).json(data);
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -128,23 +151,29 @@ router.get("/ipobj_g_search_rules/:iduser/:fwcloud/:idg", function (req, res)
 /* Search where is used Group  */
 router.get("/ipobj_g_search_used/:iduser/:fwcloud/:idg", function (req, res)
 {
-  
+
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     var idg = req.params.idg;
-    
+
 
     Ipobj_gModel.searchGroup(idg, fwcloud, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else
-        if (data)
+        if (data && data.length > 0)
         {
-            res.status(200).json(data);
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -172,25 +201,38 @@ router.post("/ipobj-g/:iduser/:fwcloud/:node_parent/:node_order/:node_type", fun
 
     Ipobj_gModel.insertIpobj_g(ipobj_gData, function (error, data)
     {
-        //If saved ipobj_g Get data
-        if (data && data.insertId > 0)
-        {
-            var id = data.insertId;
-            logger.debug("NEW IPOBJ GROUP id:" + id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
-            ipobj_gData.id = id;
-            //INSERT IN TREE
-            fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobj_gData, function (error, data) {
-                if (data && data.insertId) {
-                    res.status(200).json({"insertId": data.insertId});
-                } else {
-                    logger.debug(error);
-                    res.status(500).json({"msg": error});
-                }
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
             });
+        else {
+            //If saved ipobj_g Get data
+            if (data && data.insertId > 0)
+            {
+                var id = data.insertId;
+                logger.debug("NEW IPOBJ GROUP id:" + id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
+                ipobj_gData.id = id;
+                //INSERT IN TREE
+                fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobj_gData, function (error, data) {
+                    if (data && data.insertId) {
+                        var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
+                        api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    } else {
+                        logger.debug(error);
+                        api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                });
 
-        } else
-        {
-            res.status(500).json({"msg": error});
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -205,22 +247,34 @@ router.put('/ipobj-g/:iduser/:fwcloud', function (req, res)
     var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
     {
-        //If saved ipobj_g saved ok, get data
-        if (data && data.msg)
-        {
-            logger.debug("UPDATE IPOBJ GROUP id:" + ipobj_gData.id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
-            //UPDATE TREE            
-            fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function (error, data) {
-                if (data && data.msg) {
-                    res.status(200).json(data.msg);
-                } else {
-                    logger.debug(error);
-                    res.status(500).json({"msg": error});
-                }
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
             });
-        } else
-        {
-            res.status(500).json({"msg": error});
+        else {
+            //If saved ipobj_g saved ok, get data
+            if (data && data.result)
+            {
+                logger.debug("UPDATE IPOBJ GROUP id:" + ipobj_gData.id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
+                //UPDATE TREE            
+                fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function (error, data) {
+                    if (data && data.result) {
+                        api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    } else {
+                        logger.debug(error);
+                        api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -243,20 +297,32 @@ router.delete("/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
                 fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
                     //DELETE FROM TREE
                     fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-                        if (data && data.msg) {
-                            res.status(200).json(data.msg);
+                        if (data && data.result) {
+                            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                         } else {
-                            logger.debug(error);
-                            res.status(500).json({"msg": error});
+                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                         }
                     });
                 });
 
-            } else
-                res.status(200).json(data);
+            } else if (data.msg === "Restricted") {
+                api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'GROUP restricted to delete', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'GROUP not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });

@@ -5,6 +5,8 @@ var fwcTreemodel = require('../models/fwc_tree');
 var fwc_tree_node = require("../models/fwc_tree_node.js");
 var utilsModel = require("../utils/utils.js");
 var Interface__ipobjModel = require('../models/interface__ipobj');
+var api_resp = require('../utils/api_response');
+var objModel = 'INTERFACE';
 
 /**
  * Property Logger to manage App logs
@@ -24,14 +26,18 @@ router.get('/:idfirewall/:fwcloud', function (req, res)
     InterfaceModel.getInterfaces(idfirewall, fwcloud, function (error, data)
     {
         //If exists interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -44,14 +50,18 @@ router.get('/:fwcloud/host/:idhost', function (req, res)
     InterfaceModel.getInterfacesHost(idhost, fwcloud, function (error, data)
     {
         //If exists interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -65,14 +75,18 @@ router.get('/:idfirewall/:fwcloud/interface/:id', function (req, res)
     InterfaceModel.getInterface(idfirewall, fwcloud, id, function (error, data)
     {
         //If exists interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -83,17 +97,21 @@ router.get('/:idfirewall/:fwcloud/name/:name', function (req, res)
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.params.fwcloud;
     var name = req.params.name;
-    InterfaceModel.getInterfaceName(idfirewall,fwcloud, name, function (error, data)
+    InterfaceModel.getInterfaceName(idfirewall, fwcloud, name, function (error, data)
     {
         //If exists interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -102,7 +120,7 @@ router.get('/:idfirewall/:fwcloud/name/:name', function (req, res)
 /* Search where is used interface in RULES  */
 router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
 {
-    
+
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     var id = req.params.id;
@@ -111,14 +129,20 @@ router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, 
     InterfaceModel.searchInterfaceInrules(id, type, fwcloud, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else
-        if (data)
+        if (data && data.length > 0)
         {
-            res.status(200).json(data);
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -126,7 +150,7 @@ router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, 
 /* Search where is used interface  */
 router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
 {
-    
+
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     var id = req.params.id;
@@ -135,14 +159,20 @@ router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, r
     InterfaceModel.searchInterface(id, type, fwcloud, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else
-        if (data)
+        if (data && data.length > 0)
         {
-            res.status(200).json(data);
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -183,7 +213,9 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:ho
     InterfaceModel.insertInterface(interfaceData, function (error, data)
     {
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else {
             //If saved interface Get data
             if (data && data.insertId > 0)
@@ -200,7 +232,7 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:ho
                     Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
                     {
                         //If saved interface__ipobj Get data
-                        if (data && data.msg)
+                        if (data && data.result)
                         {
                             logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
                         } else
@@ -216,16 +248,22 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:ho
                 //INSERT IN TREE
                 fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, interfaceData, function (error, data) {
                     if (data && data.insertId) {
-                        //res.status(200).json({"insertId": data.insertId});
-                        res.status(200).json({"insertId": id, "TreeinsertId": data.insertId });
+                        var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
+                        api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
                     } else {
                         logger.debug(error);
-                        res.status(500).json({"msg": error});
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
                     }
                 });
             } else
             {
-                res.status(500).json({"msg": error});
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
         }
     });
@@ -246,33 +284,48 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
     if ((interfaceData.id !== null) && (fwcloud !== null)) {
         InterfaceModel.updateInterface(interfaceData, function (error, data)
         {
-            //If saved interface saved ok, get data
-            if (data && data.msg)
-            {
-                if (data.msg === 'success') {
-                    interfaceData.type = interfaceData.interface_type;
-                    logger.debug("UPDATED INTERFACE id:" + interfaceData.id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
-                    //UPDATE TREE            
-                    fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, interfaceData, function (error, data) {
-                        if (data && data.msg) {
-                            res.status(200).json(data.msg);
-                        } else {
-                            logger.debug(error);
-                            res.status(500).json({"msg": error});
-                        }
-                    });
-                } else {
-                    logger.debug("TREE NOT UPDATED");
-                    res.status(200).json(data.msg);
-                }
+            if (error)
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error Updating', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            else {
+                //If saved interface saved ok, get data
+                if (data && data.result)
+                {
+                    if (data.result) {
+                        interfaceData.type = interfaceData.interface_type;
+                        logger.debug("UPDATED INTERFACE id:" + interfaceData.id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
+                        //UPDATE TREE            
+                        fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, interfaceData, function (error, data) {
+                            if (data && data.result) {
+                                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
+                                    res.status(200).json(jsonResp);
+                                });
+                            } else {
+                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                                    res.status(200).json(jsonResp);
+                                });
+                            }
+                        });
+                    } else {
+                        logger.debug("TREE NOT UPDATED");
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
 
-            } else
-            {
-                res.status(500).json({"msg": error});
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
             }
         });
     } else
-        res.status(500).json({"msg": "Null identifiers"});
+        api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
 
 });
 
@@ -291,33 +344,47 @@ router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req
 
     InterfaceModel.deleteInterface(fwcloud, idfirewall, id, type, function (error, data)
     {
-        logger.debug(data);
         if (error)
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         else {
             if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
             {
                 if (data.msg === "deleted") {
                     //DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
                     //DELETE  ALL IPOBJ UNDER INTERFACE
-                    Interface__ipobjModel.deleteInterface__ipobj(id,null, function (error, data)
+                    Interface__ipobjModel.deleteInterface__ipobj(id, null, function (error, data)
                     {});
                     //DELETE FROM TREE
                     fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-                        if (data && data.msg) {
-                            res.status(200).json(data.msg);
+                        if (data && data.result) {
+                            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                         } else {
                             logger.debug(error);
-                            res.status(500).json({"msg": error});
+                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error DELETING', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                         }
                     });
 
                     //DELETE FROM RULES
 
-                } else
-                {
-                    res.status(500).json(data);
+                } else if (data.msg === "Restricted") {
+                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'INTERFACE restricted to delete', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
                 }
+            } else {
+                api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
         }
     });

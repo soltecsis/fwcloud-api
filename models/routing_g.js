@@ -19,7 +19,7 @@ routing_gModel.getRouting_gs = function (idfirewall, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -35,7 +35,7 @@ routing_gModel.getRouting_gs_group = function (idfirewall, idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND idgroup=' + connection.escape(idgroup) +  ' ORDER BY id';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -52,7 +52,7 @@ routing_gModel.getRouting_gs_group = function (idfirewall, idgroup, callback) {
 routing_gModel.getRouting_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sql, function (error, row) {
             if (error)
@@ -67,7 +67,7 @@ routing_gModel.getRouting_g = function (idfirewall, id, callback) {
 routing_gModel.getRouting_gName = function (idfirewall, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
         logger.debug(sql);
@@ -86,7 +86,7 @@ routing_gModel.getRouting_gName = function (idfirewall, name, callback) {
 routing_gModel.insertRouting_g = function (routing_gData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', routing_gData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -103,7 +103,7 @@ routing_gModel.updateRouting_g = function ( routing_gData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(routing_gData.name) + ',' +
                 'firewall = ' + connection.escape(routing_gData.firewall) + ',' +
                 'idgroup = ' + connection.escape(routing_gData.idgroup) + ',' +
@@ -114,7 +114,7 @@ routing_gModel.updateRouting_g = function ( routing_gData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -125,7 +125,7 @@ routing_gModel.updateRouting_g = function ( routing_gData, callback) {
 routing_gModel.deleteRouting_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from routing_g to remove
@@ -136,12 +136,12 @@ routing_gModel.deleteRouting_g = function (idfirewall, id, callback) {
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            callback(null, {"result": true, "msg": "deleted"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });

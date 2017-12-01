@@ -22,7 +22,7 @@ interfaceModel.getInterfaces = function (idfirewall, fwcloud, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud   FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
@@ -44,7 +44,7 @@ interfaceModel.getInterfacesHost = function (idhost, fwcloud, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
@@ -68,7 +68,7 @@ interfaceModel.getInterfacesHost = function (idhost, fwcloud, callback) {
 interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' + 
                 ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
                 ' FROM ' + tableModel + ' I ' +
@@ -92,7 +92,7 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
 interfaceModel.getInterface_fwb = function (idfirewall, id_fwb, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb) + ' AND (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
         connection.query(sql, function (error, row) {
             if (error)
@@ -107,7 +107,7 @@ interfaceModel.getInterface_fwb = function (idfirewall, id_fwb, callback) {
 interfaceModel.getInterface_data = function (id, type, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type);
         connection.query(sql, function (error, row) {
             if (error || (row.length === 0))
@@ -122,7 +122,7 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
 
@@ -148,7 +148,7 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
         if (error) {
             callback(error, null);
         } else {
-            if (data) {
+            if (data && data.length > 0) {
                 var firewall = data[0].firewall;
                 logger.debug("firewall interface: " + firewall);
                 //SEARCH INTERFACE IN RULES I POSITIONS
@@ -203,7 +203,7 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
             callback(error, null);
         } else {
             logger.debug(data);
-            if (data) {
+            if (data && data.length > 0) {
                 var firewall = data[0].firewall;
                 logger.debug("firewall interface: " + firewall);
 
@@ -289,7 +289,7 @@ interfaceModel.searchInterfaceInFirewalls = function (interface, type, fwcloud, 
 interfaceModel.insertInterface = function (interfaceData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', interfaceData, function (error, result) {
             if (error) {
                 logger.debug(error);
@@ -310,7 +310,7 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(interfaceData.name) + ',' +               
                 'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
                 'type = ' + connection.escape(interfaceData.type) + ', ' +               
@@ -321,13 +321,12 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
-                logger.debug(error);
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0) {
-                    callback(null, {"msg": "success"});
+                    callback(null, {"result": true});
                 } else {
-                    callback(null, {"msg": "nothing"});
+                    callback(null, {"result": false});
                 }
             }
         });
@@ -350,7 +349,7 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
             } else {
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
                     connection.query(sqlExists, function (error, row) {
                         //If exists Id from interface to remove

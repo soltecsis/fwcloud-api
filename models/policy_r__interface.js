@@ -19,7 +19,7 @@ policy_r__interfaceModel.getPolicy_r__interfaces_rule = function (interface, cal
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE interface = ' + connection.escape(interface) + ' ORDER by interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -35,7 +35,7 @@ policy_r__interfaceModel.getPolicy_r__interfaces_interface = function (rule, cal
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' ORDER by interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -53,7 +53,7 @@ policy_r__interfaceModel.getPolicy_r__interfaces_interface = function (rule, cal
 policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND interface = ' + connection.escape(interface);
         connection.query(sql, function (error, row) {
             if (error)
@@ -73,13 +73,13 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkInterfacePosition(policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
         if (error) {
-            callback(error, {"error": "error"});
+            callback(error, null);
         } else {
             allowed = data;
             if (allowed) {
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__interfaceData, function (error, result) {
                         if (error) {
                             callback(error, null);
@@ -87,16 +87,16 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
                             if (result.affectedRows > 0) {
                                 OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
 
-                                callback(null, {"msg": "success"});
+                                callback(null, {"result": true, "allowed": "1"});
                             } else {
-                                callback(null, {"msg": "nothing"});
+                                callback(null, {"result": false, "allowed": "1"});
                             }
                         }
                     });
                 });
             }
             else{
-                 callback(null, {"msg": "not allowed"});
+                 callback(null, {"result": false, "allowed": "0"});
             }
         }
     });
@@ -108,14 +108,14 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, 
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkInterfacePosition(policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
         if (error) {
-            callback(error, {"error": "error"});
+            callback(error, null);
         } else {
             allowed = data;
             if (allowed) {
 
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
                             'negate = ' + connection.escape(policy_r__interfaceData.negate) +
                             ' WHERE rule = ' + policy_r__interfaceData.rule + ' AND  interface = ' + policy_r__interfaceData.interface;
@@ -126,9 +126,9 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, 
                         } else {
                             if (result.affectedRows > 0) {
                                 OrderList(policy_r__interfaceData.position_order, rule, old_position_order, interface);
-                                callback(null, {"msg": "success"});
+                                callback(null, {"result": true});
                             } else {
-                                callback(null, {"msg": "nothing"});
+                                callback(null, {"result": false});
                             }
                         }
                     });
@@ -144,7 +144,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
     //Check if IPOBJ TYPE is ALLOWED in this Position
     checkInterfacePosition(new_rule, interface, new_position, function (error, data) {
         if (error) {
-            callback(error, {"error": "error"});
+            callback(error, null);
         } else {
             allowed = data;
             if (allowed) {
@@ -155,7 +155,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
                         negate = data;
                         db.get(function (error, connection) {
                             if (error)
-                                return done('Database problem');
+                                callback(error, null);
 
 
                             var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(new_position) + ',' +
@@ -177,9 +177,9 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
                                         //Order OLD position
                                         OrderList(999999, rule, old_position, old_position_order, interface);
 
-                                        callback(null, {"msg": "success"});
+                                        callback(null, {"result": true, "allowed": 1});
                                     } else {
-                                        callback(null, {"msg": "nothing"});
+                                        callback(null, {"result": false, "allowed": 1});
                                     }
                                 }
                             });
@@ -187,7 +187,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
                     }
                 });
             } else {
-                callback({"allowed": 0, "error": "NOT ALLOWED"}, null);
+                callback(null,{ "result": false, "allowed": 0});
             }
         }
     });
@@ -198,7 +198,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, inte
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' negate = ' + connection.escape(negate) + ' ' +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position);
@@ -207,7 +207,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_negate = function (rule, inte
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -219,7 +219,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, inter
     OrderList(new_order, rule, position, old_order, interface);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + rule + ' AND  interface = ' + interface;
@@ -228,7 +228,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_order = function (rule, inter
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -248,7 +248,7 @@ function OrderList(new_order, rule, position, old_order, interface) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position_order = position_order' + increment +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
@@ -297,7 +297,7 @@ function getNegateRulePosition(rule, position, callback) {
     var Nneg = 0;
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT count(negate) as neg FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                 ' AND negate=1';
@@ -322,7 +322,7 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, 
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface) + ' AND position=' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r__interface to remove
@@ -336,15 +336,15 @@ policy_r__interfaceModel.deletePolicy_r__interface = function (rule, interface, 
                         } else {
                             if (result.affectedRows > 0) {
                                 OrderList(999999, rule, position, old_order, interface);
-                                callback(null, {"msg": "deleted"});
+                                callback(null, {"result": true, "msg": "deleted"});
                             } else {
-                                callback(null, {"msg": "notExist"});
+                                callback(null, {"result": false, "msg": "notExist"});
                             }
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false, "msg": "notExist"});
             }
         });
     });
@@ -355,7 +355,7 @@ policy_r__interfaceModel.deletePolicy_r__All = function (rule, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r__interface to remove
@@ -369,15 +369,15 @@ policy_r__interfaceModel.deletePolicy_r__All = function (rule, callback) {
                             callback(error, null);
                         } else {
                             if (result.affectedRows > 0) {
-                                callback(null, {"msg": "deleted"});
+                                callback(null, {"result": true, "msg": "deleted"});
                             } else {
-                                callback(null, {"msg": "notExist"});
+                                callback(null, {"result": false});
                             }
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -390,7 +390,7 @@ policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callbac
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
         logger.debug(sqlPos);
         connection.query(sqlPos, function (error, rows) {
@@ -414,13 +414,13 @@ policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callbac
                     });
                 }, //Fin de bucle
                         function (err) {
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         }
 
                 );
 
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -432,7 +432,7 @@ policy_r__interfaceModel.orderPolicy = function (rule, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
         logger.debug(sqlRule);
         connection.query(sqlRule, function (error, rows) {
@@ -463,13 +463,13 @@ policy_r__interfaceModel.orderPolicy = function (rule, callback) {
                     });
                 }, //Fin de bucle
                         function (err) {
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         }
 
                 );
 
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -481,7 +481,7 @@ policy_r__interfaceModel.orderAllPolicy = function (callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
         logger.debug(sqlRule);
         connection.query(sqlRule, function (error, rows) {
@@ -516,13 +516,13 @@ policy_r__interfaceModel.orderAllPolicy = function (callback) {
                 }, //Fin de bucle
                         function (err) {
                             logger.debug("FIN De BUCLE");
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         }
 
                 );
 
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -535,7 +535,7 @@ policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwclo
     logger.debug("CHECK DELETING interface I POSITIONS:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
@@ -567,7 +567,7 @@ policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fw
     logger.debug("CHECK DELETING HOST ALL interfaces I POSITIONS:" + ipobj_host + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' +
                 ' inner join interface__ipobj J on J.interface=O.interface  ' +
                 ' INNER JOIN policy_r R on R.id=O.rule ' +
@@ -600,7 +600,7 @@ policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, call
     logger.debug("SEARCH IPOBJ  interfaces I POSITIONS:" + ipobj + "  fwcloud:" + fwcloud);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name, ' +
                 'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
                 'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
@@ -635,7 +635,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = "";
         if (firewall === null) {
             //Search interfaces in all Firewalls from Cloud

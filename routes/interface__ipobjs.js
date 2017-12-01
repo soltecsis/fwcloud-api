@@ -1,14 +1,15 @@
 var express = require('express');
 var router = express.Router();
 var Interface__ipobjModel = require('../models/interface__ipobj');
-
+var api_resp = require('../utils/api_response');
+var objModel = 'INTERFACE_IPOBJ';
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 /* Show form */
@@ -21,17 +22,21 @@ router.get('/interface__ipobj', function (req, res)
 router.get('/interface/:interface', function (req, res)
 {
     var interface = req.params.interface;
-    Interface__ipobjModel.getInterface__ipobjs_interface(interface,function (error, data)
+    Interface__ipobjModel.getInterface__ipobjs_interface(interface, function (error, data)
     {
         //If exists interface__ipobj get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -40,17 +45,21 @@ router.get('/interface/:interface', function (req, res)
 router.get('/ipobj/:ipobj', function (req, res)
 {
     var ipobj = req.params.ipobj;
-    Interface__ipobjModel.getInterface__ipobjs_ipobj(ipobj,function (error, data)
+    Interface__ipobjModel.getInterface__ipobjs_ipobj(ipobj, function (error, data)
     {
         //If exists interface__ipobj get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -60,21 +69,22 @@ router.get('/interface__ipobj/:interface/:ipobj', function (req, res)
 {
     var interface = req.params.interface;
     var ipobj = req.params.ipobj;
-    Interface__ipobjModel.getInterface__ipobj(interface,ipobj,function (error, data)
+    Interface__ipobjModel.getInterface__ipobj(interface, ipobj, function (error, data)
     {
         //If exists interface__ipobj get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-             res.render("update_interface__ipobj",{ 
-                    title : "FWBUILDER", 
-                    info : data
-                });
-            //res.status(200).json( {"data": data});
+
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -90,17 +100,27 @@ router.post("/interface__ipobj", function (req, res)
         ipobj: req.body.ipobj,
         interface_order: req.body.interface_order
     };
-    
+
     Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
     {
-        //If saved interface__ipobj Get data
-        if (data && data.msg)
-        {
-            //res.redirect("/interface__ipobjs/interface__ipobj/" + data.insertId);
-            res.status(200).json( {"msh": data.msg});
-        } else
-        {
-            res.status(500).json( {"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved interface__ipobj Get data
+            if (data && data.result)
+            {
+                var dataresp = {"insertId": data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -113,16 +133,26 @@ router.put('/interface__ipobj/', function (req, res)
     var get_interface = req.param('get_interface');
     var get_ipobj = req.param('get_ipobj');
     var get_interface_order = req.param('get_interface_order');
-    Interface__ipobjModel.updateInterface__ipobj(get_interface, get_ipobj, get_interface_order,interface__ipobjData, function (error, data)
+
+    Interface__ipobjModel.updateInterface__ipobj(get_interface, get_ipobj, get_interface_order, interface__ipobjData, function (error, data)
     {
-        //If saved interface__ipobj saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/interface__ipobjs/interface__ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
-        } else
-        {
-            res.status(500).json( {"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved interface__ipobj saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -132,16 +162,25 @@ router.put('/interface__ipobj/order/:new_order', function (req, res)
     var new_order = req.param('new_order');
     //Save data into object
     var interface__ipobjData = {interface: req.param('interface'), ipobj: req.param('ipobj'), interface_order: req.param('interface_order')};
-    Interface__ipobjModel.updateInterface__ipobj_order(new_order,interface__ipobjData, function (error, data)
+    Interface__ipobjModel.updateInterface__ipobj_order(new_order, interface__ipobjData, function (error, data)
     {
-        //If saved interface__ipobj saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/interface__ipobjs/interface__ipobj/" + req.param('id'));
-            res.status(200).json( data.msg);
-        } else
-        {
-            res.status(500).json( {"msg": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved interface__ipobj saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -154,15 +193,19 @@ router.delete("/interface__ipobj/", function (req, res)
     //Id from interface__ipobj to remove
     var interface = req.param('interface');
     var ipobj = req.param('ipobj');
-    Interface__ipobjModel.deleteInterface__ipobj(interface,ipobj, function (error, data)
+    Interface__ipobjModel.deleteInterface__ipobj(interface, ipobj, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/interface__ipobjs/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });

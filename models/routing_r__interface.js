@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 routing_r__interfaceModel.getRouting_r__interfaces_rule = function (interface,callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE interface = ' + connection.escape(interface) + ' ORDER by interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -33,7 +33,7 @@ routing_r__interfaceModel.getRouting_r__interfaces_rule = function (interface,ca
 routing_r__interfaceModel.getRouting_r__interfaces_interface = function (rule,callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' ORDER by interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -50,7 +50,7 @@ routing_r__interfaceModel.getRouting_r__interfaces_interface = function (rule,ca
 //Get routing_r__interface by  rule and  interface
 routing_r__interfaceModel.getRouting_r__interface = function (interface, rule, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND interface = ' + connection.escape(interface) ;
         connection.query(sql, function (error, row) {
             if (error)
@@ -67,14 +67,14 @@ routing_r__interfaceModel.getRouting_r__interface = function (interface, rule, c
 routing_r__interfaceModel.insertRouting_r__interface = function (routing_r__interfaceData, callback) {
     OrderList(routing_r__interfaceData.column_order, routing_r__interfaceData.rule, 999999);
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', routing_r__interfaceData, function (error, result) {
             if (error) {
                 callback(error, null);
             }
             else {
                 //devolvemos la última id insertada
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -85,7 +85,7 @@ routing_r__interfaceModel.updateRouting_r__interface = function (old_order,routi
 
     OrderList(routing_r__interfaceData.column_order, routing_r__interfaceData.rule, old_order);
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET interface_order = ' + connection.escape(routing_r__interfaceData.interface_order) + ',' +                            
             ' WHERE rule = ' + routing_r__interfaceData.rule  + ' AND  interface = ' + routing_r__interfaceData.interface;
             
@@ -94,7 +94,7 @@ routing_r__interfaceModel.updateRouting_r__interface = function (old_order,routi
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -106,7 +106,7 @@ routing_r__interfaceModel.updateRouting_r__interface_order = function (rule, int
 
     OrderList(new_order, rule, old_order);
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +            
                 ' interface_order = ' + connection.escape(new_order) + ' ' +            
             ' WHERE rule = ' + rule  + ' AND  interface = ' + interface;
@@ -116,7 +116,7 @@ routing_r__interfaceModel.updateRouting_r__interface_order = function (rule, int
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -134,7 +134,7 @@ function OrderList(new_order, rule, old_order){
         
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'interface_order = interface_order' + increment + 
                 ' WHERE rule = ' + connection.escape(rule)  + 
@@ -151,7 +151,7 @@ routing_r__interfaceModel.deleteRouting_r__interface = function (rule, interface
     OrderList(999999, rule,old_order );
     
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(interface);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from routing_r__interface to remove
@@ -163,13 +163,13 @@ routing_r__interfaceModel.deleteRouting_r__interface = function (rule, interface
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

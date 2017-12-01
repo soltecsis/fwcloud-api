@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var MacModel = require('../models/mac');
+var api_resp = require('../utils/api_response');
+var objModel='MAC';
 
 /**
 * Property Logger to manage App logs
@@ -24,14 +26,18 @@ router.get('/:interface', function (req, res)
     MacModel.getMacs(interface,function (error, data)
     {
         //If exists mac get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -44,14 +50,18 @@ router.get('/:interface/:id', function (req, res)
     MacModel.getMac(interface,id,function (error, data)
     {
         //If exists mac get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -64,14 +74,18 @@ router.get('/:interface/name/:name', function (req, res)
     MacModel.getMacName(interface,name,function (error, data)
     {
         //If exists mac get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -84,14 +98,18 @@ router.get('/:interface/address/:address', function (req, res)
     MacModel.getMacAddress(interface,address,function (error, data)
     {
         //If exists mac get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -116,10 +134,15 @@ router.post("/mac", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/macs/mac/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -132,13 +155,17 @@ router.put('/mac/', function (req, res)
     MacModel.updateMac(macData, function (error, data)
     {
         //If saved mac saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/macs/mac/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -154,16 +181,20 @@ router.get('/:interface/mac/:id', function (req, res)
         MacModel.getMac(interface,id, function (error, data)
         {
             //If exists mac get data
-            if (typeof data !== 'undefined' && data.length > 0)
+            if (data && data.length > 0)
             {
 
-                res.status(200).json( {"data": data});
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
 
             }
             //Get Error
             else
             {
-                res.status(404).json( {"msg": "notExist"});
+                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
         });
     }
@@ -185,15 +216,19 @@ router.get('/:interface/mac/name/:name', function (req, res)
         MacModel.getMacName(interface,name, function (error, data)
         {
             //If exists mac get data
-            if (typeof data !== 'undefined' && data.length > 0)
+            if (data && data.length > 0)
             {
-                res.status(200).json( {"data": data});
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
 
             }
             //Get Error
             else
             {
-                res.status(404).json( {"msg": "notExist"});
+                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
         });
     }
@@ -214,13 +249,17 @@ router.delete("/mac/", function (req, res)
     var interface = req.param('interface');
     MacModel.deleteMac(interface,id, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/macs/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });

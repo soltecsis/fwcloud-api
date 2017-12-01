@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 routing_positionModel.getRouting_positions = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ routing_positionModel.getRouting_positions = function (callback) {
 //Get routing_position by  id
 routing_positionModel.getRouting_position = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -49,7 +49,7 @@ routing_positionModel.getRouting_position = function (id, callback) {
 //Get routing_position by name
 routing_positionModel.getRouting_positionName = function (name, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) ;
         connection.query(sql, function (error, row) {
@@ -66,7 +66,7 @@ routing_positionModel.getRouting_positionName = function (name, callback) {
 //Add new routing_position
 routing_positionModel.insertRouting_position = function (routing_positionData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', routing_positionData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -83,7 +83,7 @@ routing_positionModel.insertRouting_position = function (routing_positionData, c
 routing_positionModel.updateRouting_position = function (routing_positionData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(routing_positionData.name) + ' ' +            
             ' WHERE id = ' + routing_positionData.id;
             logger.debug(sql);
@@ -92,7 +92,7 @@ routing_positionModel.updateRouting_position = function (routing_positionData, c
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -101,7 +101,7 @@ routing_positionModel.updateRouting_position = function (routing_positionData, c
 //Remove routing_position with id to remove
 routing_positionModel.deleteRouting_position = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from routing_position to remove
@@ -113,13 +113,13 @@ routing_positionModel.deleteRouting_position = function (id, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

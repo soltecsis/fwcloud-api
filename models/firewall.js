@@ -66,7 +66,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' ORDER BY id';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
@@ -108,7 +108,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
 firewallModel.getFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -147,7 +147,7 @@ firewallModel.getFirewall = function (iduser, id, callback) {
 firewallModel.getFirewallName = function (iduser, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE name like  ' + connection.escape(namesql) + '';
         logger.debug(sql);
@@ -188,7 +188,7 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
 firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');        
+            callback(error, null);        
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE cluster =  ' + connection.escape(idcluster) + '';
         logger.debug(sql);
         connection.query(sql, function (error, row) {
@@ -232,7 +232,7 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
 firewallModel.insertFirewall = function (iduser, firewallData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', firewallData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -272,7 +272,7 @@ firewallModel.insertFirewall = function (iduser, firewallData, callback) {
 * @example
 * #### RESPONSE OK:
 *    
-*       callback(null, {"msg": "success"});
+*       callback(null, {"result": true});
 *       
 * #### RESPONSE ERROR:
 *    
@@ -283,7 +283,7 @@ firewallModel.updateFirewall = function (firewallData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
                 'cluster = ' + connection.escape(firewallData.cluster) + ',' +                
                 'comment = ' + connection.escape(firewallData.comment) + ' ' +
@@ -293,7 +293,7 @@ firewallModel.updateFirewall = function (firewallData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -315,17 +315,17 @@ firewallModel.updateFirewall = function (firewallData, callback) {
 * @example
 * #### RESPONSE OK:
 *    
-*       callback(null, {"msg": "deleted"});
+*       callback(null, {"result": true, "msg": "deleted"});
 *       
 * #### RESPONSE ERROR:
 *    
-*       callback(null, {"msg": "notExist"});
+*       callback(null, {"result": false});
 *       
 */
 firewallModel.deleteFirewall = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from firewall to remove
@@ -341,14 +341,14 @@ firewallModel.deleteFirewall = function (iduser, id, callback) {
                                 if (error) {
                                     callback(error, null);
                                 } else {
-                                    callback(null, {"msg": "deleted"});
+                                    callback(null, {"result": true, "msg": "deleted"});
                                 }
                             });
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });

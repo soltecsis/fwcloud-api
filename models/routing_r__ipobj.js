@@ -20,7 +20,7 @@ routing_r__ipobjModel.getRouting_r__ipobjs = function (rule, callback) {
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');      
+            callback(error, null);      
                 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' ORDER BY position_order';
         
@@ -39,7 +39,7 @@ routing_r__ipobjModel.getRouting_r__ipobjs_position = function (rule,position, c
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');      
+            callback(error, null);      
                 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' AND position=' + connection.escape(position) + ' ORDER BY position_order';
         
@@ -58,7 +58,7 @@ routing_r__ipobjModel.getRouting_r__ipobj = function (rule,ipobj,ipobj_g, positi
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');        
+            callback(error, null);        
 
         var sql = 'SELECT * FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) + 
@@ -85,13 +85,13 @@ routing_r__ipobjModel.insertRouting_r__ipobj = function (routing_r__ipobjData, c
     OrderList(routing_r__ipobjData.position_order, routing_r__ipobjData.rule, routing_r__ipobjData.position, 999999);
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', routing_r__ipobjData, function (error, result) {
             if (error) {
                 callback(error, null);
             } else {
                 //devolvemos la última id insertada
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -111,7 +111,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'rule = ' + connection.escape(routing_r__ipobjData.rule) + ',' +
                 'ipobj = ' + connection.escape(routing_r__ipobjData.ipobj) + ',' +
@@ -125,7 +125,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -138,7 +138,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj_position_order = function (rule,ipo
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) + 
@@ -148,7 +148,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj_position_order = function (rule,ipo
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -165,7 +165,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj_position = function (rule,ipobj,ipo
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position = ' + connection.escape(new_position) + ' ' +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) + 
@@ -175,7 +175,7 @@ routing_r__ipobjModel.updateRouting_r__ipobj_position = function (rule,ipobj,ipo
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -194,7 +194,7 @@ function OrderList(new_order, rule, position, old_order){
         
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position_order = position_order' + increment + 
                 ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) + 
@@ -212,7 +212,7 @@ routing_r__ipobjModel.deleteRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
     
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + 
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) + 
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
@@ -229,12 +229,12 @@ routing_r__ipobjModel.deleteRouting_r__ipobj = function (rule,ipobj,ipobj_g, pos
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            callback(null, {"result": true, "msg": "deleted"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });

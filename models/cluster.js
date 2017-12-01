@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 clusterModel.getClusters = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ clusterModel.getClusters = function (callback) {
 //Get cluster by  id
 clusterModel.getCluster = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -49,7 +49,7 @@ clusterModel.getCluster = function (id, callback) {
 //Get clusters by name
 clusterModel.getClusterName = function (name, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  "%' + connection.escape(name) + '%"';
         connection.query(sql, function (error, row) {
             if (error)
@@ -63,7 +63,7 @@ clusterModel.getClusterName = function (name, callback) {
 //Add new cluster
 clusterModel.insertCluster = function (clusterData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', clusterData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -80,16 +80,16 @@ clusterModel.insertCluster = function (clusterData, callback) {
 clusterModel.updateCluster = function (clusterData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ' ' +
             ' WHERE id = ' + clusterData.id;
-            logger.debug(sql);
+            
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -98,7 +98,7 @@ clusterModel.updateCluster = function (clusterData, callback) {
 //Remove cluster with id to remove
 clusterModel.deleteCluster = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from cluster to remove
@@ -110,13 +110,13 @@ clusterModel.deleteCluster = function (id, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

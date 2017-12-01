@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 ipobj_type__policy_positionModel.getIpobj_type__policy_positions = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT type, position, allowed FROM ' + tableModel + ' ORDER BY type, position', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ ipobj_type__policy_positionModel.getIpobj_type__policy_positions = function (cal
 //Get ipobj_type__policy_position by  id
 ipobj_type__policy_positionModel.getIpobj_type__policy_position = function (type, position, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT type, position, allowed FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
         logger.debug(sql);
         connection.query(sql, function (error, row) {
@@ -51,7 +51,7 @@ ipobj_type__policy_positionModel.getIpobj_type__policy_position = function (type
 //Add new ipobj_type__policy_position
 ipobj_type__policy_positionModel.insertIpobj_type__policy_position = function (ipobj_type__policy_positionData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_type__policy_positionData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -68,7 +68,7 @@ ipobj_type__policy_positionModel.insertIpobj_type__policy_position = function (i
 ipobj_type__policy_positionModel.updateIpobj_type__policy_position = function (ipobj_type__policy_positionData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' ' +            
             ' WHERE type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' position = ' + connection.escape(ipobj_type__policy_positionData.position);
         connection.query(sql, function (error, result) {
@@ -76,7 +76,7 @@ ipobj_type__policy_positionModel.updateIpobj_type__policy_position = function (i
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -85,7 +85,7 @@ ipobj_type__policy_positionModel.updateIpobj_type__policy_position = function (i
 //Remove ipobj_type__policy_position with id to remove
 ipobj_type__policy_positionModel.deleteIpobj_type__policy_position = function (type, position, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj_type__policy_position to remove
@@ -97,13 +97,13 @@ ipobj_type__policy_positionModel.deleteIpobj_type__policy_position = function (t
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

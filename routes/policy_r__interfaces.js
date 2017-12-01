@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+var api_resp = require('../utils/api_response');
 
 /**
  * Property Logger to manage App logs
@@ -11,23 +12,31 @@ var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
  * 
  */
 var logger = require('log4js').getLogger("app");
+var objModel = "Interface in Rule";
+
 
 router.param('rule', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
-        res.status(404).json({"msg": "param rule Error"});
+        api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     else
         next();
 });
 
 router.param('interface', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
-        res.status(404).json({"msg": "param interface Error"});
+        api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     else
         next();
 });
 router.param('position', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
-        res.status(404).json({"msg": "param position Error"});
+        api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     } else
         next();
 });
@@ -39,13 +48,17 @@ router.param('position_order', function (req, res, next, param) {
 });
 router.param('new_rule', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param))
-        res.status(404).json({"msg": "param new_rule Error"});
+        api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     else
         next();
 });
 router.param('new_position', function (req, res, next, param) {
     if (param === undefined || param === '' || isNaN(param)) {
-        res.status(404).json({"msg": "param new_position Error"});
+        api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     } else
         next();
 });
@@ -80,21 +93,25 @@ router.get('/policy-r__interface', function (req, res)
     res.render('new_policy_r__interface', {title: 'Crear nuevo policy_r__interface'});
 });
 
-/* Get all IPOBJ de una interface*/
+/* Get all INTERFACE de una interface*/
 router.get('/:firewall/:interface', function (req, res)
 {
     var interface = req.params.interface;
     Policy_r__interfaceModel.getPolicy_r__interfaces_rule(interface, function (error, data)
     {
         //If exists policy_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -106,14 +123,18 @@ router.get('/:firewall/:rule', function (req, res)
     Policy_r__interfaceModel.getPolicy_r__interfaces_interface(rule, function (error, data)
     {
         //If exists policy_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -129,14 +150,18 @@ router.get('/:firewall/:rule/:interface', function (req, res)
     Policy_r__interfaceModel.getPolicy_r__interface(interface, rule, function (error, data)
     {
         //If exists policy_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json({"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json({"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -161,14 +186,31 @@ router.post("/policy-r__interface", function (req, res)
 
     Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
     {
-        //If saved policy_r__interface Get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-r__interfaces/policy-r__interface/" + data.insertId);
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"error": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r__interface Get data
+            if (data && data.length > 0) {
+                if (data.result)
+                    api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                else if (!data.allowed) {
+                    api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -193,14 +235,31 @@ router.put('/policy-r__interface', function (req, res)
 
     Policy_r__interfaceModel.updatePolicy_r__interface(rule, interface, position, position_order, policy_r__interfaceData, function (error, data)
     {
-        //If saved policy_r__interface saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"error": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r__interface saved ok, get data
+            if (data && data.length > 0) {
+                if (data.result) {
+                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else if (!data.allowed) {
+                    api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -219,12 +278,12 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
     var content1 = 'O', content2 = 'O';
 
     logger.debug("POLICY_R-INTERFACES  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
-    
+
     //Get position type
     Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
     {
         logger.debug(data);
-        if (data) {
+        if (data && data.length > 0) {
             content1 = data.content1;
             content2 = data.content2;
 
@@ -232,12 +291,24 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
                 Policy_r__interfaceModel.updatePolicy_r__interface_position(rule, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
                 {
                     //If saved policy_r__ipobj saved ok, get data
-                    if (data && data.msg)
-                    {
-                        res.status(200).json(data.msg);
+                    if (data && data.length > 0) {
+                        if (data.result) {
+                            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        } else if (!data.allowed) {
+                            api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        } else
+                            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                     } else
                     {
-                        res.status(500).json({"msg": error});
+                        api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
                     }
                 });
 
@@ -258,30 +329,45 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
                     Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
                     {
                         //If saved policy_r__interface Get data
-                        if (data && data.msg)
-                        {
-                            //delete Position 'O'
-                            Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, 0, 0, interface, position, position_order, function (error, data)
-                            {
-                                if (data && data.msg === "deleted" || data.msg === "notExist")
+                        if (data && data.length > 0) {
+                            if (data.result) {
+                                //delete Position 'O'
+                                Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, 0, 0, interface, position, position_order, function (error, data)
                                 {
-                                    res.status(200).json({"msg": "success"});
-                                } else
-                                {
-                                    res.status(500).json({"msg": error});
-                                }
-                            });
+                                    if (data && data.result)
+                                    {
+                                        api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                                            res.status(200).json(jsonResp);
+                                        });
+                                    } else
+                                    {
+                                        api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                                            res.status(200).json(jsonResp);
+                                        });
+                                    }
+                                });
+                            } else if (!data.allowed) {
+                                api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
+                                    res.status(200).json(jsonResp);
+                                });
+                            } else
+                                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+                                    res.status(200).json(jsonResp);
+                                });
                         } else
                         {
-                            res.status(500).json({"error": error});
+                            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
                         }
                     });
 
-
-
                 }
             }
-        }
+        } else
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
     });
 });
 
@@ -296,14 +382,23 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/negate/:ne
 
     Policy_r__interfaceModel.updatePolicy_r__interface_negate(rule, interface, position, negate, function (error, data)
     {
-        //If saved policy_r__interface saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"error": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r__interface saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -319,14 +414,23 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/order/:old
 
     Policy_r__interfaceModel.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, function (error, data)
     {
-        //If saved policy_r__interface saved ok, get data
-        if (data && data.msg)
-        {
-            //res.redirect("/policy-r__interfaces/policy-r__interface/" + req.param('id'));
-            res.status(200).json(data.msg);
-        } else
-        {
-            res.status(500).json({"error": error});
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r__interface saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -345,13 +449,22 @@ router.delete("/policy-r__interface/:firewall/:rule/:interface/:position/:positi
 
     Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
-        {
-            //res.redirect("/policy-r__interfaces/");
-            res.status(200).json(data.msg);
+         if (data && data.length > 0) {
+            if (data.msg === "deleted")
+            {
+                api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else if (data.msg === "notExist") {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         } else
         {
-            res.status(500).json({"error": error});
+            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -362,12 +475,16 @@ router.put("/policy-r__interface/order", function (req, res)
 
     Policy_r__interfaceModel.orderAllPolicy(function (error, data)
     {
-        if (data && data.msg === "success" || data.msg === "notExist")
+         if (data && data.result)
         {
-            res.status(200).json(data.msg);
+            api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'REORDER OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error REORDER', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -378,12 +495,16 @@ router.put("/policy-r__interface/order/:rule", function (req, res)
     var rule = req.params.rule;
     Policy_r__interfaceModel.orderPolicy(rule, function (error, data)
     {
-        if (data && data.msg === "success" || data.msg === "notExist")
+        if (data && data.result)
         {
-            res.status(200).json(data.msg);
+            api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'REORDER OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json({"msg": error});
+            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error REORDER', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });

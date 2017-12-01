@@ -1,14 +1,16 @@
 var express = require('express');
 var router = express.Router();
 var CustomerModel = require('../models/customers');
+var api_resp = require('../utils/api_response');
+var objModel = 'CUSTOMER';
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 /* Get all customers */
@@ -17,18 +19,18 @@ router.get('/', function (req, res)
     CustomerModel.getCustomers(function (error, data)
     {
         //Get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-//            res.render("show_customers",{ 
-//                title : "Mostrando listado de Customers", 
-//                customers : data
-//            });
-            res.status(200).json( data);
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -57,11 +59,15 @@ router.post("/customer", function (req, res)
         //Get info
         if (data && data.insertId)
         {
-            //res.redirect("/customers/customer/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": "Error"});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -71,16 +77,19 @@ router.put('/customer/', function (req, res)
 {
     //Save customer data into object
     var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
-    CustomerModel.updateCustomer(customerData, function (error, data)    
+    CustomerModel.updateCustomer(customerData, function (error, data)
     {
         //saved ok
-        if (data && data.msg)
+        if (data && data.result)
         {
-            //res.redirect("/customers/customer/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": "Error"});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -89,32 +98,34 @@ router.put('/customer/', function (req, res)
 router.get('/customer/:id', function (req, res)
 {
     var id = req.params.id;
-    
+
     if (!isNaN(id))
     {
         CustomerModel.getCustomer(id, function (error, data)
         {
             //Get data
-            if (typeof data !== 'undefined' && data.length > 0)
+            if (data && data.length > 0)
             {
-//                res.render("update_customer",{ 
-//                    title : "Servicio rest con nodejs, express 4 and mysql", 
-//                    info : data
-//                });
-                res.status(200).json( data);
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
 
             }
             //Get error
             else
             {
-                res.status(404).json( {"msg": "notExist"});
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
         });
     }
     //id must be numeric
     else
     {
-        res.status(500).json( {"msg": "The id must be numeric"});
+        api_resp.getJson(null, api_resp.ACR_DATA_ERROR, '', objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     }
 });
 
@@ -127,13 +138,16 @@ router.delete("/customer/", function (req, res)
     var id = req.param('id');
     CustomerModel.deleteCustomer(id, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
-            //res.redirect("/customers/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": "Error"});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });

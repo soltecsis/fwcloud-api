@@ -28,7 +28,7 @@ var logger = require('log4js').getLogger("app");
 ipobjModel.getIpobj = function (fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
@@ -71,7 +71,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sqlId = '';
         if (id !== '')
@@ -186,7 +186,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
 ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb);
         connection.query(sql, function (error, row) {
@@ -203,7 +203,7 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var innergroup = ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ';
         //var sql = 'SELECT * FROM ' + tableModel + ' I ' + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
@@ -229,7 +229,7 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
 
 
@@ -253,7 +253,7 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
 ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
         var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
@@ -271,7 +271,7 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
 ipobjModel.getIpobjName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
 
         var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
@@ -296,16 +296,16 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
 ipobjModel.insertIpobj = function (ipobjData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
             if (error) {
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0) {
                     //devolvemos la última id insertada
-                    callback(null, {"insertId": result.insertId});
+                    callback(null, {result: true, "insertId": result.insertId});
                 } else
-                    callback(null, {"insertId": 0});
+                    callback(null, {result: false, "insertId": ''});
             }
         });
     });
@@ -316,7 +316,7 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'fwcloud = ' + connection.escape(ipobjData.fwcloud) + ',' +
                 'interface = ' + connection.escape(ipobjData.interface) + ',' +
@@ -345,9 +345,9 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0) {
-                    callback(null, {"msg": "success"});
+                    callback(null, {"result": true});
                 } else {
-                    callback(null, {"msg": "nothing"});
+                    callback(null, {"result": false});
                 }
             }
         });
@@ -370,7 +370,7 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
             } else {
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
                     logger.debug(sql);
                     connection.query(sql, function (error, result) {

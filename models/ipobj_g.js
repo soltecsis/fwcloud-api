@@ -25,7 +25,7 @@ ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -43,7 +43,7 @@ ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
 ipobj_gModel.getIpobj_g = function (fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ';
         connection.query(sql, function (error, row) {
             if (error)
@@ -64,7 +64,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sqlId = '';
         if (id !== '')
@@ -139,7 +139,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  fwcloud= ' + connection.escape(fwcloud);
         connection.query(sql, function (error, row) {
@@ -154,7 +154,7 @@ ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
 ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE type =  ' + connection.escape(type) + ' AND  fwcloud= ' + connection.escape(fwcloud);
         connection.query(sql, function (error, row) {
             if (error)
@@ -218,7 +218,7 @@ ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
 ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_gData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -237,7 +237,7 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
                 ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +
                 ' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +
@@ -248,7 +248,7 @@ ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
                 logger.debug(error);
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -268,7 +268,7 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
             } else {
                 db.get(function (error, connection) {
                     if (error)
-                        return done('Database problem');
+                        callback(error, null);
                     var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
                     connection.query(sqlExists, function (error, row) {
                         //If exists Id from ipobj_g to remove
@@ -296,7 +296,7 @@ ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
                                 });
                             });
                         } else {
-                            callback(null, {"msg": "notExist"});
+                            callback(null, {"result": false,"msg": "notExist"});
                         }
                     });
                 });

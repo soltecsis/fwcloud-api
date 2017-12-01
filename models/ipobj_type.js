@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 ipobj_typeModel.getIpobj_types = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ ipobj_typeModel.getIpobj_types = function (callback) {
 //Get ipobj_type by  id
 ipobj_typeModel.getIpobj_type = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -49,7 +49,7 @@ ipobj_typeModel.getIpobj_type = function (id, callback) {
 //Get ipobj_type by name
 ipobj_typeModel.getIpobj_typeName = function (name, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE type like  ' + connection.escape(namesql) ;
         connection.query(sql, function (error, row) {
@@ -66,7 +66,7 @@ ipobj_typeModel.getIpobj_typeName = function (name, callback) {
 //Add new ipobj_type
 ipobj_typeModel.insertIpobj_type = function (ipobj_typeData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_typeData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -83,7 +83,7 @@ ipobj_typeModel.insertIpobj_type = function (ipobj_typeData, callback) {
 ipobj_typeModel.updateIpobj_type = function (ipobj_typeData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET type = ' + connection.escape(ipobj_typeData.type) + ' ' +            
             ' WHERE id = ' + ipobj_typeData.id;
         connection.query(sql, function (error, result) {
@@ -91,7 +91,7 @@ ipobj_typeModel.updateIpobj_type = function (ipobj_typeData, callback) {
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -100,7 +100,7 @@ ipobj_typeModel.updateIpobj_type = function (ipobj_typeData, callback) {
 //Remove ipobj_type with id to remove
 ipobj_typeModel.deleteIpobj_type = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj_type to remove
@@ -112,13 +112,13 @@ ipobj_typeModel.deleteIpobj_type = function (id, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

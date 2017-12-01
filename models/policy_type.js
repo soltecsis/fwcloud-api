@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 policy_typeModel.getPolicy_types = function (callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('SELECT * FROM ' + tableModel + ' ORDER BY type_order', function (error, rows) {
             if (error)
                 callback(error, null);
@@ -35,7 +35,7 @@ policy_typeModel.getPolicy_types = function (callback) {
 //Get policy_type by  type
 policy_typeModel.getPolicy_type = function (id, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
         connection.query(sql, function (error, row) {
             if (error)
@@ -50,7 +50,7 @@ policy_typeModel.getPolicy_type = function (id, callback) {
 //Get policy_type by name
 policy_typeModel.getPolicy_typeName = function (name, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
         connection.query(sql, function (error, row) {
@@ -67,7 +67,7 @@ policy_typeModel.getPolicy_typeName = function (name, callback) {
 //Add new policy_type
 policy_typeModel.insertPolicy_type = function (policy_typeData, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_typeData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -84,7 +84,7 @@ policy_typeModel.insertPolicy_type = function (policy_typeData, callback) {
 policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
 
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
                 ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
                 ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
@@ -95,7 +95,7 @@ policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
                 callback(error, null);
             }
             else {
-                callback(null, { "msg": "success" });
+                callback(null, { "result": true });
             }
         });
     });
@@ -104,7 +104,7 @@ policy_typeModel.updatePolicy_type = function (policy_typeData, callback) {
 //Remove policy_type with type to remove
 policy_typeModel.deletePolicy_type = function (type, callback) {
     db.get(function (error, connection) {
-        if (error) return done('Database problem');
+        if (error) callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(type);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_type to remove
@@ -116,13 +116,13 @@ policy_typeModel.deletePolicy_type = function (type, callback) {
                             callback(error, null);
                         }
                         else {
-                            callback(null, { "msg": "deleted" });
+                            callback(null, { "result": true });
                         }
                     });
                 });
             }
             else {
-                callback(null, { "msg": "notExist" });
+                callback(null, { "result": false });
             }
         });
     });

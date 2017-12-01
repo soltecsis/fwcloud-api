@@ -25,7 +25,7 @@ fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' ORDER BY id_parent,node_order';
 
@@ -43,7 +43,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT T.* FROM ' + tableModel + ' T' +
                 ' inner join fwcloud C on C.id=T.fwcloud ' +
@@ -69,7 +69,7 @@ fwc_treeModel.getFwc_TreeId = function (iduser, fwcloud, id, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE  fwcloud=' + connection.escape(fwcloud) + '  AND id=' + connection.escape(id);
         logger.debug(sql);
@@ -88,7 +88,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         //FALTA CONTROLAR EN QUE FWCLOUD ESTA EL USUARIO
         var sqlfwcloud = "";
@@ -154,7 +154,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 fwc_treeModel.getFwc_TreeUserParent = function (fwcloud, idparent, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent=' + connection.escape(idparent);
         connection.query(sql, function (error, row) {
@@ -170,7 +170,7 @@ fwc_treeModel.getFwc_TreeUserParent = function (fwcloud, idparent, callback) {
 fwc_treeModel.getFwc_TreeName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var namesql = '%' + name + '%';
 
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + " AND name like " + connection.escape(namesql);
@@ -188,7 +188,7 @@ fwc_treeModel.getFwc_TreeName = function (fwcloud, name, callback) {
 fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         //QUITAR PARA MERMITIR VARIOS CLOUD
         //DELETE PREVIUS DATA
@@ -293,7 +293,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
                     if (error)
                         logger.debug("ERROR FDT : " + error);
                 });
-                AllDone(null, {"msg": "ok"});
+                AllDone(null, {"result": true});
             }
         });
 
@@ -305,7 +305,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
@@ -492,10 +492,10 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                 if (err)
                                     AllDone(err, null);
                                 else
-                                    AllDone(null, {"msg": "ok"});
+                                    AllDone(null, {"result": true});
                             });
                 } else
-                    AllDone(null, {"msg": "ok"});
+                    AllDone(null, {"result": true});
             }
         });
 
@@ -508,7 +508,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
 fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND (T1.fwcloud=' + connection.escape(fwcloud) + ' OR T1.fwcloud is null) order by T1.node_order';
@@ -651,10 +651,10 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                         if (err)
                                             AllDone(err, null);
                                         else
-                                            AllDone(null, {"msg": "ok"});
+                                            AllDone(null, {"result": true});
                                     });
                         } else
-                            AllDone(null, {"msg": "ok"});
+                            AllDone(null, {"result": true});
                     }
                 });
     });
@@ -664,7 +664,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', fwc_treeData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -699,7 +699,7 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
 
         db.get(function (error, connection) {
             if (error)
-                return done('Database problem');
+                callback(error, null);
             connection.query('INSERT INTO ' + tableModel + ' SET ?', fwc_treeData, function (error, result) {
                 if (error) {
                     callback(error, null);
@@ -721,7 +721,7 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' name = ' + connection.escape(nodeTreeData.name) + ' ' +
                 ' WHERE id = ' + nodeTreeData.id;
@@ -730,7 +730,7 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -742,7 +742,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' name = ' + connection.escape(ipobjData.name) + ' , comment= ' + connection.escape(ipobjData.comment) +
                 ' WHERE id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud);
@@ -753,9 +753,9 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0)
-                    callback(null, {"msg": "success"});
+                    callback(null, {"result": true});
                 else
-                    callback(null, {"msg": "nothing"});
+                    callback(null, {"result": false});
             }
         });
     });
@@ -766,7 +766,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
@@ -788,16 +788,16 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
                                         logger.debug(error);
                                         callback(error, null);
                                     } else {
-                                        callback(null, {"msg": "deleted"});
+                                        callback(null, {"result": true, "msg": "deleted"});
                                     }
                                 });
                             } else
-                                callback(null, {"msg": "nothing"});
+                                callback(null, {"result": false});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -807,7 +807,7 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
 fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent,id_group, id_obj,  callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
             
         var sqlExists = 'SELECT * FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
         connection.query(sqlExists, function (error, row) {
@@ -821,12 +821,12 @@ fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent,id
                             logger.debug(sql);
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            callback(null, {"result": true, "msg": "deleted"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -837,7 +837,7 @@ function hasLines(id, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT * FROM  ' + tableModel + '  where id_parent = ' + id;
         connection.query(sql, function (error, rows) {
@@ -857,7 +857,7 @@ function getParentLevelChild(id, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sql = 'SELECT node_level FROM  ' + tableModel + '  where id = ' + id;
         connection.query(sql, function (error, rows) {
@@ -884,7 +884,7 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'node_order = node_order' + increment +
                 ' WHERE (fwcloud = ' + connection.escape(fwcloud) + ' OR fwcloud is null) ' +
@@ -902,7 +902,7 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
 fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlParent = 'SELECT DISTINCT id_parent FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_obj=' + connection.escape(id_obj_deleted) + ' order by id_parent';
         logger.debug(sqlParent);
         connection.query(sqlParent, function (error, rows) {
@@ -928,7 +928,7 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
                                 });
                             }, //Fin de bucle
                                     function (err) {
-                                        callback(null, {"msg": "success"});
+                                        callback(null, {"result": true});
                                     }
                             );
                         }
@@ -936,13 +936,13 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
 
                 }, //Fin de bucle
                         function (err) {
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         }
 
                 );
 
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false});
             }
         });
     });
@@ -952,7 +952,7 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
 fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
 
         var sqlNodes = 'SELECT * FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_parent=' + connection.escape(id_parent) + '  order by node_order';
         logger.debug(sqlNodes);
@@ -973,12 +973,12 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
                     });
                 }, //Fin de bucle
                         function (err) {
-                            callback(null, {"msg": "success"});
+                            callback(null, {"result": true});
                         }
                 );
             }
             else
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
         });
     });
 };

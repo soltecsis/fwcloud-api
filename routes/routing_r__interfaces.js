@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var Routing_r__interfaceModel = require('../models/routing_r__interface');
+var api_resp = require('../utils/api_response');
+var objModel='ROUTING INTERFACE';
 
 /**
 * Property Logger to manage App logs
@@ -24,14 +26,18 @@ router.get('/:interface', function (req, res)
     Routing_r__interfaceModel.getRouting_r__interfaces_rule(interface,function (error, data)
     {
         //If exists routing_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -43,14 +49,18 @@ router.get('/:rule', function (req, res)
     Routing_r__interfaceModel.getRouting_r__interfaces_interface(rule,function (error, data)
     {
         //If exists routing_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -66,14 +76,18 @@ router.get('/:interface/:rule', function (req, res)
     Routing_r__interfaceModel.getRouting_r__interface(interface, rule,function (error, data)
     {
         //If exists routing_r__interface get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -95,10 +109,12 @@ router.post("/routing-r__interface", function (req, res)
     Routing_r__interfaceModel.insertRouting_r__interface(routing_r__interfaceData, function (error, data)
     {
         //If saved routing_r__interface Get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + data.insertId);
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});
@@ -119,10 +135,12 @@ router.put('/routing-r__interface', function (req, res)
     Routing_r__interfaceModel.updateRouting_r__interface(old_order,routing_r__interfaceData, function (error, data)
     {
         //If saved routing_r__interface saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});
@@ -143,10 +161,12 @@ router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', 
     Routing_r__interfaceModel.updateRouting_r__interface_order(rule, interface,old_order,new_order, function (error, data)
     {
         //If saved routing_r__interface saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/routing-r__interfaces/routing-r__interface/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});
@@ -166,10 +186,12 @@ router.delete("/routing-r__interface/", function (req, res)
     
     Routing_r__interfaceModel.deleteRouting_r__interfaceidfirewall(rule, interface,old_order, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/routing-r__interfaces/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});

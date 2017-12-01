@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var User__firewallModel = require('../models/user__firewall');
+var api_resp = require('../utils/api_response');
+var objModel='USER FIREWALL';
 
 /**
 * Property Logger to manage App logs
@@ -23,14 +25,18 @@ router.get('/:id_user', function (req, res)
         User__firewallModel.getUser__firewall_clouds(id_user, function (error, data)
         {
             //If exists user__firewall get data
-            if (typeof data !== 'undefined' && data.length > 0)
+            if (data && data.length > 0)
             {
-                res.status(200).json( {"data": data});
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
             //Get Error
             else
             {
-                res.status(404).json( {"msg": "notExist"});
+                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
         });
     }
@@ -53,14 +59,18 @@ router.get('/:id_user/:fwcloud', function (req, res)
     User__firewallModel.getUser__firewalls(id_user,fwcloud,access, function (error, data)
     {
         //If exists user__firewall get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -77,14 +87,18 @@ router.get('/:id_user/:fwcloud/:idfirewall', function (req, res)
     User__firewallModel.getUser__firewall(id_user,fwcloud, idfirewall,access, function (error, data)
     {
         //If exists user__firewall get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -105,7 +119,10 @@ router.post("/user__firewall", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/user__firewalls/user__firewall/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( data.error);
@@ -121,10 +138,12 @@ router.put('/user__firewall/', function (req, res)
     User__firewallModel.updateUser__firewall(user__firewallData, function (error, data)
     {
         //If saved user__firewall saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/user__firewalls/user__firewall/" + req.param('id'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( data.error);
@@ -141,10 +160,12 @@ router.delete("/user__firewall/", function (req, res)
     var id_firewall = req.params.id_firewall;
     User__firewallModel.deleteUser__firewall(id_user, id_firewall, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/user__firewalls/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             res.status(500).json( {"error": error});

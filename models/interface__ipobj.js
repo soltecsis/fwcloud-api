@@ -20,7 +20,7 @@ interface__ipobjModel.getInterface__ipobjs_interface = function (interface, call
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE interface=' + connection.escape(interface) + ' ORDER BY interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -36,7 +36,7 @@ interface__ipobjModel.getInterface__ipobjs_ipobj = function (ipobj, callback) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE ipobj=' + connection.escape(ipobj) + ' ORDER BY interface_order';
         connection.query(sql, function (error, rows) {
             if (error)
@@ -53,7 +53,7 @@ interface__ipobjModel.getInterface__ipobjs_ipobj = function (ipobj, callback) {
 interface__ipobjModel.getInterface__ipobj = function (interface, ipobj, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE interface = ' + connection.escape(interface) + ' AND ipobj=' + connection.escape(ipobj);
         connection.query(sql, function (error, row) {
             if (error)
@@ -69,7 +69,7 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
                 'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
                 'FROM fwcloud_db.interface__ipobj O ' +
@@ -98,14 +98,14 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
 interface__ipobjModel.insertInterface__ipobj = function (interface__ipobjData, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', interface__ipobjData, function (error, result) {
             if (error) {
                 //throw error;
                 callback(error, null);
             } else {
                 //devolvemos la última id insertada
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true, "insertId": result.insertId});
             }
         });
     });
@@ -118,7 +118,7 @@ interface__ipobjModel.updateInterface__ipobj = function (get_interface, get_ipob
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'interface = ' + connection.escape(interface__ipobjData.interface) + ',' +
                 'ipobj = ' + connection.escape(interface__ipobjData.ipobj) + ',' +
@@ -128,7 +128,7 @@ interface__ipobjModel.updateInterface__ipobj = function (get_interface, get_ipob
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -141,7 +141,7 @@ interface__ipobjModel.updateInterface__ipobj_order = function (new_order, interf
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'interface_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE interface = ' + connection.escape(interface__ipobjData.interface) + ' AND ipobj=' + connection.escape(interface__ipobjData.ipobj);
@@ -149,7 +149,7 @@ interface__ipobjModel.updateInterface__ipobj_order = function (new_order, interf
             if (error) {
                 callback(error, null);
             } else {
-                callback(null, {"msg": "success"});
+                callback(null, {"result": true});
             }
         });
     });
@@ -168,7 +168,7 @@ function OrderList(new_order, interface, old_order) {
 
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'interface_order = interface_order' + increment +
                 ' WHERE interface = ' + connection.escape(interface) +
@@ -185,7 +185,7 @@ function OrderList(new_order, interface, old_order) {
 interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callback) {
     db.get(function (error, connection) {
         if (error)
-            return done('Database problem');
+            callback(error, null);
         var sqlwhere = '';
         if (interface !== null)
             sqlwhere = ' interface =' + connection.escape(interface);
@@ -205,12 +205,12 @@ interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callb
                         if (error) {
                             callback(error, null);
                         } else {
-                            callback(null, {"msg": "deleted"});
+                            callback(null, {"result": true, "msg": "deleted"});
                         }
                     });
                 });
             } else {
-                callback(null, {"msg": "notExist"});
+                callback(null, {"result": false, "msg": "notExist"});
             }
         });
     });

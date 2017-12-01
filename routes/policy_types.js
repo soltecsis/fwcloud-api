@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var Policy_typeModel = require('../models/policy_type');
+var api_resp = require('../utils/api_response');
+var objModel='POLICY TYPE';
 
 /**
 * Property Logger to manage App logs
@@ -24,14 +26,18 @@ router.get('/', function (req, res)
     Policy_typeModel.getPolicy_types(function (error, data)
     {
         //If exists policy_type get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -45,14 +51,18 @@ router.get('/:type', function (req, res)
     Policy_typeModel.getPolicy_type(type,function (error, data)
     {
         //If exists policy_type get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -64,14 +74,18 @@ router.get('/name/:name', function (req, res)
     Policy_typeModel.getPolicy_typeName(name,function (error, data)
     {
         //If exists policy_type get data
-        if (typeof data !== 'undefined')
+        if (data && data.length > 0)
         {
-            res.status(200).json( {"data": data});
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.status(404).json( {"msg": "notExist"});
+             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -94,10 +108,15 @@ router.post("/policy-type", function (req, res)
         if (data && data.insertId)
         {
             //res.redirect("/policy-types/policy-type/" + data.insertId);
-            res.status(200).json( {"insertId": data.insertId});
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -110,13 +129,17 @@ router.put('/policy-type/', function (req, res)
     Policy_typeModel.updatePolicy_type(policy_typeData, function (error, data)
     {
         //If saved policy_type saved ok, get data
-        if (data && data.msg)
+        if (data && data.result)
         {
             //res.redirect("/policy-types/policy-type/" + req.param('type'));
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
@@ -131,13 +154,17 @@ router.delete("/policy-type/", function (req, res)
     var type = req.param('type');
     Policy_typeModel.deletePolicy_typeidfirewall(idfirewall,type, function (error, data)
     {
-        if (data && data.msg === "deleted" || data.msg === "notExist")
+        if (data && data.result)
         {
             //res.redirect("/policy-types/");
-            res.status(200).json( data.msg);
+            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.status(500).json( {"msg": error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
         }
     });
 });
