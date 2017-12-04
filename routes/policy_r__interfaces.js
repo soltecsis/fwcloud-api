@@ -87,11 +87,6 @@ function checkPostParameters(obj) {
     return obj;
 }
 
-/* get data para crear nuevos */
-router.get('/policy-r__interface', function (req, res)
-{
-    res.render('new_policy_r__interface', {title: 'Crear nuevo policy_r__interface'});
-});
 
 /* Get all INTERFACE de una interface*/
 router.get('/:firewall/:interface', function (req, res)
@@ -207,7 +202,7 @@ router.post("/policy-r__interface", function (req, res)
                     });
             } else
             {
-                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             }
@@ -256,9 +251,9 @@ router.put('/policy-r__interface', function (req, res)
                     });
             } else
             {
-                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
             }
         }
     });
@@ -449,7 +444,7 @@ router.delete("/policy-r__interface/:firewall/:rule/:interface/:position/:positi
 
     Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, function (error, data)
     {
-         if (data && data.length > 0) {
+        if (data && data.length > 0) {
             if (data.msg === "deleted")
             {
                 api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {
@@ -475,7 +470,7 @@ router.put("/policy-r__interface/order", function (req, res)
 
     Policy_r__interfaceModel.orderAllPolicy(function (error, data)
     {
-         if (data && data.result)
+        if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'REORDER OK', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);

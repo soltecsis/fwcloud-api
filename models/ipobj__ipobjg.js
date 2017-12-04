@@ -131,12 +131,12 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callb
                                         if (result.affectedRows > 0)
                                             callback(null, {"result": true, "msg": "deleted"});
                                         else
-                                            callback(null, {"result": false});
+                                            callback(null, {"result": false, "msg": "notExist"});
                                     }
                                 });
                             });
                         } else {
-                            callback(null, {"result": false});
+                            callback(null, {"result": false, "msg": "notExist"});
                         }
                     });
                 });

@@ -146,7 +146,7 @@ router.get("/ipobj_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
                 res.status(200).json(jsonResp);
             });
         else
-        if (data && data.length > 0)
+        if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -177,7 +177,7 @@ router.get("/ipobj_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
                 res.status(200).json(jsonResp);
             });
         else
-        if (data && data.length > 0)
+        if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);

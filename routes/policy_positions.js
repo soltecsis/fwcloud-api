@@ -4,21 +4,16 @@ var Policy_positionModel = require('../models/policy_position');
 var api_resp = require('../utils/api_response');
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
-var objModel='Policy Position';
+var objModel = 'Policy Position';
 
 
-/* get data para crear nuevos */
-router.get('/policy-position', function (req, res)
-{
-    res.render('new_policy_position', {title: 'Crear nuevo policy_position'});
-});
 
 /* Get all policy_positions*/
 router.get('/', function (req, res)
@@ -36,7 +31,7 @@ router.get('/', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -59,7 +54,7 @@ router.get('/type/:type', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -69,9 +64,9 @@ router.get('/type/:type', function (req, res)
 
 /* Get  policy_position by id */
 router.get('/:id', function (req, res)
-{    
+{
     var id = req.params.id;
-    Policy_positionModel.getPolicy_position(id,function (error, data)
+    Policy_positionModel.getPolicy_position(id, function (error, data)
     {
         //If exists policy_position get data
         if (data && data.length > 0)
@@ -83,7 +78,7 @@ router.get('/:id', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -94,7 +89,7 @@ router.get('/:id', function (req, res)
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
-    Policy_positionModel.getPolicy_positionName(name,function (error, data)
+    Policy_positionModel.getPolicy_positionName(name, function (error, data)
     {
         //If exists policy_position get data
         if (data && data.length > 0)
@@ -106,7 +101,7 @@ router.get('/name/:name', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -126,24 +121,30 @@ router.post("/policy-position", function (req, res)
         policy_type: req.body.policy_type,
         position_order: req.body.position_order,
         content: req.body.content
-                
+
     };
-    
+
     Policy_positionModel.insertPolicy_position(policy_positionData, function (error, data)
     {
-        //If saved policy_position Get data
-        if (data && data.insertId)
-        {
-            //res.redirect("/policy-positions/policy-position/" + data.insertId);
-            var dataresp = {"insertId": data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+        else {
+            //If saved policy_position Get data
+            if (data && data.insertId)
+            {
+                //res.redirect("/policy-positions/policy-position/" + data.insertId);
+                var dataresp = {"insertId": data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -152,19 +153,26 @@ router.post("/policy-position", function (req, res)
 router.put('/policy-position/', function (req, res)
 {
     //Save data into object
-    var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order'),content: req.param('content')};
+    var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order'), content: req.param('content')};
     Policy_positionModel.updatePolicy_position(policy_positionData, function (error, data)
     {
-        //If saved policy_position saved ok, get data
-        if (data && data.result)
-        {
-            //res.redirect("/policy-positions/policy-position/" + req.param('id'));            
-            res.status(200).json( {"data": data.msg});
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_position saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', '', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -177,17 +185,23 @@ router.delete("/policy-position/", function (req, res)
     //Id from policy_position to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
-    Policy_positionModel.deletePolicy_positionidfirewall(idfirewall,id, function (error, data)
+    Policy_positionModel.deletePolicy_positionidfirewall(idfirewall, id, function (error, data)
     {
-        if (data && data.result)
-        {
-            //res.redirect("/policy-positions/");            
-            res.status(200).json( {"data": data.msg});
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            if (data && data.result)
+            {
+                //res.redirect("/policy-positions/");            
+                res.status(200).json({"data": data.msg});
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });

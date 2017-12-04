@@ -2,15 +2,15 @@ var express = require('express');
 var router = express.Router();
 var Ipobj_typeModel = require('../models/ipobj_type');
 var api_resp = require('../utils/api_response');
-var objModel='IPOBJ TYPE';
+var objModel = 'IPOBJ TYPE';
 
 /**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
 var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */
@@ -35,7 +35,7 @@ router.get('/', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -46,9 +46,9 @@ router.get('/', function (req, res)
 
 /* Get  ipobj_type by id */
 router.get('/:id', function (req, res)
-{    
+{
     var id = req.params.id;
-    Ipobj_typeModel.getIpobj_type(id,function (error, data)
+    Ipobj_typeModel.getIpobj_type(id, function (error, data)
     {
         //If exists ipobj_type get data
         if (data && data.length > 0)
@@ -60,7 +60,7 @@ router.get('/:id', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -71,7 +71,7 @@ router.get('/:id', function (req, res)
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
-    Ipobj_typeModel.getIpobj_typeName(name,function (error, data)
+    Ipobj_typeModel.getIpobj_typeName(name, function (error, data)
     {
         //If exists ipobj_type get data
         if (data && data.length > 0)
@@ -83,7 +83,7 @@ router.get('/name/:name', function (req, res)
         //Get Error
         else
         {
-             api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -101,22 +101,27 @@ router.post("/ipobj-type", function (req, res)
         id: req.body.id,
         type: req.body.type
     };
-    
+
     Ipobj_typeModel.insertIpobj_type(ipobj_typeData, function (error, data)
     {
-        //If saved ipobj_type Get data
-        if (data && data.insertId)
-        {
-            //res.redirect("/ipobj-types/ipobj-type/" + data.insertId);
-            var dataresp = {"insertId": data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+        else {
+            //If saved ipobj_type Get data
+            if (data && data.insertId)
+            {
+                var dataresp = {"insertId": data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -126,23 +131,29 @@ router.put('/ipobj-type/', function (req, res)
 {
     //Save data into object
     var ipobj_typeData = {
-        id: req.param('id'), 
+        id: req.param('id'),
         type: req.param('type')
     };
     Ipobj_typeModel.updateIpobj_type(ipobj_typeData, function (error, data)
     {
-        //If saved ipobj_type saved ok, get data
-        if (data && data.result)
-        {
-            //res.redirect("/ipobj-types/ipobj-type/" + req.param('id'));
-            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+        else {
+            //If saved ipobj_type saved ok, get data
+            if (data && data.result)
+            {
+                //res.redirect("/ipobj-types/ipobj-type/" + req.param('id'));
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });
@@ -158,15 +169,14 @@ router.delete("/ipobj-type/", function (req, res)
     {
         if (data && data.result)
         {
-            //res.redirect("/ipobj-types/");
-            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         } else
         {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
         }
     });
 });
