@@ -187,7 +187,7 @@ router.post("/policy-r__interface", function (req, res)
             });
         else {
             //If saved policy_r__interface Get data
-            if (data && data.length > 0) {
+            if (data && data.result) {
                 if (data.result)
                     api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -236,7 +236,7 @@ router.put('/policy-r__interface', function (req, res)
             });
         else {
             //If saved policy_r__interface saved ok, get data
-            if (data && data.length > 0) {
+            if (data && data.result) {
                 if (data.result) {
                     api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -278,7 +278,7 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
     Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
     {
         logger.debug(data);
-        if (data && data.length > 0) {
+        if (data) {
             content1 = data.content1;
             content2 = data.content2;
 
@@ -286,7 +286,7 @@ router.put('/policy-r__interface/:firewall/:rule/:interface/:position/:position_
                 Policy_r__interfaceModel.updatePolicy_r__interface_position(rule, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
                 {
                     //If saved policy_r__ipobj saved ok, get data
-                    if (data && data.length > 0) {
+                    if (data) {
                         if (data.result) {
                             api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                 res.status(200).json(jsonResp);
@@ -444,7 +444,7 @@ router.delete("/policy-r__interface/:firewall/:rule/:interface/:position/:positi
 
     Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, function (error, data)
     {
-        if (data && data.length > 0) {
+        if (data) {
             if (data.msg === "deleted")
             {
                 api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {

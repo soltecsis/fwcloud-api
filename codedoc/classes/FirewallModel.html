@@ -41,6 +41,7 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                 
                 
@@ -48,6 +49,7 @@
                                 <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                         </div>
                     </div>
@@ -158,6 +160,18 @@
 
                     <ul class="index-list properties">
                             <li class="index-item property">
+                                <a href="#property_logger">logger</a>
+
+                            </li>
+                            <li class="index-item property">
+                                <a href="#property_logger">logger</a>
+
+                            </li>
+                            <li class="index-item property">
+                                <a href="#property_logger">logger</a>
+
+                            </li>
+                            <li class="index-item property">
                                 <a href="#property_tableModel">tableModel</a>
 
                             </li>
@@ -200,7 +214,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l293"><code>models&#x2F;firewall.js:293</code></a>
+        <a href="../files/models_firewall.js.html#l302"><code>models&#x2F;firewall.js:302</code></a>
         </p>
 
 
@@ -267,10 +281,10 @@
 
             <div class="example-content">
                 <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;deleted&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
 </code></pre>
 <h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;notExist&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: false});
 </code></pre>
 
             </div>
@@ -306,7 +320,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l73"><code>models&#x2F;firewall.js:73</code></a>
+        <a href="../files/models_firewall.js.html#l83"><code>models&#x2F;firewall.js:83</code></a>
         </p>
 
 
@@ -411,7 +425,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l153"><code>models&#x2F;firewall.js:153</code></a>
+        <a href="../files/models_firewall.js.html#l163"><code>models&#x2F;firewall.js:163</code></a>
         </p>
 
 
@@ -516,7 +530,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l112"><code>models&#x2F;firewall.js:112</code></a>
+        <a href="../files/models_firewall.js.html#l122"><code>models&#x2F;firewall.js:122</code></a>
         </p>
 
 
@@ -618,7 +632,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l31"><code>models&#x2F;firewall.js:31</code></a>
+        <a href="../files/models_firewall.js.html#l41"><code>models&#x2F;firewall.js:41</code></a>
         </p>
 
 
@@ -712,7 +726,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l194"><code>models&#x2F;firewall.js:194</code></a>
+        <a href="../files/models_firewall.js.html#l204"><code>models&#x2F;firewall.js:204</code></a>
         </p>
 
 
@@ -870,7 +884,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l244"><code>models&#x2F;firewall.js:244</code></a>
+        <a href="../files/models_firewall.js.html#l254"><code>models&#x2F;firewall.js:254</code></a>
         </p>
 
 
@@ -989,7 +1003,7 @@
 
             <div class="example-content">
                 <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;success&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true});
 </code></pre>
 <h4>RESPONSE ERROR:</h4>
 <pre class="code prettyprint"><code>  callback(error, null);
@@ -1003,6 +1017,81 @@
             <div id="properties" class="api-class-tabpanel">
                 <h2 class="off-left">Properties</h2>
 
+<div id="property_logger" class="property item">
+    <h3 class="name"><code>logger</code></h3>
+    <span class="type">Log4js/app</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/models_cluster.js.html#l8"><code>models&#x2F;cluster.js:8</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Logger to manage App logs</p>
+
+    </div>
+
+
+
+</div>
+<div id="property_logger" class="property item">
+    <h3 class="name"><code>logger</code></h3>
+    <span class="type">Log4js/app</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/models_customers.js.html#l8"><code>models&#x2F;customers.js:8</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Logger to manage App logs</p>
+
+    </div>
+
+
+
+</div>
+<div id="property_logger" class="property item">
+    <h3 class="name"><code>logger</code></h3>
+    <span class="type">Log4js/app</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/models_firewall.js.html#l31"><code>models&#x2F;firewall.js:31</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Logger to manage App logs</p>
+
+    </div>
+
+
+
+</div>
 <div id="property_tableModel" class="property item">
     <h3 class="name"><code>tableModel</code></h3>
     <span class="type">"firewall"</span>

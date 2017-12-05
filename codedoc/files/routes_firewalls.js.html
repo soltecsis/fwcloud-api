@@ -41,6 +41,7 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                 
                 
@@ -48,6 +49,7 @@
                                 <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                         </div>
                     </div>
@@ -86,46 +88,57 @@
 <div class="file">
     <pre class="code prettyprint linenums">
 var express = require(&#x27;express&#x27;);
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+var objModel = &#x27;FIREWALL&#x27;;
 
 /**
-* Module to routing Firewalls requests
-* &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/firewalls&lt;/b&gt;
-*
-* @module FirewallRouter
-* 
-* @requires express
-* @requires FirewallModel
-* 
-*/
+ * Module to routing Firewalls requests
+ * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/firewalls&lt;/b&gt;
+ *
+ * @module FirewallRouter
+ * 
+ * @requires express
+ * @requires FirewallModel
+ * @requires log4js
+ * 
+ */
 var router = express.Router();
 
 /**
-* Property Model to manage Firewall Data
-*
-* @property FirewallModel
-* @type /models/firewall
-* 
-*/
+ * Property Model to manage Firewall Data
+ *
+ * @property FirewallModel
+ * @type /models/firewall
+ * 
+ */
 var FirewallModel = require(&#x27;../models/firewall&#x27;);
 
+/**
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
+var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
 /**
-* Class to manage firewalls routing
-*
-* @class FirewallRouter
-* @uses FirewallModel
-* 
-*/
+ * Class to manage firewalls routing
+ *
+ * @class FirewallRouter
+ * @uses FirewallModel
+ * 
+ */
 
 /**
-* Show form to add new Firewall
-* 
-* &lt;br&gt;ROUTE CALL:  /firewall
-*
-* @method showForm
-* 
-* @return {Boolean} Returns true on success
-*/
+ * Show form to add new Firewall
+ * 
+ * &lt;br&gt;ROUTE CALL:  /firewall
+ *
+ * @method showForm
+ * 
+ * @return {Boolean} Returns true on success
+ */
 router.get(&#x27;/firewall&#x27;, function (req, res)
 {
     res.render(&#x27;new_firewall&#x27;, {title: &#x27;Crear nuevo firewall&#x27;});
@@ -133,102 +146,110 @@ router.get(&#x27;/firewall&#x27;, function (req, res)
 
 
 /**
-* Get Firewalls by User
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/:iduser__      
-* &gt; METHOD:  __GET__
-* 
-* @method getFirewallByUser
-* 
-* @param {Integer} iduser User identifier
-* 
-* @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
-* @example #### JSON RESPONSE
-*    
-*       {&quot;data&quot; : [
-*          {  //Data Firewall 1       
-*           &quot;id&quot; : ,            //Firewall Identifier
-*           &quot;cluster&quot; : ,       //Cluster
-*           &quot;fwcloud&quot; : ,       //Id Firewall cloud
-*           &quot;name&quot; : ,          //Firewall name
-*           &quot;comment&quot; : ,       //comment
-*           &quot;created_at&quot; : ,    //Date Created
-*           &quot;updated_at&quot; : ,    //Date Updated
-*           &quot;by_user&quot; : ,       //User last update
-*           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-*          },
-*          {....}, //Data Firewall 2
-*          {....}  //Data Firewall ...n 
-*         ]
-*       };
-* 
-*/
+ * Get Firewalls by User
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/:iduser__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method getFirewallByUser
+ * 
+ * @param {Integer} iduser User identifier
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
+ * @example #### JSON RESPONSE
+ *    
+ *       {&quot;data&quot; : [
+ *          {  //Data Firewall 1       
+ *           &quot;id&quot; : ,            //Firewall Identifier
+ *           &quot;cluster&quot; : ,       //Cluster
+ *           &quot;fwcloud&quot; : ,       //Id Firewall cloud
+ *           &quot;name&quot; : ,          //Firewall name
+ *           &quot;comment&quot; : ,       //comment
+ *           &quot;created_at&quot; : ,    //Date Created
+ *           &quot;updated_at&quot; : ,    //Date Updated
+ *           &quot;by_user&quot; : ,       //User last update
+ *           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+ *          },
+ *          {....}, //Data Firewall 2
+ *          {....}  //Data Firewall ...n 
+ *         ]
+ *       };
+ * 
+ */
 router.get(&#x27;/:iduser&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
-    FirewallModel.getFirewalls(iduser,function (error, data)
+    FirewallModel.getFirewalls(iduser, function (error, data)
     {
         //Get data
-        if (typeof data !== &#x27;undefined&#x27;)
+        if (data &amp;&amp; data.length &gt; 0)
         {
-            res.json(200, {&quot;data&quot;: data});
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get error
         else
         {
-            res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
 
 
 /**
-* Get Firewalls by User and ID
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/:iduser/:id__      
-* &gt; METHOD:  __GET__
-* 
-* @method getFirewallByUser_and_Id
-* 
-* @param {Integer} iduser User identifier
-* @param {Integer} id firewall identifier
-* 
-* @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
-* @example #### JSON RESPONSE
-*    
-*       {&quot;data&quot; : [
-*          {  //Data Firewall        
-*           &quot;id&quot; : ,            //Firewall Identifier
-*           &quot;cluster&quot; : ,       //Cluster
-*           &quot;fwcloud&quot; : ,       //Id Firewall cloud
-*           &quot;name&quot; : ,          //Firewall name
-*           &quot;comment&quot; : ,       //comment
-*           &quot;created_at&quot; : ,    //Date Created
-*           &quot;updated_at&quot; : ,    //Date Updated
-*           &quot;by_user&quot; : ,       //User last update
-*           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-*          }
-*         ]
-*       };
-* 
-*/
+ * Get Firewalls by User and ID
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/:iduser/:id__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method getFirewallByUser_and_Id
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} id firewall identifier
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
+ * @example #### JSON RESPONSE
+ *    
+ *       {&quot;data&quot; : [
+ *          {  //Data Firewall        
+ *           &quot;id&quot; : ,            //Firewall Identifier
+ *           &quot;cluster&quot; : ,       //Cluster
+ *           &quot;fwcloud&quot; : ,       //Id Firewall cloud
+ *           &quot;name&quot; : ,          //Firewall name
+ *           &quot;comment&quot; : ,       //comment
+ *           &quot;created_at&quot; : ,    //Date Created
+ *           &quot;updated_at&quot; : ,    //Date Updated
+ *           &quot;by_user&quot; : ,       //User last update
+ *           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+ *          }
+ *         ]
+ *       };
+ * 
+ */
 router.get(&#x27;/:iduser/:id&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
-    FirewallModel.getFirewall(iduser,id,function (error, data)
+    FirewallModel.getFirewall(iduser, id, function (error, data)
     {
         //Get Data
-        if (typeof data !== &#x27;undefined&#x27;)
+        if (data &amp;&amp; data.length &gt; 0)
         {
-            res.json(200, {&quot;data&quot;: data});
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //get Error
         else
         {
-            res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -236,53 +257,57 @@ router.get(&#x27;/:iduser/:id&#x27;, function (req, res)
 
 
 /**
-* Get Firewalls by User and Name
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/:iduser/fwname/:name__      
-* &gt; METHOD:  __GET__
-* 
-* @method getFirewallByUser_and_Name
-* 
-* @param {Integer} iduser User identifier
-* @param {String} name firewall name
-* 
-* @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
-* @example #### JSON RESPONSE
-*    
-*       {&quot;data&quot; : [
-*          {  //Data Firewall 1       
-*           &quot;id&quot; : ,            //Firewall Identifier
-*           &quot;cluster&quot; : ,       //Cluster
-*           &quot;fwcloud&quot; : ,       //Id Firewall cloud
-*           &quot;name&quot; : ,          //Firewall name
-*           &quot;comment&quot; : ,       //comment
-*           &quot;created_at&quot; : ,    //Date Created
-*           &quot;updated_at&quot; : ,    //Date Updated
-*           &quot;by_user&quot; : ,       //User last update
-*           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-*          },
-*          {....}, //Data Firewall 2
-*          {....}  //Data Firewall ...n 
-*         ]
-*       };
-* 
-*/
+ * Get Firewalls by User and Name
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/:iduser/fwname/:name__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method getFirewallByUser_and_Name
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {String} name firewall name
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
+ * @example #### JSON RESPONSE
+ *    
+ *       {&quot;data&quot; : [
+ *          {  //Data Firewall 1       
+ *           &quot;id&quot; : ,            //Firewall Identifier
+ *           &quot;cluster&quot; : ,       //Cluster
+ *           &quot;fwcloud&quot; : ,       //Id Firewall cloud
+ *           &quot;name&quot; : ,          //Firewall name
+ *           &quot;comment&quot; : ,       //comment
+ *           &quot;created_at&quot; : ,    //Date Created
+ *           &quot;updated_at&quot; : ,    //Date Updated
+ *           &quot;by_user&quot; : ,       //User last update
+ *           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+ *          },
+ *          {....}, //Data Firewall 2
+ *          {....}  //Data Firewall ...n 
+ *         ]
+ *       };
+ * 
+ */
 router.get(&#x27;/:iduser/fwname/:name&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
-    FirewallModel.getFirewallName(iduser,name,function (error, data)
+    FirewallModel.getFirewallName(iduser, name, function (error, data)
     {
         //Get data
-        if (typeof data !== &#x27;undefined&#x27;)
+        if (data &amp;&amp; data.length &gt; 0)
         {
-            res.json(200, {&quot;data&quot;: data});
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get error
         else
         {
-            res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -290,53 +315,57 @@ router.get(&#x27;/:iduser/fwname/:name&#x27;, function (req, res)
 
 
 /**
-* Get Firewalls by Cluster
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      
-* &gt; METHOD:  __GET__
-* 
-* @method getFirewallByUser_and_Cluster
-* 
-* @param {Integer} iduser User identifier
-* @param {Number} idcluster Cluster identifier
-* 
-* @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
-* @example #### JSON RESPONSE
-*    
-*       {&quot;data&quot; : [
-*          {  //Data Firewall 1       
-*           &quot;id&quot; : ,            //Firewall Identifier
-*           &quot;cluster&quot; : ,       //Cluster
-*           &quot;fwcloud&quot; : ,       //Id Firewall cloud
-*           &quot;name&quot; : ,          //Firewall name
-*           &quot;comment&quot; : ,       //comment
-*           &quot;created_at&quot; : ,    //Date Created
-*           &quot;updated_at&quot; : ,    //Date Updated
-*           &quot;by_user&quot; : ,       //User last update
-*           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-*          },
-*          {....}, //Data Firewall 2
-*          {....}  //Data Firewall ...n 
-*         ]
-*       };
-* 
-*/
+ * Get Firewalls by Cluster
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method getFirewallByUser_and_Cluster
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Number} idcluster Cluster identifier
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Firewall
+ * @example #### JSON RESPONSE
+ *    
+ *       {&quot;data&quot; : [
+ *          {  //Data Firewall 1       
+ *           &quot;id&quot; : ,            //Firewall Identifier
+ *           &quot;cluster&quot; : ,       //Cluster
+ *           &quot;fwcloud&quot; : ,       //Id Firewall cloud
+ *           &quot;name&quot; : ,          //Firewall name
+ *           &quot;comment&quot; : ,       //comment
+ *           &quot;created_at&quot; : ,    //Date Created
+ *           &quot;updated_at&quot; : ,    //Date Updated
+ *           &quot;by_user&quot; : ,       //User last update
+ *           &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+ *          },
+ *          {....}, //Data Firewall 2
+ *          {....}  //Data Firewall ...n 
+ *         ]
+ *       };
+ * 
+ */
 router.get(&#x27;/:iduser/cluster/:idcluster&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
     var idcluster = req.params.idcluster;
-    FirewallModel.getFirewallCluster(iduser,idcluster,function (error, data)
+    FirewallModel.getFirewallCluster(iduser, idcluster, function (error, data)
     {
         //get data
-        if (typeof data !== &#x27;undefined&#x27;)
+        if (data &amp;&amp; data.length &gt; 0)
         {
-            res.json(200, {&quot;data&quot;: data});
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
         //Get Error
         else
         {
-            res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
@@ -345,260 +374,280 @@ router.get(&#x27;/:iduser/cluster/:idcluster&#x27;, function (req, res)
 
 
 /**
-* CREATE New firewall
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/firewall__      
-* &gt; METHOD:  __POST__
-* 
-*
-* @method AddFirewall
-* 
-* @param {Integer} id Firewall identifier (AUTO)
-* @param {Integer} iduser User identifier
-* @param {Integer} cluster Cluster identifier
-* @param {String} name Firewall Name
-* @param {String} [comment] Firewall comment
-* 
-* @return {JSON} Returns Json result
-* @example 
-* #### JSON RESPONSE OK:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;insertId : ID,   //firewall identifier           
-*          }
-*         ]
-*       };
-*       
-* #### JSON RESPONSE ERROR:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;msg : ERROR,   //Text Error
-*          }
-*         ]
-*       };
-*/
+ * CREATE New firewall
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/firewall__      
+ * &gt; METHOD:  __POST__
+ * 
+ *
+ * @method AddFirewall
+ * 
+ * @param {Integer} id Firewall identifier (AUTO)
+ * @param {Integer} iduser User identifier
+ * @param {Integer} cluster Cluster identifier
+ * @param {String} name Firewall Name
+ * @param {String} [comment] Firewall comment
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;insertId : ID,   //firewall identifier           
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
 router.post(&quot;/firewall&quot;, function (req, res)
 {
-    
+
     var firewallData = {
         id: null,
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment
     };
-    var iduser= req.body.iduser;
+    var iduser = req.body.iduser;
     FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
     {
-        
+
         if (data &amp;&amp; data.insertId)
         {
-            //res.redirect(&quot;/firewalls/firewall/&quot; + data.insertId);
-            res.json(200, {&quot;insertId&quot;: data.insertId});
+            var dataresp = {&quot;insertId&quot;: data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;INSERTED OK&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.json(500, {&quot;msg&quot;: error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
 
 
 /**
-* UPDATE firewall
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/firewall__      
-* &gt; METHOD:  __PUT__
-* 
-*
-* @method UpdateFirewall
-* 
-* @param {Integer} id Firewall identifier
-* @optional
-* @param {Integer} iduser User identifier
-* @param {Integer} cluster Cluster identifier
-* @param {String} name Firewall Name
-* @param {String} comment Firewall comment
-* 
-* @return {JSON} Returns Json result
-* @example 
-* #### JSON RESPONSE OK:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;msg : &quot;success&quot;,   //result
-*          }
-*         ]
-*       };
-*       
-* #### JSON RESPONSE ERROR:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;msg : ERROR,   //Text Error
-*          }
-*         ]
-*       };
-*/
+ * UPDATE firewall
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/firewall__      
+ * &gt; METHOD:  __PUT__
+ * 
+ *
+ * @method UpdateFirewall
+ * 
+ * @param {Integer} id Firewall identifier
+ * @optional
+ * @param {Integer} iduser User identifier
+ * @param {Integer} cluster Cluster identifier
+ * @param {String} name Firewall Name
+ * @param {String} comment Firewall comment
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;msg : &quot;success&quot;,   //result
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
 router.put(&#x27;/firewall/&#x27;, function (req, res)
 {
+
     //Save firewall data into objet
-    var firewallData = {id: req.param(&#x27;id&#x27;), name: req.param(&#x27;name&#x27;), cluster: req.param(&#x27;cluster&#x27;), user: req.param(&#x27;user&#x27;), comment: req.param(&#x27;comment&#x27;)};
+    var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment};
+
     FirewallModel.updateFirewall(firewallData, function (error, data)
     {
         //Saved ok
-        if (data &amp;&amp; data.msg)
+        if (data &amp;&amp; data.result)
         {
-            //res.redirect(&quot;/firewalls/firewall/&quot; + req.param(&#x27;id&#x27;));
-            res.json(200, {&quot;data&quot;: data.msg});
+            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            res.json(500, {&quot;msg&quot;: error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });
 
 /* Get firewall by Id */
 /**
-* Get Firewalls by ID and User
-* 
-* &lt;br&gt;ROUTE CALL:  &lt;b&gt;/firewalls/:iduser/firewall/:id&lt;/b&gt;
-* &lt;br&gt;METHOD: &lt;b&gt;GET&lt;/b&gt;
-*
-* @method getFirewallByUser_and_ID_V2
-* 
-* @param {Integer} iduser User identifier
-* @param {Integer} id Firewall identifier
-* 
-* @return {JSON} Returns Json Data from Firewall
-*/
+ * Get Firewalls by ID and User
+ * 
+ * &lt;br&gt;ROUTE CALL:  &lt;b&gt;/firewalls/:iduser/firewall/:id&lt;/b&gt;
+ * &lt;br&gt;METHOD: &lt;b&gt;GET&lt;/b&gt;
+ *
+ * @method getFirewallByUser_and_ID_V2
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} id Firewall identifier
+ * 
+ * @return {JSON} Returns Json Data from Firewall
+ */
 router.get(&#x27;/:iduser/firewall/:id&#x27;, function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
-    
+
     if (!isNaN(id))
     {
-        FirewallModel.getFirewall(iduser,id, function (error, data)
+        FirewallModel.getFirewall(iduser, id, function (error, data)
         {
             //get firewall data
-            if (typeof data !== &#x27;undefined&#x27; &amp;&amp; data.length &gt; 0)
+            if (data &amp;&amp; data.length &gt; 0)
             {
-//                res.render(&quot;update_firewall&quot;,{ 
-//                    title : &quot;Servicio rest con nodejs, express 4 and mysql&quot;, 
-//                    info : data
-//                });
-                res.json(200, {&quot;data&quot;: data});
+                api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
 
             }
             //get error
             else
             {
-                res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
         });
     }
     //id must be numeric
     else
     {
-        res.json(500, {&quot;msg&quot;: &quot;The id must be numeric&quot;});
+        api_resp.getJson(null, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     }
 });
 
 /* Get firewall by firewall name  */
 /**
-* Get Firewalls by Name and User
-* 
-* &lt;br&gt;ROUTE CALL:  &lt;b&gt;/firewalls/:iduser/name/:name&lt;/b&gt;
-* &lt;br&gt;METHOD: &lt;b&gt;GET&lt;/b&gt;
-*
-* @method getFirewallByUser_and_Name_V2
-* 
-* @param {Integer} iduser User identifier
-* @param {String} name Firewall Name
-* 
-* @return {JSON} Returns Json Data from Firewall
-*/
+ * Get Firewalls by Name and User
+ * 
+ * &lt;br&gt;ROUTE CALL:  &lt;b&gt;/firewalls/:iduser/name/:name&lt;/b&gt;
+ * &lt;br&gt;METHOD: &lt;b&gt;GET&lt;/b&gt;
+ *
+ * @method getFirewallByUser_and_Name_V2
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {String} name Firewall Name
+ * 
+ * @return {JSON} Returns Json Data from Firewall
+ */
 router.get(&#x27;/:iduser/firewall/name/:name&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
-    
-    if (name.length&gt;0)
+
+    if (name.length &gt; 0)
     {
-        FirewallModel.getFirewallName(iduser,name, function (error, data)
+        FirewallModel.getFirewallName(iduser, name, function (error, data)
         {
             //get data
-            if (typeof data !== &#x27;undefined&#x27; &amp;&amp; data.length &gt; 0)
+            if (data &amp;&amp; data.length &gt; 0)
             {
-                res.json(200, {&quot;data&quot;: data});
+                api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
 
             }
             //get error
             else
             {
-                res.json(404, {&quot;msg&quot;: &quot;notExist&quot;});
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
         });
     }
     //id must be numeric
     else
     {
-        res.json(500, {&quot;msg&quot;: &quot;The id must be numeric&quot;});
+         api_resp.getJson(null, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     }
 });
 
 
 
 /**
-* DELETE firewall
-* 
-* 
-* &gt; ROUTE CALL:  __/firewalls/firewall__      
-* &gt; METHOD:  __DELETE__
-* 
-*
-* @method DeleteFirewall
-* 
-* @param {Integer} id Firewall identifier
-* @optional
-* 
-* @return {JSON} Returns Json result
-* @example 
-* #### JSON RESPONSE OK:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;msg : &quot;success&quot;,   //result
-*          }
-*         ]
-*       };
-*       
-* #### JSON RESPONSE ERROR:
-*    
-*       {&quot;data&quot; : [
-*          { 
-*           &quot;msg : ERROR,   //Text Error
-*          }
-*         ]
-*       };
-*/
+ * DELETE firewall
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/firewalls/firewall__      
+ * &gt; METHOD:  __DELETE__
+ * 
+ *
+ * @method DeleteFirewall
+ * 
+ * @param {Integer} id Firewall identifier
+ * @optional
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;msg : &quot;success&quot;,   //result
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {&quot;data&quot; : [
+ *          { 
+ *           &quot;msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
 router.delete(&quot;/firewall/&quot;, function (req, res)
 {
-    
+
     var id = req.param(&#x27;id&#x27;);
     var iduser = req.param(&#x27;iduser&#x27;);
-    FirewallModel.deleteFirewall(iduser,id, function (error, data)
+    FirewallModel.deleteFirewall(iduser, id, function (error, data)
     {
-        if (data &amp;&amp; data.msg === &quot;deleted&quot; || data.msg === &quot;notExist&quot;)
+        if (data &amp;&amp; data.result)
         {
-            //res.redirect(&quot;/firewalls/&quot;);
-            res.json(200, {&quot;data&quot;: data}.msg);
+            api_resp.getJson(data, api_resp.ACR_DELETED_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
         } else
         {
-            res.json(500, {&quot;msg&quot;: error});
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 });

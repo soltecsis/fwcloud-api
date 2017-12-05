@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>models/policy_r.js - FWCloud API REST Documentation</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="icon" href="../assets/favicon.ico">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+                <h1><img src="http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png" title="FWCloud API REST Documentation"></h1>
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: 1.0.0</em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+                    <h2 class="off-left">APIs</h2>
+                    <div id="api-tabview" class="tabview">
+                        <ul class="tabs">
+                            <li><a href="#api-classes">Classes</a></li>
+                            <li><a href="#api-modules">Modules</a></li>
+                        </ul>
+                
+                        <div id="api-tabview-filter">
+                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+                        </div>
+                
+                        <div id="api-tabview-panel">
+                            <ul id="api-classes" class="apis classes">
+                                <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
+                                <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
+                                <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                            </ul>
+                
+                
+                            <ul id="api-modules" class="apis modules">
+                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
+                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
+                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+                    Show:
+                    <label for="api-show-inherited">
+                        <input type="checkbox" id="api-show-inherited" checked>
+                        Inherited
+                    </label>
+            
+                    <label for="api-show-protected">
+                        <input type="checkbox" id="api-show-protected">
+                        Protected
+                    </label>
+            
+                    <label for="api-show-private">
+                        <input type="checkbox" id="api-show-private">
+                        Private
+                    </label>
+                    <label for="api-show-deprecated">
+                        <input type="checkbox" id="api-show-deprecated">
+                        Deprecated
+                    </label>
+            
+                </div>
+            
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+<h1 class="file-heading">File: models/policy_r.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+var db = require(&#x27;../db.js&#x27;);
+var async = require(&#x27;async&#x27;);
+var Policy_r__ipobjModel = require(&#x27;../models/policy_r__ipobj&#x27;);
+var Policy_r__interfaceModel = require(&#x27;../models/policy_r__interface&#x27;);
+var Policy_typeModel = require(&#x27;../models/policy_type&#x27;);
+
+//create object
+var policy_rModel = {};
+var tableModel = &quot;policy_r&quot;;
+var Policy_positionModel = require(&#x27;../models/policy_position&#x27;);
+var Policy_r__ipobjModel = require(&#x27;../models/policy_r__ipobj&#x27;);
+var IpobjModel = require(&#x27;../models/ipobj&#x27;);
+var Ipobj_gModel = require(&#x27;../models/ipobj_g&#x27;);
+var InterfaceModel = require(&#x27;../models/interface&#x27;);
+var data_policy_r = require(&#x27;../models/data_policy_r&#x27;);
+var data_policy_positions = require(&#x27;../models/data_policy_positions&#x27;);
+var data_policy_position_ipobjs = require(&#x27;../models/data_policy_position_ipobjs&#x27;);
+
+
+/**
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
+var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
+
+
+//Get All policy_r by firewall and group
+policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var whereGroup = &#x27;&#x27;;
+        if (idgroup !== &#x27;&#x27;) {
+            whereGroup = &#x27; AND idgroup=&#x27; + connection.escape(idgroup);
+        }
+        var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE firewall=&#x27; + connection.escape(idfirewall) + whereGroup + &#x27; ORDER BY rule_order&#x27;;
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
+};
+
+//Get All policy_r by firewall and type
+policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, AllDone) {
+
+     
+    var policy = [];
+    var policy_cont = 0;
+    var position_cont = 0;
+    var ipobj_cont = 0;
+    var i, j, k;
+    var sqlRule = &quot;&quot;;
+
+
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        if (rule !== &quot;&quot;) {
+            sqlRule = &quot; AND id=&quot; + connection.escape(rule);
+        }
+        Policy_typeModel.getPolicy_type(type, function (error, data_types) {
+            if (error)
+                AllDone(error, null);
+            else {
+                if (data_types.length &gt; 0)
+                    type = data_types[0].id;
+                else
+                    type = 1;
+
+                var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE firewall=&#x27; + connection.escape(idfirewall) + &#x27; AND  type= &#x27; + connection.escape(type) + sqlRule + &#x27; ORDER BY rule_order&#x27;;
+                //logger.debug(sql);
+                connection.query(sql, function (error, rows) {
+                    if (error)
+                        AllDone(error, null);
+                    else {
+                        if (rows.length &gt; 0) {
+                            i = 0;
+                            policy_cont = rows.length;
+                            //for (i = 0; i &lt; rows.length; i++) {
+                            //--------------------------------------------------------------------------------------------------
+                            async.map(rows, function (row_rule, callback1) {
+                                i++;
+                                var policy_node = new data_policy_r(row_rule);
+
+
+                                var rule_id = row_rule.id;
+                                logger.debug(i + &quot; ---&gt; DENTRO de REGLA: &quot; + rule_id + &quot; ORDER: &quot; + row_rule.rule_order);
+
+                                //Buscamos POSITIONS de REGLA
+                                Policy_positionModel.getPolicy_positionsType(type, function (error, data_positions)
+                                {
+                                    //If exists policy_position get data
+                                    if (typeof data_positions !== &#x27;undefined&#x27;)
+                                    {
+                                        //logger.debug(&quot;REGLA: &quot; + rule_id + &quot;  POSITIONS: &quot; + data_positions.length);
+                                        j = 0;
+                                        //for (j = 0; j &lt; data_positions.length; j++) {
+
+                                        position_cont = data_positions.length;
+                                        policy_node.positions = new Array();
+
+                                        //--------------------------------------------------------------------------------------------------
+                                        async.map(data_positions, function (row_position, callback2) {
+                                            j++;
+                                            //logger.debug(j + &quot; - DENTRO de POSITION: &quot; + row_position.id + &quot; - &quot; + row_position.name + &quot;     ORDER:&quot; + row_position.position_order);
+                                            var position_node = new data_policy_positions(row_position);
+
+                                            //Buscamos IPOBJS por POSITION
+                                            Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function (error, data__rule_ipobjs)
+                                            {
+                                                //logger.debug(&quot; IPOBJS PARA POSITION:&quot; + row_position.id + &quot; --&gt; &quot; + data__rule_ipobjs.length);
+                                                //If exists policy_r__ipobj get data
+                                                //if (typeof data__rule_ipobjs !== &#x27;undefined&#x27; &amp;&amp; data__rule_ipobjs.length &gt; 0)
+                                                if (typeof data__rule_ipobjs !== &#x27;undefined&#x27;)
+                                                {
+
+                                                    //obtenemos IPOBJS o INTERFACES o GROUPS
+                                                    k = 0;
+                                                    //for (k = 0; k &lt; data__rule_ipobjs.length; k++) {
+                                                    ipobj_cont = data__rule_ipobjs.length;
+                                                    //creamos array de ipobj
+                                                    position_node.ipobjs = new Array();
+                                                    //--------------------------------------------------------------------------------------------------
+                                                    async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
+                                                        k++;
+                                                        logger.debug(&quot;BUCLE REGLA:&quot; + rule_id + &quot;  POSITION:&quot; + row_position.id + &quot;  IPOBJ ID: &quot; + row_ipobj.ipobj + &quot;  IPOBJ_GROUP: &quot; + row_ipobj.ipobj_g + &quot;  TYPE: &quot; + row_ipobj.type + &quot;  INTERFACE:&quot; + row_ipobj.interface + &quot;   ORDER:&quot; + row_ipobj.position_order + &quot;  NEGATE:&quot; + row_ipobj.negate);
+                                                        // GET IPOBJs  Position O
+                                                        if (row_ipobj.ipobj &gt; 0 &amp;&amp; row_ipobj.type === &#x27;O&#x27;) {
+                                                            IpobjModel.getIpobj(fwcloud, row_ipobj.ipobj, function (error, data_ipobjs)
+                                                            {
+                                                                //If exists ipobj get data
+                                                                if (data_ipobjs.length &gt; 0)
+                                                                {
+                                                                    var ipobj = data_ipobjs[0];
+                                                                    var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, &#x27;O&#x27;);
+                                                                    //Añadimos ipobj a array de position
+                                                                    position_node.ipobjs.push(ipobj_node);
+
+                                                                    callback3();
+                                                                }
+                                                                //Get Error
+                                                                else
+                                                                {
+                                                                    logger.debug(&quot;ERROR getIpobj: &quot; + error);
+                                                                    callback3();
+                                                                }
+                                                            });
+                                                        }
+                                                        //GET GROUPS  Position O
+                                                        else if (row_ipobj.ipobj_g &gt; 0 &amp;&amp; row_ipobj.type === &#x27;O&#x27;) {
+                                                            Ipobj_gModel.getIpobj_g(fwcloud, row_ipobj.ipobj_g, function (error, data_ipobjs)
+                                                            {
+                                                                //If exists ipobj_g get data
+                                                                if (data_ipobjs.length &gt; 0)
+                                                                {
+                                                                    var ipobj = data_ipobjs[0];
+                                                                    var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, &#x27;G&#x27;);
+                                                                    //Añadimos ipobj a array de position
+                                                                    position_node.ipobjs.push(ipobj_node);
+
+                                                                    callback3();
+                                                                }
+                                                                //Get Error
+                                                                else
+                                                                {
+                                                                    logger.debug(&quot;ERROR getIpobj: &quot; + error);
+                                                                    callback3();
+                                                                }
+                                                            });
+                                                        }
+                                                        //GET INTERFACES Position I and O
+                                                        else if (row_ipobj.interface &gt; 0 || row_ipobj.type === &#x27;I&#x27;) {
+                                                            var idInterface = row_ipobj.interface;
+                                                            if (row_ipobj.type === &#x27;I&#x27;)
+                                                                idInterface = row_ipobj.ipobj;
+
+                                                            InterfaceModel.getInterface(idfirewall, fwcloud, idInterface, function (error, data_interface)
+                                                            {
+                                                                if (data_interface.length &gt; 0)
+                                                                {
+                                                                    var interface = data_interface[0];
+                                                                    var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, &#x27;I&#x27;);
+                                                                    //Añadimos ipobj a array de position
+                                                                    position_node.ipobjs.push(ipobj_node);
+
+                                                                    callback3();
+                                                                }
+                                                                //Get Error
+                                                                else
+                                                                {
+                                                                    logger.debug(&quot;ERROR getInterface: &quot; + error);
+                                                                    callback3();
+                                                                }
+                                                            });
+                                                        } else {
+                                                            callback3();
+                                                        }
+                                                    }, //Fin de bucle de IPOBJS
+                                                            function (err) {
+                                                                //logger.debug(&quot;añadiendo IPOBJS: &quot; + ipobj_cont + &quot;   IPOBJS_COUNT:&quot; + position_node.ipobjs.length);
+                                                                //logger.debug(&quot;-------------------------Añadiendo IPOBJS  en Regla:&quot; + rule_id + &quot;  Position:&quot; + row_position.id);
+                                                                //logger.debug(position_node);
+
+                                                                position_node.ipobjs.sort(function (a, b) {
+                                                                    return a.position_order - b.position_order;
+                                                                });
+
+                                                                policy_node.positions.push(position_node);
+
+                                                                if (policy_node.positions.length &gt;= position_cont) {
+
+                                                                    policy_node.positions.sort(function (a, b) {
+                                                                        return a.position_order - b.position_order;
+                                                                    });
+                                                                    policy.push(policy_node);
+                                                                    //logger.debug(&quot;------------------Añadiendo POLICY_NODE  en Regla:&quot; + rule_id + &quot;  Position:&quot; + row_position.id);
+                                                                    if (policy.length &gt;= policy_cont) {
+                                                                        //logger.debug(&quot;-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------&quot;);
+                                                                        policy.sort(function (a, b) {
+                                                                            return a.rule_order - b.rule_order;
+                                                                        });
+                                                                        AllDone(null, policy);
+                                                                    }
+                                                                }
+
+                                                            });
+                                                }
+
+                                            });
+
+                                            callback2();
+
+                                        }, //Fin de bucle Positions                                
+                                                function (err) {
+                                                    //logger.debug(&quot;J=&quot; + j + &quot; ---------- FINAL BUCLE 2 --------&quot;);
+                                                    //logger.debug(&#x27;iterating2 done   CONT=&#x27; + policy_cont);
+//                                            if (err)
+//                                                callback2(err, null);
+//                                            else
+//                                                callback2(null, policy);
+
+                                                    //logger.debug(&quot;añadiendo POLICY NODE&quot;);
+                                                    //policy.push(policy_node);
+                                                    //logger.debug(&quot;LENGHT E2: &quot; + policy.length);
+                                                    if (policy.length &gt;= policy_cont) {
+                                                        //logger.debug(&quot;-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=&quot; + i + &quot; - J=&quot; + j + &quot; - K=&quot; + k);
+                                                    }
+                                                });
+
+
+                                        //logger.debug(policy);
+
+
+                                    }
+                                    //Get Error
+                                    else
+                                    {
+                                        logger.debug(&quot;ERROR getPolicy_positionsType: &quot; + error);
+                                    }
+                                });
+
+                                callback1();
+
+
+                            }, //Fin de bucle Reglas                    
+                                    function (err) {
+                                        //logger.debug(&quot;---------- FINAL BUCLE 1 --------&quot;);
+                                    });
+                        } else {
+                            //NO existe regla
+                            logger.debug(&quot;NO HAY REGLAS&quot;);
+                            AllDone(&quot;&quot;, null);
+                        }
+
+                    }
+                });
+            }
+        });
+    });
+};
+
+
+//Get policy_r by  id  and firewall
+policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE id = &#x27; + connection.escape(id) + &#x27; AND firewall=&#x27; + connection.escape(idfirewall);
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
+//Get routing by name and firewall and group
+policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var namesql = &#x27;%&#x27; + name + &#x27;%&#x27;;
+        var whereGroup = &#x27;&#x27;;
+        if (idgroup !== &#x27;&#x27;) {
+            whereGroup = &#x27; AND group=&#x27; + connection.escape(idgroup);
+        }
+        var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE name like  &#x27; + connection.escape(namesql) + &#x27; AND firewall=&#x27; + connection.escape(idfirewall) + whereGroup;
+        logger.debug(sql);
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
+
+
+//Add new policy_r from user
+policy_rModel.insertPolicy_r = function (policy_rData, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        logger.debug(&quot;NEW RULE:&quot;);
+        logger.debug(policy_rData);
+        connection.query(&#x27;INSERT INTO &#x27; + tableModel + &#x27; SET ?&#x27;, policy_rData, function (error, result) {
+            if (error) {
+                logger.debug(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows &gt; 0) {
+                    OrderList(policy_rData.rule_order, policy_rData.firewall, 999999, result.insertId);
+                    //devolvemos la última id insertada
+                    callback(null, {&quot;result&quot;: true, &quot;insertId&quot;: result.insertId});
+                } else
+                    callback(null, {&quot;result&quot;: false});
+            }
+        });
+    });
+};
+
+//Update policy_r from user
+policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
+    Policy_typeModel.getPolicy_type(policy_rData.type, function (error, data_types) {
+        if (error)
+            AllDone(error, null);
+        else {
+            if (data_types.length &gt; 0)
+                type = data_types[0].id;
+            else
+                type = 1;
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);
+                logger.debug(&quot;UPDATE RULE:&quot;);
+                logger.debug(policy_rData);
+
+                var sql = &#x27;UPDATE &#x27; + tableModel + &#x27; SET &#x27; +
+                        &#x27;idgroup = &#x27; + connection.escape(policy_rData.idgroup) + &#x27;,&#x27; +
+                        &#x27;firewall = &#x27; + connection.escape(policy_rData.firewall) + &#x27;,&#x27; +
+                        &#x27;rule_order = &#x27; + connection.escape(policy_rData.rule_order) + &#x27;,&#x27; +
+                        &#x27;action = &#x27; + connection.escape(policy_rData.action) + &#x27;,&#x27; +
+                        &#x27;time_start = &#x27; + connection.escape(policy_rData.time_start) + &#x27;,&#x27; +
+                        &#x27;time_end = &#x27; + connection.escape(policy_rData.time_end) + &#x27;,&#x27; +
+                        &#x27;options = &#x27; + connection.escape(policy_rData.options) + &#x27;,&#x27; +
+                        &#x27;active = &#x27; + connection.escape(policy_rData.active) + &#x27;,&#x27; +
+                        &#x27;comment = &#x27; + connection.escape(policy_rData.comment) + &#x27;, &#x27; +
+                        &#x27;type = &#x27; + connection.escape(type) + &#x27; &#x27; +
+                        &#x27; WHERE id = &#x27; + policy_rData.id;
+
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows &gt; 0) {
+                            OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
+                            callback(null, {&quot;result&quot;: true});
+                        } else
+                            callback(null, {&quot;result&quot;: false});
+                    }
+                });
+            });
+        }
+    });
+};
+
+//Update ORDER de policy_r 
+policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, callback) {
+    Policy_typeModel.getPolicy_type(type, function (error, data_types) {
+        if (error)
+            AllDone(error, null);
+        else {
+            if (data_types.length &gt; 0)
+                type = data_types[0].id;
+            else
+                type = 1;
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);
+                var sql = &#x27;UPDATE &#x27; + tableModel + &#x27; SET &#x27; +
+                        &#x27;rule_order = &#x27; + connection.escape(new_order) + &#x27; &#x27; +
+                        &#x27; WHERE id = &#x27; + connection.escape(id) + &#x27; AND firewall=&#x27; + connection.escape(idfirewall) + &#x27; AND type=&#x27; + connection.escape(type) +
+                        &#x27; AND rule_order=&#x27; + connection.escape(old_order);
+
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows &gt; 0) {
+                            OrderList(new_order, idfirewall, old_order, id);
+                            callback(null, {&quot;result&quot;: true});
+                        } else
+                            callback(null, {&quot;result&quot;: false});
+                    }
+                });
+            });
+        }
+    });
+};
+
+function OrderList(new_order, idfirewall, old_order, id) {
+    var increment = &#x27;+1&#x27;;
+    var order1 = new_order;
+    var order2 = old_order;
+    if (new_order &gt; old_order) {
+        increment = &#x27;-1&#x27;;
+        order1 = old_order;
+        order2 = new_order;
+    }
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = &#x27;UPDATE &#x27; + tableModel + &#x27; SET &#x27; +
+                &#x27;rule_order = rule_order&#x27; + increment +
+                &#x27; WHERE firewall = &#x27; + connection.escape(idfirewall) +
+                &#x27; AND rule_order&gt;=&#x27; + order1 + &#x27; AND rule_order&lt;=&#x27; + order2 +
+                &#x27; AND id&lt;&gt;&#x27; + connection.escape(id);
+        connection.query(sql);
+
+    });
+
+}
+;
+
+//Remove policy_r with id to remove
+policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sqlExists = &#x27;SELECT * FROM &#x27; + tableModel + &#x27;  WHERE id = &#x27; + connection.escape(id) + &#x27; AND firewall=&#x27; + connection.escape(idfirewall) + &#x27; AND rule_order=&#x27; + connection.escape(rule_order);
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from policy_r to remove
+            if (row) {
+                logger.debug(&quot;DELETING RULE: &quot; + id + &quot;  Firewall: &quot; + idfirewall);
+                //DELETE FROM policy_r__ipobj
+                Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
+                {
+                    if (error)
+                        callback(error, null);
+                    else {
+                        //DELETE FROM policy_r__interface
+                        Policy_r__interfaceModel.deletePolicy_r__All(id, function (error, data)
+                        {
+                            if (error)
+                                callback(error, null);
+                            else {
+                                db.get(function (error, connection) {
+                                    var sql = &#x27;DELETE FROM &#x27; + tableModel + &#x27; WHERE id = &#x27; + connection.escape(id) + &#x27; AND firewall=&#x27; + connection.escape(idfirewall) + &#x27; AND rule_order=&#x27; + connection.escape(rule_order);
+                                    connection.query(sql, function (error, result) {
+                                        if (error) {
+                                            logger.debug(error);
+                                            callback(error, null);
+                                        } else {
+                                            if (result.affectedRows &gt; 0) {
+                                                OrderList(999999, idfirewall, rule_order, id);
+                                                callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
+                                            } else {
+                                                callback(null, {&quot;result&quot;: false, &quot;msg&quot;: &quot;notExist&quot;});
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+
+                });
+            } else {
+                callback(null, {&quot;result&quot;: false, &quot;msg&quot;: &quot;notExist&quot;});
+            }
+        });
+    });
+};
+
+//Export the object
+module.exports = policy_rModel;
+    </pre>
+</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>

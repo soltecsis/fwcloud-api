@@ -1,11 +1,78 @@
 var express = require('express');
+/**
+ * Module to routing IPOBJ requests
+ * <br>BASE ROUTE CALL: <b>/ipobjs</b>
+ *
+ * @module IpobjsRouter
+ * 
+ * @requires express
+ * @requires IpobjModel
+ * @requires log4js
+ * 
+ */
 var router = express.Router();
+
+/**
+ * Property Model to manage IPOBJ Data
+ *
+ * @property IpobjlModel
+ * @type /models/ipobj
+ * 
+ */
 var IpobjModel = require('../models/ipobj');
+
+/**
+ * Property Model to manage FWC_TREE Data
+ *
+ * @property fwcTreemodel
+ * @type /models/fwc_tree
+ * 
+ */
 var fwcTreemodel = require('../models/fwc_tree');
+
+/**
+ * Property Model to manage FWC_TREE_NODE Data
+ *
+ * @property fwc_tree_nodeModel
+ * @type /models/fwc_tree_node
+ * 
+ */
 var fwc_tree_node = require("../models/fwc_tree_node.js");
+
+/**
+ * Property Model to manage UTIL functions
+ *
+ * @property utilsModel
+ * @type /models/utils
+ * 
+ */
 var utilsModel = require("../utils/utils.js");
+
+/**
+ * Property Model to manage interface__ipobj data relation
+ *
+ * @property Interface__ipobjModel
+ * @type /models/interface__ipobj
+ * 
+ */
 var Interface__ipobjModel = require('../models/interface__ipobj');
+
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type /models/api_response
+ * 
+ */
 var api_resp = require('../utils/api_response');
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ * 
+ */
 var objModel = 'IPOBJ';
 
 /**
@@ -17,9 +84,108 @@ var objModel = 'IPOBJ';
  */
 var logger = require('log4js').getLogger("app");
 
+/**
+ * Class to manage IPOBJ routing
+ *
+ * @class IpobjsRouter
+ * @uses IpobjlModel
+ * 
+ */
 
-
-/* Get all ipobjs by  group*/
+/**
+ * Get all ipobjs by  group
+ * 
+ * 
+ * > ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup__      
+ * > METHOD:  __GET__
+ * 
+ * @method getAllIpobjByGroup
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup Group identifier
+ * 
+ * @return {JSON} Returns `JSON` Data from Ipobj
+ * @example #### JSON RESPONSE
+ *    
+ *     "response": {
+ *        "respStatus":         //Response status  TRUE | FALSE
+ *        "respCode":           //Response Code 
+ *        "respCodeMsg":        //Response message
+ *        "respMsg":            //Response custom message
+ *        "errorCode":          //Error code
+ *        "errorMsg":           //Error message
+ *          },
+ *     "data": [                //Data node with de IPOBJ DATA
+ *        { "id": 1488,
+ *            "name": "PC-AALMODOVAR",
+ *            "type": 8,
+ *            "fwcloud": 1,
+            "interface": null,
+            "protocol": null,
+            "address": null,
+            "netmask": null,
+            "diff_serv": null,
+            "ip_version": null,
+            "code": null,
+            "tcp_flags_mask": null,
+            "tcp_flags_settings": null,
+            "range_start": null,
+            "range_end": null,
+            "source_port_start": null,
+            "source_port_end": null,
+            "destination_port_start": null,
+            "destination_port_end": null,
+            "options": null,
+            "comment": "",
+            "id_node": 102,
+            "id_parent_node": 8,
+            "interfaces": [         //Interface Node with Interfaces 
+                {
+                    "id": 73,
+                    "firewall": null,
+                    "name": "eth0",
+                    "labelname": "eth0",
+                    "type": "11",
+                    "securityLevel": "0",
+                    "interface_type": 11,
+                    "comment": null,
+                    "id_node": 318,
+                    "id_parent_node": 102,
+                    "ipobjs": [     //Ipobj Node with ipobjs into Interface
+                        {
+                            "id": 1525,
+                            "name": "PC-AALMODOVAR:eth0",
+                            "type": 5,
+                            "fwcloud": 1,
+                            "interface": 73,
+                            "protocol": null,
+                            "address": "10.98.1.16",
+                            "netmask": "255.255.255.0",
+                            "diff_serv": null,
+                            "ip_version": "IPv4",
+                            "code": null,
+                            "tcp_flags_mask": null,
+                            "tcp_flags_settings": null,
+                            "range_start": null,
+                            "range_end": null,
+                            "source_port_start": null,
+                            "source_port_end": null,
+                            "destination_port_start": null,
+                            "destination_port_end": null,
+                            "options": null,
+                            "comment": "",
+                            "id_node": 339,
+                            "id_parent_node": 318
+                        },
+                    ]
+                },
+            ]
+        }
+        ]
+        }
+ * 
+ */
 router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
 {
     var idgroup = req.params.idgroup;
@@ -29,7 +195,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
     IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data)
     {
         //If exists ipobj get data
-        if (data && data.length > 0)
+        if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -45,7 +211,22 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
     });
 });
 
-/* Get ipobjs by  group e id*/
+/**
+ * Get ipobj by  group and Ipobj id
+ * 
+ * 
+ * > ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup/:id__      
+ * > METHOD:  __GET__
+ * 
+ * @method getIpobjByGroup
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup Group identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {JSON} Returns `JSON` Data from Ipobj
+ * */
 router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
 {
     var idgroup = req.params.idgroup;
@@ -56,7 +237,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
     IpobjModel.getIpobjGroup(fwcloud, idgroup, id, function (error, data)
     {
         //If exists ipobj get data
-        if (data && data.length > 0)
+        if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -73,7 +254,21 @@ router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
 });
 
 
-/* Get  ipobj by id  */
+/**
+ * Get ipobj by Ipobj id
+ * 
+ * 
+ * > ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/:id__      
+ * > METHOD:  __GET__
+ * 
+ * @method getIpobjById
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {JSON} Returns `JSON` Data from Ipobj
+ * */
 router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;

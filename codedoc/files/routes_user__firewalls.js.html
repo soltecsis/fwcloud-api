@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>routes/clusters.js - FWCloud API REST Documentation</title>
+    <title>routes/user__firewalls.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -83,35 +83,15 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1 class="file-heading">File: routes/clusters.js</h1>
+<h1 class="file-heading">File: routes/user__firewalls.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
 var express = require(&#x27;express&#x27;);
-var api_resp = require(&#x27;../utils/api_response&#x27;);
-var objModel = &#x27;CLUSTER&#x27;;
-/**
- * Module to routing CLUSTER requests
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @module ClusterRouter
- * 
- * @requires express
- * @requires Clustermodel
- * 
- */
 var router = express.Router();
-
-
-var ClusterModel = require(&#x27;../models/cluster&#x27;);
-
-/**
- * Modulo para gestionar los datos del Cluster
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @class ClusterRouter
- * 
- */
+var User__firewallModel = require(&#x27;../models/user__firewall&#x27;);
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+var objModel = &#x27;USER FIREWALL&#x27;;
 
 /**
  * Property Logger to manage App logs
@@ -123,32 +103,86 @@ var ClusterModel = require(&#x27;../models/cluster&#x27;);
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
 
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
- * @method getclusters
- * 
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @param {String} config.name The name on the config object
- * @param {Function} config.callback A callback function on the config object
- * @param {Boolean} [extra=false] Do extra, optional work
- * @return {Boolean} Returns true on success
- */
-router.get(&#x27;/&#x27;, function (req, res)
+/* Get cloud list allowed access  */
+router.get(&#x27;/:id_user&#x27;, function (req, res)
 {
-    ClusterModel.getClusters(function (error, data)
+    var id_user = req.params.id_user;
+
+    logger.debug(&quot;GETTING USER CLOUD LIST&quot;);
+    if (!isNaN(id_user))
     {
-        //Get data
+        User__firewallModel.getUser__firewall_clouds(id_user, function (error, data)
+        {
+            //If exists user__firewall get data
+            if (data &amp;&amp; data.length &gt; 0)
+            {
+                api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+            //Get Error
+            else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        });
+    }
+    //Id must be numeric
+    else
+    {
+        res.status(500).json({&quot;msg&quot;: &quot;The id must be numeric&quot;});
+    }
+});
+
+
+/* Get all firewalls from user and cloud */
+router.get(&#x27;/:id_user/:fwcloud&#x27;, function (req, res)
+{
+    var id_user = req.params.id_user;
+    var fwcloud = req.params.fwcloud;
+    var access = 1;
+
+    logger.debug(&quot;GETTING USER FIREWALL LIST&quot;);
+    User__firewallModel.getUser__firewalls(id_user, fwcloud, access, function (error, data)
+    {
+        //If exists user__firewall get data
         if (data &amp;&amp; data.length &gt; 0)
         {
             api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
-        //get error
+        //Get Error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
+/* Get firewall from user, cloud and firewall */
+router.get(&#x27;/:id_user/:fwcloud/:idfirewall&#x27;, function (req, res)
+{
+    var id_user = req.params.id_user;
+    var fwcloud = req.params.fwcloud;
+    var idfirewall = req.params.idfirewall;
+    var access = 1;
+
+    logger.debug(&quot;GETTING USER FIREWALL BY ID&quot;);
+    User__firewallModel.getUser__firewall(id_user, fwcloud, idfirewall, access, function (error, data)
+    {
+        //If exists user__firewall get data
+        if (data &amp;&amp; data.length &gt; 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+        //Get Error
         else
         {
             api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
@@ -159,125 +193,97 @@ router.get(&#x27;/&#x27;, function (req, res)
 });
 
 
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- *
- * @method Newcluster
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @return {Boolean} Returns true on success
- */
-router.get(&#x27;/cluster&#x27;, function (req, res)
-{
-    res.render(&#x27;new_cluster&#x27;, {title: &#x27;Servicio rest con nodejs, express 4 and mysql&#x27;});
-});
 
-/* New cluster */
-router.post(&quot;/cluster&quot;, function (req, res)
+/* Create New user__firewall */
+router.post(&quot;/user__firewall&quot;, function (req, res)
 {
-    //new objet with Cluster data
-    var clusterData = {
-        id: null,
-        name: req.body.name
+    //Create New objet with data user__firewall
+    var user__firewallData = {
+        id_user: req.body.id_user,
+        id_firewall: req.body.id_firewall
     };
-    ClusterModel.insertCluster(clusterData, function (error, data)
+    User__firewallModel.insertUser__firewall(user__firewallData, function (error, data)
     {
-        //get cluster info
-        if (data &amp;&amp; data.insertId)
-        {
-            var dataresp = {&quot;insertId&quot;: data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;CLUSTER INSERTED OK&#x27;, objModel, null, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;SQL ERRROR&#x27;, &#x27;&#x27;, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error inserting&#x27;, objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
-/* cluster update */
-router.put(&#x27;/cluster/&#x27;, function (req, res)
-{
-    //Save cluster data into objet 
-    var clusterData = {id: req.param(&#x27;id&#x27;), name: req.param(&#x27;name&#x27;)};
-    ClusterModel.updateCluster(clusterData, function (error, data)
-    {
-        //cluster ok
-        if (data &amp;&amp; data.result)
-        {
-            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error updating&#x27;, objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
-/* Get cluster by Id */
-router.get(&#x27;/cluster/:id&#x27;, function (req, res)
-{
-    var id = req.params.id;
-
-    if (!isNaN(id))
-    {
-        ClusterModel.getCluster(id, function (error, data)
-        {
-            //cluster ok
-            if (data &amp;&amp; data.length &gt; 0)
+        else {
+            //If saved user__firewall Get data
+            if (data &amp;&amp; data.insertId)
             {
-//                res.render(&quot;update_cluster&quot;,{ 
-//                    title : &quot;&quot;, 
-//                    info : data
-//                });
-                api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                //res.redirect(&quot;/user__firewalls/user__firewall/&quot; + data.insertId);
+                var dataresp = {&quot;insertId&quot;: data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;INSERTED OK&#x27;, objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
-
-            }
-            //Get error
-            else
+            } else
             {
                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             }
-        });
-    } else
+        }
+    });
+});
+
+/* Update user__firewall that exist */
+router.put(&#x27;/user__firewall/&#x27;, function (req, res)
+{
+    //Save data into object
+    var user__firewallData = {id_user: req.param(&#x27;id_user&#x27;), id_firewall: req.param(&#x27;id_firewall&#x27;)};
+    User__firewallModel.updateUser__firewall(user__firewallData, function (error, data)
     {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;SQL ERRROR&#x27;, &#x27;&#x27;, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved user__firewall saved ok, get data
+            if (data &amp;&amp; data.result)
+            {
+                //res.redirect(&quot;/user__firewalls/user__firewall/&quot; + req.param(&#x27;id&#x27;));
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
 });
 
 
 
-/* Remove cluster */
-router.delete(&quot;/cluster/&quot;, function (req, res)
+/* Remove user__firewall */
+router.delete(&quot;/user__firewall/&quot;, function (req, res)
 {
-
-    var id = req.param(&#x27;id&#x27;);
-    ClusterModel.deleteCluster(id, function (error, data)
+    var id_user = req.params.id_user;
+    var id_firewall = req.params.id_firewall;
+    User__firewallModel.deleteUser__firewall(id_user, id_firewall, function (error, data)
     {
-        if (data &amp;&amp; data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_DELETED_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error deleting&#x27;, objModel, error, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;SQL ERRROR&#x27;, &#x27;&#x27;, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
+        else {
+            if (data &amp;&amp; data.result)
+            {
+                //res.redirect(&quot;/user__firewalls/&quot;);
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;DELETED OK&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
+
     });
 });
 

@@ -304,7 +304,7 @@ router.put('/policy-r__ipobj', function (req, res)
             });
         else {
             //If saved policy_r__ipobj saved ok, get data
-            if (data && data.length > 0) {
+            if (data && data.result) {
                 if (data.result) {
                     api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -534,7 +534,7 @@ router.delete("/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:posi
 
     Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, function (error, data)
     {
-        if (data && data.length > 0) {
+        if (data && data.result) {
             if (data.msg === "deleted")
             {
                 api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {

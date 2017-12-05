@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>routes/clusters.js - FWCloud API REST Documentation</title>
+    <title>routes/ipobj_type__policy_positions.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -83,35 +83,15 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1 class="file-heading">File: routes/clusters.js</h1>
+<h1 class="file-heading">File: routes/ipobj_type__policy_positions.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
 var express = require(&#x27;express&#x27;);
-var api_resp = require(&#x27;../utils/api_response&#x27;);
-var objModel = &#x27;CLUSTER&#x27;;
-/**
- * Module to routing CLUSTER requests
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @module ClusterRouter
- * 
- * @requires express
- * @requires Clustermodel
- * 
- */
 var router = express.Router();
-
-
-var ClusterModel = require(&#x27;../models/cluster&#x27;);
-
-/**
- * Modulo para gestionar los datos del Cluster
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @class ClusterRouter
- * 
- */
+var Ipobj_type__policy_positionModel = require(&#x27;../models/ipobj_type__policy_position&#x27;);
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+var objModel = &#x27;IPOBJ TYPE - POSITION&#x27;;
 
 /**
  * Property Logger to manage App logs
@@ -123,32 +103,20 @@ var ClusterModel = require(&#x27;../models/cluster&#x27;);
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
 
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
- * @method getclusters
- * 
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @param {String} config.name The name on the config object
- * @param {Function} config.callback A callback function on the config object
- * @param {Boolean} [extra=false] Do extra, optional work
- * @return {Boolean} Returns true on success
- */
+/* Get all ipobj_type__policy_positions*/
 router.get(&#x27;/&#x27;, function (req, res)
 {
-    ClusterModel.getClusters(function (error, data)
+
+    Ipobj_type__policy_positionModel.getIpobj_type__policy_positions(function (error, data)
     {
-        //Get data
+        //If exists ipobj_type__policy_position get data
         if (data &amp;&amp; data.length &gt; 0)
         {
             api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
-        //get error
+        //Get Error
         else
         {
             api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
@@ -159,124 +127,130 @@ router.get(&#x27;/&#x27;, function (req, res)
 });
 
 
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- *
- * @method Newcluster
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @return {Boolean} Returns true on success
- */
-router.get(&#x27;/cluster&#x27;, function (req, res)
+
+/* Get  ipobj_type__policy_position by id */
+router.get(&#x27;/:type/:position&#x27;, function (req, res)
 {
-    res.render(&#x27;new_cluster&#x27;, {title: &#x27;Servicio rest con nodejs, express 4 and mysql&#x27;});
+    var type = req.params.type;
+    var position = req.params.position;
+
+    Ipobj_type__policy_positionModel.getIpobj_type__policy_position(type, position, function (error, data)
+    {
+        //If exists ipobj_type__policy_position get data
+        if (data &amp;&amp; data.length &gt; 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+        //Get Error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
 });
 
-/* New cluster */
-router.post(&quot;/cluster&quot;, function (req, res)
+
+
+/* Create New ipobj_type__policy_position */
+router.post(&quot;/ipobj-type__policy-position&quot;, function (req, res)
 {
-    //new objet with Cluster data
-    var clusterData = {
-        id: null,
-        name: req.body.name
+    //Create New objet with data ipobj_type__policy_position
+    var ipobj_type__policy_positionData = {
+        type: req.body.type,
+        position: req.body.position,
+        allowed: req.body.allowed
     };
-    ClusterModel.insertCluster(clusterData, function (error, data)
-    {
-        //get cluster info
-        if (data &amp;&amp; data.insertId)
-        {
-            var dataresp = {&quot;insertId&quot;: data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;CLUSTER INSERTED OK&#x27;, objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error inserting&#x27;, objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
 
-/* cluster update */
-router.put(&#x27;/cluster/&#x27;, function (req, res)
-{
-    //Save cluster data into objet 
-    var clusterData = {id: req.param(&#x27;id&#x27;), name: req.param(&#x27;name&#x27;)};
-    ClusterModel.updateCluster(clusterData, function (error, data)
+    Ipobj_type__policy_positionModel.insertIpobj_type__policy_position(ipobj_type__policy_positionData, function (error, data)
     {
-        //cluster ok
-        if (data &amp;&amp; data.result)
-        {
-            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;&#x27;, objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error updating&#x27;, objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
-/* Get cluster by Id */
-router.get(&#x27;/cluster/:id&#x27;, function (req, res)
-{
-    var id = req.params.id;
-
-    if (!isNaN(id))
-    {
-        ClusterModel.getCluster(id, function (error, data)
-        {
-            //cluster ok
-            if (data &amp;&amp; data.length &gt; 0)
+        else {
+            //If saved ipobj_type__policy_position Get data
+            if (data &amp;&amp; data.insertId)
             {
-//                res.render(&quot;update_cluster&quot;,{ 
-//                    title : &quot;&quot;, 
-//                    info : data
-//                });
-                api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
+                //res.redirect(&quot;/ipobj-type__policy-positions/ipobj-type__policy-position/&quot; + data.insertId);
+                var dataresp = {&quot;insertId&quot;: data.insertId};
+                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;INSERTED OK&#x27;, objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
-
-            }
-            //Get error
-            else
+            } else
             {
                 api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             }
-        });
-    } else
+        }
+    });
+});
+
+/* Update ipobj_type__policy_position that exist */
+router.put(&#x27;/ipobj-type__policy-position/&#x27;, function (req, res)
+{
+    //Save data into object
+    var ipobj_type__policy_positionData = {
+        type: req.param(&#x27;type&#x27;),
+        position: req.param(&#x27;position&#x27;),
+        allowed: req.param(&#x27;allowed&#x27;)
+    };
+    Ipobj_type__policy_positionModel.updateIpobj_type__policy_position(ipobj_type__policy_positionData, function (error, data)
     {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;&#x27;, objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved ipobj_type__policy_position saved ok, get data
+            if (data &amp;&amp; data.result)
+            {
+                //res.redirect(&quot;/ipobj-type__policy-positions/ipobj-type__policy-position/&quot; + req.param(&#x27;id&#x27;));
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
 });
 
 
 
-/* Remove cluster */
-router.delete(&quot;/cluster/&quot;, function (req, res)
+/* Remove ipobj_type__policy_position */
+router.delete(&quot;/ipobj-type__policy-position/&quot;, function (req, res)
 {
+    //Id from ipobj_type__policy_position to remove
+    var type = req.params.type;
+    var position = req.params.position;
 
-    var id = req.param(&#x27;id&#x27;);
-    ClusterModel.deleteCluster(id, function (error, data)
+    Ipobj_type__policy_positionModel.deleteIpobj_type__policy_position(type, position, function (error, data)
     {
-        if (data &amp;&amp; data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_DELETED_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error deleting&#x27;, objModel, error, function (jsonResp) {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;&#x27;, objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
+        else {
+            if (data &amp;&amp; data.result)
+            {
+                //res.redirect(&quot;/ipobj-type__policy-positions/&quot;);
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;DELETE OK&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
         }
     });
 });

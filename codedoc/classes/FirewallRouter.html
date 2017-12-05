@@ -41,6 +41,7 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                 
                 
@@ -48,6 +49,7 @@
                                 <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
                             </ul>
                         </div>
                     </div>
@@ -92,7 +94,7 @@
 
 
         <div class="foundat">
-            Defined in: <a href="../files/routes_firewalls.js.html#l25"><code>routes&#x2F;firewalls.js:25</code></a>
+            Defined in: <a href="../files/routes_firewalls.js.html#l36"><code>routes&#x2F;firewalls.js:36</code></a>
         </div>
 
             Module: <a href="../modules/FirewallRouter.html">FirewallRouter</a>
@@ -202,6 +204,14 @@
 
                             </li>
                             <li class="index-item property inherited">
+                                <a href="#property_logger">logger</a>
+
+                            </li>
+                            <li class="index-item property">
+                                <a href="#property_logger">logger</a>
+
+                            </li>
+                            <li class="index-item property inherited">
                                 <a href="#property_tableModel">tableModel</a>
 
                             </li>
@@ -250,7 +260,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l260"><code>routes&#x2F;firewalls.js:260</code></a>
+        <a href="../files/routes_firewalls.js.html#l287"><code>routes&#x2F;firewalls.js:287</code></a>
         </p>
 
 
@@ -393,7 +403,7 @@ METHOD:  <strong>POST</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_deleteFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l293"><code>models&#x2F;firewall.js:293</code></a>
+        <a href="../files/models_firewall.js.html#l302"><code>models&#x2F;firewall.js:302</code></a>
         </p>
 
 
@@ -460,10 +470,10 @@ METHOD:  <strong>POST</strong></p>
 
             <div class="example-content">
                 <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;deleted&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
 </code></pre>
 <h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;notExist&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: false});
 </code></pre>
 
             </div>
@@ -493,7 +503,7 @@ METHOD:  <strong>POST</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l468"><code>routes&#x2F;firewalls.js:468</code></a>
+        <a href="../files/routes_firewalls.js.html#l512"><code>routes&#x2F;firewalls.js:512</code></a>
         </p>
 
 
@@ -591,7 +601,7 @@ METHOD:  <strong>DELETE</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_getFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l73"><code>models&#x2F;firewall.js:73</code></a>
+        <a href="../files/models_firewall.js.html#l83"><code>models&#x2F;firewall.js:83</code></a>
         </p>
 
 
@@ -690,7 +700,7 @@ METHOD:  <strong>DELETE</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l48"><code>routes&#x2F;firewalls.js:48</code></a>
+        <a href="../files/routes_firewalls.js.html#l59"><code>routes&#x2F;firewalls.js:59</code></a>
         </p>
 
 
@@ -788,7 +798,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l205"><code>routes&#x2F;firewalls.js:205</code></a>
+        <a href="../files/routes_firewalls.js.html#l228"><code>routes&#x2F;firewalls.js:228</code></a>
         </p>
 
 
@@ -897,7 +907,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l99"><code>routes&#x2F;firewalls.js:99</code></a>
+        <a href="../files/routes_firewalls.js.html#l114"><code>routes&#x2F;firewalls.js:114</code></a>
         </p>
 
 
@@ -1004,7 +1014,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l377"><code>routes&#x2F;firewalls.js:377</code></a>
+        <a href="../files/routes_firewalls.js.html#l413"><code>routes&#x2F;firewalls.js:413</code></a>
         </p>
 
 
@@ -1086,7 +1096,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l151"><code>routes&#x2F;firewalls.js:151</code></a>
+        <a href="../files/routes_firewalls.js.html#l170"><code>routes&#x2F;firewalls.js:170</code></a>
         </p>
 
 
@@ -1195,7 +1205,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l424"><code>routes&#x2F;firewalls.js:424</code></a>
+        <a href="../files/routes_firewalls.js.html#l462"><code>routes&#x2F;firewalls.js:462</code></a>
         </p>
 
 
@@ -1280,7 +1290,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_getFirewallCluster">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l153"><code>models&#x2F;firewall.js:153</code></a>
+        <a href="../files/models_firewall.js.html#l163"><code>models&#x2F;firewall.js:163</code></a>
         </p>
 
 
@@ -1385,7 +1395,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_getFirewallName">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l112"><code>models&#x2F;firewall.js:112</code></a>
+        <a href="../files/models_firewall.js.html#l122"><code>models&#x2F;firewall.js:122</code></a>
         </p>
 
 
@@ -1487,7 +1497,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_getFirewalls">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l31"><code>models&#x2F;firewall.js:31</code></a>
+        <a href="../files/models_firewall.js.html#l41"><code>models&#x2F;firewall.js:41</code></a>
         </p>
 
 
@@ -1581,7 +1591,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_insertFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l194"><code>models&#x2F;firewall.js:194</code></a>
+        <a href="../files/models_firewall.js.html#l204"><code>models&#x2F;firewall.js:204</code></a>
         </p>
 
 
@@ -1727,7 +1737,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l33"><code>routes&#x2F;firewalls.js:33</code></a>
+        <a href="../files/routes_firewalls.js.html#l44"><code>routes&#x2F;firewalls.js:44</code></a>
         </p>
 
 
@@ -1789,7 +1799,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l321"><code>routes&#x2F;firewalls.js:321</code></a>
+        <a href="../files/routes_firewalls.js.html#l352"><code>routes&#x2F;firewalls.js:352</code></a>
         </p>
 
 
@@ -1931,7 +1941,7 @@ METHOD:  <strong>PUT</strong></p>
     <div class="meta">
                 <p>Inherited from
                 <a href="../classes/FirewallModel.html#method_updateFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l244"><code>models&#x2F;firewall.js:244</code></a>
+        <a href="../files/models_firewall.js.html#l254"><code>models&#x2F;firewall.js:254</code></a>
         </p>
 
 
@@ -2050,7 +2060,7 @@ METHOD:  <strong>PUT</strong></p>
 
             <div class="example-content">
                 <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;msg&quot;: &quot;success&quot;});
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true});
 </code></pre>
 <h4>RESPONSE ERROR:</h4>
 <pre class="code prettyprint"><code>  callback(error, null);
@@ -2075,7 +2085,7 @@ METHOD:  <strong>PUT</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l15"><code>routes&#x2F;firewalls.js:15</code></a>
+        <a href="../files/routes_firewalls.js.html#l18"><code>routes&#x2F;firewalls.js:18</code></a>
         </p>
 
 
@@ -2083,6 +2093,59 @@ METHOD:  <strong>PUT</strong></p>
 
     <div class="description">
         <p>Property Model to manage Firewall Data</p>
+
+    </div>
+
+
+
+</div>
+<div id="property_logger" class="property item">
+    <h3 class="name"><code>logger</code></h3>
+    <span class="type">Log4js/app</span>
+
+
+
+
+
+    <div class="meta">
+            <p>Inherited from
+            <a href="../classes/FirewallModel.html#property_logger">
+                FirewallModel
+            </a>
+            but overwritten in
+        <a href="../files/routes_customers.js.html#l7"><code>routes&#x2F;customers.js:7</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Logger to manage App logs</p>
+
+    </div>
+
+
+
+</div>
+<div id="property_logger" class="property item">
+    <h3 class="name"><code>logger</code></h3>
+    <span class="type">Log4js/app</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l27"><code>routes&#x2F;firewalls.js:27</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Logger to manage App logs</p>
 
     </div>
 

@@ -3,12 +3,14 @@ YUI.add("yuidoc-meta", function(Y) {
     "classes": [
         "ClusterRouter",
         "FirewallModel",
-        "FirewallRouter"
+        "FirewallRouter",
+        "IpobjsRouter"
     ],
     "modules": [
         "ClusterRouter",
         "FirewallModel",
-        "FirewallRouter"
+        "FirewallRouter",
+        "IpobjsRouter"
     ],
     "allModules": [
         {
@@ -25,6 +27,11 @@ YUI.add("yuidoc-meta", function(Y) {
             "displayName": "FirewallRouter",
             "name": "FirewallRouter",
             "description": "Module to routing Firewalls requests\n<br>BASE ROUTE CALL: <b>/firewalls</b>"
+        },
+        {
+            "displayName": "IpobjsRouter",
+            "name": "IpobjsRouter",
+            "description": "Module to routing IPOBJ requests\n<br>BASE ROUTE CALL: <b>/ipobjs</b>"
         }
     ],
     "elements": []

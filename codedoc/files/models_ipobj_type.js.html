@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ClusterRouter - FWCloud API REST Documentation</title>
+    <title>models/ipobj_type.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -83,47 +83,139 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1>ClusterRouter Module</h1>
-<div class="box clearfix meta">
+<h1 class="file-heading">File: models/ipobj_type.js</h1>
 
-        <div class="uses">
-            Requires
-            <ul class="inline commas">
-                    <li>express</li>
-                    <li>Clustermodel</li>
-            </ul>
-        </div>
-
-        <div class="foundat">
-            Defined in: <a href="../files/routes_clusters.js.html#l19"><code>routes&#x2F;clusters.js:19</code></a>
-        </div>
-
-</div>
+<div class="file">
+    <pre class="code prettyprint linenums">
+var db = require(&#x27;../db.js&#x27;);
 
 
-<div class="box intro">
-    <p>Module to routing CLUSTER requests
-<br>BASE ROUTE CALL: <b>/clusters</b></p>
+//create object
+var ipobj_typeModel = {};
+var tableModel=&quot;ipobj_type&quot;;
 
-</div>
+/**
+* Property Logger to manage App logs
+*
+* @property logger
+* @type log4js/app
+* 
+*/
+var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
+
+//Get All ipobj_type
+ipobj_typeModel.getIpobj_types = function (callback) {
+
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        connection.query(&#x27;SELECT * FROM &#x27; + tableModel + &#x27; ORDER BY id&#x27;, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
+};
 
 
-<div class="yui3-g">
-    <div class="yui3-u-1-2">
-            <p>This module provides the following classes:</p>
-
-            <ul class="module-classes">
-                <li class="module-class">
-                    <a href="../classes/ClusterRouter.html">
-                        ClusterRouter
-                    </a>
-                </li>
-            </ul>
-    </div>
 
 
-    <div class="yui3-u-1-2">
-    </div>
+
+//Get ipobj_type by  id
+ipobj_typeModel.getIpobj_type = function (id, callback) {
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE id = &#x27; + connection.escape(id);
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
+//Get ipobj_type by name
+ipobj_typeModel.getIpobj_typeName = function (name, callback) {
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var namesql = &#x27;%&#x27; + name + &#x27;%&#x27;;
+        var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE type like  &#x27; + connection.escape(namesql) ;
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, row);
+        });
+    });
+};
+
+
+
+//Add new ipobj_type
+ipobj_typeModel.insertIpobj_type = function (ipobj_typeData, callback) {
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        connection.query(&#x27;INSERT INTO &#x27; + tableModel + &#x27; SET ?&#x27;, ipobj_typeData, function (error, result) {
+            if (error) {
+                callback(error, null);
+            }
+            else {
+                //devolvemos la última id insertada
+                callback(null, { &quot;insertId&quot;: result.insertId });
+            }
+        });
+    });
+};
+
+//Update ipobj_type
+ipobj_typeModel.updateIpobj_type = function (ipobj_typeData, callback) {
+
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var sql = &#x27;UPDATE &#x27; + tableModel + &#x27; SET type = &#x27; + connection.escape(ipobj_typeData.type) + &#x27; &#x27; +            
+            &#x27; WHERE id = &#x27; + ipobj_typeData.id;
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            }
+            else {
+                callback(null, { &quot;result&quot;: true });
+            }
+        });
+    });
+};
+
+//Remove ipobj_type with id to remove
+ipobj_typeModel.deleteIpobj_type = function (id, callback) {
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var sqlExists = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; WHERE id = &#x27; + connection.escape(id);
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from ipobj_type to remove
+            if (row) {
+                db.get(function (error, connection) {
+                    var sql = &#x27;DELETE FROM &#x27; + tableModel + &#x27; WHERE id = &#x27; + connection.escape(id);
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            callback(error, null);
+                        }
+                        else {
+                            callback(null, { &quot;result&quot;: true });
+                        }
+                    });
+                });
+            }
+            else {
+                callback(null, { &quot;result&quot;: false });
+            }
+        });
+    });
+};
+
+//Export the object
+module.exports = ipobj_typeModel;
+    </pre>
 </div>
                     </div>
                 </div>

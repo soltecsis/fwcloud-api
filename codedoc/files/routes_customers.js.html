@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>routes/clusters.js - FWCloud API REST Documentation</title>
+    <title>routes/customers.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -83,35 +83,15 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1 class="file-heading">File: routes/clusters.js</h1>
+<h1 class="file-heading">File: routes/customers.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
 var express = require(&#x27;express&#x27;);
-var api_resp = require(&#x27;../utils/api_response&#x27;);
-var objModel = &#x27;CLUSTER&#x27;;
-/**
- * Module to routing CLUSTER requests
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @module ClusterRouter
- * 
- * @requires express
- * @requires Clustermodel
- * 
- */
 var router = express.Router();
-
-
-var ClusterModel = require(&#x27;../models/cluster&#x27;);
-
-/**
- * Modulo para gestionar los datos del Cluster
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @class ClusterRouter
- * 
- */
+var CustomerModel = require(&#x27;../models/customers&#x27;);
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+var objModel = &#x27;CUSTOMER&#x27;;
 
 /**
  * Property Logger to manage App logs
@@ -122,24 +102,10 @@ var ClusterModel = require(&#x27;../models/cluster&#x27;);
  */
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
-
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
- * @method getclusters
- * 
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @param {String} config.name The name on the config object
- * @param {Function} config.callback A callback function on the config object
- * @param {Boolean} [extra=false] Do extra, optional work
- * @return {Boolean} Returns true on success
- */
+/* Get all customers */
 router.get(&#x27;/&#x27;, function (req, res)
 {
-    ClusterModel.getClusters(function (error, data)
+    CustomerModel.getCustomers(function (error, data)
     {
         //Get data
         if (data &amp;&amp; data.length &gt; 0)
@@ -148,7 +114,7 @@ router.get(&#x27;/&#x27;, function (req, res)
                 res.status(200).json(jsonResp);
             });
         }
-        //get error
+        //Get error
         else
         {
             api_resp.getJson(data, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
@@ -158,55 +124,51 @@ router.get(&#x27;/&#x27;, function (req, res)
     });
 });
 
-
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- *
- * @method Newcluster
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @return {Boolean} Returns true on success
- */
-router.get(&#x27;/cluster&#x27;, function (req, res)
+/* Form for new customers */
+router.get(&#x27;/customer&#x27;, function (req, res)
 {
-    res.render(&#x27;new_cluster&#x27;, {title: &#x27;Servicio rest con nodejs, express 4 and mysql&#x27;});
+    res.render(&#x27;new_customer&#x27;, {title: &#x27;Servicio rest con nodejs, express 4 and mysql&#x27;});
 });
 
-/* New cluster */
-router.post(&quot;/cluster&quot;, function (req, res)
+/* New customer */
+router.post(&quot;/customer&quot;, function (req, res)
 {
-    //new objet with Cluster data
-    var clusterData = {
+    //New object with customer data
+    var customerData = {
         id: null,
-        name: req.body.name
+        name: req.body.name,
+        email: req.body.email,
+        address: req.body.address,
+        cif: req.body.cif,
+        telephone: req.body.telephone,
+        web: req.body.web
     };
-    ClusterModel.insertCluster(clusterData, function (error, data)
+    CustomerModel.insertCustomer(customerData, function (error, data)
     {
-        //get cluster info
+        //Get info
         if (data &amp;&amp; data.insertId)
         {
             var dataresp = {&quot;insertId&quot;: data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;CLUSTER INSERTED OK&#x27;, objModel, null, function (jsonResp) {
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, &#x27;INSERTED OK&#x27;, objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         } else
         {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error inserting&#x27;, objModel, error, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
     });
 });
 
-/* cluster update */
-router.put(&#x27;/cluster/&#x27;, function (req, res)
+/* update customer */
+router.put(&#x27;/customer/&#x27;, function (req, res)
 {
-    //Save cluster data into objet 
-    var clusterData = {id: req.param(&#x27;id&#x27;), name: req.param(&#x27;name&#x27;)};
-    ClusterModel.updateCluster(clusterData, function (error, data)
+    //Save customer data into object
+    var customerData = {id: req.param(&#x27;id&#x27;), name: req.param(&#x27;name&#x27;), email: req.param(&#x27;email&#x27;), cif: req.param(&#x27;cif&#x27;), address: req.param(&#x27;address&#x27;), telephone: req.param(&#x27;telephone&#x27;), web: req.param(&#x27;web&#x27;)};
+    CustomerModel.updateCustomer(customerData, function (error, data)
     {
-        //cluster ok
+        //saved ok
         if (data &amp;&amp; data.result)
         {
             api_resp.getJson(null, api_resp.ACR_UPDATED_OK, &#x27;UPDATED OK&#x27;, objModel, null, function (jsonResp) {
@@ -214,29 +176,25 @@ router.put(&#x27;/cluster/&#x27;, function (req, res)
             });
         } else
         {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error updating&#x27;, objModel, error, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
     });
 });
 
-/* Get cluster by Id */
-router.get(&#x27;/cluster/:id&#x27;, function (req, res)
+/* Get customer by Id */
+router.get(&#x27;/customer/:id&#x27;, function (req, res)
 {
     var id = req.params.id;
 
     if (!isNaN(id))
     {
-        ClusterModel.getCluster(id, function (error, data)
+        CustomerModel.getCustomer(id, function (error, data)
         {
-            //cluster ok
+            //Get data
             if (data &amp;&amp; data.length &gt; 0)
             {
-//                res.render(&quot;update_cluster&quot;,{ 
-//                    title : &quot;&quot;, 
-//                    info : data
-//                });
                 api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -250,9 +208,11 @@ router.get(&#x27;/cluster/:id&#x27;, function (req, res)
                 });
             }
         });
-    } else
+    }
+    //id must be numeric
+    else
     {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, &#x27;not found&#x27;, objModel, null, function (jsonResp) {
+        api_resp.getJson(null, api_resp.ACR_DATA_ERROR, &#x27;&#x27;, objModel, null, function (jsonResp) {
             res.status(200).json(jsonResp);
         });
     }
@@ -260,21 +220,21 @@ router.get(&#x27;/cluster/:id&#x27;, function (req, res)
 
 
 
-/* Remove cluster */
-router.delete(&quot;/cluster/&quot;, function (req, res)
+/* remove customer */
+router.delete(&quot;/customer/&quot;, function (req, res)
 {
 
     var id = req.param(&#x27;id&#x27;);
-    ClusterModel.deleteCluster(id, function (error, data)
+    CustomerModel.deleteCustomer(id, function (error, data)
     {
         if (data &amp;&amp; data.result)
         {
-            api_resp.getJson(data, api_resp.ACR_DELETED_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+            api_resp.getJson(null, api_resp.ACR_DELETED_OK, &#x27;DELETED OK&#x27;, objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         } else
         {
-            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error deleting&#x27;, objModel, error, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_ERROR, &#x27;Error&#x27;, objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }

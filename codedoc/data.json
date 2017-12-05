@@ -7,6 +7,20 @@
         "logo": "http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png"
     },
     "files": {
+        "models/cluster.js": {
+            "name": "models/cluster.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/customers.js": {
+            "name": "models/customers.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
         "models/firewall.js": {
             "name": "models/firewall.js",
             "modules": {
@@ -18,8 +32,155 @@
             "fors": {},
             "namespaces": {}
         },
-        "routes/book.js": {
-            "name": "routes/book.js",
+        "models/fwc_tree.js": {
+            "name": "models/fwc_tree.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/interface.js": {
+            "name": "models/interface.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/interface__ipobj.js": {
+            "name": "models/interface__ipobj.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj.js": {
+            "name": "models/ipobj.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj__ipobjg.js": {
+            "name": "models/ipobj__ipobjg.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj_g.js": {
+            "name": "models/ipobj_g.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj_type.js": {
+            "name": "models/ipobj_type.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj_type__policy_position.js": {
+            "name": "models/ipobj_type__policy_position.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj_type__routing_position.js": {
+            "name": "models/ipobj_type__routing_position.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_g.js": {
+            "name": "models/policy_g.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_position.js": {
+            "name": "models/policy_position.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_r.js": {
+            "name": "models/policy_r.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_r__interface.js": {
+            "name": "models/policy_r__interface.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_r__ipobj.js": {
+            "name": "models/policy_r__ipobj.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/policy_type.js": {
+            "name": "models/policy_type.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/routing_g.js": {
+            "name": "models/routing_g.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/routing_position.js": {
+            "name": "models/routing_position.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/routing_r.js": {
+            "name": "models/routing_r.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/routing_r__interface.js": {
+            "name": "models/routing_r__interface.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/routing_r__ipobj.js": {
+            "name": "models/routing_r__ipobj.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/user.js": {
+            "name": "models/user.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/user__firewall.js": {
+            "name": "models/user__firewall.js",
             "modules": {},
             "classes": {},
             "fors": {},
@@ -36,6 +197,13 @@
             "fors": {},
             "namespaces": {}
         },
+        "routes/customers.js": {
+            "name": "routes/customers.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
         "routes/firewalls.js": {
             "name": "routes/firewalls.js",
             "modules": {
@@ -44,6 +212,171 @@
             "classes": {
                 "FirewallRouter": 1
             },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/fwc_tree.js": {
+            "name": "routes/fwc_tree.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/importxml.js": {
+            "name": "routes/importxml.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/interface__ipobjs.js": {
+            "name": "routes/interface__ipobjs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/interfaces.js": {
+            "name": "routes/interfaces.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobj__ipobjgs.js": {
+            "name": "routes/ipobj__ipobjgs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobj_gs.js": {
+            "name": "routes/ipobj_gs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobj_type__policy_positions.js": {
+            "name": "routes/ipobj_type__policy_positions.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobj_type__routing_positions.js": {
+            "name": "routes/ipobj_type__routing_positions.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobj_types.js": {
+            "name": "routes/ipobj_types.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobjs.js": {
+            "name": "routes/ipobjs.js",
+            "modules": {
+                "IpobjsRouter": 1
+            },
+            "classes": {
+                "IpobjsRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_gs.js": {
+            "name": "routes/policy_gs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_positions.js": {
+            "name": "routes/policy_positions.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_r__interfaces.js": {
+            "name": "routes/policy_r__interfaces.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_r__ipobjs.js": {
+            "name": "routes/policy_r__ipobjs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_rs.js": {
+            "name": "routes/policy_rs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/policy_types.js": {
+            "name": "routes/policy_types.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/routing_gs.js": {
+            "name": "routes/routing_gs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/routing_positions.js": {
+            "name": "routes/routing_positions.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/routing_r__interfaces.js": {
+            "name": "routes/routing_r__interfaces.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/routing_r__ipobjs.js": {
+            "name": "routes/routing_r__ipobjs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/routing_rs.js": {
+            "name": "routes/routing_rs.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/user__firewalls.js": {
+            "name": "routes/user__firewalls.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/users.js": {
+            "name": "routes/users.js",
+            "modules": {},
+            "classes": {},
             "fors": {},
             "namespaces": {}
         }
@@ -77,7 +410,7 @@
             "namespaces": {},
             "tag": "module",
             "file": "routes/clusters.js",
-            "line": 17,
+            "line": 19,
             "description": "Module to routing CLUSTER requests\n<br>BASE ROUTE CALL: <b>/clusters</b>",
             "requires": [
                 "express",
@@ -95,11 +428,31 @@
             "namespaces": {},
             "tag": "module",
             "file": "routes/firewalls.js",
-            "line": 25,
+            "line": 36,
             "description": "Module to routing Firewalls requests\n<br>BASE ROUTE CALL: <b>/firewalls</b>",
             "requires": [
                 "express",
-                "FirewallModel"
+                "FirewallModel",
+                "log4js"
+            ]
+        },
+        "IpobjsRouter": {
+            "name": "IpobjsRouter",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "IpobjsRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/ipobjs.js",
+            "line": 87,
+            "description": "Module to routing IPOBJ requests\n<br>BASE ROUTE CALL: <b>/ipobjs</b>",
+            "requires": [
+                "express",
+                "IpobjModel",
+                "log4js"
             ]
         }
     },
@@ -134,7 +487,7 @@
             "module": "ClusterRouter",
             "namespace": "",
             "file": "routes/clusters.js",
-            "line": 17,
+            "line": 19,
             "description": "Modulo para gestionar los datos del Cluster\n<br>BASE ROUTE CALL: <b>/clusters</b>"
         },
         "FirewallRouter": {
@@ -148,15 +501,50 @@
             "module": "FirewallRouter",
             "namespace": "",
             "file": "routes/firewalls.js",
-            "line": 25,
+            "line": 36,
             "description": "Class to manage firewalls routing",
             "uses": [
                 "FirewallModel"
+            ]
+        },
+        "IpobjsRouter": {
+            "name": "IpobjsRouter",
+            "shortname": "IpobjsRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "IpobjsRouter",
+            "namespace": "",
+            "file": "routes/ipobjs.js",
+            "line": 87,
+            "description": "Class to manage IPOBJ routing",
+            "uses": [
+                "IpobjlModel"
             ]
         }
     },
     "elements": {},
     "classitems": [
+        {
+            "file": "models/cluster.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallModel"
+        },
+        {
+            "file": "models/customers.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallModel"
+        },
         {
             "file": "models/firewall.js",
             "line": 21,
@@ -170,6 +558,16 @@
         {
             "file": "models/firewall.js",
             "line": 31,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallModel",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 41,
             "description": "Get Firewalls by User",
             "itemtype": "method",
             "name": "getFirewalls",
@@ -194,7 +592,7 @@
         },
         {
             "file": "models/firewall.js",
-            "line": 73,
+            "line": 83,
             "description": "Get Firewalls by User and ID",
             "itemtype": "method",
             "name": "getFirewall",
@@ -224,7 +622,7 @@
         },
         {
             "file": "models/firewall.js",
-            "line": 112,
+            "line": 122,
             "description": "Get Firewalls by User and Name",
             "itemtype": "method",
             "name": "getFirewallName",
@@ -254,7 +652,7 @@
         },
         {
             "file": "models/firewall.js",
-            "line": 153,
+            "line": 163,
             "description": "Get Firewalls by User and Cluster",
             "itemtype": "method",
             "name": "getFirewallCluster",
@@ -284,7 +682,7 @@
         },
         {
             "file": "models/firewall.js",
-            "line": 194,
+            "line": 204,
             "description": "ADD New Firewall",
             "itemtype": "method",
             "name": "insertFirewall",
@@ -345,7 +743,7 @@
         },
         {
             "file": "models/firewall.js",
-            "line": 244,
+            "line": 254,
             "description": "UPDATE Firewall",
             "itemtype": "method",
             "name": "updateFirewall",
@@ -399,14 +797,14 @@
                 "type": "CALLBACK RESPONSE"
             },
             "example": [
-                "\n#### RESPONSE OK:\n   \n      callback(null, {\"msg\": \"success\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"result\": true});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
             ],
             "class": "FirewallModel",
             "module": "FirewallModel"
         },
         {
             "file": "models/firewall.js",
-            "line": 293,
+            "line": 302,
             "description": "DELETE Firewall",
             "itemtype": "method",
             "name": "deleteFirewall",
@@ -432,40 +830,244 @@
                 "type": "CALLBACK RESPONSE"
             },
             "example": [
-                "\n#### RESPONSE OK:\n   \n      callback(null, {\"msg\": \"deleted\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(null, {\"msg\": \"notExist\"});\n      "
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"result\": true, \"msg\": \"deleted\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(null, {\"result\": false});\n      "
             ],
             "class": "FirewallModel",
             "module": "FirewallModel"
         },
         {
-            "file": "routes/book.js",
-            "line": 1,
+            "file": "models/fwc_tree.js",
+            "line": 4,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
             "class": "ClusterRouter",
             "module": "FirewallModel"
         },
         {
-            "file": "routes/book.js",
+            "file": "models/interface.js",
+            "line": 11,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/interface__ipobj.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 17,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj__ipobjg.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj_g.js",
+            "line": 14,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj_type.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj_type__policy_position.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/ipobj_type__routing_position.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_g.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_position.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_r.js",
+            "line": 20,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_r__interface.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_r__ipobj.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/policy_type.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/routing_g.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/routing_position.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/routing_r.js",
+            "line": 9,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/routing_r__interface.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/routing_r__ipobj.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/user.js",
             "line": 7,
-            "description": "Represents a book.",
-            "is_constructor": 1,
-            "params": [
-                {
-                    "name": "title",
-                    "description": "- The title of the book.",
-                    "type": "String"
-                },
-                {
-                    "name": "author",
-                    "description": "- The author of the book.",
-                    "type": "String"
-                }
-            ],
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "FirewallModel"
+        },
+        {
+            "file": "models/user__firewall.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
             "class": "ClusterRouter",
             "module": "FirewallModel"
         },
         {
             "file": "routes/clusters.js",
-            "line": 28,
+            "line": 27,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "ClusterRouter",
+            "module": "ClusterRouter"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 37,
             "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.\nROUTE CALL:  /",
             "itemtype": "method",
             "name": "getclusters",
@@ -509,7 +1111,7 @@
         },
         {
             "file": "routes/clusters.js",
-            "line": 64,
+            "line": 73,
             "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.",
             "itemtype": "method",
             "name": "Newcluster",
@@ -533,8 +1135,18 @@
             "module": "ClusterRouter"
         },
         {
+            "file": "routes/customers.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallRouter",
+            "module": "ClusterRouter"
+        },
+        {
             "file": "routes/firewalls.js",
-            "line": 15,
+            "line": 18,
             "description": "Property Model to manage Firewall Data",
             "itemtype": "property",
             "name": "FirewallModel",
@@ -544,7 +1156,17 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 33,
+            "line": 27,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 44,
             "description": "Show form to add new Firewall\n\n<br>ROUTE CALL:  /firewall",
             "itemtype": "method",
             "name": "showForm",
@@ -557,7 +1179,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 48,
+            "line": 59,
             "description": "Get Firewalls by User\n\n\n> ROUTE CALL:  __/firewalls/:iduser__      \n> METHOD:  __GET__",
             "itemtype": "method",
             "name": "getFirewallByUser",
@@ -580,7 +1202,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 99,
+            "line": 114,
             "description": "Get Firewalls by User and ID\n\n\n> ROUTE CALL:  __/firewalls/:iduser/:id__      \n> METHOD:  __GET__",
             "itemtype": "method",
             "name": "getFirewallByUser_and_Id",
@@ -608,7 +1230,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 151,
+            "line": 170,
             "description": "Get Firewalls by User and Name\n\n\n> ROUTE CALL:  __/firewalls/:iduser/fwname/:name__      \n> METHOD:  __GET__",
             "itemtype": "method",
             "name": "getFirewallByUser_and_Name",
@@ -636,7 +1258,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 205,
+            "line": 228,
             "description": "Get Firewalls by Cluster\n\n\n> ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      \n> METHOD:  __GET__",
             "itemtype": "method",
             "name": "getFirewallByUser_and_Cluster",
@@ -664,7 +1286,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 260,
+            "line": 287,
             "description": "CREATE New firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __POST__",
             "itemtype": "method",
             "name": "AddFirewall",
@@ -708,7 +1330,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 321,
+            "line": 352,
             "description": "UPDATE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __PUT__",
             "itemtype": "method",
             "name": "UpdateFirewall",
@@ -752,7 +1374,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 377,
+            "line": 413,
             "description": "Get Firewalls by ID and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>\n<br>METHOD: <b>GET</b>",
             "itemtype": "method",
             "name": "getFirewallByUser_and_ID_V2",
@@ -777,7 +1399,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 424,
+            "line": 462,
             "description": "Get Firewalls by Name and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>\n<br>METHOD: <b>GET</b>",
             "itemtype": "method",
             "name": "getFirewallByUser_and_Name_V2",
@@ -802,7 +1424,7 @@
         },
         {
             "file": "routes/firewalls.js",
-            "line": 468,
+            "line": 512,
             "description": "DELETE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __DELETE__",
             "itemtype": "method",
             "name": "DeleteFirewall",
@@ -823,16 +1445,405 @@
             ],
             "class": "FirewallRouter",
             "module": "FirewallRouter"
-        }
-    ],
-    "warnings": [
-        {
-            "message": "Missing item type",
-            "line": " routes/book.js:1"
         },
         {
-            "message": "Missing item type\nRepresents a book.",
-            "line": " routes/book.js:7"
+            "file": "routes/fwc_tree.js",
+            "line": 11,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/importxml.js",
+            "line": 19,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/interface__ipobjs.js",
+            "line": 6,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/interfaces.js",
+            "line": 11,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobj__ipobjgs.js",
+            "line": 10,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobj_gs.js",
+            "line": 9,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobj_type__policy_positions.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobj_type__routing_positions.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobj_types.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "FirewallRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 15,
+            "description": "Property Model to manage IPOBJ Data",
+            "itemtype": "property",
+            "name": "IpobjlModel",
+            "type": "/models/ipobj",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 24,
+            "description": "Property Model to manage FWC_TREE Data",
+            "itemtype": "property",
+            "name": "fwcTreemodel",
+            "type": "/models/fwc_tree",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 33,
+            "description": "Property Model to manage FWC_TREE_NODE Data",
+            "itemtype": "property",
+            "name": "fwc_tree_nodeModel",
+            "type": "/models/fwc_tree_node",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 42,
+            "description": "Property Model to manage UTIL functions",
+            "itemtype": "property",
+            "name": "utilsModel",
+            "type": "/models/utils",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 51,
+            "description": "Property Model to manage interface__ipobj data relation",
+            "itemtype": "property",
+            "name": "Interface__ipobjModel",
+            "type": "/models/interface__ipobj",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 60,
+            "description": "Property Model to manage API RESPONSE data",
+            "itemtype": "property",
+            "name": "api_resp",
+            "type": "/models/api_response",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 69,
+            "description": "Property to identify Data Object",
+            "itemtype": "property",
+            "name": "objModel",
+            "type": "text",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 78,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 95,
+            "description": "Get all ipobjs by  group\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getAllIpobjByGroup",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n    \"response\": {\n       \"respStatus\":         //Response status  TRUE | FALSE\n       \"respCode\":           //Response Code \n       \"respCodeMsg\":        //Response message\n       \"respMsg\":            //Response custom message\n       \"errorCode\":          //Error code\n       \"errorMsg\":           //Error message\n         },\n    \"data\": [                //Data node with de IPOBJ DATA\n       { \"id\": 1488,\n           \"name\": \"PC-AALMODOVAR\",\n           \"type\": 8,\n           \"fwcloud\": 1,\n           \"interface\": null,\n           \"protocol\": null,\n           \"address\": null,\n           \"netmask\": null,\n           \"diff_serv\": null,\n           \"ip_version\": null,\n           \"code\": null,\n           \"tcp_flags_mask\": null,\n           \"tcp_flags_settings\": null,\n           \"range_start\": null,\n           \"range_end\": null,\n           \"source_port_start\": null,\n           \"source_port_end\": null,\n           \"destination_port_start\": null,\n           \"destination_port_end\": null,\n           \"options\": null,\n           \"comment\": \"\",\n           \"id_node\": 102,\n           \"id_parent_node\": 8,\n           \"interfaces\": [         //Interface Node with Interfaces \n               {\n                   \"id\": 73,\n                   \"firewall\": null,\n                   \"name\": \"eth0\",\n                   \"labelname\": \"eth0\",\n                   \"type\": \"11\",\n                   \"securityLevel\": \"0\",\n                   \"interface_type\": 11,\n                   \"comment\": null,\n                   \"id_node\": 318,\n                   \"id_parent_node\": 102,\n                   \"ipobjs\": [     //Ipobj Node with ipobjs into Interface\n                       {\n                           \"id\": 1525,\n                           \"name\": \"PC-AALMODOVAR:eth0\",\n                           \"type\": 5,\n                           \"fwcloud\": 1,\n                           \"interface\": 73,\n                           \"protocol\": null,\n                           \"address\": \"10.98.1.16\",\n                           \"netmask\": \"255.255.255.0\",\n                           \"diff_serv\": null,\n                           \"ip_version\": \"IPv4\",\n                           \"code\": null,\n                           \"tcp_flags_mask\": null,\n                           \"tcp_flags_settings\": null,\n                           \"range_start\": null,\n                           \"range_end\": null,\n                           \"source_port_start\": null,\n                           \"source_port_end\": null,\n                           \"destination_port_start\": null,\n                           \"destination_port_end\": null,\n                           \"options\": null,\n                           \"comment\": \"\",\n                           \"id_node\": 339,\n                           \"id_parent_node\": 318\n                       },\n                   ]\n               },\n           ]\n       }\n       ]\n       }\n"
+            ],
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 214,
+            "description": "Get ipobj by  group and Ipobj id\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getIpobjByGroup",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 257,
+            "description": "Get ipobj by Ipobj id\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getIpobjById",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_gs.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_positions.js",
+            "line": 6,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_r__interfaces.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_r__ipobjs.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_rs.js",
+            "line": 8,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/policy_types.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/routing_gs.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/routing_positions.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/routing_r__interfaces.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/routing_r__ipobjs.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/routing_rs.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/user__firewalls.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
+        },
+        {
+            "file": "routes/users.js",
+            "line": 7,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "IpobjsRouter"
         }
-    ]
+    ],
+    "warnings": []
 }
