@@ -342,13 +342,13 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
 
     var content1 = 'O', content2 = 'O';
 
-    logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+    logger.debug("XXX POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
     //Get position type
     Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
     {
         logger.debug(data);
-        if (data && data.length > 0) {
+        if (data) {
             content1 = data.content1;
             content2 = data.content2;
 
@@ -356,7 +356,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
                 Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
                 {
                     //If saved policy_r__ipobj saved ok, get data
-                    if (data && data.length > 0) {
+                    if (data) {
                         if (data.result) {
                             api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                 res.status(200).json(jsonResp);
@@ -393,9 +393,11 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
 
                     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
                     {
+                        logger.debug("PORAKI 1");
                         //If saved policy_r__ipobj Get data
-                        if (data && data.length > 0) {
+                        if (data) {
                             if (data.result) {
+                                logger.debug("PORAKI 2");
                                 //Delete position 'I'
                                 Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function (error, data)
                                 {
@@ -430,8 +432,16 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
 
 
 
+                } else {
+                    api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, content diffetents', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
                 }
             }
+        } else {
+            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, data error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
         }
     });
 
