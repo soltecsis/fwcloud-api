@@ -16,13 +16,7 @@ var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var fs = require('fs');
 var xml2js = require('xml2js');
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 router.get('/foo', function (req, res)

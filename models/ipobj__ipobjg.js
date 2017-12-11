@@ -5,13 +5,7 @@ var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var ipobj__ipobjgModel = {};
 var tableModel = "ipobj__ipobjg";
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 //Get All ipobj__ipobjg by group

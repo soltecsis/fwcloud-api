@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -97,7 +99,7 @@
             Defined in: <a href="../files/models_firewall.js.html#l12"><code>models&#x2F;firewall.js:12</code></a>
         </div>
 
-            Module: <a href="../modules/FirewallModel.html">FirewallModel</a>
+            Module: <a href="../modules/Firewall.html">Firewall</a>
 
 </div>
 
@@ -125,7 +127,7 @@
 
                     <ul class="index-list methods">
                             <li class="index-item method">
-                                <a href="#method_deleteFirewall">deleteFirewall</a>
+                                <a href="#method_getFirewalls">getFirewalls</a>
 
                             </li>
                             <li class="index-item method">
@@ -133,15 +135,11 @@
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallCluster">getFirewallCluster</a>
-
-                            </li>
-                            <li class="index-item method">
                                 <a href="#method_getFirewallName">getFirewallName</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewalls">getFirewalls</a>
+                                <a href="#method_getFirewallCluster">getFirewallCluster</a>
 
                             </li>
                             <li class="index-item method">
@@ -152,6 +150,10 @@
                                 <a href="#method_updateFirewall">updateFirewall</a>
 
                             </li>
+                            <li class="index-item method">
+                                <a href="#method_deleteFirewall">deleteFirewall</a>
+
+                            </li>
                     </ul>
                 </div>
 
@@ -159,19 +161,7 @@
                     <h3>Properties</h3>
 
                     <ul class="index-list properties">
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
+                            <li class="index-item property private">
                                 <a href="#property_tableModel">tableModel</a>
 
                             </li>
@@ -184,16 +174,13 @@
             <div id="methods" class="api-class-tabpanel">
                 <h2 class="off-left">Methods</h2>
 
-<div id="method_deleteFirewall" class="method item">
-    <h3 class="name"><code>deleteFirewall</code></h3>
+<div id="method_getFirewalls" class="method item">
+    <h3 class="name"><code>getFirewalls</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
                 <li class="arg">
                         <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>id</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -202,7 +189,7 @@
         </div>
 
         <span class="returns-inline">
-            <span class="type">CALLBACK RESPONSE</span>
+            <span class="type">ARRAY of Firewall objects</span>
         </span>
 
 
@@ -214,7 +201,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l302"><code>models&#x2F;firewall.js:302</code></a>
+        <a href="../files/models_firewall.js.html#l36"><code>models&#x2F;firewall.js:36</code></a>
         </p>
 
 
@@ -222,7 +209,7 @@
     </div>
 
     <div class="description">
-        <p>DELETE Firewall</p>
+        <p>Get Firewalls by User</p>
 
     </div>
 
@@ -237,17 +224,6 @@
 
                     <div class="param-description">
                         <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall identifier</p>
 
                     </div>
 
@@ -271,24 +247,23 @@
             <h4>Returns:</h4>
 
             <div class="returns-description">
-                        <span class="type">CALLBACK RESPONSE</span>:
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
-</code></pre>
-<h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: false});
-</code></pre>
+                        <span class="type">ARRAY of Firewall objects</span>:
+                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
+<p>Table: <strong>firewall</strong></p>
+<pre><code>      id    int(11) AI PK
+      cluster   int(11)
+      fwcloud   int(11)
+      name  varchar(255)
+      comment   longtext
+      created_at    datetime
+      updated_at    datetime
+      by_user   int(11)
+      id_fwb    varchar(45)</code></pre>
 
             </div>
         </div>
+
+
 </div>
 <div id="method_getFirewall" class="method item">
     <h3 class="name"><code>getFirewall</code></h3>
@@ -320,7 +295,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l83"><code>models&#x2F;firewall.js:83</code></a>
+        <a href="../files/models_firewall.js.html#l78"><code>models&#x2F;firewall.js:78</code></a>
         </p>
 
 
@@ -395,111 +370,6 @@
 
 
 </div>
-<div id="method_getFirewallCluster" class="method item">
-    <h3 class="name"><code>getFirewallCluster</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idcluster</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_firewall.js.html#l163"><code>models&#x2F;firewall.js:163</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Cluster</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idcluster</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Cluster identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)
-      id_fwb    varchar(45)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
 <div id="method_getFirewallName" class="method item">
     <h3 class="name"><code>getFirewallName</code></h3>
 
@@ -530,7 +400,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l122"><code>models&#x2F;firewall.js:122</code></a>
+        <a href="../files/models_firewall.js.html#l117"><code>models&#x2F;firewall.js:117</code></a>
         </p>
 
 
@@ -605,13 +475,16 @@
 
 
 </div>
-<div id="method_getFirewalls" class="method item">
-    <h3 class="name"><code>getFirewalls</code></h3>
+<div id="method_getFirewallCluster" class="method item">
+    <h3 class="name"><code>getFirewallCluster</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
                 <li class="arg">
                         <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>idcluster</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -632,7 +505,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l41"><code>models&#x2F;firewall.js:41</code></a>
+        <a href="../files/models_firewall.js.html#l158"><code>models&#x2F;firewall.js:158</code></a>
         </p>
 
 
@@ -640,7 +513,7 @@
     </div>
 
     <div class="description">
-        <p>Get Firewalls by User</p>
+        <p>Get Firewalls by User and Cluster</p>
 
     </div>
 
@@ -655,6 +528,17 @@
 
                     <div class="param-description">
                         <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">idcluster</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>Cluster identifier</p>
 
                     </div>
 
@@ -726,7 +610,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l204"><code>models&#x2F;firewall.js:204</code></a>
+        <a href="../files/models_firewall.js.html#l199"><code>models&#x2F;firewall.js:199</code></a>
         </p>
 
 
@@ -884,7 +768,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall.js.html#l254"><code>models&#x2F;firewall.js:254</code></a>
+        <a href="../files/models_firewall.js.html#l249"><code>models&#x2F;firewall.js:249</code></a>
         </p>
 
 
@@ -1012,91 +896,123 @@
             </div>
         </div>
 </div>
+<div id="method_deleteFirewall" class="method item">
+    <h3 class="name"><code>deleteFirewall</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>id</code>
+                </li>
+                <li class="arg">
+                        <code>callback</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">CALLBACK RESPONSE</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/models_firewall.js.html#l297"><code>models&#x2F;firewall.js:297</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>DELETE Firewall</p>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">id</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>Firewall identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">callback</code>
+                        <span class="type">Function</span>
+
+
+                    <div class="param-description">
+                        <p>Function callback response</p>
+<pre><code>  callback(error, Rows)</code></pre>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">CALLBACK RESPONSE</span>:
+            </div>
+        </div>
+
+
+        <div class="example">
+            <h4>Example:</h4>
+
+            <div class="example-content">
+                <h4>RESPONSE OK:</h4>
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
+</code></pre>
+<h4>RESPONSE ERROR:</h4>
+<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: false});
+</code></pre>
+
+            </div>
+        </div>
+</div>
             </div>
 
             <div id="properties" class="api-class-tabpanel">
                 <h2 class="off-left">Properties</h2>
 
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_cluster.js.html#l8"><code>models&#x2F;cluster.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_customers.js.html#l8"><code>models&#x2F;customers.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_firewall.js.html#l31"><code>models&#x2F;firewall.js:31</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_tableModel" class="property item">
+<div id="property_tableModel" class="property item private">
     <h3 class="name"><code>tableModel</code></h3>
     <span class="type">"firewall"</span>
 
 
+        <span class="flag private">private</span>
 
 
 

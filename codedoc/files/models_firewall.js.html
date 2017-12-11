@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -92,7 +94,7 @@ var db = require(&#x27;../db.js&#x27;);
 /**
 * Module to manage Firewalls data
 *
-* @module FirewallModel
+* @module Firewall
 * 
 * @requires db
 * 
@@ -112,18 +114,13 @@ var firewallModel = {};
 *
 * @property tableModel
 * @type &quot;firewall&quot;
+* @private
 * 
 */
 var tableModel = &quot;firewall&quot;;
 
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
 

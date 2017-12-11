@@ -1,30 +1,117 @@
+/**
+ * DATA Module to manage IPOBJ Data
+ *
+ * @module Ipobjs
+ * 
+ * @requires db
+ */
+
+/**
+ * ## Class to manage IPOBJ DATA
+ *
+ * @class IpobjModel
+ * 
+ */
+var ipobjModel = {};
+
+/**
+ * Property  to manage Dabase Access
+ *
+ * @property db
+ * @type db 
+ */
 var db = require('../db.js');
+
+/**
+ * Property  to manage Ipobj in Rules
+ *
+ * @property Policy_r__ipobjModel
+ * @type models.policy_r__ipobj
+ */
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
+/**
+ * Property  to manage Interfaces in Rules
+ *
+ * @property Policy_r__interfaceModel
+ * @type models.policy_r__interface
+ */
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
+/**
+ * Property manage async process
+ *
+ * @property async
+ * @type async
+ */
 var async = require('async');
+/**
+ * Property  to manage Interfaces Data
+ *
+ * @property InterfaceModel
+ * @type models.interface
+ */
 var InterfaceModel = require('../models/interface');
+/**
+ * Property  to manage Ipobj host data
+ *
+ * @property host_Data
+ * @type models.data_ipobj_host
+ */
 var host_Data = require('../models/data_ipobj_host');
+/**
+ * Property  to manage Interface data
+ *
+ * @property interface_Data
+ * @type models.data_interface
+ */
 var interface_Data = require('../models/data_interface');
+/**
+ * Property  to manage Ipobj  data
+ *
+ * @property ipobj_Data
+ * @type models.data_ipobj
+ */
 var ipobj_Data = require('../models/data_ipobj');
+/**
+ * Property  to manage Ipobj in Groups
+ *
+ * @property Ipobj__ipobjgModel
+ * @type models.ipobj__ipobjg
+ */
 var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 
 
 
-//create object
-var ipobjModel = {};
+
+/**
+ * Property Table
+ *
+ * @property tableModel
+ * @type "ipobj"
+ * @private
+ * 
+ */
 var tableModel = "ipobj";
 
 /**
  * Property Logger to manage App logs
  *
- * @property logger
+ * @attribute logger
  * @type log4js/app
  * 
  */
 var logger = require('log4js').getLogger("app");
 
 
-//Get ipobj by  id 
+/**
+ * Get ipobj by Ipobj id
+ * 
+ * @method getIpobj
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
+ * */
 ipobjModel.getIpobj = function (fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -62,6 +149,16 @@ ipobjModel.getIpobj = function (fwcloud, id, callback) {
 };
 
 //Get ipobj HOST by  id and ALL IPOBjs
+/**
+ * Get ipobj HOST DATA and Interfaces and Ipobj bellow Interfaces
+ * 
+ * @method getIpobj_Host_Full
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj_Host/Interfaces/Ipobjs
+ * */
 ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
 
     var hosts = [];
@@ -182,7 +279,16 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
         });
     });
 };
-//Get ipobj by  id_fwb
+
+/**
+ * Get ipobj by id_fwb
+ * 
+ * @method getIpobj_fwb
+ * 
+ * @param {Integer} id_fwb id firewall Builder identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj
+ * */
 ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -198,7 +304,16 @@ ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
     });
 };
 
-//Get All ipobj by group
+/**
+ * Get All ipobj by Group
+ * 
+ * @method getAllIpobjsGroup
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup Group identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
 ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
 
     db.get(function (error, connection) {
@@ -224,7 +339,16 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
     });
 };
 
-//Get All ipobj by group
+/**
+ * Get All ipobj by Interface
+ * 
+ * @method getAllIpobjsInterface
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idinterface Interface identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
 ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
 
     db.get(function (error, connection) {
@@ -249,7 +373,17 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
     });
 };
 
-//Get ipobj by  id and group 
+/**
+ * Get ipobj by id and Group
+ * 
+ * @method getIpobjGroup
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup id Group identifier
+ * @param {Integer} id id ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj
+ * */
 ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -267,7 +401,16 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
     });
 };
 
-//Get ipobj by name 
+/**
+ * Get ipobj by name
+ * 
+ * @method getIpobjName
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {String} name name ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj
+ * */
 ipobjModel.getIpobjName = function (fwcloud, name, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -292,7 +435,21 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
 
 
 
-//Add new ipobj from user
+/**
+ * Add ipobj
+ * 
+ * @method insertIpobj
+ * 
+ * @param {Object} ipobjData Ipobj Data
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *      {result: true, "insertId": result.insertId}
+ * 
+ * #### JSON RESPONSE ERROR:
+ *      {result: false, "insertId": ''}
+ * */
 ipobjModel.insertIpobj = function (ipobjData, callback) {
     db.get(function (error, connection) {
         if (error)
@@ -311,7 +468,21 @@ ipobjModel.insertIpobj = function (ipobjData, callback) {
     });
 };
 
-//Update ipobj from user
+/**
+ * Update ipobj
+ * 
+ * @method updateIpobj
+ * 
+ * @param {Object} ipobjData Ipobj Data
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *      {result: true}
+ * 
+ * #### JSON RESPONSE ERROR:
+ *      {result: false}
+ * */
 ipobjModel.updateIpobj = function (ipobjData, callback) {
 
     db.get(function (error, connection) {
@@ -354,8 +525,29 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
     });
 };
 
-//FALTA DELETE INTERFACE y OBJETOS de HOST
-//Remove ipobj with id to remove
+/**
+ * ### Delete ipobj
+ * 
+ * @method deleteIpobj
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ * 
+ *      {"result": true, "msg": "deleted"}
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {"result": false, "msg": "notExist"}
+ *      
+ * #### JSON RESPONSE RESTRICTED:
+ * 
+ *      {"result": false, "msg": "Restricted", "restrictions": data.search}
+ * */
 ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
     //Search IPOBJ in RULES
     this.searchIpobjInRules(id, type, fwcloud, function (error, data) {
@@ -393,7 +585,26 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
 };
 
 
-//check if IPOBJ Exists in any Group
+/**
+ * ### check if IPOBJ Exists in any Group
+ * 
+ * @method checkIpobjInGroup
+ * 
+ * @param {Integer} ipobj id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ * 
+ *      {"result": true};
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {"result": false};
+ *      
+ * */
 ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
 
     logger.debug("CHECK DELETING FROM GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
@@ -423,7 +634,48 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
 
 };
 
-/* Search where is used IPOBJ in RULES  */
+/**
+ * ### searchIpobjInRules
+ * Search where is used IPOBJ in RULES
+ * 
+ * @method searchIpobjInRules
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example #### JSON RESPONSE OK
+ * 
+ *          {"result": true, "msg": "IPOBJ FOUND", 
+ *              "search":
+ *                  {   "IpobjInRules": data_ipobj, 
+ *                      "GroupInRules": data_grouprule, 
+ *                      "IpobjInGroup": data_group,
+ *                      "InterfacesIpobjInRules": data_interfaces, 
+ *                      "InterfacesFIpobjInRules": data_interfaces_f,
+ *                      "InterfacesAboveIpobjInRules": data_interfaces_above,
+ *                      "HostIpobjInterfacesIpobjInRules": data_ipobj_host, 
+ *                      "IpobjInterfacesIpobjInRules": data_ipobj_ipobj
+ *                  }
+ *          }
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {"result": false, "msg": "IPOBJ NOT FOUND", 
+ *          "search": {
+ "IpobjInRules": "", 
+ "GroupInRules": "",
+ "IpobjInGroup": "", 
+ "InterfacesIpobjInRules": "", 
+ "InterfacesFIpobjInRules": "",
+ "InterfacesAboveIpobjInRules": "",
+ "HostIpobjInterfacesIpobjInRules": "", 
+ "IpobjInterfacesIpobjInRules": ""
+ }
+ }
+ *      
+ * */
 ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
     //SEARCH IPOBJ IN RULES
     Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
@@ -473,7 +725,7 @@ ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
                                                                                         "InterfacesIpobjInRules": data_interfaces, "InterfacesFIpobjInRules": data_interfaces_f,
                                                                                         "InterfacesAboveIpobjInRules": data_interfaces_above,
                                                                                         "HostIpobjInterfacesIpobjInRules": data_ipobj_host, "IpobjInterfacesIpobjInRules": data_ipobj_ipobj
-                                                                                        }});
+                                                                                    }});
                                                                     } else {
                                                                         callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "search": {
                                                                                 "IpobjInRules": "", "GroupInRules": "",
@@ -500,7 +752,38 @@ ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
     });
 };
 
-/* Search where is used IPOBJ  */
+/**
+ * ### searchIpobj
+ * Search where is used IPOBJ
+ * 
+ * @method searchIpobj
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example #### JSON RESPONSE OK
+ * 
+ *          {"result": true, "msg": "IPOBJ FOUND", 
+ *              "search": {
+ *                  "IpobjInRules": data_ipobj, 
+ *                  "IpobjInGroup": data_group, 
+ *                  "IpobjInterfaces": data_ipobj_interfaces
+ *                  }
+ *          }
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {"result": false, "msg": "IPOBJ NOT FOUND", 
+ *              "search": {
+ *                  "IpobjInRules": "", 
+ *                  "IpobjInGroup": "", 
+ *                  "IpobjInterfaces": ""
+ *               }
+ *      }
+ *      
+ * */
 ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
     //SEARCH IPOBJ IN RULES
     Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {

@@ -4,34 +4,36 @@ YUI.add("yuidoc-meta", function(Y) {
         "ClusterRouter",
         "FirewallModel",
         "FirewallRouter",
-        "IpobjsRouter"
+        "IpobjModel",
+        "IpobjsRouter",
+        "respModel"
     ],
     "modules": [
-        "ClusterRouter",
-        "FirewallModel",
-        "FirewallRouter",
-        "IpobjsRouter"
+        "Cluster",
+        "Firewall",
+        "Ipobjs",
+        "api_response"
     ],
     "allModules": [
         {
-            "displayName": "ClusterRouter",
-            "name": "ClusterRouter",
+            "displayName": "api_response",
+            "name": "api_response",
+            "description": "Module to manage responses\n<br>BASE ROUTE CALL: <b>/firewalls</b>"
+        },
+        {
+            "displayName": "Cluster",
+            "name": "Cluster",
             "description": "Module to routing CLUSTER requests\n<br>BASE ROUTE CALL: <b>/clusters</b>"
         },
         {
-            "displayName": "FirewallModel",
-            "name": "FirewallModel",
-            "description": "Module to manage Firewalls data"
-        },
-        {
-            "displayName": "FirewallRouter",
-            "name": "FirewallRouter",
+            "displayName": "Firewall",
+            "name": "Firewall",
             "description": "Module to routing Firewalls requests\n<br>BASE ROUTE CALL: <b>/firewalls</b>"
         },
         {
-            "displayName": "IpobjsRouter",
-            "name": "IpobjsRouter",
-            "description": "Module to routing IPOBJ requests\n<br>BASE ROUTE CALL: <b>/ipobjs</b>"
+            "displayName": "Ipobjs",
+            "name": "Ipobjs",
+            "description": "ROUTE Module to routing IPOBJ requests\n<br>BASE ROUTE CALL: <b>/ipobjs</b>"
         }
     ],
     "elements": []

@@ -17,13 +17,7 @@ var data_policy_positions = require('../models/data_policy_positions');
 var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs');
 
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 

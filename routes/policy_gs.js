@@ -4,13 +4,7 @@ var Policy_gModel = require('../models/policy_g');
 var api_resp = require('../utils/api_response');
 var objModel = 'POLICY GROUP';
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 

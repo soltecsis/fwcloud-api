@@ -3,7 +3,7 @@ var db = require('../db.js');
 /**
 * Module to manage Firewalls data
 *
-* @module FirewallModel
+* @module Firewall
 * 
 * @requires db
 * 
@@ -23,18 +23,13 @@ var firewallModel = {};
 *
 * @property tableModel
 * @type "firewall"
+* @private
 * 
 */
 var tableModel = "firewall";
 
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 

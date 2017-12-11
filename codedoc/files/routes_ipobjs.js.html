@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -87,17 +89,37 @@
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var express = require(&#x27;express&#x27;);
 /**
- * Module to routing IPOBJ requests
+ * ROUTE Module to routing IPOBJ requests
  * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/ipobjs&lt;/b&gt;
  *
- * @module IpobjsRouter
+ * @module Ipobjs
  * 
  * @requires express
  * @requires IpobjModel
- * @requires log4js
  * 
+ */
+
+/**
+ * Class to manage IPOBJ routing
+ *
+ * @class IpobjsRouter
+  * 
+ */
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require(&#x27;express&#x27;);
+
+/**
+ * Property  to manage IPOBJ route
+ *
+ * @property router
+ * @type express.Router 
  */
 var router = express.Router();
 
@@ -160,26 +182,18 @@ var api_resp = require(&#x27;../utils/api_response&#x27;);
  *
  * @property objModel
  * @type text
- * 
  */
 var objModel = &#x27;IPOBJ&#x27;;
 
 /**
  * Property Logger to manage App logs
  *
- * @property logger
+ * @attribute logger
  * @type log4js/app
  * 
  */
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
-/**
- * Class to manage IPOBJ routing
- *
- * @class IpobjsRouter
- * @uses IpobjlModel
- * 
- */
 
 /**
  * Get all ipobjs by  group
@@ -284,7 +298,7 @@ router.get(&#x27;/:iduser/:fwcloud/group/:idgroup&#x27;, function (req, res)
     IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data)
     {
         //If exists ipobj get data
-        if (data &amp;&amp; data.length &gt; 0)
+        if (data &amp;&amp; data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -326,7 +340,7 @@ router.get(&#x27;/:iduser/:fwcloud/group/:idgroup/:id&#x27;, function (req, res)
     IpobjModel.getIpobjGroup(fwcloud, idgroup, id, function (error, data)
     {
         //If exists ipobj get data
-        if (data &amp;&amp; data.length &gt; 0)
+        if (data &amp;&amp; data.result)
         {
             api_resp.getJson(data, api_resp.ACR_OK, &#x27;&#x27;, objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -385,7 +399,22 @@ router.get(&#x27;/:iduser/:fwcloud/:id&#x27;, function (req, res)
     });
 });
 
-/* Get all ipobjs by name and by group*/
+/**
+ * Get all ipobjs by name and by group
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup/name/:name__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method getAllIpobjByGroupName
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup Group identifier
+ * @param {String} name Ipobj name
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Ipobj
+ * */
 router.get(&#x27;/:iduser/:fwcloud/group/:idgroup/name/:name&#x27;, function (req, res)
 {
     var name = req.params.name;
@@ -412,7 +441,22 @@ router.get(&#x27;/:iduser/:fwcloud/group/:idgroup/name/:name&#x27;, function (re
     });
 });
 
-/* Search ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules */
+/**
+ * Search where ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/ipobj_search_rules/:iduser/:fwcloud/:id/:type__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method SearchIpobjInRules
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * @param {Integer} type Ipobj type
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Search
+ * */
 router.get(&quot;/ipobj_search_rules/:iduser/:fwcloud/:id/:type&quot;, function (req, res)
 {
     //Id from ipobj to remove
@@ -444,7 +488,22 @@ router.get(&quot;/ipobj_search_rules/:iduser/:fwcloud/:id/:type&quot;, function 
     });
 });
 
-/* Search where is used ipobj  */
+/**
+ * Search where ipobj is Used
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/ipobj_search_used/:iduser/:fwcloud/:id/:type__      
+ * &gt; METHOD:  __GET__
+ * 
+ * @method SearchIpobjWhereUsed
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * @param {Integer} type Ipobj type
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Search
+ * */
 router.get(&quot;/ipobj_search_used/:iduser/:fwcloud/:id/:type&quot;, function (req, res)
 {
     //Id from ipobj to remove
@@ -477,7 +536,75 @@ router.get(&quot;/ipobj_search_used/:iduser/:fwcloud/:id/:type&quot;, function (
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
-/* Create New ipobj */
+/**
+ * #### Create new ipobj
+ * Crea un nuevo objeto en el Cloud que se le pasa.
+ * Se le pasa tambien los datos del Nodo en el arbol de navegación para que una vez 
+ * añadido el objeto se enlace al nodo del árbol
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type__      
+ * &gt; METHOD:  __POST__
+ * 
+ * @method NewIpobj
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} node_parent Node parent to insert object
+ * @param {Integer} node_order Node order 
+ * @param {Integer} node_type Node type
+ * 
+ * #### POST PARAMETERS
+ * 
+ * @param {Integer} fwcloud
+ * @param {Integer} interface
+ * @param {Integer} name
+ * @param {Integer} type
+ * @param {Integer} protocol
+ * @param {Integer} address
+ * @param {Integer} netmask
+ * @param {Integer} diff_serv
+ * @param {Integer} ip_version
+ * @param {Integer} code
+ * @param {Integer} tcp_flags_mask
+ * @param {Integer} tcp_flags_settings
+ * @param {Integer} range_start
+ * @param {Integer} range_end
+ * @param {Integer} source_port_start
+ * @param {Integer} source_port_end
+ * @param {Integer} destination_port_start
+ * @param {Integer} destination_port_end
+ * @param {Integer} options
+ * @param {Integer} comment
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Result
+ * * * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: true,
+ *        &quot;respCode&quot;: &quot;ACR_INSERTED_OK&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: false,
+ *        &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ * */
 router.post(&quot;/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type&quot;, function (req, res)
 {
     var iduser = req.params.iduser;
@@ -559,7 +686,71 @@ router.post(&quot;/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type&qu
 
 
 
-/* Update ipobj that exist */
+/**
+ * #### Update Ipobj
+ * Actualiza los datos de un IPOBJ.
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud__      
+ * &gt; METHOD:  __PUT__
+ * 
+ * @method UpdateIpobj
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * #### POST PARAMETERS
+ * 
+ * @param {Integer} id
+ * @param {Integer} fwcloud
+ * @param {Integer} interface
+ * @param {Integer} name
+ * @param {Integer} type
+ * @param {Integer} protocol
+ * @param {Integer} address
+ * @param {Integer} netmask
+ * @param {Integer} diff_serv
+ * @param {Integer} ip_version
+ * @param {Integer} code
+ * @param {Integer} tcp_flags_mask
+ * @param {Integer} tcp_flags_settings
+ * @param {Integer} range_start
+ * @param {Integer} range_end
+ * @param {Integer} source_port_start
+ * @param {Integer} source_port_end
+ * @param {Integer} destination_port_start
+ * @param {Integer} destination_port_end
+ * @param {Integer} options
+ * @param {Integer} comment
+ * 
+ * @return {JSON} Returns &#x60;JSON&#x60; Data from Search
+ * * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: true,
+ *        &quot;respCode&quot;: &quot;ACR_UPDATED_OK&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: false,
+ *        &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ * */
 router.put(&#x27;/ipobj/:iduser/:fwcloud&#x27;, function (req, res)
 {
     var iduser = req.params.iduser;
@@ -612,7 +803,6 @@ router.put(&#x27;/ipobj/:iduser/:fwcloud&#x27;, function (req, res)
             }
         });
     } else
-        //res.status(500).json({&quot;msg&quot;: &quot;Null identifiers&quot;});
         api_resp.getJson(null, api_resp.ACR_ERROR, &#x27;Null identifiers&#x27;, objModel, null, function (jsonResp) {
             res.status(200).json(jsonResp);
         });
@@ -620,7 +810,50 @@ router.put(&#x27;/ipobj/:iduser/:fwcloud&#x27;, function (req, res)
 
 
 
-/* Remove ipobj */
+/**
+ * DELETE IPOBJ
+ * 
+ * 
+ * &gt; ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud/:id/:type__      
+ * &gt; METHOD:  __DELETE__
+ * 
+ *
+ * @method DeleteIpobj
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * @param {Integer} type Ipobj type
+ * @optional
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: true,
+ *        &quot;respCode&quot;: &quot;ACR_DELETED_OK&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *      {&quot;response&quot;: {
+ *        &quot;respStatus&quot;: false,
+ *        &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+ *        &quot;respCodeMsg&quot;: &quot;&quot;,
+ *        &quot;respMsg&quot;: &quot;&quot;,
+ *        &quot;errorCode&quot;: &quot;&quot;,
+ *        &quot;errorMsg&quot;: &quot;&quot;
+ *      },
+ *      &quot;data&quot;: {}
+ *      };
+ */
 router.delete(&quot;/ipobj/:iduser/:fwcloud/:id/:type&quot;, function (req, res)
 {
     //Id from ipobj to remove

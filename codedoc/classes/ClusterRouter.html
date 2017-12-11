@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -88,17 +90,16 @@
 
 
         <div class="foundat">
-            Defined in: <a href="../files/routes_clusters.js.html#l19"><code>routes&#x2F;clusters.js:19</code></a>
+            Defined in: <a href="../files/routes_clusters.js.html#l13"><code>routes&#x2F;clusters.js:13</code></a>
         </div>
 
-            Module: <a href="../modules/ClusterRouter.html">ClusterRouter</a>
+            Module: <a href="../modules/Cluster.html">Cluster</a>
 
 </div>
 
 
 <div class="box intro">
-    <p>Modulo para gestionar los datos del Cluster
-<br>BASE ROUTE CALL: <b>/clusters</b></p>
+    <p>Clase to manage CLUSTER DATA</p>
 
 </div>
 
@@ -135,95 +136,23 @@
 
                     <ul class="index-list properties">
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_express">express</a>
 
                             </li>
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_router">router</a>
 
                             </li>
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_api_resp">api_resp</a>
 
                             </li>
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_objModel">objModel</a>
 
                             </li>
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_ClusterModel">ClusterModel</a>
 
                             </li>
                     </ul>
@@ -265,7 +194,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_clusters.js.html#l37"><code>routes&#x2F;clusters.js:37</code></a>
+        <a href="../files/routes_clusters.js.html#l66"><code>routes&#x2F;clusters.js:66</code></a>
         </p>
 
 
@@ -381,7 +310,7 @@ ROUTE CALL:  /</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_clusters.js.html#l73"><code>routes&#x2F;clusters.js:73</code></a>
+        <a href="../files/routes_clusters.js.html#l102"><code>routes&#x2F;clusters.js:102</code></a>
         </p>
 
 
@@ -440,581 +369,109 @@ this can span multiple lines.</p>
             <div id="properties" class="api-class-tabpanel">
                 <h2 class="off-left">Properties</h2>
 
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_express" class="property item">
+    <h3 class="name"><code>express</code></h3>
+    <span class="type">Express</span>
 
 
 
 
 
     <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
                 <p>
                 Defined in
-        <a href="../files/models_policy_r.js.html#l20"><code>models&#x2F;policy_r.js:20</code></a>
+        <a href="../files/routes_clusters.js.html#l20"><code>routes&#x2F;clusters.js:20</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property  to manage express</p>
 
     </div>
 
 
 
 </div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_router" class="property item">
+    <h3 class="name"><code>router</code></h3>
+    <span class="type">express.Router</span>
 
 
 
 
 
     <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
                 <p>
                 Defined in
-        <a href="../files/models_fwc_tree.js.html#l4"><code>models&#x2F;fwc_tree.js:4</code></a>
+        <a href="../files/routes_clusters.js.html#l28"><code>routes&#x2F;clusters.js:28</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property  to manage  route</p>
 
     </div>
 
 
 
 </div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_api_resp" class="property item">
+    <h3 class="name"><code>api_resp</code></h3>
+    <span class="type">/models/api_response</span>
 
 
 
 
 
     <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
                 <p>
                 Defined in
-        <a href="../files/models_interface__ipobj.js.html#l8"><code>models&#x2F;interface__ipobj.js:8</code></a>
+        <a href="../files/routes_clusters.js.html#l37"><code>routes&#x2F;clusters.js:37</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property Model to manage API RESPONSE data</p>
 
     </div>
 
 
 
 </div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_objModel" class="property item">
+    <h3 class="name"><code>objModel</code></h3>
+    <span class="type">Text</span>
 
 
 
 
 
     <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
                 <p>
                 Defined in
-        <a href="../files/models_ipobj.js.html#l17"><code>models&#x2F;ipobj.js:17</code></a>
+        <a href="../files/routes_clusters.js.html#l46"><code>routes&#x2F;clusters.js:46</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property to identify Data Object</p>
 
     </div>
 
 
 
 </div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_ipobj__ipobjg.js.html#l8"><code>models&#x2F;ipobj__ipobjg.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_ipobj_g.js.html#l14"><code>models&#x2F;ipobj_g.js:14</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_ipobj_type.js.html#l8"><code>models&#x2F;ipobj_type.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_ipobj_type__policy_position.js.html#l8"><code>models&#x2F;ipobj_type__policy_position.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_ipobj_type__routing_position.js.html#l8"><code>models&#x2F;ipobj_type__routing_position.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_policy_g.js.html#l8"><code>models&#x2F;policy_g.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_policy_position.js.html#l8"><code>models&#x2F;policy_position.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_interface.js.html#l11"><code>models&#x2F;interface.js:11</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_policy_r__interface.js.html#l8"><code>models&#x2F;policy_r__interface.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_policy_r__ipobj.js.html#l8"><code>models&#x2F;policy_r__ipobj.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_policy_type.js.html#l8"><code>models&#x2F;policy_type.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_routing_g.js.html#l8"><code>models&#x2F;routing_g.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_routing_position.js.html#l8"><code>models&#x2F;routing_position.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_routing_r.js.html#l9"><code>models&#x2F;routing_r.js:9</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_routing_r__interface.js.html#l8"><code>models&#x2F;routing_r__interface.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_routing_r__ipobj.js.html#l8"><code>models&#x2F;routing_r__ipobj.js:8</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_user.js.html#l7"><code>models&#x2F;user.js:7</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-                    <p>Provided by the <a href="../modules/FirewallModel.html">FirewallModel</a> module.</p>
-                <p>
-                Defined in
-        <a href="../files/models_user__firewall.js.html#l7"><code>models&#x2F;user__firewall.js:7</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_ClusterModel" class="property item">
+    <h3 class="name"><code>ClusterModel</code></h3>
+    <span class="type">/models/cluster</span>
 
 
 
@@ -1023,14 +480,14 @@ this can span multiple lines.</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_clusters.js.html#l27"><code>routes&#x2F;clusters.js:27</code></a>
+        <a href="../files/routes_clusters.js.html#l54"><code>routes&#x2F;clusters.js:54</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property Model to manage Cluster Data</p>
 
     </div>
 

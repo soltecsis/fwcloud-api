@@ -8,13 +8,7 @@ var Interface__ipobjModel = require('../models/interface__ipobj');
 var interfaceModel = {};
 var tableModel = "interface";
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 //Get All interface by firewall

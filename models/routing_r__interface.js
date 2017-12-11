@@ -5,13 +5,7 @@ var db = require('../db.js');
 var routing_r__interfaceModel = {};
 var tableModel="routing_r__interface";
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All routing_r__interface by policy_r

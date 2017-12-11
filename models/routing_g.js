@@ -5,13 +5,7 @@ var db = require('../db.js');
 var routing_gModel = {};
 var tableModel = "routing_g";
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All routing_g by firewall

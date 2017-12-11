@@ -4,13 +4,7 @@ var Routing_r__interfaceModel = require('../models/routing_r__interface');
 var api_resp = require('../utils/api_response');
 var objModel='ROUTING INTERFACE';
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */

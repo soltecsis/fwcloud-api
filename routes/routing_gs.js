@@ -4,13 +4,7 @@ var Routing_gModel = require('../models/routing_g');
 var api_resp = require('../utils/api_response');
 var objModel='ROUTING TYPE';
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 /* Show form */

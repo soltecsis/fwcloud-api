@@ -3,13 +3,7 @@ var router = express.Router();
 var Policy_positionModel = require('../models/policy_position');
 var api_resp = require('../utils/api_response');
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 var objModel = 'Policy Position';
 

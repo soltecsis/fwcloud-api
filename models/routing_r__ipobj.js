@@ -5,13 +5,7 @@ var db = require('../db.js');
 var routing_r__ipobjModel = {};
 var tableModel = "routing_r__ipobj";
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 

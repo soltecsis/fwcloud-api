@@ -1,37 +1,66 @@
-var express = require('express');
-var api_resp = require('../utils/api_response');
-var objModel = 'CLUSTER';
 /**
  * Module to routing CLUSTER requests
  * <br>BASE ROUTE CALL: <b>/clusters</b>
  *
- * @module ClusterRouter
+ * @module Cluster
  * 
  * @requires express
  * @requires Clustermodel
  * 
  */
+
+
+/**
+ * Clase to manage CLUSTER DATA
+ *
+ * @class ClusterRouter
+ */
+
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require('express');
+
+/**
+ * Property  to manage  route
+ *
+ * @property router
+ * @type express.Router 
+ */
 var router = express.Router();
 
 
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type /models/api_response
+ * 
+ */
+var api_resp = require('../utils/api_response');
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = 'CLUSTER';
+
+/**
+ * Property Model to manage Cluster Data
+ *
+ * @property ClusterModel
+ * @type /models/cluster
+ */
 var ClusterModel = require('../models/cluster');
 
-/**
- * Modulo para gestionar los datos del Cluster
- * <br>BASE ROUTE CALL: <b>/clusters</b>
- *
- * @class ClusterRouter
- * 
- */
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
+
 
 
 /**

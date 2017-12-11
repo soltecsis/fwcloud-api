@@ -8,13 +8,7 @@ var utilsModel = require("../utils/utils.js");
 var api_resp = require('../utils/api_response');
 var objModel = 'FWC TREE';
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 

@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -87,22 +89,55 @@
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var express = require(&#x27;express&#x27;);
-var api_resp = require(&#x27;../utils/api_response&#x27;);
-var objModel = &#x27;FIREWALL&#x27;;
-
 /**
  * Module to routing Firewalls requests
  * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/firewalls&lt;/b&gt;
  *
- * @module FirewallRouter
+ * @module Firewall
  * 
- * @requires express
- * @requires FirewallModel
- * @requires log4js
  * 
  */
+
+/**
+ * Class to manage firewalls routing
+ * 
+ * 
+ * @class FirewallRouter
+ * 
+ */
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require(&#x27;express&#x27;);
+
+/**
+ * Property  to manage Firewall route
+ *
+ * @property router
+ * @type express.Router 
+ */
 var router = express.Router();
+
+/**
+ * Property Model to manage API RESPONSE data: {{#crossLinkModule &quot;api_response&quot;}}{{/crossLinkModule}}
+ *
+ * @property api_resp
+ * @type api_respModel
+ * 
+ */
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = &#x27;FIREWALL&#x27;;
 
 /**
  * Property Model to manage Firewall Data
@@ -110,39 +145,20 @@ var router = express.Router();
  * @property FirewallModel
  * @type /models/firewall
  * 
+ * 
  */
 var FirewallModel = require(&#x27;../models/firewall&#x27;);
 
 /**
  * Property Logger to manage App logs
  *
- * @property logger
+ * @attribute logger
  * @type log4js/app
  * 
  */
 var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
-/**
- * Class to manage firewalls routing
- *
- * @class FirewallRouter
- * @uses FirewallModel
- * 
- */
 
-/**
- * Show form to add new Firewall
- * 
- * &lt;br&gt;ROUTE CALL:  /firewall
- *
- * @method showForm
- * 
- * @return {Boolean} Returns true on success
- */
-router.get(&#x27;/firewall&#x27;, function (req, res)
-{
-    res.render(&#x27;new_firewall&#x27;, {title: &#x27;Crear nuevo firewall&#x27;});
-});
 
 
 /**

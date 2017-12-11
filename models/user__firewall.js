@@ -4,13 +4,7 @@ var db = require('../db.js');
 //create object
 var user__firewallModel = {};
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All firewalls from user and cloud

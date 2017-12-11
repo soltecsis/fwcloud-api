@@ -3,7 +3,7 @@
     "description": "[SOLTECSIS] FWCloud API REST code documentation",
     "version": "1.0.0",
     "url": "http://foswiki.soltecsis.com/codedoc/",
-    "logo": "http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png",
+    "logo": "http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png",    
     "options": {
         "outdir": "./codedoc"
     }

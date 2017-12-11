@@ -11,13 +11,7 @@ var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 var ipobj_gModel = {};
 var tableModel = "ipobj_g";
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 //Get All ipobj_g

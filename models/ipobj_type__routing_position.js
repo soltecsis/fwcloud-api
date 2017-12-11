@@ -5,13 +5,7 @@ var db = require('../db.js');
 var ipobj_type__routing_positionModel = {};
 var tableModel="ipobj_type__routing_position";
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All ipobj_type__routing_position

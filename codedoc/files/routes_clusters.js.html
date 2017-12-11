@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -87,40 +89,69 @@
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var express = require(&#x27;express&#x27;);
-var api_resp = require(&#x27;../utils/api_response&#x27;);
-var objModel = &#x27;CLUSTER&#x27;;
 /**
  * Module to routing CLUSTER requests
  * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
  *
- * @module ClusterRouter
+ * @module Cluster
  * 
  * @requires express
  * @requires Clustermodel
  * 
  */
+
+
+/**
+ * Clase to manage CLUSTER DATA
+ *
+ * @class ClusterRouter
+ */
+
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require(&#x27;express&#x27;);
+
+/**
+ * Property  to manage  route
+ *
+ * @property router
+ * @type express.Router 
+ */
 var router = express.Router();
 
 
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type /models/api_response
+ * 
+ */
+var api_resp = require(&#x27;../utils/api_response&#x27;);
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = &#x27;CLUSTER&#x27;;
+
+/**
+ * Property Model to manage Cluster Data
+ *
+ * @property ClusterModel
+ * @type /models/cluster
+ */
 var ClusterModel = require(&#x27;../models/cluster&#x27;);
 
-/**
- * Modulo para gestionar los datos del Cluster
- * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/clusters&lt;/b&gt;
- *
- * @class ClusterRouter
- * 
- */
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
-var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
+
 
 
 /**

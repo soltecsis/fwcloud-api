@@ -4,13 +4,6 @@ var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var api_resp = require('../utils/api_response');
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
 var logger = require('log4js').getLogger("app");
 var objModel = "Interface in Rule";
 

@@ -1,25 +1,114 @@
-//create object
+/**
+ * Module to manage responses
+ * <br>BASE ROUTE CALL: <b>/firewalls</b>
+ *
+ * @module api_response
+ * 
+ * 
+ */
+
+/**
+ * Class to manage firewalls routing
+ *
+ * @class respModel
+ * 
+ */
+
+/**
+ * Property Model to manage response Data
+ *
+ * @property respModel
+ * @type /utils/api_response
+ * 
+ * 
+ */
 var respModel = {};
 
-const VError = require('verror').VError;
-const WError = require('verror').WError;
+//const VError = require('verror').VError;
+//const WError = require('verror').WError;
 
+/**
+ * Property ACR_ERROR
+ *
+ * @property ACR_ERROR
+ * @type String
+ */
 respModel.ACR_ERROR = 'ACR_ERROR';
+/**
+ * Property ACR_OK
+ *
+ * @property ACR_OK
+ * @type String
+ */
 respModel.ACR_OK = 'ACR_OK';
+/**
+ * Property reACR_NOTEXISTsp
+ *
+ * @property ACR_NOTEXIST
+ * @type String
+ */
 respModel.ACR_NOTEXIST = 'ACR_NOTEXIST';
+/**
+ * Property resp
+ *
+ * @property ACR_MISSING
+ * @type String
+ */
 respModel.ACR_MISSING = 'ACR_MISSING';
+/**
+ * Property ACR_DELETED_OK
+ *
+ * @property ACR_DELETED_OK
+ * @type String
+ */
 respModel.ACR_DELETED_OK = 'ACR_DELETED_OK';
+/**
+ * Property ACR_RESTRICTED
+ *
+ * @property ACR_RESTRICTED
+ * @type String
+ */
 respModel.ACR_RESTRICTED = 'ACR_RESTRICTED';
+/**
+ * Property ACR_INSERTED_OK
+ *
+ * @property ACR_INSERTED_OK
+ * @type String
+ */
 respModel.ACR_INSERTED_OK = 'ACR_INSERTED_OK';
+/**
+ * Property ACR_UPDATED_OK
+ *
+ * @property ACR_UPDATED_OK
+ * @type String
+ */
 respModel.ACR_UPDATED_OK = 'ACR_UPDATED_OK';
+/**
+ * Property ACR_DATA_ERROR
+ *
+ * @property ACR_DATA_ERROR
+ * @type String
+ */
 respModel.ACR_DATA_ERROR = 'ACR_DATA_ERROR';
+/**
+ * Property ACR_NOT_ALLOWED
+ *
+ * @property ACR_NOT_ALLOWED
+ * @type String
+ */
 respModel.ACR_NOT_ALLOWED = 'ACR_NOT_ALLOWED';
+/**
+ * Property ACR_PARAM_ERROR
+ *
+ * @property ACR_PARAM_ERROR
+ * @type String
+ */
 respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
 
 /**
  * Property Logger to manage App logs
  *
- * @property logger
+ * @attribute logger
  * @type log4js/app
  * 
  */
@@ -35,7 +124,34 @@ var logger = require('log4js').getLogger("app");
  console.info(errReq.toString()); //
  */
 
-
+/**
+ * ### GET JSON RESONSE
+ * 
+ * @method getJson
+ * 
+ * @param {Object} data  Data response from Call
+ * @param {String} respCode  Response code
+ * @param {String} custom_response custom Message from Call
+ * @param {String} custom_obj  Custon name of object
+ * @param {Object} error Object Error
+ * @param {Callback} callback function(jsonresp)  
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE :
+ *    
+ *      {"response": {
+ *        "respStatus": true | false,
+ *        "respCode": "ACR_CODE",
+ *        "respCodeMsg": "",
+ *        "respMsg": "",
+ *        "errorCode": "",
+ *        "errorMsg": ""
+ *      },
+ *      "data": {}
+ *      };
+ *       
+ */
 respModel.getJson = function (data, respCode, custom_response, custom_obj, error, callback) {
     var resp_json = "";
     var error_code = "";
@@ -65,6 +181,19 @@ respModel.getJson = function (data, respCode, custom_response, custom_obj, error
 
 };
 
+/**
+ * ### GET Message from Response Code
+ * 
+ * @method getMsgCodeResp
+ * 
+ * @param {String} respCode  Response code
+ * @param {String} custom_response custom Message from Call
+ * @param {String} custom_obj  Custon name of object
+ * @param {Object} error Object Error
+ * @param {Callback} callback function(status,message)  
+ * 
+ * @return {boolean, String} Returns Status and message response
+  */
 respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
     var msg = "";
     var status = false;

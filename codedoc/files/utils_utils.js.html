@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>FirewallModel - FWCloud API REST Documentation</title>
+    <title>utils/utils.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -83,45 +85,51 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1>FirewallModel Module</h1>
-<div class="box clearfix meta">
+<h1 class="file-heading">File: utils/utils.js</h1>
 
-        <div class="uses">
-            Requires
-            <ul class="inline commas">
-                    <li>db</li>
-            </ul>
-        </div>
+<div class="file">
+    <pre class="code prettyprint linenums">
+//create object
+var utilModel = {};
 
-        <div class="foundat">
-            Defined in: <a href="../files/models_firewall.js.html#l12"><code>models&#x2F;firewall.js:12</code></a>
-        </div>
-
-</div>
-
-
-<div class="box intro">
-    <p>Module to manage Firewalls data</p>
-
-</div>
+/**
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ * 
+ */
+var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
 
 
-<div class="yui3-g">
-    <div class="yui3-u-1-2">
-            <p>This module provides the following classes:</p>
+utilModel.checkParameters = function (obj, callback) {
+    for (var propt in obj) {
+        logger.debug(propt + &#x27;: &#x27; + obj[propt]);
+        if (obj[propt] === undefined) {
+            //logger.debug(&quot;PARAMETRO UNDEFINED: &quot; + propt);
+            obj[propt] = null;
+        }
+    }
+    callback(obj);
+};
 
-            <ul class="module-classes">
-                <li class="module-class">
-                    <a href="../classes/FirewallModel.html">
-                        FirewallModel
-                    </a>
-                </li>
-            </ul>
-    </div>
+utilModel.checkEmptyRow = function (obj, callback) {
+    var resp = true;
+    logger.debug(obj);
+    if (obj === null)
+        resp = false;
+    else if (obj === undefined)
+        resp = false;
+    else if (obj.length === 0)
+        resp = false;
+    logger.debug(resp);
+    callback(resp);
+};
 
 
-    <div class="yui3-u-1-2">
-    </div>
+//Export the object
+module.exports = utilModel;
+    </pre>
 </div>
                     </div>
                 </div>

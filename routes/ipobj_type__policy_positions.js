@@ -4,13 +4,7 @@ var Ipobj_type__policy_positionModel = require('../models/ipobj_type__policy_pos
 var api_resp = require('../utils/api_response');
 var objModel = 'IPOBJ TYPE - POSITION';
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 

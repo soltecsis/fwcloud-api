@@ -7,13 +7,7 @@ var IpobjModel = require('../models/ipobj');
 var api_resp = require('../utils/api_response');
 var objModel = 'IPOBJ GROUP';
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 /* get data para crear nuevos */

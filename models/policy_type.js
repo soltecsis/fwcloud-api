@@ -5,13 +5,7 @@ var db = require('../db.js');
 var policy_typeModel = {};
 var tableModel="policy_type";
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All policy_type

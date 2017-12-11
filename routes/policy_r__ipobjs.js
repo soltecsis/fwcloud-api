@@ -4,13 +4,7 @@ var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var api_resp = require('../utils/api_response');
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 var objModel = "Ipobj in Rule";
@@ -342,7 +336,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
 
     var content1 = 'O', content2 = 'O';
 
-    logger.debug("XXX POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+    logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
     //Get position type
     Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)

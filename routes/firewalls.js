@@ -1,19 +1,52 @@
-var express = require('express');
-var api_resp = require('../utils/api_response');
-var objModel = 'FIREWALL';
-
 /**
  * Module to routing Firewalls requests
  * <br>BASE ROUTE CALL: <b>/firewalls</b>
  *
- * @module FirewallRouter
+ * @module Firewall
  * 
- * @requires express
- * @requires FirewallModel
- * @requires log4js
  * 
  */
+
+/**
+ * Class to manage firewalls routing
+ * 
+ * 
+ * @class FirewallRouter
+ * 
+ */
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require('express');
+
+/**
+ * Property  to manage Firewall route
+ *
+ * @property router
+ * @type express.Router 
+ */
 var router = express.Router();
+
+/**
+ * Property Model to manage API RESPONSE data: {{#crossLinkModule "api_response"}}{{/crossLinkModule}}
+ *
+ * @property api_resp
+ * @type api_respModel
+ * 
+ */
+var api_resp = require('../utils/api_response');
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = 'FIREWALL';
 
 /**
  * Property Model to manage Firewall Data
@@ -21,39 +54,20 @@ var router = express.Router();
  * @property FirewallModel
  * @type /models/firewall
  * 
+ * 
  */
 var FirewallModel = require('../models/firewall');
 
 /**
  * Property Logger to manage App logs
  *
- * @property logger
+ * @attribute logger
  * @type log4js/app
  * 
  */
 var logger = require('log4js').getLogger("app");
 
-/**
- * Class to manage firewalls routing
- *
- * @class FirewallRouter
- * @uses FirewallModel
- * 
- */
 
-/**
- * Show form to add new Firewall
- * 
- * <br>ROUTE CALL:  /firewall
- *
- * @method showForm
- * 
- * @return {Boolean} Returns true on success
- */
-router.get('/firewall', function (req, res)
-{
-    res.render('new_firewall', {title: 'Crear nuevo firewall'});
-});
 
 
 /**

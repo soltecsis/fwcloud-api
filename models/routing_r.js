@@ -6,13 +6,7 @@ var routing_rModel = {};
 var tableModel = "routing_r";
 
 
-/**
-* Property Logger to manage App logs
-*
-* @property logger
-* @type log4js/app
-* 
-*/
+
 var logger = require('log4js').getLogger("app");
 
 //Get All routing_r by firewall and group

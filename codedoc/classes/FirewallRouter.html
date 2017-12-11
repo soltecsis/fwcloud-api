@@ -41,15 +41,17 @@
                                 <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
                                 <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
                                 <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
                                 <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../classes/respModel.html">respModel</a></li>
                             </ul>
                 
                 
                             <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../modules/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../modules/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../modules/IpobjsRouter.html">IpobjsRouter</a></li>
+                                <li><a href="../modules/api_response.html">api_response</a></li>
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
                             </ul>
                         </div>
                     </div>
@@ -85,19 +87,13 @@
                     <div class="content">
 <h1>FirewallRouter Class</h1>
 <div class="box meta">
-        <div class="uses">
-            Uses
-            <ul class="inline commas">
-                    <li><a href="FirewallModel.html">FirewallModel</a></li>
-            </ul>
-        </div>
 
 
         <div class="foundat">
-            Defined in: <a href="../files/routes_firewalls.js.html#l36"><code>routes&#x2F;firewalls.js:36</code></a>
+            Defined in: <a href="../files/routes_firewalls.js.html#l10"><code>routes&#x2F;firewalls.js:10</code></a>
         </div>
 
-            Module: <a href="../modules/FirewallRouter.html">FirewallRouter</a>
+            Module: <a href="../modules/Firewall.html">Firewall</a>
 
 </div>
 
@@ -114,6 +110,7 @@
 
             <li class="api-class-tab methods"><a href="#methods">Methods</a></li>
             <li class="api-class-tab properties"><a href="#properties">Properties</a></li>
+            <li class="api-class-tab attrs"><a href="#attrs">Attributes</a></li>
     </ul>
 
     <div>
@@ -125,27 +122,7 @@
 
                     <ul class="index-list methods">
                             <li class="index-item method">
-                                <a href="#method_AddFirewall">AddFirewall</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_deleteFirewall">deleteFirewall</a>
-
-                            </li>
-                            <li class="index-item method">
-                                <a href="#method_DeleteFirewall">DeleteFirewall</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_getFirewall">getFirewall</a>
-
-                            </li>
-                            <li class="index-item method">
                                 <a href="#method_getFirewallByUser">getFirewallByUser</a>
-
-                            </li>
-                            <li class="index-item method">
-                                <a href="#method_getFirewallByUser_and_Cluster">getFirewallByUser_and_Cluster</a>
 
                             </li>
                             <li class="index-item method">
@@ -153,43 +130,31 @@
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallByUser_and_ID_V2">getFirewallByUser_and_ID_V2</a>
-
-                            </li>
-                            <li class="index-item method">
                                 <a href="#method_getFirewallByUser_and_Name">getFirewallByUser_and_Name</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallByUser_and_Name_V2">getFirewallByUser_and_Name_V2</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_getFirewallCluster">getFirewallCluster</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_getFirewallName">getFirewallName</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_getFirewalls">getFirewalls</a>
-
-                            </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_insertFirewall">insertFirewall</a>
+                                <a href="#method_getFirewallByUser_and_Cluster">getFirewallByUser_and_Cluster</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_showForm">showForm</a>
+                                <a href="#method_AddFirewall">AddFirewall</a>
 
                             </li>
                             <li class="index-item method">
                                 <a href="#method_UpdateFirewall">UpdateFirewall</a>
 
                             </li>
-                            <li class="index-item method inherited">
-                                <a href="#method_updateFirewall">updateFirewall</a>
+                            <li class="index-item method">
+                                <a href="#method_getFirewallByUser_and_ID_V2">getFirewallByUser_and_ID_V2</a>
+
+                            </li>
+                            <li class="index-item method">
+                                <a href="#method_getFirewallByUser_and_Name_V2">getFirewallByUser_and_Name_V2</a>
+
+                            </li>
+                            <li class="index-item method">
+                                <a href="#method_DeleteFirewall">DeleteFirewall</a>
 
                             </li>
                     </ul>
@@ -200,30 +165,463 @@
 
                     <ul class="index-list properties">
                             <li class="index-item property">
-                                <a href="#property_FirewallModel">FirewallModel</a>
-
-                            </li>
-                            <li class="index-item property inherited">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_express">express</a>
 
                             </li>
                             <li class="index-item property">
-                                <a href="#property_logger">logger</a>
+                                <a href="#property_router">router</a>
 
                             </li>
-                            <li class="index-item property inherited">
-                                <a href="#property_tableModel">tableModel</a>
+                            <li class="index-item property">
+                                <a href="#property_api_resp">api_resp</a>
+
+                            </li>
+                            <li class="index-item property">
+                                <a href="#property_objModel">objModel</a>
+
+                            </li>
+                            <li class="index-item property">
+                                <a href="#property_FirewallModel">FirewallModel</a>
 
                             </li>
                     </ul>
                 </div>
 
+                <div class="index-section attrs">
+                    <h3>Attributes</h3>
+
+                    <ul class="index-list attrs">
+                            <li class="index-item attr">
+                                <a href="#attr_logger">logger</a>
+                            </li>
+                    </ul>
+                </div>
 
         </div>
 
             <div id="methods" class="api-class-tabpanel">
                 <h2 class="off-left">Methods</h2>
 
+<div id="method_getFirewallByUser" class="method item">
+    <h3 class="name"><code>getFirewallByUser</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l73"><code>routes&#x2F;firewalls.js:73</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Firewalls by User</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/firewalls/:iduser</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns <code>JSON</code> Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+        <div class="example">
+            <h4>Example:</h4>
+
+            <div class="example-content">
+                <h4>JSON RESPONSE</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     {  //Data Firewall 1       
+      &quot;id&quot; : ,            //Firewall Identifier
+      &quot;cluster&quot; : ,       //Cluster
+      &quot;fwcloud&quot; : ,       //Id Firewall cloud
+      &quot;name&quot; : ,          //Firewall name
+      &quot;comment&quot; : ,       //comment
+      &quot;created_at&quot; : ,    //Date Created
+      &quot;updated_at&quot; : ,    //Date Updated
+      &quot;by_user&quot; : ,       //User last update
+      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+     },
+     {....}, //Data Firewall 2
+     {....}  //Data Firewall ...n 
+    ]
+  };
+</code></pre>
+
+            </div>
+        </div>
+</div>
+<div id="method_getFirewallByUser_and_Id" class="method item">
+    <h3 class="name"><code>getFirewallByUser_and_Id</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>id</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l128"><code>routes&#x2F;firewalls.js:128</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Firewalls by User and ID</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/firewalls/:iduser/:id</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">id</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>firewall identifier</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns <code>JSON</code> Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+        <div class="example">
+            <h4>Example:</h4>
+
+            <div class="example-content">
+                <h4>JSON RESPONSE</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     {  //Data Firewall        
+      &quot;id&quot; : ,            //Firewall Identifier
+      &quot;cluster&quot; : ,       //Cluster
+      &quot;fwcloud&quot; : ,       //Id Firewall cloud
+      &quot;name&quot; : ,          //Firewall name
+      &quot;comment&quot; : ,       //comment
+      &quot;created_at&quot; : ,    //Date Created
+      &quot;updated_at&quot; : ,    //Date Updated
+      &quot;by_user&quot; : ,       //User last update
+      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+     }
+    ]
+  };
+</code></pre>
+
+            </div>
+        </div>
+</div>
+<div id="method_getFirewallByUser_and_Name" class="method item">
+    <h3 class="name"><code>getFirewallByUser_and_Name</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>name</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l184"><code>routes&#x2F;firewalls.js:184</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Firewalls by User and Name</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/firewalls/:iduser/fwname/:name</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">name</code>
+                        <span class="type">String</span>
+
+
+                    <div class="param-description">
+                        <p>firewall name</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns <code>JSON</code> Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+        <div class="example">
+            <h4>Example:</h4>
+
+            <div class="example-content">
+                <h4>JSON RESPONSE</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     {  //Data Firewall 1       
+      &quot;id&quot; : ,            //Firewall Identifier
+      &quot;cluster&quot; : ,       //Cluster
+      &quot;fwcloud&quot; : ,       //Id Firewall cloud
+      &quot;name&quot; : ,          //Firewall name
+      &quot;comment&quot; : ,       //comment
+      &quot;created_at&quot; : ,    //Date Created
+      &quot;updated_at&quot; : ,    //Date Updated
+      &quot;by_user&quot; : ,       //User last update
+      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+     },
+     {....}, //Data Firewall 2
+     {....}  //Data Firewall ...n 
+    ]
+  };
+</code></pre>
+
+            </div>
+        </div>
+</div>
+<div id="method_getFirewallByUser_and_Cluster" class="method item">
+    <h3 class="name"><code>getFirewallByUser_and_Cluster</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>idcluster</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l242"><code>routes&#x2F;firewalls.js:242</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Firewalls by Cluster</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/firewalls/:iduser/cluster/:idcluster</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">idcluster</code>
+                        <span class="type">Number</span>
+
+
+                    <div class="param-description">
+                        <p>Cluster identifier</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns <code>JSON</code> Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+        <div class="example">
+            <h4>Example:</h4>
+
+            <div class="example-content">
+                <h4>JSON RESPONSE</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     {  //Data Firewall 1       
+      &quot;id&quot; : ,            //Firewall Identifier
+      &quot;cluster&quot; : ,       //Cluster
+      &quot;fwcloud&quot; : ,       //Id Firewall cloud
+      &quot;name&quot; : ,          //Firewall name
+      &quot;comment&quot; : ,       //comment
+      &quot;created_at&quot; : ,    //Date Created
+      &quot;updated_at&quot; : ,    //Date Updated
+      &quot;by_user&quot; : ,       //User last update
+      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
+     },
+     {....}, //Data Firewall 2
+     {....}  //Data Firewall ...n 
+    ]
+  };
+</code></pre>
+
+            </div>
+        </div>
+</div>
 <div id="method_AddFirewall" class="method item">
     <h3 class="name"><code>AddFirewall</code></h3>
 
@@ -260,7 +658,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l287"><code>routes&#x2F;firewalls.js:287</code></a>
+        <a href="../files/routes_firewalls.js.html#l301"><code>routes&#x2F;firewalls.js:301</code></a>
         </p>
 
 
@@ -373,1396 +771,6 @@ METHOD:  <strong>POST</strong></p>
             </div>
         </div>
 </div>
-<div id="method_deleteFirewall" class="method item inherited">
-    <h3 class="name"><code>deleteFirewall</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>id</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">CALLBACK RESPONSE</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_deleteFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l302"><code>models&#x2F;firewall.js:302</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>DELETE Firewall</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">CALLBACK RESPONSE</span>:
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
-</code></pre>
-<h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: false});
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_DeleteFirewall" class="method item">
-    <h3 class="name"><code>DeleteFirewall</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>id</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l512"><code>routes&#x2F;firewalls.js:512</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>DELETE firewall</p>
-<blockquote>
-<p>ROUTE CALL:  <strong>/firewalls/firewall</strong><br>
-METHOD:  <strong>DELETE</strong></p>
-</blockquote>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall identifier</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns Json result</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     { 
-      &quot;msg : &quot;success&quot;,   //result
-     }
-    ]
-  };
-</code></pre>
-<h4>JSON RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     { 
-      &quot;msg : ERROR,   //Text Error
-     }
-    ]
-  };</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_getFirewall" class="method item inherited">
-    <h3 class="name"><code>getFirewall</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>id</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">Firewall object</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_getFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l83"><code>models&#x2F;firewall.js:83</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and ID</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>firewall identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">Firewall object</span>:
-                    <p>Returns <code>OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)
-      id_fwb    varchar(45)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallByUser" class="method item">
-    <h3 class="name"><code>getFirewallByUser</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l59"><code>routes&#x2F;firewalls.js:59</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User</p>
-<blockquote>
-<p>ROUTE CALL:  <strong>/firewalls/:iduser</strong><br>
-METHOD:  <strong>GET</strong></p>
-</blockquote>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns <code>JSON</code> Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     {  //Data Firewall 1       
-      &quot;id&quot; : ,            //Firewall Identifier
-      &quot;cluster&quot; : ,       //Cluster
-      &quot;fwcloud&quot; : ,       //Id Firewall cloud
-      &quot;name&quot; : ,          //Firewall name
-      &quot;comment&quot; : ,       //comment
-      &quot;created_at&quot; : ,    //Date Created
-      &quot;updated_at&quot; : ,    //Date Updated
-      &quot;by_user&quot; : ,       //User last update
-      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-     },
-     {....}, //Data Firewall 2
-     {....}  //Data Firewall ...n 
-    ]
-  };
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_getFirewallByUser_and_Cluster" class="method item">
-    <h3 class="name"><code>getFirewallByUser_and_Cluster</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idcluster</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l228"><code>routes&#x2F;firewalls.js:228</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by Cluster</p>
-<blockquote>
-<p>ROUTE CALL:  <strong>/firewalls/:iduser/cluster/:idcluster</strong><br>
-METHOD:  <strong>GET</strong></p>
-</blockquote>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idcluster</code>
-                        <span class="type">Number</span>
-
-
-                    <div class="param-description">
-                        <p>Cluster identifier</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns <code>JSON</code> Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     {  //Data Firewall 1       
-      &quot;id&quot; : ,            //Firewall Identifier
-      &quot;cluster&quot; : ,       //Cluster
-      &quot;fwcloud&quot; : ,       //Id Firewall cloud
-      &quot;name&quot; : ,          //Firewall name
-      &quot;comment&quot; : ,       //comment
-      &quot;created_at&quot; : ,    //Date Created
-      &quot;updated_at&quot; : ,    //Date Updated
-      &quot;by_user&quot; : ,       //User last update
-      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-     },
-     {....}, //Data Firewall 2
-     {....}  //Data Firewall ...n 
-    ]
-  };
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_getFirewallByUser_and_Id" class="method item">
-    <h3 class="name"><code>getFirewallByUser_and_Id</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>id</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l114"><code>routes&#x2F;firewalls.js:114</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and ID</p>
-<blockquote>
-<p>ROUTE CALL:  <strong>/firewalls/:iduser/:id</strong><br>
-METHOD:  <strong>GET</strong></p>
-</blockquote>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>firewall identifier</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns <code>JSON</code> Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     {  //Data Firewall        
-      &quot;id&quot; : ,            //Firewall Identifier
-      &quot;cluster&quot; : ,       //Cluster
-      &quot;fwcloud&quot; : ,       //Id Firewall cloud
-      &quot;name&quot; : ,          //Firewall name
-      &quot;comment&quot; : ,       //comment
-      &quot;created_at&quot; : ,    //Date Created
-      &quot;updated_at&quot; : ,    //Date Updated
-      &quot;by_user&quot; : ,       //User last update
-      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-     }
-    ]
-  };
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_getFirewallByUser_and_ID_V2" class="method item">
-    <h3 class="name"><code>getFirewallByUser_and_ID_V2</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>id</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l413"><code>routes&#x2F;firewalls.js:413</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by ID and User</p>
-<p><br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>
-<br>METHOD: <b>GET</b></p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall identifier</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns Json Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallByUser_and_Name" class="method item">
-    <h3 class="name"><code>getFirewallByUser_and_Name</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>name</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l170"><code>routes&#x2F;firewalls.js:170</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Name</p>
-<blockquote>
-<p>ROUTE CALL:  <strong>/firewalls/:iduser/fwname/:name</strong><br>
-METHOD:  <strong>GET</strong></p>
-</blockquote>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">name</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>firewall name</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns <code>JSON</code> Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE</h4>
-<pre class="code prettyprint"><code>  {&quot;data&quot; : [
-     {  //Data Firewall 1       
-      &quot;id&quot; : ,            //Firewall Identifier
-      &quot;cluster&quot; : ,       //Cluster
-      &quot;fwcloud&quot; : ,       //Id Firewall cloud
-      &quot;name&quot; : ,          //Firewall name
-      &quot;comment&quot; : ,       //comment
-      &quot;created_at&quot; : ,    //Date Created
-      &quot;updated_at&quot; : ,    //Date Updated
-      &quot;by_user&quot; : ,       //User last update
-      &quot;id_fwb&quot; :          //ID firewall in FWbuilder
-     },
-     {....}, //Data Firewall 2
-     {....}  //Data Firewall ...n 
-    ]
-  };
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_getFirewallByUser_and_Name_V2" class="method item">
-    <h3 class="name"><code>getFirewallByUser_and_Name_V2</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>name</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l462"><code>routes&#x2F;firewalls.js:462</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by Name and User</p>
-<p><br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>
-<br>METHOD: <b>GET</b></p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">name</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall Name</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns Json Data from Firewall</p>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallCluster" class="method item inherited">
-    <h3 class="name"><code>getFirewallCluster</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idcluster</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_getFirewallCluster">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l163"><code>models&#x2F;firewall.js:163</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Cluster</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idcluster</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Cluster identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)
-      id_fwb    varchar(45)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallName" class="method item inherited">
-    <h3 class="name"><code>getFirewallName</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>Name</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_getFirewallName">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l122"><code>models&#x2F;firewall.js:122</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Name</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">Name</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall Name</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)
-      id_fwb    varchar(45)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewalls" class="method item inherited">
-    <h3 class="name"><code>getFirewalls</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_getFirewalls">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l41"><code>models&#x2F;firewall.js:41</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)
-      id_fwb    varchar(45)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_insertFirewall" class="method item inherited">
-    <h3 class="name"><code>insertFirewall</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>firewallData</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">CALLBACK RESPONSE</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_insertFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l204"><code>models&#x2F;firewall.js:204</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>ADD New Firewall</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
-
-
-                    <div class="param-description">
-                        <p>Firewall Object data</p>
-
-                    </div>
-
-                        <ul class="params-list">
-                            <li class="param">
-                                    <code class="param-name">id</code>
-                                    <span class="type">NULL</span>
-
-                                <div class="param-description">
-                                    
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">cluster</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>Cluster ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">fwcloud</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>FWcloud ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">name</code>
-                                    <span class="type">String</span>
-
-                                <div class="param-description">
-                                    <p>Firewall Name</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name optional">[comment]</code>
-                                    <span class="type">String</span>
-                                    <span class="flag optional" title="This parameter is optional.">optional</span>
-
-                                <div class="param-description">
-                                    <p>comment text</p>
-
-                                </div>
-
-                            </li>
-                        </ul>
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">CALLBACK RESPONSE</span>:
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;insertId&quot;: fwid});
-</code></pre>
-<h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(error, null);
-</code></pre>
-
-            </div>
-        </div>
-</div>
-<div id="method_showForm" class="method item">
-    <h3 class="name"><code>showForm</code></h3>
-
-        <span class="paren">()</span>
-
-        <span class="returns-inline">
-            <span class="type">Boolean</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/routes_firewalls.js.html#l44"><code>routes&#x2F;firewalls.js:44</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Show form to add new Firewall</p>
-<p><br>ROUTE CALL:  /firewall</p>
-
-    </div>
-
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">Boolean</span>:
-                    <p>Returns true on success</p>
-
-            </div>
-        </div>
-
-
-</div>
 <div id="method_UpdateFirewall" class="method item">
     <h3 class="name"><code>UpdateFirewall</code></h3>
 
@@ -1799,7 +807,7 @@ METHOD:  <strong>GET</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l352"><code>routes&#x2F;firewalls.js:352</code></a>
+        <a href="../files/routes_firewalls.js.html#l366"><code>routes&#x2F;firewalls.js:366</code></a>
         </p>
 
 
@@ -1911,8 +919,8 @@ METHOD:  <strong>PUT</strong></p>
             </div>
         </div>
 </div>
-<div id="method_updateFirewall" class="method item inherited">
-    <h3 class="name"><code>updateFirewall</code></h3>
+<div id="method_getFirewallByUser_and_ID_V2" class="method item">
+    <h3 class="name"><code>getFirewallByUser_and_ID_V2</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -1920,16 +928,13 @@ METHOD:  <strong>PUT</strong></p>
                         <code>iduser</code>
                 </li>
                 <li class="arg">
-                        <code>firewallData</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
+                        <code>id</code>
                 </li>
             </ul><span class="paren">)</span>
         </div>
 
         <span class="returns-inline">
-            <span class="type">CALLBACK RESPONSE</span>
+            <span class="type">JSON</span>
         </span>
 
 
@@ -1939,9 +944,9 @@ METHOD:  <strong>PUT</strong></p>
 
 
     <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#method_updateFirewall">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l254"><code>models&#x2F;firewall.js:254</code></a>
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l427"><code>routes&#x2F;firewalls.js:427</code></a>
         </p>
 
 
@@ -1949,7 +954,9 @@ METHOD:  <strong>PUT</strong></p>
     </div>
 
     <div class="description">
-        <p>UPDATE Firewall</p>
+        <p>Get Firewalls by ID and User</p>
+<p><br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>
+<br>METHOD: <b>GET</b></p>
 
     </div>
 
@@ -1969,76 +976,12 @@ METHOD:  <strong>PUT</strong></p>
 
                 </li>
                 <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
+                        <code class="param-name">id</code>
+                        <span class="type">Integer</span>
 
 
                     <div class="param-description">
-                        <p>Firewall Object data</p>
-
-                    </div>
-
-                        <ul class="params-list">
-                            <li class="param">
-                                    <code class="param-name">id</code>
-                                    <span class="type">NULL</span>
-
-                                <div class="param-description">
-                                    
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">cluster</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>Cluster ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">fwcloud</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>FWcloud ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">name</code>
-                                    <span class="type">String</span>
-
-                                <div class="param-description">
-                                    <p>Firewall Name</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name optional">[comment]</code>
-                                    <span class="type">String</span>
-                                    <span class="flag optional" title="This parameter is optional.">optional</span>
-
-                                <div class="param-description">
-                                    <p>comment text</p>
-
-                                </div>
-
-                            </li>
-                        </ul>
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
+                        <p>Firewall identifier</p>
 
                     </div>
 
@@ -2050,7 +993,161 @@ METHOD:  <strong>PUT</strong></p>
             <h4>Returns:</h4>
 
             <div class="returns-description">
-                        <span class="type">CALLBACK RESPONSE</span>:
+                        <span class="type">JSON</span>:
+                    <p>Returns Json Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+</div>
+<div id="method_getFirewallByUser_and_Name_V2" class="method item">
+    <h3 class="name"><code>getFirewallByUser_and_Name_V2</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>name</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l476"><code>routes&#x2F;firewalls.js:476</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Firewalls by Name and User</p>
+<p><br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>
+<br>METHOD: <b>GET</b></p>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">name</code>
+                        <span class="type">String</span>
+
+
+                    <div class="param-description">
+                        <p>Firewall Name</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns Json Data from Firewall</p>
+
+            </div>
+        </div>
+
+
+</div>
+<div id="method_DeleteFirewall" class="method item">
+    <h3 class="name"><code>DeleteFirewall</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>id</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">JSON</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l526"><code>routes&#x2F;firewalls.js:526</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>DELETE firewall</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/firewalls/firewall</strong><br>
+METHOD:  <strong>DELETE</strong></p>
+</blockquote>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">id</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>Firewall identifier</p>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">JSON</span>:
+                    <p>Returns Json result</p>
+
             </div>
         </div>
 
@@ -2059,12 +1156,21 @@ METHOD:  <strong>PUT</strong></p>
             <h4>Example:</h4>
 
             <div class="example-content">
-                <h4>RESPONSE OK:</h4>
-<pre class="code prettyprint"><code>  callback(null, {&quot;result&quot;: true});
+                <h4>JSON RESPONSE OK:</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     { 
+      &quot;msg : &quot;success&quot;,   //result
+     }
+    ]
+  };
 </code></pre>
-<h4>RESPONSE ERROR:</h4>
-<pre class="code prettyprint"><code>  callback(error, null);
-</code></pre>
+<h4>JSON RESPONSE ERROR:</h4>
+<pre class="code prettyprint"><code>  {&quot;data&quot; : [
+     { 
+      &quot;msg : ERROR,   //Text Error
+     }
+    ]
+  };</code></pre>
 
             </div>
         </div>
@@ -2074,9 +1180,9 @@ METHOD:  <strong>PUT</strong></p>
             <div id="properties" class="api-class-tabpanel">
                 <h2 class="off-left">Properties</h2>
 
-<div id="property_FirewallModel" class="property item">
-    <h3 class="name"><code>FirewallModel</code></h3>
-    <span class="type">/models/firewall</span>
+<div id="property_express" class="property item">
+    <h3 class="name"><code>express</code></h3>
+    <span class="type">Express</span>
 
 
 
@@ -2092,44 +1198,16 @@ METHOD:  <strong>PUT</strong></p>
     </div>
 
     <div class="description">
-        <p>Property Model to manage Firewall Data</p>
+        <p>Property  to manage express</p>
 
     </div>
 
 
 
 </div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
-
-
-
-
-
-    <div class="meta">
-            <p>Inherited from
-            <a href="../classes/FirewallModel.html#property_logger">
-                FirewallModel
-            </a>
-            but overwritten in
-        <a href="../files/routes_customers.js.html#l7"><code>routes&#x2F;customers.js:7</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Logger to manage App logs</p>
-
-    </div>
-
-
-
-</div>
-<div id="property_logger" class="property item">
-    <h3 class="name"><code>logger</code></h3>
-    <span class="type">Log4js/app</span>
+<div id="property_router" class="property item">
+    <h3 class="name"><code>router</code></h3>
+    <span class="type">express.Router</span>
 
 
 
@@ -2138,39 +1216,89 @@ METHOD:  <strong>PUT</strong></p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/routes_firewalls.js.html#l27"><code>routes&#x2F;firewalls.js:27</code></a>
+        <a href="../files/routes_firewalls.js.html#l26"><code>routes&#x2F;firewalls.js:26</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Logger to manage App logs</p>
+        <p>Property  to manage Firewall route</p>
 
     </div>
 
 
 
 </div>
-<div id="property_tableModel" class="property item inherited">
-    <h3 class="name"><code>tableModel</code></h3>
-    <span class="type">"firewall"</span>
+<div id="property_api_resp" class="property item">
+    <h3 class="name"><code>api_resp</code></h3>
+    <span class="type">Api_respModel</span>
 
 
 
 
 
     <div class="meta">
-                <p>Inherited from
-                <a href="../classes/FirewallModel.html#property_tableModel">FirewallModel</a>:
-        <a href="../files/models_firewall.js.html#l21"><code>models&#x2F;firewall.js:21</code></a>
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l34"><code>routes&#x2F;firewalls.js:34</code></a>
         </p>
 
 
     </div>
 
     <div class="description">
-        <p>Property Table</p>
+        <p>Property Model to manage API RESPONSE data: <a href="../modules/api_response.html">api_response</a></p>
+
+    </div>
+
+
+
+</div>
+<div id="property_objModel" class="property item">
+    <h3 class="name"><code>objModel</code></h3>
+    <span class="type">Text</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l43"><code>routes&#x2F;firewalls.js:43</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property to identify Data Object</p>
+
+    </div>
+
+
+
+</div>
+<div id="property_FirewallModel" class="property item">
+    <h3 class="name"><code>FirewallModel</code></h3>
+    <span class="type">/models/firewall</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/routes_firewalls.js.html#l51"><code>routes&#x2F;firewalls.js:51</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Property Model to manage Firewall Data</p>
 
     </div>
 
@@ -2179,6 +1307,39 @@ METHOD:  <strong>PUT</strong></p>
 </div>
             </div>
 
+            <div id="attrs" class="api-class-tabpanel">
+                <h2 class="off-left">Attributes</h2>
+
+                    <div id="attr_logger" class="attr item">
+                        <a name="config_logger"></a> 
+                        <h3 class="name"><code>logger</code></h3>
+                        <span class="type">Log4js/app</span>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                        <div class="meta">
+                                    <p>
+                                    Defined in
+                            <a href="../files/routes_firewalls.js.html#l61"><code>routes&#x2F;firewalls.js:61</code></a>
+                            </p>
+                    
+                    
+                        </div>
+                    
+                        <div class="description">
+                            <p>Property Logger to manage App logs</p>
+                    
+                        </div>
+                    
+                    
+                    
+                    </div>
+            </div>
 
     </div>
 </div>

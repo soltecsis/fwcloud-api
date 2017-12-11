@@ -5,13 +5,6 @@ var async = require('async');
 var policy_r__ipobjModel = {};
 var tableModel = "policy_r__ipobj";
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
 var logger = require('log4js').getLogger("app");
 
 

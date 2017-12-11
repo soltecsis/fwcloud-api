@@ -5,13 +5,7 @@ var async = require('async');
 var policy_r__interfaceModel = {};
 var tableModel = "policy_r__interface";
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
+
 var logger = require('log4js').getLogger("app");
 
 //Get All policy_r__interface by policy_r

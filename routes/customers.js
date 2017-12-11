@@ -4,14 +4,7 @@ var CustomerModel = require('../models/customers');
 var api_resp = require('../utils/api_response');
 var objModel = 'CUSTOMER';
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
+
 
 /* Get all customers */
 router.get('/', function (req, res)
