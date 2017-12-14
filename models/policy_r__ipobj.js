@@ -1,5 +1,5 @@
 var db = require('../db.js');
-var async = require('async');
+var asyncMod = require('async');
 
 //create object
 var policy_r__ipobjModel = {};
@@ -156,6 +156,34 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
     });
 
 };
+
+//Duplicate policy_r__ipobj RULES
+policy_r__ipobjModel.duplicatePolicy_r__ipobj = function (rule, new_rule, callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'INSERT INTO  ' + tableModel + ' (rule, ipobj, ipobj_g, interface, position, position_order, negate) ' +
+                '(SELECT ' + connection.escape(new_rule) + ', ipobj, ipobj_g, interface, position, position_order, negate ' +
+                'from ' + tableModel + ' where rule=' +  connection.escape(rule) + ' order by  position, position_order)';
+
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.debug(error);
+                logger.debug(sql);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {                    
+                    callback(null, {"result": true});
+                } else {
+                    callback(null, {"result": false});
+                }
+            }
+        });
+    });
+};
+
 
 //Update policy_r__ipobj
 policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, interface, position, position_order, policy_r__ipobjData, callback) {
@@ -549,7 +577,7 @@ policy_r__ipobjModel.orderPolicyPosition = function (rule, position, callback) {
         connection.query(sqlPos, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     order++;
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
@@ -592,7 +620,7 @@ policy_r__ipobjModel.orderPolicy = function (rule, callback) {
             if (rows.length > 0) {
                 var order = 0;
                 var prev_position = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     var position = row.position;
                     if (position !== prev_position) {
                         order = 1;
@@ -642,7 +670,7 @@ policy_r__ipobjModel.orderAllPolicy = function (callback) {
                 var order = 0;
                 var prev_rule = 0;
                 var prev_position = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     var position = row.position;
                     var rule = row.rule;
                     if (position !== prev_position || rule !== prev_rule) {
@@ -1390,7 +1418,6 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
         });
     });
 };
-
 
 //Export the object
 module.exports = policy_r__ipobjModel;

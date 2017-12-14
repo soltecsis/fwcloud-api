@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var util = require('util');
-var async = require('async');
+var asyncMod = require('async');
 var IpobjModel = require('../models/ipobj');
 var InterfaceModel = require('../models/interface');
 var Interface__ipobjModel = require('../models/interface__ipobj');
@@ -92,7 +92,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.Firewall,
+                    asyncMod.forEach(rows.Firewall,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo FIREWALL :" + i + " - " + row.$.name);
@@ -107,7 +107,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                         //ObjectGroup - Interface
                                         try {
                                             var i = 0;
-                                            async.forEach(row.Interface,
+                                            asyncMod.forEach(row.Interface,
                                                     function (rowI, callback) {
                                                         i++;
                                                         logger.debug("Añadiendo OBJETO Interface:" + i + " - " + rowI.$.name);
@@ -118,7 +118,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                                 logger.debug("Añadido Interface con ID: " + data.insertId);
                                                                 var idinterface = data.insertId;
                                                                 //Añadimos OBJECTS IP de Interface
-                                                                async.forEach(rowI.IPv4,
+                                                                asyncMod.forEach(rowI.IPv4,
                                                                         function (rowIP, callback) {
                                                                             logger.debug("Añadiendo OBJETO Address:" + rowIP.$.name);
                                                                             AddIpobjectAddress(rowIP.$, 5, 'IPv4', idinterface, fwcloud);
@@ -138,7 +138,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                         try {
                                             var n = 0;
                                             var NATGroup = row.NAT[0];
-                                            async.forEach(NATGroup.NATRule,
+                                            asyncMod.forEach(NATGroup.NATRule,
                                                     function (rowNR, callback1) {
                                                         n++;
                                                         logger.debug("Añadiendo NAT RULE:" + n + " - " + rowNR.$.id);
@@ -174,7 +174,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                         try {
                                             var n = 0;
                                             var PolicyGroup = row.Policy[0];
-                                            async.forEach(PolicyGroup.PolicyRule,
+                                            asyncMod.forEach(PolicyGroup.PolicyRule,
                                                     function (rowPR, callback2) {
                                                         n++;
                                                         var rule_type = '';
@@ -368,7 +368,7 @@ function AddPolicyObj(idPolicy, row, position, typeObj)
         objRef = obj.ServiceRef;
 
 
-    async.forEach(objRef,
+    asyncMod.forEach(objRef,
             function (rowRef, callback) {
                 n++;
                 var ref = rowRef.$.ref;
@@ -419,7 +419,7 @@ function AddPolicyInterface(idfirewall, idPolicy, row, position)
     var objRef = obj.ObjectRef;
 
 
-    async.forEach(objRef,
+    asyncMod.forEach(objRef,
             function (rowRef, callback) {
                 n++;
                 var ref = rowRef.$.ref;
@@ -546,7 +546,7 @@ router.get('/importobj/:library', function (req, res)
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.IPv4,
+                    asyncMod.forEach(rows.IPv4,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO Address:" + i + " - " + row.$.name);
@@ -566,7 +566,7 @@ router.get('/importobj/:library', function (req, res)
                         rows = row;
                     });
                     var i = 0;
-                    async.forEach(rows.AddressRange,
+                    asyncMod.forEach(rows.AddressRange,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO Address Range:" + i + " - " + row.$.name);
@@ -587,7 +587,7 @@ router.get('/importobj/:library', function (req, res)
                         rows = row;
                     });
                     var i = 0;
-                    async.forEach(rows.Network,
+                    asyncMod.forEach(rows.Network,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO Network:" + i + " - " + row.$.name);
@@ -597,7 +597,7 @@ router.get('/importobj/:library', function (req, res)
 
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[5].NetworkIPv6;
                     var i = 0;
-                    async.forEach(rows.NetworkIPv6,
+                    asyncMod.forEach(rows.NetworkIPv6,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO NetworkIPV6:" + i + " - " + row.$.name);
@@ -618,7 +618,7 @@ router.get('/importobj/:library', function (req, res)
                         rows = row;
                     });
                     var i = 0;
-                    async.forEach(rows.Host,
+                    asyncMod.forEach(rows.Host,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO HOST:" + i + " - " + row.$.name);
@@ -673,7 +673,7 @@ router.get('/importobj/:library', function (req, res)
                         rows = row;
                     });
                     var i = 0;
-                    async.forEach(rows.ObjectGroup,
+                    asyncMod.forEach(rows.ObjectGroup,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo OBJETO GROUP:" + i + " - " + row.$.name);
@@ -684,7 +684,7 @@ router.get('/importobj/:library', function (req, res)
                                         logger.debug("Añadido GROUP con ID: " + data.insertId);
                                         var idgroup = data.insertId;
                                         var rowsR = row.ObjectRef;
-                                        async.forEach(rowsR,
+                                        asyncMod.forEach(rowsR,
                                                 function (rowR, callback) {
                                                     logger.debug("Añadiendo OBJETO de Grupo :" + idgroup + "   objref: " + rowR.$.ref);
                                                     AddGroupObj(idgroup, rowR.$.ref);
@@ -719,7 +719,7 @@ router.get('/importobj/:library', function (req, res)
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.IPService,
+                    asyncMod.forEach(rows.IPService,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo SERVICE IP:" + i + " - " + row.$.name);
@@ -739,7 +739,7 @@ router.get('/importobj/:library', function (req, res)
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.TCPService,
+                    asyncMod.forEach(rows.TCPService,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo SERVICE TCP:" + i + " - " + row.$.name);
@@ -759,7 +759,7 @@ router.get('/importobj/:library', function (req, res)
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.UDPService,
+                    asyncMod.forEach(rows.UDPService,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo SERVICE UDP:" + i + " - " + row.$.name);
@@ -779,7 +779,7 @@ router.get('/importobj/:library', function (req, res)
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
                     var i = 0;
-                    async.forEach(rows.ICMPService,
+                    asyncMod.forEach(rows.ICMPService,
                             function (row, callback) {
                                 i++;
                                 logger.debug("Añadiendo SERVICE ICMP:" + i + " - " + row.$.name);
@@ -802,7 +802,7 @@ router.get('/importobj/:library', function (req, res)
 function SearchNodeSync(rows, searchname, callback) {
     logger.debug("DENTRO de SEARCHNODE");
     //Buscamos Grupo
-    async.forEach(rows,
+    asyncMod.forEach(rows,
             function (row, foundcall) {
                 logger.debug("ESTAMOS en GRUPO: " + row.$.name);
                 if (row.$.name === searchname) {

@@ -3,345 +3,157 @@
 <head>
     <meta charset="utf-8">
     <title>respModel - FWCloud API REST Documentation</title>
-    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.8.0pr2/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
-    <link rel="icon" href="../assets/favicon.ico">
-    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+    <script src="http://yui.yahooapis.com/combo?3.8.0pr2/build/yui/yui-min.js"></script>
 </head>
 <body class="yui3-skin-sam">
 
 <div id="doc">
     <div id="hd" class="yui3-g header">
         <div class="yui3-u-3-4">
-                <h1><img src="http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png" title="FWCloud API REST Documentation"></h1>
+            <h1><a href="../index.html"><img src="../assets/css/logo.png" width="117" height="52">FWCloud API REST Documentation: respModel</a></h1>
         </div>
         <div class="yui3-u-1-4 version">
             <em>API Docs for: 1.0.0</em>
         </div>
     </div>
-    <div id="bd" class="yui3-g">
+    <div class="yui3-g">
 
-        <div class="yui3-u-1-4">
-            <div id="docs-sidebar" class="sidebar apidocs">
-                <div id="api-list">
-                    <h2 class="off-left">APIs</h2>
-                    <div id="api-tabview" class="tabview">
-                        <ul class="tabs">
-                            <li><a href="#api-classes">Classes</a></li>
-                            <li><a href="#api-modules">Modules</a></li>
-                        </ul>
-                
-                        <div id="api-tabview-filter">
-                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
-                        </div>
-                
-                        <div id="api-tabview-panel">
-                            <ul id="api-classes" class="apis classes">
-                                <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
-                                <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
-                                <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
-                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
-                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
-                                <li><a href="../classes/respModel.html">respModel</a></li>
-                            </ul>
-                
-                
-                            <ul id="api-modules" class="apis modules">
-                                <li><a href="../modules/api_response.html">api_response</a></li>
-                                <li><a href="../modules/Cluster.html">Cluster</a></li>
-                                <li><a href="../modules/Firewall.html">Firewall</a></li>
-                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
-                            </ul>
-                        </div>
-                    </div>
+        <div id="sidebar" class="yui3-u">
+            <div id="modules" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Modules</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="../modules/api_response.html">api_response</a>
+                            </li>
+                            <li><a href="../modules/Cluster.html">Cluster</a>
+                            </li>
+                            <li><a href="../modules/Firewall.html">Firewall</a>
+                            </li>
+                            <li><a href="../modules/Ipobjs.html">Ipobjs</a>
+                            </li>
+                    </ul>
                 </div>
             </div>
-        </div>
-        <div class="yui3-u-3-4">
-                <div id="api-options">
-                    Show:
-                    <label for="api-show-inherited">
-                        <input type="checkbox" id="api-show-inherited" checked>
-                        Inherited
-                    </label>
             
-                    <label for="api-show-protected">
-                        <input type="checkbox" id="api-show-protected">
-                        Protected
-                    </label>
-            
-                    <label for="api-show-private">
-                        <input type="checkbox" id="api-show-private">
-                        Private
-                    </label>
-                    <label for="api-show-deprecated">
-                        <input type="checkbox" id="api-show-deprecated">
-                        Deprecated
-                    </label>
-            
+            <div id="classes" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Classes</h2>
                 </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
+                            <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
+                            <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                            <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
+                            <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                            <li><a href="../classes/respModel.html">respModel</a></li>
+                    </ul>
+                </div>
+            </div>
             
-            <div class="apidocs">
-                <div id="docs-main">
-                    <div class="content">
-<h1>respModel Class</h1>
-<div class="box meta">
-
-
-        <div class="foundat">
-            Defined in: <a href="../files/utils_api_response.js.html#l10"><code>utils&#x2F;api_response.js:10</code></a>
+            <div id="elements" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Elements</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="methods-on-page" class="sidebox on-page">
+                <div class="hd">
+                    <h2 class="no-toc">Methods On Page</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="#methods_getJson">getJson</a></li>
+                            <li><a href="#methods_getMsgCodeResp">getMsgCodeResp</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+            
+            
+            <div id="fileTree" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Files</h2>
+                </div>
+                <div class="bd">
+                    <ul><li>models/<ul><li><a href="../files/models_firewall.js.html">firewall.js</a></li><li><a href="../files/models_ipobj.js.html">ipobj.js</a></li></ul></li><li>routes/<ul><li><a href="../files/routes_clusters.js.html">clusters.js</a></li><li><a href="../files/routes_firewalls.js.html">firewalls.js</a></li><li><a href="../files/routes_ipobjs.js.html">ipobjs.js</a></li></ul></li><li>utils/<ul><li><a href="../files/utils_api_response.js.html">api_response.js</a></li><li><a href="../files/utils_mng-error.js.html">mng-error.js</a></li><li><a href="../files/utils_utils.js.html">utils.js</a></li></ul></li></ul>
+                </div>
+            </div>
+            
         </div>
 
-            Module: <a href="../modules/api_response.html">api_response</a>
-
+        <div id="main" class="yui3-u">
+            <div class="content"><h4>Class respModel</h4>
+<span class="foundat">Class defined in: <a href="../files/utils_api_response.js.html#l10"><code>utils&#x2F;api_response.js:10</code></a></span>
+<div class="intro"><p>Class to manage firewalls routing</p>
 </div>
 
 
-<div class="box intro">
-    <p>Class to manage firewalls routing</p>
-
-</div>
-
-
-<div id="classdocs" class="tabview">
-    <ul class="api-class-tabs">
-        <li class="api-class-tab index"><a href="#index">Index</a></li>
-
-            <li class="api-class-tab methods"><a href="#methods">Methods</a></li>
-            <li class="api-class-tab properties"><a href="#properties">Properties</a></li>
-            <li class="api-class-tab attrs"><a href="#attrs">Attributes</a></li>
+<div id="classdocs">
+    <ul>
+        <li><a href="#methods">Methods</a></li>
+        <li><a href="#props">Properties</a></li>
+        <li><a href="#attrs">Attributes</a></li>
     </ul>
-
     <div>
-        <div id="index" class="api-class-tabpanel index">
-            <h2 class="off-left">Item Index</h2>
-
-                <div class="index-section methods">
-                    <h3>Methods</h3>
-
-                    <ul class="index-list methods">
-                            <li class="index-item method">
-                                <a href="#method_getJson">getJson</a>
-
-                            </li>
-                            <li class="index-item method">
-                                <a href="#method_getMsgCodeResp">getMsgCodeResp</a>
-
-                            </li>
-                    </ul>
-                </div>
-
-                <div class="index-section properties">
-                    <h3>Properties</h3>
-
-                    <ul class="index-list properties">
-                            <li class="index-item property">
-                                <a href="#property_respModel">respModel</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_ERROR">ACR_ERROR</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_OK">ACR_OK</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_NOTEXIST">ACR_NOTEXIST</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_MISSING">ACR_MISSING</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_DELETED_OK">ACR_DELETED_OK</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_RESTRICTED">ACR_RESTRICTED</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_INSERTED_OK">ACR_INSERTED_OK</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_UPDATED_OK">ACR_UPDATED_OK</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_DATA_ERROR">ACR_DATA_ERROR</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_NOT_ALLOWED">ACR_NOT_ALLOWED</a>
-
-                            </li>
-                            <li class="index-item property">
-                                <a href="#property_ACR_PARAM_ERROR">ACR_PARAM_ERROR</a>
-
-                            </li>
-                    </ul>
-                </div>
-
-                <div class="index-section attrs">
-                    <h3>Attributes</h3>
-
-                    <ul class="index-list attrs">
-                            <li class="index-item attr">
-                                <a href="#attr_logger">logger</a>
-                            </li>
-                    </ul>
-                </div>
-
-        </div>
-
-            <div id="methods" class="api-class-tabpanel">
-                <h2 class="off-left">Methods</h2>
-
-<div id="method_getJson" class="method item">
-    <h3 class="name"><code>getJson</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>data</code>
-                </li>
-                <li class="arg">
-                        <code>respCode</code>
-                </li>
-                <li class="arg">
-                        <code>custom_response</code>
-                </li>
-                <li class="arg">
-                        <code>custom_obj</code>
-                </li>
-                <li class="arg">
-                        <code>error</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">JSON</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
+            <div id="methods">
+<a name="methods_getJson"></a>
+<div class="method item">
+    JSON <strong class="name"><code>getJson</code></strong>( <code>data, respCode, custom_response, custom_obj, error, callback </code> ) 
+    <br>
+    <span class="foundat">
+        
         <a href="../files/utils_api_response.js.html#l127"><code>utils&#x2F;api_response.js:127</code></a>
-        </p>
+    </span><br>
+    <h3>GET JSON RESONSE</h3>
 
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>data</code> <strong>&lt;Object&gt;</strong>
+        <p>Data response from Call</p>
 
+        </li>
+        <li>
+            <code>respCode</code> <strong>&lt;String&gt;</strong>
+        <p>Response code</p>
 
-    </div>
+        </li>
+        <li>
+            <code>custom_response</code> <strong>&lt;String&gt;</strong>
+        <p>custom Message from Call</p>
 
-    <div class="description">
-        <h3>GET JSON RESONSE</h3>
+        </li>
+        <li>
+            <code>custom_obj</code> <strong>&lt;String&gt;</strong>
+        <p>Custon name of object</p>
 
-    </div>
+        </li>
+        <li>
+            <code>error</code> <strong>&lt;Object&gt;</strong>
+        <p>Object Error</p>
 
-        <div class="params">
-            <h4>Parameters:</h4>
+        </li>
+        <li>
+            <code>callback</code> <strong>&lt;Callback&gt;</strong>
+        <p>function(jsonresp)</p>
 
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">data</code>
-                        <span class="type">Object</span>
-
-
-                    <div class="param-description">
-                        <p>Data response from Call</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">respCode</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Response code</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">custom_response</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>custom Message from Call</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">custom_obj</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Custon name of object</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">error</code>
-                        <span class="type">Object</span>
-
-
-                    <div class="param-description">
-                        <p>Object Error</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Callback</span>
-
-
-                    <div class="param-description">
-                        <p>function(jsonresp)</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">JSON</span>:
-                    <p>Returns Json result</p>
-
-            </div>
-        </div>
-
-
-        <div class="example">
-            <h4>Example:</h4>
-
-            <div class="example-content">
-                <h4>JSON RESPONSE :</h4>
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns Json result</p>
+</div>
+        <h5>Example</h5>
+        <h4>JSON RESPONSE :</h4>
 <pre class="code prettyprint"><code> {&quot;response&quot;: {
    &quot;respStatus&quot;: true | false,
    &quot;respCode&quot;: &quot;ACR_CODE&quot;,
@@ -354,487 +166,156 @@
  };
 </code></pre>
 
-            </div>
-        </div>
 </div>
-<div id="method_getMsgCodeResp" class="method item">
-    <h3 class="name"><code>getMsgCodeResp</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>respCode</code>
-                </li>
-                <li class="arg">
-                        <code>custom_response</code>
-                </li>
-                <li class="arg">
-                        <code>custom_obj</code>
-                </li>
-                <li class="arg">
-                        <code>error</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">Boolean, String</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
+<a name="methods_getMsgCodeResp"></a>
+<div class="method item">
+    Boolean, String <strong class="name"><code>getMsgCodeResp</code></strong>( <code>respCode, custom_response, custom_obj, error, callback </code> ) 
+    <br>
+    <span class="foundat">
+        
         <a href="../files/utils_api_response.js.html#l184"><code>utils&#x2F;api_response.js:184</code></a>
-        </p>
+    </span><br>
+    <h3>GET Message from Response Code</h3>
 
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>respCode</code> <strong>&lt;String&gt;</strong>
+        <p>Response code</p>
 
+        </li>
+        <li>
+            <code>custom_response</code> <strong>&lt;String&gt;</strong>
+        <p>custom Message from Call</p>
 
-    </div>
+        </li>
+        <li>
+            <code>custom_obj</code> <strong>&lt;String&gt;</strong>
+        <p>Custon name of object</p>
 
-    <div class="description">
-        <h3>GET Message from Response Code</h3>
+        </li>
+        <li>
+            <code>error</code> <strong>&lt;Object&gt;</strong>
+        <p>Object Error</p>
 
-    </div>
+        </li>
+        <li>
+            <code>callback</code> <strong>&lt;Callback&gt;</strong>
+        <p>function(status,message)</p>
 
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">respCode</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Response code</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">custom_response</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>custom Message from Call</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">custom_obj</code>
-                        <span class="type">String</span>
-
-
-                    <div class="param-description">
-                        <p>Custon name of object</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">error</code>
-                        <span class="type">Object</span>
-
-
-                    <div class="param-description">
-                        <p>Object Error</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Callback</span>
-
-
-                    <div class="param-description">
-                        <p>function(status,message)</p>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">Boolean, String</span>:
-                    <p>Returns Status and message response</p>
-
-            </div>
-        </div>
-
-
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;Boolean, String&gt; <p>Returns Status and message response</p>
+</div>
 </div>
             </div>
-
-            <div id="properties" class="api-class-tabpanel">
-                <h2 class="off-left">Properties</h2>
-
-<div id="property_respModel" class="property item">
-    <h3 class="name"><code>respModel</code></h3>
-    <span class="type">/utils/api_response</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l17"><code>utils&#x2F;api_response.js:17</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property Model to manage response Data</p>
-
-    </div>
-
-
+            <div id="props">
+<a name="props_respModel"></a>
+<div class="props item">
+    <code>respModel</code> &lt;<strong>/utils/api_response</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l17"><code>utils&#x2F;api_response.js:17</code></a></span>
+    <p>Property Model to manage response Data</p>
 
 </div>
-<div id="property_ACR_ERROR" class="property item">
-    <h3 class="name"><code>ACR_ERROR</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l30"><code>utils&#x2F;api_response.js:30</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_ERROR</p>
-
-    </div>
-
-
+<a name="props_ACR_ERROR"></a>
+<div class="props item">
+    <code>ACR_ERROR</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l30"><code>utils&#x2F;api_response.js:30</code></a></span>
+    <p>Property ACR_ERROR</p>
 
 </div>
-<div id="property_ACR_OK" class="property item">
-    <h3 class="name"><code>ACR_OK</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l37"><code>utils&#x2F;api_response.js:37</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_OK</p>
-
-    </div>
-
-
+<a name="props_ACR_OK"></a>
+<div class="props item">
+    <code>ACR_OK</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l37"><code>utils&#x2F;api_response.js:37</code></a></span>
+    <p>Property ACR_OK</p>
 
 </div>
-<div id="property_ACR_NOTEXIST" class="property item">
-    <h3 class="name"><code>ACR_NOTEXIST</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l44"><code>utils&#x2F;api_response.js:44</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property reACR_NOTEXISTsp</p>
-
-    </div>
-
-
+<a name="props_ACR_NOTEXIST"></a>
+<div class="props item">
+    <code>ACR_NOTEXIST</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l44"><code>utils&#x2F;api_response.js:44</code></a></span>
+    <p>Property reACR_NOTEXISTsp</p>
 
 </div>
-<div id="property_ACR_MISSING" class="property item">
-    <h3 class="name"><code>ACR_MISSING</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l51"><code>utils&#x2F;api_response.js:51</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property resp</p>
-
-    </div>
-
-
+<a name="props_ACR_MISSING"></a>
+<div class="props item">
+    <code>ACR_MISSING</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l51"><code>utils&#x2F;api_response.js:51</code></a></span>
+    <p>Property resp</p>
 
 </div>
-<div id="property_ACR_DELETED_OK" class="property item">
-    <h3 class="name"><code>ACR_DELETED_OK</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l58"><code>utils&#x2F;api_response.js:58</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_DELETED_OK</p>
-
-    </div>
-
-
+<a name="props_ACR_DELETED_OK"></a>
+<div class="props item">
+    <code>ACR_DELETED_OK</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l58"><code>utils&#x2F;api_response.js:58</code></a></span>
+    <p>Property ACR_DELETED_OK</p>
 
 </div>
-<div id="property_ACR_RESTRICTED" class="property item">
-    <h3 class="name"><code>ACR_RESTRICTED</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l65"><code>utils&#x2F;api_response.js:65</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_RESTRICTED</p>
-
-    </div>
-
-
+<a name="props_ACR_RESTRICTED"></a>
+<div class="props item">
+    <code>ACR_RESTRICTED</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l65"><code>utils&#x2F;api_response.js:65</code></a></span>
+    <p>Property ACR_RESTRICTED</p>
 
 </div>
-<div id="property_ACR_INSERTED_OK" class="property item">
-    <h3 class="name"><code>ACR_INSERTED_OK</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l72"><code>utils&#x2F;api_response.js:72</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_INSERTED_OK</p>
-
-    </div>
-
-
+<a name="props_ACR_INSERTED_OK"></a>
+<div class="props item">
+    <code>ACR_INSERTED_OK</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l72"><code>utils&#x2F;api_response.js:72</code></a></span>
+    <p>Property ACR_INSERTED_OK</p>
 
 </div>
-<div id="property_ACR_UPDATED_OK" class="property item">
-    <h3 class="name"><code>ACR_UPDATED_OK</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l79"><code>utils&#x2F;api_response.js:79</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_UPDATED_OK</p>
-
-    </div>
-
-
+<a name="props_ACR_UPDATED_OK"></a>
+<div class="props item">
+    <code>ACR_UPDATED_OK</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l79"><code>utils&#x2F;api_response.js:79</code></a></span>
+    <p>Property ACR_UPDATED_OK</p>
 
 </div>
-<div id="property_ACR_DATA_ERROR" class="property item">
-    <h3 class="name"><code>ACR_DATA_ERROR</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l86"><code>utils&#x2F;api_response.js:86</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_DATA_ERROR</p>
-
-    </div>
-
-
+<a name="props_ACR_DATA_ERROR"></a>
+<div class="props item">
+    <code>ACR_DATA_ERROR</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l86"><code>utils&#x2F;api_response.js:86</code></a></span>
+    <p>Property ACR_DATA_ERROR</p>
 
 </div>
-<div id="property_ACR_NOT_ALLOWED" class="property item">
-    <h3 class="name"><code>ACR_NOT_ALLOWED</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l93"><code>utils&#x2F;api_response.js:93</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_NOT_ALLOWED</p>
-
-    </div>
-
-
+<a name="props_ACR_NOT_ALLOWED"></a>
+<div class="props item">
+    <code>ACR_NOT_ALLOWED</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l93"><code>utils&#x2F;api_response.js:93</code></a></span>
+    <p>Property ACR_NOT_ALLOWED</p>
 
 </div>
-<div id="property_ACR_PARAM_ERROR" class="property item">
-    <h3 class="name"><code>ACR_PARAM_ERROR</code></h3>
-    <span class="type">String</span>
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/utils_api_response.js.html#l100"><code>utils&#x2F;api_response.js:100</code></a>
-        </p>
-
-
-    </div>
-
-    <div class="description">
-        <p>Property ACR_PARAM_ERROR</p>
-
-    </div>
-
-
+<a name="props_ACR_PARAM_ERROR"></a>
+<div class="props item">
+    <code>ACR_PARAM_ERROR</code> &lt;<strong>String</strong>&gt;<br>
+    <span class="foundat"><a href="../files/utils_api_response.js.html#l100"><code>utils&#x2F;api_response.js:100</code></a></span>
+    <p>Property ACR_PARAM_ERROR</p>
 
 </div>
             </div>
-
-            <div id="attrs" class="api-class-tabpanel">
-                <h2 class="off-left">Attributes</h2>
-
-                    <div id="attr_logger" class="attr item">
-                        <a name="config_logger"></a> 
-                        <h3 class="name"><code>logger</code></h3>
-                        <span class="type">Log4js/app</span>
+            <div id="attrs">
+                <a name="attrs_logger"></a>
+                <div class="attrs item">
+                    <code>logger</code> <strong>&lt;Log4js/app&gt;</strong>
                     
                     
-                    
-                    
-                    
-                    
-                    
-                    
-                        <div class="meta">
-                                    <p>
-                                    Defined in
-                            <a href="../files/utils_api_response.js.html#l108"><code>utils&#x2F;api_response.js:108</code></a>
-                            </p>
-                    
-                    
-                        </div>
-                    
-                        <div class="description">
-                            <p>Property Logger to manage App logs</p>
-                    
-                        </div>
-                    
-                    
-                    
-                    </div>
-            </div>
-
-    </div>
-</div>
-                    </div>
+                    <br>
+                    <span class="foundat"><a href="../files/utils_api_response.js.html#l108"><code>utils&#x2F;api_response.js:108</code></a></span>
+                    <p>Property Logger to manage App logs</p>
+                
                 </div>
             </div>
+    </div>
+</div>
+</div>
         </div>
     </div>
 </div>
 <script src="../assets/vendor/prettify/prettify-min.js"></script>
 <script>prettyPrint();</script>
 <script src="../assets/js/yui-prettify.js"></script>
-<script src="../assets/../api.js"></script>
-<script src="../assets/js/api-filter.js"></script>
-<script src="../assets/js/api-list.js"></script>
-<script src="../assets/js/api-search.js"></script>
-<script src="../assets/js/apidocs.js"></script>
+<script src="../assets/js/tabs.js"></script>
 </body>
 </html>

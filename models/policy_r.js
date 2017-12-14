@@ -1,5 +1,5 @@
 var db = require('../db.js');
-var async = require('async');
+var asyncMod = require('async');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var Policy_typeModel = require('../models/policy_type');
@@ -81,7 +81,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                             policy_cont = rows.length;
                             //for (i = 0; i < rows.length; i++) {
                             //--------------------------------------------------------------------------------------------------
-                            async.map(rows, function (row_rule, callback1) {
+                            asyncMod.map(rows, function (row_rule, callback1) {
                                 i++;
                                 var policy_node = new data_policy_r(row_rule);
 
@@ -103,7 +103,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                                         policy_node.positions = new Array();
 
                                         //--------------------------------------------------------------------------------------------------
-                                        async.map(data_positions, function (row_position, callback2) {
+                                        asyncMod.map(data_positions, function (row_position, callback2) {
                                             j++;
                                             //logger.debug(j + " - DENTRO de POSITION: " + row_position.id + " - " + row_position.name + "     ORDER:" + row_position.position_order);
                                             var position_node = new data_policy_positions(row_position);
@@ -124,7 +124,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                                                     //creamos array de ipobj
                                                     position_node.ipobjs = new Array();
                                                     //--------------------------------------------------------------------------------------------------
-                                                    async.map(data__rule_ipobjs, function (row_ipobj, callback3) {
+                                                    asyncMod.map(data__rule_ipobjs, function (row_ipobj, callback3) {
                                                         k++;
                                                         logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
                                                         // GET IPOBJs  Position O
@@ -289,7 +289,7 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
         if (error)
             callback(error, null);
 
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);        
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -407,8 +407,8 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                     callback(error, null);
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
                         'rule_order = ' + connection.escape(new_order) + ' ' +
-                        ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) +
-                        ' AND rule_order=' + connection.escape(old_order);
+                        ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) ;
+                        //' AND rule_order=' + connection.escape(old_order);
 
                 connection.query(sql, function (error, result) {
                     if (error) {
@@ -416,6 +416,7 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                     } else {
                         if (result.affectedRows > 0) {
                             OrderList(new_order, idfirewall, old_order, id);
+                            logger.debug("---> ORDENADA POLICY " + id + "  OLD ORDER: " + old_order + "  NEW ORDER: " + new_order);
                             callback(null, {"result": true});
                         } else
                             callback(null, {"result": false});
@@ -443,7 +444,7 @@ function OrderList(new_order, idfirewall, old_order, id) {
                 'rule_order = rule_order' + increment +
                 ' WHERE firewall = ' + connection.escape(idfirewall) +
                 ' AND rule_order>=' + order1 + ' AND rule_order<=' + order2 +
-                ' AND id<>' + connection.escape(id);
+                ' AND id<>' + connection.escape(id);        
         connection.query(sql);
 
     });

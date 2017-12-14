@@ -42,7 +42,7 @@ var Policy_r__interfaceModel = require('../models/policy_r__interface');
  * @property async
  * @type async
  */
-var async = require('async');
+var asyncMod = require('async');
 /**
  * Property  to manage Interfaces Data
  *
@@ -183,7 +183,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
             else if (rows.length > 0) {
                 host_cont = rows.length;
                 var row = rows[0];
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
 
                     var host_node = new host_Data(row);
 
@@ -196,7 +196,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
                         if (data_interfaces.length > 0) {
                             interfaces_cont = data_interfaces.length;
 
-                            async.map(data_interfaces, function (data_interface, callback2) {
+                            asyncMod.map(data_interfaces, function (data_interface, callback2) {
                                 //GET INTERFACES
                                 logger.debug("--> DENTRO de INTERFACE id:" + data_interface.id + "  Name:" + data_interface.name + "  Type:" + data_interface.interface_type)
 
@@ -210,7 +210,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
                                     if (data_ipobjs.length > 0) {
                                         ipobjs_cont = data_ipobjs.length;
 
-                                        async.map(data_ipobjs, function (data_ipobj, callback2) {
+                                        asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
                                             //GET OBJECTS
                                             logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 

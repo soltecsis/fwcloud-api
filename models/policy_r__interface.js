@@ -1,5 +1,5 @@
 var db = require('../db.js');
-var async = require('async');
+var asyncMod = require('async');
 
 //create object
 var policy_r__interfaceModel = {};
@@ -95,6 +95,34 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
         }
     });
 };
+
+//Duplicate policy_r__interface RULES
+policy_r__interfaceModel.duplicatePolicy_r__interface = function (rule, new_rule, callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'INSERT INTO  ' + tableModel + ' (rule,  interface, position,position_order, negate) ' +
+                '(SELECT ' + connection.escape(new_rule) + ', interface, position, position_order, negate ' +
+                'from ' + tableModel + ' where rule=' +  connection.escape(rule) + ' order by  position, position_order)';
+
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.debug(error);
+                logger.debug(sql);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {                    
+                    callback(null, {"result": true});
+                } else {
+                    callback(null, {"result": false});
+                }
+            }
+        });
+    });
+};
+
 
 //Update policy_r__interface
 policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, old_position, old_position_order, policy_r__interfaceData, callback) {
@@ -390,7 +418,7 @@ policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callbac
         connection.query(sqlPos, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     order++;
                     db.get(function (error, connection) {
                         sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
@@ -433,7 +461,7 @@ policy_r__interfaceModel.orderPolicy = function (rule, callback) {
             if (rows.length > 0) {
                 var order = 0;
                 var prev_position = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     var position = row.position;
                     if (position !== prev_position) {
                         order = 1;
@@ -483,7 +511,7 @@ policy_r__interfaceModel.orderAllPolicy = function (callback) {
                 var order = 0;
                 var prev_rule = 0;
                 var prev_position = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     var position = row.position;
                     var rule = row.rule;
                     if (position !== prev_position || rule !== prev_rule) {

@@ -1,7 +1,7 @@
 var db = require('../db.js');
 //var Ipobj__ipobjgModel = require('../models/ipobj__ipobjg');
 var IpobjModel = require('../models/ipobj');
-var async = require('async');
+var asyncMod = require('async');
 var ipobj_g_Data = require('../models/data_ipobj_g');
 var ipobj_Data = require('../models/data_ipobj');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
@@ -73,7 +73,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
             else if (rows.length > 0) {
                 group_cont = rows.length;
                 var row = rows[0];
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
 
                     var group_node = new ipobj_g_Data(row);
 
@@ -85,7 +85,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
                         if (data_ipobjs.length > 0) {
                             ipobjs_cont = data_ipobjs.length;
 
-                            async.map(data_ipobjs, function (data_ipobj, callback2) {
+                            asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
                                 //GET OBJECTS
                                 logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 

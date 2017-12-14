@@ -1,5 +1,5 @@
 var db = require('../db.js');
-var async = require('async');
+var asyncMod = require('async');
 
 
 var logger = require('log4js').getLogger("app");
@@ -106,7 +106,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
                     //FIREWALL CONTROL ACCESS
 
 
-                    async.forEachSeries(rows,
+                    asyncMod.forEachSeries(rows,
                             function (row, callback) {
                                 hasLines(row.id, function (t) {
                                     //logger.debug(row);
@@ -310,7 +310,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
             } else {
                 //For each node Select Objects by  type
                 if (rows) {
-                    async.forEachSeries(rows, function (row, callback) {
+                    asyncMod.forEachSeries(rows, function (row, callback) {
                         //logger.debug(row);
                         //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
                         var tree_node = new fwc_tree_node(row);
@@ -323,7 +323,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                             else {
                                 var i = 0;
                                 if (rowsnodes) {
-                                    async.forEachSeries(rowsnodes, function (rnode, callback2) {
+                                    asyncMod.forEachSeries(rowsnodes, function (rnode, callback2) {
                                         var idfirewall = rnode.id;
                                         i++;
                                         //Insertamos nodos Firewall
@@ -403,7 +403,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                                         var j = 0;
                                                         if (rowsnodesInt) {
                                                             //logger.debug("INTERFACES: " + rowsnodesInt.length);
-                                                            async.forEachSeries(rowsnodesInt, function (rnodeInt, callback3) {
+                                                            asyncMod.forEachSeries(rowsnodesInt, function (rnodeInt, callback3) {
                                                                 j++;
                                                                 //Insertamos nodos Interfaces
                                                                 sqlinsert = 'INSERT INTO ' + tableModel +
@@ -434,7 +434,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                                                             var k = 0;
                                                                             if (rowsnodesIP) {
                                                                                 //logger.debug("OBJS IP: " + rowsnodesIP.length);
-                                                                                async.forEachSeries(rowsnodesIP, function (rnodeIP, callback4) {
+                                                                                asyncMod.forEachSeries(rowsnodesIP, function (rnodeIP, callback4) {
                                                                                     k++;
                                                                                     //Insertamos nodos IP
                                                                                     sqlinsert = 'INSERT INTO ' + tableModel +
@@ -514,7 +514,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                     } else {
                         //For each node Select Objects by  type
                         if (rows) {
-                            async.forEachSeries(rows,
+                            asyncMod.forEachSeries(rows,
                                     function (row, callback) {
                                         //logger.debug(row);
                                         logger.debug("---> DENTRO de NODO: " + row.name + " - Node_Type:" + row.node_type + "  Obj_type:" + row.obj_type);
@@ -532,7 +532,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                             else {
                                                 var i = 0;
                                                 if (rowsnodes) {
-                                                    async.forEachSeries(rowsnodes,
+                                                    asyncMod.forEachSeries(rowsnodes,
                                                             function (rnode, callback) {
                                                                 i++;
                                                                 //Insertamos nodo
@@ -583,7 +583,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                                                                     logger.debug(error);
                                                                                 else {
                                                                                     var j = 0;
-                                                                                    async.forEachSeries(rowsnodesObj,
+                                                                                    asyncMod.forEachSeries(rowsnodesObj,
                                                                                             function (rnodeObj, callback2) {
                                                                                                 j++;
 
@@ -902,14 +902,14 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
         connection.query(sqlParent, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
-                async.map(rows, function (row, callback1) {
+                asyncMod.map(rows, function (row, callback1) {
                     var id_parent = row.id_parent;
                     var sqlNodes = 'SELECT * FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_parent=' + connection.escape(id_parent) + ' AND id_obj<>' + connection.escape(id_obj_deleted) + ' order by id_parent, node_order';
                     logger.debug(sqlNodes);
                     connection.query(sqlNodes, function (error, rowsnodes) {
                         if (rowsnodes.length > 0) {
                             var order = 0;
-                            async.map(rowsnodes, function (rowNode, callback2) {
+                            asyncMod.map(rowsnodes, function (rowNode, callback2) {
                                 order++;
                                 sql = 'UPDATE ' + tableModel + ' SET node_order=' + order +
                                         ' WHERE id_parent = ' + connection.escape(id_parent) + ' AND id=' + connection.escape(rowNode.id);
@@ -953,7 +953,7 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
         connection.query(sqlNodes, function (error, rowsnodes) {
             if (rowsnodes.length > 0) {
                 var order = 0;
-                async.map(rowsnodes, function (rowNode, callback2) {
+                asyncMod.map(rowsnodes, function (rowNode, callback2) {
                     order++;
                     sql = 'UPDATE ' + tableModel + ' SET node_order=' + order +
                             ' WHERE id_parent = ' + connection.escape(id_parent) + ' AND id=' + connection.escape(rowNode.id);
