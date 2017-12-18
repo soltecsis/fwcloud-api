@@ -1,6 +1,5 @@
 
-var mysql = require('mysql')
-  , async = require('async');
+var mysql = require('mysql');
 
 var PRODUCTION_DB = 'fwcloud_db'
   , TEST_DB = 'fwcloud_db';

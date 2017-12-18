@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Policy_gModel = require('../models/policy_g');
+var Policy_rModel = require('../models/policy_r');
 var api_resp = require('../utils/api_response');
 var objModel = 'POLICY GROUP';
 
@@ -112,14 +113,21 @@ router.post("/policy-g", function (req, res)
 {
     //Create New objet with data policy_g
     var policy_gData = {
-        id: null,
+        id: req.body.id,
         firewall: req.body.firewall,
         name: req.body.name,
-        comment: req.body.comment
+        comment: req.body.comment,
+        rulesIds: req.body.rulesIds
     };
 
+    var JsonGroupData = req.body.groupData;
+
+    var policy_gData = JSON.parse(JsonGroupData);
+
+    logger.debug(policy_gData);
     Policy_gModel.insertPolicy_g(policy_gData, function (error, data)
     {
+        logger.debug(data);
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -128,7 +136,15 @@ router.post("/policy-g", function (req, res)
             //If saved policy_g Get data
             if (data && data.insertId)
             {
-                //res.redirect("/policy-gs/policy-g/" + data.insertId);
+                if (policy_gData.rulesIds.length > 0) {
+                    var idGroup = data.insertId;
+                    //Add rules to group
+                    for (let rule of policy_gData.rulesIds) {
+                        Policy_rModel.updatePolicy_r_Group(policy_gData.firewall, idGroup, rule, function (error, data) {
+                            logger.debug("ADDED to Group " + idGroup + " POLICY: " + rule);
+                        });
+                    }
+                }
                 var dataresp = {"insertId": data.insertId};
                 api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
@@ -175,31 +191,35 @@ router.put('/policy-g/', function (req, res)
 
 
 /* Remove policy_g */
-router.delete("/policy-g/", function (req, res)
+router.delete("/policy-g/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.param('idfirewall');
     var id = req.param('id');
-    Policy_gModel.deletePolicy_gidfirewall(idfirewall, id, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        else {
-            if (data && data.result)
-            {
-                //res.redirect("/policy-gs/");
-                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+
+    //Remove group from Rules
+    Policy_rModel.updatePolicy_r_GroupAll(idfirewall, id, function (error, data) {
+        logger.debug("Removed all Policy from Group " + id);
+        Policy_gModel.deletePolicy_g(idfirewall, id, function (error, data)
+        {
+            if (error)
+                api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+            else {
+                if (data && data.result)
+                {
+                    api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
             }
-        }
+        });
     });
 });
 

@@ -81,19 +81,31 @@ policy_gModel.insertPolicy_g = function (policy_gData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_gData, function (error, result) {
-            if (error) {
-                callback(error, null);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
+        logger.debug(sqlExists);
+        connection.query(sqlExists, function (error, row) {                        
+            if (row &&  row.length>0) {
+                logger.debug("GRUPO Existente: " + policy_gData.id );
+                callback(null, {"insertId": policy_gData.id});
+
             } else {
-                //devolvemos la última id insertada
-                callback(null, {"insertId": result.insertId});
+                sqlInsert='INSERT INTO ' + tableModel + ' SET firewall=' + policy_gData.firewall + ", name=" +  connection.escape(policy_gData.name) + ", comment=" + connection.escape(policy_gData.comment);
+                connection.query(sqlInsert, function (error, result) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        //devolvemos la última id insertada
+                        logger.debug("CREADO nuevo GRUPO: " + result.insertId );
+                        callback(null, {"insertId": result.insertId});
+                    }
+                });
             }
         });
     });
 };
 
 //Update policy_g from user
-policy_gModel.updatePolicy_g = function ( policy_gData, callback) {
+policy_gModel.updatePolicy_g = function (policy_gData, callback) {
 
     db.get(function (error, connection) {
         if (error)
@@ -119,7 +131,7 @@ policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' +  connection.escape(idfirewall);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_g to remove
             if (row) {

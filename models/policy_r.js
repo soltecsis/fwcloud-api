@@ -427,6 +427,56 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
     });
 };
 
+//Update policy_r from user
+policy_rModel.updatePolicy_r_Group = function (firewall, idgroup, id,  callback) {
+    
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);               
+
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'idgroup = ' + connection.escape(idgroup) + ' ' +                        
+                        ' WHERE id = ' + id + " and firewall=" + firewall;
+                logger.debug(sql);
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            callback(null, {"result": true});
+                        } else
+                            callback(null, {"result": false});
+                    }
+                });
+            });        
+};
+//Update policy_r from user
+policy_rModel.updatePolicy_r_GroupAll = function (firewall,idgroup, callback) {
+    
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);               
+
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'idgroup = NULL' + ' ' +                        
+                        ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
+
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            callback(null, {"result": true});
+                        } else
+                            callback(null, {"result": false});
+                    }
+                });
+            });        
+};
+
+
 function OrderList(new_order, idfirewall, old_order, id) {
     var increment = '+1';
     var order1 = new_order;
