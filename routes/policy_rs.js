@@ -251,6 +251,7 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
 router.put('/policy-r/copy-rules', function (req, res)
 {
     try {
+        logger.debug(req.body);
         var JsonCopyData = req.body.rulesData;
         logger.debug(JsonCopyData);
         var copyData = JSON.parse(JsonCopyData);
