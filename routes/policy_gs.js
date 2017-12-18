@@ -111,14 +111,6 @@ router.get('/:idfirewall/name/:name', function (req, res)
 /* Create New policy_g */
 router.post("/policy-g", function (req, res)
 {
-    //Create New objet with data policy_g
-    var policy_gData = {
-        id: req.body.id,
-        firewall: req.body.firewall,
-        name: req.body.name,
-        comment: req.body.comment,
-        rulesIds: req.body.rulesIds
-    };
 
     var JsonGroupData = req.body.groupData;
 
@@ -194,8 +186,8 @@ router.put('/policy-g/', function (req, res)
 router.delete("/policy-g/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove
-    var idfirewall = req.param('idfirewall');
-    var id = req.param('id');
+    var idfirewall = req.params.idfirewall;
+    var id = req.params.id;
 
     //Remove group from Rules
     Policy_rModel.updatePolicy_r_GroupAll(idfirewall, id, function (error, data) {

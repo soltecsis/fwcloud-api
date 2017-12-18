@@ -3,6 +3,7 @@
    function policy_rData (data) {
         this.id= data.id;
         this.idgroup= data.idgroup;
+        this.group_name=data.group_name;
         this.firewall= data.firewall;        
         this.rule_order= data.rule_order;        
         this.action= data.action;
@@ -13,6 +14,7 @@
         this.comment= data.comment;
         this.type= data.type;
         this.positions=[];
+        
     };
 
 
