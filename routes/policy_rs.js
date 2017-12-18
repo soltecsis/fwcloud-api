@@ -252,20 +252,18 @@ router.put('/policy-r/copy-rules', function (req, res)
 {
     try {
         var JsonCopyData = req.body.rulesData;
-
+        logger.debug(JsonCopyData);
         var copyData = JSON.parse(JsonCopyData);
 
-
-        logger.debug(copyData);
-        var idfirewall = copyData.firewall;
-        var fwcloud = copyData.fwcloud;
-        var pasteOnRuleId = copyData.pasteOnRuleId;
-        var pasteOffset = copyData.pasteOffset;
-        var action = copyData.action;  // 1--> Copy rules , 2--> Move rules
+        var idfirewall = copyData.rulesData.firewall;
+        var fwcloud = copyData.rulesData.fwcloud;
+        var pasteOnRuleId = copyData.rulesData.pasteOnRuleId;
+        var pasteOffset = copyData.rulesData.pasteOffset;
+        var action = copyData.rulesData.action;  // 1--> Copy rules , 2--> Move rules
         //Buscamos datos de regla Destino
 
 
-        mainCopyMove(idfirewall, copyData.rulesIds, pasteOnRuleId, pasteOffset, action)
+        mainCopyMove(idfirewall, copyData.rulesData.rulesIds, pasteOnRuleId, pasteOffset, action)
                 .then(v => {
                     logger.debug("FINAL de BUSQUEDA");
                     api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ORDER UPDATED OK', 'POLICY', null, function (jsonResp) {

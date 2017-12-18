@@ -116,10 +116,8 @@ router.post("/policy-g", function (req, res)
 
     var policy_gData = JSON.parse(JsonGroupData);
 
-    logger.debug(policy_gData);
     Policy_gModel.insertPolicy_g(policy_gData, function (error, data)
-    {
-        logger.debug(data);
+    {    
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);

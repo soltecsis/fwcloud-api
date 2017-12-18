@@ -64,7 +64,7 @@ policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
             callback(error, null);
         var namesql = '%' + name + '%';
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-        logger.debug(sql);
+        
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -82,7 +82,7 @@ policy_gModel.insertPolicy_g = function (policy_gData, callback) {
         if (error)
             callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
-        logger.debug(sqlExists);
+        
         connection.query(sqlExists, function (error, row) {                        
             if (row &&  row.length>0) {
                 logger.debug("GRUPO Existente: " + policy_gData.id );

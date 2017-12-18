@@ -437,7 +437,7 @@ policy_rModel.updatePolicy_r_Group = function (firewall, idgroup, id,  callback)
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
                         'idgroup = ' + connection.escape(idgroup) + ' ' +                        
                         ' WHERE id = ' + id + " and firewall=" + firewall;
-                logger.debug(sql);
+                
                 connection.query(sql, function (error, result) {
                     if (error) {
                         logger.error(error);
