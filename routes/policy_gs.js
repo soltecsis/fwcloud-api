@@ -112,9 +112,8 @@ router.get('/:idfirewall/name/:name', function (req, res)
 router.post("/policy-g", function (req, res)
 {
 
-    var JsonGroupData = req.body.groupData;
-
-    var policy_gData = JSON.parse(JsonGroupData);
+    var JsonCopyData = req.body;
+    var policy_gData = JsonCopyData.groupData;
 
     Policy_gModel.insertPolicy_g(policy_gData, function (error, data)
     {    
