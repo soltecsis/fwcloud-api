@@ -249,12 +249,15 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
 /* Copy or Move RULES */
 /* FALTA CONTROL de GRUPOS de REGLAS*/
 router.put('/policy-r/copy-rules', function (req, res)
-{
-    try {
+{    
+    try {        
+        logger.debug("BODY:");
         logger.debug(req.body);
-        var JsonCopyData = req.body.rulesData;
+        var JsonCopyData = req.body;
+        logger.debug("JsonCopyData:");
         logger.debug(JsonCopyData);
-        var copyData = JSON.parse(JsonCopyData);
+        //var copyData = JSON.parse(JsonCopyData);
+        var copyData = JsonCopyData.rulesData ;
 
         var idfirewall = copyData.firewall;
         var fwcloud = copyData.fwcloud;

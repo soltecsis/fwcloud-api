@@ -130,6 +130,12 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.use(function (req, res, next) {
+  logger.debug("---------------- RECEIVED HEADERS-----------------");
+  logger.debug(req.headers);
+  logger.debug("--------------------------------------------------");
+  next();
+});
 
 var db = require('./db');
 
@@ -226,7 +232,7 @@ db.connect(db.MODE_PRODUCTION, function(err) {
   }
 });
 
-
+       
 // error handlers
 
 // catch 404 and forward to error handler
