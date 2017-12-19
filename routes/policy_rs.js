@@ -290,7 +290,7 @@ async function mainCopyMove(idfirewall, rulesIds, pasteOnRuleId, pasteOffset, ac
 
 
     if (action === 1) {  // action=1 --> Copy/duplicate  RULE
-        var inc = 2;
+        var inc = 1;
         for (let rule of rulesIds) {
             await ruleCopy(idfirewall, rule, pasteOnRuleId, pasteOffset, inc);
             inc++;
@@ -412,8 +412,11 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                                             //If saved policy_r Get data
                                             if (data_dup && data_dup.result)
                                             {
+                                                logger.debug("Policy Positions Dupicated from Id: " + id);
                                                 resolve(data);
                                             }
+                                            else
+                                                reject("Error duplicating POLICY O POSITIONS from Id: " + id);
                                         }
                                     });
                                     //DUPLICATE RULE POSITONS I INTERFACES
