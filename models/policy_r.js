@@ -288,11 +288,16 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);        
+        
+        var sql = 'SELECT P.*, (select MAX(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as max_order, ' +
+            ' (select MIN(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as min_order ' +
+            ' FROM ' + tableModel + ' P WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);   
+    
         connection.query(sql, function (error, row) {
-            if (error)
+            if (error){
+                logger.debug(error);
                 callback(error, null);
+            }
             else
                 callback(null, row);
         });
