@@ -333,8 +333,7 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        logger.debug("NEW RULE:");
-        logger.debug(policy_rData);
+
         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_rData, function (error, result) {
             if (error) {
                 logger.debug(error);

@@ -38,21 +38,24 @@ router.get('/foo', function (req, res)
 router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', function (req, res)
 {
     var parser = new xml2js.Parser();
-    var fwcloud = null;
+    var fwcloud = req.params.fwcloud;
     var fwc_file = "";
 
     var library = req.params.library.toUpperCase();
+    
+    
     var iduser = req.params.iduser;
     var searchlibrary = "";
     logger.debug("READING LIBRARY: " + library);
 
     if (library === "STANDARD") {
         fwcloud = null;
-        fwc_file = "/xml/FW-TEST_STANDAR.fwb";
+        //fwc_file = "/xml/FW-TEST_STANDAR.fwb";
+        fwc_file = "/xml/FW-ViajesAlameda.fwb";        
         searchlibrary = "Standard";
-    } else if (library === "USER") {
-        fwcloud = 1;
-        fwc_file = "/xml/FW-TEST_USER.fwb";
+    } else if (library === "USER") {        
+        //fwc_file = "/xml/FW-TEST_USER.fwb";
+        fwc_file = "/xml/FW-ViajesAlameda.fwb";
         searchlibrary = "User";
     }
 
@@ -95,12 +98,12 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                     asyncMod.forEach(rows.Firewall,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo FIREWALL :" + i + " - " + row.$.name);
+                                logger.debug("Añadiendo FIREWALL :" + i + " - " + row.$.name + " en FWCLOUD: " + fwcloud);
                                 AddFirewall(iduser, row.$, fwcloud, function (error, data) {
                                     if (error)
                                         logger.debug("ERROR Añadiendo Firewall : " + error);
                                     else {
-                                        logger.debug("Añadido Firewall con ID: " + data.insertId);
+                                        logger.debug("Añadido Firewall con ID: " + data.insertId + " en FWCLOUD: " + fwcloud);
                                         var idfirewall = data.insertId;
 
                                         //añadimos Interfaces
@@ -142,7 +145,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                     function (rowNR, callback1) {
                                                         n++;
                                                         logger.debug("Añadiendo NAT RULE:" + n + " - " + rowNR.$.id);
-                                                        AddPolicyRule(idfirewall, rowNR.$, "N", function (error, data) {
+                                                        AddPolicyRule(idfirewall, rowNR.$, "4", function (error, data) {
                                                             if (data && data.length > 0)
                                                             {
                                                                 logger.debug("Añadido NATRule con ID: " + data.insertId);
@@ -184,15 +187,15 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                         logger.debug("Añadiendo POLICY RULE:" + n + " - " + rowPR.$.id + " - DIRECTION: " + rowPR.$.direction);
                                                         switch (rowPR.$.direction) {
                                                             case "Outbound":
-                                                                rule_type = 'O';
+                                                                rule_type = '2';
                                                                 position = [4, 5, 6, 21];
                                                                 break;
                                                             case "Inbound":
-                                                                rule_type = 'I';
+                                                                rule_type = '1';
                                                                 position = [1, 2, 3, 20];
                                                                 break;
                                                             case "Both":
-                                                                rule_type = 'F';
+                                                                rule_type = '3';
                                                                 position = [7, 8, 9, 22];
                                                                 break;
                                                         }
