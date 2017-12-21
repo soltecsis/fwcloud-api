@@ -354,7 +354,7 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                     });
                 }
             } else
-            {                
+            {
                 reject("NOT FOUND POLICY Id: " + ruletoMoveid);
             }
         });
@@ -452,32 +452,55 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Remove policy_r */
-router.delete("/policy-r/:iduser/:idfirewall/:id/:rule_order", function (req, res)
+router.delete("/policy-r/:iduser/:idfirewall", function (req, res)
 {
     //Id from policy_r to remove
     var iduser = req.params.idfirewall;
     var idfirewall = req.params.idfirewall;
-    var id = req.params.id;
-    var rule_order = req.params.rule_order;
-    Policy_rModel.deletePolicy_r(idfirewall, id, rule_order, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', 'POLICY', error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        else
-        if (data && data.result)
-        {
-            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
 
-    });
+    var JsonData = req.body;
+    var rulesIds = JsonData.rulesIds;
+
+    removeRules(idfirewall, rulesIds)
+            .then(r => {
+                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            })
+            .catch(err => {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', err, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+
 });
+
+async function removeRules(idfirewall, rulesIds)
+{
+    for (let rule of rulesIds) {
+        await ruleRemove(idfirewall, rule)
+                .then(r => logger.debug("OK RESULT DELETE: " + r ))
+                .catch(err => logger.debug("ERROR Result: " + err));
+    }
+}
+
+function ruleRemove(idfirewall, rule) {
+    return new Promise((resolve, reject) => {
+        Policy_rModel.deletePolicy_r(idfirewall, rule, function (error, data)
+        {
+            if (error)
+                reject(error);
+            else
+            if (data && data.result)
+            {
+                resolve(api_resp.ACR_DELETED_OK);
+            } else
+            {
+                resolve(api_resp.ACR_NOTEXIST);
+            }
+
+        });
+    });
+}
+
 module.exports = router;

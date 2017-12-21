@@ -507,16 +507,17 @@ function OrderList(new_order, idfirewall, old_order, id) {
 ;
 
 //Remove policy_r with id to remove
-policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
+policy_rModel.deletePolicy_r = function (idfirewall, id,  callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND rule_order=' + connection.escape(rule_order);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) ;
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r to remove
-            if (row) {
-                logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall);
+            if (row && row.length>0) {
+                var rule_order= row[0].rule_order;
+                logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall + "  ORDER: " + rule_order);
                 //DELETE FROM policy_r__ipobj
                 Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
                 {
@@ -530,7 +531,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, rule_order, callback) {
                                 callback(error, null);
                             else {
                                 db.get(function (error, connection) {
-                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND rule_order=' + connection.escape(rule_order);
+                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) ;
                                     connection.query(sql, function (error, result) {
                                         if (error) {
                                             logger.debug(error);
