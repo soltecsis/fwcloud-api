@@ -128,7 +128,7 @@ router.post("/policy-g", function (req, res)
                 if (policy_gData.rulesIds.length > 0) {
                     var idGroup = data.insertId;
                     //Add rules to group
-                    for (let rule of policy_gData.rulesIds) {
+                    for (var rule of policy_gData.rulesIds) {
                         Policy_rModel.updatePolicy_r_Group(policy_gData.firewall, idGroup, rule, function (error, data) {
                             logger.debug("ADDED to Group " + idGroup + " POLICY: " + rule);
                         });
