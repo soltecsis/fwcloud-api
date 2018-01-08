@@ -304,6 +304,31 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
     });
 };
 
+//Get policy_r  GROUP by  NEXT or Previous RULE
+policy_rModel.getPolicy_r_DestGroup = function (idfirewall, offset, order, type,  callback) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        
+        if (offset>0) 
+            order++;
+        else 
+            order--;
+        
+        var sql = 'SELECT idgroup ' +  
+            ' FROM ' + tableModel + '  WHERE rule_order = ' + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);   
+    
+        connection.query(sql, function (error, row) {
+            if (error){
+                logger.debug(error);
+                callback(error, null);
+            }
+            else
+                callback(null, row);
+        });
+    });
+};
+
 //Get routing by name and firewall and group
 policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
     db.get(function (error, connection) {
@@ -397,7 +422,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
 };
 
 //Update ORDER de policy_r 
-policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, callback) {
+policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, idgroup, callback) {
     Policy_typeModel.getPolicy_type(type, function (error, data_types) {
         if (error)
             AllDone(error, null);
@@ -410,7 +435,8 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                 if (error)
                     callback(error, null);
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'rule_order = ' + connection.escape(new_order) + ' ' +
+                        'rule_order = ' + connection.escape(new_order) + ', ' +
+                        'idgroup = ' + connection.escape(idgroup) + ' ' +
                         ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) ;
                         //' AND rule_order=' + connection.escape(old_order);
 

@@ -313,7 +313,7 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
         {
             if (data_dest && data_dest.length > 0)
             {
-                logger.debug("---->XX POLICY DESTINO Id: " + pasteOnRuleId + "  ORDER: " + data_dest[0].rule_order + "  MAX ORDER: " + data_dest[0].max_order + "  MIN ORDER: " + data_dest[0].min_order + "  OFFSET: " + pasteOffset);
+                logger.debug("---->POLICY DESTINO Id: " + pasteOnRuleId + " GROUP:" + data_dest[0].idgroup + "  ORDER: " + data_dest[0].rule_order + "  MAX ORDER: " + data_dest[0].max_order + "  MIN ORDER: " + data_dest[0].min_order + "  OFFSET: " + pasteOffset);
                 if ((data_dest[0].rule_order === data_dest[0].max_order && pasteOffset > 0 && pasteOnRuleId === ruletoMoveid))
                 {
                     //logger.debug();
@@ -322,36 +322,64 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                     //logger.debug();
                     reject("MIN ORDER " + data_dest[0].min_order + "  REACHED POLICY Id: " + ruletoMoveid);
                 } else {
-                    Policy_rModel.getPolicy_r(idfirewall, ruletoMoveid, function (error, data)
+                    //Get Group Next Rule                    
+                    Policy_rModel.getPolicy_r_DestGroup(idfirewall, pasteOffset, data_dest[0].rule_order, data_dest[0].type, function (error, dataG)
                     {
                         //If exists policy_r get data
-                        if (data && data.length > 0)
+                        if (dataG && dataG.length > 0)
                         {
-                            let old_order = data[0].rule_order;
-                            let new_order = data_dest[0].rule_order + (inc * pasteOffset);
-                            logger.debug("CALCULO DE ORDER: " + old_order + " --> NEW ORDER:" + new_order);
-
-
-                            logger.debug("ENCONTRADA POLICY Id: " + ruletoMoveid + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order);
-                            Policy_rModel.updatePolicy_r_order(idfirewall, data[0].type, ruletoMoveid, new_order, data[0].rule_order, function (error, data)
+                            var idgroupDest = dataG[0].idgroup;
+                            Policy_rModel.getPolicy_r(idfirewall, ruletoMoveid, function (error, data)
                             {
-                                if (error)
-                                    reject("Error Orderning");
-                                else {
-                                    //If saved policy_r saved ok, get data
-                                    if (data && data.result)
-                                    {
-                                        resolve(data);
-                                    } else
-                                    {
-                                        reject("ERROR updating order");
+                                //If exists policy_r get data
+                                if (data && data.length > 0)
+                                {
+                                    let old_order = data[0].rule_order;
+                                    let new_order = data_dest[0].rule_order + (inc * pasteOffset);
+
+                                    logger.debug("ENCONTRADA POLICY Id: " + ruletoMoveid + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order + " NEW Group:" + idgroupDest);
+                                    logger.debug("IDGROUP DEST: " + idgroupDest + "  IDGROUP RULE:" + data[0].idgroup);
+                                    if (idgroupDest === data[0].idgroup) {
+                                        Policy_rModel.updatePolicy_r_order(idfirewall, data[0].type, ruletoMoveid, new_order, data[0].rule_order, idgroupDest, function (error, data)
+                                        {
+                                            if (error)
+                                                reject("Error Orderning");
+                                            else {
+                                                //If saved policy_r saved ok, get data
+                                                if (data && data.result)
+                                                {
+                                                    resolve(data);
+                                                } else
+                                                {
+                                                    reject("ERROR updating order");
+                                                }
+                                            }
+                                        });
                                     }
+                                    else{
+                                        Policy_rModel.updatePolicy_r_Group(idfirewall, idgroupDest,ruletoMoveid, function (error, data)
+                                        {
+                                            if (error)
+                                                reject("Error Orderning");
+                                            else {
+                                                //If saved policy_r saved ok, get data
+                                                if (data && data.result)
+                                                {
+                                                    resolve(data);
+                                                } else
+                                                {
+                                                    reject("ERROR updating order");
+                                                }
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    reject("NOT FOUND POLICY Id: " + ruletoMoveid);
                                 }
                             });
-                        } else {
-                            reject("NOT FOUND POLICY Id: " + ruletoMoveid);
                         }
                     });
+
                 }
             } else
             {
@@ -367,7 +395,7 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
         {
             if (data_dest && data_dest.length > 0)
             {
-                logger.debug("----> POLICY DESTINO Id: " + pasteOnRuleId + "  ORDER: " + data_dest[0].rule_order);
+                logger.debug("----> POLICY DESTINO Id: " + pasteOnRuleId + "  GROUP:" + data_dest[0].idgroup + "   ORDER: " + data_dest[0].rule_order);
                 Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
                 {
                     //If exists policy_r get data
@@ -479,7 +507,7 @@ async function removeRules(idfirewall, rulesIds)
 {
     for (let rule of rulesIds) {
         await ruleRemove(idfirewall, rule)
-                .then(r => logger.debug("OK RESULT DELETE: " + r ))
+                .then(r => logger.debug("OK RESULT DELETE: " + r))
                 .catch(err => logger.debug("ERROR Result: " + err));
     }
 }
