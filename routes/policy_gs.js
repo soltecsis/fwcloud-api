@@ -116,7 +116,7 @@ router.post("/policy-g", function (req, res)
     var policy_gData = JsonCopyData.groupData;
 
     Policy_gModel.insertPolicy_g(policy_gData, function (error, data)
-    {    
+    {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
@@ -209,6 +209,38 @@ router.delete("/policy-g/:idfirewall/:id", function (req, res)
                 }
             }
         });
+    });
+});
+
+/* Remove rule from policy_g */
+router.delete("/policy-g/:idfirewall/:id/:idrule", function (req, res)
+{
+    //Id from policy_g to remove
+    var idfirewall = req.params.idfirewall;
+    var id = req.params.id;
+    var idrule = req.params.idrule;
+
+    //Remove group from Rules
+    Policy_rModel.updatePolicy_r_Group(idfirewall, null, idrule, function (error, data) {
+        logger.debug("Removed Policy " + idrule + " from Group " + id);
+
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
     });
 });
 

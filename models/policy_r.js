@@ -317,7 +317,7 @@ policy_rModel.getPolicy_r_DestGroup = function (idfirewall, offset, order, type,
         
         var sql = 'SELECT idgroup ' +  
             ' FROM ' + tableModel + '  WHERE rule_order = ' + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);   
-        logger.debug(sql);
+        
         connection.query(sql, function (error, row) {
             if (error){
                 logger.debug(error);
