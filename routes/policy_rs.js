@@ -245,9 +245,39 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
         }
     });
 });
+/* Update Style policy_r  */
+router.put('/policy-r/style/:idfirewall/:type/:id/:style', function (req, res)
+{
+    //Save data into object
+    var idfirewall = req.params.idfirewall;
+    var type = req.params.type;
+    var id = req.params.id;
+    var style = req.params.style;
+    
+    Policy_rModel.updatePolicy_r_Style(idfirewall, id, style, function (error, data)
+    {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY STYLE', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
+});
 
 /* Copy or Move RULES */
-/* FALTA CONTROL de GRUPOS de REGLAS*/
 router.put('/policy-r/copy-rules', function (req, res)
 {
     try {

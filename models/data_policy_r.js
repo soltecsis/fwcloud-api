@@ -13,6 +13,8 @@
         this.options= data.options;
         this.comment= data.comment;
         this.type= data.type;
+        this.style= data.style;
+        
         this.positions=[];
         
     };

@@ -482,6 +482,31 @@ policy_rModel.updatePolicy_r_Group = function (firewall, idgroup, id,  callback)
             });        
 };
 //Update policy_r from user
+policy_rModel.updatePolicy_r_Style = function (firewall, id, style , callback) {
+    
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);               
+
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'style = ' + connection.escape(style) + ' ' +                        
+                        ' WHERE id = ' + id + " and firewall=" + firewall;
+                
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            callback(null, {"result": true});
+                        } else
+                            callback(null, {"result": false});
+                    }
+                });
+            });        
+};
+
+//Update policy_r from user
 policy_rModel.updatePolicy_r_GroupAll = function (firewall,idgroup, callback) {
     
             db.get(function (error, connection) {
