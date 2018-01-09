@@ -277,7 +277,7 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
         Policy_cModel.insertPolicy_c(policy_cData, function (error, data)
         {
 
-        });
+        });        
         // End of compilation process.        
         cs = "echo \"Rule ID: " + rule + "\"\r\n" + cs;
         res.status(220).send(cs);

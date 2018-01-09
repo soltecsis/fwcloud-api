@@ -15,7 +15,11 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
+        //var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
+        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+                ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
+                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' ORDER BY R.type, R.rule_order';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -26,12 +30,17 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
 };
 
 //Get All policy_c by policy type and firewall
-policy_cModel.getPolicy_cs = function (idfirewall, type, callback) {
+policy_cModel.getPolicy_cs_type = function (idfirewall, type, callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
+        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+                ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
+                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + ' ORDER BY R.rule_order';
+          
+          logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -49,7 +58,11 @@ policy_cModel.getPolicy_c = function (idfirewall, rule, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
+        //var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
+        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+                ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
+                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -80,7 +93,7 @@ policy_cModel.insertPolicy_c = function (policy_cData, callback) {
                 callback(null, {"insertId": policy_cData.id});
             } else {
                 sqlInsert = 'INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + ", rule_compiled=" + connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled);
-                logger.debug(sqlInsert);
+                
                 connection.query(sqlInsert, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -104,7 +117,7 @@ policy_cModel.updatePolicy_c = function (policy_cData, callback) {
                 'firewall = ' + connection.escape(policy_cData.firewall) + ',' +
                 'status_compiled = ' + connection.escape(policy_cData.status_compiled) + ' ' +
                 ' WHERE rule = ' + policy_cData.rule;
-        logger.debug(sql);
+        
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
