@@ -27,6 +27,7 @@
     "passport-local": "*",
     "serve-favicon": "~2.3.0",
     "when": "^3.7.7",
-    "xml2js": "*"
+    "xml2js": "*",
+    "ssh2": "^0.5.5"
   }
 }

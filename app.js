@@ -193,6 +193,8 @@ var ipobj_type__policy_positions = require('./routes/ipobj_type__policy_position
 var ipobj_type__routing_positions = require('./routes/ipobj_type__routing_positions');
 var policy_positions = require('./routes/policy_positions');
 var fwc_tree = require('./routes/fwc_tree');
+var policy_compile = require('./routes/policy/compile');
+var policy_install = require('./routes/policy/install');
 
 var importxml= require('./routes/importxml');
 app.use('/importxml', importxml);
@@ -222,6 +224,8 @@ app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
 app.use('/policy-positions', policy_positions);
 app.use('/fwc-tree', fwc_tree);
+app.use('/policy/compile', policy_compile);
+app.use('/policy/install', policy_install);
 
 
 // Connect to MySQL on start
