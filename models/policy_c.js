@@ -66,19 +66,27 @@ policy_cModel.insertPolicy_c = function (policy_cData, callback) {
         if (error)
             callback(error, null);
         var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE rule = ' + connection.escape(policy_cData.rule) + ' AND firewall=' + connection.escape(policy_cData.firewall);
-        
-        connection.query(sqlExists, function (error, row) {                        
-            if (row &&  row.length>0) {                
+        connection.query(sqlExists, function (error, row) {
+            if (row && row.length > 0) {
+                policy_cModel.updatePolicy_c(policy_cData, function (error, data)
+                {
+                    if (error) {
+                        callback(error, null);
+                    }
+                    else{
+                        callback(null, {"insertId": policy_cData.id});
+                    }
+                });
                 callback(null, {"insertId": policy_cData.id});
-
             } else {
-                sqlInsert='INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + ", rule_compiled=" +  connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled);
+                sqlInsert = 'INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + ", rule_compiled=" + connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled);
+                logger.debug(sqlInsert);
                 connection.query(sqlInsert, function (error, result) {
                     if (error) {
                         callback(error, null);
                     } else {
                         //devolvemos la última id insertada
-                        logger.debug("CREADA nueva RULE COMPILED: " + result.insertId );
+                        logger.debug("CREADA nueva RULE COMPILED: " + result.insertId);
                         callback(null, {"insertId": result.insertId});
                     }
                 });
@@ -86,7 +94,6 @@ policy_cModel.insertPolicy_c = function (policy_cData, callback) {
         });
     });
 };
-
 //Update policy_c 
 policy_cModel.updatePolicy_c = function (policy_cData, callback) {
 
@@ -107,7 +114,6 @@ policy_cModel.updatePolicy_c = function (policy_cData, callback) {
         });
     });
 };
-
 //Remove policy_c with id to remove
 policy_cModel.deletePolicy_c = function (idfirewall, rule, callback) {
     db.get(function (error, connection) {
@@ -133,6 +139,5 @@ policy_cModel.deletePolicy_c = function (idfirewall, rule, callback) {
         });
     });
 };
-
 //Export the object
 module.exports = policy_cModel;
