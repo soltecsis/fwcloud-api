@@ -1,5 +1,42 @@
+/**
+ * Module to routing COMPILE requests
+ * <br>BASE ROUTE CALL: <b>/policy/compile</b>
+ *
+ * @module Compile
+ * 
+ * @requires express
+ * @requires Policy_rModel
+ * 
+ */
+
+
+/**
+ * Clase to manage Compile Policy
+ *
+ * @class CompileRouter
+ */
+
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
 var express = require('express');
+/**
+ * Property  to manage  route
+ *
+ * @property router
+ * @type express.Router 
+ */
 var router = express.Router();
+/**
+ * Property Model to manage Policy Data
+ *
+ * @property PolicyModel
+ * @type /models/policy_r
+ */
 var Policy_rModel = require('../../models/policy_r');
 
 /**
@@ -9,7 +46,16 @@ var Policy_rModel = require('../../models/policy_r');
  * @type log4js/app
  *
  */
-var logger = require('log4js').getLogger("app");
+var logger = require('log4js').getLogger("compiler");
+
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type /models/api_response
+ * 
+ */
+var api_resp = require('../utils/api_response');
 
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;

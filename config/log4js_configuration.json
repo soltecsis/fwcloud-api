@@ -15,6 +15,14 @@
       "backups": 10,
       "category": "http",
       "level": "DEBUG"
+    },
+    {
+      "type": "file",
+      "filename": "logs/compiler_fwcloud.log",
+      "maxLogSize": 2048000,
+      "backups": 3,
+      "category": "compiler",
+      "level": "DEBUG"
     }
   ]
 }
