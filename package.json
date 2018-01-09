@@ -11,7 +11,9 @@
     "body-parser": "^1.15.2",
     "bookshelf": "*",
     "cookie-parser": "~1.4.3",
+    "cors": "^2.8.4",
     "debug": "~2.2.0",
+    "easy-tree": "0.0.3",
     "ejs": "^2.5.5",
     "express": "^4.16.2",
     "express-session": "*",
@@ -26,8 +28,8 @@
     "passport": "*",
     "passport-local": "*",
     "serve-favicon": "~2.3.0",
+    "ssh2": "^0.5.5",
     "when": "^3.7.7",
-    "xml2js": "*",
-    "ssh2": "^0.5.5"
+    "xml2js": "*"
   }
 }

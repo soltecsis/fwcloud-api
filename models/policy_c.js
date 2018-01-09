@@ -4,6 +4,7 @@ var db = require('../db.js');
 //create object
 var policy_cModel = {};
 var tableModel = "policy_c";
+var tableModelPolicy = "policy_r";
 
 
 var logger = require('log4js').getLogger("app");
@@ -24,6 +25,21 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
     });
 };
 
+//Get All policy_c by policy type and firewall
+policy_cModel.getPolicy_cs = function (idfirewall, type, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
+};
 
 
 

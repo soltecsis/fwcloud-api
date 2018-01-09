@@ -55,7 +55,7 @@ var logger = require('log4js').getLogger("compiler");
  * @type /models/api_response
  * 
  */
-var api_resp = require('../utils/api_response');
+var api_resp = require('../../utils/api_response');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 function dump_policy_script() {
