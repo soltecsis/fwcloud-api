@@ -2,35 +2,19 @@ var db = require('../db.js');
 
 
 //create object
-var policy_gModel = {};
-var tableModel = "policy_g";
+var policy_cModel = {};
+var tableModel = "policy_c";
 
 
 var logger = require('log4js').getLogger("app");
 
-//Get All policy_g by firewall
-policy_gModel.getPolicy_gs = function (idfirewall, callback) {
+//Get All policy_c by firewall
+policy_cModel.getPolicy_cs = function (idfirewall, callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
-        connection.query(sql, function (error, rows) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, rows);
-        });
-    });
-};
-
-//Get All policy_g by firewall and group father
-policy_gModel.getPolicy_gs_group = function (idfirewall, idgroup, callback) {
-
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND idgroup=' + connection.escape(idgroup) + ' ORDER BY id';
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -42,29 +26,14 @@ policy_gModel.getPolicy_gs_group = function (idfirewall, idgroup, callback) {
 
 
 
-//Get policy_g by  id and firewall
-policy_gModel.getPolicy_g = function (idfirewall, id, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
-};
 
-//Get routing by name and firewall
-policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
+
+//Get policy_c by  id and firewall
+policy_cModel.getPolicy_c = function (idfirewall, rule, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var namesql = '%' + name + '%';
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-        
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -75,27 +44,25 @@ policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
 };
 
 
-
-//Add new policy_g from user
-policy_gModel.insertPolicy_g = function (policy_gData, callback) {
+//Add new policy_c from user
+policy_cModel.insertPolicy_c = function (policy_cData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE rule = ' + connection.escape(policy_cData.rule) + ' AND firewall=' + connection.escape(policy_cData.firewall);
         
         connection.query(sqlExists, function (error, row) {                        
-            if (row &&  row.length>0) {
-                logger.debug("GRUPO Existente: " + policy_gData.id );
-                callback(null, {"insertId": policy_gData.id});
+            if (row &&  row.length>0) {                
+                callback(null, {"insertId": policy_cData.id});
 
             } else {
-                sqlInsert='INSERT INTO ' + tableModel + ' SET firewall=' + policy_gData.firewall + ", name=" +  connection.escape(policy_gData.name) + ", comment=" + connection.escape(policy_gData.comment);
+                sqlInsert='INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + ", rule_compiled=" +  connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled);
                 connection.query(sqlInsert, function (error, result) {
                     if (error) {
                         callback(error, null);
                     } else {
                         //devolvemos la última id insertada
-                        logger.debug("CREADO nuevo GRUPO: " + result.insertId );
+                        logger.debug("CREADA nueva RULE COMPILED: " + result.insertId );
                         callback(null, {"insertId": result.insertId});
                     }
                 });
@@ -104,16 +71,16 @@ policy_gModel.insertPolicy_g = function (policy_gData, callback) {
     });
 };
 
-//Update policy_g from user
-policy_gModel.updatePolicy_g = function (policy_gData, callback) {
+//Update policy_c 
+policy_cModel.updatePolicy_c = function (policy_cData, callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_gData.name) + ',' +
-                'firewall = ' + connection.escape(policy_gData.firewall) + ',' +
-                'comment = ' + connection.escape(policy_gData.comment) + ' ' +
-                ' WHERE id = ' + policy_gData.id;
+        var sql = 'UPDATE ' + tableModel + ' SET rule_compiled = ' + connection.escape(policy_cData.rule_compiled) + ',' +
+                'firewall = ' + connection.escape(policy_cData.firewall) + ',' +
+                'status_compiled = ' + connection.escape(policy_cData.status_compiled) + ' ' +
+                ' WHERE rule = ' + policy_cData.rule;
         logger.debug(sql);
         connection.query(sql, function (error, result) {
             if (error) {
@@ -125,18 +92,17 @@ policy_gModel.updatePolicy_g = function (policy_gData, callback) {
     });
 };
 
-//Remove policy_g with id to remove
-//FALTA BORRADO EN CASCADA 
-policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
+//Remove policy_c with id to remove
+policy_cModel.deletePolicy_c = function (idfirewall, rule, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
-            //If exists Id from policy_g to remove
+            //If exists Id from policy_c to remove
             if (row) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
@@ -153,4 +119,4 @@ policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
 };
 
 //Export the object
-module.exports = policy_gModel;
+module.exports = policy_cModel;

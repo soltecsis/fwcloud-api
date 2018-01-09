@@ -401,7 +401,8 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                         'options = ' + connection.escape(policy_rData.options) + ',' +
                         'active = ' + connection.escape(policy_rData.active) + ',' +
                         'comment = ' + connection.escape(policy_rData.comment) + ', ' +
-                        'type = ' + connection.escape(type) + ' ' +
+                        'type = ' + connection.escape(type) + ', ' +
+                        'style = ' + connection.escape(policy_rData.style) + ' ' +
                         ' WHERE id = ' + policy_rData.id;
 
                 connection.query(sql, function (error, result) {
