@@ -142,7 +142,7 @@ interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
         if (error) {
             callback(error, null);
         } else {
-            if (data && data.result) {
+            if (data && data.length>0) {
                 var firewall = data[0].firewall;
                 logger.debug("firewall interface: " + firewall);
                 //SEARCH INTERFACE IN RULES I POSITIONS
@@ -197,7 +197,7 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
             callback(error, null);
         } else {
             logger.debug(data);
-            if (data && data.result) {
+            if (data && data.length>0) {
                 var firewall = data[0].firewall;
                 logger.debug("firewall interface: " + firewall);
 
