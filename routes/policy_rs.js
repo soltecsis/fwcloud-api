@@ -247,43 +247,63 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
     });
 });
 /* Update Style policy_r  */
-router.put('/policy-r/style/:idfirewall/:type/:id/:style', function (req, res)
-{
+router.put('/policy-r/style/:idfirewall/:type', function (req, res)
+{    
     //Save data into object
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
-    var id = req.params.id;
-    var style = req.params.style;
+    var JsonData = req.body.Data;    
     
-    Policy_rModel.updatePolicy_r_Style(idfirewall, id, style, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY STYLE', error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        else {
-            //If saved policy_r saved ok, get data
-            if (data && data.result)
-            {
-                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else
-            {
-                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        }
+    var style = JsonData.style;
+    var rulesIds = JsonData.rulesIds;
+
+
+    for (var rule of rulesIds) {
+        Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
+            logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+        });
+    }
+    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
+        res.status(200).json(jsonResp);
     });
+
+
+});
+
+/* Update Active policy_r  */
+router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
+{
+    logger.debug("BODY:");
+    logger.debug(req.body);
+    //Save data into object
+    var idfirewall = req.params.idfirewall;
+    var type = req.params.type;
+    var JsonData = req.body.Data;    
+    
+    var active = JsonData.active;
+    var rulesIds = JsonData.rulesIds;
+
+    if (active!==1)
+        active=0;
+
+    for (var rule of rulesIds) {
+        Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function (error, data) {
+            logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+        });
+    }
+    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function (jsonResp) {
+        res.status(200).json(jsonResp);
+    });
+
+
 });
 
 /* Copy or Move RULES */
 router.put('/policy-r/copy-rules', function (req, res)
 {
     try {
-        logger.debug("BODY:");
-        logger.debug(req.body);
+        //logger.debug("BODY:");
+        //logger.debug(req.body);
         var JsonCopyData = req.body;
         var copyData = JsonCopyData.rulesData;
 

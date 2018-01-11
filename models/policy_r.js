@@ -484,8 +484,8 @@ policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id,
                 });
             });        
 };
-//Update policy_r from user
-policy_rModel.updatePolicy_r_Style = function (firewall, id, style , callback) {
+//Update policy_r Style
+policy_rModel.updatePolicy_r_Style = function (firewall, id, type, style , callback) {
     
             db.get(function (error, connection) {
                 if (error)
@@ -493,7 +493,32 @@ policy_rModel.updatePolicy_r_Style = function (firewall, id, style , callback) {
 
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
                         'style = ' + connection.escape(style) + ' ' +                        
-                        ' WHERE id = ' + id + " and firewall=" + firewall;
+                        ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
+                
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        logger.error(error);
+                        callback(error, null);
+                    } else {
+                        if (result.affectedRows > 0) {
+                            callback(null, {"result": true});
+                        } else
+                            callback(null, {"result": false});
+                    }
+                });
+            });        
+};
+
+//Update policy_r Active
+policy_rModel.updatePolicy_r_Active = function (firewall, id, type, active , callback) {
+    
+            db.get(function (error, connection) {
+                if (error)
+                    callback(error, null);               
+
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'active = ' + connection.escape(active) + ' ' +                        
+                        ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
                 
                 connection.query(sql, function (error, result) {
                     if (error) {
