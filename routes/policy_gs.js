@@ -129,7 +129,7 @@ router.post("/policy-g", function (req, res)
                     var idGroup = data.insertId;
                     //Add rules to group
                     for (var rule of policy_gData.rulesIds) {
-                        Policy_rModel.updatePolicy_r_Group(policy_gData.firewall, idGroup, rule, function (error, data) {
+                        Policy_rModel.updatePolicy_r_Group(policy_gData.firewall,null, idGroup, rule, function (error, data) {
                             logger.debug("ADDED to Group " + idGroup + " POLICY: " + rule);
                         });
                     }
@@ -212,36 +212,56 @@ router.delete("/policy-g/:idfirewall/:id", function (req, res)
     });
 });
 
-/* Remove rule from policy_g */
-router.delete("/policy-g/:idfirewall/:id/:idrule", function (req, res)
+/* Remove rules from policy_g */
+router.delete("/policy-g/rules/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;
-    var id = req.params.id;
-    var idrule = req.params.idrule;
+    var idgroup = req.params.id;
 
-    //Remove group from Rules
-    Policy_rModel.updatePolicy_r_Group(idfirewall, null, idrule, function (error, data) {
-        logger.debug("Removed Policy " + idrule + " from Group " + id);
+    var JsonData = req.body;
+    var rulesIds = JsonData.rulesIds;
 
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+
+    removeRules(idfirewall, idgroup, rulesIds)
+            .then(r => {
+                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY GROUP', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            })
+            .catch(err => {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY GROUP', err, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        else {
+});
+
+async function removeRules(idfirewall, idgroup, rulesIds)
+{
+    for (let rule of rulesIds) {
+        await ruleRemove(idfirewall, idgroup, rule)
+                .then(r => logger.debug("OK RESULT DELETE: " + r))
+                .catch(err => logger.debug("ERROR Result: " + err));
+    }
+}
+
+function ruleRemove(idfirewall, idgroup, rule) {
+    return new Promise((resolve, reject) => {
+        Policy_rModel.updatePolicy_r_Group(idfirewall, idgroup, null, rule, function (error, data)
+        {
+            if (error)
+                reject(error);
+            else
             if (data && data.result)
             {
-                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                resolve(api_resp.ACR_DELETED_OK);
             } else
             {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                resolve(api_resp.ACR_NOTEXIST);
             }
-        }
+
+        });
     });
-});
+}
 
 module.exports = router;

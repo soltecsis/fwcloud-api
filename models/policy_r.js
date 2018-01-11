@@ -440,7 +440,7 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                         'idgroup = ' + connection.escape(idgroup) + ' ' +
                         ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) ;
                         //' AND rule_order=' + connection.escape(old_order);
-
+  
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -459,16 +459,18 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
 };
 
 //Update policy_r from user
-policy_rModel.updatePolicy_r_Group = function (firewall, idgroup, id,  callback) {
+policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id,  callback) {
     
             db.get(function (error, connection) {
                 if (error)
                     callback(error, null);               
 
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'idgroup = ' + connection.escape(idgroup) + ' ' +                        
-                        ' WHERE id = ' + id + " and firewall=" + firewall;
-                
+                        'idgroup = ' + connection.escape(newgroup) + ' ' +                        
+                        ' WHERE id = ' + id + " and firewall=" + firewall ;
+                if (oldgroup!==null)
+                    sql +=  "  AND idgroup=" + oldgroup;
+                logger.debug(sql);
                 connection.query(sql, function (error, result) {
                     if (error) {
                         logger.error(error);

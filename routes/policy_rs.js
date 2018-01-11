@@ -392,7 +392,7 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                                         }
                                     });
                                 } else {
-                                    Policy_rModel.updatePolicy_r_Group(idfirewall, idgroupDest, ruletoMoveid, function (error, data)
+                                    Policy_rModel.updatePolicy_r_Group(idfirewall, null, idgroupDest, ruletoMoveid, function (error, data)
                                     {
                                         if (error)
                                             reject("Error Orderning");
@@ -403,7 +403,7 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                                                 resolve(data);
                                             } else
                                             {
-                                                reject("ERROR updating order");
+                                                reject("ERROR updating Group");
                                             }
                                         }
                                     });
