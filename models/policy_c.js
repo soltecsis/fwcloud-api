@@ -40,7 +40,7 @@ policy_cModel.getPolicy_cs_type = function (idfirewall, type, callback) {
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + ' ORDER BY R.rule_order';
           
-          logger.debug(sql);
+         
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
