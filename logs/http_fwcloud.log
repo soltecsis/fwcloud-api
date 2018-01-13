@@ -78,3 +78,5 @@
 [2018-01-13 18:25:56.107] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/3/809 HTTP/1.1" 220 267 "" "PostmanRuntime/7.1.1"
 [2018-01-13 18:27:48.417] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/3/796 HTTP/1.1" 220 266 "" "PostmanRuntime/7.1.1"
 [2018-01-13 18:27:54.218] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/3/796 HTTP/1.1" 220 266 "" "PostmanRuntime/7.1.1"
+[2018-01-13 18:39:41.675] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/3/796 HTTP/1.1" 220 266 "" "PostmanRuntime/7.1.1"
+[2018-01-13 18:39:44.379] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/3/796 HTTP/1.1" 220 266 "" "PostmanRuntime/7.1.1"

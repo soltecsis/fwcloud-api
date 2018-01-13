@@ -161,28 +161,24 @@ RuleCompileModel.pre_compile = (data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 	Policy_rModel.getPolicy_rs_type(cloud, fw, type, rule, (error, data) => {
-		// If all goes fine.
-		//res.status(220).json({data});
-
-		if (!data) {
-			res.status(404).json({"msg": "Rule data not found."});
-			return;
-		}
+		//if (!data) {
+		//	res.status(404).json({"msg": "Rule data not found."});
+		//	return;
+		//}
 
 		const policy_type = data[0].type;
-		if (!policy_type || (policy_type !== POLICY_TYPE_INPUT && policy_type !== POLICY_TYPE_OUTPUT && policy_type !== POLICY_TYPE_FORWARD)) {
-			res.status(404).json({"msg": "Invalid policy type."});
-			return;
-		}
+		//if (!policy_type || (policy_type !== POLICY_TYPE_INPUT && policy_type !== POLICY_TYPE_OUTPUT && policy_type !== POLICY_TYPE_FORWARD)) {
+		//	res.status(404).json({"msg": "Invalid policy type."});
+		//	return;
+		//}
 
 		const action = ACTION[data[0].action];
-		// Verify that recevied data is correct.
-		if (data.length != 1 || !(data[0].positions)
-				|| !(data[0].positions[0].ipobjs) || !(data[0].positions[1].ipobjs) || !(data[0].positions[2].ipobjs)
-				|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].ipobjs))) {
-			res.status(404).json({"msg": "Bad rule data."});
-			return;
-		}
+		//if (data.length != 1 || !(data[0].positions)
+		//		|| !(data[0].positions[0].ipobjs) || !(data[0].positions[1].ipobjs) || !(data[0].positions[2].ipobjs)
+		//		|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].ipobjs))) {
+		//	res.status(404).json({"msg": "Bad rule data."});
+		//	return;
+		//}
 
 		const position_items = RuleCompileModel.pre_compile(data);
 		// Compile string.
