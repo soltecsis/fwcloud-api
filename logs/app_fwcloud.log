@@ -185,3 +185,206 @@ Cannot read property 'idgroup' of undefined
 [2017-05-11 11:40:38.556] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
 [2017-05-11 11:54:24.256] [DEBUG] app - MOSTRANDO POLICY para firewall: 1
 [2017-05-11 12:23:11.044] [ERROR] app - Something went wrong:  Not Found
+[2018-01-13 17:15:41.857] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 17:15:41.865] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 17:15:41.865] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '375d6ad8-0573-4cca-88fb-25b340439bae',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 17:15:41.867] [DEBUG] app - --------------------------------------------------
+[2018-01-13 17:15:41.925] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 17:15:41.969] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 17:15:42.094] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 17:15:42.094] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 17:15:42.181] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 17:15:42.226] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 17:15:42.226] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 17:15:42.268] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 17:15:42.269] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 17:15:42.703] [DEBUG] app - CREADA nueva RULE COMPILED: 0
+[2018-01-13 17:58:21.118] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:00:23.102] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:00:23.106] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:00:23.106] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '9911552c-6cdf-40b6-be15-d27b4a55c844',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:00:23.108] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:01:10.195] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 18:01:10.246] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 18:01:10.339] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:01:10.340] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:01:10.424] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:01:10.466] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:01:10.467] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:01:10.508] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:01:10.509] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:07:37.698] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:08:28.623] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:08:28.628] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:08:28.628] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '10823b92-b870-47c8-9908-6b68a5ebcc66',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AL9UGo-5wFYTjhZ555xSJyxGe4DNG3mjk.D%2FD588MicmmyobssU98TCh3hRNbQAgdYcYH2C%2FqP2hA',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:08:28.631] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:08:28.647] [ERROR] app - Something went wrong:  Cannot read property 'escape' of null
+[2018-01-13 18:09:08.918] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:09:42.897] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:09:42.904] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:09:42.904] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '7ce011ba-4031-474a-965c-bab5e3ad1f94',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:09:42.907] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:09:53.897] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 18:09:53.943] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 18:09:54.055] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:09:54.056] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:09:54.141] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:09:54.183] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:09:54.184] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:09:54.224] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:09:54.225] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:21:24.067] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:21:24.071] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:21:24.071] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '3fdc2655-3a93-40eb-a609-01b93e0c2fb1',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:21:24.074] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:21:24.126] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 18:21:24.170] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 18:21:24.257] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:21:24.258] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:21:24.347] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:21:24.388] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:21:24.389] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:21:24.429] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:21:24.429] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:22:38.249] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:22:38.257] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:22:38.258] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'ab969f5b-b2af-43c1-ab14-24a0c713fb6e',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AY89TdJybZA5ofiocrZuARJTHq3NqOKiH.Jbw6q%2FJog9Hcxb8jQrukcCmuwK3H80aVrClApb4cJRo',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:22:38.260] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:22:38.314] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 18:22:38.449] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 18:22:38.536] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:22:38.537] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:22:38.623] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:22:38.665] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:22:38.666] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:22:38.708] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:22:38.708] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:25:39.066] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:25:39.069] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:25:39.069] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '346bb0f3-ecd2-4652-8ec0-89e71e7f6489',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:25:39.071] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:25:39.126] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-01-13 18:25:39.171] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 45
+[2018-01-13 18:25:39.257] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1928  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:25:39.258] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1473  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:25:39.343] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:25:39.386] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:25:39.387] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:25:39.428] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:25:39.428] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:27:41.463] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:27:41.467] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:27:41.468] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '95e1247d-b534-4b21-bfda-1aef80cad347',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:27:41.470] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:27:41.525] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-01-13 18:27:41.572] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 46
+[2018-01-13 18:27:41.661] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:41.661] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1478  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:27:41.703] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:41.703] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1529  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:27:41.746] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:41.791] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:27:41.792] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:27:41.833] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:27:41.834] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:27:41.922] [DEBUG] app - SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ipobj G inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud='1' OR T.fwcloud IS NULL)  WHERE  (G.fwcloud= '1' OR G.fwcloud is null)  AND G.id = 1478
+[2018-01-13 18:27:42.175] [DEBUG] app -  ---> DENTRO de HOST: 1478 NAME: PC-CARLES
+[2018-01-13 18:27:42.219] [DEBUG] app - --> DENTRO de INTERFACE id:63  Name:eth0  Type:11
+[2018-01-13 18:27:42.220] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=63 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:42.220] [DEBUG] app - --> DENTRO de INTERFACE id:331  Name:eth1  Type:11
+[2018-01-13 18:27:42.220] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=331 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:42.220] [DEBUG] app - --> DENTRO de INTERFACE id:332  Name:eth2  Type:11
+[2018-01-13 18:27:42.220] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=332 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:42.221] [DEBUG] app - --> DENTRO de INTERFACE id:334  Name:eth3  Type:11
+[2018-01-13 18:27:42.221] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=334 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:42.265] [DEBUG] app - --> DENTRO de OBJECT id:1515  Name:PC-CARLES:eth0  Type:5
+[2018-01-13 18:27:42.352] [DEBUG] app - --> DENTRO de OBJECT id:1934  Name:Address2  Type:5
+[2018-01-13 18:27:42.404] [DEBUG] app - --> DENTRO de OBJECT id:1932  Name:Address3  Type:5
+[2018-01-13 18:27:42.404] [DEBUG] app - --> DENTRO de OBJECT id:1933  Name:Address33  Type:5
+[2018-01-13 18:27:48.627] [DEBUG] app - CREADA nueva RULE COMPILED: 0
+[2018-01-13 18:27:53.307] [DEBUG] app - ORIGIN: undefined
+[2018-01-13 18:27:53.308] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-13 18:27:53.308] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '38fa2da0-f8f5-4aab-88f0-5ef1d693f609',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3ADx89mb7AJA1Kxo43kNyLQloGYStoV7qY.EuI4JJbXSfBDvhz2uExXMa0ASI0ZrtkGukWNFmd5qrA',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-01-13 18:27:53.308] [DEBUG] app - --------------------------------------------------
+[2018-01-13 18:27:53.366] [DEBUG] app - SELECT P.*, G.name as group_name FROM policy_r P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-01-13 18:27:53.408] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 46
+[2018-01-13 18:27:53.490] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:53.491] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1478  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:27:53.532] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:53.533] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1529  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-01-13 18:27:53.574] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-01-13 18:27:53.615] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:27:53.615] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:27:53.657] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-01-13 18:27:53.657] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-01-13 18:27:53.741] [DEBUG] app - SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ipobj G inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud='1' OR T.fwcloud IS NULL)  WHERE  (G.fwcloud= '1' OR G.fwcloud is null)  AND G.id = 1478
+[2018-01-13 18:27:53.994] [DEBUG] app -  ---> DENTRO de HOST: 1478 NAME: PC-CARLES
+[2018-01-13 18:27:54.037] [DEBUG] app - --> DENTRO de INTERFACE id:63  Name:eth0  Type:11
+[2018-01-13 18:27:54.038] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=63 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:54.038] [DEBUG] app - --> DENTRO de INTERFACE id:331  Name:eth1  Type:11
+[2018-01-13 18:27:54.038] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=331 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:54.038] [DEBUG] app - --> DENTRO de INTERFACE id:332  Name:eth2  Type:11
+[2018-01-13 18:27:54.038] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=332 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:54.039] [DEBUG] app - --> DENTRO de INTERFACE id:334  Name:eth3  Type:11
+[2018-01-13 18:27:54.039] [DEBUG] app - SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ipobj I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud='1' OR T.fwcloud IS NULL) inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21 WHERE I.interface=334 AND (I.fwcloud='1' OR I.fwcloud IS NULL) ORDER BY I.id
+[2018-01-13 18:27:54.082] [DEBUG] app - --> DENTRO de OBJECT id:1515  Name:PC-CARLES:eth0  Type:5
+[2018-01-13 18:27:54.165] [DEBUG] app - --> DENTRO de OBJECT id:1934  Name:Address2  Type:5
+[2018-01-13 18:27:54.208] [DEBUG] app - --> DENTRO de OBJECT id:1932  Name:Address3  Type:5
+[2018-01-13 18:27:54.208] [DEBUG] app - --> DENTRO de OBJECT id:1933  Name:Address33  Type:5

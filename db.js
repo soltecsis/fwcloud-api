@@ -17,9 +17,12 @@ var conn= null;
 exports.connect = function (mode, done) {
   state.pool = mysql.createPool({
     connectionLimit : 100,
-    host: 'localhost',
-    user: 'soltecsis',
-    password: 'WdQ?:(x4',
+    //host: 'localhost',
+    //user: 'soltecsis',
+    //password: 'WdQ?:(x4',
+    host: '10.99.5.101',
+    user: 'fwclouddevel',
+    password: 'ZEBmJyQtnyhT8kWG7dShb9',
     database: mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
 
   });
