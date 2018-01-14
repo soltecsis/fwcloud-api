@@ -7,6 +7,14 @@
 var Policy_rModel = require('../../models/policy_r');
 
 /**
+ * Property Model to manage Policy Compiled Data
+ *
+ * @property Policy_cModel
+ * @type /models/policy_c
+ */
+var Policy_cModel = require('../../models/policy_c');
+
+/**
  * Property Logger to manage App logs
  *
  * @property logger
@@ -226,9 +234,37 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			cs += cs_trail;
 		}
 
+		//Save compilation
+    var policy_cData = {
+      rule: rule,
+      firewall: fw,
+      rule_compiled: cs,
+      status_compiled: 1
+    };
+        
+    Policy_cModel.insertPolicy_c(policy_cData, (error, data) => {
+		});
+		
 		callback(cs);
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+/* Get the rule compilation string or compile it if this string is not uptodate.
+/*----------------------------------------------------------------------------------------------------------------------*/
+RuleCompileModel.get_rule_compile = (cloud, fw, type, rule, callback) => {
+	Policy_cModel.getPolicy_c(fw, rule, (error, data) => {
+		if (data[0].c_status_recompile === 0)
+			callback(data[0].c_compiled);
+		else {
+			RuleCompileModel.rule_compile(cloud, fw, type, rule, (cs) => {
+				callback(cs);
+			});
+		}
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
 
 module.exports = RuleCompileModel;
