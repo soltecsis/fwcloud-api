@@ -15,5 +15,6 @@ nbproject/private/
 .vscode/
 nbproject/
 
-
+routes/xml
+*.fwb
 
