@@ -44,7 +44,7 @@ policy_rModel.getPolicy_rs = function (idfirewall, idgroup, callback) {
 //Get All policy_r by firewall and type
 policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, AllDone) {
 
-     
+
     var policy = [];
     var policy_cont = 0;
     var position_cont = 0;
@@ -288,42 +288,40 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        
+
         var sql = 'SELECT P.*, (select MAX(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as max_order, ' +
-            ' (select MIN(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as min_order ' +
-            ' FROM ' + tableModel + ' P WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);   
-    
+                ' (select MIN(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as min_order ' +
+                ' FROM ' + tableModel + ' P WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);
+
         connection.query(sql, function (error, row) {
-            if (error){
+            if (error) {
                 logger.debug(error);
                 callback(error, null);
-            }
-            else
+            } else
                 callback(null, row);
         });
     });
 };
 
 //Get policy_r  GROUP by  NEXT or Previous RULE
-policy_rModel.getPolicy_r_DestGroup = function (idfirewall, offset, order, type,  callback) {
+policy_rModel.getPolicy_r_DestGroup = function (idfirewall, offset, order, type, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        
-        if (offset>0) 
+
+        if (offset > 0)
             order++;
-        else 
+        else
             order--;
-        
-        var sql = 'SELECT idgroup ' +  
-            ' FROM ' + tableModel + '  WHERE rule_order = ' + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);   
-        
+
+        var sql = 'SELECT idgroup ' +
+                ' FROM ' + tableModel + '  WHERE rule_order = ' + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+
         connection.query(sql, function (error, row) {
-            if (error){
+            if (error) {
                 logger.debug(error);
                 callback(error, null);
-            }
-            else
+            } else
                 callback(null, row);
         });
     });
@@ -438,9 +436,9 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
                         'rule_order = ' + connection.escape(new_order) + ', ' +
                         'idgroup = ' + connection.escape(idgroup) + ' ' +
-                        ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type) ;
-                        //' AND rule_order=' + connection.escape(old_order);
-  
+                        ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type);
+                //' AND rule_order=' + connection.escape(old_order);
+
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -459,104 +457,106 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
 };
 
 //Update policy_r from user
-policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id,  callback) {
-    
-            db.get(function (error, connection) {
-                if (error)
-                    callback(error, null);               
+policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id, callback) {
 
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'idgroup = ' + connection.escape(newgroup) + ' ' +                        
-                        ' WHERE id = ' + id + " and firewall=" + firewall ;
-                if (oldgroup!==null)
-                    sql +=  "  AND idgroup=" + oldgroup;
-                logger.debug(sql);
-                connection.query(sql, function (error, result) {
-                    if (error) {
-                        logger.error(error);
-                        callback(error, null);
-                    } else {
-                        if (result.affectedRows > 0) {
-                            callback(null, {"result": true});
-                        } else
-                            callback(null, {"result": false});
-                    }
-                });
-            });        
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'idgroup = ' + connection.escape(newgroup) + ' ' +
+                ' WHERE id = ' + id + " and firewall=" + firewall;
+        if (oldgroup !== null)
+            sql += "  AND idgroup=" + oldgroup;
+        logger.debug(sql);
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.error(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    callback(null, {"result": true});
+                } else
+                    callback(null, {"result": false});
+            }
+        });
+    });
 };
 //Update policy_r Style
-policy_rModel.updatePolicy_r_Style = function (firewall, id, type, style , callback) {
-    
-            db.get(function (error, connection) {
-                if (error)
-                    callback(error, null);               
+policy_rModel.updatePolicy_r_Style = function (firewall, id, type, style, callback) {
 
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'style = ' + connection.escape(style) + ' ' +                        
-                        ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-                
-                connection.query(sql, function (error, result) {
-                    if (error) {
-                        logger.error(error);
-                        callback(error, null);
-                    } else {
-                        if (result.affectedRows > 0) {
-                            callback(null, {"result": true});
-                        } else
-                            callback(null, {"result": false});
-                    }
-                });
-            });        
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'style = ' + connection.escape(style) + ' ' +
+                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
+
+        connection.query(sql, function (error, result) {
+            if (error) {
+                //db.backTX(connection);
+                logger.error(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    callback(null, {"result": true});
+                } else
+                    callback(null, {"result": false});
+            }
+        });
+    });
 };
 
 //Update policy_r Active
-policy_rModel.updatePolicy_r_Active = function (firewall, id, type, active , callback) {
-    
-            db.get(function (error, connection) {
-                if (error)
-                    callback(error, null);               
+policy_rModel.updatePolicy_r_Active = function (firewall, id, type, active, callback) {
 
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'active = ' + connection.escape(active) + ' ' +                        
-                        ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-                
-                connection.query(sql, function (error, result) {
-                    if (error) {
-                        logger.error(error);
-                        callback(error, null);
-                    } else {
-                        if (result.affectedRows > 0) {
-                            callback(null, {"result": true});
-                        } else
-                            callback(null, {"result": false});
-                    }
-                });
-            });        
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'active = ' + connection.escape(active) + ' ' +
+                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
+
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.error(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    callback(null, {"result": true});
+                } else
+                    callback(null, {"result": false});
+            }
+        });
+
+    });
 };
 
 //Update policy_r from user
-policy_rModel.updatePolicy_r_GroupAll = function (firewall,idgroup, callback) {
-    
-            db.get(function (error, connection) {
-                if (error)
-                    callback(error, null);               
+policy_rModel.updatePolicy_r_GroupAll = function (firewall, idgroup, callback) {
 
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
-                        'idgroup = NULL' + ' ' +                        
-                        ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
 
-                connection.query(sql, function (error, result) {
-                    if (error) {
-                        logger.error(error);
-                        callback(error, null);
-                    } else {
-                        if (result.affectedRows > 0) {
-                            callback(null, {"result": true});
-                        } else
-                            callback(null, {"result": false});
-                    }
-                });
-            });        
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'idgroup = NULL' + ' ' +
+                ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
+
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.error(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    callback(null, {"result": true});
+                } else
+                    callback(null, {"result": false});
+            }
+        });
+    });
 };
 
 
@@ -577,7 +577,7 @@ function OrderList(new_order, idfirewall, old_order, id) {
                 'rule_order = rule_order' + increment +
                 ' WHERE firewall = ' + connection.escape(idfirewall) +
                 ' AND rule_order>=' + order1 + ' AND rule_order<=' + order2 +
-                ' AND id<>' + connection.escape(id);        
+                ' AND id<>' + connection.escape(id);
         connection.query(sql);
 
     });
@@ -586,16 +586,16 @@ function OrderList(new_order, idfirewall, old_order, id) {
 ;
 
 //Remove policy_r with id to remove
-policy_rModel.deletePolicy_r = function (idfirewall, id,  callback) {
+policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) ;
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from policy_r to remove
-            if (row && row.length>0) {
-                var rule_order= row[0].rule_order;
+            if (row && row.length > 0) {
+                var rule_order = row[0].rule_order;
                 logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall + "  ORDER: " + rule_order);
                 //DELETE FROM policy_r__ipobj
                 Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
@@ -610,7 +610,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id,  callback) {
                                 callback(error, null);
                             else {
                                 db.get(function (error, connection) {
-                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) ;
+                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
                                     connection.query(sql, function (error, result) {
                                         if (error) {
                                             logger.debug(error);

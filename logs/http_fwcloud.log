@@ -93,3 +93,8 @@
 [2018-01-14 16:53:22.205] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/1/777 HTTP/1.1" 220 578 "" "PostmanRuntime/7.1.1"
 [2018-01-14 16:53:23.101] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/1/777 HTTP/1.1" 220 578 "" "PostmanRuntime/7.1.1"
 [2018-01-14 16:53:24.006] [INFO] http - ::1 - - "GET /policy/compile/1/1/69/1/777 HTTP/1.1" 220 578 "" "PostmanRuntime/7.1.1"
+[2018-01-15 13:07:18.919] [ERROR] http - ::ffff:127.0.0.1 - - "GET /favicon.ico HTTP/1.1" 404 1895 "" "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0"
+[2018-01-15 13:07:19.666] [ERROR] http - ::ffff:127.0.0.1 - - "GET /favicon.ico HTTP/1.1" 404 1895 "" "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0"
+[2018-01-15 13:07:19.688] [ERROR] http - ::ffff:127.0.0.1 - - "GET /favicon.ico HTTP/1.1" 404 1895 "" "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0"
+[2018-01-15 13:07:21.246] [WARN] http - ::ffff:127.0.0.1 - - "GET /fwc-tree/firewalls/1/1 HTTP/1.1" 304 - "" "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0"
+[2018-01-15 13:24:34.115] [INFO] http - ::1 - - "PUT /policy-rs/policy-r/activate/69/3 HTTP/1.1" 200 174 "" "PostmanRuntime/7.1.1"

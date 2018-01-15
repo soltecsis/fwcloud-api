@@ -233,7 +233,7 @@ app.use('/policy/install', policy_install);
 
 
 // Connect to MySQL on start
-db.connect(db.MODE_PRODUCTION,1, function(err) {
+db.connect( function(err) {
   if (err) {
     console.log('Unable to connect to MySQL.');
     process.exit(1);

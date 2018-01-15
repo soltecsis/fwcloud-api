@@ -3,13 +3,12 @@ var router = express.Router();
 var Policy_rModel = require('../models/policy_r');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
-
+var db = require('../db.js');
 var utilsModel = require("../utils/utils.js");
 var api_resp = require('../utils/api_response');
 //var asyncMod = require('async');
 var objModel = 'POLICY';
 var logger = require('log4js').getLogger("app");
-
 /* Get all policy_rs by firewall and group*/
 router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
 {
@@ -248,55 +247,52 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
 });
 /* Update Style policy_r  */
 router.put('/policy-r/style/:idfirewall/:type', function (req, res)
-{    
+{
     //Save data into object
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
-    var JsonData = req.body.Data;    
-    
+    var JsonData = req.body.Data;
     var style = JsonData.style;
     var rulesIds = JsonData.rulesIds;
-
-
     for (var rule of rulesIds) {
         Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
             logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
         });
     }
+
     api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
         res.status(200).json(jsonResp);
     });
-
-
 });
 
 /* Update Active policy_r  */
 router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
 {
-    logger.debug("BODY:");
-    logger.debug(req.body);
     //Save data into object
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
-    var JsonData = req.body.Data;    
-    
+    var JsonData = req.body.Data;
     var active = JsonData.active;
     var rulesIds = JsonData.rulesIds;
+    if (active !== 1)
+        active = 0;
 
-    if (active!==1)
-        active=0;
-
-    for (var rule of rulesIds) {
-        Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function (error, data) {
-            logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+    db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function () {
+        db.startTXcon(function () {
+            for (var rule of rulesIds) {
+                Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function (error, data) {
+                    logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+                });
+            }            
+        db.endTXcon(function () {});
+            
         });
-    }
-    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function (jsonResp) {
-        res.status(200).json(jsonResp);
+        api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
     });
-
-
 });
+
 
 /* Copy or Move RULES */
 router.put('/policy-r/copy-rules', function (req, res)
@@ -306,12 +302,11 @@ router.put('/policy-r/copy-rules', function (req, res)
         //logger.debug(req.body);
         var JsonCopyData = req.body;
         var copyData = JsonCopyData.rulesData;
-
         var idfirewall = copyData.firewall;
         var fwcloud = copyData.fwcloud;
         var pasteOnRuleId = copyData.pasteOnRuleId;
         var pasteOffset = copyData.pasteOffset;
-        var action = copyData.action;  // 1--> Copy rules , 2--> Move rules
+        var action = copyData.action; // 1--> Copy rules , 2--> Move rules
         //Buscamos datos de regla Destino
 
 
@@ -328,15 +323,12 @@ router.put('/policy-r/copy-rules', function (req, res)
                         res.status(200).json(jsonResp);
                     });
                 });
-
-
     } catch (e) {
         api_resp.getJson(null, api_resp.ACR_ERROR, 'Error Parsing Json', 'POLICY', e, function (jsonResp) {
             res.status(200).json(jsonResp);
         });
     }
 });
-
 async function mainCopyMove(idfirewall, rulesIds, pasteOnRuleId, pasteOffset, action) {
 
 
@@ -367,10 +359,10 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                 logger.debug("---->POLICY DESTINO Id: " + pasteOnRuleId + " GROUP:" + data_dest[0].idgroup + "  ORDER: " + data_dest[0].rule_order + "  MAX ORDER: " + data_dest[0].max_order + "  MIN ORDER: " + data_dest[0].min_order + "  OFFSET: " + pasteOffset);
                 if ((data_dest[0].rule_order === data_dest[0].max_order && pasteOffset > 0 && pasteOnRuleId === ruletoMoveid))
                 {
-                    //logger.debug();
+
                     reject("MAX ORDER " + data_dest[0].max_order + " REACHED POLICY Id: " + ruletoMoveid);
                 } else if ((data_dest[0].rule_order === data_dest[0].min_order && pasteOffset < 0 && pasteOnRuleId === ruletoMoveid)) {
-                    //logger.debug();
+
                     reject("MIN ORDER " + data_dest[0].min_order + "  REACHED POLICY Id: " + ruletoMoveid);
                 } else {
                     //Get Group Next Rule                    
@@ -384,7 +376,6 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                             {
                                 let old_order = data[0].rule_order;
                                 let new_order = data_dest[0].rule_order + (inc * pasteOffset);
-
                                 var idgroupDest = data[0].idgroup;
                                 //If exists policy_r get data
                                 if (dataG && dataG.length > 0)
@@ -432,9 +423,7 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
                                 reject("NOT FOUND POLICY Id: " + ruletoMoveid);
                             }
                         });
-
                     });
-
                 }
             } else
             {
@@ -463,7 +452,6 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                             new_order += (inc * pasteOffset);
                         else if (old_order > new_order && pasteOffset < 0)
                             new_order = data_dest[0].rule_order;
-
                         logger.debug("DUPLICANDO POLICY Id: " + id + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order);
                         //Create New objet with data policy_r
                         var policy_rData = {
@@ -479,7 +467,6 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                             comment: data[0].comment,
                             type: data[0].type
                         };
-
                         Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
                         {
                             if (error)
@@ -540,10 +527,8 @@ router.delete("/policy-r/:iduser/:idfirewall", function (req, res)
     //Id from policy_r to remove
     var iduser = req.params.idfirewall;
     var idfirewall = req.params.idfirewall;
-
     var JsonData = req.body;
     var rulesIds = JsonData.rulesIds;
-
     removeRules(idfirewall, rulesIds)
             .then(r => {
                 api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, function (jsonResp) {
@@ -555,9 +540,7 @@ router.delete("/policy-r/:iduser/:idfirewall", function (req, res)
                     res.status(200).json(jsonResp);
                 });
             });
-
 });
-
 async function removeRules(idfirewall, rulesIds)
 {
     for (let rule of rulesIds) {

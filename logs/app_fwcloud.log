@@ -758,3 +758,124 @@ Cannot read property 'idgroup' of undefined
   'accept-encoding': 'gzip, deflate',
   connection: 'keep-alive' }
 [2018-01-14 16:53:23.959] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:07:11.068] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-01-15 13:07:18.891] [DEBUG] app - ORIGIN: undefined
+[2018-01-15 13:07:18.893] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-15 13:07:18.893] [DEBUG] app - { host: 'localhost:3000',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0',
+  accept: '*/*',
+  'accept-language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+  'accept-encoding': 'gzip, deflate',
+  cookie: 'sessions=%7B%7D; GUID=YCN3q5i790TY1VPSjZso',
+  connection: 'keep-alive' }
+[2018-01-15 13:07:18.896] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:07:18.902] [ERROR] app - Something went wrong:  Not Found
+[2018-01-15 13:07:19.660] [DEBUG] app - ORIGIN: undefined
+[2018-01-15 13:07:19.661] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-15 13:07:19.661] [DEBUG] app - { host: 'localhost:3000',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0',
+  accept: '*/*',
+  'accept-language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+  'accept-encoding': 'gzip, deflate',
+  cookie: 'sessions=%7B%7D; GUID=YCN3q5i790TY1VPSjZso; connect.sid=s%3ALA0NK2EyGUMbQqHlKcZ9LTuGA6-fxbzm.jQKpMJF8f6YWsW01TG0g2AnTM468Bi8P1bUWbhar3Zc',
+  connection: 'keep-alive' }
+[2018-01-15 13:07:19.661] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:07:19.662] [ERROR] app - Something went wrong:  Not Found
+[2018-01-15 13:07:19.686] [DEBUG] app - ORIGIN: undefined
+[2018-01-15 13:07:19.686] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-15 13:07:19.686] [DEBUG] app - { host: 'localhost:3000',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0',
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'accept-language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+  'accept-encoding': 'gzip, deflate',
+  cookie: 'sessions=%7B%7D; GUID=YCN3q5i790TY1VPSjZso; connect.sid=s%3ALA0NK2EyGUMbQqHlKcZ9LTuGA6-fxbzm.jQKpMJF8f6YWsW01TG0g2AnTM468Bi8P1bUWbhar3Zc',
+  connection: 'keep-alive' }
+[2018-01-15 13:07:19.686] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:07:19.686] [ERROR] app - Something went wrong:  Not Found
+[2018-01-15 13:07:21.137] [DEBUG] app - ORIGIN: undefined
+[2018-01-15 13:07:21.138] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-15 13:07:21.138] [DEBUG] app - { host: 'localhost:3000',
+  'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0',
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'accept-language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
+  'accept-encoding': 'gzip, deflate',
+  cookie: 'sessions=%7B%7D; GUID=YCN3q5i790TY1VPSjZso; connect.sid=s%3ALA0NK2EyGUMbQqHlKcZ9LTuGA6-fxbzm.jQKpMJF8f6YWsW01TG0g2AnTM468Bi8P1bUWbhar3Zc',
+  connection: 'keep-alive',
+  'upgrade-insecure-requests': '1',
+  'if-none-match': 'W/"1b79-trvVx3/QUUh08J1tMv0etpmoEPk"',
+  'cache-control': 'max-age=0' }
+[2018-01-15 13:07:21.138] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:07:21.141] [DEBUG] app - SELECT T.* FROM fwc_tree T inner join fwcloud C on C.id=T.fwcloud  inner join firewall F on F.fwcloud=C.id  inner join user__firewall U on U.id_firewall=F.id  WHERE  T.fwcloud='1'  AND T.node_type='FDF' AND T.id_parent=0  AND U.id_user='1' AND U.allow_access=1  ORDER BY T.id limit 1
+[2018-01-15 13:07:21.185] [DEBUG] app - [ RowDataPacket {
+    id: 1,
+    name: 'FIREWALLS',
+    comment: '',
+    id_parent: 0,
+    node_level: 1,
+    node_order: 1,
+    node_icon: null,
+    node_type: 'FDF',
+    expanded: 0,
+    subfolders: 0,
+    api_call: null,
+    id_obj: null,
+    obj_type: null,
+    fwcloud: 1 } ]
+[2018-01-15 13:07:21.186] [DEBUG] app - true
+[2018-01-15 13:07:21.186] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=1 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.188] [DEBUG] app - ---> DENTRO de PADRE: 1  NODE TYPE: FDF
+[2018-01-15 13:07:21.190] [DEBUG] app - -------> LLAMANDO A HIJO: 15   Node Type: FW
+[2018-01-15 13:07:21.191] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=15 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.192] [DEBUG] app - ---> DENTRO de PADRE: 15  NODE TYPE: FW
+[2018-01-15 13:07:21.193] [DEBUG] app - -------> LLAMANDO A HIJO: 17   Node Type: FP
+[2018-01-15 13:07:21.193] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=17 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.195] [DEBUG] app - ---> DENTRO de PADRE: 17  NODE TYPE: FP
+[2018-01-15 13:07:21.198] [DEBUG] app - -------> LLAMANDO A HIJO: 18   Node Type: NT
+[2018-01-15 13:07:21.198] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=18 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.199] [DEBUG] app - ---> DENTRO de PADRE: 18  NODE TYPE: NT
+[2018-01-15 13:07:21.203] [DEBUG] app - -------> LLAMANDO A HIJO: 16   Node Type: FW
+[2018-01-15 13:07:21.203] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=16 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.204] [DEBUG] app - ---> DENTRO de PADRE: 16  NODE TYPE: FW
+[2018-01-15 13:07:21.206] [DEBUG] app - -------> LLAMANDO A HIJO: 21   Node Type: FP
+[2018-01-15 13:07:21.206] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=21 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.208] [DEBUG] app - ---> DENTRO de PADRE: 21  NODE TYPE: FP
+[2018-01-15 13:07:21.211] [DEBUG] app - -------> LLAMANDO A HIJO: 22   Node Type: NT
+[2018-01-15 13:07:21.211] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=22 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.212] [DEBUG] app - ---> DENTRO de PADRE: 22  NODE TYPE: NT
+[2018-01-15 13:07:21.217] [DEBUG] app - -------> LLAMANDO A HIJO: 24   Node Type: FDI
+[2018-01-15 13:07:21.217] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=24 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.219] [DEBUG] app - ---> DENTRO de PADRE: 24  NODE TYPE: FDI
+[2018-01-15 13:07:21.221] [DEBUG] app - -------> LLAMANDO A HIJO: 228   Node Type: IFF
+[2018-01-15 13:07:21.221] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=228 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.222] [DEBUG] app - ---> DENTRO de PADRE: 228  NODE TYPE: IFF
+[2018-01-15 13:07:21.226] [DEBUG] app - -------> LLAMANDO A HIJO: 229   Node Type: IFF
+[2018-01-15 13:07:21.226] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=229 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.226] [DEBUG] app - ---> DENTRO de PADRE: 229  NODE TYPE: IFF
+[2018-01-15 13:07:21.228] [DEBUG] app - -------> LLAMANDO A HIJO: 230   Node Type: IFF
+[2018-01-15 13:07:21.228] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=230 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.229] [DEBUG] app - ---> DENTRO de PADRE: 230  NODE TYPE: IFF
+[2018-01-15 13:07:21.235] [DEBUG] app - -------> LLAMANDO A HIJO: 231   Node Type: IFF
+[2018-01-15 13:07:21.235] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=231 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.237] [DEBUG] app - ---> DENTRO de PADRE: 231  NODE TYPE: IFF
+[2018-01-15 13:07:21.239] [DEBUG] app - -------> LLAMANDO A HIJO: 232   Node Type: IFF
+[2018-01-15 13:07:21.239] [DEBUG] app - SELECT * FROM fwc_tree WHERE id_parent=232 AND (fwcloud=1 OR fwcloud is null OR (id_obj is null AND fwcloud=1))  ORDER BY node_order
+[2018-01-15 13:07:21.240] [DEBUG] app - ---> DENTRO de PADRE: 232  NODE TYPE: IFF
+[2018-01-15 13:23:49.140] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-01-15 13:24:34.085] [DEBUG] app - ORIGIN: undefined
+[2018-01-15 13:24:34.086] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-01-15 13:24:34.086] [DEBUG] app - { 'content-type': 'application/json',
+  'cache-control': 'no-cache',
+  'postman-token': '138c9b44-2c1a-453c-84a2-f765b47a1e6a',
+  'user-agent': 'PostmanRuntime/7.1.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  'content-length': '52',
+  connection: 'keep-alive' }
+[2018-01-15 13:24:34.090] [DEBUG] app - --------------------------------------------------
+[2018-01-15 13:24:34.151] [DEBUG] app - TABLE policy_r LOCKED
+[2018-01-15 13:24:34.152] [DEBUG] app - START TX
+[2018-01-15 13:24:34.155] [DEBUG] app - UPDATED ACTIVE STATUS for RULE: 796  Active: 0
+[2018-01-15 13:24:34.157] [DEBUG] app - UPDATED ACTIVE STATUS for RULE: 796  Active: 0
+[2018-01-15 13:24:34.158] [DEBUG] app - UPDATED ACTIVE STATUS for RULE: 796  Active: 0
+[2018-01-15 13:24:34.158] [DEBUG] app - END TX

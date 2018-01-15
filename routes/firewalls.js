@@ -472,6 +472,61 @@ router.get('/:iduser/firewall/:id', function (req, res)
     }
 });
 
+/* Get locked Status of firewall by Id */
+/**
+ * Get Locked status of Firewall by ID and User
+ * 
+ * <br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id/locked</b>
+ * <br>METHOD: <b>GET</b>
+ *
+ * @method getLockedStatusFirewallByUser_and_ID_V2
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} id Firewall identifier
+ * 
+ * @return {JSON} Returns Json Data from Firewall
+ */
+router.get('/:iduser/firewall/:id/status', function (req, res)
+{
+    var id = req.params.id;
+    var iduser = req.params.iduser;
+
+    if (!isNaN(id))
+    {
+        FirewallModel.getFirewall(iduser, id, function (error, data)
+        {
+            //get firewall data
+            if (data && data.length > 0)
+            {
+                logger.debug(data);
+                var resp={"locked": false, "at": "", "by": ""};
+                if (data[0].locked === 1) {
+                    resp={"locked": true, "at": data[0].locked_at, "by": data[0].locked_by};
+                }
+              
+                api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+
+            }
+            //get error
+            else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        });
+    }
+    //id must be numeric
+    else
+    {
+        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
+    }
+});
+
 /* Get firewall by firewall name  */
 /**
  * Get Firewalls by Name and User
@@ -515,7 +570,7 @@ router.get('/:iduser/firewall/name/:name', function (req, res)
     //id must be numeric
     else
     {
-         api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
             res.status(200).json(jsonResp);
         });
     }
@@ -566,8 +621,8 @@ router.delete("/firewall/", function (req, res)
         if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {

@@ -1,6 +1,7 @@
 var logger = require('log4js').getLogger("app");
 
 var mysql = require('mysql');
+var config = require('./config/apiconf.json');
 
 var PRODUCTION_DB = 'fwcloud_db'
         , TEST_DB = 'fwcloud_db';
@@ -16,18 +17,18 @@ var state = {
 
 var conn = null;
 
-exports.connect = function (mode, commit, done) {
+exports.connect = function (done) {
     state.pool = mysql.createPool({
-        connectionLimit: 100,
-        host: 'localhost',
-        user: 'soltecsis',
-        password: 'WdQ?:(x4',
-        database: mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
+        connectionLimit: config.db.connectionLimit,
+        host: config.db.host,
+        user: config.db.user,
+        password: config.db.password,
+        database: config.db.mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
 
     });
 
-    state.mode = mode;
-    state.commit=commit;
+    state.mode = config.db.mode;
+    state.commit=config.db.commitMode;
     
     state.pool.getConnection(function (err, connection) {
         if (err)
