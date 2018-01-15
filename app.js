@@ -76,6 +76,7 @@ app.set('view engine', 'html');
 
 var logger = log4js.getLogger('app');
 
+
 app.use(log4js.connectLogger(log4js.getLogger("http"), { level: 'auto' }));
 
 //var http_logger = log4js.getLogger('http');
@@ -129,6 +130,9 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+
+logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 
 app.use(function (req, res, next) {
   logger.debug("---------------- RECEIVED HEADERS-----------------");
@@ -229,11 +233,11 @@ app.use('/policy/install', policy_install);
 
 
 // Connect to MySQL on start
-db.connect(db.MODE_PRODUCTION, function(err) {
+db.connect(db.MODE_PRODUCTION,1, function(err) {
   if (err) {
     console.log('Unable to connect to MySQL.');
     process.exit(1);
-  }
+  }  
 });
 
        
