@@ -1,0 +1,11 @@
+{
+    "db": {
+        "connectionLimit": "100",
+        "host": "localhost",
+        "user": "soltecsis",
+        "password": "WdQ?:(x4",
+        "mode": "mode_production",
+        "commitMode": "1"
+    }
+    
+}
