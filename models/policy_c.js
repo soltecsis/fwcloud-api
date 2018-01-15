@@ -30,7 +30,7 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
 };
 
 //Get All policy_c by policy type and firewall
-policy_cModel.getPolicy_cs_type = function (idfirewall, type, callback) {
+policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback) {
 
     db.get(function (error, connection) {
         if (error)
@@ -38,7 +38,10 @@ policy_cModel.getPolicy_cs_type = function (idfirewall, type, callback) {
         var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
-                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + ' ORDER BY R.rule_order';
+                ' INNER JOIN FIREWALL F on F.id=R.firewall ' + 
+                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + 
+                ' AND F.fwcloud=' +  connection.escape(fwcloud) +
+                ' ORDER BY R.rule_order';
           
          
         connection.query(sql, function (error, rows) {
@@ -54,7 +57,7 @@ policy_cModel.getPolicy_cs_type = function (idfirewall, type, callback) {
 
 
 //Get policy_c by  id and firewall
-policy_cModel.getPolicy_c = function (idfirewall, rule, callback) {
+policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
@@ -62,7 +65,9 @@ policy_cModel.getPolicy_c = function (idfirewall, rule, callback) {
         var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
-                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) ;
+                ' INNER JOIN FIREWALL F on F.id=R.firewall ' + 
+                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
+                ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
