@@ -202,6 +202,7 @@ router.put('/policy-r/', function (req, res)
             //If saved policy_r saved ok, get data
             if (data && data.result)
             {
+                Policy_rModel.compilePolicy_r(policy_rData.id, function (error, datac) {});
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
