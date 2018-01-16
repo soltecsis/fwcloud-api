@@ -67,7 +67,7 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
 	var fw = req.params.fw;
 	var type = req.params.type;
 	var rule = req.params.rule;
-	
+
   RuleCompileModel.get_rule_compile(cloud, fw, type, rule, (cs) => {
     res.status(220).send(cs);
   });

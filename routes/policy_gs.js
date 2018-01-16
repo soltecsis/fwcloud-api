@@ -212,7 +212,7 @@ router.delete("/policy-g/:idfirewall/:id", function (req, res)
     });
 });
 
-/* Remove rules from policy_g */
+/* Remove rules from Group */
 router.delete("/policy-g/rules/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove

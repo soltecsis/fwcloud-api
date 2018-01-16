@@ -256,7 +256,13 @@ router.put('/policy-r/style/:idfirewall/:type', function (req, res)
     var rulesIds = JsonData.rulesIds;
     for (var rule of rulesIds) {
         Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
-            logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+            if (error)
+                logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
+            if (data & data.result) {
+                logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+
+            } else
+                logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
         });
     }
 
@@ -281,11 +287,18 @@ router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
         db.startTXcon(function () {
             for (var rule of rulesIds) {
                 Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function (error, data) {
-                    logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+                    if (error)
+                        logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+                    if (data & data.result) {
+                        logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+
+                    } else
+                        logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+                    
                 });
-            }            
-        db.endTXcon(function () {});
-            
+            }
+            db.endTXcon(function () {});
+
         });
         api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function (jsonResp) {
             res.status(200).json(jsonResp);

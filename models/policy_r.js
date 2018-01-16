@@ -1,11 +1,18 @@
+//create object
+var policy_rModel = {};
+
+//Export the object
+module.exports = policy_rModel;
+
 var db = require('../db.js');
 var asyncMod = require('async');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var Policy_typeModel = require('../models/policy_type');
 
-//create object
-var policy_rModel = {};
+
+
+
 var tableModel = "policy_r";
 var Policy_positionModel = require('../models/policy_position');
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
@@ -15,7 +22,7 @@ var InterfaceModel = require('../models/interface');
 var data_policy_r = require('../models/data_policy_r');
 var data_policy_positions = require('../models/data_policy_positions');
 var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs');
-
+var RuleCompileModel = require('../models/policy/rule_compile');
 
 
 var logger = require('log4js').getLogger("app");
@@ -289,9 +296,27 @@ policy_rModel.getPolicy_r = function (idfirewall, id, callback) {
         if (error)
             callback(error, null);
 
-        var sql = 'SELECT P.*, (select MAX(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as max_order, ' +
+        var sql = 'SELECT P.*, F.fwcloud, (select MAX(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as max_order, ' +
                 ' (select MIN(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as min_order ' +
-                ' FROM ' + tableModel + ' P WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);
+                ' FROM ' + tableModel + ' P  INNER JOIN firewall F on F.id=P.firewall WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);
+
+        connection.query(sql, function (error, row) {
+            if (error) {
+                logger.debug(error);
+                callback(error, null);
+            } else
+                callback(null, row);
+        });
+    });
+};
+//Get policy_r by  id  
+policy_rModel.getPolicy_r_id = function (id, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'SELECT P.*, F.fwcloud ' +
+                ' FROM ' + tableModel + ' P INNER JOIN firewall F on F.id=P.firewall  WHERE P.id = ' + connection.escape(id);
 
         connection.query(sql, function (error, row) {
             if (error) {
@@ -584,7 +609,7 @@ function OrderList(new_order, idfirewall, old_order, id) {
 
 }
 ;
-
+//FALTA DELETE POLICY_C
 //Remove policy_r with id to remove
 policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
 
@@ -637,5 +662,27 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
     });
 };
 
-//Export the object
-module.exports = policy_rModel;
+//Compile rule and save it
+policy_rModel.compilePolicy_r = function (rule, callback) {
+
+    policy_rModel.getPolicy_r_id(rule, function (error, data) {
+        if (error)
+            callback(error, null);
+        if (data && data.length > 0) {
+            logger.debug("---------- COMPILANDO REGLA -------");
+            logger.debug(data);
+            RuleCompileModel.rule_compile(data[0].fwcloud,data[0].firewall, data[0].type, rule, (cs) => {
+                logger.debug("---- RULE COMPILED --->  ");
+                logger.debug(cs);
+                if (cs.length>0)
+                    callback(null, {"result": true, "msg": "Rule compiled"} );
+                else
+                    callback(null, {"result": false, "msg": "rule NOT compiled"} );
+
+            });
+        }
+        else
+            callback(null, {"result": false, "msg": "rule NOT compiled"} );
+    });
+
+};

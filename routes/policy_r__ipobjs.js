@@ -3,7 +3,7 @@ var router = express.Router();
 var Policy_r__ipobjModel = require('../models/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var api_resp = require('../utils/api_response');
-
+var Policy_rModel = require('../models/policy_r');
 
 var logger = require('log4js').getLogger("app");
 
@@ -98,11 +98,6 @@ function checkPostParameters(obj) {
 }
 
 
-/* Show form */
-router.get('/policy-r__ipobj', function (req, res)
-{
-    res.render('new_policy_r__ipobj', {title: 'Crear nuevo policy_r__ipobj'});
-});
 
 /* Get all policy_r__ipobjs by rule*/
 
@@ -243,11 +238,12 @@ router.post("/policy-r__ipobj", function (req, res)
         else {
             //If saved policy_r__ipobj Get data
             if (data && data.result) {
-                if (data.result)
+                if (data.result) {                    
+                    Policy_rModel.compilePolicy_r(policy_r__ipobjData.rule, function (error, datac) {});
                     api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
-                else if (!data.allowed) {
+                } else if (!data.allowed) {
                     api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
@@ -300,6 +296,7 @@ router.put('/policy-r__ipobj', function (req, res)
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result) {
                 if (data.result) {
+                    Policy_rModel.compilePolicy_r(policy_r__ipobjData.rule, function (error, datac) {});
                     api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
@@ -352,6 +349,8 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
                     //If saved policy_r__ipobj saved ok, get data
                     if (data) {
                         if (data.result) {
+                            Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
+                            Policy_rModel.compilePolicy_r(new_rule, function (error, datac) {});
                             api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                 res.status(200).json(jsonResp);
                             });
@@ -397,6 +396,8 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
                                 {
                                     if (data && data.result)
                                     {
+                                        Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
+                                        Policy_rModel.compilePolicy_r(new_rule, function (error, datac) {});
                                         api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                             res.status(200).json(jsonResp);
                                         });
@@ -463,6 +464,7 @@ router.put('/policy-r__ipobj/:firewall/:rule/:position/:negate', function (req, 
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result)
             {
+                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -498,7 +500,8 @@ router.put('/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:positio
         else {
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result)
-            {
+            {                
+                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -531,6 +534,7 @@ router.delete("/policy-r__ipobj/:firewall/:rule/:ipobj/:ipobj_g/:interface/:posi
         if (data && data.result) {
             if (data.msg === "deleted")
             {
+                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
