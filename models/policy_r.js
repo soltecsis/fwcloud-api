@@ -669,11 +669,11 @@ policy_rModel.compilePolicy_r = function (rule, callback) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
-            logger.debug("---------- COMPILANDO REGLA -------");
-            logger.debug(data);
+            logger.debug("---------- COMPILANDO REGLA -------");            
             RuleCompileModel.rule_compile(data[0].fwcloud,data[0].firewall, data[0].type, rule, (cs) => {
                 logger.debug("---- RULE COMPILED --->  ");
                 logger.debug(cs);
+                logger.debug("-----------------------");
                 if (cs.length>0)
                     callback(null, {"result": true, "msg": "Rule compiled"} );
                 else
