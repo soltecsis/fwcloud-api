@@ -295,7 +295,7 @@ router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
 
                     } else
                         logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-                    
+
                 });
             }
             db.endTXcon(function () {});
@@ -466,11 +466,14 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                             new_order += (inc * pasteOffset);
                         else if (old_order > new_order && pasteOffset < 0)
                             new_order = data_dest[0].rule_order;
-                        logger.debug("DUPLICANDO POLICY Id: " + id + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order);
+                        else if (old_order < new_order && pasteOffset < 0)
+                            new_order = data_dest[0].rule_order;
+
+                        logger.debug("DUPLICANDO POLICY Id: " + id + " NEW GROUP: " + data_dest[0].idgroup + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order);
                         //Create New objet with data policy_r
                         var policy_rData = {
                             id: null,
-                            idgroup: data[0].idgroup,
+                            idgroup: data_dest[0].idgroup,
                             firewall: data[0].firewall,
                             rule_order: new_order,
                             action: data[0].action,
@@ -497,7 +500,7 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                                             //If saved policy_r Get data
                                             if (data_dup && data_dup.result)
                                             {
-                                                logger.debug("Policy Positions Dupicated from Id: " + id);
+                                                logger.debug("Policy Positions Duplicated from Id: " + id);
                                                 resolve(data);
                                             } else
                                                 reject("Error duplicating POLICY O POSITIONS from Id: " + id);
