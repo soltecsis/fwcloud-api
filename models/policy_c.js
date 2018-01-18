@@ -96,7 +96,9 @@ policy_cModel.insertPolicy_c = function (policy_cData, callback) {
                 });
                 callback(null, {"insertId": policy_cData.id});
             } else {
-                sqlInsert = 'INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + ", rule_compiled=" + connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled);
+                sqlInsert = 'INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + 
+                        ", rule_compiled=" + connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled) +
+                        ", updated_at=CURRENT_TIMESTAMP";
                 
                 connection.query(sqlInsert, function (error, result) {
                     if (error) {
@@ -119,7 +121,8 @@ policy_cModel.updatePolicy_c = function (policy_cData, callback) {
             callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET rule_compiled = ' + connection.escape(policy_cData.rule_compiled) + ',' +
                 'firewall = ' + connection.escape(policy_cData.firewall) + ',' +
-                'status_compiled = ' + connection.escape(policy_cData.status_compiled) + ' ' +
+                'status_compiled = ' + connection.escape(policy_cData.status_compiled) + ', ' +
+                'updated_at=CURRENT_TIMESTAMP ' + 
                 ' WHERE rule = ' + policy_cData.rule;
         
         connection.query(sql, function (error, result) {

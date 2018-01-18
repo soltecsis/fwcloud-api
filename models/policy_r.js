@@ -79,8 +79,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
 
                 var sql = 'SELECT P.*, G.name as group_name, ' +
                         ' C.updated_at as c_updated_at, ' +
-                        ' IFNULL(C.status_compiled,0) AS c_status, ' +
-                        ' ((P.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+                        ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +                        
                         ' FROM ' + tableModel + ' P ' +                                            
                         ' LEFT JOIN policy_g G ON G.id=P.idgroup ' + 
                         ' LEFT JOIN policy_c C ON C.rule=P.id ' +
