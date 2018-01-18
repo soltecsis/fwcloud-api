@@ -14,6 +14,10 @@
         this.comment= data.comment;
         this.type= data.type;
         this.style= data.style;
+        this.updated_at=data.updated_at;
+        this.c_updated_at=data.c_updated_at;
+        this.c_status=data.c_status;
+        this.c_status_recompile=data.c_status_recompile;
         
         this.positions=[];
         

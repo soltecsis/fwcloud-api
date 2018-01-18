@@ -77,7 +77,15 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                 else
                     type = 1;
 
-                var sql = 'SELECT P.*, G.name as group_name FROM ' + tableModel + ' P LEFT JOIN policy_g G ON G.id=P.idgroup WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) + sqlRule + ' ORDER BY P.rule_order';
+                var sql = 'SELECT P.*, G.name as group_name, ' +
+                        ' C.updated_at as c_updated_at, ' +
+                        ' IFNULL(C.status_compiled,0) AS c_status, ' +
+                        ' ((P.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+                        ' FROM ' + tableModel + ' P ' +                                            
+                        ' LEFT JOIN policy_g G ON G.id=P.idgroup ' + 
+                        ' LEFT JOIN policy_c C ON C.rule=P.id ' +
+                        ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) + 
+                        sqlRule + ' ORDER BY P.rule_order';  
                 logger.debug(sql);
                 connection.query(sql, function (error, rows) {
                     if (error)

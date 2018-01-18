@@ -9,6 +9,7 @@ var api_resp = require('../utils/api_response');
 //var asyncMod = require('async');
 var objModel = 'POLICY';
 var logger = require('log4js').getLogger("app");
+
 /* Get all policy_rs by firewall and group*/
 router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
 {
@@ -42,7 +43,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type', function (req, res)
     var rule = "";
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall);
+    logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + "  TYPE:" + type);
     Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
     {
         //If exists policy_r get data
