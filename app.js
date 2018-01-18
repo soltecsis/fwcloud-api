@@ -199,6 +199,7 @@ var policy_positions = require('./routes/policy_positions');
 var fwc_tree = require('./routes/fwc_tree');
 var policy_compile = require('./routes/policy/compile');
 var policy_install = require('./routes/policy/install');
+var ipobj_protocols = require('./routes/ipobj_protocols');
 
 var importxml= require('./routes/importxml');
 app.use('/importxml', importxml);
@@ -230,6 +231,7 @@ app.use('/policy-positions', policy_positions);
 app.use('/fwc-tree', fwc_tree);
 app.use('/policy/compile', policy_compile);
 app.use('/policy/install', policy_install);
+app.use('/ipobj-protocols', ipobj_protocols);
 
 
 // Connect to MySQL on start

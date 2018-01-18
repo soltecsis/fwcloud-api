@@ -1,19 +1,21 @@
 var express = require('express');
 var router = express.Router();
-var Ipobj_typeModel = require('../models/ipobj_type');
+var Ipobj_protocolsModel = require('../models/ipobj_protocols');
 var api_resp = require('../utils/api_response');
-var objModel = 'IPOBJ TYPE';
+var objModel = 'IPOBJ PROTOCOL';
 
 
 var logger = require('log4js').getLogger("app");
 
-/* Get all ipobj_types*/
+
+/* Get all ipobj_protocols*/
 router.get('/', function (req, res)
 {
-
-    Ipobj_typeModel.getIpobj_types(function (error, data)
+logger.debug("PORAKI 1");
+    Ipobj_protocolsModel.getIpobj_protocols(function (error, data)
     {
-        //If exists ipobj_type get data
+        logger.debug("PORAKI 2");
+        //If exists ipobj_protocols get data
         if (data && data.length > 0)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
@@ -32,13 +34,13 @@ router.get('/', function (req, res)
 
 
 
-/* Get  ipobj_type by id */
+/* Get  ipobj_protocols by id */
 router.get('/:id', function (req, res)
 {
     var id = req.params.id;
-    Ipobj_typeModel.getIpobj_type(id, function (error, data)
+    Ipobj_protocolsModel.getIpobj_protocols(id, function (error, data)
     {
-        //If exists ipobj_type get data
+        //If exists ipobj_protocols get data
         if (data && data.length > 0)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
@@ -55,13 +57,13 @@ router.get('/:id', function (req, res)
     });
 });
 
-/* Get all ipobj_types by nombre */
+/* Get all ipobj_protocols by nombre */
 router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
-    Ipobj_typeModel.getIpobj_typeName(name, function (error, data)
+    Ipobj_protocolsModel.getIpobj_protocolsName(name, function (error, data)
     {
-        //If exists ipobj_type get data
+        //If exists ipobj_protocols get data
         if (data && data.length > 0)
         {
             api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
@@ -81,23 +83,24 @@ router.get('/name/:name', function (req, res)
 
 
 
-/* Create New ipobj_type */
-router.post("/ipobj-type", function (req, res)
+/* Create New ipobj_protocols */
+router.post("/ipobj-protocols", function (req, res)
 {
-    //Create New objet with data ipobj_type
-    var ipobj_typeData = {
+    //Create New objet with data ipobj_protocols
+    var ipobj_protocolsData = {
         id: req.body.id,
-        type: req.body.type
+        keyword: req.body.keyword,
+        description: req.body.description
     };
 
-    Ipobj_typeModel.insertIpobj_type(ipobj_typeData, function (error, data)
+    Ipobj_protocolsModel.insertIpobj_protocols(ipobj_protocolsData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         else {
-            //If saved ipobj_type Get data
+            //If saved ipobj_protocols Get data
             if (data && data.insertId)
             {
                 var dataresp = {"insertId": data.insertId};
@@ -114,25 +117,26 @@ router.post("/ipobj-type", function (req, res)
     });
 });
 
-/* Update ipobj_type that exist */
-router.put('/ipobj-type/', function (req, res)
+/* Update ipobj_protocols that exist */
+router.put('/ipobj-protocols/', function (req, res)
 {
     //Save data into object
-    var ipobj_typeData = {
+    var ipobj_protocolsData = {
         id: req.param('id'),
-        type: req.param('type')
+        keyword: req.param('keyword'),
+        description: req.param('description')
     };
-    Ipobj_typeModel.updateIpobj_type(ipobj_typeData, function (error, data)
+    Ipobj_protocolsModel.updateIpobj_protocols(ipobj_protocolsData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         else {
-            //If saved ipobj_type saved ok, get data
+            //If saved ipobj_protocols saved ok, get data
             if (data && data.result)
             {
-                //res.redirect("/ipobj-types/ipobj-type/" + req.param('id'));
+                //res.redirect("/ipobj-protocolss/ipobj-protocols/" + req.param('id'));
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -148,12 +152,12 @@ router.put('/ipobj-type/', function (req, res)
 
 
 
-/* Remove ipobj_type */
-router.delete("/ipobj-type/", function (req, res)
+/* Remove ipobj_protocols */
+router.delete("/ipobj-protocols/", function (req, res)
 {
-    //Id from ipobj_type to remove
+    //Id from ipobj_protocols to remove
     var id = req.param('id');
-    Ipobj_typeModel.deleteIpobj_type(id, function (error, data)
+    Ipobj_protocolsModel.deleteIpobj_protocols(id, function (error, data)
     {
         if (data && data.result)
         {
