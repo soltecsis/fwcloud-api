@@ -23,6 +23,7 @@ var data_policy_r = require('../models/data_policy_r');
 var data_policy_positions = require('../models/data_policy_positions');
 var data_policy_position_ipobjs = require('../models/data_policy_position_ipobjs');
 var RuleCompileModel = require('../models/policy/rule_compile');
+var Policy_cModel = require('../models/policy_c');
 
 
 var logger = require('log4js').getLogger("app");
@@ -79,12 +80,12 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
 
                 var sql = 'SELECT P.*, G.name as group_name, ' +
                         ' C.updated_at as c_updated_at, ' +
-                        ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +                        
-                        ' FROM ' + tableModel + ' P ' +                                            
-                        ' LEFT JOIN policy_g G ON G.id=P.idgroup ' + 
+                        ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
+                        ' FROM ' + tableModel + ' P ' +
+                        ' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
                         ' LEFT JOIN policy_c C ON C.rule=P.id ' +
-                        ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) + 
-                        sqlRule + ' ORDER BY P.rule_order';  
+                        ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
+                        sqlRule + ' ORDER BY P.rule_order';
                 logger.debug(sql);
                 connection.query(sql, function (error, rows) {
                     if (error)
@@ -641,21 +642,29 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
                             if (error)
                                 callback(error, null);
                             else {
-                                db.get(function (error, connection) {
-                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-                                    connection.query(sql, function (error, result) {
-                                        if (error) {
-                                            logger.debug(error);
-                                            callback(error, null);
-                                        } else {
-                                            if (result.affectedRows > 0) {
-                                                OrderList(999999, idfirewall, rule_order, id);
-                                                callback(null, {"result": true, "msg": "deleted"});
-                                            } else {
-                                                callback(null, {"result": false, "msg": "notExist"});
-                                            }
-                                        }
-                                    });
+                                //DELETE POLICY_C compilation
+                                Policy_cModel.deletePolicy_c(idfirewall, id, function (error, data)
+                                {
+                                    if (error)
+                                        callback(error, null);
+                                    else {
+                                        db.get(function (error, connection) {
+                                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+                                            connection.query(sql, function (error, result) {
+                                                if (error) {
+                                                    logger.debug(error);
+                                                    callback(error, null);
+                                                } else {
+                                                    if (result.affectedRows > 0) {
+                                                        OrderList(999999, idfirewall, rule_order, id);
+                                                        callback(null, {"result": true, "msg": "deleted"});
+                                                    } else {
+                                                        callback(null, {"result": false, "msg": "notExist"});
+                                                    }
+                                                }
+                                            });
+                                        });
+                                    }
                                 });
                             }
                         });
@@ -676,20 +685,19 @@ policy_rModel.compilePolicy_r = function (rule, callback) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
-            logger.debug("---------- COMPILANDO REGLA -------");            
-            RuleCompileModel.rule_compile(data[0].fwcloud,data[0].firewall, data[0].type, rule, (cs) => {
+            logger.debug("---------- COMPILANDO REGLA -------");
+            RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
                 logger.debug("---- RULE COMPILED --->  ");
                 logger.debug(cs);
                 logger.debug("-----------------------");
-                if (cs.length>0)
-                    callback(null, {"result": true, "msg": "Rule compiled"} );
+                if (cs.length > 0)
+                    callback(null, {"result": true, "msg": "Rule compiled"});
                 else
-                    callback(null, {"result": false, "msg": "rule NOT compiled"} );
+                    callback(null, {"result": false, "msg": "rule NOT compiled"});
 
             });
-        }
-        else
-            callback(null, {"result": false, "msg": "rule NOT compiled"} );
+        } else
+            callback(null, {"result": false, "msg": "rule NOT compiled"});
     });
 
 };
