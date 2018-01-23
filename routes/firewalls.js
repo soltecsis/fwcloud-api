@@ -156,11 +156,13 @@ router.get('/:iduser', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
-    FirewallModel.getFirewall(iduser, id, function (error, data)
+    var fwcloud=req.params.fwcloud;
+    
+    FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
     {
         //Get Data
         if (data && data.length > 0)
@@ -341,7 +343,8 @@ router.post("/firewall", function (req, res)
         id: null,
         cluster: req.body.cluster,
         name: req.body.name,
-        comment: req.body.comment
+        comment: req.body.comment,
+        fwcloud: req.body.fwcloud
     };
     var iduser = req.body.iduser;
     FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
@@ -404,7 +407,7 @@ router.put('/firewall/', function (req, res)
 {
 
     //Save firewall data into objet
-    var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment};
+    var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment, fwcloud: req.body.fwcloud};
 
     FirewallModel.updateFirewall(firewallData, function (error, data)
     {
@@ -417,6 +420,125 @@ router.put('/firewall/', function (req, res)
         } else
         {
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
+/**
+ * Lock firewall status
+ * 
+ * 
+ * > ROUTE CALL:  __/firewalls/firewall/lock__      
+ * > METHOD:  __PUT__
+ * 
+ *
+ * @method UpdateFirewallLock
+ * 
+ * @param {Integer} id Firewall identifier
+ * @param {Integer} fwcloud Firewall cloud
+ * @optional
+ * @param {Integer} iduser User identifier
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : "success",   //result
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
+router.put('/firewall/lock/:iduser/:fwcloud/:id', function (req, res)
+{
+
+    //Save firewall data into objet
+    var firewallData = {id: req.params.id, fwcloud: req.params.fwcloud,  iduser: req.params.iduser};
+    FirewallModel.updateFirewallLock(firewallData, function (error, data)
+    {
+        //Saved ok
+        if (data && data.result)
+        {
+            logger.info("FIREWALL: " + firewallData.id + "  LOCKED BY USER: " + firewallData.iduser);
+            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FIREWALL LOCKED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        } else
+        {
+            logger.info("ERROR LOCKING FIREWALL: " + firewallData.id + "  BY USER: " + firewallData.iduser);
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
+/**
+ * Unlock firewall status
+ * 
+ * 
+ * > ROUTE CALL:  __/firewalls/firewall/unlock__      
+ * > METHOD:  __PUT__
+ * 
+ *
+ * @method UpdateFirewallUnlock
+ * 
+ * @param {Integer} id Firewall identifier
+ * @param {Integer} fwcloud Firewall cloud
+ * @optional
+ * @param {Integer} iduser User identifier
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : "success",   //result
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
+router.put('/firewall/unlock/:iduser/:fwcloud/:id', function (req, res)
+{
+
+    //Save firewall data into objet
+    var firewallData = {id: req.params.id, fwcloud: req.params.fwcloud,  iduser: req.params.iduser};
+
+    FirewallModel.updateFirewallUnlock(firewallData, function (error, data)
+    {
+        //Saved ok
+        if (data && data.result)
+        {
+            logger.info("FIREWALL: " + firewallData.id + "  UNLOCKED BY USER: " + firewallData.iduser);
+            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FIREWALL UNLOCKED OK', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        } else
+        {
+            logger.info("ERROR UNLOCKING FIREWALL: " + firewallData.id + "  BY USER: " + firewallData.iduser);
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
@@ -437,14 +559,15 @@ router.put('/firewall/', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/:iduser/firewall/:id', function (req, res)
+router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
+    var fwcloud=req.params.fwcloud;
 
     if (!isNaN(id))
     {
-        FirewallModel.getFirewall(iduser, id, function (error, data)
+        FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
         {
             //get firewall data
             if (data && data.length > 0)
@@ -486,19 +609,21 @@ router.get('/:iduser/firewall/:id', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/:iduser/firewall/:id/status', function (req, res)
+router.get('/locked/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
+    
 
     if (!isNaN(id))
     {
-        FirewallModel.getFirewall(iduser, id, function (error, data)
+        FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
         {
             //get firewall data
             if (data && data.length > 0)
             {
-                logger.debug(data);
+                
                 var resp={"locked": false, "at": "", "by": ""};
                 if (data[0].locked === 1) {
                     resp={"locked": true, "at": data[0].locked_at, "by": data[0].locked_by};
@@ -611,6 +736,7 @@ router.get('/:iduser/firewall/name/:name', function (req, res)
  *         ]
  *       };
  */
+//FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.delete("/firewall/", function (req, res)
 {
 

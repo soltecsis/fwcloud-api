@@ -6,6 +6,10 @@
         "password": "WdQ?:(x4",
         "mode": "mode_production",
         "commitMode": "1"
+    },
+    "lock":{
+        "check_interval_mls": "60000", 
+        "unlock_timeout_min": "5"
     }
     
 }

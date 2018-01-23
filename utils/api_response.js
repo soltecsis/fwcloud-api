@@ -104,6 +104,13 @@ respModel.ACR_NOT_ALLOWED = 'ACR_NOT_ALLOWED';
  * @type String
  */
 respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
+/**
+ * Property ACR_ACCESS_ERROR
+ *
+ * @property ACR_ACCESS_ERROR
+ * @type String
+ */
+respModel.ACR_ACCESS_ERROR = 'ACR_ACCESS_ERROR';
 
 /**
  * Property Logger to manage App logs
@@ -163,8 +170,8 @@ respModel.getJson = function (data, respCode, custom_response, custom_obj, error
         error_msg = error.message;
         logger.debug(error);
     }
-    if (data=== null)
-        data={};
+    if (data === null)
+        data = {};
     this.getMsgCodeResp(respCode, custom_obj, error, function (respStatus, respMsg) {
         resp_json = {"response": {
                 "respStatus": respStatus,
@@ -193,7 +200,7 @@ respModel.getJson = function (data, respCode, custom_response, custom_obj, error
  * @param {Callback} callback function(status,message)  
  * 
  * @return {boolean, String} Returns Status and message response
-  */
+ */
 respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
     var msg = "";
     var status = false;
@@ -212,7 +219,7 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
                     default:
                         msg = "Internal Error";
                 }
-            }            
+            }
             break;
         case this.ACR_OK:
             status = true;
@@ -229,7 +236,7 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
         case this.ACR_DATA_ERROR:
             status = false;
             msg = custom_obj + " Data error";
-            break;    
+            break;
         case this.ACR_DELETED_OK:
             status = true;
             msg = custom_obj + " delete success";
@@ -249,11 +256,15 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
         case this.ACR_NOT_ALLOWED:
             status = false;
             msg = custom_obj + " not allowed";
-            break;    
+            break;
         case this.ACR_PARAM_ERROR:
             status = false;
             msg = custom_obj + " param error";
-            break;        
+            break;
+        case this.ACR_ACCESS_ERROR:
+            status = false;
+            msg = custom_obj + " Access not allowed by lock status";
+            break;
         default:
             status = false;
             msg = "unknown error";

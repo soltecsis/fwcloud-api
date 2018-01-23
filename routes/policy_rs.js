@@ -6,6 +6,8 @@ var Policy_r__interfaceModel = require('../models/policy_r__interface');
 var db = require('../db.js');
 var utilsModel = require("../utils/utils.js");
 var api_resp = require('../utils/api_response');
+var FirewallModel = require('../models/firewall');
+
 //var asyncMod = require('async');
 var objModel = 'POLICY';
 var logger = require('log4js').getLogger("app");
@@ -256,21 +258,36 @@ router.put('/policy-r/style/:idfirewall/:type', function (req, res)
     var JsonData = req.body.Data;
     var style = JsonData.style;
     var rulesIds = JsonData.rulesIds;
-    for (var rule of rulesIds) {
-        Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
-            if (error)
-                logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
-            if (data & data.result) {
-                logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
 
-            } else
-                logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-        });
-    }
+    FirewallModel.getFirewallAccess(1, 1, idfirewall)
+            .then(access => {
+                db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function () {
+                    db.startTXcon(function () {
+                        for (var rule of rulesIds) {
+                            Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
+                                if (error)
+                                    logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
+                                if (data & data.result) {
+                                    logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
 
-    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
-        res.status(200).json(jsonResp);
-    });
+                                } else
+                                    logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+                            });
+                        }
+                        db.endTXcon(function () {});
+                    });
+                });
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            })
+            .catch(err => {
+                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL LOCKED', 'FIREWALL', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+
+
 });
 
 /* Update Active policy_r  */
