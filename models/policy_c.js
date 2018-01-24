@@ -16,8 +16,9 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
         if (error)
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
-        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
-                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+        var sql = 'SELECT R.id,R.rule_order,  ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
+                ' R.comment ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' ORDER BY R.type, R.rule_order';
         connection.query(sql, function (error, rows) {
@@ -35,8 +36,10 @@ policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback)
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
-                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+        //return only: id, rule_order, c_status_recompile, c_compiled, comment
+        var sql = 'SELECT R.id,R.rule_order,  ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
+                ' R.comment ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + 
@@ -61,8 +64,9 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
         if (error)
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
-        var sql = 'SELECT R.*,C.rule_compiled as c_compiled, C.updated_at c_updated_at, C.status_compiled as c_status, ' + 
-                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile ' +
+        var sql = 'SELECT R.id,R.rule_order,  ' + 
+                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
+                ' R.comment ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
