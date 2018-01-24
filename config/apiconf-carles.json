@@ -1,0 +1,15 @@
+{
+    "db": {
+        "connectionLimit": "100",
+        "host": "10.99.5.101",
+        "user": "fwclouddevel",
+        "password": "ZEBmJyQtnyhT8kWG7dShb9",
+        "mode": "mode_production",
+        "commitMode": "1"
+    },
+    "lock":{
+        "check_interval_mls": "60000", 
+        "unlock_timeout_min": "5"
+    }
+    
+}
