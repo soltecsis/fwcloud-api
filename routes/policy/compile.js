@@ -55,7 +55,7 @@ var api_resp = require('../../utils/api_response');
  * @property RuleCompileModel
  * @type /models/compile/
  */
-var RuleCompileModel = require('../../models/policy/rule_compile');
+var RuleCompile = require('../../models/policy/rule_compile');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -68,15 +68,11 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
 	var type = req.params.type;
 	var rule = req.params.rule;
 
-  RuleCompileModel.get_rule_compile(cloud, fw, type, rule, (error,cs) => {
+  RuleCompile.get(cloud, fw, type, rule, (error,data) => {
     if (error)
-      api_resp.getJson(cs, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => {
-        res.status(200).json(jsonResp);
-      });
+      api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
     else
-      api_resp.getJson(cs, api_resp.ACR_OK, '', 'COMPILE', null, (jsonResp) => {
-        res.status(200).json(jsonResp);
-      });
+      api_resp.getJson(data, api_resp.ACR_OK, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
   });
 });
 /*----------------------------------------------------------------------------------------------------------------------*/

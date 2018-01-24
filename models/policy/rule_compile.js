@@ -38,8 +38,6 @@ var logger = require('log4js').getLogger("compiler");
  */
 var api_resp = require('../../utils/api_response');
 
-
-
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
@@ -248,8 +246,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				};
 
 				Policy_cModel.insertPolicy_c(policy_cData, (error, data) => {
-          // We don't worry about if the rule compilation string is stored fine in the database.
-        });
+					// We don't worry about if the rule compilation string is stored fine in the database.
+				});
 
 				callback(cs);
 		});
@@ -259,7 +257,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get the rule compilation string or compile it if this string is not uptodate.
  /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.get_rule_compile = (cloud, fw, type, rule, callback) => {
+RuleCompileModel.get = (cloud, fw, type, rule, callback) => {
 	Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
 		if (data && data.length > 0) {
 			if (data[0].c_status_recompile === 0)
