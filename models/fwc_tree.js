@@ -359,7 +359,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                                         logger.debug("INSERT FILTER POLICIES OK NODE: " + result2.insertId);
                                                         //Insertamos nodo POLICY IN
                                                         sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
-                                                                ' VALUES (' + '"IN","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"PI",0,0,null,1,' + connection.escape(rnode.fwcloud) + ")";
+                                                                ' VALUES (' + '"INPUT","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"PI",0,0,null,1,' + connection.escape(rnode.fwcloud) + ")";
                                                         logger.debug(sqlinsert);
                                                         connection.query(sqlinsert, function (error, result) {
                                                             if (error)
@@ -367,7 +367,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                                         });
                                                         //Insertamos nodo POLICY OUT
                                                         sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
-                                                                ' VALUES (' + '"OUT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"PO",0,0,null,2,' + connection.escape(rnode.fwcloud) + ")";
+                                                                ' VALUES (' + '"OUTPUT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"PO",0,0,null,2,' + connection.escape(rnode.fwcloud) + ")";
                                                         logger.debug(sqlinsert);
                                                         connection.query(sqlinsert, function (error, result) {
                                                             if (error)
