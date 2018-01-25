@@ -32,6 +32,8 @@ var tableModel = "firewall";
 
 var logger = require('log4js').getLogger("app");
 
+var FwcloudModel = require('../models/fwcloud');
+
 
 /**
  * Get Firewalls by User
@@ -105,7 +107,7 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
         if (error)
             callback(error, null);
         var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-                ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
+                ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1';
         logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
@@ -122,7 +124,7 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
  * @method getFirewallLockedAccess
  * 
  * @param {Integer} iduser User identifier
- * @param {Integer} id firewall identifier
+ * @param {Integer} idfirewall firewall identifier
  * @param {Integer} fwcloud fwcloud identifier 
  * @param {Function} callback    Function callback response
  * 
@@ -131,26 +133,35 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
  * @return {Boolean} Returns `LOCKED STATUS` 
  * 
  */
-firewallModel.getFirewallAccess = function (iduser, fwcloud, id, callback) {
+firewallModel.getFirewallAccess = function (accessData) {
     return new Promise((resolve, reject) => {
         db.get(function (error, connection) {
             if (error)
                 reject(false);
-            var sql = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-                    ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
+            //CHECK FIREWALL PERIMSSIONS
+            var sql = 'SELECT T.* FROM ' + tableModel + ' T ' +
+                    ' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(accessData.iduser) +
+                    ' WHERE T.id = ' + connection.escape(accessData.idfirewall) +
+                    ' AND T.fwcloud=' + connection.escape(accessData.fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
             connection.query(sql, function (error, row) {
                 if (error)
                     reject(false);
                 else if (row && row.length > 0) {
-                    if (row[0].locked === 1 && row[0].locked_by === iduser)
-                        //callback(null, {"access": true});
-                        resolve(true);
-                    else
-                        //callback(null, {"access": false});
-                        reject(false);
+                    //Checl FWCLOUD LOCK
+                    FwcloudModel.getFwcloudAccess(accessData.iduser, accessData.fwcloud)
+                            .then(resp => {
+                                //{"access": true, "locked": false, "locked_at": "", "locked_by": ""}
+                                if (resp.access)
+                                    resolve(true);
+                                else
+                                    reject(false);
+                            })
+                            .catch(resp => {
+                                reject(false);
+                            });
+
                 } else {
                     reject(false);
-                    //callback(null, {"access": false});
                 }
             });
         });
@@ -498,7 +509,7 @@ firewallModel.deleteFirewall = function (iduser, id, callback) {
                 ' AND (locked=1 AND locked_by=' + connection.escape(iduser) + ') ';
         connection.query(sqlExists, function (error, row) {
             //If exists Id from firewall to remove
-            if (row && row.length>0) {
+            if (row && row.length > 0) {
                 db.get(function (error, connection) {
                     var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
                     connection.query(sql, function (error, result) {

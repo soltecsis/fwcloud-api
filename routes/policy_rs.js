@@ -250,26 +250,24 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', functi
     });
 });
 /* Update Style policy_r  */
-router.put('/policy-r/style/:idfirewall/:type', function (req, res)
-{
-    //Save data into object
-    var idfirewall = req.params.idfirewall;
-    var type = req.params.type;
+router.put('/policy-r/style/:iduser/:fwcloud/:idfirewall/:type', function (req, res)
+{    
+    var accessData = {iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, type: req.params.type };
+     
     var JsonData = req.body.Data;
     var style = JsonData.style;
     var rulesIds = JsonData.rulesIds;
 
-    FirewallModel.getFirewallAccess(1, 1, idfirewall)
-            .then(access => {
-                db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function () {
+    FirewallModel.getFirewallAccess(accessData)
+            .then(resp => {
+                db.lockTableCon("policy_r", " WHERE firewall=" + accessData.idfirewall + " AND type=" + accessData.type, function () {
                     db.startTXcon(function () {
                         for (var rule of rulesIds) {
-                            Policy_rModel.updatePolicy_r_Style(idfirewall, rule, type, style, function (error, data) {
+                            Policy_rModel.updatePolicy_r_Style(accessData.idfirewall, rule, accessData.type, style, function (error, data) {
                                 if (error)
-                                    logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
-                                if (data & data.result) {
+                                    logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);                                
+                                if (data && data.result) {
                                     logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-
                                 } else
                                     logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
                             });
@@ -281,7 +279,7 @@ router.put('/policy-r/style/:idfirewall/:type', function (req, res)
                     res.status(200).json(jsonResp);
                 });
             })
-            .catch(err => {
+            .catch(resp => {
                 api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL LOCKED', 'FIREWALL', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -308,7 +306,7 @@ router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
                 Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function (error, data) {
                     if (error)
                         logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-                    if (data & data.result) {
+                    if (data && data.result) {
                         logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
 
                     } else

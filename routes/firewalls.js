@@ -59,6 +59,16 @@ var objModel = 'FIREWALL';
 var FirewallModel = require('../models/firewall');
 
 /**
+ * Property Model to manage Fwcloud Data
+ *
+ * @property FwcloudModel
+ * @type /models/fwcloud
+ * 
+ * 
+ */
+var FwcloudModel = require('../models/fwcloud');
+
+/**
  * Property Logger to manage App logs
  *
  * @attribute logger
@@ -160,9 +170,9 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
-    var fwcloud=req.params.fwcloud;
-    
-    FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
+    var fwcloud = req.params.fwcloud;
+
+    FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
     {
         //Get Data
         if (data && data.length > 0)
@@ -426,125 +436,6 @@ router.put('/firewall/', function (req, res)
     });
 });
 
-/**
- * Lock firewall status
- * 
- * 
- * > ROUTE CALL:  __/firewalls/firewall/lock__      
- * > METHOD:  __PUT__
- * 
- *
- * @method UpdateFirewallLock
- * 
- * @param {Integer} id Firewall identifier
- * @param {Integer} fwcloud Firewall cloud
- * @optional
- * @param {Integer} iduser User identifier
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-router.put('/firewall/lock/:iduser/:fwcloud/:id', function (req, res)
-{
-
-    //Save firewall data into objet
-    var firewallData = {id: req.params.id, fwcloud: req.params.fwcloud,  iduser: req.params.iduser};
-    FirewallModel.updateFirewallLock(firewallData, function (error, data)
-    {
-        //Saved ok
-        if (data && data.result)
-        {
-            logger.info("FIREWALL: " + firewallData.id + "  LOCKED BY USER: " + firewallData.iduser);
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FIREWALL LOCKED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            logger.info("ERROR LOCKING FIREWALL: " + firewallData.id + "  BY USER: " + firewallData.iduser);
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
-/**
- * Unlock firewall status
- * 
- * 
- * > ROUTE CALL:  __/firewalls/firewall/unlock__      
- * > METHOD:  __PUT__
- * 
- *
- * @method UpdateFirewallUnlock
- * 
- * @param {Integer} id Firewall identifier
- * @param {Integer} fwcloud Firewall cloud
- * @optional
- * @param {Integer} iduser User identifier
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-router.put('/firewall/unlock/:iduser/:fwcloud/:id', function (req, res)
-{
-
-    //Save firewall data into objet
-    var firewallData = {id: req.params.id, fwcloud: req.params.fwcloud,  iduser: req.params.iduser};
-
-    FirewallModel.updateFirewallUnlock(firewallData, function (error, data)
-    {
-        //Saved ok
-        if (data && data.result)
-        {
-            logger.info("FIREWALL: " + firewallData.id + "  UNLOCKED BY USER: " + firewallData.iduser);
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FIREWALL UNLOCKED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            logger.info("ERROR UNLOCKING FIREWALL: " + firewallData.id + "  BY USER: " + firewallData.iduser);
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
 /* Get firewall by Id */
 /**
  * Get Firewalls by ID and User
@@ -563,11 +454,11 @@ router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
-    var fwcloud=req.params.fwcloud;
+    var fwcloud = req.params.fwcloud;
 
     if (!isNaN(id))
     {
-        FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
+        FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
         {
             //get firewall data
             if (data && data.length > 0)
@@ -609,37 +500,31 @@ router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/locked/:iduser/:fwcloud/:id', function (req, res)
+router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
+
 
     if (!isNaN(id))
     {
-        FirewallModel.getFirewall(iduser,fwcloud, id, function (error, data)
+        FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
         {
             //get firewall data
             if (data && data.length > 0)
             {
-                
-                var resp={"locked": false, "at": "", "by": ""};
-                if (data[0].locked === 1) {
-                    resp={"locked": true, "at": data[0].locked_at, "by": data[0].locked_by};
-                }
-              
-                api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
-                        res.status(200).json(jsonResp);
-                    });
-
-            }
-            //get error
-            else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                FwcloudModel.getFwcloudAccess(iduser, fwcloud)
+                        .then(resp => {
+                            api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        })
+                        .catch(err => {
+                            api_resp.getJson(err, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        });
             }
         });
     }

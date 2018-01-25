@@ -524,11 +524,9 @@ policy_rModel.updatePolicy_r_Style = function (firewall, id, type, style, callba
 
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'style = ' + connection.escape(style) + ' ' +
-                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-
+                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);        
         connection.query(sql, function (error, result) {
-            if (error) {
-                //db.backTX(connection);
+            if (error) {                
                 logger.error(error);
                 callback(error, null);
             } else {

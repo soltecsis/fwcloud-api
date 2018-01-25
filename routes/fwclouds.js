@@ -68,6 +68,7 @@ var FwcloudModel = require('../models/fwcloud');
 var logger = require('log4js').getLogger("app");
 
 
+var db = require('../db.js');
 
 
 /**
@@ -136,11 +137,11 @@ router.get('/:iduser', function (req, res)
 router.get('/:iduser/:fwcloud', function (req, res)
 {
     var iduser = req.params.iduser;
-    var fwcloud=req.params.fwcloud;
+    var fwcloud = req.params.fwcloud;
 
     if (!isNaN(fwcloud))
     {
-        FwcloudModel.getFwcloud(iduser,fwcloud, function (error, data)
+        FwcloudModel.getFwcloud(iduser, fwcloud, function (error, data)
         {
             //get fwcloud data
             if (data && data.length > 0)
@@ -319,7 +320,7 @@ router.put('/fwcloud/', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.body.id, name: req.body.name,  user: req.body.user};
+    var fwcloudData = {id: req.body.id, name: req.body.name, user: req.body.user};
 
     FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
     {
@@ -376,24 +377,30 @@ router.put('/fwcloud/lock/:iduser/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = { id: req.params.fwcloud,  iduser: req.params.iduser};
-    FwcloudModel.updateFwcloudLock(fwcloudData, function (error, data)
-    {
-        //Saved ok
-        if (data && data.result)
-        {
-            logger.info("FWCLOUD: " + fwcloudData.id + "  LOCKED BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    var fwcloudData = {id: req.params.fwcloud, iduser: req.params.iduser};
+
+    FwcloudModel.updateFwcloudLock(fwcloudData)
+            .then(data => {                
+                if (data.result) {
+                    logger.info("FWCLOUD: " + fwcloudData.id + "  LOCKED BY USER: " + fwcloudData.iduser);
+                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else {
+                    logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(r => {                
+                logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        } else
-        {
-            logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
+
+
 });
 
 /**
@@ -434,28 +441,30 @@ router.put('/fwcloud/unlock/:iduser/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.params.fwcloud,  iduser: req.params.iduser};
+    var fwcloudData = {id: req.params.fwcloud, iduser: req.params.iduser};
+    FwcloudModel.updateFwcloudUnlock(fwcloudData)
+            .then(data => {
+                if (data.result) {
+                    logger.info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else {
+                    logger.info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            }
+            )
+            .catch(error => {
+                logger.info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
 
-    FwcloudModel.updateFwcloudUnlock(fwcloudData, function (error, data)
-    {
-        //Saved ok
-        if (data && data.result)
-        {
-            logger.info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            logger.info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
-
-
 /* Get locked Status of fwcloud by Id */
 /**
  * Get Locked status of Fwcloud by ID and User
@@ -474,25 +483,22 @@ router.get('/locked/:iduser/:fwcloud', function (req, res)
 
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
-    
-
     if (!isNaN(fwcloud))
     {
-        FwcloudModel.getFwcloud(iduser,fwcloud, function (error, data)
+        FwcloudModel.getFwcloud(iduser, fwcloud, function (error, data)
         {
             //get fwcloud data
             if (data && data.length > 0)
             {
-                
-                var resp={"locked": false, "at": "", "by": ""};
-                if (data[0].locked === 1) {
-                    resp={"locked": true, "at": data[0].locked_at, "by": data[0].locked_by};
-                }
-              
-                api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
-                        res.status(200).json(jsonResp);
-                    });
 
+                var resp = {"locked": false, "at": "", "by": ""};
+                if (data[0].locked === 1) {
+                    resp = {"locked": true, "at": data[0].locked_at, "by": data[0].locked_by};
+                }
+
+                api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             }
             //get error
             else
@@ -511,9 +517,6 @@ router.get('/locked/:iduser/:fwcloud', function (req, res)
         });
     }
 });
-
-
-
 /**
  * DELETE fwcloud
  * 
@@ -568,5 +571,4 @@ router.delete("/fwcloud/", function (req, res)
         }
     });
 });
-
 module.exports = router;

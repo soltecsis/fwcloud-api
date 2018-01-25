@@ -56,6 +56,16 @@ exports.get = function (done) {
 
 };
 
+exports.lockTable = function(cn,table, where,  done){    
+    cn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
+        if (error)
+            logger.debug("DATABASE ERROR IN LOCK TABLE : " + error );
+        else
+            logger.debug("TABLE " + table  + " LOCKED");
+    });
+    done();
+};
+
 exports.lockTableCon = function(table, where,  done){    
     conn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
         if (error)
@@ -65,6 +75,7 @@ exports.lockTableCon = function(table, where,  done){
     });
     done();
 };
+
 
 exports.startTX = function(cn, done){    
     cn.query("START TRANSACTION;", function (error, result) {
