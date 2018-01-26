@@ -254,7 +254,7 @@ router.get('/:iduser/name/:name', function (req, res)
  *         ]
  *       };
  */
-router.post("/fwcloud", function (req, res)
+router.post("/fwcloud/:iduser", function (req, res)
 {
 
     var fwcloudData = {
@@ -316,7 +316,7 @@ router.post("/fwcloud", function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/', function (req, res)
+router.put('/fwcloud/:iduser', function (req, res)
 {
 
     //Save fwcloud data into objet
@@ -551,7 +551,7 @@ router.get('/locked/:iduser/:fwcloud', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.delete("/fwcloud/", function (req, res)
+router.delete("/fwcloud/:iduser", function (req, res)
 {
 
     var id = req.param('fwcloud');

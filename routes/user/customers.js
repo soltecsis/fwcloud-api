@@ -28,11 +28,7 @@ router.get('/', function (req, res)
     });
 });
 
-/* Form for new customers */
-router.get('/customer', function (req, res)
-{
-    res.render('new_customer', {title: 'Servicio rest con nodejs, express 4 and mysql'});
-});
+
 
 /* New customer */
 router.post("/customer", function (req, res)

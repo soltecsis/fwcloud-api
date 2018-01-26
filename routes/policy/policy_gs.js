@@ -10,7 +10,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all policy_gs by firewall*/
-router.get('/:idfirewall', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     Policy_gModel.getPolicy_gs(idfirewall, function (error, data)
@@ -33,7 +33,7 @@ router.get('/:idfirewall', function (req, res)
 });
 
 /* Get all policy_gs by firewall and group father*/
-router.get('/:idfirewall/group/:idgroup', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -57,7 +57,7 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
 });
 
 /* Get  policy_g by id and  by firewall*/
-router.get('/:idfirewall/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -81,7 +81,7 @@ router.get('/:idfirewall/:id', function (req, res)
 });
 
 /* Get all policy_gs by nombre and by firewall*/
-router.get('/:idfirewall/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -109,7 +109,7 @@ router.get('/:idfirewall/name/:name', function (req, res)
 
 
 /* Create New policy_g */
-router.post("/policy-g", function (req, res)
+router.post("/policy-g/:iduser/:fwcloud/", function (req, res)
 {
 
     var JsonCopyData = req.body;
@@ -149,7 +149,7 @@ router.post("/policy-g", function (req, res)
 });
 
 /* Update policy_g that exist */
-router.put('/policy-g/', function (req, res)
+router.put('/policy-g/:iduser/:fwcloud/', function (req, res)
 {
     //Save data into object
     var policy_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment')};
@@ -180,7 +180,7 @@ router.put('/policy-g/', function (req, res)
 
 
 /* Remove policy_g */
-router.delete("/policy-g/:idfirewall/:id", function (req, res)
+router.delete("/policy-g/:iduser/:fwcloud/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;
@@ -213,7 +213,7 @@ router.delete("/policy-g/:idfirewall/:id", function (req, res)
 });
 
 /* Remove rules from Group */
-router.delete("/policy-g/rules/:idfirewall/:id", function (req, res)
+router.delete("/:iduser/:fwcloud/:idfirewall/policy-g/rules/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;

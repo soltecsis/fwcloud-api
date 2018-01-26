@@ -77,7 +77,7 @@ var ClusterModel = require('../../models/firewall/cluster');
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('/', function (req, res)
+router.get('/:iduser/:fwcloud', function (req, res)
 {
     ClusterModel.getClusters(function (error, data)
     {
@@ -99,22 +99,10 @@ router.get('/', function (req, res)
 });
 
 
-/**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- *
- * @method Newcluster
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @return {Boolean} Returns true on success
- */
-router.get('/cluster', function (req, res)
-{
-    res.render('new_cluster', {title: 'Servicio rest con nodejs, express 4 and mysql'});
-});
+
 
 /* New cluster */
-router.post("/cluster", function (req, res)
+router.post("/cluster/:iduser/:fwcloud", function (req, res)
 {
     //new objet with Cluster data
     var clusterData = {
@@ -140,7 +128,7 @@ router.post("/cluster", function (req, res)
 });
 
 /* cluster update */
-router.put('/cluster/', function (req, res)
+router.put('/cluster/:iduser/:fwcloud', function (req, res)
 {
     //Save cluster data into objet 
     var clusterData = {id: req.param('id'), name: req.param('name')};
@@ -162,7 +150,7 @@ router.put('/cluster/', function (req, res)
 });
 
 /* Get cluster by Id */
-router.get('/cluster/:id', function (req, res)
+router.get('/cluster//:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
 
@@ -201,7 +189,7 @@ router.get('/cluster/:id', function (req, res)
 
 
 /* Remove cluster */
-router.delete("/cluster/", function (req, res)
+router.delete("/cluster//:iduser/:fwcloud/:id", function (req, res)
 {
 
     var id = req.param('id');

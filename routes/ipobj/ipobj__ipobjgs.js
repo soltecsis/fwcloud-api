@@ -10,14 +10,9 @@ var objModel = 'IPOBJ GROUP';
 
 var logger = require('log4js').getLogger("app");
 
-/* get data para crear nuevos */
-router.get('/ipobj__ipobjg', function (req, res)
-{
-    res.render('new_ipobj__ipobjg', {title: 'Crear nuevo ipobj__ipobjg'});
-});
 
 /* Get all ipobj__ipobjgs by group*/
-router.get('/:ipobjg', function (req, res)
+router.get('/:iduser/:fwcloud/:ipobjg', function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     Ipobj__ipobjgModel.getIpobj__ipobjgs(ipobjg, function (error, data)
@@ -42,7 +37,7 @@ router.get('/:ipobjg', function (req, res)
 
 
 /* Get  ipobj__ipobjg by id */
-router.get('/:ipobjg/:ipobj', function (req, res)
+router.get('/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -140,7 +135,7 @@ router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type
 });
 
 /* Update ipobj__ipobjg that exist */
-router.put('/ipobj__ipobjg/:ipobjg/:ipobj', function (req, res)
+router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;

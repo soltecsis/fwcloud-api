@@ -8,7 +8,7 @@ var objModel = 'IPOBJ TYPE';
 var logger = require('log4js').getLogger("app");
 
 /* Get all ipobj_types*/
-router.get('/', function (req, res)
+router.get('/:iduser/:fwcloud/', function (req, res)
 {
 
     Ipobj_typeModel.getIpobj_types(function (error, data)
@@ -33,7 +33,7 @@ router.get('/', function (req, res)
 
 
 /* Get  ipobj_type by id */
-router.get('/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
     Ipobj_typeModel.getIpobj_type(id, function (error, data)
@@ -56,7 +56,7 @@ router.get('/:id', function (req, res)
 });
 
 /* Get all ipobj_types by nombre */
-router.get('/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;
     Ipobj_typeModel.getIpobj_typeName(name, function (error, data)
@@ -82,7 +82,7 @@ router.get('/name/:name', function (req, res)
 
 
 /* Create New ipobj_type */
-router.post("/ipobj-type", function (req, res)
+router.post("/ipobj-type/:iduser/:fwcloud/", function (req, res)
 {
     //Create New objet with data ipobj_type
     var ipobj_typeData = {
@@ -115,7 +115,7 @@ router.post("/ipobj-type", function (req, res)
 });
 
 /* Update ipobj_type that exist */
-router.put('/ipobj-type/', function (req, res)
+router.put('/ipobj-type/:iduser/:fwcloud/', function (req, res)
 {
     //Save data into object
     var ipobj_typeData = {
@@ -149,7 +149,7 @@ router.put('/ipobj-type/', function (req, res)
 
 
 /* Remove ipobj_type */
-router.delete("/ipobj-type/", function (req, res)
+router.delete("/ipobj-type/:iduser/:fwcloud/", function (req, res)
 {
     //Id from ipobj_type to remove
     var id = req.param('id');

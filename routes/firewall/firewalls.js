@@ -112,7 +112,7 @@ var logger = require('log4js').getLogger("app");
  *       };
  * 
  */
-router.get('/:iduser', function (req, res)
+router.get('/:iduser/:fwcloud', function (req, res)
 {
     var iduser = req.params.iduser;
     FirewallModel.getFirewalls(iduser, function (error, data)
@@ -191,7 +191,55 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     });
 });
 
+/* Get firewall by Id */
+/**
+ * Get Firewalls by ID and User
+ * 
+ * <br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>
+ * <br>METHOD: <b>GET</b>
+ *
+ * @method getFirewallByUser_and_ID_V2
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} id Firewall identifier
+ * 
+ * @return {JSON} Returns Json Data from Firewall
+ */
+router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
+{
+    var id = req.params.id;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
 
+    if (!isNaN(id))
+    {
+        FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
+        {
+            //get firewall data
+            if (data && data.length > 0)
+            {
+                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+
+            }
+            //get error
+            else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        });
+    }
+    //id must be numeric
+    else
+    {
+        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
+    }
+});
 
 /**
  * Get Firewalls by User and Name
@@ -226,7 +274,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/fwname/:name', function (req, res)
+router.get('/:iduser/:fwcloud/fwname/:name', function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
@@ -248,7 +296,6 @@ router.get('/:iduser/fwname/:name', function (req, res)
         }
     });
 });
-
 
 
 /**
@@ -284,7 +331,7 @@ router.get('/:iduser/fwname/:name', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/cluster/:idcluster', function (req, res)
+router.get('/:iduser/:fwcloud/cluster/:idcluster', function (req, res)
 {
     var iduser = req.params.iduser;
     var idcluster = req.params.idcluster;
@@ -346,7 +393,7 @@ router.get('/:iduser/cluster/:idcluster', function (req, res)
  *         ]
  *       };
  */
-router.post("/firewall", function (req, res)
+router.post("/firewall/:iduser/:fwcloud", function (req, res)
 {
 
     var firewallData = {
@@ -413,7 +460,7 @@ router.post("/firewall", function (req, res)
  *         ]
  *       };
  */
-router.put('/firewall/', function (req, res)
+router.put('/firewall/:iduser/:fwcloud', function (req, res)
 {
 
     //Save firewall data into objet
@@ -436,55 +483,7 @@ router.put('/firewall/', function (req, res)
     });
 });
 
-/* Get firewall by Id */
-/**
- * Get Firewalls by ID and User
- * 
- * <br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>
- * <br>METHOD: <b>GET</b>
- *
- * @method getFirewallByUser_and_ID_V2
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} id Firewall identifier
- * 
- * @return {JSON} Returns Json Data from Firewall
- */
-router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
-{
-    var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
 
-    if (!isNaN(id))
-    {
-        FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
-        {
-            //get firewall data
-            if (data && data.length > 0)
-            {
-                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-
-            }
-            //get error
-            else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        });
-    }
-    //id must be numeric
-    else
-    {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
-});
 
 /* Get locked Status of firewall by Id */
 /**
@@ -537,54 +536,6 @@ router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
     }
 });
 
-/* Get firewall by firewall name  */
-/**
- * Get Firewalls by Name and User
- * 
- * <br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>
- * <br>METHOD: <b>GET</b>
- *
- * @method getFirewallByUser_and_Name_V2
- * 
- * @param {Integer} iduser User identifier
- * @param {String} name Firewall Name
- * 
- * @return {JSON} Returns Json Data from Firewall
- */
-router.get('/:iduser/firewall/name/:name', function (req, res)
-{
-    var iduser = req.params.iduser;
-    var name = req.params.name;
-
-    if (name.length > 0)
-    {
-        FirewallModel.getFirewallName(iduser, name, function (error, data)
-        {
-            //get data
-            if (data && data.length > 0)
-            {
-                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-
-            }
-            //get error
-            else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        });
-    }
-    //id must be numeric
-    else
-    {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
-});
 
 
 
@@ -622,7 +573,7 @@ router.get('/:iduser/firewall/name/:name', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.delete("/firewall/", function (req, res)
+router.delete("/firewall/:iduser/:fwcloud/:id", function (req, res)
 {
 
     var id = req.param('id');

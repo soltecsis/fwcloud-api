@@ -7,11 +7,7 @@ var objModel = 'USER';
 
 var logger = require('log4js').getLogger("app");
 
-/* Show form */
-//router.get('/', function(req, res) 
-//{
-//  res.render('index', { title: 'Mostrando listado de Users'});
-//});
+//BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
 
 /* Get all users by customer*/
 router.get('/:customer', function (req, res)

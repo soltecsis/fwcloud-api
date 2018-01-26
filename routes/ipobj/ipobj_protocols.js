@@ -9,7 +9,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all ipobj_protocols*/
-router.get('/', function (req, res)
+router.get('/:iduser/:fwcloud/', function (req, res)
 {
     Ipobj_protocolsModel.getIpobj_protocols(function (error, data)
     {
@@ -33,7 +33,7 @@ router.get('/', function (req, res)
 
 
 /* Get  ipobj_protocols by id */
-router.get('/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
     Ipobj_protocolsModel.getIpobj_protocols(id, function (error, data)
@@ -56,7 +56,7 @@ router.get('/:id', function (req, res)
 });
 
 /* Get all ipobj_protocols by nombre */
-router.get('/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;
     Ipobj_protocolsModel.getIpobj_protocolsName(name, function (error, data)
@@ -82,7 +82,7 @@ router.get('/name/:name', function (req, res)
 
 
 /* Create New ipobj_protocols */
-router.post("/ipobj-protocols", function (req, res)
+router.post("/ipobj-protocols/:iduser/:fwcloud/", function (req, res)
 {
     //Create New objet with data ipobj_protocols
     var ipobj_protocolsData = {
@@ -116,7 +116,7 @@ router.post("/ipobj-protocols", function (req, res)
 });
 
 /* Update ipobj_protocols that exist */
-router.put('/ipobj-protocols/', function (req, res)
+router.put('/ipobj-protocols/:iduser/:fwcloud/', function (req, res)
 {
     //Save data into object
     var ipobj_protocolsData = {
@@ -151,7 +151,7 @@ router.put('/ipobj-protocols/', function (req, res)
 
 
 /* Remove ipobj_protocols */
-router.delete("/ipobj-protocols/", function (req, res)
+router.delete("/ipobj-protocols/:iduser/:fwcloud/", function (req, res)
 {
     //Id from ipobj_protocols to remove
     var id = req.param('id');
