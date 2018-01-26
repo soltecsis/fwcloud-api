@@ -11,6 +11,14 @@ module.exports = PolicyScript;
 */
 var Policy_cModel = require('../policy_c');
 
+/**
+ * Property Model to manage compilation process
+ *
+ * @property RuleCompileModel
+ * @type /models/compile/
+ */
+var RuleCompile = require('../../models/policy/rule_compile');
+
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
@@ -18,13 +26,25 @@ const POLICY_TYPE_FORWARD = 3;
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.generate = (cloud,fw,callback) => {
 	var ps = "";
+	var policy_type = POLICY_TYPE_INPUT;
 
-  Policy_cModel.getPolicy_cs_type(cloud, fw, POLICY_TYPE_INPUT, (error, data) => { 
+  Policy_cModel.getPolicy_cs_type(cloud, fw, policy_type, (error, data) => { 
 		for (var i=0; i<data.length; i++) {
-			ps += "\r\necho \"RULE "+(i+1)+" (ID: "+data[i].id+"\")\r\n" + data[i].c_compiled;
+			ps += "\r\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+"\")\r\n#"+data[i].comment+"\r\n";
+			if (!(data[i].c_status_recompile))
+				ps += data[i].c_compiled;
+			else {	
+				// ERROR: This is not correct, I must wait until we have the compilation string.			
+				RuleCompile.get(cloud, fw, policy_type, data[i].id, (error,data) => {
+					if (error)
+						api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
+					else
+						ps += data.cs;
+				});							
+			}
 		}
 
-    callback(error,data);
+    callback(error,ps);
   });
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
