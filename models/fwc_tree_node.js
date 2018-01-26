@@ -15,7 +15,7 @@ function fwc_tree_node(node_data) {
     this.id_obj= node_data.id_obj;
     this.node_level= node_data.node_level;
     this.fwcloud= node_data.fwcloud;
-
+    this.show_action= node_data.show_action;
 }
 
 
