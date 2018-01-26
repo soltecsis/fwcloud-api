@@ -173,36 +173,36 @@ app.get('/signout', route.signOut);
 
 
 //var routes = require('./routes/index');
-var users = require('./routes/users');
-var user__firewalls = require('./routes/user__firewalls');
-var customers = require('./routes/customers');
-var clusters = require('./routes/clusters');
-var firewalls = require('./routes/firewalls');
-var fwclouds = require('./routes/fwclouds');
-var routing_gs = require('./routes/routing_gs');
-var routing_rs = require('./routes/routing_rs');
-var interfaces = require('./routes/interfaces');
-var policy_gs = require('./routes/policy_gs');
-var policy_rs = require('./routes/policy_rs');
-var policy_types = require('./routes/policy_types');
-var ipobj_gs = require('./routes/ipobj_gs');
-var ipobjs = require('./routes/ipobjs');
-var ipobj__ipobjgs = require('./routes/ipobj__ipobjgs');
-var ipobj_types = require('./routes/ipobj_types');
-var policy_r__ipobjs = require('./routes/policy_r__ipobjs');
-var routing_r__ipobjs = require('./routes/routing_r__ipobjs');
-var policy_r__interfaces = require('./routes/policy_r__interfaces');
-var routing_r__interfaces = require('./routes/routing_r__interfaces');
-var interface__ipobjs = require('./routes/interface__ipobjs');
-var ipobj_type__policy_positions = require('./routes/ipobj_type__policy_positions');
-var ipobj_type__routing_positions = require('./routes/ipobj_type__routing_positions');
-var policy_positions = require('./routes/policy_positions');
-var fwc_tree = require('./routes/fwc_tree');
+var users = require('./routes/user/users');
+var user__firewalls = require('./routes/user/user__firewalls');
+var customers = require('./routes/user/customers');
+var clusters = require('./routes/firewall/clusters');
+var firewalls = require('./routes/firewall/firewalls');
+var fwclouds = require('./routes/fwcloud/fwclouds');
+var routing_gs = require('./routes/routing/routing_gs');
+var routing_rs = require('./routes/routing/routing_rs');
+var interfaces = require('./routes/interface/interfaces');
+var policy_gs = require('./routes/policy/policy_gs');
+var policy_rs = require('./routes/policy/policy_rs');
+var policy_types = require('./routes/policy/policy_types');
+var ipobj_gs = require('./routes/ipobj/ipobj_gs');
+var ipobjs = require('./routes/ipobj/ipobjs');
+var ipobj__ipobjgs = require('./routes/ipobj/ipobj__ipobjgs');
+var ipobj_types = require('./routes/ipobj/ipobj_types');
+var policy_r__ipobjs = require('./routes/policy/policy_r__ipobjs');
+var routing_r__ipobjs = require('./routes/routing/routing_r__ipobjs');
+var policy_r__interfaces = require('./routes/policy/policy_r__interfaces');
+var routing_r__interfaces = require('./routes/routing/routing_r__interfaces');
+var interface__ipobjs = require('./routes/interface/interface__ipobjs');
+var ipobj_type__policy_positions = require('./routes/ipobj/ipobj_type__policy_positions');
+var ipobj_type__routing_positions = require('./routes/ipobj/ipobj_type__routing_positions');
+var policy_positions = require('./routes/policy/policy_positions');
+var fwc_tree = require('./routes/tree/fwc_tree');
 var policy_compile = require('./routes/policy/compile');
 var policy_install = require('./routes/policy/install');
-var ipobj_protocols = require('./routes/ipobj_protocols');
+var ipobj_protocols = require('./routes/ipobj/ipobj_protocols');
 
-var importxml = require('./routes/importxml');
+var importxml = require('./routes../../utils/importxml');
 app.use('/importxml', importxml);
 
 //app.use('/', routes);
@@ -246,7 +246,7 @@ db.connect(function (err) {
 
 
 //Interval control for unlock FWCLouds 
-var FwcloudModel = require('./models/fwcloud');
+var FwcloudModel = require('./models/fwcloud/fwcloud');
 var config = require('./config/apiconf.json');
 
 const intervalObj = setInterval(() => {    

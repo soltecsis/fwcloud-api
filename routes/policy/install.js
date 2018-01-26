@@ -36,7 +36,7 @@ var logger = require('log4js').getLogger("compiler");
  * Property Model to manage API RESPONSE data
  *
  * @property api_resp
- * @type /models/api_response
+ * @type ../../models/api_response
  *
  */
 var api_resp = require('../../utils/api_response');
@@ -45,7 +45,7 @@ var api_resp = require('../../utils/api_response');
  * Property Model to manage policy script generation and install process
  *
  * @property PolicyScript
- * @type /models/compile/
+ * @type ../../models/compile/
  */
 var PolicyScript = require('../../models/policy/policy_script');
 

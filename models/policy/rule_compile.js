@@ -8,17 +8,17 @@ module.exports = RuleCompileModel;
  * Property Model to manage Policy Data
  *
  * @property PolicyModel
- * @type /models/policy_r
+ * @type ../../models/policy/policy_r
  */
-var Policy_rModel = require('../policy_r');
+var Policy_rModel = require('../../models/policy/policy_r');
 
 /**
  * Property Model to manage Policy Compiled Data
  *
  * @property Policy_cModel
- * @type /models/policy_c
+ * @type ../../models/policy_c
  */
-var Policy_cModel = require('../policy_c');
+var Policy_cModel = require('../../models/policy/policy_c');
 
 /**
  * Property Logger to manage App logs
@@ -33,7 +33,7 @@ var logger = require('log4js').getLogger("compiler");
  * Property Model to manage API RESPONSE data
  *
  * @property api_resp
- * @type /models/api_response
+ * @type ../../models/api_response
  *
  */
 var api_resp = require('../../utils/api_response');

@@ -7,15 +7,15 @@ module.exports = PolicyScript;
 * Property Model to manage Policy Compiled Data
 *
 * @property Policy_cModel
-* @type /models/policy_c
+* @type ../../models/policy_c
 */
-var Policy_cModel = require('../policy_c');
+var Policy_cModel = require('../../models/policy/policy_c');
 
 /**
  * Property Model to manage compilation process
  *
  * @property RuleCompileModel
- * @type /models/compile/
+ * @type ../../models/compile/
  */
 var RuleCompile = require('../../models/policy/rule_compile');
 

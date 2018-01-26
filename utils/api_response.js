@@ -18,7 +18,7 @@
  * Property Model to manage response Data
  *
  * @property respModel
- * @type /utils/api_response
+ * @type ../../utils/api_response
  * 
  * 
  */
