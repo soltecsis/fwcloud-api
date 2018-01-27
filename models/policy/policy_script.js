@@ -24,6 +24,19 @@ const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
 
 /*----------------------------------------------------------------------------------------------------------------------*/
+async function compile_rule() {
+  try {
+		await RuleCompile.get(cloud, fw, policy_type, data[i].id, (error,data) => {
+			ps += data.cs;});
+	} catch (ex) {
+		api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
+  }
+
+  return pageContent
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.generate = (cloud,fw,callback) => {
 	var ps = "";
 	var policy_type = POLICY_TYPE_INPUT;
@@ -33,19 +46,13 @@ PolicyScript.generate = (cloud,fw,callback) => {
 			ps += "\r\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+"\")\r\n#"+data[i].comment+"\r\n";
 			if (!(data[i].c_status_recompile))
 				ps += data[i].c_compiled;
-			else {	
+			else
 				// ERROR: This is not correct, I must wait until we have the compilation string.			
-				RuleCompile.get(cloud, fw, policy_type, data[i].id, (error,data) => {
-					if (error)
-						api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
-					else
-						ps += data.cs;
-				});							
-			}
+				compile_rule.then();
 		}
-
-    callback(error,ps);
-  });
+		
+		callback(error,ps);
+	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
 
