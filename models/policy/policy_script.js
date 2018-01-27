@@ -32,20 +32,21 @@ var api_resp = require('../../utils/api_response');
 PolicyScript.dump = (cloud,fw,type) => {
 	return new Promise((resolve,reject) => { 
   	Policy_cModel.getPolicy_cs_type(cloud, fw, type, async (error, data) => {
-			if (error) { reject(error); return }
+			if (error)
+				return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
-				ps += "\r\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\r\n";
+				ps += "\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
-					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\r\n";
+					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
 				if (!(data[i].c_status_recompile)) // The compiled string in the database is ok.
 					ps += data[i].c_compiled;
 				else { // We must compile the rule.
 					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
 					// For this reason we use await and async for the callbac function of Policy_cModel.getPolicy_cs_type
 					await RuleCompile.get(cloud,fw,type,data[i].id)
-						.then(data => ps += data.cs)
-						.catch ((error,data) => {api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', error, (jsonResp) => { res.status(200).json(jsonResp)})})				
+						.then(data => ps += data)
+						.catch (error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))				
 				}
 			}
 		

@@ -79,32 +79,35 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
 
   /* The get method of the RuleCompile model returns a promise. */
   RuleCompile.get(cloud, fw, type, rule)
-    .then((data) => {
-      api_resp.getJson(data, api_resp.ACR_OK, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp)})
-    })
-    .catch((error,data) => {
-      api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', error, (jsonResp) => { res.status(200).json(jsonResp)})
-    });
+    .then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK,'','COMPILE', null,jsonResp => res.status(200).json(jsonResp)))
+    .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE', error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:user/:cloud/:fw', async (req, res) => {
+router.get('/:user/:cloud/:fw', (req, res) => {
   var user = req.params.user;
   var cloud = req.params.cloud;
   var fw = req.params.fw;
   var code="";
 
-  /* Generate the policy script. */
-  for(var type=1; type<6; type++) {
-    code += "\r\n\r\n# " + POLICY_TYPE[type] + " TABLE \r\n#-------------\r\n";
-    await PolicyScript.dump(cloud,fw,type)
-      .then(data => code+=data)
-      .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,(jsonResp) => { res.status(200).json(jsonResp)}))
-  }
-  res.status(200).send(code);
+  var fs = require('fs');
+  var path = "DATA/"+cloud+"/"+fw+"/fwcloud.sh";
+  var stream = fs.createWriteStream(path);
+
+  stream.on('open', async fd => {
+    /* Generate the policy script. */
+    for(var type=1; type<6; type++) {
+      await PolicyScript.dump(cloud,fw,type)
+        .then(async data => { await stream.write("\n\n# " + POLICY_TYPE[type] + " TABLE \n#-------------\n" + data)})
+        .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))
+    }
+    stream.end();
+
+    res.status(200).send({"result": true, "msg": "Policy script path: "+path});
+  }).on('error', error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 

@@ -194,7 +194,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				const position_items = RuleCompileModel.pre_compile(data);
 				// Compile string.
 				var cs = "$IPTABLES -A " + POLICY_TYPE[policy_type] + " ";
-				var cs_trail = "-m state --state NEW -j " + action + "\r\n";
+				var cs_trail = "-m state --state NEW -j " + action + "\n";
 				// Rule compilation process.
 				if (position_items.length === 0) // No conditions rule.
 						cs += cs_trail;
@@ -219,13 +219,13 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 												var cs1 = cs;
 												cs = "";
 												for (var j = 0; j < position_items[0].length; j++)
-														cs += cs1 + position_items[0][j] + ((j < (position_items[0].length - 1)) ? " -m state --state NEW -j " + chain_name + "\r\n" : " ");
+														cs += cs1 + position_items[0][j] + ((j < (position_items[0].length - 1)) ? " -m state --state NEW -j " + chain_name + "\n" : " ");
 										} else {
 												// If we are at the end of the array, the next chain will be the rule action.
 												chain_next = (i === ((position_items.length) - 1)) ? action : "FWCRULE" + rule + ".CH" + (chain_number + 1);
-												cs = "$IPTABLES -N " + chain_name + "\r\n" + cs + ((chain_number === 1) ? "-m state --state NEW -j " + chain_name + "\r\n" : "");
+												cs = "$IPTABLES -N " + chain_name + "\n" + cs + ((chain_number === 1) ? "-m state --state NEW -j " + chain_name + "\n" : "");
 												for (j = 0; j < position_items[i].length; j++) {
-														cs += "$IPTABLES -A " + chain_name + " " + position_items[i][j] + " -j " + chain_next + "\r\n";
+														cs += "$IPTABLES -A " + chain_name + " " + position_items[i][j] + " -j " + chain_next + "\n";
 												}
 												chain_number++;
 										}
@@ -249,7 +249,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 					// We don't worry about if the rule compilation string is stored fine in the database.
 				});
 
-				callback(cs);
+				callback(null,cs);
 		});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -261,18 +261,21 @@ RuleCompileModel.get = (cloud, fw, type, rule) => {
 	return new Promise((resolve,reject) => { 
 		Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
 			if (error)
-				reject(error,data);
+				reject(error);
 			else if (data && data.length > 0) {
 				if (data[0].c_status_recompile === 0)
-					resolve({"result": true, "cs": data[0].c_compiled});
+					resolve(data[0].c_compiled);
 				else {
-					RuleCompileModel.rule_compile(cloud, fw, type, rule, (cs) => {
-						resolve({"result": true, "cs": cs});
+					RuleCompileModel.rule_compile(cloud, fw, type, rule, (error,data) => {
+						if (error)
+							reject(error)
+						else
+							resolve(data);
 					});
 				}
 			}
 			else
-				resolve({"result": false, "cs": ""});
+				resolve("");
 		});
 	});
 };
