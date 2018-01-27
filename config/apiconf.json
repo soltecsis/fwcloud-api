@@ -9,7 +9,7 @@
     },
     "lock":{
         "check_interval_mls": "60000", 
-        "unlock_timeout_min": "5"
+        "unlock_timeout_min": "15"
     }
     
 }
