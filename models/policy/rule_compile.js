@@ -257,19 +257,23 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get the rule compilation string or compile it if this string is not uptodate.
  /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.get = (cloud, fw, type, rule, callback) => {
-	Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
-		if (data && data.length > 0) {
-			if (data[0].c_status_recompile === 0)
-				callback(null, {"result": true, "cs": data[0].c_compiled});
-			else {
-				RuleCompileModel.rule_compile(cloud, fw, type, rule, (cs) => {
-					callback(null, {"result": true, "cs": cs});
-				});
+RuleCompileModel.get = (cloud, fw, type, rule) => {
+	return new Promise((resolve,reject) => { 
+		Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
+			if (error)
+				reject(error,data);
+			else if (data && data.length > 0) {
+				if (data[0].c_status_recompile === 0)
+					resolve({"result": true, "cs": data[0].c_compiled});
+				else {
+					RuleCompileModel.rule_compile(cloud, fw, type, rule, (cs) => {
+						resolve({"result": true, "cs": cs});
+					});
+				}
 			}
-		}
-		else
-			callback(null, {"result": false, "cs": ""});
+			else
+				resolve({"result": false, "cs": ""});
+		});
 	});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/

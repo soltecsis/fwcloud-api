@@ -7,7 +7,7 @@ module.exports = PolicyScript;
 * Property Model to manage Policy Compiled Data
 *
 * @property Policy_cModel
-* @type ../../models/policy_c
+* @type /models/policy_c
 */
 var Policy_cModel = require('../../models/policy/policy_c');
 
@@ -15,43 +15,42 @@ var Policy_cModel = require('../../models/policy/policy_c');
  * Property Model to manage compilation process
  *
  * @property RuleCompileModel
- * @type ../../models/compile/
+ * @type /models/compile/
  */
 var RuleCompile = require('../../models/policy/rule_compile');
 
-const POLICY_TYPE_INPUT = 1;
-const POLICY_TYPE_OUTPUT = 2;
-const POLICY_TYPE_FORWARD = 3;
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type ../../models/api_response
+ *
+ */
+var api_resp = require('../../utils/api_response');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-async function compile_rule() {
-  try {
-		await RuleCompile.get(cloud, fw, policy_type, data[i].id, (error,data) => {
-			ps += data.cs;});
-	} catch (ex) {
-		api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', null, (jsonResp) => { res.status(200).json(jsonResp); });
-  }
+PolicyScript.dump = (cloud,fw,type) => {
+	return new Promise((resolve,reject) => { 
+  	Policy_cModel.getPolicy_cs_type(cloud, fw, type, async (error, data) => {
+			if (error) { reject(error); return }
 
-  return pageContent
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.generate = (cloud,fw,callback) => {
-	var ps = "";
-	var policy_type = POLICY_TYPE_INPUT;
-
-  Policy_cModel.getPolicy_cs_type(cloud, fw, policy_type, (error, data) => { 
-		for (var i=0; i<data.length; i++) {
-			ps += "\r\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+"\")\r\n#"+data[i].comment+"\r\n";
-			if (!(data[i].c_status_recompile))
-				ps += data[i].c_compiled;
-			else
-				// ERROR: This is not correct, I must wait until we have the compilation string.			
-				compile_rule.then();
-		}
+			for (var ps="", i=0; i<data.length; i++) {
+				ps += "\r\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\r\n";
+				if (data[i].comment)
+					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\r\n";
+				if (!(data[i].c_status_recompile)) // The compiled string in the database is ok.
+					ps += data[i].c_compiled;
+				else { // We must compile the rule.
+					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
+					// For this reason we use await and async for the callbac function of Policy_cModel.getPolicy_cs_type
+					await RuleCompile.get(cloud,fw,type,data[i].id)
+						.then(data => ps += data.cs)
+						.catch ((error,data) => {api_resp.getJson(data, api_resp.ACR_ERROR, '', 'COMPILE', error, (jsonResp) => { res.status(200).json(jsonResp)})})				
+				}
+			}
 		
-		callback(error,ps);
+			resolve(ps);
+		});
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
