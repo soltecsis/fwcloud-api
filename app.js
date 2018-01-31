@@ -117,7 +117,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined, 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
+var whitelist = [undefined, 'undefined', 'null','http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
 var corsOptions = {
     origin: function (origin, callback) {
         logger.debug("ORIGIN: " + origin);
@@ -212,28 +212,30 @@ app.use('/customers', customers);
 app.use('/clusters', clusters);
 app.use('/firewalls', firewalls);
 app.use('/fwclouds', fwclouds);
-app.use('/routing-gs', routing_gs);
-app.use('/routing-rs', routing_rs);
-app.use('/interfaces', interfaces);
 app.use('/policy-gs', policy_gs);
 app.use('/policy-rs', policy_rs);
 app.use('/policy-types', policy_types);
+app.use('/policy-r__ipobjs', policy_r__ipobjs);
+app.use('/policy-r__interfaces', policy_r__interfaces);
+app.use('/policy-positions', policy_positions);
+app.use('/policy/compile', policy_compile);
+app.use('/policy/install', policy_install);
+app.use('/routing-gs', routing_gs);
+app.use('/routing-rs', routing_rs);
+app.use('/routing-r__ipobjs', routing_r__ipobjs);
+app.use('/routing-r__interfaces', routing_r__interfaces);
 app.use('/ipobj-gs', ipobj_gs);
 app.use('/ipobj__ipobjgs', ipobj__ipobjgs);
 app.use('/ipobjs', ipobjs);
 app.use('/ipobj-types', ipobj_types);
-app.use('/policy-r__ipobjs', policy_r__ipobjs);
-app.use('/routing-r__ipobjs', routing_r__ipobjs);
-app.use('/policy-r__interfaces', policy_r__interfaces);
-app.use('/routing-r__interfaces', routing_r__interfaces);
-app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
-app.use('/policy-positions', policy_positions);
-app.use('/fwc-tree', fwc_tree);
-app.use('/policy/compile', policy_compile);
-app.use('/policy/install', policy_install);
 app.use('/ipobj-protocols', ipobj_protocols);
+app.use('/interfaces', interfaces);
+app.use('/interface__ipobjs', interface__ipobjs);
+
+app.use('/fwc-tree', fwc_tree);
+
 
 
 // Connect to MySQL on start

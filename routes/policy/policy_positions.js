@@ -79,7 +79,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     });
 });
 
-/* Get all policy_positions by nombre */
+/* Get all policy_positions by name */
 router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;

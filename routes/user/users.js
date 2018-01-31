@@ -4,10 +4,85 @@ var UserModel = require('../../models/user/user');
 var api_resp = require('../../utils/api_response');
 var objModel = 'USER';
 
+var parseFile = require('./parse_file.js');
+
+
 
 var logger = require('log4js').getLogger("app");
 
+var cp = require("child_process");
+        
+
 //BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
+
+router.get('/msg', function(req, res){
+    res.writeHead(200, { "Content-Type": "text/event-stream",
+                         "Cache-control": "no-cache" });
+
+    var spw = cp.spawn('ping', ['-c', '100', '127.0.0.1']),
+    str = "";
+
+    
+    
+    spw.stdout.on('data', function (data) {
+        str += data.toString();
+
+        // just so we can see the server is doing something
+        console.log("data");
+
+        
+        
+        // Flush out line by line.
+        var lines = str.split("\n");
+        for(var i in lines) {
+            if(i == lines.length - 1) {
+                str = lines[i];
+            } else{
+                // Note: The double-newline is *required*
+                res.write('data: ' + lines[i] + "\n\n");
+            }
+        }
+    });
+    
+    spw.on('close', function (code) {
+        res.end(str);
+    });
+
+    spw.stderr.on('data', function (data) {
+        res.end('stderr: ' + data);
+    });
+});
+
+
+/* Get Stream*/
+router.get('/stream-log/:isuser/', function (req, res)
+{
+    parseFile(__dirname+'/../../logs/app_fwcloud.log').pipe(res);
+
+
+});
+
+/* Get Stream*/
+router.get('/stream-log1/:isuser/', function (req, res)
+{
+    const {Readable} = require('stream');
+
+
+    const inStream = new Readable({
+        read(size) {
+            this.push(String.fromCharCode(this.currentCharCode++));
+            if (this.currentCharCode > 90) {
+                this.push(null);
+            }
+        }
+    });
+
+    inStream.currentCharCode = 65;
+
+    inStream.pipe(res);
+
+
+});
 
 /* Get all users by customer*/
 router.get('/:customer', function (req, res)
@@ -56,11 +131,6 @@ router.get('/:customer/username/:username', function (req, res)
     });
 });
 
-/* form for new users */
-router.get('/user', function (req, res)
-{
-    res.render('new_user', {title: 'Servicio rest con nodejs, express 4 and mysql'});
-});
 
 /* new user */
 router.post("/user", function (req, res)

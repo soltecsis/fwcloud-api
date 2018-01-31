@@ -7,15 +7,10 @@ var objModel='ROUTING IPOBJ';
 
 var logger = require('log4js').getLogger("app");
 
-/* Show form */
-router.get('/routing-r__ipobj', function (req, res)
-{
-    res.render('new_routing_r__ipobj', {title: 'Crear nuevo routing_r__ipobj'});
-});
 
 /* Get all routing_r__ipobjs by rule*/
 
-router.get('/:rule', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:rule', function (req, res)
 {
     var rule = req.params.rule;
     
@@ -41,7 +36,7 @@ router.get('/:rule', function (req, res)
 
 /* Get all routing_r__ipobjs by rule and posicion*/
 
-router.get('/:rule/:position', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:rule/:position', function (req, res)
 {
     var rule = req.params.rule;
     var position = req.params.position;
@@ -69,7 +64,7 @@ router.get('/:rule/:position', function (req, res)
 
 /* Get  routing_r__ipobj by id  */
 
-router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:position', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -101,7 +96,7 @@ router.get('/:rule/:ipobj/:ipobj_g/:position', function (req, res)
 
 
 /* Create New routing_r__ipobj */
-router.post("/routing-r__ipobj", function (req, res)
+router.post("/routing-r__ipobj/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Create New objet with data routing_r__ipobj
     var routing_r__ipobjData = {
@@ -129,7 +124,7 @@ router.post("/routing-r__ipobj", function (req, res)
 });
 
 /* Update routing_r__ipobj that exist */
-router.put('/routing-r__ipobj', function (req, res)
+router.put('/routing-r__ipobj/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     var rule = req.body.get_rule;
     var ipobj = req.body.get_ipobj;
@@ -164,7 +159,7 @@ router.put('/routing-r__ipobj', function (req, res)
 });
 
 /* Update POSITION routing_r__ipobj that exist */
-router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
+router.put('/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_position/:new_order', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -194,7 +189,7 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
 });
 
 /* Update ORDER routing_r__ipobj that exist */
-router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_order', function (req, res)
+router.put('/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:position/:position_order/:new_order', function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -227,7 +222,7 @@ router.put('/routing-r__ipobj/:rule/:ipobj/:ipobj_g/:position/:position_order/:n
 
 
 /* Remove routing_r__ipobj */
-router.delete("/routing-r__ipobj/", function (req, res)
+router.delete("/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/", function (req, res)
 {
     //Id from routing_r__ipobj to remove
     var rule = req.body.rule;

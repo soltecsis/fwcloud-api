@@ -143,7 +143,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup/name/:name', function (
     });
 });
 /* Create New policy_r */
-router.post("/policy-r", function (req, res)
+router.post("/policy-r/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Create New objet with data policy_r
     var policy_rData = {
@@ -187,7 +187,7 @@ router.post("/policy-r", function (req, res)
     });
 });
 /* Update policy_r that exist */
-router.put('/policy-r/', function (req, res)
+router.put('/policy-r/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     //Save data into object
     var policy_rData = {id: req.body.id, idgroup: req.body.idgroup, firewall: req.body.firewall, rule_order: req.body.rule_order, options: req.body.options, action: req.body.action, time_start: req.body.time_start, time_end: req.body.time_end, comment: req.body.comment, active: req.body.active, type: req.body.type, style: req.body.style};
@@ -219,7 +219,7 @@ router.put('/policy-r/', function (req, res)
     });
 });
 /* Update ORDER de policy_r that exist */
-router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', function (req, res)
+router.put('/policy-r/order/:iduser/:fwcloud/:idfirewall/:type/:id/:old_order/:new_order', function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -289,7 +289,7 @@ router.put('/policy-r/style/:iduser/:fwcloud/:idfirewall/:type', function (req, 
 });
 
 /* Update Active policy_r  */
-router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
+router.put('/policy-r/activate/:iduser/:fwcloud/:idfirewall/:type', function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -325,7 +325,7 @@ router.put('/policy-r/activate/:idfirewall/:type', function (req, res)
 
 
 /* Copy or Move RULES */
-router.put('/policy-r/copy-rules', function (req, res)
+router.put('/policy-r/copy-rules/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     try {
         //logger.debug("BODY:");
@@ -555,10 +555,10 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Remove policy_r */
-router.delete("/policy-r/:iduser/:idfirewall", function (req, res)
+router.delete("/policy-r/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Id from policy_r to remove
-    var iduser = req.params.idfirewall;
+    var iduser = req.params.iduser;
     var idfirewall = req.params.idfirewall;
     var JsonData = req.body;
     var rulesIds = JsonData.rulesIds;

@@ -7,7 +7,7 @@ var objModel = 'CUSTOMER';
 
 
 /* Get all customers */
-router.get('/', function (req, res)
+router.get('/:iduser', function (req, res)
 {
     CustomerModel.getCustomers(function (error, data)
     {
@@ -31,7 +31,7 @@ router.get('/', function (req, res)
 
 
 /* New customer */
-router.post("/customer", function (req, res)
+router.post("/customer/:iduser", function (req, res)
 {
     //New object with customer data
     var customerData = {
@@ -62,7 +62,7 @@ router.post("/customer", function (req, res)
 });
 
 /* update customer */
-router.put('/customer/', function (req, res)
+router.put('/customer/:iduser', function (req, res)
 {
     //Save customer data into object
     var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
@@ -84,7 +84,7 @@ router.put('/customer/', function (req, res)
 });
 
 /* Get customer by Id */
-router.get('/customer/:id', function (req, res)
+router.get('/customer/:iduser/:id', function (req, res)
 {
     var id = req.params.id;
 
@@ -121,7 +121,7 @@ router.get('/customer/:id', function (req, res)
 
 
 /* remove customer */
-router.delete("/customer/", function (req, res)
+router.delete("/customer/:iduser", function (req, res)
 {
 
     var id = req.param('id');

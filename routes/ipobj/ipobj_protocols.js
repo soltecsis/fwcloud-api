@@ -55,7 +55,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     });
 });
 
-/* Get all ipobj_protocols by nombre */
+/* Get all ipobj_protocols by name */
 router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 {
     var name = req.params.name;

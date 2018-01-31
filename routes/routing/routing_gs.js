@@ -7,14 +7,9 @@ var objModel='ROUTING TYPE';
 
 var logger = require('log4js').getLogger("app");
 
-/* Show form */
-router.get('/routing-g', function (req, res)
-{
-    res.render('new_routing_g', {title: 'Crear nuevo routing_g'});
-});
 
 /* Get all routing_gs by firewall*/
-router.get('/:idfirewall', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     Routing_gModel.getRouting_gs(idfirewall,function (error, data)
@@ -37,7 +32,7 @@ router.get('/:idfirewall', function (req, res)
 });
 
 /* Get all routing_gs by firewall*/
-router.get('/:idfirewall/group/:idgroup', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -61,7 +56,7 @@ router.get('/:idfirewall/group/:idgroup', function (req, res)
 });
 
 /* Get  routing_g by id and  by firewall*/
-router.get('/:idfirewall/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -85,7 +80,7 @@ router.get('/:idfirewall/:id', function (req, res)
 });
 
 /* Get all routing_gs by nombre and by firewall*/
-router.get('/:idfirewall/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -113,7 +108,7 @@ router.get('/:idfirewall/name/:name', function (req, res)
 
 
 /* Create New routing_g */
-router.post("/routing-g", function (req, res)
+router.post("/routing-g/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Create New objet with data routing_g
     var routing_gData = {
@@ -143,7 +138,7 @@ router.post("/routing-g", function (req, res)
 });
 
 /* Update routing_g that exist */
-router.put('/routing-g/', function (req, res)
+router.put('/routing-g/:iduser/:fwcloud/:idfirewall', function (req, res)
 {
     //Save data into object
     var routing_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment')};
@@ -168,7 +163,7 @@ router.put('/routing-g/', function (req, res)
 
 
 /* Remove routing_g */
-router.delete("/routing-g/", function (req, res)
+router.delete("/routing-g/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Id from routing_g to remove
     var idfirewall = req.param('idfirewall');

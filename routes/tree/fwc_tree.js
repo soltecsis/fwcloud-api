@@ -243,7 +243,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud', functio
         }
     });
 });
-/* Get all fwc_tree NODE SERVICES by User*/
+/* Get all fwc_tree NODE SERVICES by User and ID NODE*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
 router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id', function (req, res)

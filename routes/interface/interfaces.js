@@ -85,7 +85,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/interface/:id', function (req, res)
     });
 });
 
-/* Get all interfaces by nombre and by firewall*/
+/* Get all interfaces by name and by firewall*/
 router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
@@ -109,8 +109,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
         }
     });
 });
-
-
+//FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface in RULES  */
 router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
 {
@@ -141,6 +140,7 @@ router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, 
     });
 });
 
+//FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface  */
 router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
 {
