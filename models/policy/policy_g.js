@@ -125,6 +125,30 @@ policy_gModel.updatePolicy_g = function (policy_gData, callback) {
     });
 };
 
+//Update policy_r Style
+policy_gModel.updatePolicy_g_Style = function (firewall, id, style, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                'groupstyle = ' + connection.escape(style) + ' ' +
+                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall);        
+        connection.query(sql, function (error, result) {
+            if (error) {                
+                logger.error(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0) {
+                    callback(null, {"result": true});
+                } else
+                    callback(null, {"result": false});
+            }
+        });
+    });
+};
+
 //Remove policy_g with id to remove
 //FALTA BORRADO EN CASCADA 
 policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {

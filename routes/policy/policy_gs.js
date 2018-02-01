@@ -4,6 +4,8 @@ var Policy_gModel = require('../../models/policy/policy_g');
 var Policy_rModel = require('../../models/policy/policy_r');
 var api_resp = require('../../utils/api_response');
 var objModel = 'POLICY GROUP';
+var FirewallModel = require('../../models/firewall/firewall');
+var db = require('../../db.js');
 
 
 var logger = require('log4js').getLogger("app");
@@ -152,7 +154,7 @@ router.post("/policy-g/:iduser/:fwcloud/:idfirewall/", function (req, res)
 router.put('/policy-g/:iduser/:fwcloud/:idfirewall/', function (req, res)
 {
     //Save data into object
-    var policy_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment')};
+    var policy_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'), groupStyle: req.param('groupStyle')};
     Policy_gModel.updatePolicy_g(policy_gData, function (error, data)
     {
         if (error)
@@ -177,7 +179,44 @@ router.put('/policy-g/:iduser/:fwcloud/:idfirewall/', function (req, res)
     });
 });
 
+/* Update Style policy_g  */
+router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/', function (req, res)
+{    
+    var accessData = {iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall };
+     
+    var JsonData = req.body.Data;
+    var style = JsonData.style;
+    var groupIds = JsonData.groupIds;
 
+    FirewallModel.getFirewallAccess(accessData)
+            .then(resp => {
+                db.lockTableCon("policy_g", " WHERE firewall=" + accessData.idfirewall , function () {
+                    db.startTXcon(function () {
+                        for (var group of groupIds) {
+                            Policy_gModel.updatePolicy_g_Style(accessData.idfirewall, group,  style, function (error, data) {
+                                if (error)
+                                    logger.debug("ERROR UPDATING STYLE for GROUP: " + group + "  STYLE: " + style);                                
+                                if (data && data.result) {
+                                    logger.debug("UPDATED STYLE for GROUP: " + group + "  STYLE: " + style);
+                                } else
+                                    logger.debug("NOT UPDATED STYLE for GROUP: " + group + "  STYLE: " + style);
+                            });
+                        }
+                        db.endTXcon(function () {});
+                    });
+                });
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE GROUP UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            })
+            .catch(resp => {
+                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL LOCKED', 'FIREWALL', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+
+
+});
 
 /* Remove policy_g */
 router.delete("/policy-g/:iduser/:fwcloud/:idfirewall/:id", function (req, res)
