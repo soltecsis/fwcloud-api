@@ -78,7 +78,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                 else
                     type = 1;
 
-                var sql = 'SELECT P.*, G.name as group_name, ' +
+                var sql = 'SELECT P.*, G.name as group_name, G.groupstyle as group_style, ' +
                         ' C.updated_at as c_updated_at, ' +
                         ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
                         ' FROM ' + tableModel + ' P ' +

@@ -4,6 +4,7 @@
         this.id= data.id;
         this.idgroup= data.idgroup;
         this.group_name=data.group_name;
+        this.group_style=data.group_style;
         this.firewall= data.firewall;        
         this.rule_order= data.rule_order;        
         this.action= data.action;
