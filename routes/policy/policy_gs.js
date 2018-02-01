@@ -188,8 +188,8 @@ router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/', function (req, res)
     var style = JsonData.groupstyle;
     var groupIds = JsonData.groupIds;
 
-    FirewallModel.getFirewallAccess(accessData)
-            .then(resp => {
+    /*FirewallModel.getFirewallAccess(accessData)
+            .then(resp => {*/
                 db.lockTableCon("policy_g", " WHERE firewall=" + accessData.idfirewall , function () {
                     db.startTXcon(function () {
                         for (var group of groupIds) {
@@ -208,12 +208,13 @@ router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/', function (req, res)
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE GROUP UPDATED OK', 'POLICY', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
+                /*
             })
             .catch(resp => {
                 api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL LOCKED', 'FIREWALL', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
-            });
+            });*/
 
 
 });
