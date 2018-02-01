@@ -185,7 +185,7 @@ router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/', function (req, res)
     var accessData = {iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall };
      
     var JsonData = req.body.Data;
-    var style = JsonData.style;
+    var style = JsonData.groupstyle;
     var groupIds = JsonData.groupIds;
 
     FirewallModel.getFirewallAccess(accessData)
