@@ -57,97 +57,30 @@ PolicyScript.dump = (cloud,fw,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = () => {
-  
-  
+PolicyScript.install = (cloud,fw,sshuser,sshpass) => {
   var Client = require('ssh2').Client;
   var conn = new Client();
 
-  conn.on(
-	'connect',
-	function () {
-		console.log( "- connected" );
-	}
-);
- 
-conn.on(
-	'ready',
-	function () {
-		console.log( "- ready" );
- 
-		conn.sftp(
-			function (err, sftp) {
-				if ( err ) {
-					console.log( "Error, problem starting SFTP: %s", err );
-					process.exit( 2 );
-				}
- 
-				console.log( "- SFTP started" );
- 
-				// upload file
-				var readStream = fs.createReadStream( "/proc/meminfo" );
-				var writeStream = sftp.createWriteStream( "/tmp/meminfo.txt" );
- 
-				// what to do when transfer finishes
-				writeStream.on(
-					'close',
-					function () {
-						console.log( "- file transferred" );
-						sftp.end();
-						process.exit( 0 );
-					}
-				);
- 
-				// initiate transfer of file
-				readStream.pipe( writeStream );
-			}
-		);
-	}
-);
- 
-conn.on(
-	'error',
-	function (err) {
-		console.log( "- connection error: %s", err );
-		process.exit( 1 );
-	}
-);
- 
-conn.on(
-	'end',
-	function () {
-		process.exit( 0 );
-	}
-);
- 
-conn.connect(
-	{
-		"host": "10.0.0.1",
-		"port": 22,
-		"username": "root",
-		"privateKey": "/home/root/.ssh/id_root"
-	}
-);
-
-
-  conn.on('ready', function() {
-	console.log('Client :: ready');
-  conn.exec('uptime', function(err, stream) {
-	if (err) throw err;
-	stream.on('close', function(code, signal) {
-	  console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
-	  conn.end();
-	}).on('data', function(data) {
-	  console.log('STDOUT: ' + data);
-	}).stderr.on('data', function(data) {
-	  console.log('STDERR: ' + data);
+	return new Promise((resolve,reject) => { 
+		conn.on('ready', () => {
+			console.log('Client :: ready');
+			conn.exec('uptime', (err, stream) => {
+				if (err) return reject(err);
+				stream.on('close',(code, signal) => {
+					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+					conn.end();
+				}).on('data', data => {
+					console.log('STDOUT: ' + data);
+				}).stderr.on('data', (data) => {
+					console.log('STDERR: ' + data);
+				});
+			});
+		}).connect({
+			host: '192.168.100.100',
+			port: 22,
+			username: sshuser,
+			password: sshpass
+		});  
 	});
-  });
-}).connect({
-  host: '192.168.100.100',
-  port: 22,
-  username: 'frylock',
-  password: 'nodejsrules'
-});  
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
