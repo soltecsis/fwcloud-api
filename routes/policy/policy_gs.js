@@ -165,8 +165,35 @@ router.put('/policy-g/:iduser/:fwcloud/:idfirewall/', function (req, res)
             //If saved policy_g saved ok, get data
             if (data && data.result)
             {
-                //res.redirect("/policy-gs/policy-g/" + req.param('id'));
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
+});
+
+/* Update policy_g NAMe  */
+router.put('/policy-g/name/:iduser/:fwcloud/:idfirewall/', function (req, res)
+{
+    //Save data into object
+    var policy_gData = {id: req.param('id'), name: req.param('name')};
+    Policy_gModel.updatePolicy_g_name(policy_gData, function (error, data)
+    {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_g saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'GROUP NAME UPDATED OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             } else

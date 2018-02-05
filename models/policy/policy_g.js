@@ -114,7 +114,26 @@ policy_gModel.updatePolicy_g = function (policy_gData, callback) {
                 'firewall = ' + connection.escape(policy_gData.firewall) + ',' +
                 'comment = ' + connection.escape(policy_gData.comment) + ' ' +
                 ' WHERE id = ' + policy_gData.id;
-        logger.debug(sql);
+        
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            } else {
+                callback(null, {"result": true});
+            }
+        });
+    });
+};
+
+//Update policy_g NAME 
+policy_gModel.updatePolicy_g_name = function (policy_gData, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(policy_gData.name) + ' ' +
+                ' WHERE id = ' + policy_gData.id;
+        
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
