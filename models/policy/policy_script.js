@@ -28,6 +28,8 @@ var RuleCompile = require('../../models/policy/rule_compile');
  */
 var api_resp = require('../../utils/api_response');
 
+var config = require('../../config/apiconf.json');
+
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.dump = (cloud,fw,type) => {
 	return new Promise((resolve,reject) => { 
@@ -57,30 +59,84 @@ PolicyScript.dump = (cloud,fw,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (cloud,fw,sshuser,sshpass) => {
+PolicyScript.upload = (cloud,fw,connSettings) => {
   var Client = require('ssh2').Client;
-  var conn = new Client();
+	var conn = new Client();
 
 	return new Promise((resolve,reject) => { 
 		conn.on('ready', () => {
-			console.log('Client :: ready');
-			conn.exec('uptime', (err, stream) => {
+			conn.sftp((err, sftp) => {
+				if (err)  return reject(err);
+
+				var fs = require("fs"); // Use node filesystem
+        var readStream = fs.createReadStream(config.policy.data_dir+"/"+cloud+"/"+fw+"/"+config.policy.script_name).on('error',error => {conn.end(); reject(error)});
+        var writeStream = sftp.createWriteStream(config.policy.script_name).on('error',error => {conn.end(); reject(error)});
+
+				writeStream
+					.on('close',() => resolve( "File transferred succesfully"))
+					.on('end', () => {conn.close(); reject("sftp connection closed")});
+
+        // initiate transfer of file
+				readStream.pipe(writeStream);
+			});
+		})
+		.on('error',error => reject(error))
+		.connect(connSettings);
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+PolicyScript.run_ssh_command = (connSettings,cmd) => {
+  var Client = require('ssh2').Client;
+	var conn = new Client();
+	var stdout_log = "";
+	var stderr_log ="";
+
+	return new Promise((resolve,reject) => { 
+		conn.on('ready',() => {
+			conn.exec(cmd, {pty: true}, (err, stream) => {
 				if (err) return reject(err);
 				stream.on('close',(code, signal) => {
-					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+					//console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
 					conn.end();
+					if (code===0)
+						resolve(stdout_log)
+					else
+						reject("STDOUT: \n"+stdout_log+"\n\nSTDERR: \n"+stderr_log);
 				}).on('data', data => {
-					console.log('STDOUT: ' + data);
-				}).stderr.on('data', (data) => {
-					console.log('STDERR: ' + data);
+					//console.log('STDOUT: ' + data);
+					var str=""+data;
+					if (str==="[sudo] password for "+connSettings.username+": ")
+						stream.write(connSettings.password+"\n");
+					stdout_log += data;
+				}).stderr.on('data', data => {
+					//console.log('STDERR: ' + data);
+					stderr_log += data;
 				});
 			});
-		}).connect({
-			host: '192.168.100.100',
-			port: 22,
-			username: sshuser,
-			password: sshpass
-		});  
+		})
+		.on('error', error => reject(error))
+		.connect(connSettings);
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+PolicyScript.install = async (cloud,fw,sshuser,sshpass) => {
+	var connSettings = {
+		host: '10.99.5.101',
+		port: 22,
+		username: sshuser,
+		password: sshpass
+	}
+
+	return new Promise(async (resolve,reject) => { 
+		await PolicyScript.upload(cloud,fw,connSettings)
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 0x700 -p "+config.policy.script_dir))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start"))
+			.then(() => resolve("OK"))
+			.catch(error => reject(error));
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/

@@ -59,9 +59,9 @@ router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
   var sshpass = req.params.sshpass;
 
   /* The get method of the RuleCompile model returns a promise. */
-  RuleCompile.install(cloud,fw,sshusser,sshpass)
-  .then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK,'','COMPILE', null,jsonResp => res.status(200).json(jsonResp)))
-  .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE', error,jsonResp => res.status(200).json(jsonResp)))
+  await PolicyScript.install(cloud,fw,sshuser,sshpass)
+  .then(data => api_resp.getJson({"result": true, "output": data}, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
+  .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 

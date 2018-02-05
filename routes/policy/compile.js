@@ -65,6 +65,8 @@ var RuleCompile = require('../../models/policy/rule_compile');
  */
 var PolicyScript = require('../../models/policy/policy_script');
 
+var config = require('../../config/apiconf.json');
+
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -94,7 +96,7 @@ router.get('/:user/:cloud/:fw', (req, res) => {
   var code="";
 
   var fs = require('fs');
-  var path = "DATA/"+cloud+"/"+fw+"/fwcloud.sh";
+  var path = config.policy.data_dir+"/"+cloud+"/"+fw+"/"+config.policy.script_name;
   var stream = fs.createWriteStream(path);
 
   stream.on('open', async fd => {

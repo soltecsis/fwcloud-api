@@ -3921,3 +3921,441 @@ Cannot read property 'idgroup' of undefined
   'accept-encoding': 'gzip, deflate',
   connection: 'keep-alive' }
 [2018-01-27 19:17:57.243] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:00:11.629] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:00:18.594] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:00:18.595] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:00:18.596] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '48a9fad5-f8cb-4a29-b714-78aa9f9320d1',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:00:18.597] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:00:31.074] [DEBUG] app - Error: Not connected
+    at Client.exec (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2/lib/client.js:714:11)
+    at Promise (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:97:8)
+    at new Promise (<anonymous>)
+    at Object.PolicyScript.create_install_dir (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:96:9)
+    at PolicyScript.upload.then (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:131:29)
+    at <anonymous>
+    at process._tickCallback (internal/process/next_tick.js:188:7)
+[2018-02-05 17:01:23.867] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:01:26.093] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:01:26.094] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:01:26.095] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '78481142-e9e9-4f76-a546-3a910ed70321',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AQXD2QoG5_5A9Pwit9R2hmmqp75MwWmdM.BT4JIEhvO1jsDdIQ3UwiNhHsa%2Barz4sL9%2FXKDQekAWs',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:01:26.096] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:02:30.310] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:02:32.703] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:02:32.704] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:02:32.704] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'b33ac3ba-5120-41c0-bcef-51a8a01fce37',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:02:32.706] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:03:13.378] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:03:15.580] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:03:15.582] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:03:15.582] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '58797a11-9387-4c47-a704-70fed9398976',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:03:15.583] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:04:32.506] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:04:34.874] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:04:34.876] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:04:34.876] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '3894f116-3714-4575-8d5b-7ce8f3095bf0',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:04:34.878] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:05:03.963] [DEBUG] app - Error: Not connected
+    at Client.exec (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2/lib/client.js:714:11)
+    at Promise (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:97:8)
+    at new Promise (<anonymous>)
+    at Object.PolicyScript.create_install_dir (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:96:9)
+    at PolicyScript.upload.then (/isp/src/FWCloud/FWCloud.nodeapi/models/policy/policy_script.js:131:41)
+    at <anonymous>
+    at process._tickCallback (internal/process/next_tick.js:188:7)
+[2018-02-05 17:07:22.966] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:07:23.867] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:07:23.868] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:07:23.868] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'e05bb9f7-9ff5-4bdf-b2bf-984085d62f39',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:07:23.870] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:07:40.070] [DEBUG] app - sudo: no tty present and no askpass program specified
+
+[2018-02-05 17:13:29.752] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:13:29.753] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:13:29.754] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '38fd0e8d-e83d-496c-8d4f-c0da30fc166c',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:13:29.754] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:13:30.896] [DEBUG] app - sudo: no tty present and no askpass program specified
+
+[2018-02-05 17:15:13.618] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:15:15.783] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:15:15.784] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:15:15.784] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'd780b34e-52e6-4976-8abb-1b2f65be36f8',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:15:15.786] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:15:17.034] [DEBUG] app - sudo: a password is required
+
+[2018-02-05 17:16:45.725] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:16:46.816] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:16:46.820] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:16:46.820] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '546c813b-aef6-4114-8020-043e1edf151a',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:16:46.826] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:17:11.431] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:17:14.190] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:17:14.191] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:17:14.191] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '21054978-863e-40e1-95ca-3461bd2a16c4',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:17:14.193] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:17:15.525] [DEBUG] app - sudo: a password is required
+
+[2018-02-05 17:17:33.520] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:17:35.558] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:17:35.562] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:17:35.562] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '83e3ead2-50a1-4ec7-b3b0-f69d393b03a0',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AMhZphRvoAhPZWE0Tj-gljgIQ4cY4B_7O.eg%2FTnfpl8JOHJSHobfx69P3%2FWTZbko6JC3wxmtNKzDs',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:17:35.568] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:17:39.233] [DEBUG] app - [sudo] password for fwcloudtest: Sorry, try again.
+[sudo] password for fwcloudtest: 
+sudo: 1 incorrect password attempt
+
+[2018-02-05 17:19:17.417] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:19:17.709] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:19:17.713] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:19:17.713] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'bb9a28bc-b153-4dd6-979b-f849f91cbd8f',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:19:17.719] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:19:48.855] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:19:52.501] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:19:52.502] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:19:52.502] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '8c721768-ca01-4547-ba04-1d226b2788d9',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:19:52.508] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:19:58.867] [DEBUG] app - [sudo] password for fwcloudtest: fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+[2018-02-05 17:26:13.090] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:26:14.563] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:26:14.567] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:26:14.567] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '78e053a7-1be3-4e28-8fd8-e0d31d0ecaaa',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:26:14.573] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:26:22.917] [DEBUG] app - sudo: no tty present and no askpass program specified
+
+[2018-02-05 17:30:11.642] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:30:16.850] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:30:16.854] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:30:16.854] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'd473872e-af52-4b0a-8a7d-e3fbecc59de7',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:30:16.860] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:30:28.266] [DEBUG] app - sudo: no tty present and no askpass program specified
+
+[2018-02-05 17:31:53.427] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:31:53.715] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:31:53.719] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:31:53.719] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '9e2f49c2-3d09-40ef-96cf-8cf449796079',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:31:53.725] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:33:42.999] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:33:45.257] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:33:45.261] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:33:45.262] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'd1d69e56-02de-4057-9267-3d7f018bde0e',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:33:45.267] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:42:41.565] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:42:44.227] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:42:44.231] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:42:44.231] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'e3bd50eb-71c2-4217-960b-a031646f0354',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:42:44.237] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:43:11.210] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:43:13.471] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:43:13.472] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:43:13.473] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '4184e7fc-f32e-456d-bc35-7793eccb651e',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:43:13.474] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:44:54.371] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 17:44:56.658] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:44:56.662] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:44:56.662] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'ab1fe357-b84d-481a-90ac-62684711d79d',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:44:56.668] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:44:58.141] [DEBUG] app - STDOUT: [sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+[2018-02-05 17:45:15.011] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:45:15.012] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:45:15.012] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '29e01619-8054-4154-9f40-3f60bf16708f',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AdB36hmHm--u9GjqC5-lSUTLX_BWmlxfO.rI0pdGj7jJC7Hu8bycC5yWtfCLuDpkCtk8hk6xczvHc',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:45:15.013] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:45:16.879] [DEBUG] app - { Error: All configured authentication methods failed
+    at tryNextAuth (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2/lib/client.js:380:17)
+    at SSH2Stream.onUSERAUTH_FAILURE (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2/lib/client.js:591:5)
+    at emitTwo (events.js:126:13)
+    at SSH2Stream.emit (events.js:214:7)
+    at parsePacket (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2-streams/lib/ssh.js:3929:10)
+    at SSH2Stream._transform (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2-streams/lib/ssh.js:669:13)
+    at SSH2Stream.Transform._read (_stream_transform.js:186:10)
+    at SSH2Stream._read (/isp/src/FWCloud/FWCloud.nodeapi/node_modules/ssh2-streams/lib/ssh.js:251:15)
+    at SSH2Stream.Transform._write (_stream_transform.js:174:12)
+    at doWrite (_stream_writable.js:387:12)
+    at writeOrBuffer (_stream_writable.js:373:5)
+    at SSH2Stream.Writable.write (_stream_writable.js:290:11)
+    at Socket.ondata (_stream_readable.js:639:20)
+    at emitOne (events.js:116:13)
+    at Socket.emit (events.js:211:7)
+    at addChunk (_stream_readable.js:263:12) level: 'client-authentication' }
+[2018-02-05 17:45:22.817] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 17:45:22.818] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 17:45:22.818] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '9ab7bbaa-f379-49cf-9534-0d5c50f1b88a',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AdB36hmHm--u9GjqC5-lSUTLX_BWmlxfO.rI0pdGj7jJC7Hu8bycC5yWtfCLuDpkCtk8hk6xczvHc',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 17:45:22.819] [DEBUG] app - --------------------------------------------------
+[2018-02-05 17:45:24.058] [DEBUG] app - STDOUT: [sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+[2018-02-05 18:02:15.544] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:02:32.229] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:02:32.231] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:02:32.231] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'e485ecb1-8f54-4f30-b906-96e5228e9496',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:02:32.233] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:02:33.610] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
+[2018-02-05 18:03:07.765] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:03:10.484] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:03:10.485] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:03:10.485] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '6e385909-20b5-45fd-a3fb-3bce5a40b02f',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AjxZCjcDh_7vjAK_EeG9OeuS0fQpcOg5R.9yLayQeh9rE6fGHNGfmfFETVGR4Djn3XX1VmX2%2B8lBM',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:03:10.486] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:03:11.816] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
+[2018-02-05 18:06:08.013] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:06:08.014] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:06:08.014] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'b38f2dfe-9123-47b7-9289-65f83cd99c24',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:06:08.014] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:06:09.233] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
+[2018-02-05 18:06:32.967] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:06:39.502] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:06:43.223] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:06:43.224] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:06:43.224] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '7499ab5a-0c7e-4bfd-a547-c3d3d3c1b35b',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AwE93CFwtE72240jrv5AVlFsuCzkSQ5B9.f3N57z841We8%2BOSZQ7UTDgSKK9WWIjm5iwn0McsjXq4',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:06:43.226] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:06:44.544] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
+[2018-02-05 18:06:56.445] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:06:58.899] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:06:58.900] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:06:58.900] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'f778667c-a809-4cb6-86af-a406abb38680',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AMbGcHrEqSKI3vegaBgKJ58dxfqCQP-Pp.yB2XHzAz7nABRowJXU9XjFCZVaNwd3WozZHyTLkHTg0',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:06:58.902] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:07:59.501] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:08:02.603] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:08:02.604] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:08:02.604] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'c1797678-9e3a-49c5-b809-cf118797aec4',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:08:02.606] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:08:34.170] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:08:40.103] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:08:40.104] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:08:40.104] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '7d62ecb1-9946-480e-9f48-632372dff537',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3A2LUl0OVF8Bg0bZ34Hl5ObccQ5adpaQGr.xUWnxGwOw%2BA4N%2B0pZstECsUCaOhUE%2Bxtrr6sn3OjdA0',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:08:40.105] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:08:41.406] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
+[2018-02-05 18:09:43.194] [DEBUG] app - ---- DATABASE CONNECTED in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-05 18:09:47.423] [DEBUG] app - ORIGIN: undefined
+[2018-02-05 18:09:47.424] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-05 18:09:47.424] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '644ad3b5-4c48-4778-9717-e9895b9882be',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-05 18:09:47.426] [DEBUG] app - --------------------------------------------------
+[2018-02-05 18:09:48.726] [DEBUG] app - STDOUT: 
+[sudo] password for fwcloudtest: 
+fwcloudtest is not in the sudoers file.  This incident will be reported.
+
+
+STDERR: 
+
