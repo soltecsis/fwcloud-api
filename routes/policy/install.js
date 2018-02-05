@@ -41,12 +41,27 @@ var logger = require('log4js').getLogger("compiler");
  */
 var api_resp = require('../../utils/api_response');
 
+/**
+ * Property Model to manage policy script generation and install process
+ *
+ * @property PolicyScript
+ * @type ../../models/compile/
+ */
+var PolicyScript = require('../../models/policy/policy_script');
+
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:user/:cloud/:fw', async (req, res) => {
+router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
   var user = req.params.user;
   var cloud = req.params.cloud;
   var fw = req.params.fw;
+  var sshuser = req.params.sshuser;
+  var sshpass = req.params.sshpass;
+
+  /* The get method of the RuleCompile model returns a promise. */
+  RuleCompile.install(cloud,fw,sshusser,sshpass)
+  .then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK,'','COMPILE', null,jsonResp => res.status(200).json(jsonResp)))
+  .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE', error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
