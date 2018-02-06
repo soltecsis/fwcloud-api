@@ -237,9 +237,10 @@ app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/fwc-tree', fwc_tree);
 
 
+var dbconf=process.argv[2] || "dblocal";
 
 // Connect to MySQL on start
-db.connect(function (err) {
+db.connect(dbconf, function (err) {
     if (err) {
         console.log('Unable to connect to MySQL.');
         process.exit(1);

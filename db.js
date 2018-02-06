@@ -17,18 +17,20 @@ var state = {
 
 var conn = null;
 
-exports.connect = function (done) {
+exports.connect = function (dbconf, done) {
+    
+    configDB=config[dbconf];
     state.pool = mysql.createPool({
-        connectionLimit: config.db.connectionLimit,
-        host: config.db.host,
-        user: config.db.user,
-        password: config.db.password,
-        database: config.db.mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
+        connectionLimit: configDB.connectionLimit,
+        host: configDB.host,
+        user: configDB.user,
+        password: configDB.password,
+        database: configDB.mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
 
     });
 
-    state.mode = config.db.mode;
-    state.commit=config.db.commitMode;
+    state.mode = configDB.mode;
+    state.commit=configDB.commitMode;
     
     state.pool.getConnection(function (err, connection) {
         if (err)
@@ -37,7 +39,7 @@ exports.connect = function (done) {
             conn = connection;
             var sql ="SET AUTOCOMMIT=" + state.commit + ";";
             conn.query(sql, function (error, result) {});
-            logger.debug("---- DATABASE CONNECTED in MODE: " +  state.mode + "  AUTOCOMMIT: " + state.commit + "  -----");
+            logger.debug("---- DATABASE CONNECTED: " + dbconf  + " in MODE: " +  state.mode + "  AUTOCOMMIT: " + state.commit + "  -----");
         }
     });
     done();
