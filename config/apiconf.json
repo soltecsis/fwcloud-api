@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "db": {
     "connectionLimit": "100",
     "host": "10.99.5.101",
@@ -18,4 +19,27 @@
 		"header_file": "",
 		"footer_file": ""
 	}  
+=======
+    "dblocal": {
+        "connectionLimit": "100",
+        "host": "localhost",
+        "user": "soltecsis",
+        "password": "WdQ?:(x4",
+        "mode": "mode_production",
+        "commitMode": "1"
+    },
+     "dbremote": {
+        "connectionLimit": "100",
+        "host": "10.99.5.101",
+        "user": "fwclouddevel",
+        "password": "ZEBmJyQtnyhT8kWG7dShb9",
+        "mode": "mode_production",
+        "commitMode": "1"
+    },
+    "lock":{
+        "check_interval_mls": "60000", 
+        "unlock_timeout_min": "15"
+    }
+    
+>>>>>>> 90d1d7cd6d9066e30ba18f00feb1797d2b90e3aa
 }
