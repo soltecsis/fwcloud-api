@@ -20,10 +20,10 @@
         "unlock_timeout_min": "15"
     },
 	"policy":{
-		"script_name": "fwcloud.sh",
 		"data_dir": "./DATA/",
+		"script_name": "fwcloud.sh",
 		"script_dir": "/etc/fwcloud/",
-		"header_file": "",
-		"footer_file": ""
+		"header_file": "./DATA/policy/header.txt",
+		"footer_file": "./DATA/policy/footer.txt"
 	}  
 }

@@ -31,6 +31,21 @@ var api_resp = require('../../utils/api_response');
 var config = require('../../config/apiconf.json');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
+PolicyScript.append = (path) => {
+	return new Promise((resolve,reject) => {
+		var fs = require('fs');
+
+		try {
+			 var data= fs.readFileSync(path, 'utf8');
+			 resolve(data);
+		} catch(error) {
+			reject(error);
+		}
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.dump = (cloud,fw,type) => {
 	return new Promise((resolve,reject) => { 
   	Policy_cModel.getPolicy_cs_type(cloud, fw, type, async (error, data) => {
@@ -123,7 +138,7 @@ PolicyScript.run_ssh_command = (connSettings,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = async (cloud,fw,sshuser,sshpass) => {
+PolicyScript.install = (cloud,fw,sshuser,sshpass) => {
 	var connSettings = {
 		host: '10.99.5.101',
 		port: 22,
@@ -133,9 +148,13 @@ PolicyScript.install = async (cloud,fw,sshuser,sshpass) => {
 
 	return new Promise(async (resolve,reject) => { 
 		await PolicyScript.upload(cloud,fw,connSettings)
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 0x700 -p "+config.policy.script_dir))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 700 -p "+config.policy.script_dir))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_dir))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chmod 700 "+config.policy.script_name))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_name))
+			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mv "+config.policy.script_name+" "+config.policy.script_dir))
 			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start"))
-			.then(() => resolve("OK"))
+			.then(data => resolve(data))
 			.catch(error => reject(error));
 	});
 }

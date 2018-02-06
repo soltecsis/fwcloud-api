@@ -1,0 +1,15 @@
+#!/bin/sh 
+#############################################
+##                                         ##
+##  FWCloud.net - SOLTECSIS                ##
+##  info@soltecsis.com                     ##
+##                                         ##
+#############################################
+
+LSMOD="`which lsmod`"
+MODPROBE="`which modprobe`"
+#IPTABLES="`which iptables`"
+IPTABLES="echo"
+IP6TABLES="`which ip6tables`"
+IP="`which ip`"
+

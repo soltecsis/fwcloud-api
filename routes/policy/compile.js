@@ -96,19 +96,30 @@ router.get('/:user/:cloud/:fw', (req, res) => {
   var code="";
 
   var fs = require('fs');
-  var path = config.policy.data_dir+"/"+cloud+"/"+fw+"/"+config.policy.script_name;
+  var path = config.policy.data_dir;
+  if (!fs.existsSync(path)) fs.mkdirSync(path);
+  path += "/"+cloud;
+  if (!fs.existsSync(path)) fs.mkdirSync(path);
+  path += "/"+fw;
+  if (!fs.existsSync(path)) fs.mkdirSync(path);
+  path += "/"+config.policy.script_name;
   var stream = fs.createWriteStream(path);
 
   stream.on('open', async fd => {
     /* Generate the policy script. */
-    for(var type=1; type<6; type++) {
-      await PolicyScript.dump(cloud,fw,type)
-        .then(async data => { await stream.write("\n\n# " + POLICY_TYPE[type] + " TABLE \n#-------------\n" + data)})
-        .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))
-    }
+    await PolicyScript.append(config.policy.header_file)
+      .then(data => { stream.write(data+"\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n"); return PolicyScript.dump(cloud,fw,1)})
+      .then(data => { stream.write(data+"\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n"); return PolicyScript.dump(cloud,fw,2)})
+      .then(data => { stream.write(data+"\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n"); return PolicyScript.dump(cloud,fw,3)})
+      .then(data => { stream.write(data+"\n\necho -e \"\\nSNAT TABLE\\n----------\"\n"); return PolicyScript.dump(cloud,fw,4)})
+      .then(data => { stream.write(data+"\n\necho -e \"\\nDNAT TABLE\\n----------\"\n"); return PolicyScript.dump(cloud,fw,5)})
+      .then(data => { stream.write(data); return PolicyScript.append(config.policy.footer_file)})
+      .then(data => { stream.write(data); res.status(200).send({"result": true, "msg": "Policy script path: "+path})})
+      .catch(error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)));
+
+    /* Close stream. */
     stream.end();
 
-    res.status(200).send({"result": true, "msg": "Policy script path: "+path});
   }).on('error', error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
