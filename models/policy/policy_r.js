@@ -688,7 +688,8 @@ policy_rModel.compilePolicy_r = function (rule, callback) {
         if (data && data.length > 0) {
             var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
             logger.debug("---------- COMPILING RULE " + strRule + " -------");            
-            publisherClient.publish( 'compile',"START COMPILING RULE: " + strRule );
+            publisherClient.publish( 'compile',"----------------------------------------------------------------------------------\n" );
+            publisherClient.publish( 'compile',"---> START COMPILING RULE: " + strRule );
 
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
