@@ -218,6 +218,35 @@ router.put('/policy-r/:iduser/:fwcloud/:idfirewall', function (req, res)
         }
     });
 });
+
+/* Compile policy_r that exist */
+router.put('/policy-r/compile/:iduser/:fwcloud/:idfirewall/:rule', function (req, res)
+{
+    var id=req.params.rule;
+    
+     Policy_rModel.compilePolicy_r(id, function (error, data)
+    {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r saved ok, get data
+            if (data && data.result)
+            {                
+                api_resp.getJson(null, api_resp.ACR_COMPILED_OK, 'COMPILED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error compiling', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
+});
+
 /* Update ORDER de policy_r that exist */
 router.put('/policy-r/order/:iduser/:fwcloud/:idfirewall/:type/:id/:old_order/:new_order', function (req, res)
 {

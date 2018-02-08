@@ -113,6 +113,14 @@ respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
 respModel.ACR_ACCESS_ERROR = 'ACR_ACCESS_ERROR';
 
 /**
+ * Property ACR_COMPILED_OK
+ *
+ * @property ACR_COMPILED_OK
+ * @type String
+ */
+respModel.ACR_COMPILED_OK = 'ACR_COMPILED_OK';
+
+/**
  * Property Logger to manage App logs
  *
  * @attribute logger
@@ -265,6 +273,10 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
             status = false;
             msg = custom_obj + " Access not allowed by lock status";
             break;
+        case this.ACR_COMPILED_OK:
+            status = true;
+            msg = custom_obj + " compile success";
+            break;    
         default:
             status = false;
             msg = "unknown error";

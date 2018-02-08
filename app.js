@@ -117,7 +117,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined, 'undefined', 'null','http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
+var whitelist = [undefined, 'undefined', 'null', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
 var corsOptions = {
     origin: function (origin, callback) {
         logger.debug("ORIGIN: " + origin);
@@ -141,7 +141,58 @@ app.use(function (req, res, next) {
     next();
 });
 
+var FwcloudModel = require('./models/fwcloud/fwcloud');
+var url  = require('url');
+
+//CONTROL FWCLOUD ACCESS
+app.use(function (req, res, next) {
+    
+    
+    var url_parts = url.parse(req.url);
+    var pathname= url_parts.pathname;
+    
+    //logger.debug(url_parts);
+    logger.debug(pathname);
+    var params= pathname.split('/').slice(1);
+    var iduser= params[1];
+    var fwcloud = params [2];
+    
+    
+    
+    var accessData = {iduser: iduser, fwcloud: fwcloud};
+    
+    logger.warn("API ACCESS USER : " + iduser + " --- FWCLOUD: " + fwcloud );
+
+    //Checl FWCLOUD LOCK
+    FwcloudModel.getFwcloudAccess(accessData.iduser, accessData.fwcloud)
+            .then(resp => {
+                //{"access": true, "locked": false, "locked_at": "", "locked_by": ""}
+                logger.warn(resp);
+                if (resp.access) {
+                    logger.warn("OK --> FWCLOUD ACCESS ALLOWED ");
+                    req.fwc_access = true;                    
+                } else {
+                    logger.warn("KO --> FWCLOUD ACCESS NOT ALLOWED ");
+                    req.fwc_access = false;
+                }
+                logger.warn("--------------------------------------------------");
+                next();
+            })
+            .catch(resp => {
+                logger.warn(resp);
+                logger.warn("ERROR --> FWCLOUD ACCESS NOT ALLOWED ");
+                logger.warn("--------------------------------------------------");
+                req.fwc_access = false;
+                next();
+            });
+
+    
+});
+
+
 var db = require('./db');
+
+
 
 
 app.use(session({secret: 'La nieve cae blanca', cookie: {maxAge: 60000}, resave: true, saveUninitialized: true}));
@@ -202,7 +253,9 @@ var policy_compile = require('./routes/policy/compile');
 var policy_install = require('./routes/policy/install');
 var ipobj_protocols = require('./routes/ipobj/ipobj_protocols');
 
-var importxml = require('./routes../../utils/importxml');
+var stream = require('./routes/stream/stream');
+
+var importxml = require('./utils/importxml');
 app.use('/importxml', importxml);
 
 //app.use('/', routes);
@@ -233,11 +286,12 @@ app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
 app.use('/ipobj-protocols', ipobj_protocols);
 app.use('/interfaces', interfaces);
 app.use('/interface__ipobjs', interface__ipobjs);
-
 app.use('/fwc-tree', fwc_tree);
 
+app.use('/stream', stream);
 
-var dbconf=process.argv[2] || "dblocal";
+
+var dbconf = process.argv[2] || "dblocal";
 
 // Connect to MySQL on start
 db.connect(dbconf, function (err) {
@@ -249,13 +303,15 @@ db.connect(dbconf, function (err) {
 
 
 //Interval control for unlock FWCLouds 
-var FwcloudModel = require('./models/fwcloud/fwcloud');
 var config = require('./config/apiconf.json');
 
-const intervalObj = setInterval(() => {    
+const intervalObj = setInterval(() => {
     FwcloudModel.checkFwcloudLockTimeout(config.lock.unlock_timeout_min)
-            .then(result =>{logger.debug("OK CHECKLOCK: " + result);})
-            .catch(result =>{});
+            .then(result => {
+                logger.debug("OK CHECKLOCK: " + result);
+            })
+            .catch(result => {
+            });
 }, config.lock.check_interval_mls);
 
 

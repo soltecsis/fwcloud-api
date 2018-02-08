@@ -6,14 +6,67 @@ var objModel = 'USER';
 
 var parseFile = require('./parse_file.js');
 
+var SseChannel = require('sse-channel');
+var redis = require('redis');
+var publisherClient = redis.createClient();
 
 
 var logger = require('log4js').getLogger("app");
 
 var cp = require("child_process");
-        
 
 //BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
+
+        
+        
+
+router.get('/update-stream', function(req, res) {
+  // let request last as long as possible
+  req.socket.setTimeout(99999999);
+
+  var messageCount = 0;
+  var subscriber = redis.createClient();
+
+  subscriber.subscribe("updates");
+
+  // In case we encounter an error...print it out to the console
+  subscriber.on("error", function(err) {
+    logger.debug("Redis Error: " + err);
+  });
+
+  // When we receive a message from the redis connection
+  subscriber.on("message", function(channel, message) {
+    messageCount++; // Increment our message count
+    
+    logger.debug("RECIBIENDO NUEVO MENSAJE: " + messageCount + "  MSG: " + message);
+    res.write('id: ' + messageCount + '\n');
+    res.write("data: " + message + '\n\n'); // Note the extra newline
+  });
+
+  //send headers for event-stream connection
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  res.write('\n');
+
+  // The 'close' event is fired when a user closes their browser window.
+  // In that situation we want to make sure our redis channel subscription
+  // is properly shut down to prevent memory leaks...and incorrect subscriber
+  // counts to the channel.
+  req.on("close", function() {
+    subscriber.unsubscribe();
+    subscriber.quit();
+  });
+});
+
+router.get('/fire-event/:event_name', function(req, res) {
+  publisherClient.publish( 'updates', ('"' + req.params.event_name + '" page visited') );
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  res.write('All clients have received "' + req.params.event_name + '"');
+  res.end();
+});
 
 router.get('/msg', function(req, res){
     res.writeHead(200, { "Content-Type": "text/event-stream",

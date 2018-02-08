@@ -287,6 +287,8 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
 
+    logger.debug("Req Access: " + req.fwc_access);
+    
 
     IpobjModel.getIpobj(fwcloud, id, function (error, data)
     {

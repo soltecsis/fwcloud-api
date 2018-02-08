@@ -524,9 +524,9 @@ policy_rModel.updatePolicy_r_Style = function (firewall, id, type, style, callba
 
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 'style = ' + connection.escape(style) + ' ' +
-                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);        
+                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
         connection.query(sql, function (error, result) {
-            if (error) {                
+            if (error) {
                 logger.error(error);
                 callback(error, null);
             } else {
@@ -676,6 +676,9 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
     });
 };
 
+var redis = require('redis');
+var publisherClient = redis.createClient();
+
 //Compile rule and save it
 policy_rModel.compilePolicy_r = function (rule, callback) {
 
@@ -683,15 +686,24 @@ policy_rModel.compilePolicy_r = function (rule, callback) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
-            logger.debug("---------- COMPILANDO REGLA -------");
+            logger.debug("---------- COMPILING RULE -------");
+            logger.debug(data);
+
             RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
-                logger.debug("---- RULE COMPILED --->  ");
-                logger.debug(cs);
-                logger.debug("-----------------------");
-                if (cs.length > 0)
+
+
+                //publish compiled message
+                //publisherClient.publish( 'compile', cs );
+
+                if (cs && cs.length > 0) {
+                    logger.debug("---- RULE COMPILED --->  ");
+                    logger.debug(cs);
+                    logger.debug("-----------------------");
                     callback(null, {"result": true, "msg": "Rule compiled"});
-                else
-                    callback(null, {"result": false, "msg": "rule NOT compiled"});
+                } else {
+                    logger.debug("---- ERROR RULE NOT COMPILED --->  ");
+                    callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
+                }
 
             });
         } else
