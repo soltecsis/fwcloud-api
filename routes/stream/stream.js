@@ -33,8 +33,20 @@ router.get('/update-stream', function(req, res) {
     logger.debug("RECIBIENDO NUEVA COMPILACION: " + messageCount + "  MSG: " + message);
     logger.debug("CHANNEL: " + channel);
     
-    res.write('id: ' + messageCount + '\n');
-    res.write("data: " + message + '\n\n'); // Note the extra newline
+    //res.write('id: ' + messageCount + '\n');
+    //res.write("data: " + message + '\n\n'); // Note the extra newline
+    
+    // Flush out line by line.
+    var str=message;
+        var lines = str.split("\n");
+        for(var i in lines) {
+            if(i == lines.length - 1) {
+                str = lines[i];
+            } else{
+                // Note: The double-newline is *required*
+                res.write('data: ' + lines[i] + "\n\n");
+            }
+        }
   });
 
   //send headers for event-stream connection

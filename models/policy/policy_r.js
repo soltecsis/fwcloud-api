@@ -686,28 +686,36 @@ policy_rModel.compilePolicy_r = function (rule, callback) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
-            logger.debug("---------- COMPILING RULE -------");
-            logger.debug(data);
+            var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
+            logger.debug("---------- COMPILING RULE " + strRule + " -------");            
+            publisherClient.publish( 'compile',"START COMPILING RULE: " + strRule );
 
-            RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
+            //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
+            RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
+                    .then(data => {
+                        //publish compiled message
+                        
+                        publisherClient.publish( 'compile', data );
 
+                        if (data && data.length > 0) {
+                            logger.debug("---- RULE COMPILED --->  ");
+                            logger.debug(data);
+                            logger.debug("-----------------------");
+                            publisherClient.publish( 'compile',"OK - END COMPILED RULE: " + strRule );
+                            callback(null, {"result": true, "msg": "Rule compiled"});
+                        } else {
+                            logger.debug("---- ERROR RULE NOT COMPILED --->  ");
+                            publisherClient.publish( 'compile',"ERROR - END COMPILED RULE: " + strRule );
+                            callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
+                        }
+                    })
+                    .catch(error => {
+                        publisherClient.publish( 'compile',"ERROR - END COMPILED RULE: " + strRule );
+                        callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
+                    });
 
-                //publish compiled message
-                //publisherClient.publish( 'compile', cs );
-
-                if (cs && cs.length > 0) {
-                    logger.debug("---- RULE COMPILED --->  ");
-                    logger.debug(cs);
-                    logger.debug("-----------------------");
-                    callback(null, {"result": true, "msg": "Rule compiled"});
-                } else {
-                    logger.debug("---- ERROR RULE NOT COMPILED --->  ");
-                    callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
-                }
-
-            });
         } else
-            callback(null, {"result": false, "msg": "rule NOT compiled"});
+            callback(null, {"result": false, "msg": "rule Not found, NOT compiled"});
     });
 
 };

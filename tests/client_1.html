@@ -6,7 +6,7 @@
    <script>              
     var eventList = document.getElementById("eventlist");
     //var evtSource = new EventSource("http://localhost:3000/users/msg");
-    var evtSource = new EventSource("http://localhost:3000/users/channel/date/1");
+    var evtSource = new EventSource("http://localhost:3000/stream/update-stream");
 
     var newElement = document.createElement("li");
     newElement.innerHTML = "Messages:";
