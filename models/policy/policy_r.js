@@ -24,7 +24,7 @@ var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
-
+var streamModel = require('../../models/stream/stream');
 
 var logger = require('log4js').getLogger("app");
 
@@ -676,42 +676,43 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
     });
 };
 
-var redis = require('redis');
-var publisherClient = redis.createClient();
 
 //Compile rule and save it
-policy_rModel.compilePolicy_r = function (rule, callback) {
+policy_rModel.compilePolicy_r = function (accessData,  callback) {
 
+    var rule=accessData.rule;
+    
     policy_rModel.getPolicy_r_id(rule, function (error, data) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
             var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
             logger.debug("---------- COMPILING RULE " + strRule + " -------");            
-            publisherClient.publish( 'compile',"----------------------------------------------------------------------------------\n" );
-            publisherClient.publish( 'compile',"---> START COMPILING RULE: " + strRule );
-
+            
+            streamModel.pushMessageCompile(accessData,"START COMPILING RULE" );
+            
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
                     .then(data => {
                         //publish compiled message
                         
-                        publisherClient.publish( 'compile', data );
+                        //publisherClient.publish( 'compile', data );
+                        streamModel.pushMessageCompile(accessData,data );
 
                         if (data && data.length > 0) {
                             logger.debug("---- RULE COMPILED --->  ");
                             logger.debug(data);
-                            logger.debug("-----------------------");
-                            publisherClient.publish( 'compile',"OK - END COMPILED RULE: " + strRule );
+                            logger.debug("-----------------------");                            
+                            streamModel.pushMessageCompile(accessData,"OK - END COMPILED RULE" );
                             callback(null, {"result": true, "msg": "Rule compiled"});
                         } else {
-                            logger.debug("---- ERROR RULE NOT COMPILED --->  ");
-                            publisherClient.publish( 'compile',"ERROR - END COMPILED RULE: " + strRule );
+                            logger.debug("---- ERROR RULE NOT COMPILED --->  ");                            
+                            streamModel.pushMessageCompile(accessData,"ERROR - END COMPILED RULE" );
                             callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
                         }
                     })
                     .catch(error => {
-                        publisherClient.publish( 'compile',"ERROR - END COMPILED RULE: " + strRule );
+                        streamModel.pushMessageCompile(accessData,"ERROR - RULE NOT COMPILED" );
                         callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
                     });
 

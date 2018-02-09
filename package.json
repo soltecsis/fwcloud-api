@@ -27,6 +27,7 @@
     "method-override": "^2.3.7",
     "morgan": "~1.7.0",
     "mysql": "^2.13.0",
+    "node-datetime": "^2.0.6",
     "passport": "*",
     "passport-local": "*",
     "redis": "^2.8.0",

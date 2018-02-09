@@ -222,9 +222,10 @@ router.put('/policy-r/:iduser/:fwcloud/:idfirewall', function (req, res)
 /* Compile policy_r that exist */
 router.put('/policy-r/compile/:iduser/:fwcloud/:idfirewall/:rule', function (req, res)
 {
-    var id=req.params.rule;
     
-     Policy_rModel.compilePolicy_r(id, function (error, data)
+    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule };
+    
+     Policy_rModel.compilePolicy_r(accessData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, function (jsonResp) {

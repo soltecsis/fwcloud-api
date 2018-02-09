@@ -195,7 +195,11 @@ var db = require('./db');
 
 
 
-app.use(session({secret: 'La nieve cae blanca', cookie: {maxAge: 60000}, resave: true, saveUninitialized: true}));
+app.use(session({
+        secret: 'La nieve cae blanca', 
+        cookie: {maxAge: 60000}, 
+        resave: true, 
+        saveUninitialized: true}));
 app.use(passport.initialize());
 app.use(passport.session());
 
