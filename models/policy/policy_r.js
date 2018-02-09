@@ -689,7 +689,7 @@ policy_rModel.compilePolicy_r = function (accessData,  callback) {
             var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
             logger.debug("---------- COMPILING RULE " + strRule + " -------");            
             
-            streamModel.pushMessageCompile(accessData,"START COMPILING RULE" );
+            streamModel.pushMessageCompile(accessData,"START COMPILING RULE " + strRule );
             
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
@@ -703,16 +703,16 @@ policy_rModel.compilePolicy_r = function (accessData,  callback) {
                             logger.debug("---- RULE COMPILED --->  ");
                             logger.debug(data);
                             logger.debug("-----------------------");                            
-                            streamModel.pushMessageCompile(accessData,"OK - END COMPILED RULE" );
+                            streamModel.pushMessageCompile(accessData,"OK - END COMPILED RULE"  + strRule);
                             callback(null, {"result": true, "msg": "Rule compiled"});
                         } else {
                             logger.debug("---- ERROR RULE NOT COMPILED --->  ");                            
-                            streamModel.pushMessageCompile(accessData,"ERROR - END COMPILED RULE" );
+                            streamModel.pushMessageCompile(accessData,"ERROR - END COMPILED RULE "  + strRule );
                             callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
                         }
                     })
                     .catch(error => {
-                        streamModel.pushMessageCompile(accessData,"ERROR - RULE NOT COMPILED" );
+                        streamModel.pushMessageCompile(accessData,"ERROR - RULE NOT COMPILED "  + strRule );
                         callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
                     });
 

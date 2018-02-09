@@ -65,12 +65,13 @@ var RuleCompile = require('../../models/policy/rule_compile');
  */
 var PolicyScript = require('../../models/policy/policy_script');
 
+var streamModel = require('../../models/stream/stream');
+
 var config = require('../../config/apiconf.json');
 
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 
-var redis = require('redis');
-var publisherClient = redis.createClient();
+
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall rule. */
@@ -82,19 +83,24 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
     var type = req.params.type;
     var rule = req.params.rule;
 
+    var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
+
     var strRule = " Rule: " + rule + " FWCloud: " + cloud + "  Firewall: " + fw + "  Type: " + type + "\n";
-    publisherClient.publish('compile', "----------------------------------------------------------------------------------\n");
-    publisherClient.publish('compile', "---> START COMPILING RULE: " + strRule);
+
+    streamModel.pushMessageCompile(accessData, "-------------------------------------------------");
+    streamModel.pushMessageCompile(accessData, "START COMPILING RULE" + strRule);
 
     /* The get method of the RuleCompile model returns a promise. */
     RuleCompile.get(cloud, fw, type, rule)
             .then(data => {
-                publisherClient.publish( 'compile', data );
-                publisherClient.publish( 'compile',"OK - END COMPILED RULE: " + strRule );
+                streamModel.pushMessageCompile(accessData, data);
+                streamModel.pushMessageCompile(accessData, "OK - END COMPILED RULE" + strRule);
+
                 api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
             })
             .catch(error => {
-                publisherClient.publish( 'compile',"ERROR - END COMPILED RULE: " + strRule );
+                streamModel.pushMessageCompile(accessData, "ERROR - END COMPILED RULE " + strRule);
+        
                 api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp));
             });
 });
