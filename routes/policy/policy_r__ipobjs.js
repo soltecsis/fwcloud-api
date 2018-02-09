@@ -284,6 +284,9 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall', function (req, res)
     };
 
     policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
+    
+    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
+
 
 
     Policy_r__ipobjModel.updatePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, policy_r__ipobjData, function (error, data)
@@ -296,7 +299,7 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall', function (req, res)
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result) {
                 if (data.result) {
-                    Policy_rModel.compilePolicy_r(policy_r__ipobjData.rule, function (error, datac) {});
+                    Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                     api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
@@ -332,6 +335,8 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/
     var new_order = req.params.new_order;
 
     var content1 = 'O', content2 = 'O';
+    
+    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
 
     logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
@@ -349,8 +354,9 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/
                     //If saved policy_r__ipobj saved ok, get data
                     if (data) {
                         if (data.result) {
-                            Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
-                            Policy_rModel.compilePolicy_r(new_rule, function (error, datac) {});
+                            Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+                            accessData.rule=new_rule;
+                            Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                             api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                 res.status(200).json(jsonResp);
                             });
@@ -396,8 +402,9 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/
                                 {
                                     if (data && data.result)
                                     {
-                                        Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
-                                        Policy_rModel.compilePolicy_r(new_rule, function (error, datac) {});
+                                        Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+                                        accessData.rule=new_rule;
+                                        Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                                         api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
                                             res.status(200).json(jsonResp);
                                         });
