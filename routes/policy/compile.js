@@ -113,33 +113,33 @@ router.get('/:user/:cloud/:fw', (req, res) => {
     var stream = fs.createWriteStream(path);
 
     var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
-    streamModel.pushMessageCompile(accessData, "STARTING FIREWALL COMPILATION PROCESS");
+    streamModel.pushMessageCompile(accessData, "STARTING FIREWALL COMPILATION PROCESS\n");
 
     stream.on('open', async fd => {
         /* Generate the policy script. */
         await PolicyScript.append(config.policy.header_file)
                 .then(data => {
-                    streamModel.pushMessageCompile(accessData, "INPUT TABLE");
+                    streamModel.pushMessageCompile(accessData, "INPUT TABLE\n");
                     stream.write(data + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 1)
                 })
                 .then(data => {
-                    streamModel.pushMessageCompile(accessData, "OUTPUT TABLE");
+                    streamModel.pushMessageCompile(accessData, "OUTPUT TABLE\n");
                     stream.write(data + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 2)
                 })
                 .then(data => {
-                    streamModel.pushMessageCompile(accessData, "FORWARD TABLE");
+                    streamModel.pushMessageCompile(accessData, "FORWARD TABLE\n");
                     stream.write(data + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 3)
                 })
                 .then(data => {
-                    streamModel.pushMessageCompile(accessData, "SNAT TABLE");
+                    streamModel.pushMessageCompile(accessData, "SNAT TABLE\n");
                     stream.write(data + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 4)
                 })
                 .then(data => {
-                    streamModel.pushMessageCompile(accessData, "DNAT TABLE");
+                    streamModel.pushMessageCompile(accessData, "DNAT TABLE\n");
                     stream.write(data + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 5)
                 })
@@ -149,6 +149,7 @@ router.get('/:user/:cloud/:fw', (req, res) => {
                 })
                 .then(data => {
                     stream.write(data);
+                    streamModel.pushMessageCompile(accessData, "COMPILATION COMPLETED\n\n");
                     res.status(200).send({"result": true, "msg": "Policy script path: " + path})
                 })
                 .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
