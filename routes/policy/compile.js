@@ -83,26 +83,10 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
     var type = req.params.type;
     var rule = req.params.rule;
 
-    var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
-
-    var strRule = " Rule: " + rule + " FWCloud: " + cloud + "  Firewall: " + fw + "  Type: " + type + "\n";
-
-    streamModel.pushMessageCompile(accessData, "-------------------------------------------------");
-    streamModel.pushMessageCompile(accessData, "START COMPILING RULE" + strRule);
-
     /* The get method of the RuleCompile model returns a promise. */
     RuleCompile.get(cloud, fw, type, rule)
-            .then(data => {
-                streamModel.pushMessageCompile(accessData, data);
-                streamModel.pushMessageCompile(accessData, "OK - END COMPILED RULE" + strRule);
-
-                api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
-            })
-            .catch(error => {
-                streamModel.pushMessageCompile(accessData, "ERROR - END COMPILED RULE " + strRule);
-        
-                api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp));
-            });
+            .then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
+            .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -128,28 +112,36 @@ router.get('/:user/:cloud/:fw', (req, res) => {
     path += "/" + config.policy.script_name;
     var stream = fs.createWriteStream(path);
 
+    var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
+    streamModel.pushMessageCompile(accessData, "STARTING FIREWALL COMPILATION PROCESS");
+
     stream.on('open', async fd => {
         /* Generate the policy script. */
         await PolicyScript.append(config.policy.header_file)
                 .then(data => {
+                    streamModel.pushMessageCompile(accessData, "INPUT TABLE");
                     stream.write(data + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
-                    return PolicyScript.dump(cloud, fw, 1)
+                    return PolicyScript.dump(accessData,cloud, fw, 1)
                 })
                 .then(data => {
+                    streamModel.pushMessageCompile(accessData, "OUTPUT TABLE");
                     stream.write(data + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-                    return PolicyScript.dump(cloud, fw, 2)
+                    return PolicyScript.dump(accessData,cloud, fw, 2)
                 })
                 .then(data => {
+                    streamModel.pushMessageCompile(accessData, "FORWARD TABLE");
                     stream.write(data + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-                    return PolicyScript.dump(cloud, fw, 3)
+                    return PolicyScript.dump(accessData,cloud, fw, 3)
                 })
                 .then(data => {
+                    streamModel.pushMessageCompile(accessData, "SNAT TABLE");
                     stream.write(data + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-                    return PolicyScript.dump(cloud, fw, 4)
+                    return PolicyScript.dump(accessData,cloud, fw, 4)
                 })
                 .then(data => {
+                    streamModel.pushMessageCompile(accessData, "DNAT TABLE");
                     stream.write(data + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-                    return PolicyScript.dump(cloud, fw, 5)
+                    return PolicyScript.dump(accessData,cloud, fw, 5)
                 })
                 .then(data => {
                     stream.write(data);

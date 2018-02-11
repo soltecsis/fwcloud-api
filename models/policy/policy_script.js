@@ -28,6 +28,8 @@ var RuleCompile = require('../../models/policy/rule_compile');
  */
 var api_resp = require('../../utils/api_response');
 
+var streamModel = require('../../models/stream/stream');
+
 var config = require('../../config/apiconf.json');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -46,13 +48,14 @@ PolicyScript.append = (path) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dump = (cloud,fw,type) => {
+PolicyScript.dump = (accessData,cloud,fw,type) => {
 	return new Promise((resolve,reject) => { 
   	Policy_cModel.getPolicy_cs_type(cloud, fw, type, async (error, data) => {
 			if (error)
 				return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
+				streamModel.pushMessageCompile(accessData, "RULE "+data[i].rule_order+" (ID: "+data[i].id+")");
 				ps += "\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
 					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
