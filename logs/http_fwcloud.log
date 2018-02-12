@@ -225,3 +225,5 @@
 [2018-02-06 18:03:21.909] [INFO] http - ::1 - - "GET /policy/compile/1/1/69 HTTP/1.1" 200 211 "" "PostmanRuntime/6.4.1"
 [2018-02-06 18:11:34.103] [INFO] http - ::1 - - "GET /policy/compile/1/1/69 HTTP/1.1" 200 67 "" "PostmanRuntime/6.4.1"
 [2018-02-06 18:19:00.409] [INFO] http - ::1 - - "GET /policy/compile/1/1/69 HTTP/1.1" 200 67 "" "PostmanRuntime/6.4.1"
+[2018-02-12 13:49:53.686] [INFO] http - ::1 - - "GET /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E HTTP/1.1" 200 136 "" "PostmanRuntime/6.4.1"
+[2018-02-12 13:51:41.916] [INFO] http - ::1 - - "GET /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E HTTP/1.1" 200 10118 "" "PostmanRuntime/6.4.1"

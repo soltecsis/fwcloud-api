@@ -49,6 +49,8 @@ var api_resp = require('../../utils/api_response');
  */
 var PolicyScript = require('../../models/policy/policy_script');
 
+var streamModel = require('../../models/stream/stream');
+
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
@@ -58,8 +60,11 @@ router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
   var sshuser = req.params.sshuser;
   var sshpass = req.params.sshpass;
 
+  var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
+  streamModel.pushMessageCompile(accessData, "STARTING FIREWALL INSTALL PROCESS\n");
+
   /* The get method of the RuleCompile model returns a promise. */
-  await PolicyScript.install(cloud,fw,sshuser,sshpass)
+  await PolicyScript.install(accessData,cloud,fw,sshuser,sshpass)
   .then(data => api_resp.getJson({"result": true, "output": data}, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
   .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
 });

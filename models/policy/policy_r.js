@@ -24,7 +24,6 @@ var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
-var streamModel = require('../../models/stream/stream');
 
 var logger = require('log4js').getLogger("app");
 
@@ -689,30 +688,20 @@ policy_rModel.compilePolicy_r = function (accessData,  callback) {
             var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
             logger.debug("---------- COMPILING RULE " + strRule + " -------");            
             
-            streamModel.pushMessageCompile(accessData,"START COMPILING RULE " + strRule );
-            
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
                     .then(data => {
-                        //publish compiled message
-                        
-                        //publisherClient.publish( 'compile', data );
-                        streamModel.pushMessageCompile(accessData,data );
-
                         if (data && data.length > 0) {
                             logger.debug("---- RULE COMPILED --->  ");
                             logger.debug(data);
                             logger.debug("-----------------------");                            
-                            streamModel.pushMessageCompile(accessData,"OK - END COMPILED RULE"  + strRule);
                             callback(null, {"result": true, "msg": "Rule compiled"});
                         } else {
                             logger.debug("---- ERROR RULE NOT COMPILED --->  ");                            
-                            streamModel.pushMessageCompile(accessData,"ERROR - END COMPILED RULE "  + strRule );
                             callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
                         }
                     })
                     .catch(error => {
-                        streamModel.pushMessageCompile(accessData,"ERROR - RULE NOT COMPILED "  + strRule );
                         callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
                     });
 

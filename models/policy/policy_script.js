@@ -141,7 +141,7 @@ PolicyScript.run_ssh_command = (connSettings,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (cloud,fw,sshuser,sshpass) => {
+PolicyScript.install = (accessData,cloud,fw,sshuser,sshpass) => {
 	var connSettings = {
 		host: '10.99.5.101',
 		port: 22,
@@ -150,15 +150,28 @@ PolicyScript.install = (cloud,fw,sshuser,sshpass) => {
 	}
 
 	return new Promise(async (resolve,reject) => { 
+		streamModel.pushMessageCompile(accessData, "Uploading firewall scritp ("+connSettings.host+")\n");
 		await PolicyScript.upload(cloud,fw,connSettings)
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 700 -p "+config.policy.script_dir))
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_dir))
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chmod 700 "+config.policy.script_name))
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_name))
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo mv "+config.policy.script_name+" "+config.policy.script_dir))
-			.then(() => PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start"))
-			.then(data => resolve(data))
-			.catch(error => reject(error));
+			.then(() => {
+				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
+				return PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 700 -p "+config.policy.script_dir)
+			})
+			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_dir)})
+			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chmod 700 "+config.policy.script_name)})
+			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_name)})
+			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo mv "+config.policy.script_name+" "+config.policy.script_dir)})
+			.then(() => {
+				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
+				return PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start")
+			})
+			.then(data => {
+				streamModel.pushMessageCompile(accessData, data+"\n");
+				resolve("DONE")
+			})
+			.catch(error => {
+				streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
+				reject(error)
+			});
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/

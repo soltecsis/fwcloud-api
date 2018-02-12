@@ -6589,3 +6589,81 @@ STDERR:
   connection: 'keep-alive' }
 [2018-02-06 18:19:00.226] [DEBUG] app - --------------------------------------------------
 [2018-02-06 18:30:26.248] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:31:40.457] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:46:27.118] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:48:25.875] [DEBUG] app - ORIGIN: undefined
+[2018-02-12 13:48:25.877] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-12 13:48:25.877] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'c07a4346-552c-4ba4-a42b-be54da386c74',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-12 13:48:25.878] [DEBUG] app - --------------------------------------------------
+[2018-02-12 13:48:25.879] [DEBUG] app - /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E
+[2018-02-12 13:48:25.879] [WARN] app - API ACCESS USER : install --- FWCLOUD: 1
+[2018-02-12 13:48:25.912] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-12 13:49:02.015] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:49:12.969] [DEBUG] app - ORIGIN: undefined
+[2018-02-12 13:49:12.970] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-12 13:49:12.970] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'faebd708-4e31-4e88-8c13-6f97a949528d',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-12 13:49:12.973] [DEBUG] app - --------------------------------------------------
+[2018-02-12 13:49:12.974] [DEBUG] app - /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E
+[2018-02-12 13:49:12.974] [WARN] app - API ACCESS USER : install --- FWCLOUD: 1
+[2018-02-12 13:49:13.010] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-12 13:49:13.011] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-12 13:49:13.011] [WARN] app - --------------------------------------------------
+[2018-02-12 13:49:25.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:49:41.376] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:49:50.716] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:49:53.673] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:49:53.674] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:51:18.928] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:51:24.148] [DEBUG] app - ORIGIN: undefined
+[2018-02-12 13:51:24.149] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-12 13:51:24.149] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '6156dbbc-1949-4089-8d01-0e34900ecbe9',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-12 13:51:24.152] [DEBUG] app - --------------------------------------------------
+[2018-02-12 13:51:24.153] [DEBUG] app - /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E
+[2018-02-12 13:51:24.153] [WARN] app - API ACCESS USER : install --- FWCLOUD: 1
+[2018-02-12 13:51:24.186] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-12 13:51:24.186] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-12 13:51:24.186] [WARN] app - --------------------------------------------------
+[2018-02-12 13:51:36.253] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:51:38.098] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:51:38.946] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:51:41.305] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:51:41.907] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:54:00.028] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-12 13:55:49.284] [DEBUG] app - ORIGIN: undefined
+[2018-02-12 13:55:49.286] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-12 13:55:49.286] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '15f7e8a9-b895-42a4-95a1-04b2d5a7e891',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-12 13:55:49.288] [DEBUG] app - --------------------------------------------------
+[2018-02-12 13:55:49.289] [DEBUG] app - /policy/install/1/1/69/fwcloudtest/t3W6R6F6mC3a6GTK6u9W5E
+[2018-02-12 13:55:49.289] [WARN] app - API ACCESS USER : install --- FWCLOUD: 1
+[2018-02-12 13:55:49.320] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-12 13:55:49.321] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-12 13:55:49.321] [WARN] app - --------------------------------------------------
+[2018-02-12 13:56:01.571] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:56:05.389] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:56:06.163] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:56:09.095] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-12 13:56:09.712] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]

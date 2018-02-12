@@ -33,7 +33,7 @@ router.get('/update-stream/compile/:iduser/:fwcloud', function (req, res) {
         
         var channel= StreamModel.getTagPublishCompile(accessData);
 
-        logger.debug("REQUESTING SUBSCRIPTON STEAMING COMPILE DATA. CHANNEL : " + channel);
+        logger.debug("REQUESTING SUBSCRIPTON STREAMING COMPILE DATA. CHANNEL : " + channel);
         
         
         subscriber.subscribe(channel);
