@@ -6667,3 +6667,159 @@ STDERR:
 [2018-02-12 13:56:06.163] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
 [2018-02-12 13:56:09.095] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
 [2018-02-12 13:56:09.712] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:48:36.995] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-13 16:49:07.200] [DEBUG] app - ORIGIN: undefined
+[2018-02-13 16:49:07.201] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-13 16:49:07.202] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'a7aa8f3e-a8ae-41da-958d-104677aa2824',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-13 16:49:07.203] [DEBUG] app - --------------------------------------------------
+[2018-02-13 16:49:07.204] [DEBUG] app - /policy/compile/1/1/69
+[2018-02-13 16:49:07.204] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-13 16:49:07.238] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-13 16:49:07.238] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-13 16:49:07.238] [WARN] app - --------------------------------------------------
+[2018-02-13 16:49:07.247] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.252] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.291] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.292] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.293] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.293] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.294] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.294] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.295] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.295] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.296] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.297] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.298] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.299] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.300] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.300] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.300] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.300] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.330] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.331] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.332] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.332] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.333] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.364] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.364] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.364] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.365] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.365] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.366] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.366] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.366] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.367] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.367] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.396] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.397] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.397] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.397] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.398] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.429] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:49:07.430] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:52.871] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-13 16:50:55.310] [DEBUG] app - ORIGIN: undefined
+[2018-02-13 16:50:55.311] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-13 16:50:55.311] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'ce0cc632-7922-4055-ae85-269d2b7b8bb0',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-13 16:50:55.313] [DEBUG] app - --------------------------------------------------
+[2018-02-13 16:50:55.314] [DEBUG] app - /policy/compile/1/1/69
+[2018-02-13 16:50:55.314] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-13 16:50:55.350] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-13 16:50:55.351] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-13 16:50:55.351] [WARN] app - --------------------------------------------------
+[2018-02-13 16:50:55.359] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.360] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.397] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.398] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.399] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.399] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.400] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.400] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.401] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.401] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.402] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.402] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.403] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.403] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.404] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.405] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.406] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.407] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.407] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.407] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.407] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.437] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.438] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.439] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.439] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.440] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.470] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.471] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.472] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.473] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.473] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.474] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.474] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.475] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.475] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.476] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.505] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.506] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.506] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.506] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.506] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.536] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-13 16:50:55.537] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]

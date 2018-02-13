@@ -65,7 +65,7 @@ router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
 
   /* The get method of the RuleCompile model returns a promise. */
   await PolicyScript.install(accessData,cloud,fw,sshuser,sshpass)
-  .then(data => api_resp.getJson({"result": true, "output": data}, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
+  .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
   .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/

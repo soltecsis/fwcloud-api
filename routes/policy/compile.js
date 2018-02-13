@@ -150,7 +150,7 @@ router.get('/:user/:cloud/:fw', (req, res) => {
                 .then(data => {
                     stream.write(data);
                     streamModel.pushMessageCompile(accessData, "\nCOMPILATION COMPLETED\n\n");
-                    res.status(200).send({"result": true, "msg": "Policy script path: " + path})
+                    api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
                 })
                 .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 
