@@ -41,7 +41,7 @@ var api_resp = require('../../utils/api_response');
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
-const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT', 'MANGLE'];
+const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'PREROUTING', 'POSTROUTING', 'MANGLE'];
 const ACTION = ['', 'ACCEPT', 'DENY', 'REJECT', 'CONTINUE'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
