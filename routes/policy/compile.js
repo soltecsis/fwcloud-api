@@ -86,7 +86,7 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
     /* The get method of the RuleCompile model returns a promise. */
     RuleCompile.get(cloud, fw, type, rule)
             .then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
-            .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
+            .catch(error => api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 

@@ -41,7 +41,9 @@ var api_resp = require('../../utils/api_response');
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
-const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'PREROUTING', 'POSTROUTING', 'MANGLE'];
+const POLICY_TYPE_SNAT = 4;
+const POLICY_TYPE_DNAT = 5;
+const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 const ACTION = ['', 'ACCEPT', 'DENY', 'REJECT', 'CONTINUE'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -130,28 +132,35 @@ RuleCompileModel.pre_compile_svc = (svc) => {
 RuleCompileModel.pre_compile = (data) => {
 	var position_items = [];
 	const policy_type = data[0].type;
+	var src_position, dst_position, svc_position;
+
+	if (policy_type === POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
+	else { src_position=1; dst_position=2; svc_position=3;}
+	
 	// Generate items strings for all the rule positions.
 	// WARNING: The orde of creation of the arrays is important for optimization!!!!
 	// The positions first in the array will be used first in the conditions.
-	const if1_items = RuleCompileModel.pre_compile_if(((policy_type === POLICY_TYPE_OUTPUT) ? "-o " : "-i "), data[0].positions[3].ipobjs);
+	const if1_items = RuleCompileModel.pre_compile_if(((policy_type===POLICY_TYPE_OUTPUT || policy_type===POLICY_TYPE_SNAT) ? "-o " : "-i "), data[0].positions[0].ipobjs);
 	if (if1_items.length > 0)
 		position_items.push(if1_items);
 	if (policy_type === POLICY_TYPE_FORWARD) {
-		const if2_items = RuleCompileModel.pre_compile_if("-o ", data[0].positions[4].ipobjs);
+		const if2_items = RuleCompileModel.pre_compile_if("-o ", data[0].positions[1].ipobjs);
 		if (if2_items.length > 0)
 			position_items.push(if2_items);
 	}
 
-	const svc_items = RuleCompileModel.pre_compile_svc(data[0].positions[2].ipobjs);
-	if (svc_items.length > 0)
-		position_items.push(svc_items);
-	const src_items = RuleCompileModel.pre_compile_sd("-s ", data[0].positions[0].ipobjs);
+	const src_items = RuleCompileModel.pre_compile_sd("-s ", data[0].positions[src_position].ipobjs);
 	if (src_items.length > 0)
 		position_items.push(src_items);
-	const dst_items = RuleCompileModel.pre_compile_sd("-d ", data[0].positions[1].ipobjs);
+	const dst_items = RuleCompileModel.pre_compile_sd("-d ", data[0].positions[dst_position].ipobjs);
 	if (dst_items.length > 0)
 		position_items.push(dst_items);
-	// Order the resulting array by number of strings into each array.
+	const svc_items = RuleCompileModel.pre_compile_svc(data[0].positions[svc_position].ipobjs);
+	if (svc_items.length > 0)
+		position_items.push(svc_items);
+	
+
+		// Order the resulting array by number of strings into each array.
 	if (position_items.length < 2) // Don't need ordering.
 		return position_items;
 	for (var i = 0; i < position_items.length; i++) {
@@ -173,29 +182,41 @@ RuleCompileModel.pre_compile = (data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {        
 	Policy_rModel.getPolicy_rs_type(cloud, fw, type, rule, (error, data) => {
-		//if (!data) {
-		//	res.status(404).json({"msg": "Rule data not found."});
-		//	return;
-		//}
+		if (!data) {
+			callback({"Msg": "Rule data not found."},null);
+			return;
+		}
 
 		const policy_type = data[0].type;
-		//if (!policy_type || (policy_type !== POLICY_TYPE_INPUT && policy_type !== POLICY_TYPE_OUTPUT && policy_type !== POLICY_TYPE_FORWARD)) {
-		//	res.status(404).json({"msg": "Invalid policy type."});
-		//	return;
-		//}
+		if (!policy_type || 
+				(policy_type!==POLICY_TYPE_INPUT && policy_type!==POLICY_TYPE_OUTPUT && policy_type!==POLICY_TYPE_FORWARD
+				 && policy_type!==POLICY_TYPE_SNAT && policy_type!==POLICY_TYPE_DNAT)) {
+			callback({"Msg": "Invalid policy type."},null);
+			return;
+		}
 
-		const action = ACTION[data[0].action];
-		//if (data.length != 1 || !(data[0].positions)
-		//		|| !(data[0].positions[0].ipobjs) || !(data[0].positions[1].ipobjs) || !(data[0].positions[2].ipobjs)
-		//		|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].ipobjs))) {
-		//	res.status(404).json({"msg": "Bad rule data."});
-		//	return;
-		//}
+		var cs = "$IPTABLES "; // Compile string.
+		var cs_trail = "";
+		if (policy_type === 4) { // SNAT
+			cs += "-t nat -A POSTROUTING ";
+			cs_trail = "-j SNAT\n";
+		}
+		else if (policy_type === 5) { // DNAT
+			cs += "-t nat -A PREROUTING ";
+			cs_trail = "-j SNAT\n";
+		}
+		else {
+			if (data.length != 1 || !(data[0].positions)
+					|| !(data[0].positions[0].ipobjs) || !(data[0].positions[1].ipobjs) || !(data[0].positions[2].ipobjs)
+					|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].ipobjs))) {
+				callback({"Msg": "Bad rule data."},null);
+				return;
+			}
+			cs += "-A " + POLICY_TYPE[policy_type] + " ";
+			cs_trail = "-m state --state NEW -j " + ACTION[data[0].action] + "\n";
+		}
 
 		const position_items = RuleCompileModel.pre_compile(data);
-		// Compile string.
-		var cs = "$IPTABLES -A " + POLICY_TYPE[policy_type] + " ";
-		var cs_trail = "-m state --state NEW -j " + action + "\n";
 		
 		// Rule compilation process.
 		if (position_items.length === 0) // No conditions rule.
@@ -224,7 +245,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 							cs += cs1 + position_items[0][j] + ((j < (position_items[0].length - 1)) ? " -m state --state NEW -j " + chain_name + "\n" : " ");
 					} else {
 						// If we are at the end of the array, the next chain will be the rule action.
-						chain_next = (i === ((position_items.length) - 1)) ? action : "FWCRULE" + rule + ".CH" + (chain_number + 1);
+						chain_next = (i === ((position_items.length) - 1)) ? ACTION[data[0].action] : "FWCRULE" + rule + ".CH" + (chain_number + 1);
 						cs = "$IPTABLES -N " + chain_name + "\n" + cs + ((chain_number === 1) ? "-m state --state NEW -j " + chain_name + "\n" : "");
 						for (j = 0; j < position_items[i].length; j++) {
 							cs += "$IPTABLES -A " + chain_name + " " + position_items[i][j] + " -j " + chain_next + "\n";
@@ -280,5 +301,3 @@ RuleCompileModel.get = (cloud, fw, type, rule) => {
 	});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
-
-

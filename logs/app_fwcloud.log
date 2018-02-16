@@ -6823,3 +6823,500 @@ STDERR:
 [2018-02-13 16:50:55.506] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
 [2018-02-13 16:50:55.536] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
 [2018-02-13 16:50:55.537] [DEBUG] app - TAG PUBLISH: [1-XXXXX-compile_rule]
+[2018-02-16 12:48:28.462] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 12:48:31.023] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 12:48:31.024] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 12:48:31.025] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '449f8339-9d05-46a3-a6d6-9f021d7ddc51',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 12:48:31.026] [DEBUG] app - --------------------------------------------------
+[2018-02-16 12:48:31.027] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 12:48:31.027] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 12:48:31.059] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 12:48:31.059] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 12:48:31.059] [WARN] app - --------------------------------------------------
+[2018-02-16 12:53:42.553] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 12:53:42.553] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 12:53:42.553] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '1df95ebe-1a9d-44b7-8b50-308ec56eaf5a',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 12:53:42.553] [DEBUG] app - --------------------------------------------------
+[2018-02-16 12:53:42.553] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 12:53:42.553] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 12:53:42.585] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 12:53:42.585] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 12:53:42.585] [WARN] app - --------------------------------------------------
+[2018-02-16 12:53:42.653] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 12:53:42.685] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 12:53:42.750] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 12:53:42.751] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 12:53:42.781] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 12:53:42.873] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 12:58:44.248] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 12:58:50.601] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 12:58:50.602] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 12:58:50.602] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '5bc83894-c4ea-465c-a0d7-17a828456cd5',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 12:58:50.604] [DEBUG] app - --------------------------------------------------
+[2018-02-16 12:58:50.604] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 12:58:50.604] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 12:58:50.637] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 12:58:50.637] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 12:58:50.637] [WARN] app - --------------------------------------------------
+[2018-02-16 12:58:50.713] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 12:58:50.750] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 12:58:50.826] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 12:58:50.826] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 12:58:50.856] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 12:58:50.946] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:00:04.655] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:00:04.655] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:00:04.655] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'f9eb45f3-960b-4f8c-9250-d586cec7ecd1',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:00:04.655] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:00:04.655] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:00:04.655] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:00:04.685] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:00:04.686] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:00:04.686] [WARN] app - --------------------------------------------------
+[2018-02-16 13:00:04.744] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:00:04.777] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:00:04.836] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:00:04.837] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:00:04.867] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:00:04.958] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:07:00.269] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:07:05.807] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:07:05.809] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:07:05.809] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '26c756c2-cd66-488d-a739-1eefc29609c0',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:07:05.811] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:07:05.812] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:07:05.812] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:07:05.846] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:07:05.846] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:07:05.846] [WARN] app - --------------------------------------------------
+[2018-02-16 13:07:05.919] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:07:05.957] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:07:06.026] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:07:06.027] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:07:06.058] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:07:06.153] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:17:07.958] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:17:20.918] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:17:20.920] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:17:20.920] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '4b78dfa2-dba6-401f-8d70-549ee38a880c',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:17:20.922] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:17:20.922] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:17:20.923] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:17:20.954] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:17:20.954] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:17:20.954] [WARN] app - --------------------------------------------------
+[2018-02-16 13:17:21.023] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:17:21.058] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:17:21.124] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:17:21.126] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:17:21.155] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:17:21.244] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:17:21.371] [DEBUG] app - Invalid policy type.
+[2018-02-16 13:17:43.673] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:17:43.674] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:17:43.674] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '6543b9fa-8319-4227-9c74-deafe9597d6d',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3Al2ggmbcw2D-guk6VmDVhS7ai2GUu2KSa.wtlU4t7r3l9O%2BF0M2yd3NU4XK1mqfzSlCoz8ZfJtKRY',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:17:43.674] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:17:43.674] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:17:43.674] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:17:43.703] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:17:43.704] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:17:43.704] [WARN] app - --------------------------------------------------
+[2018-02-16 13:17:43.765] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:17:43.797] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:17:43.859] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:17:43.860] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:17:43.890] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:17:43.979] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:18:55.169] [DEBUG] app - Invalid policy type.
+[2018-02-16 13:22:55.341] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:22:55.884] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:22:55.886] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:22:55.886] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'a994bd55-d8d4-4178-8613-c29f6698b83e',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:22:55.888] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:22:55.889] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:22:55.889] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:22:55.926] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:22:55.927] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:22:55.927] [WARN] app - --------------------------------------------------
+[2018-02-16 13:22:56.000] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:22:56.037] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:22:56.101] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:22:56.102] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:22:56.133] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:22:56.224] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:22:59.259] [DEBUG] app - { Msg: 'Invalid policy type.' }
+[2018-02-16 13:23:44.479] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:23:45.931] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:23:45.932] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:23:45.932] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'c4cbfd4c-ca92-40a6-aae8-4200ceec87f8',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AjT-e-GFvhREqTIJKjJ4fEGB1Uu3MX7s8.%2BG2fVeRfi4c%2Bu%2F8uHD2bNqwgfHve12JOJq4F0cm%2F87I',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:23:45.934] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:23:45.935] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:23:45.935] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:23:45.967] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:23:45.968] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:23:45.968] [WARN] app - --------------------------------------------------
+[2018-02-16 13:23:46.040] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:23:46.076] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:23:46.140] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:23:46.141] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:23:46.170] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:23:46.260] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:23:48.414] [DEBUG] app - { Msg: 'Invalid policy type.' }
+[2018-02-16 13:24:11.892] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:24:12.273] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:24:12.274] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:24:12.275] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'f1ad0682-a93f-4989-984f-e42902756021',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AtEJX4fxqLRmpkKYy3gWCh9fHQb7htrOx.CFzZXJAHPSR9X%2B%2BnaYf12i8cW%2B4E054yNW3gjc7yghE',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:24:12.276] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:24:12.277] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:24:12.277] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:24:12.309] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:24:12.309] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:24:12.309] [WARN] app - --------------------------------------------------
+[2018-02-16 13:24:12.381] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:24:12.414] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:24:12.476] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:24:12.477] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:24:12.506] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:24:12.597] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:24:14.845] [DEBUG] app - Invalid policy type.
+[2018-02-16 13:24:38.370] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:26:57.461] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 13:26:59.475] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 13:26:59.477] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 13:26:59.477] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '3049fbfb-0cec-4075-800f-19dc2f7434aa',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 13:26:59.479] [DEBUG] app - --------------------------------------------------
+[2018-02-16 13:26:59.480] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 13:26:59.480] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 13:26:59.515] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 13:26:59.516] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 13:26:59.516] [WARN] app - --------------------------------------------------
+[2018-02-16 13:26:59.583] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 13:26:59.617] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 13:26:59.681] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 13:26:59.682] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 13:26:59.713] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 13:26:59.803] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:43:35.136] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 16:46:04.289] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:46:04.290] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:46:04.291] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '9ba64c1c-15b2-45f5-90de-ddb4468d6fa2',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:46:04.292] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:46:04.293] [DEBUG] app - /policy/compile/1/1/69/1/760
+[2018-02-16 16:46:04.293] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:46:04.325] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:46:04.325] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:46:04.325] [WARN] app - --------------------------------------------------
+[2018-02-16 16:46:04.396] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 1 AND P.id='760' ORDER BY P.rule_order
+[2018-02-16 16:46:04.430] [DEBUG] app - 1 ---> DENTRO de REGLA: 760 ORDER: 8
+[2018-02-16 16:46:04.526] [DEBUG] app - BUCLE REGLA:760  POSITION:1  IPOBJ ID: 1927  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:46:04.557] [DEBUG] app - BUCLE REGLA:760  POSITION:2  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:46:04.597] [DEBUG] app - BUCLE REGLA:760  POSITION:3  IPOBJ ID: 1355  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:46:04.598] [DEBUG] app - BUCLE REGLA:760  POSITION:3  IPOBJ ID: 1354  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:46:04.598] [DEBUG] app - BUCLE REGLA:760  POSITION:3  IPOBJ ID: 1392  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:3  NEGATE:0
+[2018-02-16 16:47:51.700] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:47:51.701] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:47:51.701] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'a37835e8-49ba-42a7-80d7-457c03af3c9a',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:47:51.701] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:47:51.701] [DEBUG] app - /policy/compile/1/1/69/1/760
+[2018-02-16 16:47:51.701] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:47:51.731] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:47:51.731] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:47:51.731] [WARN] app - --------------------------------------------------
+[2018-02-16 16:50:41.169] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:50:41.169] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:50:41.170] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '94700cda-e37d-41c3-8859-e051fb0f447c',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:50:41.170] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:50:41.170] [DEBUG] app - /policy/compile/1/1/69/3/809
+[2018-02-16 16:50:41.170] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:50:41.200] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:50:41.200] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:50:41.200] [WARN] app - --------------------------------------------------
+[2018-02-16 16:50:41.260] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-02-16 16:50:41.292] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 50
+[2018-02-16 16:50:41.353] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:50:41.355] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:50:41.385] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:50:41.386] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:50:41.416] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1927  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:50:41.446] [DEBUG] app - BUCLE REGLA:809  POSITION:8  IPOBJ ID: 15  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:50:41.477] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:50:41.478] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: -1  IPOBJ_GROUP: 43  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:54:58.448] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:54:58.448] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:54:58.448] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '95a024f2-fe21-49fb-8d7e-0d4275fd9d8a',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  cookie: 'connect.sid=s%3AuHr1TaLJkIDdPT5aqSoAbKHZTdAm4W7T.OWZ2TCcIjV4wCBInAVqzgfS6lUKRa8opwmjB9uTNI2M',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:54:58.448] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:54:58.448] [DEBUG] app - /policy/compile/1/1/69/3/809
+[2018-02-16 16:54:58.449] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:54:58.478] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:54:58.478] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:54:58.478] [WARN] app - --------------------------------------------------
+[2018-02-16 16:54:58.538] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='809' ORDER BY P.rule_order
+[2018-02-16 16:54:58.569] [DEBUG] app - 1 ---> DENTRO de REGLA: 809 ORDER: 50
+[2018-02-16 16:54:58.631] [DEBUG] app - BUCLE REGLA:809  POSITION:22  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:54:58.632] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:54:58.662] [DEBUG] app - BUCLE REGLA:809  POSITION:25  IPOBJ ID: 327  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:54:58.662] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 327 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:54:58.692] [DEBUG] app - BUCLE REGLA:809  POSITION:7  IPOBJ ID: 1927  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:54:58.722] [DEBUG] app - BUCLE REGLA:809  POSITION:8  IPOBJ ID: 15  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:54:58.723] [DEBUG] app - BUCLE REGLA:809  POSITION:8  IPOBJ ID: -1  IPOBJ_GROUP: 43  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:54:58.753] [DEBUG] app - BUCLE REGLA:809  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:56:31.952] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:56:31.952] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:56:31.952] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'bed37c04-3194-4e94-8c41-f5f55bfa29ff',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:56:31.952] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:56:31.953] [DEBUG] app - /policy/compile/1/1/69/3/796
+[2018-02-16 16:56:31.953] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:56:31.983] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:56:31.983] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:56:31.983] [WARN] app - --------------------------------------------------
+[2018-02-16 16:56:32.041] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-02-16 16:56:32.071] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 48
+[2018-02-16 16:56:32.132] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:56:32.133] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:56:32.162] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 328  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:56:32.163] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 328 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:56:32.163] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:2  NEGATE:0
+[2018-02-16 16:56:32.163] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:56:32.193] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:56:32.224] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1475  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:56:32.225] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:56:32.254] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:56:32.255] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:57:08.328] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 16:57:11.421] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:57:11.422] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:57:11.422] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'dbbef5ae-f86d-4632-bae9-f172e3b37581',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:57:11.423] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:57:11.424] [DEBUG] app - /policy/compile/1/1/69/3/796
+[2018-02-16 16:57:11.424] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:57:11.457] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:57:11.457] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:57:11.457] [WARN] app - --------------------------------------------------
+[2018-02-16 16:57:11.525] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-02-16 16:57:11.562] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 48
+[2018-02-16 16:57:11.627] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:57:11.628] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:11.657] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 328  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:57:11.658] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 328 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:11.658] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:2  NEGATE:0
+[2018-02-16 16:57:11.658] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:11.688] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:11.719] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1475  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:11.719] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:57:11.749] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:11.749] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:57:51.427] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 16:57:52.940] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 16:57:52.941] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 16:57:52.942] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '777ed0b2-8887-4818-ad41-4a9cd35a38bc',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 16:57:52.943] [DEBUG] app - --------------------------------------------------
+[2018-02-16 16:57:52.944] [DEBUG] app - /policy/compile/1/1/69/3/796
+[2018-02-16 16:57:52.944] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 16:57:52.975] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 16:57:52.975] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 16:57:52.975] [WARN] app - --------------------------------------------------
+[2018-02-16 16:57:53.046] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-02-16 16:57:53.083] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 48
+[2018-02-16 16:57:53.145] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:57:53.145] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:53.175] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 328  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 16:57:53.175] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 328 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:53.175] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:2  NEGATE:0
+[2018-02-16 16:57:53.175] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 16:57:53.205] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:53.237] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1475  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:53.238] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:57:53.270] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 16:57:53.270] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 16:59:39.057] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 17:00:07.696] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 17:00:07.698] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 17:00:07.698] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'fdfb0823-9230-42b0-a1cb-e3fd63cbf012',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 17:00:07.700] [DEBUG] app - --------------------------------------------------
+[2018-02-16 17:00:07.701] [DEBUG] app - /policy/compile/1/1/69/3/796
+[2018-02-16 17:00:07.701] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 17:00:07.735] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 17:00:07.735] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 17:00:07.735] [WARN] app - --------------------------------------------------
+[2018-02-16 17:00:07.811] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-02-16 17:00:07.843] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 48
+[2018-02-16 17:00:08.139] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 17:00:08.140] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:00:08.171] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 328  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 17:00:08.171] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 328 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:00:08.171] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:2  NEGATE:0
+[2018-02-16 17:00:08.172] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:00:08.203] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:00:08.234] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1475  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:00:08.235] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 17:00:08.264] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:00:08.265] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 17:22:45.980] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 17:22:47.994] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 17:22:47.995] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 17:22:47.995] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': '8161644e-55b0-4136-9c4d-cdb247568972',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 17:22:47.997] [DEBUG] app - --------------------------------------------------
+[2018-02-16 17:22:47.998] [DEBUG] app - /policy/compile/1/1/69/3/796
+[2018-02-16 17:22:47.998] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 17:22:48.030] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 17:22:48.031] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 17:22:48.031] [WARN] app - --------------------------------------------------
+[2018-02-16 17:22:48.109] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 3 AND P.id='796' ORDER BY P.rule_order
+[2018-02-16 17:22:48.142] [DEBUG] app - 1 ---> DENTRO de REGLA: 796 ORDER: 48
+[2018-02-16 17:22:48.205] [DEBUG] app - BUCLE REGLA:796  POSITION:22  IPOBJ ID: 324  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 17:22:48.205] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 324 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:22:48.235] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 328  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 17:22:48.235] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 328 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:22:48.236] [DEBUG] app - BUCLE REGLA:796  POSITION:25  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:2  NEGATE:0
+[2018-02-16 17:22:48.236] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:22:48.266] [DEBUG] app - BUCLE REGLA:796  POSITION:7  IPOBJ ID: 1528  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:22:48.298] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1475  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:22:48.299] [DEBUG] app - BUCLE REGLA:796  POSITION:8  IPOBJ ID: 1526  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 17:22:48.329] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1450  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:22:48.330] [DEBUG] app - BUCLE REGLA:796  POSITION:9  IPOBJ ID: 1500  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:2  NEGATE:0
+[2018-02-16 17:30:19.853] [DEBUG] app - ---- DATABASE CONNECTED: dbremote in MODE: mode_production  AUTOCOMMIT: 1  -----
+[2018-02-16 17:30:21.113] [DEBUG] app - ORIGIN: undefined
+[2018-02-16 17:30:21.115] [DEBUG] app - ---------------- RECEIVED HEADERS-----------------
+[2018-02-16 17:30:21.115] [DEBUG] app - { 'cache-control': 'no-cache',
+  'postman-token': 'e6d6bffd-574f-4b3f-a249-d9799dd05353',
+  'user-agent': 'PostmanRuntime/6.4.1',
+  accept: '*/*',
+  host: 'localhost:3000',
+  'accept-encoding': 'gzip, deflate',
+  connection: 'keep-alive' }
+[2018-02-16 17:30:21.117] [DEBUG] app - --------------------------------------------------
+[2018-02-16 17:30:21.118] [DEBUG] app - /policy/compile/1/1/69/4/856
+[2018-02-16 17:30:21.118] [WARN] app - API ACCESS USER : compile --- FWCLOUD: 1
+[2018-02-16 17:30:21.152] [WARN] app - { access: false, locked: '', locked_at: '', locked_by: '' }
+[2018-02-16 17:30:21.152] [WARN] app - KO --> FWCLOUD ACCESS NOT ALLOWED 
+[2018-02-16 17:30:21.152] [WARN] app - --------------------------------------------------
+[2018-02-16 17:30:21.216] [DEBUG] app - SELECT P.*, G.name as group_name, G.groupstyle as group_style,  C.updated_at as c_updated_at,  IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled  FROM policy_r P  LEFT JOIN policy_g G ON G.id=P.idgroup  LEFT JOIN policy_c C ON C.rule=P.id  WHERE P.firewall='69' AND  P.type= 4 AND P.id='856' ORDER BY P.rule_order
+[2018-02-16 17:30:21.251] [DEBUG] app - 1 ---> DENTRO de REGLA: 856 ORDER: 61
+[2018-02-16 17:30:21.318] [DEBUG] app - BUCLE REGLA:856  POSITION:24  IPOBJ ID: 326  IPOBJ_GROUP: 0  TYPE: I  INTERFACE:0   ORDER:1  NEGATE:0
+[2018-02-16 17:30:21.320] [DEBUG] app - INTERFACE SQL: SELECT I.*,  T.id id_node, T.id_parent id_parent_node,  IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud  FROM interface I  inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type  AND (T.fwcloud='1' OR T.fwcloud IS NULL)  left join interface__ipobj O on O.interface=I.id  left join ipobj J ON J.id=O.ipobj  left join firewall F on F.id=I.firewall  WHERE I.id = 326 AND (I.firewall='69' OR I.firewall is NULL)
+[2018-02-16 17:30:21.349] [DEBUG] app - BUCLE REGLA:856  POSITION:11  IPOBJ ID: 1474  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
+[2018-02-16 17:30:21.438] [DEBUG] app - BUCLE REGLA:856  POSITION:14  IPOBJ ID: 1531  IPOBJ_GROUP: -1  TYPE: O  INTERFACE:-1   ORDER:1  NEGATE:0
