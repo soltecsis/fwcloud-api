@@ -56,7 +56,7 @@ RuleCompileModel.pre_compile_sd = (dir, sd) => {
 			items.push(dir + sd[i].address + "/" + sd[i].netmask);
 	}
 
-	return items;
+	return ((items.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -65,7 +65,8 @@ RuleCompileModel.pre_compile_if = (dir, ifs) => {
 	var items = [];
 	for (var i = 0; i < ifs.length; i++)
 		items.push(dir + ifs[i].name);
-	return items;
+	
+	return ((items.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -121,7 +122,7 @@ RuleCompileModel.pre_compile_svc = (svc) => {
 		items.push(udp);
 	}
 
-	return items;
+	return ((items.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -132,35 +133,32 @@ RuleCompileModel.pre_compile_svc = (svc) => {
 RuleCompileModel.pre_compile = (data) => {
 	var position_items = [];
 	const policy_type = data[0].type;
-	var src_position, dst_position, svc_position;
+	var items, src_position, dst_position, svc_position;
 
 	if (policy_type === POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
 	else { src_position=1; dst_position=2; svc_position=3;}
 	
 	// Generate items strings for all the rule positions.
-	// WARNING: The orde of creation of the arrays is important for optimization!!!!
+	// WARNING: The order of creation of the arrays is important for optimization!!!!
 	// The positions first in the array will be used first in the conditions.
-	const if1_items = RuleCompileModel.pre_compile_if(((policy_type===POLICY_TYPE_OUTPUT || policy_type===POLICY_TYPE_SNAT) ? "-o " : "-i "), data[0].positions[0].ipobjs);
-	if (if1_items.length > 0)
-		position_items.push(if1_items);
-	if (policy_type === POLICY_TYPE_FORWARD) {
-		const if2_items = RuleCompileModel.pre_compile_if("-o ", data[0].positions[1].ipobjs);
-		if (if2_items.length > 0)
-			position_items.push(if2_items);
-	}
+	// INTERFACE IN / OUT
+	if (items=RuleCompileModel.pre_compile_if(((policy_type===POLICY_TYPE_OUTPUT || policy_type===POLICY_TYPE_SNAT) ? "-o " : "-i "), data[0].positions[0].ipobjs)) position_items.push(items);
+	// INTERFACE OUT
+	if (policy_type===POLICY_TYPE_FORWARD && (items=RuleCompileModel.pre_compile_if("-o ", data[0].positions[1].ipobjs))) position_items.push(items);
+	// SERVICE
+	if (items=RuleCompileModel.pre_compile_svc(data[0].positions[svc_position].ipobjs)) position_items.push(items);
+	// SOURCE
+	if (items=RuleCompileModel.pre_compile_sd("-s ", data[0].positions[src_position].ipobjs)) position_items.push(items);
+	// DESTINATION
+	if (items=RuleCompileModel.pre_compile_sd("-d ", data[0].positions[dst_position].ipobjs)) position_items.push(items);
+	// TRANSLATED SOURCE
+	if (policy_type===POLICY_TYPE_SNAT && (items=RuleCompileModel.pre_compile_sd("--to-source ", data[0].positions[4].ipobjs))) position_items.push(items);
+	// TRANSLATED DESTINATION
+	if (policy_type===POLICY_TYPE_DNAT && (items=RuleCompileModel.pre_compile_sd("--to-destination ", data[0].positions[4].ipobjs))) position_items.push(items);
+	// TRANSLATED SERVICE
+	if ((policy_type===POLICY_TYPE_SNAT || policy_type===POLICY_TYPE_DNAT) && (items=RuleCompileModel.pre_compile_svc(data[0].positions[5].ipobjs))) position_items.push(items);
 
-	const src_items = RuleCompileModel.pre_compile_sd("-s ", data[0].positions[src_position].ipobjs);
-	if (src_items.length > 0)
-		position_items.push(src_items);
-	const dst_items = RuleCompileModel.pre_compile_sd("-d ", data[0].positions[dst_position].ipobjs);
-	if (dst_items.length > 0)
-		position_items.push(dst_items);
-	const svc_items = RuleCompileModel.pre_compile_svc(data[0].positions[svc_position].ipobjs);
-	if (svc_items.length > 0)
-		position_items.push(svc_items);
-	
-
-		// Order the resulting array by number of strings into each array.
+	// Order the resulting array by number of strings into each array.
 	if (position_items.length < 2) // Don't need ordering.
 		return position_items;
 	for (var i = 0; i < position_items.length; i++) {
