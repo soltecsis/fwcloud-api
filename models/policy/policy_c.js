@@ -20,7 +20,8 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
                 ' R.comment ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
-                ' WHERE R.firewall=' + connection.escape(idfirewall) + ' ORDER BY R.type, R.rule_order';
+                ' WHERE R.firewall=' + connection.escape(idfirewall) +  ' AND R.active=1 ' +
+                ' ORDER BY R.type, R.rule_order';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -43,7 +44,7 @@ policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback)
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + 
-                ' AND F.fwcloud=' +  connection.escape(fwcloud) +
+                ' AND F.fwcloud=' +  connection.escape(fwcloud) + ' AND R.active=1 ' +
                 ' ORDER BY R.rule_order';          
          
         connection.query(sql, function (error, rows) {
@@ -70,7 +71,7 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
-                ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
+                ' AND F.fwcloud=' +  connection.escape(fwcloud) +  ' AND R.active=1 ' ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
