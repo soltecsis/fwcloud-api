@@ -270,7 +270,7 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
     //Save data into object
-    var interfaceData = {id: req.body.id, name: req.body.name, labelName: req.body.labelName, type: req.body.type, securityLevel: req.body.securityLevel, comment: req.body.comment, mac: req.body.mac};
+    var interfaceData = {id: req.body.id, name: req.body.name, labelName: req.body.labelName, type: req.body.type, securityLevel: req.body.securityLevel, comment: req.body.comment, mac: req.body.mac, interface_type: req.body.interface_type};
 
     utilsModel.checkParameters(interfaceData, function (obj) {
         interfaceData = obj;
@@ -297,21 +297,21 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
                                     res.status(200).json(jsonResp);
                                 });
                             } else {
-                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
                                     res.status(200).json(jsonResp);
                                 });
                             }
                         });
                     } else {
                         logger.debug("TREE NOT UPDATED");
-                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
                             res.status(200).json(jsonResp);
                         });
                     }
 
                 } else
                 {
-                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function (jsonResp) {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating Interface', objModel, error, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
                 }
@@ -327,7 +327,7 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove interface */
-router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req, res)
+router.put("/del/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req, res)
 {
     //Id from interface to remove
     var iduser = req.params.iduser;

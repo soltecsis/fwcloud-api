@@ -148,7 +148,7 @@ router.put('/policy-type//:iduser/', function (req, res)
 
 
 /* Remove policy_type */
-router.delete("/policy-type/:iduser/", function (req, res)
+router.put("/del/policy-type/:iduser/", function (req, res)
 {
     //Id from policy_type to remove
     var idfirewall = req.param('idfirewall');

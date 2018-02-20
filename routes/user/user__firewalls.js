@@ -164,7 +164,7 @@ router.put('/user__firewall/', function (req, res)
 
 
 /* Remove user__firewall */
-router.delete("/user__firewall/", function (req, res)
+router.put("/del/user__firewall/", function (req, res)
 {
     var id_user = req.params.id_user;
     var id_firewall = req.params.id_firewall;

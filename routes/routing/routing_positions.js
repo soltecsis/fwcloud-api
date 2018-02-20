@@ -141,7 +141,7 @@ router.put('/routing-position/', function (req, res)
 
 
 /* Remove routing_position */
-router.delete("/routing-position/", function (req, res)
+router.put("/del/routing-position/", function (req, res)
 {
     //Id from routing_position to remove
     var idfirewall = req.param('idfirewall');

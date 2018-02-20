@@ -293,7 +293,7 @@ router.get('/:customer/user/:id', function (req, res)
 
 
 /* remove the user */
-router.delete("/user/", function (req, res)
+router.put("/del/user/", function (req, res)
 {
     //User id
     var id = req.param('id');

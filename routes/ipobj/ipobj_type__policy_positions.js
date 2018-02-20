@@ -131,7 +131,7 @@ router.put('/ipobj-type__policy-position/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove ipobj_type__policy_position */
-router.delete("/ipobj-type__policy-position/:iduser/:fwcloud/", function (req, res)
+router.put("/del/ipobj-type__policy-position/:iduser/:fwcloud/", function (req, res)
 {
     //Id from ipobj_type__policy_position to remove
     var type = req.params.type;

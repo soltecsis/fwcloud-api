@@ -171,7 +171,7 @@ router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', 
 
 
 /* Remove routing_r__interface */
-router.delete("/routing-r__interface/", function (req, res)
+router.put("/del/routing-r__interface/", function (req, res)
 {
     //Id from routing_r__interface to remove
     var rule = req.param('rule');

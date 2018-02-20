@@ -151,7 +151,7 @@ router.put('/ipobj-protocols/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove ipobj_protocols */
-router.delete("/ipobj-protocols/:iduser/:fwcloud/", function (req, res)
+router.put("/del/ipobj-protocols/:iduser/:fwcloud/", function (req, res)
 {
     //Id from ipobj_protocols to remove
     var id = req.param('id');

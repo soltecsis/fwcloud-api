@@ -316,7 +316,7 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
-            } else {
+            } else {               
                 if (result.affectedRows > 0) {
                     callback(null, {"result": true});
                 } else {

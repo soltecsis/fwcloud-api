@@ -436,7 +436,7 @@ router.put('/policy-r__interface/:iduser/:fwcloud/:idfirewall/:rule/:interface/:
 
 
 /* Remove policy_r__interface */
-router.delete("/policy-r__interface/:iduser/:fwcloud/:idfirewall/:rule/:interface/:position/:position_order", function (req, res)
+router.put("/del/policy-r__interface/:iduser/:fwcloud/:idfirewall/:rule/:interface/:position/:position_order", function (req, res)
 {
     //Id from policy_r__interface to remove
     var rule = req.params.rule;
