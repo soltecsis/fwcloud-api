@@ -71,7 +71,7 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
-                ' AND F.fwcloud=' +  connection.escape(fwcloud) +  ' AND R.active=1 ' ;
+                ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
