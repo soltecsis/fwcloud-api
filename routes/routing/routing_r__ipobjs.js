@@ -222,7 +222,7 @@ router.put('/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g
 
 
 /* Remove routing_r__ipobj */
-router.delete("/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/", function (req, res)
+router.put("/del/routing-r__ipobj/:iduser/:fwcloud/:idfirewall/", function (req, res)
 {
     //Id from routing_r__ipobj to remove
     var rule = req.body.rule;

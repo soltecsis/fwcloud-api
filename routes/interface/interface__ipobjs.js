@@ -177,7 +177,7 @@ router.put('/interface__ipobj/:iduser/:fwcloud/order/:new_order', function (req,
 
 
 /* Remove interface__ipobj */
-router.delete("/interface__ipobj/:iduser/:fwcloud/", function (req, res)
+router.put("/del/interface__ipobj/:iduser/:fwcloud/", function (req, res)
 {
     //Id from interface__ipobj to remove
     var interface = req.param('interface');

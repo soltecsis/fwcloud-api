@@ -150,7 +150,7 @@ router.put('/cluster/:iduser/:fwcloud', function (req, res)
 });
 
 /* Get cluster by Id */
-router.get('/cluster//:iduser/:fwcloud/:id', function (req, res)
+router.get('/cluster/:iduser/:fwcloud/:id', function (req, res)
 {
     var id = req.params.id;
 
@@ -189,7 +189,7 @@ router.get('/cluster//:iduser/:fwcloud/:id', function (req, res)
 
 
 /* Remove cluster */
-router.delete("/cluster//:iduser/:fwcloud/:id", function (req, res)
+router.put("/del/cluster/:iduser/:fwcloud/:id", function (req, res)
 {
 
     var id = req.param('id');

@@ -275,7 +275,7 @@ router.put('/ipobj-g/:iduser/:fwcloud', function (req, res)
 
 
 /* Remove ipobj_g */
-router.delete("/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
+router.put("/del/ipobj-g/:iduser/:fwcloud/:id/:type", function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;

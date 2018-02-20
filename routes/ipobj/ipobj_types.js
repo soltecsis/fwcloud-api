@@ -149,7 +149,7 @@ router.put('/ipobj-type/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove ipobj_type */
-router.delete("/ipobj-type/:iduser/:fwcloud/", function (req, res)
+router.put("/del/ipobj-type/:iduser/:fwcloud/", function (req, res)
 {
     //Id from ipobj_type to remove
     var id = req.param('id');

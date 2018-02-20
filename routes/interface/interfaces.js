@@ -327,7 +327,7 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove interface */
-router.delete("/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req, res)
+router.put("/del/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req, res)
 {
     //Id from interface to remove
     var iduser = req.params.iduser;

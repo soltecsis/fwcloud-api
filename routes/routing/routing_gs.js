@@ -163,7 +163,7 @@ router.put('/routing-g/:iduser/:fwcloud/:idfirewall', function (req, res)
 
 
 /* Remove routing_g */
-router.delete("/routing-g/:iduser/:fwcloud/:idfirewall", function (req, res)
+router.put("/del/routing-g/:iduser/:fwcloud/:idfirewall", function (req, res)
 {
     //Id from routing_g to remove
     var idfirewall = req.param('idfirewall');

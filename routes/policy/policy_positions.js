@@ -174,7 +174,7 @@ router.put('/policy-position/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove policy_position */
-router.delete("/policy-position/:iduser/:fwcloud/", function (req, res)
+router.put("/del/policy-position/:iduser/:fwcloud/", function (req, res)
 {
     //Id from policy_position to remove
     var idfirewall = req.param('idfirewall');

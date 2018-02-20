@@ -534,7 +534,7 @@ router.put('/fwc-tree/', function (req, res)
 });
 //FALTA ACABAR
 /* Remove fwc_tree */
-router.delete("/fwc-tree/", function (req, res)
+router.put("/del/fwc-tree/", function (req, res)
 {
     //Id from fwc_tree to remove
     var idfirewall = req.param('idfirewall');

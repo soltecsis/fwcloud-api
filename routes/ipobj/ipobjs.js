@@ -765,7 +765,7 @@ router.put('/ipobj/:iduser/:fwcloud', function (req, res)
  *      "data": {}
  *      };
  */
-router.delete("/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
+router.put("/del/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;

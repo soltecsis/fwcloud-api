@@ -573,7 +573,7 @@ router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.delete("/firewall/:iduser/:fwcloud/:id", function (req, res)
+router.put("/del/firewall/:iduser/:fwcloud/:id", function (req, res)
 {
 
     var id = req.param('id');

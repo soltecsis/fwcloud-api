@@ -526,7 +526,7 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/
 
 
 /* Remove policy_r__ipobj */
-router.delete("/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order", function (req, res)
+router.put("/del/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order", function (req, res)
 {
     //Id from policy_r__ipobj to remove
     var rule = req.params.rule;

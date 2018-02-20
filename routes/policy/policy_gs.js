@@ -247,7 +247,7 @@ router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/', function (req, res)
 });
 
 /* Remove policy_g */
-router.delete("/policy-g/:iduser/:fwcloud/:idfirewall/:id", function (req, res)
+router.put("/del/policy-g/:iduser/:fwcloud/:idfirewall/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;
@@ -280,7 +280,7 @@ router.delete("/policy-g/:iduser/:fwcloud/:idfirewall/:id", function (req, res)
 });
 
 /* Remove rules from Group */
-router.delete("/policy-g/:iduser/:fwcloud/:idfirewall/rules/:id", function (req, res)
+router.put("/del/policy-g/:iduser/:fwcloud/:idfirewall/rules/:id", function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;
