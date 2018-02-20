@@ -74,7 +74,7 @@ RuleCompileModel.pre_compile_if = (dir, ifs) => {
 // Agrupate services position by protocol number (TCP, UDP, ICMP, etc.) 
 // Returns an array of strings with the services agrupated by protocol.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_svc = (svc) => {
+RuleCompileModel.pre_compile_svc = (sep,svc) => {
 	var items = [];
 	var tcp = "";
 	var udp = "";
@@ -86,11 +86,11 @@ RuleCompileModel.pre_compile_svc = (svc) => {
 				if (svc[i].source_port_end === 0) { // No source port.
 					if (tcp)
 						tcp += ",";
-					tcp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + ":" + svc[i].destination_port_end);
+					tcp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
 				} else {
-					tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + ":" + svc[i].source_port_end));
+					tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
 					if (svc[i].destination_port_end !== 0)
-						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + ":" + svc[i].destination_port_end));
+						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
 					items.push(tmp);
 				}
 				break;
@@ -99,11 +99,11 @@ RuleCompileModel.pre_compile_svc = (svc) => {
 				if (svc[i].source_port_end === 0) { // No source port.
 					if (udp)
 						udp += ",";
-					udp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + ":" + svc[i].destination_port_end);
+					udp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
 				} else {
-					tmp = "-p udp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + ":" + svc[i].source_port_end));
+					tmp = "-p udp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
 					if (svc[i].destination_port_end !== 0)
-						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + ":" + svc[i].destination_port_end));
+						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
 					items.push(tmp);
 				}
 				break;
@@ -146,17 +146,11 @@ RuleCompileModel.pre_compile = (data) => {
 	// INTERFACE OUT
 	if (policy_type===POLICY_TYPE_FORWARD && (items=RuleCompileModel.pre_compile_if("-o ", data[0].positions[1].ipobjs))) position_items.push(items);
 	// SERVICE
-	if (items=RuleCompileModel.pre_compile_svc(data[0].positions[svc_position].ipobjs)) position_items.push(items);
+	if (items=RuleCompileModel.pre_compile_svc(":",data[0].positions[svc_position].ipobjs)) position_items.push(items);
 	// SOURCE
 	if (items=RuleCompileModel.pre_compile_sd("-s ", data[0].positions[src_position].ipobjs)) position_items.push(items);
 	// DESTINATION
 	if (items=RuleCompileModel.pre_compile_sd("-d ", data[0].positions[dst_position].ipobjs)) position_items.push(items);
-	// TRANSLATED SOURCE
-	if (policy_type===POLICY_TYPE_SNAT && (items=RuleCompileModel.pre_compile_sd("--to-source ", data[0].positions[4].ipobjs))) position_items.push(items);
-	// TRANSLATED DESTINATION
-	if (policy_type===POLICY_TYPE_DNAT && (items=RuleCompileModel.pre_compile_sd("--to-destination ", data[0].positions[4].ipobjs))) position_items.push(items);
-	// TRANSLATED SERVICE
-	if ((policy_type===POLICY_TYPE_SNAT || policy_type===POLICY_TYPE_DNAT) && (items=RuleCompileModel.pre_compile_svc(data[0].positions[5].ipobjs))) position_items.push(items);
 
 	// Order the resulting array by number of strings into each array.
 	if (position_items.length < 2) // Don't need ordering.
@@ -194,14 +188,20 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		}
 
 		var cs = "$IPTABLES "; // Compile string.
-		var cs_trail = "";
+		var cs_trail = statefull = table = action = "";
 		if (policy_type === 4) { // SNAT
-			cs += "-t nat -A POSTROUTING ";
-			cs_trail = "-j SNAT\n";
+			table = "-t nat";
+			cs += table+" -A POSTROUTING ";
+			if (data[0].positions[4].ipobjs.length === 0)
+				action = "MASQUERADE\n";
+			else {
+				action = "SNAT --to-source " + (RuleCompileModel.pre_compile_sd("",data[0].positions[4].ipobjs))[0] + ((data[0].positions[5].ipobjs.length===0) ? "" : (RuleCompileModel.pre_compile_svc("-",data[0].positions[5].ipobjs))[0]) + "\n";
+			}
 		}
 		else if (policy_type === 5) { // DNAT
-			cs += "-t nat -A PREROUTING ";
-			cs_trail = "-j SNAT\n";
+			table = "-t nat";
+			cs += table+" -A PREROUTING ";
+			action = "-j DNAT --to-destination\n";
 		}
 		else {
 			if (data.length != 1 || !(data[0].positions)
@@ -211,7 +211,9 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				return;
 			}
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
-			cs_trail = "-m state --state NEW -j " + ACTION[data[0].action] + "\n";
+			statefull ="-m state --state NEW";
+			action = ACTION[data[0].action];
+			cs_trail = statefull + " -j " + action + "\n";
 		}
 
 		const position_items = RuleCompileModel.pre_compile(data);
@@ -232,21 +234,21 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
 				// We have the position_items array ordered by arrays length.
 				if (position_items[i].length === 1)
-					cs += position_items[i][0] + " ";
+					cs += position_items[i][0]+" ";
 				else {
-					chain_name = "FWCRULE" + rule + ".CH" + chain_number;
+					chain_name = "FWCRULE"+rule+".CH"+chain_number;
 					// If we are in the first condition.
 					if (i === 0) {
 						var cs1 = cs;
 						cs = "";
 						for (var j = 0; j < position_items[0].length; j++)
-							cs += cs1 + position_items[0][j] + ((j < (position_items[0].length - 1)) ? " -m state --state NEW -j " + chain_name + "\n" : " ");
+							cs += cs1+position_items[0][j]+((j < (position_items[0].length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
 					} else {
 						// If we are at the end of the array, the next chain will be the rule action.
-						chain_next = (i === ((position_items.length) - 1)) ? ACTION[data[0].action] : "FWCRULE" + rule + ".CH" + (chain_number + 1);
-						cs = "$IPTABLES -N " + chain_name + "\n" + cs + ((chain_number === 1) ? "-m state --state NEW -j " + chain_name + "\n" : "");
+						chain_next = (i === ((position_items.length) - 1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
+						cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
 						for (j = 0; j < position_items[i].length; j++) {
-							cs += "$IPTABLES -A " + chain_name + " " + position_items[i][j] + " -j " + chain_next + "\n";
+							cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i][j]+" -j "+chain_next+"\n";
 						}
 						chain_number++;
 					}
@@ -266,7 +268,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			status_compiled: 1
 		};
 
-		Policy_cModel.insertPolicy_c(policy_cData, (error, data) => { /* We don't worry about if the rule compilation string is stored fine in the database. */ });
+		Policy_cModel.insertPolicy_c(policy_cData, (error, data) => { 
+			/* We don't worry about if the rule compilation string is stored fine in the database. */ });
 
 		callback(null,cs);
 	});
