@@ -1,15 +1,45 @@
 #!/bin/sh 
 #############################################
 ##                                         ##
-##  FWCloud.net - SOLTECSIS                ##
+##  FWCloud.net                            ##
+##  Developed by SOLTECSIS, S.L.           ##
+##  http://www.soltecsis.com               ##
 ##  info@soltecsis.com                     ##
 ##                                         ##
 #############################################
 
-LSMOD="`which lsmod`"
-MODPROBE="`which modprobe`"
-#IPTABLES="`which iptables`"
+LSMOD=`which lsmod`
+MODPROBE=`which modprobe`
+#IPTABLES=`which iptables`
 IPTABLES="echo"
-IP6TABLES="`which ip6tables`"
-IP="`which ip`"
+IP6TABLES=`which ip6tables`
+IP=`which ip`
 
+log() {
+  echo "$1"
+  which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
+}
+
+find_cmd() {
+  PGM=$1
+  which $PGM >/dev/null 2>&1 || {
+    echo "\"$PGM\" not found"
+    exit 1
+  }
+}
+
+check_cmds() {
+  find_cmd which
+  find_cmd $IPTABLES
+  find_cmd $MODPROBE
+  find_cmd $IP
+}
+
+stop() {
+  reset_all
+  $IPTABLES -P OUTPUT  ACCEPT
+  $IPTABLES -P INPUT   ACCEPT
+  $IPTABLES -P FORWARD ACCEPT
+}
+
+policy_load() {

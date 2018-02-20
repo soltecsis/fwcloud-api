@@ -1,3 +1,58 @@
+}
+
+# Verify that we have all the needed commands.
+check_cmds
+
+ACTION=$1
+test -z "$ACTION" && ACTION="start"
+
+case "$ACTION" in
+  "start")
+    log "Activating firewall script generated Wed Feb  7 16:13:56 2018 by soltecsis"
+
+    check_run_time_address_table_files
+
+    load_modules "nat "
+    configure_interfaces
+    verify_interfaces
+
+    reset_all
+    prolog_commands
+    policy_load
+    ip_forward
+    epilog_commands
+    RETVAL=$?
+    ;;
+
+  "stop")
+    stop_action
+    RETVAL=$?
+    ;;
+
+  "status")
+    status_action
+    RETVAL=$?
+    ;;
+
+  "install")
+    status_action
+    RETVAL=$?
+    ;;
+
+  "block")
+    block_action
+    RETVAL=$?
+    ;;
+
+  "reload")
+    $0 stop
+    $0 start
+    RETVAL=$?
+    ;;
+
+  *)
+    echo "Usage $0 [start|stop|reload|status|install]"
+    ;;
+esac
 
 exit 0
-
