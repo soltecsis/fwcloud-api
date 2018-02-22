@@ -114,11 +114,13 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 	}
 
 	if (tcp) {
-		tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports " + tcp) : ("-p tcp --dport " + tcp);
+		if (sep===":")
+			tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports " + tcp) : ("-p tcp --dport " + tcp);
 		items.push(tcp);
 	}
 	if (udp) {
-		udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports " + udp) : ("-p udp --dport " + udp);
+		if (sep===":")
+			udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports " + udp) : ("-p udp --dport " + udp);
 		items.push(udp);
 	}
 
@@ -170,6 +172,29 @@ RuleCompileModel.pre_compile = (data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
+RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
+	if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
+		return "MASQUERADE";
+
+	if (trans_addr.length !== 1 || (trans_port.length !== 0 && trans_port.length !==1))
+		return null;
+	
+	var action = "";
+	if (policy_type===POLICY_TYPE_SNAT)
+		action = "SNAT --to-source "
+	else
+		action = "DNAT --to-destination "
+
+	if (trans_addr.length === 1) 
+		action += (RuleCompileModel.pre_compile_sd("",trans_addr))[0];
+	if (trans_port.length === 1) 
+		action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port))[0];
+
+	return action;
+};
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {        
@@ -192,18 +217,20 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
 			cs += table+" -A POSTROUTING ";
-			if (data[0].positions[4].ipobjs.length === 0)
-				action = "MASQUERADE\n";
-			else {
-				action = "SNAT --to-source " + (RuleCompileModel.pre_compile_sd("",data[0].positions[4].ipobjs))[0] + ((data[0].positions[5].ipobjs.length===0) ? "" : (RuleCompileModel.pre_compile_svc("-",data[0].positions[5].ipobjs))[0]) + "\n";
+			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].ipobjs,data[0].positions[5].ipobjs))) {
+				callback({"Msg": "Invalid NAT positions."},null);
+				return;
 			}
 		}
 		else if (policy_type === 5) { // DNAT
 			table = "-t nat";
 			cs += table+" -A PREROUTING ";
-			action = "-j DNAT --to-destination\n";
+			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].ipobjs,data[0].positions[5].ipobjs))) {
+				callback({"Msg": "Invalid NAT positions."},null);
+				return;
+			}
 		}
-		else {
+		else { // Filter policy
 			if (data.length != 1 || !(data[0].positions)
 					|| !(data[0].positions[0].ipobjs) || !(data[0].positions[1].ipobjs) || !(data[0].positions[2].ipobjs)
 					|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].ipobjs))) {
@@ -213,8 +240,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
 			statefull ="-m state --state NEW";
 			action = ACTION[data[0].action];
-			cs_trail = statefull + " -j " + action + "\n";
 		}
+		cs_trail = statefull+"-j "+action+"\n";
 
 		const position_items = RuleCompileModel.pre_compile(data);
 		

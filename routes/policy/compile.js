@@ -120,7 +120,7 @@ router.get('/:user/:cloud/:fw', (req, res) => {
         await PolicyScript.append(config.policy.header_file)
                 .then(data => {
                     streamModel.pushMessageCompile(accessData, "\nINPUT TABLE:\n");
-                    stream.write(data + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
+                    stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"" + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
                     return PolicyScript.dump(accessData,cloud, fw, 1)
                 })
                 .then(data => {
