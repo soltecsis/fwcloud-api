@@ -150,18 +150,18 @@ app.use(function (req, res, next) {
     
     var url_parts = url.parse(req.url);
     var pathname= url_parts.pathname;
-    
-    //logger.debug(url_parts);
+        
     logger.debug(pathname);
-    var params= pathname.split('/').slice(1);
-    var iduser= params[1];
-    var fwcloud = params [2];
+    
+    var iduser = req.params.iduser;
+    
+    var fwcloud = req.params.fwcloud;
     
     
     
     var accessData = {iduser: iduser, fwcloud: fwcloud};
     
-    logger.warn("API ACCESS USER : " + iduser + " --- FWCLOUD: " + fwcloud );
+    logger.warn("API ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]" );
 
     //Checl FWCLOUD LOCK
     FwcloudModel.getFwcloudAccess(accessData.iduser, accessData.fwcloud)
