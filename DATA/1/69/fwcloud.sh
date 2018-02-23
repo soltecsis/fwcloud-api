@@ -20,30 +20,63 @@ log() {
   which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"
 }
 
-find_cmd() {
-  PGM=$1
-  which $PGM >/dev/null 2>&1 || {
-    echo "\"$PGM\" not found"
-    exit 1
-  }
-}
-
 check_cmds() {
-  find_cmd which
-  find_cmd $IPTABLES
-  find_cmd $MODPROBE
-  find_cmd $IP
+  test -z "$LSMOD" && echo "Command 'lsmod' not found!" && exit 1
+  test -z "$MODPROBE" && echo "Command 'modprobe' not found!" && exit 1
+  test -z "$IPTABLES" && echo "Command 'iptables' not found!" && exit 1
+  test -z "$IP" && echo "Command 'ip' not found!" && exit 1
 }
 
-stop() {
-  reset_all
-  $IPTABLES -P OUTPUT  ACCEPT
-  $IPTABLES -P INPUT   ACCEPT
-  $IPTABLES -P FORWARD ACCEPT
+load_modules() {
+  MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
+  MODULES=$(find $MODULES_DIR -name '*conntrack*' -name '*nat*'|sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
+  for module in $MODULES; do
+    if $LSMOD | grep ${module} >/dev/null; then continue; fi
+    $MODPROBE ${module} ||  exit 1
+  done
 }
+
+reset_iptables_v4() {
+  $IPTABLES -P OUTPUT  DROP
+  $IPTABLES -P INPUT   DROP
+  $IPTABLES -P FORWARD DROP
+
+  $IPTABLES --flush
+  $IPTABLES -X
+  $IPTABLES --flush
+  $IPTABLES --flush FORWARD
+  $IPTABLES --flush INPUT
+  $IPTABLES --flush OUTPUT
+  $IPTABLES --table nat --flush
+  $IPTABLES --table nat --delete-chain
+  $IPTABLES --table mangle --flush
+  $IPTABLES --table mangle --delete-chain
+  $IPTABLES --delete-chain
+}
+
+reset_iptables_v6() {
+  $IP6TABLES -P OUTPUT  DROP
+  $IP6TABLES -P INPUT   DROP
+  $IP6TABLES -P FORWARD DROP
+
+  cat /proc/net/ip6_tables_names | while read table; do
+    $IP6TABLES -t $table -L -n | while read c chain rest; do
+      if test "X$c" = "XChain" ; then
+        $IP6TABLES -t $table -F $chain
+      fi
+    done
+    $IP6TABLES -t $table -X
+  done
+}
+
+reset_all() {
+  reset_iptables_v4
+  reset_iptables_v6
+}
+
 
 policy_load() {
-log "FWCloud.net - Loading firewall policy generated:  ue Feb 20 2018 17:39:03 GMT+0100 (CET)"
+log "FWCloud.net - Loading firewall policy generated: Fri Feb 23 2018 17:28:40 GMT+0100 (CET)"
 
 echo -e "\nINPUT TABLE\n-----------"
 
@@ -250,12 +283,15 @@ $IPTABLES  -A FWCRULE796.CH3 -d 10.99.4.0/255.255.255.0 -j ACCEPT
 $IPTABLES  -A FWCRULE796.CH3 -d 10.98.1.254 -j ACCEPT
 
 echo "RULE 49 (ID: 807)"
-# Prueba de comentario
+# Prueba de comentarios
+$IPTABLES  -N FWCRULE807.CH2
 $IPTABLES  -N FWCRULE807.CH1
-$IPTABLES -A FORWARD -i eth1 -p udp --dport 514 -d 46.24.15.81 -m state --state NEW -j FWCRULE807.CH1
-$IPTABLES  -A FWCRULE807.CH1 -s 10.10.10.11 -j DENY
-$IPTABLES  -A FWCRULE807.CH1 -s 224.0.0.1 -j DENY
-$IPTABLES  -A FWCRULE807.CH1 -s 10.99.2.0/255.255.255.0 -j DENY
+$IPTABLES -A FORWARD -i eth1 -p udp --dport 514 -m state --state NEW -j FWCRULE807.CH1
+$IPTABLES  -A FWCRULE807.CH1 -d 46.24.15.81 -j FWCRULE807.CH2
+$IPTABLES  -A FWCRULE807.CH1 -d 10.99.2.0/255.255.255.0 -j FWCRULE807.CH2
+$IPTABLES  -A FWCRULE807.CH2 -s 10.10.10.11 -j DENY
+$IPTABLES  -A FWCRULE807.CH2 -s 224.0.0.1 -j DENY
+$IPTABLES  -A FWCRULE807.CH2 -s 224.0.0.14 -j DENY
 
 echo "RULE 50 (ID: 809)"
 # Otro comentario
@@ -286,3 +322,73 @@ $IPTABLES  -A FWCRULE829.CH1 -s 10.99.2.0/255.255.255.0 -j ACCEPT
 
 
 echo -e "\nSNAT TABLE\n----------"
+
+
+echo -e "\nDNAT TABLE\n----------"
+}
+
+status() {
+  NL=`$IPTABLES -nL | wc -l`
+  if [ $NL -lt 9 ]; then
+    echo "ERROR: Policy not loaded"
+    exit 1
+  else
+    echo "OK. Polilcy loaded."
+  fi 
+}
+
+# Verify that we have all the needed commands.
+check_cmds
+
+ACTION="$1"
+test -z "$ACTION" && ACTION="start"
+
+case "$ACTION" in
+  start)
+    load_modules
+    reset_all
+    #prolog_commands
+    policy_load
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    #epilog_commands
+    ;;
+
+  stop)
+    reset_all
+    $IPTABLES -P OUTPUT  ACCEPT
+    $IPTABLES -P INPUT   ACCEPT
+    $IPTABLES -P FORWARD ACCEPT
+    ;;
+
+  reload)
+    $0 stop
+    $0 start
+    ;;
+
+  block)
+    reset_all
+    ;;
+
+  status)
+    status
+    ;;
+
+  install)
+    chown root:root "$0"
+    chmod 700 "$0"
+
+    INSTALL_DIR="/etc/fwcloud"    
+    test ! -d "$INSTALL_DIR" && {
+      mkdir -m 700 -p "$INSTALL_DIR"
+      chown root:root "$INSTALL_DIR"
+    }
+
+    mv "$0" "$INSTALL_DIR"
+    ;;
+
+  *)
+    echo "Usage $0 [start|stop|reload|block|status|install]"
+    ;;
+esac
+
+exit 0

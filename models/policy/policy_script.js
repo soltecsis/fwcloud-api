@@ -154,12 +154,8 @@ PolicyScript.install = (accessData,cloud,fw,sshuser,sshpass) => {
 		await PolicyScript.upload(cloud,fw,connSettings)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-				return PolicyScript.run_ssh_command(connSettings,"sudo mkdir -m 700 -p "+config.policy.script_dir)
+				return PolicyScript.run_ssh_command(connSettings,"sudo ./"+config.policy.script_name+" install")
 			})
-			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_dir)})
-			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chmod 700 "+config.policy.script_name)})
-			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo chown root:root "+config.policy.script_name)})
-			.then(() => {return PolicyScript.run_ssh_command(connSettings,"sudo mv "+config.policy.script_name+" "+config.policy.script_dir)})
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
 				return PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start")
