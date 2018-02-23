@@ -42,4 +42,13 @@ stop() {
   $IPTABLES -P FORWARD ACCEPT
 }
 
+load_modules() {
+  MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
+  MODULES=$(find $MODULES_DIR -name '*conntrack*' -name '*nat*'|sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
+  for module in $MODULES; do
+    if $LSMOD | grep ${module} >/dev/null; then continue; fi
+    $MODPROBE ${module} ||  exit 1
+  done
+}
+
 policy_load() {

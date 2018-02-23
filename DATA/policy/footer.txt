@@ -8,11 +8,7 @@ test -z "$ACTION" && ACTION="start"
 
 case "$ACTION" in
   "start")
-    log "Activating firewall script generated Wed Feb  7 16:13:56 2018 by soltecsis"
-
-    check_run_time_address_table_files
-
-    load_modules "nat "
+    load_modules
     configure_interfaces
     verify_interfaces
 
@@ -34,11 +30,6 @@ case "$ACTION" in
     RETVAL=$?
     ;;
 
-  "install")
-    status_action
-    RETVAL=$?
-    ;;
-
   "block")
     block_action
     RETVAL=$?
@@ -47,6 +38,11 @@ case "$ACTION" in
   "reload")
     $0 stop
     $0 start
+    RETVAL=$?
+    ;;
+
+  "install")
+    status_action
     RETVAL=$?
     ;;
 
