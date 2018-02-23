@@ -377,24 +377,24 @@ router.put('/fwcloud/lock/:iduser/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.params.fwcloud, iduser: req.params.iduser};
+    var fwcloudData = {fwcloud: req.params.fwcloud, iduser: req.params.iduser};
 
     FwcloudModel.updateFwcloudLock(fwcloudData)
             .then(data => {                
                 if (data.result) {
-                    logger.info("FWCLOUD: " + fwcloudData.id + "  LOCKED BY USER: " + fwcloudData.iduser);
+                    logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
                     api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
                 } else {
-                    logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                    logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
                     api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
                 }
             })
             .catch(r => {                
-                logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+                logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
                 api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });

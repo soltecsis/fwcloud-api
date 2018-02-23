@@ -13,7 +13,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all interfaces by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/', utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.params.fwcloud;
@@ -37,7 +37,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/', function (req, res)
 });
 
 /* Get all interfaces by HOST*/
-router.get('/:iduser/:fwcloud/host/:idhost', function (req, res)
+router.get('/:iduser/:fwcloud/host/:idhost',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idhost = req.params.idhost;
     var fwcloud = req.params.fwcloud;
@@ -61,7 +61,7 @@ router.get('/:iduser/:fwcloud/host/:idhost', function (req, res)
 });
 
 /* Get  interface by id and  by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/interface/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/interface/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.params.fwcloud;
@@ -86,7 +86,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/interface/:id', function (req, res)
 });
 
 /* Get all interfaces by name and by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.params.fwcloud;
@@ -111,7 +111,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/name/:name', function (req, res)
 });
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface in RULES  */
-router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
+router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", utilsModel.checkFwCloudAccess(false), function (req, res)
 {
 
     var iduser = req.params.iduser;
@@ -142,7 +142,7 @@ router.get("/interface_search_rules/:iduser/:fwcloud/:id/:type", function (req, 
 
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface  */
-router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
+router.get("/interface_search_used/:iduser/:fwcloud/:id/:type",utilsModel.checkFwCloudAccess(false), function (req, res)
 {
 
     var iduser = req.params.iduser;
@@ -174,7 +174,7 @@ router.get("/interface_search_used/:iduser/:fwcloud/:id/:type", function (req, r
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Create New interface */
-router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:host", function (req, res)
+router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:host",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -265,7 +265,7 @@ router.post("/interface/:iduser/:fwcloud/:node_parent/:node_order/:node_type/:ho
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Update interface that exist */
-router.put('/interface/:iduser/:fwcloud/', function (req, res)
+router.put('/interface/:iduser/:fwcloud/', utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -327,7 +327,7 @@ router.put('/interface/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove interface */
-router.put("/del/interface/:iduser/:fwcloud/:idfirewall/:id/:type", function (req, res)
+router.put("/del/interface/:iduser/:fwcloud/:idfirewall/:id/:type",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Id from interface to remove
     var iduser = req.params.iduser;

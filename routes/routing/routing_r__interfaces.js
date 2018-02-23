@@ -7,11 +7,6 @@ var objModel='ROUTING INTERFACE';
 
 var logger = require('log4js').getLogger("app");
 
-/* get data para crear nuevos */
-router.get('/routing-r__interface', function (req, res)
-{
-    res.render('new_routing_r__interface', {title: 'Crear nuevo routing_r__interface'});
-});
 
 /* Get all IPOBJ de una interface*/
 router.get('/:interface', function (req, res)

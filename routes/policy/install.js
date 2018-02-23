@@ -51,11 +51,13 @@ var PolicyScript = require('../../models/policy/policy_script');
 
 var streamModel = require('../../models/stream/stream');
 
+var utilsModel = require("../../utils/utils.js");
+
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:user/:cloud/:fw/:sshuser/:sshpass', async (req, res) => {
-  var user = req.params.user;
-  var cloud = req.params.cloud;
+router.get('/:iduser/:fwcloud/:fw/:sshuser/:sshpass',utilsModel.checkFwCloudAccess(true), async (req, res) => {
+  var user = req.params.iduser;
+  var cloud = req.params.fwcloud;
   var fw = req.params.fw;
   var sshuser = req.params.sshuser;
   var sshpass = req.params.sshpass;

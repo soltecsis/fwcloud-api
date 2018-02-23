@@ -69,6 +69,8 @@ var streamModel = require('../../models/stream/stream');
 
 var config = require('../../config/apiconf.json');
 
+var utilsModel = require("../../utils/utils.js");
+
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 
 
@@ -76,9 +78,9 @@ const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall rule. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
-    var user = req.params.user;
-    var cloud = req.params.cloud;
+router.get('/:iduser/:fwcloud/:fw/:type/:rule',utilsModel.checkFwCloudAccess(true), (req, res) => {
+    var user = req.params.iduser;
+    var cloud = req.params.fwcloud;
     var fw = req.params.fw;
     var type = req.params.type;
     var rule = req.params.rule;
@@ -93,9 +95,9 @@ router.get('/:user/:cloud/:fw/:type/:rule', (req, res) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:user/:cloud/:fw', (req, res) => {
-    var user = req.params.user;
-    var cloud = req.params.cloud;
+router.get('/:iduser/:fwcloud/:fw',utilsModel.checkFwCloudAccess(true), (req, res) => {
+    var user = req.params.iduser;
+    var cloud = req.params.fwcloud;
     var fw = req.params.fw;
     var code = "";
 

@@ -5,10 +5,11 @@ var api_resp = require('../../utils/api_response');
 var objModel = 'INTERFACE_IPOBJ';
 
 var logger = require('log4js').getLogger("app");
+var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all interface__ipobjs by interface*/
-router.get('/interface/:iduser/:fwcloud/:interface', function (req, res)
+router.get('/interface/:iduser/:fwcloud/:interface',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var interface = req.params.interface;
     Interface__ipobjModel.getInterface__ipobjs_interface(interface, function (error, data)
@@ -31,7 +32,7 @@ router.get('/interface/:iduser/:fwcloud/:interface', function (req, res)
 });
 
 /* Get all interface__ipobjs by ipobj*/
-router.get('/ipobj/:iduser/:fwcloud/:ipobj', function (req, res)
+router.get('/ipobj/:iduser/:fwcloud/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var ipobj = req.params.ipobj;
     Interface__ipobjModel.getInterface__ipobjs_ipobj(ipobj, function (error, data)
@@ -54,7 +55,7 @@ router.get('/ipobj/:iduser/:fwcloud/:ipobj', function (req, res)
 });
 
 /* Get  interface__ipobj by interface and ipobj*/
-router.get('/interface__ipobj/:iduser/:fwcloud/:interface/:ipobj', function (req, res)
+router.get('/interface__ipobj/:iduser/:fwcloud/:interface/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var interface = req.params.interface;
     var ipobj = req.params.ipobj;
@@ -81,7 +82,7 @@ router.get('/interface__ipobj/:iduser/:fwcloud/:interface/:ipobj', function (req
 
 
 /* Create New interface__ipobj */
-router.post("/interface__ipobj/:iduser/:fwcloud/", function (req, res)
+router.post("/interface__ipobj/:iduser/:fwcloud/",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Create New objet with data interface__ipobj
     var interface__ipobjData = {
@@ -115,7 +116,7 @@ router.post("/interface__ipobj/:iduser/:fwcloud/", function (req, res)
 });
 
 /* Update interface__ipobj that exist */
-router.put('/interface__ipobj/:iduser/:fwcloud/', function (req, res)
+router.put('/interface__ipobj/:iduser/:fwcloud/',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Save data into object
     var interface__ipobjData = {interface: req.param('interface'), ipobj: req.param('ipobj'), interface_order: req.param('interface_order')};
@@ -146,7 +147,7 @@ router.put('/interface__ipobj/:iduser/:fwcloud/', function (req, res)
     });
 });
 /* Update ORDER interface__ipobj that exist */
-router.put('/interface__ipobj/:iduser/:fwcloud/order/:new_order', function (req, res)
+router.put('/interface__ipobj/:iduser/:fwcloud/order/:new_order',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var new_order = req.param('new_order');
     //Save data into object
@@ -177,7 +178,7 @@ router.put('/interface__ipobj/:iduser/:fwcloud/order/:new_order', function (req,
 
 
 /* Remove interface__ipobj */
-router.put("/del/interface__ipobj/:iduser/:fwcloud/", function (req, res)
+router.put("/del/interface__ipobj/:iduser/:fwcloud/",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Id from interface__ipobj to remove
     var interface = req.param('interface');

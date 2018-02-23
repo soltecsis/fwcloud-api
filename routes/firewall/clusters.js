@@ -59,7 +59,7 @@ var objModel = 'CLUSTER';
  */
 var ClusterModel = require('../../models/firewall/cluster');
 
-
+var utilsModel = require("../../utils/utils.js");
 
 
 
@@ -77,7 +77,7 @@ var ClusterModel = require('../../models/firewall/cluster');
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('/:iduser/:fwcloud', function (req, res)
+router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     ClusterModel.getClusters(function (error, data)
     {
@@ -102,7 +102,7 @@ router.get('/:iduser/:fwcloud', function (req, res)
 
 
 /* New cluster */
-router.post("/cluster/:iduser/:fwcloud", function (req, res)
+router.post("/cluster/:iduser/:fwcloud",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //new objet with Cluster data
     var clusterData = {
@@ -128,7 +128,7 @@ router.post("/cluster/:iduser/:fwcloud", function (req, res)
 });
 
 /* cluster update */
-router.put('/cluster/:iduser/:fwcloud', function (req, res)
+router.put('/cluster/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Save cluster data into objet 
     var clusterData = {id: req.param('id'), name: req.param('name')};
@@ -150,7 +150,7 @@ router.put('/cluster/:iduser/:fwcloud', function (req, res)
 });
 
 /* Get cluster by Id */
-router.get('/cluster/:iduser/:fwcloud/:id', function (req, res)
+router.get('/cluster/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var id = req.params.id;
 
@@ -189,7 +189,7 @@ router.get('/cluster/:iduser/:fwcloud/:id', function (req, res)
 
 
 /* Remove cluster */
-router.put("/del/cluster/:iduser/:fwcloud/:id", function (req, res)
+router.put("/del/cluster/:iduser/:fwcloud/:id",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
 
     var id = req.param('id');

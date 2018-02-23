@@ -113,6 +113,14 @@ respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
 respModel.ACR_ACCESS_ERROR = 'ACR_ACCESS_ERROR';
 
 /**
+ * Property ACR_ACCESS_LOCKED
+ *
+ * @property ACR_ACCESS_LOCKED
+ * @type String
+ */
+respModel.ACR_ACCESS_LOCKED = 'ACR_ACCESS_LOCKED';
+
+/**
  * Property ACR_COMPILED_OK
  *
  * @property ACR_COMPILED_OK
@@ -270,6 +278,10 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
             msg = custom_obj + " param error";
             break;
         case this.ACR_ACCESS_ERROR:
+            status = false;
+            msg = custom_obj + " Access not allowed by user access";
+            break;
+        case this.ACR_ACCESS_LOCKED:
             status = false;
             msg = custom_obj + " Access not allowed by lock status";
             break;

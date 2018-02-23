@@ -6,6 +6,7 @@ var objModel='ROUTING';
 
 
 var logger = require('log4js').getLogger("app");
+var utilsModel = require("../../utils/utils.js");
 
 /* Show form */
 router.get('/routing-r', function (req, res)
@@ -14,7 +15,7 @@ router.get('/routing-r', function (req, res)
 });
 
 /* Get all routing_rs by firewall and group*/
-router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -37,7 +38,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup', function (req, res)
     });
 });
 /* Get all routing_rs by firewall */
-router.get('/:iduser/:fwcloud/:idfirewall', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;    
     Routing_rModel.getRouting_rs(idfirewall,'',function (error, data)
@@ -60,7 +61,7 @@ router.get('/:iduser/:fwcloud/:idfirewall', function (req, res)
 });
 
 /* Get  routing_r by id and  by firewall and group */
-router.get('/:iduser/:fwcloud/:idfirewall/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -84,7 +85,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:id', function (req, res)
 });
 
 /* Get all routing_rs by nombre and by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/:idgroup/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/:idfirewall/:idgroup/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -113,7 +114,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:idgroup/name/:name', function (req, r
 
 
 /* Create New routing_r */
-router.post("/routing-r/:iduser/:fwcloud/:idfirewall", function (req, res)
+router.post("/routing-r/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Create New objet with data routing_r
     var routing_rData = {
@@ -146,7 +147,7 @@ router.post("/routing-r/:iduser/:fwcloud/:idfirewall", function (req, res)
 });
 
 /* Update routing_r that exist */
-router.put('/routing-r/:iduser/:fwcloud/:idfirewall', function (req, res)
+router.put('/routing-r/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Save data into object
     var routing_rData = {id: req.param('id'), idgroup: req.param('idgroup'), firewall: req.param('firewall'), rule_order: req.param('rule_order'),  options: req.param('options'), metric: req.param('metric'), comment: req.param('comment')};
@@ -171,7 +172,7 @@ router.put('/routing-r/:iduser/:fwcloud/:idfirewall', function (req, res)
 
 
 /* Remove routing_r */
-router.put("/del/routing-r/:iduser/:fwcloud/:idfirewall", function (req, res)
+router.put("/del/routing-r/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Id from routing_r to remove
     var idfirewall = req.param('idfirewall');

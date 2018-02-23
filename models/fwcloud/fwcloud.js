@@ -145,26 +145,26 @@ fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
                 if (error)
                     reject(false);
                 else if (row && row.length > 0) {
-                    logger.debug(row[0]);
+                    //logger.debug(row[0]);
                     logger.debug("IDUSER: " + iduser);
                     if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser))
                     {   
                         //Access OK, LOCKED by USER
-                        resolve({"access": true, "locked": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+                        resolve({"access": true, "locked": true, "mylock" : true , "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
                     } 
                     else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser))
                     {   
-                        //Access ERROR, LOCKED by OTHER USER
-                        resolve({"access": false, "locked": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+                        //Access OK, LOCKED by OTHER USER
+                        resolve({"access": true, "locked": true , "mylock" : false , "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
                     } 
                     else if (row[0].locked === 0)
                     {
-                        //Access ERROR, NOT LOCKED
-                        resolve({"access": false, "locked": false, "locked_at": "", "locked_by": ""});
+                        //Access OK, NOT LOCKED
+                        resolve({"access": true, "locked": false , "mylock" : false , "locked_at": "", "locked_by": ""});
                     }
                 } else {
                     //Access ERROR, NOT LOCKED
-                    resolve({"access": false, "locked": "", "locked_at": "", "locked_by": ""});
+                    resolve({"access": false, "locked": "",  "mylock" : false , "locked_at": "", "locked_by": ""});
                 }
             });
         });
@@ -362,13 +362,13 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
     return new Promise((resolve, reject) => {
         var locked = 1;
         db.get(function (error, connection) {
-            db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.id, function () {
+            db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.fwcloud, function () {
                 db.startTX(connection, function () {
                     if (error)
                         reject(error);
                     //Check if FWCloud is unlocked or locked by the same user
                     var sqlExists = 'SELECT id FROM ' + tableModel + '  ' +
-                            ' WHERE id = ' + connection.escape(fwcloudData.id) +
+                            ' WHERE id = ' + connection.escape(fwcloudData.fwcloud) +
                             ' AND (locked=0 OR (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ')) ';
 
                     connection.query(sqlExists, function (error, row) {
@@ -376,7 +376,7 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
                             //Check if there are Firewalls in FWCloud with Access and Edit permissions
                             var sqlExists = 'SELECT F.id FROM firewall F inner join ' + tableModel + ' C ON C.id=F.fwcloud ' +
                                     ' INNER JOIN user__firewall U on U.id_firewall=F.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
-                                    ' WHERE C.id = ' + connection.escape(fwcloudData.id) +
+                                    ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
                                     ' AND U.allow_access=1 AND U.allow_edit=1 ';
 
                             connection.query(sqlExists, function (error, row) {
@@ -385,7 +385,7 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
                                     var sql = 'UPDATE ' + tableModel + ' SET locked = ' + connection.escape(locked) + ',' +
                                             'locked_at = CURRENT_TIMESTAMP ,' +
                                             'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
-                                            ' WHERE id = ' + fwcloudData.id;
+                                            ' WHERE id = ' + fwcloudData.fwcloud;
 
                                     connection.query(sql, function (error, result) {
                                         if (error) {

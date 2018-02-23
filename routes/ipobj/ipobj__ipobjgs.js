@@ -9,10 +9,11 @@ var objModel = 'IPOBJ GROUP';
 
 
 var logger = require('log4js').getLogger("app");
+var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all ipobj__ipobjgs by group*/
-router.get('/:iduser/:fwcloud/:ipobjg', function (req, res)
+router.get('/:iduser/:fwcloud/:ipobjg',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     Ipobj__ipobjgModel.getIpobj__ipobjgs(ipobjg, function (error, data)
@@ -37,7 +38,7 @@ router.get('/:iduser/:fwcloud/:ipobjg', function (req, res)
 
 
 /* Get  ipobj__ipobjg by id */
-router.get('/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
+router.get('/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -62,7 +63,7 @@ router.get('/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
 
 
 /* Create New ipobj__ipobjg */
-router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type", function (req, res)
+router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -135,7 +136,7 @@ router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type
 });
 
 /* Update ipobj__ipobjg that exist */
-router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
+router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -167,7 +168,7 @@ router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj', function (req, res)
 
 
 /* Remove ipobj__ipobjg */
-router.put("/del/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj", function (req, res)
+router.put("/del/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj",utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;

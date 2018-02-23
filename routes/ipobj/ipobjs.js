@@ -198,7 +198,7 @@ var logger = require('log4js').getLogger("app");
         }
  * 
  */
-router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idgroup = req.params.idgroup;
     var iduser = req.params.iduser;
@@ -239,7 +239,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var idgroup = req.params.idgroup;
     var id = req.params.id;
@@ -281,7 +281,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup/:id', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/:iduser/:fwcloud/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
@@ -326,7 +326,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/:iduser/:fwcloud/group/:idgroup/name/:name', function (req, res)
+router.get('/:iduser/:fwcloud/group/:idgroup/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var name = req.params.name;
     var idgroup = req.params.idgroup;
@@ -368,7 +368,7 @@ router.get('/:iduser/:fwcloud/group/:idgroup/name/:name', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
+router.get("/ipobj_search_rules/:iduser/:fwcloud/:id/:type",utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;
@@ -415,7 +415,7 @@ router.get("/ipobj_search_rules/:iduser/:fwcloud/:id/:type", function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
+router.get("/ipobj_search_used/:iduser/:fwcloud/:id/:type",utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;
@@ -516,7 +516,7 @@ router.get("/ipobj_search_used/:iduser/:fwcloud/:id/:type", function (req, res)
  *      "data": {}
  *      };
  * */
-router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", function (req, res)
+router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -662,7 +662,7 @@ router.post("/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type", funct
  *      "data": {}
  *      };
  * */
-router.put('/ipobj/:iduser/:fwcloud', function (req, res)
+router.put('/ipobj/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     var iduser = req.params.iduser;
     var fwcloud = req.params.fwcloud;
@@ -765,7 +765,7 @@ router.put('/ipobj/:iduser/:fwcloud', function (req, res)
  *      "data": {}
  *      };
  */
-router.put("/del/ipobj/:iduser/:fwcloud/:id/:type", function (req, res)
+router.put("/del/ipobj/:iduser/:fwcloud/:id/:type",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;

@@ -78,6 +78,7 @@ var FwcloudModel = require('../../models/fwcloud/fwcloud');
 var logger = require('log4js').getLogger("app");
 
 
+var utilsModel = require("../../utils/utils.js");
 
 
 /**
@@ -112,7 +113,7 @@ var logger = require('log4js').getLogger("app");
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud', function (req, res)
+router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var iduser = req.params.iduser;
     FirewallModel.getFirewalls(iduser, function (error, data)
@@ -166,7 +167,7 @@ router.get('/:iduser/:fwcloud', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/:id', function (req, res)
+router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var iduser = req.params.iduser;
     var id = req.params.id;
@@ -205,7 +206,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
+router.get('/:iduser/:fwcloud/firewall/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var id = req.params.id;
     var iduser = req.params.iduser;
@@ -274,7 +275,7 @@ router.get('/:iduser/:fwcloud/firewall/:id', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/fwname/:name', function (req, res)
+router.get('/:iduser/:fwcloud/fwname/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
 {
     var iduser = req.params.iduser;
     var name = req.params.name;
@@ -331,7 +332,7 @@ router.get('/:iduser/:fwcloud/fwname/:name', function (req, res)
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/cluster/:idcluster', function (req, res)
+router.get('/:iduser/:fwcloud/cluster/:idcluster',utilsModel.checkFwCloudAccess(false),function (req, res)
 {
     var iduser = req.params.iduser;
     var idcluster = req.params.idcluster;
@@ -393,7 +394,7 @@ router.get('/:iduser/:fwcloud/cluster/:idcluster', function (req, res)
  *         ]
  *       };
  */
-router.post("/firewall/:iduser/:fwcloud", function (req, res)
+router.post("/firewall/:iduser/:fwcloud",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
 
     var firewallData = {
@@ -460,7 +461,7 @@ router.post("/firewall/:iduser/:fwcloud", function (req, res)
  *         ]
  *       };
  */
-router.put('/firewall/:iduser/:fwcloud', function (req, res)
+router.put('/firewall/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), function (req, res)
 {
 
     //Save firewall data into objet
@@ -573,7 +574,7 @@ router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/firewall/:iduser/:fwcloud/:id", function (req, res)
+router.put("/del/firewall/:iduser/:fwcloud/:id",utilsModel.checkFwCloudAccess(true), function (req, res)
 {
 
     var id = req.param('id');

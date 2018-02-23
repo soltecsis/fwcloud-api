@@ -145,7 +145,7 @@ var FwcloudModel = require('./models/fwcloud/fwcloud');
 var url  = require('url');
 
 //CONTROL FWCLOUD ACCESS
-app.use(function (req, res, next) {
+app.use('/interfacesXXXXX/:iduser/:fwcloud/*',function (req, res, next) {
     
     
     var url_parts = url.parse(req.url);
