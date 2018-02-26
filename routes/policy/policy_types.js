@@ -9,7 +9,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all policy_types*/
-router.get('/:iduser/', function (req, res)
+router.get('/', function (req, res)
 {
 
     Policy_typeModel.getPolicy_types(function (error, data)
@@ -34,7 +34,7 @@ router.get('/:iduser/', function (req, res)
 
 
 /* Get  policy_type by type */
-router.get('/:iduser/:type', function (req, res)
+router.get('/:type', function (req, res)
 {
     var type = req.params.type;
     Policy_typeModel.getPolicy_type(type, function (error, data)
@@ -57,7 +57,7 @@ router.get('/:iduser/:type', function (req, res)
 });
 
 /* Get all policy_types by name */
-router.get('/:iduser/name/:name', function (req, res)
+router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
     Policy_typeModel.getPolicy_typeName(name, function (error, data)
@@ -83,7 +83,7 @@ router.get('/:iduser/name/:name', function (req, res)
 
 
 /* Create New policy_type */
-router.post("/policy-type/:iduser/", function (req, res)
+router.post("/policy-type/", function (req, res)
 {
     //Create New objet with data policy_type
     var policy_typeData = {
@@ -117,7 +117,7 @@ router.post("/policy-type/:iduser/", function (req, res)
 });
 
 /* Update policy_type that exist */
-router.put('/policy-type//:iduser/', function (req, res)
+router.put('/policy-type/', function (req, res)
 {
     //Save data into object
     var policy_typeData = {type: req.param('type'), name: req.param('name')};
@@ -148,7 +148,7 @@ router.put('/policy-type//:iduser/', function (req, res)
 
 
 /* Remove policy_type */
-router.put("/del/policy-type/:iduser/", function (req, res)
+router.put("/del/policy-type/", function (req, res)
 {
     //Id from policy_type to remove
     var idfirewall = req.param('idfirewall');

@@ -55,10 +55,10 @@ var utilsModel = require("../../utils/utils.js");
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.get('/:iduser/:fwcloud/:fw/:sshuser/:sshpass',utilsModel.checkFwCloudAccess(true), async (req, res) => {
-  var user = req.params.iduser;
-  var cloud = req.params.fwcloud;
-  var fw = req.params.fw;
+router.get('/:idfirewall/:sshuser/:sshpass',utilsModel.checkFirewallAccess,  async (req, res) => {
+  var user = req.iduser;
+  var cloud = req.fwcloud;
+  var fw = req.params.idfirewall;
   var sshuser = req.params.sshuser;
   var sshpass = req.params.sshpass;
 

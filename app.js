@@ -134,59 +134,45 @@ app.use(cors(corsOptions));
 
 logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 
-app.use(function (req, res, next) {
-    logger.debug("---------------- RECEIVED HEADERS-----------------");
-    logger.debug(req.headers);
-    logger.debug("--------------------------------------------------");
-    next();
-});
 
 var FwcloudModel = require('./models/fwcloud/fwcloud');
-var url  = require('url');
+var utilsModel = require("./utils/utils.js");
+var api_resp = require('./utils/api_response');
+var url = require('url');
 
+
+var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/fwcloud*'];
+//control_routes="^((?!\/ipobjs).)*";
 //CONTROL FWCLOUD ACCESS
-app.use('/interfacesXXXXX/:iduser/:fwcloud/*',function (req, res, next) {
-    
-    
-    var url_parts = url.parse(req.url);
-    var pathname= url_parts.pathname;
-        
-    logger.debug(pathname);
-    
-    var iduser = req.params.iduser;
-    
-    var fwcloud = req.params.fwcloud;
-    
-    
-    
-    var accessData = {iduser: iduser, fwcloud: fwcloud};
-    
-    logger.warn("API ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]" );
+app.use(control_routes, function (request, response, next) {
 
-    //Checl FWCLOUD LOCK
-    FwcloudModel.getFwcloudAccess(accessData.iduser, accessData.fwcloud)
+    var url_parts = url.parse(request.url);
+    var pathname = url_parts.pathname;
+
+
+    logger.debug("---------------- RECEIVED HEADERS-----------------");
+    logger.debug("\n", request.headers);
+    logger.debug("--------------------------------------------------");
+    logger.debug("PATHNAME: " + pathname);
+
+    var iduser = request.headers.x_fwc_iduser;
+    var fwcloud = request.headers.x_fwc_fwcloud;
+    var update = request.headers.x_fwc_action;
+
+
+    logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
+
+    utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
             .then(resp => {
-                //{"access": true, "locked": false, "locked_at": "", "locked_by": ""}
-                logger.warn(resp);
-                if (resp.access) {
-                    logger.warn("OK --> FWCLOUD ACCESS ALLOWED ");
-                    req.fwc_access = true;                    
-                } else {
-                    logger.warn("KO --> FWCLOUD ACCESS NOT ALLOWED ");
-                    req.fwc_access = false;
-                }
-                logger.warn("--------------------------------------------------");
                 next();
             })
-            .catch(resp => {
-                logger.warn(resp);
-                logger.warn("ERROR --> FWCLOUD ACCESS NOT ALLOWED ");
-                logger.warn("--------------------------------------------------");
-                req.fwc_access = false;
-                next();
+            .catch(err => {
+                logger.error("ERROR ---> err: "  + err);
+                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
+                    response.status(200).json(jsonResp);
+                });
             });
 
-    
 });
 
 
@@ -196,10 +182,10 @@ var db = require('./db');
 
 
 app.use(session({
-        secret: 'La nieve cae blanca', 
-        cookie: {maxAge: 60000}, 
-        resave: true, 
-        saveUninitialized: true}));
+    secret: 'La nieve cae blanca',
+    cookie: {maxAge: 60000},
+    resave: true,
+    saveUninitialized: true}));
 app.use(passport.initialize());
 app.use(passport.session());
 

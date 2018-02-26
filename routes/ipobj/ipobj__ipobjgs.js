@@ -13,7 +13,7 @@ var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all ipobj__ipobjgs by group*/
-router.get('/:iduser/:fwcloud/:ipobjg',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:ipobjg',  function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     Ipobj__ipobjgModel.getIpobj__ipobjgs(ipobjg, function (error, data)
@@ -38,7 +38,7 @@ router.get('/:iduser/:fwcloud/:ipobjg',utilsModel.checkFwCloudAccess(false), fun
 
 
 /* Get  ipobj__ipobjg by id */
-router.get('/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:ipobjg/:ipobj',  function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -63,10 +63,10 @@ router.get('/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCloudAccess(fals
 
 
 /* Create New ipobj__ipobjg */
-router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type",  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
@@ -136,7 +136,7 @@ router.post("/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:node_order/:node_type
 });
 
 /* Update ipobj__ipobjg that exist */
-router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.put('/ipobj__ipobjg/:ipobjg/:ipobj',  function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -168,10 +168,10 @@ router.put('/ipobj__ipobjg/:iduser/:fwcloud/:ipobjg/:ipobj',utilsModel.checkFwCl
 
 
 /* Remove ipobj__ipobjg */
-router.put("/del/ipobj__ipobjg/:iduser/:fwcloud/:node_parent/:ipobjg/:ipobj",utilsModel.checkFwCloudAccess(false), function (req, res)
+router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj",  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var node_parent = req.params.node_parent;
 
     //Id from ipobj__ipobjg to remove

@@ -46,7 +46,7 @@ router.get('/:id_user', function (req, res)
 router.get('/:id_user/:fwcloud', function (req, res)
 {
     var id_user = req.params.id_user;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     var access = 1;
 
     logger.debug("GETTING USER FIREWALL LIST");
@@ -73,7 +73,7 @@ router.get('/:id_user/:fwcloud', function (req, res)
 router.get('/:id_user/:fwcloud/:idfirewall', function (req, res)
 {
     var id_user = req.params.id_user;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     var idfirewall = req.params.idfirewall;
     var access = 1;
 

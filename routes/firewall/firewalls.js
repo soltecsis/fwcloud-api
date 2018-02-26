@@ -113,9 +113,9 @@ var utilsModel = require("../../utils/utils.js");
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     FirewallModel.getFirewalls(iduser, function (error, data)
     {
         //Get data
@@ -167,11 +167,11 @@ router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (r
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:id',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var id = req.params.id;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
 
     FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
     {
@@ -206,11 +206,11 @@ router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), functio
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/:iduser/:fwcloud/firewall/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/firewall/:id',  function (req, res)
 {
     var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
 
     if (!isNaN(id))
     {
@@ -275,9 +275,9 @@ router.get('/:iduser/:fwcloud/firewall/:id',utilsModel.checkFwCloudAccess(false)
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/fwname/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/fwname/:name',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var name = req.params.name;
     FirewallModel.getFirewallName(iduser, name, function (error, data)
     {
@@ -332,9 +332,9 @@ router.get('/:iduser/:fwcloud/fwname/:name',utilsModel.checkFwCloudAccess(false)
  *       };
  * 
  */
-router.get('/:iduser/:fwcloud/cluster/:idcluster',utilsModel.checkFwCloudAccess(false),function (req, res)
+router.get('/cluster/:idcluster', function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var idcluster = req.params.idcluster;
     FirewallModel.getFirewallCluster(iduser, idcluster, function (error, data)
     {
@@ -394,7 +394,7 @@ router.get('/:iduser/:fwcloud/cluster/:idcluster',utilsModel.checkFwCloudAccess(
  *         ]
  *       };
  */
-router.post("/firewall/:iduser/:fwcloud",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/firewall",  function (req, res)
 {
 
     var firewallData = {
@@ -461,7 +461,7 @@ router.post("/firewall/:iduser/:fwcloud",utilsModel.checkFwCloudAccess(true), fu
  *         ]
  *       };
  */
-router.put('/firewall/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/firewall',utilsModel.checkFirewallAccess,  function (req, res)
 {
 
     //Save firewall data into objet
@@ -500,11 +500,11 @@ router.put('/firewall/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), fun
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
+router.get('/accesslock/:id', function (req, res)
 {
     var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
 
 
     if (!isNaN(id))
@@ -574,7 +574,7 @@ router.get('/accesslock/:iduser/:fwcloud/:id', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/firewall/:iduser/:fwcloud/:id",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/firewall/:id",utilsModel.checkFirewallAccess,  function (req, res)
 {
 
     var id = req.param('id');

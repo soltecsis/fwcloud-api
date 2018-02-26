@@ -11,10 +11,10 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 /* Get all ipobj_gs*/
-router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('',  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     Ipobj_gModel.getIpobj_g_Full(fwcloud, '', function (error, data)
     {
         //If exists ipobj_g get data
@@ -37,11 +37,11 @@ router.get('/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (r
 
 
 /* Get  ipobj_g by id */
-router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:id',  function (req, res)
 {
     var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     Ipobj_gModel.getIpobj_g_Full(fwcloud, id, function (error, data)
     {
         //If exists ipobj_g get data
@@ -63,11 +63,11 @@ router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), functio
 
 
 /* Get all ipobj_gs by nombre */
-router.get('/:iduser/:fwcloud/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/name/:name',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var name = req.params.name;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     Ipobj_gModel.getIpobj_gName(fwcloud, name, function (error, data)
     {
         //If exists ipobj_g get data
@@ -88,11 +88,11 @@ router.get('/:iduser/:fwcloud/name/:name',utilsModel.checkFwCloudAccess(false), 
 });
 
 /* Get all ipobj_gs by tipo */
-router.get('/:iduser/:fwcloud/type/:type',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/type/:type',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var type = req.params.type;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     Ipobj_gModel.getIpobj_gtype(fwcloud, type, function (error, data)
     {
         //If exists ipobj_g get data
@@ -114,10 +114,10 @@ router.get('/:iduser/:fwcloud/type/:type',utilsModel.checkFwCloudAccess(false), 
 
 
 /* Search GROUPS AND members in Rules */
-router.get("/ipobj_g_search_rules/:iduser/:fwcloud/:idg",utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get("/ipobj_g_search_rules/:idg",  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var idg = req.params.idg;
 
 
@@ -143,11 +143,11 @@ router.get("/ipobj_g_search_rules/:iduser/:fwcloud/:idg",utilsModel.checkFwCloud
 });
 
 /* Search where is used Group  */
-router.get("/ipobj_g_search_used/:iduser/:fwcloud/:idg",utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get("/ipobj_g_search_used/:idg",  function (req, res)
 {
 
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var idg = req.params.idg;
 
 
@@ -176,10 +176,10 @@ router.get("/ipobj_g_search_used/:iduser/:fwcloud/:idg",utilsModel.checkFwCloudA
 
 
 /* Create New ipobj_g */
-router.post("/ipobj-g/:iduser/:fwcloud/:node_parent/:node_order/:node_type",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/ipobj-g/:node_parent/:node_order/:node_type",  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var node_parent = req.params.node_parent;
     var node_order = req.params.node_order;
     var node_type = req.params.node_type;
@@ -232,10 +232,10 @@ router.post("/ipobj-g/:iduser/:fwcloud/:node_parent/:node_order/:node_type",util
 });
 
 /* Update ipobj_g that exist */
-router.put('/ipobj-g/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/ipobj-g',  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
 
     //Save data into object
     var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
@@ -275,10 +275,10 @@ router.put('/ipobj-g/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(true), func
 
 
 /* Remove ipobj_g */
-router.put("/del/ipobj-g/:iduser/:fwcloud/:id/:type",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/ipobj-g/:id/:type",  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var id = req.params.id;
     var type = req.params.type;
 

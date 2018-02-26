@@ -6,19 +6,21 @@ var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface'
 var db = require('../../db.js');
 var utilsModel = require("../../utils/utils.js");
 var api_resp = require('../../utils/api_response');
-var FirewallModel = require('../../models/firewall/firewall');
-
+//var FirewallModel = require('../../models/firewall/firewall');
 //var asyncMod = require('async');
 var objModel = 'POLICY';
 var logger = require('log4js').getLogger("app");
 
+
+
+
 /* Get all policy_rs by firewall and group*/
-router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/group/:idgroup',utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
     {
         //If exists policy_r get data
@@ -38,13 +40,13 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup',utilsModel.checkFwClou
     });
 });
 /* Get all policy_rs by firewall and type */
-router.get('/:iduser/:fwcloud/:idfirewall/type/:type',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
     var rule = "";
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + "  TYPE:" + type);
     Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
     {
@@ -65,13 +67,13 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type',utilsModel.checkFwCloudAcc
     });
 });
 /* Get all policy_rs by firewall and type and Rule */
-router.get('/:iduser/:fwcloud/:idfirewall/type/:type/rule/:rule',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/type/:type/rule/:rule',utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
     var rule = req.params.rule;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type);
     Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
     {
@@ -92,12 +94,12 @@ router.get('/:iduser/:fwcloud/:idfirewall/type/:type/rule/:rule',utilsModel.chec
     });
 });
 /* Get  policy_r by id and  by Id */
-router.get('/:iduser/:fwcloud/:idfirewall/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/:id',utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
     {
         //If exists policy_r get data
@@ -117,13 +119,13 @@ router.get('/:iduser/:fwcloud/:idfirewall/:id',utilsModel.checkFwCloudAccess(fal
     });
 });
 /* Get all policy_rs by nombre and by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/group/:idgroup/name/:name',utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
     var idgroup = req.params.idgroup;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
     {
         //If exists policy_r get data
@@ -143,7 +145,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup/name/:name',utilsModel.
     });
 });
 /* Create New policy_r */
-router.post("/policy-r/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/policy-r/:idfirewall",utilsModel.checkFirewallAccess, function (req, res)
 {
     //Create New objet with data policy_r
     var policy_rData = {
@@ -187,7 +189,7 @@ router.post("/policy-r/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAcce
     });
 });
 /* Update policy_r that exist */
-router.put('/policy-r/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r/:idfirewall',utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var policy_rData = {id: req.body.id, idgroup: req.body.idgroup, firewall: req.body.firewall, rule_order: req.body.rule_order, options: req.body.options, action: req.body.action, time_start: req.body.time_start, time_end: req.body.time_end, comment: req.body.comment, active: req.body.active, type: req.body.type, style: req.body.style};
@@ -218,14 +220,12 @@ router.put('/policy-r/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAcces
         }
     });
 });
-
 /* Compile policy_r that exist */
-router.put('/policy-r/compile/:iduser/:fwcloud/:idfirewall/:rule',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r/compile/:idfirewall/:rule',utilsModel.checkFirewallAccess, function (req, res)
 {
-    
-    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule };
-    
-     Policy_rModel.compilePolicy_r(accessData, function (error, data)
+
+    var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule};
+    Policy_rModel.compilePolicy_r(accessData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, function (jsonResp) {
@@ -234,7 +234,7 @@ router.put('/policy-r/compile/:iduser/:fwcloud/:idfirewall/:rule',utilsModel.che
         else {
             //If saved policy_r saved ok, get data
             if (data && data.result)
-            {                
+            {
                 api_resp.getJson(null, api_resp.ACR_COMPILED_OK, 'COMPILED OK', 'POLICY', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -247,9 +247,8 @@ router.put('/policy-r/compile/:iduser/:fwcloud/:idfirewall/:rule',utilsModel.che
         }
     });
 });
-
 /* Update ORDER de policy_r that exist */
-router.put('/policy-r/order/:iduser/:fwcloud/:idfirewall/:type/:id/:old_order/:new_order',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order',utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -280,46 +279,36 @@ router.put('/policy-r/order/:iduser/:fwcloud/:idfirewall/:type/:id/:old_order/:n
     });
 });
 /* Update Style policy_r  */
-router.put('/policy-r/style/:iduser/:fwcloud/:idfirewall/:type',utilsModel.checkFwCloudAccess(true), function (req, res)
-{    
-    var accessData = {iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, type: req.params.type };
-     
+router.put('/policy-r/style/:idfirewall/:type', utilsModel.checkFirewallAccess, function (req, res)
+{
+    var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, type: req.params.type};
     var JsonData = req.body.Data;
     var style = JsonData.style;
     var rulesIds = JsonData.rulesIds;
+    db.lockTableCon("policy_r", " WHERE firewall=" + accessData.idfirewall + " AND type=" + accessData.type, function () {
+        db.startTXcon(function () {
+            for (var rule of rulesIds) {
+                Policy_rModel.updatePolicy_r_Style(accessData.idfirewall, rule, accessData.type, style, function (error, data) {
+                    if (error)
+                        logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
+                    if (data && data.result) {
+                        logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+                    } else
+                        logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+                });
+            }
+            db.endTXcon(function () {});
+        });
+    });
+    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
+        res.status(200).json(jsonResp);
+    });
 
-    FirewallModel.getFirewallAccess(accessData)
-            .then(resp => {
-                db.lockTableCon("policy_r", " WHERE firewall=" + accessData.idfirewall + " AND type=" + accessData.type, function () {
-                    db.startTXcon(function () {
-                        for (var rule of rulesIds) {
-                            Policy_rModel.updatePolicy_r_Style(accessData.idfirewall, rule, accessData.type, style, function (error, data) {
-                                if (error)
-                                    logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);                                
-                                if (data && data.result) {
-                                    logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-                                } else
-                                    logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-                            });
-                        }
-                        db.endTXcon(function () {});
-                    });
-                });
-                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            })
-            .catch(resp => {
-                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL LOCKED', 'FIREWALL', null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            });
 
 
 });
-
 /* Update Active policy_r  */
-router.put('/policy-r/activate/:iduser/:fwcloud/:idfirewall/:type',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r/activate/:idfirewall/:type',utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -329,7 +318,6 @@ router.put('/policy-r/activate/:iduser/:fwcloud/:idfirewall/:type',utilsModel.ch
     var rulesIds = JsonData.rulesIds;
     if (active !== 1)
         active = 0;
-
     db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function () {
         db.startTXcon(function () {
             for (var rule of rulesIds) {
@@ -338,24 +326,19 @@ router.put('/policy-r/activate/:iduser/:fwcloud/:idfirewall/:type',utilsModel.ch
                         logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
                     if (data && data.result) {
                         logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-
                     } else
                         logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-
                 });
             }
             db.endTXcon(function () {});
-
         });
         api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function (jsonResp) {
             res.status(200).json(jsonResp);
         });
     });
 });
-
-
 /* Copy or Move RULES */
-router.put('/policy-r/copy-rules/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r/copy-rules/:idfirewall',utilsModel.checkFirewallAccess, function (req, res)
 {
     try {
         //logger.debug("BODY:");
@@ -425,13 +408,13 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
 
                     reject("MIN ORDER " + data_dest[0].min_order + "  REACHED POLICY Id: " + ruletoMoveid);
                 } else {
-                    //Get Group Next Rule                    
+//Get Group Next Rule                    
                     Policy_rModel.getPolicy_r_DestGroup(idfirewall, pasteOffset, data_dest[0].rule_order, data_dest[0].type, function (error, dataG)
                     {
 
                         Policy_rModel.getPolicy_r(idfirewall, ruletoMoveid, function (error, data)
                         {
-                            //If exists policy_r get data
+//If exists policy_r get data
                             if (data && data.length > 0)
                             {
                                 let old_order = data[0].rule_order;
@@ -514,7 +497,6 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
                             new_order = data_dest[0].rule_order;
                         else if (old_order < new_order && pasteOffset < 0)
                             new_order = data_dest[0].rule_order;
-
                         logger.debug("DUPLICANDO POLICY Id: " + id + " NEW GROUP: " + data_dest[0].idgroup + "  ORDER: " + data[0].rule_order + " --> NEW ORDER:" + new_order);
                         //Create New objet with data policy_r
                         var policy_rData = {
@@ -585,10 +567,10 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Remove policy_r */
-router.put("/del/policy-r/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/policy-r/:idfirewall",utilsModel.checkFirewallAccess, function (req, res)
 {
     //Id from policy_r to remove
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var idfirewall = req.params.idfirewall;
     var JsonData = req.body;
     var rulesIds = JsonData.rulesIds;

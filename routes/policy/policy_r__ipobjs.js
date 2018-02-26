@@ -102,7 +102,7 @@ function checkPostParameters(obj) {
 
 /* Get all policy_r__ipobjs by rule*/
 
-router.get('/:iduser/:fwcloud/:idfirewall/:rule',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/:rule',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.params.rule;
 
@@ -128,7 +128,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:rule',utilsModel.checkFwCloudAccess(f
 
 /* Get all policy_r__ipobjs by rule and posicion*/
 
-router.get('/:iduser/:fwcloud/:idfirewall/:rule/:position',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/:rule/:position', utilsModel.checkFirewallAccess, function (req, res)
 {
     var rule = req.params.rule;
     var position = req.params.position;
@@ -155,7 +155,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:rule/:position',utilsModel.checkFwClo
 
 /* Get all policy_r__ipobjs by rule and posicion with IPOBJ DATA*/
 
-router.get('/data/:iduser/:fwcloud/:idfirewall/:rule/:position',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/data/:idfirewall/:rule/:position',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.params.rule;
     var position = req.params.position;
@@ -183,7 +183,7 @@ router.get('/data/:iduser/:fwcloud/:idfirewall/:rule/:position',utilsModel.check
 
 /* Get  policy_r__ipobj by id  */
 
-router.get('/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position', utilsModel.checkFirewallAccess, function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -213,7 +213,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:posi
 
 
 /* Create New policy_r__ipobj */
-router.post("/policy-r__ipobj/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/policy-r__ipobj/:idfirewall",utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Create New objet with data policy_r__ipobj
     var policy_r__ipobjData = {
@@ -263,7 +263,7 @@ router.post("/policy-r__ipobj/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCl
 });
 
 /* Update policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r__ipobj/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.body.get_rule;
     var ipobj = req.body.get_ipobj;
@@ -286,7 +286,7 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwClo
 
     policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
     
-    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
+    var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
 
 
 
@@ -323,8 +323,8 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwClo
 });
 
 /* Update POSITION policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_rule/:new_position/:new_order',
-utilsModel.checkFwCloudAccess(true),function (req, res)
+router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_rule/:new_position/:new_order',utilsModel.checkFirewallAccess,
+ function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -338,7 +338,7 @@ utilsModel.checkFwCloudAccess(true),function (req, res)
 
     var content1 = 'O', content2 = 'O';
     
-    var accessData = {sessionID: req.sessionID , iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
+    var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
 
     logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
@@ -456,7 +456,7 @@ utilsModel.checkFwCloudAccess(true),function (req, res)
 
 /* Update NEGATE policy_r__ipobj that exist */
 /* Update ALL IPOBJ/POLICY_R TO new NEGATE satus*/
-router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:position/:negate',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r__ipobj/:idfirewall/:rule/:position/:negate',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.params.rule;
     var position = req.params.position;
@@ -488,7 +488,7 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:position/:negat
 });
 
 /* Update ORDER policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_order',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_order',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.params.rule;
     var ipobj = req.params.ipobj;
@@ -528,7 +528,7 @@ router.put('/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/
 
 
 /* Remove policy_r__ipobj */
-router.put("/del/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order",utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Id from policy_r__ipobj to remove
     var rule = req.params.rule;
@@ -562,7 +562,7 @@ router.put("/del/policy-r__ipobj/:iduser/:fwcloud/:idfirewall/:rule/:ipobj/:ipob
 });
 
 /* Reorder ALL rule positions  */
-router.put("/policy-r__ipobj/order/:iduser/:fwcloud/:idfirewall",utilsModel.checkFwCloudAccess(true),function (req, res)
+router.put("/policy-r__ipobj/order/:idfirewall",utilsModel.checkFirewallAccess, function (req, res)
 {
     Policy_r__ipobjModel.orderAllPolicy(function (error, data)
     {
@@ -581,7 +581,7 @@ router.put("/policy-r__ipobj/order/:iduser/:fwcloud/:idfirewall",utilsModel.chec
 });
 
 /* Reorder ALL rule positions  */
-router.put("/policy-r__ipobj/order/:iduser/:fwcloud/:idfirewall/:rule",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/policy-r__ipobj/order/:idfirewall/:rule",utilsModel.checkFirewallAccess,  function (req, res)
 {
     var rule = req.params.rule;
     Policy_r__ipobjModel.orderPolicy(rule, function (error, data)

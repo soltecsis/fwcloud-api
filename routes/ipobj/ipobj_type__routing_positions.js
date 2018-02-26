@@ -9,7 +9,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all ipobj_type__routing_positions*/
-router.get('/:iduser/:fwcloud/', function (req, res)
+router.get('/', function (req, res)
 {
 
     Ipobj_type__routing_positionModel.getIpobj_type__routing_positions(function (error, data)
@@ -34,7 +34,7 @@ router.get('/:iduser/:fwcloud/', function (req, res)
 
 
 /* Get  ipobj_type__routing_position by id */
-router.get('/:iduser/:fwcloud/:type/:position', function (req, res)
+router.get('/:type/:position', function (req, res)
 {    
     var type = req.params.type;
     var position = req.params.position;
@@ -61,7 +61,7 @@ router.get('/:iduser/:fwcloud/:type/:position', function (req, res)
 
 
 /* Create New ipobj_type__routing_position */
-router.post("/ipobj-type__routing-position/:iduser/:fwcloud/", function (req, res)
+router.post("/ipobj-type__routing-position/", function (req, res)
 {
     //Create New objet with data ipobj_type__routing_position
     var ipobj_type__routing_positionData = {
@@ -90,7 +90,7 @@ router.post("/ipobj-type__routing-position/:iduser/:fwcloud/", function (req, re
 });
 
 /* Update ipobj_type__routing_position that exist */
-router.put('/ipobj-type__routing-position/:iduser/:fwcloud/', function (req, res)
+router.put('/ipobj-type__routing-position/', function (req, res)
 {
     //Save data into object
     var ipobj_type__routing_positionData = {        
@@ -119,7 +119,7 @@ router.put('/ipobj-type__routing-position/:iduser/:fwcloud/', function (req, res
 
 
 /* Remove ipobj_type__routing_position */
-router.put("/del/ipobj-type__routing-position/:iduser/:fwcloud/", function (req, res)
+router.put("/del/ipobj-type__routing-position/", function (req, res)
 {
     //Id from ipobj_type__routing_position to remove
     var type = req.params.type;

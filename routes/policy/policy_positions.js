@@ -10,7 +10,7 @@ var objModel = 'Policy Position';
 
 
 /* Get all policy_positions*/
-router.get('/:iduser/:fwcloud/', function (req, res)
+router.get('/', function (req, res)
 {
 
     Policy_positionModel.getPolicy_positions(function (error, data)
@@ -33,7 +33,7 @@ router.get('/:iduser/:fwcloud/', function (req, res)
 });
 
 /* Get all policy_positions by Type*/
-router.get('/:iduser/:fwcloud/type/:type', function (req, res)
+router.get('/type/:type', function (req, res)
 {
     var p_type = req.params.type;
     Policy_positionModel.getPolicy_positionsType(p_type, function (error, data)
@@ -57,7 +57,7 @@ router.get('/:iduser/:fwcloud/type/:type', function (req, res)
 
 
 /* Get  policy_position by id */
-router.get('/:iduser/:fwcloud/:id', function (req, res)
+router.get('/:id', function (req, res)
 {
     var id = req.params.id;
     Policy_positionModel.getPolicy_position(id, function (error, data)
@@ -80,7 +80,7 @@ router.get('/:iduser/:fwcloud/:id', function (req, res)
 });
 
 /* Get all policy_positions by name */
-router.get('/:iduser/:fwcloud/name/:name', function (req, res)
+router.get('/name/:name', function (req, res)
 {
     var name = req.params.name;
     Policy_positionModel.getPolicy_positionName(name, function (error, data)
@@ -106,7 +106,7 @@ router.get('/:iduser/:fwcloud/name/:name', function (req, res)
 
 
 /* Create New policy_position */
-router.post("/policy-position/:iduser/:fwcloud/", function (req, res)
+router.post("/policy-position/", function (req, res)
 {
     //Create New objet with data policy_position
     var policy_positionData = {
@@ -144,7 +144,7 @@ router.post("/policy-position/:iduser/:fwcloud/", function (req, res)
 });
 
 /* Update policy_position that exist */
-router.put('/policy-position/:iduser/:fwcloud/', function (req, res)
+router.put('/policy-position/', function (req, res)
 {
     //Save data into object
     var policy_positionData = {id: req.param('id'), name: req.param('name'), policy_type: req.param('policy_type'), position_order: req.param('position_order'), content: req.param('content')};
@@ -174,7 +174,7 @@ router.put('/policy-position/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove policy_position */
-router.put("/del/policy-position/:iduser/:fwcloud/", function (req, res)
+router.put("/del/policy-position/", function (req, res)
 {
     //Id from policy_position to remove
     var idfirewall = req.param('idfirewall');

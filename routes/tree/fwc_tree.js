@@ -14,10 +14,10 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all fwc_tree NODE FIREWALL by User*/
-router.get('/firewalls/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/firewalls',  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
     {
         utilsModel.checkEmptyRow(rows, function (notempty)
@@ -58,10 +58,10 @@ router.get('/firewalls/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), f
 
 //FALTA HACER FILTRO POR NODO PADRE
 /* Get all fwc_tree NODE FIREWALL by IdFirewall*/
-router.get('/firewalls/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/firewalls/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var idfirewall = req.params.idfirewall;
         
     fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
@@ -105,12 +105,12 @@ router.get('/firewalls/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAcce
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
 
 
     fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDO", function (error, rows)
@@ -154,13 +154,13 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/',utilsMod
 /* Get fwc_tree NODE OBJECTS by User and by ID*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
     var idNode = req.params.id;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
 
 
     fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
@@ -202,12 +202,12 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',utils
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDS", function (error, rows)
     {
         if (typeof rows !== 'undefined')
@@ -246,12 +246,12 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud',utilsMod
 /* Get all fwc_tree NODE SERVICES by User and ID NODE*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var objs = req.params.objStandard;
     var objc = req.params.objCloud;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     var idNode = req.params.id;
     fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
     {
@@ -289,11 +289,11 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',util
     });
 });
 /* Get  fwc_tree by id  */
-router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:id',  function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var id = req.params.id;
-    var fwcloud = req.params.fwcloud;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.getFwc_TreeId(iduser, fwcloud, id, function (error, data)
     {
         //If exists fwc_tree get data
@@ -313,11 +313,11 @@ router.get('/:iduser/:fwcloud/:id',utilsModel.checkFwCloudAccess(false), functio
     });
 });
 /* Get all fwc_tree by name */
-router.get('/:iduser/:fwcloud/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/name/:name',  function (req, res)
 {
     var name = req.params.name;
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.getFwc_TreeName(fwcloud, name, function (error, data)
     {
         //If exists fwc_tree get data
@@ -339,8 +339,8 @@ router.get('/:iduser/:fwcloud/name/:name',utilsModel.checkFwCloudAccess(false), 
 /* Create New fwc_tree Firewall node*/
 router.get("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -360,8 +360,8 @@ router.get("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 /* Create New fwc_tree Objects*/
 router.get("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.insertFwc_Tree_objects(fwcloud, "FDO", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -379,10 +379,10 @@ router.get("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
     });
 });
 /* Create New fwc_tree Services*/
-router.get("/create-services/user/:iduser/:fwcloud", function (req, res)
+router.get("/create-services/user", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     fwcTreemodel.insertFwc_Tree_objects(fwcloud, "FDS", function (error, data)
     {
         //If saved fwc-tree Get data
@@ -401,10 +401,10 @@ router.get("/create-services/user/:iduser/:fwcloud", function (req, res)
 });
 //FALTA AÑADIR CONTROL ACCESO ADMIN
 /* Create ALL nodes*/
-router.get("/create-ALL/user/:iduser/:fwcloud", function (req, res)
+router.get("/create-ALL/user", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     //AÑADIR CONTROL de ACCESO de USUARIO a FWCLOUD
 
     logger.debug("------------- CREATING FWCTREE INIT");
@@ -460,10 +460,10 @@ router.get("/create-ALL/user/:iduser/:fwcloud", function (req, res)
 });
 
 
-router.get("/order/:iduser/:fwcloud/ipobj/:id_obj", function (req, res)
+router.get("/order/ipobj/:id_obj", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var id_obj = req.params.id_obj;
 
     fwcTreemodel.orderTreeNodeDeleted(fwcloud, id_obj, function (error, data)
@@ -484,10 +484,10 @@ router.get("/order/:iduser/:fwcloud/ipobj/:id_obj", function (req, res)
 
 
 });
-router.get("/order/:iduser/:fwcloud/parent/:id_parent", function (req, res)
+router.get("/order/parent/:id_parent", function (req, res)
 {
-    var iduser = req.params.iduser;
-    var fwcloud = req.params.fwcloud;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
     var id_parent = req.params.id_parent;
 
     fwcTreemodel.orderTreeNode(fwcloud, id_parent, function (error, data)

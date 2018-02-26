@@ -13,7 +13,7 @@ var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all policy_gs by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     Policy_gModel.getPolicy_gs(idfirewall, function (error, data)
@@ -36,7 +36,7 @@ router.get('/:iduser/:fwcloud/:idfirewall',utilsModel.checkFwCloudAccess(false),
 });
 
 /* Get all policy_gs by firewall and group father*/
-router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/group/:idgroup',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -60,7 +60,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/group/:idgroup',utilsModel.checkFwClou
 });
 
 /* Get  policy_g by id and  by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/:id',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/:id',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -84,7 +84,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/:id',utilsModel.checkFwCloudAccess(fal
 });
 
 /* Get all policy_gs by nombre and by firewall*/
-router.get('/:iduser/:fwcloud/:idfirewall/name/:name',utilsModel.checkFwCloudAccess(false), function (req, res)
+router.get('/:idfirewall/name/:name',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -112,7 +112,7 @@ router.get('/:iduser/:fwcloud/:idfirewall/name/:name',utilsModel.checkFwCloudAcc
 
 
 /* Create New policy_g */
-router.post("/policy-g/:iduser/:fwcloud/:idfirewall/",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.post("/policy-g/:idfirewall/",utilsModel.checkFirewallAccess,  function (req, res)
 {
 
     var JsonCopyData = req.body;
@@ -152,7 +152,7 @@ router.post("/policy-g/:iduser/:fwcloud/:idfirewall/",utilsModel.checkFwCloudAcc
 });
 
 /* Update policy_g that exist */
-router.put('/policy-g/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-g/:idfirewall/',utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Save data into object
     var policy_gData = {id: req.param('id'), name: req.param('name'), firewall: req.param('firewall'), comment: req.param('comment'), groupStyle: req.param('groupStyle')};
@@ -180,7 +180,7 @@ router.put('/policy-g/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwCloudAcce
 });
 
 /* Update policy_g NAMe  */
-router.put('/policy-g/name/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-g/name/:idfirewall/',utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Save data into object
     var policy_gData = {id: req.param('id'), name: req.param('name')};
@@ -208,9 +208,9 @@ router.put('/policy-g/name/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwClou
 });
 
 /* Update Style policy_g  */
-router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put('/policy-g/style/:idfirewall/',utilsModel.checkFirewallAccess,  function (req, res)
 {    
-    var accessData = {iduser: req.params.iduser, fwcloud: req.params.fwcloud, idfirewall: req.params.idfirewall };
+    var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall };
      
     var JsonData = req.body.Data;
     var style = JsonData.groupstyle;
@@ -248,7 +248,7 @@ router.put('/policy-g/style/:iduser/:fwcloud/:idfirewall/',utilsModel.checkFwClo
 });
 
 /* Remove policy_g */
-router.put("/del/policy-g/:iduser/:fwcloud/:idfirewall/:id",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/policy-g/:idfirewall/:id",utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;
@@ -281,7 +281,7 @@ router.put("/del/policy-g/:iduser/:fwcloud/:idfirewall/:id",utilsModel.checkFwCl
 });
 
 /* Remove rules from Group */
-router.put("/del/policy-g/:iduser/:fwcloud/:idfirewall/rules/:id",utilsModel.checkFwCloudAccess(true), function (req, res)
+router.put("/del/policy-g/:idfirewall/rules/:id",utilsModel.checkFirewallAccess,  function (req, res)
 {
     //Id from policy_g to remove
     var idfirewall = req.params.idfirewall;

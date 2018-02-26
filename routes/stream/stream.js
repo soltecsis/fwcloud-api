@@ -19,7 +19,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 
-router.get('/update-stream/compile/:iduser/:fwcloud',utilsModel.checkFwCloudAccess(false), function (req, res) {
+router.get('/update-stream/compile',  function (req, res) {
 
 
     try {

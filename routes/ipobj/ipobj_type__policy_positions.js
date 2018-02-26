@@ -9,7 +9,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all ipobj_type__policy_positions*/
-router.get('/:iduser/:fwcloud/', function (req, res)
+router.get('/', function (req, res)
 {
 
     Ipobj_type__policy_positionModel.getIpobj_type__policy_positions(function (error, data)
@@ -34,7 +34,7 @@ router.get('/:iduser/:fwcloud/', function (req, res)
 
 
 /* Get  ipobj_type__policy_position by id */
-router.get('/:iduser/:fwcloud/:type/:position', function (req, res)
+router.get('/:type/:position', function (req, res)
 {
     var type = req.params.type;
     var position = req.params.position;
@@ -61,7 +61,7 @@ router.get('/:iduser/:fwcloud/:type/:position', function (req, res)
 
 
 /* Create New ipobj_type__policy_position */
-router.post("/ipobj-type__policy-position/:iduser/:fwcloud/", function (req, res)
+router.post("/ipobj-type__policy-position/", function (req, res)
 {
     //Create New objet with data ipobj_type__policy_position
     var ipobj_type__policy_positionData = {
@@ -96,7 +96,7 @@ router.post("/ipobj-type__policy-position/:iduser/:fwcloud/", function (req, res
 });
 
 /* Update ipobj_type__policy_position that exist */
-router.put('/ipobj-type__policy-position/:iduser/:fwcloud/', function (req, res)
+router.put('/ipobj-type__policy-position/', function (req, res)
 {
     //Save data into object
     var ipobj_type__policy_positionData = {
@@ -131,7 +131,7 @@ router.put('/ipobj-type__policy-position/:iduser/:fwcloud/', function (req, res)
 
 
 /* Remove ipobj_type__policy_position */
-router.put("/del/ipobj-type__policy-position/:iduser/:fwcloud/", function (req, res)
+router.put("/del/ipobj-type__policy-position/", function (req, res)
 {
     //Id from ipobj_type__policy_position to remove
     var type = req.params.type;

@@ -10,6 +10,11 @@ var utilModel = {};
  */
 var logger = require('log4js').getLogger("app");
 
+var FirewallModel = require('../models/firewall/firewall');
+var FwcloudModel = require('../models/fwcloud/fwcloud');
+var api_resp = require('./api_response');
+
+
 
 utilModel.checkParameters = function (obj, callback) {
     for (var propt in obj) {
@@ -35,34 +40,33 @@ utilModel.checkEmptyRow = function (obj, callback) {
     callback(resp);
 };
 
-var FwcloudModel = require('../models/fwcloud/fwcloud');
-var api_resp = require('./api_response');
 
-utilModel.checkFwCloudAccess = function (update) {
+utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
 
-    return function (request, response, next) {
-        logger.debug("CHECK FWCLOUD ACCESS - UPDATE: ", update);
-
-        if (request.params.iduser && request.params.fwcloud) {
-            var fwcloudData = {fwcloud: request.params.fwcloud, iduser: request.params.iduser};
-
-            logger.warn('IDUSER param was detected: ', fwcloudData.iduser);
-            logger.warn('FWCLOUD param was detected: ', fwcloudData.fwcloud);
+return new Promise((resolve, reject) => {    
+        if (iduser && fwcloud) {
+            var fwcloudData = {fwcloud: fwcloud, iduser: iduser};
 
             //Checl FWCLOUD LOCK
-            FwcloudModel.getFwcloudAccess(request.params.iduser, request.params.fwcloud)
+            FwcloudModel.getFwcloudAccess(iduser, fwcloud)
                     .then(resp => {
                         //{"access": true, "locked": false, , "mylock" : true  "locked_at": "", "locked_by": ""}
                         logger.warn(resp);
-                        if (resp.access && !update){
+                        logger.debug("UPDATE: " + update);
+                        if (resp.access && update==0) {
                             logger.warn("OK --> FWCLOUD ACCESS ALLOWED TO READ ");
                             request.fwc_access = true;
-                            next();
-                        }
-                        else if (resp.access && resp.locked && resp.mylock) {  //Acces ok an locked by user
+                            request.iduser = iduser;
+                            request.fwcloud = fwcloud;
+                            //next();
+                            resolve(true);
+                        } else if (resp.access && resp.locked && resp.mylock) {  //Acces ok an locked by user
                             logger.warn("OK --> FWCLOUD ACCESS ALLOWED and LOCKED ");
                             request.fwc_access = true;
-                            next();
+                            request.iduser = iduser;
+                            request.fwcloud = fwcloud;
+                            //next();
+                            resolve(true);
                         } else if (resp.access && !resp.locked) {   //Acces ok and No locked
                             //GET FWCLOUD LOCK
                             FwcloudModel.updateFwcloudLock(fwcloudData)
@@ -71,7 +75,10 @@ utilModel.checkFwCloudAccess = function (update) {
                                             logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
                                             logger.warn("OK --> FWCLOUD ACCESS ALLOWED and GET LOCKED ");
                                             request.fwc_access = true;
-                                            next();
+                                            request.iduser = iduser;
+                                            request.fwcloud = fwcloud;
+                                            //next();
+                                            resolve(true);
                                         } else {
                                             logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
                                             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', '', null, function (jsonResp) {
@@ -119,9 +126,26 @@ utilModel.checkFwCloudAccess = function (update) {
                 response.status(200).json(jsonResp);
             });
         }
-    };
+    });
 };
 
+
+
+utilModel.checkFirewallAccess = function (req, res, next) {
+    logger.debug("---- DENTRO de ROUTER checkFirewallAccess ---");
+    var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
+    logger.debug(accessData);
+    FirewallModel.getFirewallAccess(accessData)
+            .then(resp => {
+                next();
+            })
+            .catch(err => {
+                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CHECK FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            })
+            ;
+};
 
 //Export the object
 module.exports = utilModel;

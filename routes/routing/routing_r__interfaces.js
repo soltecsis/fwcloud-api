@@ -6,10 +6,11 @@ var objModel='ROUTING INTERFACE';
 
 
 var logger = require('log4js').getLogger("app");
+var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all IPOBJ de una interface*/
-router.get('/:interface', function (req, res)
+router.get('/:interface',utilsModel.checkFirewallAccess, function (req, res)
 {
     var interface = req.params.interface;
     Routing_r__interfaceModel.getRouting_r__interfaces_rule(interface,function (error, data)
@@ -32,7 +33,7 @@ router.get('/:interface', function (req, res)
 });
 
 /* Get all interface de IPOBJ */
-router.get('/:rule', function (req, res)
+router.get('/:rule',utilsModel.checkFirewallAccess, function (req, res)
 {
     var rule = req.params.rule;
     Routing_r__interfaceModel.getRouting_r__interfaces_interface(rule,function (error, data)
@@ -57,7 +58,7 @@ router.get('/:rule', function (req, res)
 
 
 /* Get  routing_r__interface by rule and interface */
-router.get('/:interface/:rule', function (req, res)
+router.get('/:interface/:rule',utilsModel.checkFirewallAccess, function (req, res)
 {    
     var interface = req.params.interface;
     var rule = req.params.rule;
@@ -86,7 +87,7 @@ router.get('/:interface/:rule', function (req, res)
 
 
 /* Create New routing_r__interface */
-router.post("/routing-r__interface", function (req, res)
+router.post("/routing-r__interface",utilsModel.checkFirewallAccess, function (req, res)
 {
     //Create New objet with data routing_r__interface
     var routing_r__interfaceData = {
@@ -112,7 +113,7 @@ router.post("/routing-r__interface", function (req, res)
 });
 
 /* Update routing_r__interface that exist */
-router.put('/routing-r__interface', function (req, res)
+router.put('/routing-r__interface',utilsModel.checkFirewallAccess, function (req, res)
 {
     var old_order = req.body.get_column_order;
     //Save data into object
@@ -140,7 +141,7 @@ router.put('/routing-r__interface', function (req, res)
 
 
 /* Update ORDER de routing_r__interface that exist */
-router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', function (req, res)
+router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order',utilsModel.checkFirewallAccess, function (req, res)
 {
     var rule = req.param('rule');
     var interface = req.param('interface');
@@ -166,7 +167,7 @@ router.put('/routing-r__interface/:rule/:position/order/:old_order/:new_order', 
 
 
 /* Remove routing_r__interface */
-router.put("/del/routing-r__interface/", function (req, res)
+router.put("/del/routing-r__interface/",utilsModel.checkFirewallAccess, function (req, res)
 {
     //Id from routing_r__interface to remove
     var rule = req.param('rule');

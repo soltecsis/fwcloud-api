@@ -143,23 +143,12 @@ firewallModel.getFirewallAccess = function (accessData) {
                     ' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(accessData.iduser) +
                     ' WHERE T.id = ' + connection.escape(accessData.idfirewall) +
                     ' AND T.fwcloud=' + connection.escape(accessData.fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
-            connection.query(sql, function (error, row) {
+            
+            connection.query(sql, function (error, row) {                
                 if (error)
                     reject(false);
                 else if (row && row.length > 0) {
-                    //Checl FWCLOUD LOCK
-                    FwcloudModel.getFwcloudAccess(accessData.iduser, accessData.fwcloud)
-                            .then(resp => {
-                                //{"access": true, "locked": false, "locked_at": "", "locked_by": ""}
-                                if (resp.access)
-                                    resolve(true);
-                                else
-                                    reject(false);
-                            })
-                            .catch(resp => {
-                                reject(false);
-                            });
-
+                    resolve(true);
                 } else {
                     reject(false);
                 }
@@ -289,7 +278,7 @@ firewallModel.insertFirewall = function (iduser, firewallData, callback) {
                 callback(error, null);
             } else {
                 var fwid = result.insertId;
-                connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edir=1', function (error, result) {
+                connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
                     if (error) {
                         callback(error, null);
                     } else {
