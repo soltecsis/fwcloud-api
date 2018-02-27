@@ -142,7 +142,7 @@ var UserModel = require('./models/user/user');
 var url = require('url');
 
 
-var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/fwcloud*'];
+var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/fwcloud*', '/firewallscloud*'];
 //control_routes="^((?!\/ipobjs).)*";
 //CONTROL FWCLOUD ACCESS
 app.use(control_routes, function (request, response, next) {
@@ -226,6 +226,7 @@ var user__firewalls = require('./routes/user/user__firewalls');
 var customers = require('./routes/user/customers');
 var clusters = require('./routes/firewall/clusters');
 var firewalls = require('./routes/firewall/firewalls');
+var firewallscluster = require('./routes/firewall/firewalls_cluster');
 var fwclouds = require('./routes/fwcloud/fwclouds');
 var routing_gs = require('./routes/routing/routing_gs');
 var routing_rs = require('./routes/routing/routing_rs');
@@ -261,6 +262,7 @@ app.use('/user__firewalls', user__firewalls);
 app.use('/customers', customers);
 app.use('/clusters', clusters);
 app.use('/firewalls', firewalls);
+app.use('/firewallscluster', firewallscluster);
 app.use('/fwclouds', fwclouds);
 app.use('/policy-gs', policy_gs);
 app.use('/policy-rs', policy_rs);
