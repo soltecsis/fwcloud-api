@@ -18,8 +18,9 @@ policy_cModel.getPolicy_cs = function (idfirewall, callback) {
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
         var sql = 'SELECT R.id,R.rule_order,  ' + 
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
-                ' R.comment ' +
+                ' R.comment, R.fw_apply_to, FC.firewall_name  ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
+                ' LEFT JOIN firewall_cluster FC on FC.id=R.fw_apply_to ' +
                 ' WHERE R.firewall=' + connection.escape(idfirewall) +  ' AND R.active=1 ' +
                 ' ORDER BY R.type, R.rule_order';
         connection.query(sql, function (error, rows) {
@@ -40,9 +41,10 @@ policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback)
         //return only: id, rule_order, c_status_recompile, c_compiled, comment
         var sql = 'SELECT R.id,R.rule_order,  ' + 
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
-                ' R.comment ' +
+                ' R.comment, R.fw_apply_to, FC.firewall_name  ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
+                ' LEFT JOIN firewall_cluster FC on FC.id=R.fw_apply_to ' +
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) + 
                 ' AND F.fwcloud=' +  connection.escape(fwcloud) + ' AND R.active=1 ' +
                 ' ORDER BY R.rule_order';          
@@ -67,9 +69,10 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
         var sql = 'SELECT R.id,R.rule_order,  ' + 
                 ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
-                ' R.comment ' +
+                ' R.comment, R.fw_apply_to, FC.firewall_name ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
+                ' LEFT JOIN firewall_cluster FC on FC.id=R.fw_apply_to ' +
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
                 ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
         connection.query(sql, function (error, row) {
