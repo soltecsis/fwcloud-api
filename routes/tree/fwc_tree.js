@@ -337,7 +337,7 @@ router.get('/name/:name',  function (req, res)
     });
 });
 /* Create New fwc_tree Firewall node*/
-router.get("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
+router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -358,7 +358,7 @@ router.get("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
     });
 });
 /* Create New fwc_tree Objects*/
-router.get("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
+router.put("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -379,7 +379,7 @@ router.get("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
     });
 });
 /* Create New fwc_tree Services*/
-router.get("/create-services/user", function (req, res)
+router.put("/create-services/user", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -401,7 +401,7 @@ router.get("/create-services/user", function (req, res)
 });
 //FALTA AÑADIR CONTROL ACCESO ADMIN
 /* Create ALL nodes*/
-router.get("/create-ALL/user", function (req, res)
+router.put("/create-ALL/user", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -460,7 +460,7 @@ router.get("/create-ALL/user", function (req, res)
 });
 
 
-router.get("/order/ipobj/:id_obj", function (req, res)
+router.put("/order/ipobj/:id_obj", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -484,7 +484,7 @@ router.get("/order/ipobj/:id_obj", function (req, res)
 
 
 });
-router.get("/order/parent/:id_parent", function (req, res)
+router.put("/order/parent/:id_parent", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
