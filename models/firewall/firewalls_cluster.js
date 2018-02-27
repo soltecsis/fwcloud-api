@@ -28,7 +28,7 @@ firewallsclusterModel.getFirewallsClusters = function (idcluster ,callback) {
 
 
 
-//Get cluster by  id
+//Get firewallclusters by cluster and  id
 firewallsclusterModel.getFirewallsCluster = function (idcluster, id, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
@@ -43,7 +43,8 @@ firewallsclusterModel.getFirewallsCluster = function (idcluster, id, callback) {
     });
 };
 
-//Get cluster by  idfirewall
+
+//Get firewallclusters by cluster and idfirewall
 firewallsclusterModel.getFirewallsClusterFirewall = function (idcluster, idfirewall, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
@@ -58,7 +59,7 @@ firewallsclusterModel.getFirewallsClusterFirewall = function (idcluster, idfirew
     });
 };
 
-//Get clusters by firewallname
+//Get firewallclusters by cluster and firewallname
 firewallsclusterModel.getFirewallsClusterName = function (idcluster, name, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
@@ -73,7 +74,7 @@ firewallsclusterModel.getFirewallsClusterName = function (idcluster, name, callb
     });
 };
 
-//Add new cluster
+//Add new firewallclusters
 firewallsclusterModel.insertFirewallCluster = function (FCData, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
@@ -89,7 +90,7 @@ firewallsclusterModel.insertFirewallCluster = function (FCData, callback) {
     });
 };
 
-//Update cluster
+//Update firewallclusters
 firewallsclusterModel.updateFirewallCluster = function (FCData, callback) {
 
     db.get(function (error, connection) {
@@ -114,7 +115,7 @@ firewallsclusterModel.updateFirewallCluster = function (FCData, callback) {
     });
 };
 
-//Remove cluster with id to remove
+//Remove firewallclusters with id to remove
 firewallsclusterModel.deleteFirewallCluster = function (id, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);

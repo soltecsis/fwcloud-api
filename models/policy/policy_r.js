@@ -409,7 +409,7 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
     Policy_typeModel.getPolicy_type(policy_rData.type, function (error, data_types) {
         if (error)
-            AllDone(error, null);
+            callback(error, null);
         else {
             if (data_types.length > 0)
                 type = data_types[0].id;
@@ -456,7 +456,7 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
 policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, old_order, idgroup, callback) {
     Policy_typeModel.getPolicy_type(type, function (error, data_types) {
         if (error)
-            AllDone(error, null);
+            callback(error, null);
         else {
             if (data_types.length > 0)
                 type = data_types[0].id;
@@ -487,6 +487,55 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
         }
     });
 };
+
+var FirewallsClusterModel = require('../firewall/firewalls_cluster');
+
+//Update APPLYTO de policy_r 
+policy_rModel.updatePolicy_r_applyto = function (idfirewall, type, id, idcluster, fwapplyto, callback) {
+    Policy_typeModel.getPolicy_type(type, function (error, data_types) {
+        if (error)
+            callback(error, null);
+        else {
+            if (data_types.length > 0)
+                type = data_types[0].id;
+            else
+                type = 1;
+            FirewallsClusterModel.getFirewallsCluster(idcluster, fwapplyto, function (error, data_fc) {
+                if (error)
+                    callback(error, null);
+                else {
+                    if (data_fc.length > 0) {
+                        db.get(function (error, connection) {
+                            if (error)
+                                callback(error, null);
+                            if (fwapplyto===undefined)
+                                fwapplyto= null;
+                            var sql = 'UPDATE ' + tableModel + ' SET ' +
+                                    'fw_apply_to = ' + connection.escape(fwapplyto) + ' ' +
+                                    ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type);
+                            connection.query(sql, function (error, result) {
+                                if (error) {
+                                    callback(error, null);
+                                } else {
+                                    if (result.affectedRows > 0) {
+                                        callback(null, {"result": true});
+                                    } else
+                                        callback(null, {"result": false});
+                                }
+                            });
+                        });
+                    }
+                    else{
+                        callback(null, {"result": false});
+                    }
+                }
+            });
+
+
+        }
+    });
+};
+
 
 //Update policy_r from user
 policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id, callback) {
@@ -677,27 +726,27 @@ policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
 
 
 //Compile rule and save it
-policy_rModel.compilePolicy_r = function (accessData,  callback) {
+policy_rModel.compilePolicy_r = function (accessData, callback) {
 
-    var rule=accessData.rule;
-    
+    var rule = accessData.rule;
+
     policy_rModel.getPolicy_r_id(rule, function (error, data) {
         if (error)
             callback(error, null);
         if (data && data.length > 0) {
-            var strRule= " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
-            logger.debug("---------- COMPILING RULE " + strRule + " -------");            
-            
+            var strRule = " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
+            logger.debug("---------- COMPILING RULE " + strRule + " -------");
+
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
                     .then(data => {
                         if (data && data.length > 0) {
                             logger.debug("---- RULE COMPILED --->  ");
                             logger.debug(data);
-                            logger.debug("-----------------------");                            
+                            logger.debug("-----------------------");
                             callback(null, {"result": true, "msg": "Rule compiled"});
                         } else {
-                            logger.debug("---- ERROR RULE NOT COMPILED --->  ");                            
+                            logger.debug("---- ERROR RULE NOT COMPILED --->  ");
                             callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
                         }
                     })

@@ -278,6 +278,40 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order',utilsMo
         }
     });
 });
+
+/* Update APPLY_TO de policy_r that exist */
+router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto',utilsModel.checkFirewallAccess, function (req, res)
+{
+    //Save data into object
+    var idfirewall = req.params.idfirewall;
+    var type = req.params.type;
+    var id = req.params.id;
+    var idcluster = req.params.idcluster;
+    var fwapplyto = req.params.fwapplyto;
+    
+    Policy_rModel.updatePolicy_r_applyto(idfirewall, type, id,idcluster, fwapplyto, function (error, data)
+    {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            //If saved policy_r saved ok, get data
+            if (data && data.result)
+            {
+                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            } else
+            {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating APPLYTO', 'POLICY', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
+});
+
 /* Update Style policy_r  */
 router.put('/policy-r/style/:idfirewall/:type', utilsModel.checkFirewallAccess, function (req, res)
 {

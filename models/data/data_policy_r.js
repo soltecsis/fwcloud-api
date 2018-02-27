@@ -18,6 +18,7 @@
         this.updated_at=data.updated_at;
         this.compiled_at=data.c_updated_at;
         this.rule_compiled=data.rule_compiled;
+        this.fw_apply_to= data.fw_apply_to;
         
         
         this.positions=[];
