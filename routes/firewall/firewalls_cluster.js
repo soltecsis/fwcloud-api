@@ -78,10 +78,10 @@ var logger = require('log4js').getLogger("app");
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('/:idcluster',  function (req, res)
+router.get('/:idcluster', function (req, res)
 {
-    var idcluster= req.params.idcluster;
-    FirewallsClusterModel.getFirewallsClusters( idcluster, function (error, data)
+    var idcluster = req.params.idcluster;
+    FirewallsClusterModel.getFirewallsClusters(idcluster, function (error, data)
     {
         //Get data
         if (data && data.length > 0)
@@ -100,12 +100,12 @@ router.get('/:idcluster',  function (req, res)
     });
 });
 
-router.get('/:idcluster/:id',  function (req, res)
+router.get('/:idcluster/:id', function (req, res)
 {
-    var idcluster= req.params.idcluster;
-    var id= req.params.id;
-    
-    FirewallsClusterModel.getFirewallsCluster( idcluster,id,  function (error, data)
+    var idcluster = req.params.idcluster;
+    var id = req.params.id;
+
+    FirewallsClusterModel.getFirewallsCluster(idcluster, id, function (error, data)
     {
         //Get data
         if (data && data.length > 0)
@@ -124,12 +124,12 @@ router.get('/:idcluster/:id',  function (req, res)
     });
 });
 
-router.get('/:idcluster/firewall/:idfirewall',  function (req, res)
+router.get('/:idcluster/firewall/:idfirewall', function (req, res)
 {
-    var idcluster= req.params.idcluster;
-    var idfirewall= req.params.idfirewall;
-    
-    FirewallsClusterModel.getFirewallsClusterFirewall( idcluster,idfirewall,  function (error, data)
+    var idcluster = req.params.idcluster;
+    var idfirewall = req.params.idfirewall;
+
+    FirewallsClusterModel.getFirewallsClusterFirewall(idcluster, idfirewall, function (error, data)
     {
         //Get data
         if (data && data.length > 0)
@@ -148,12 +148,12 @@ router.get('/:idcluster/firewall/:idfirewall',  function (req, res)
     });
 });
 
-router.get('/:idcluster/name/:name',  function (req, res)
+router.get('/:idcluster/name/:name', function (req, res)
 {
-    var idcluster= req.params.idcluster;
-    var name= req.params.name;
-    
-    FirewallsClusterModel.getFirewallsClusterName( idcluster,name,  function (error, data)
+    var idcluster = req.params.idcluster;
+    var name = req.params.name;
+
+    FirewallsClusterModel.getFirewallsClusterName(idcluster, name, function (error, data)
     {
         //Get data
         if (data && data.length > 0)
@@ -175,21 +175,27 @@ router.get('/:idcluster/name/:name',  function (req, res)
 
 
 /* New firewallcluster */
-router.post("/firewallcluster",  function (req, res)
+router.post("/firewallcluster", function (req, res)
 {
     //new objet with FirewallCluster data
     var FCData = {
         id: null,
         idcluster: req.body.idcluster,
-        firewall: req.body.idfirewall,
-        firewall_name:  req.body.firewall_name,
+        firewall: req.body.firewall,
+        firewall_name: req.body.firewall_name,
         sshuser: req.body.sshuser,
         sshpass: req.body.sshpass,
         interface: req.body.interface,
-        ipobj: req.body.ipobj        
+        ipobj: req.body.ipobj
     };
     logger.debug(FCData);
-    
+
+
+    if (FCData.firewall === undefined || FCData.firewall === '' || isNaN(FCData.firewall)) {
+        logger.error("DETECTED UNDEFINED: firewall");
+        req.params.FCData.firewall = -1;
+    }
+
     FirewallsClusterModel.insertFirewallCluster(FCData, function (error, data)
     {
         //get cluster info
@@ -209,19 +215,25 @@ router.post("/firewallcluster",  function (req, res)
 });
 
 /* firewallcluster update */
-router.put('/firewallcluster',  function (req, res)
+router.put('/firewallcluster', function (req, res)
 {
     //Save firewallcluster data into objet     
     var FCData = {
         id: req.body.id,
         idcluster: req.body.idcluster,
-        firewall: req.body.idfirewall,
-        firewall_name:  req.body.firewall_name,
+        firewall: req.body.firewall,
+        firewall_name: req.body.firewall_name,
         sshuser: req.body.sshuser,
         sshpass: req.body.sshpass,
         interface: req.body.interface,
-        ipobj: req.body.ipobj        
+        ipobj: req.body.ipobj
     };
+
+    if (FCData.firewall === undefined || FCData.firewall === '' || isNaN(FCData.firewall)) {
+        logger.error("DETECTED UNDEFINED: firewall");
+        req.params.FCData.firewall = -1;
+    }
+
     FirewallsClusterModel.updateFirewallCluster(FCData, function (error, data)
     {
         //cluster ok
@@ -239,47 +251,10 @@ router.put('/firewallcluster',  function (req, res)
     });
 });
 
-/* Get cluster by Id */
-router.get('/firewallcluster/:id',  function (req, res)
-{
-    var id = req.params.id;
-
-    if (!isNaN(id))
-    {
-        FirewallsClusterModel.getFirewallCluster(id, function (error, data)
-        {
-            //cluster ok
-            if (data && data.length > 0)
-            {
-//                res.render("update_cluster",{ 
-//                    title : "", 
-//                    info : data
-//                });
-                api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-
-            }
-            //Get error
-            else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        });
-    } else
-    {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
-});
-
 
 
 /* Remove cluster */
-router.put("/del/firewallcluster/:id",  function (req, res)
+router.put("/del/firewallcluster/:id", function (req, res)
 {
 
     var id = req.param('id');
@@ -288,8 +263,8 @@ router.put("/del/firewallcluster/:id",  function (req, res)
         if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {

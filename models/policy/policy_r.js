@@ -507,9 +507,10 @@ policy_rModel.updatePolicy_r_applyto = function (idfirewall, type, id, idcluster
                     if (data_fc.length > 0) {
                         db.get(function (error, connection) {
                             if (error)
-                                callback(error, null);
-                            if (fwapplyto===undefined)
-                                fwapplyto= null;
+                                callback(error, null);                            
+                            if (fwapplyto === undefined || fwapplyto === '' || isNaN(fwapplyto)) {
+                                fwapplyto = null;
+                            }
                             var sql = 'UPDATE ' + tableModel + ' SET ' +
                                     'fw_apply_to = ' + connection.escape(fwapplyto) + ' ' +
                                     ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type);
@@ -524,8 +525,7 @@ policy_rModel.updatePolicy_r_applyto = function (idfirewall, type, id, idcluster
                                 }
                             });
                         });
-                    }
-                    else{
+                    } else {
                         callback(null, {"result": false});
                     }
                 }

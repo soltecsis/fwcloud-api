@@ -63,7 +63,7 @@ firewallsclusterModel.getFirewallsClusterFirewall = function (idcluster, idfirew
 firewallsclusterModel.getFirewallsClusterName = function (idcluster, name, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall_name like  "%' + connection.escape(name) + '%"' +
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall_name =  ' + connection.escape(name)  +
                 ' AND idcluster= ' +  connection.escape(idcluster)  ;;
         connection.query(sql, function (error, row) {
             if (error)
