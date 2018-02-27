@@ -40,7 +40,7 @@ utilModel.checkEmptyRow = function (obj, callback) {
     callback(resp);
 };
 
-
+//CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
 utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
 
 return new Promise((resolve, reject) => {    
@@ -53,7 +53,7 @@ return new Promise((resolve, reject) => {
                         //{"access": true, "locked": false, , "mylock" : true  "locked_at": "", "locked_by": ""}
                         logger.warn(resp);
                         logger.debug("UPDATE: " + update);
-                        if (resp.access && update==0) {
+                        if (resp.access && !update) {
                             logger.warn("OK --> FWCLOUD ACCESS ALLOWED TO READ ");
                             request.fwc_access = true;
                             request.iduser = iduser;

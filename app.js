@@ -138,6 +138,7 @@ logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 var FwcloudModel = require('./models/fwcloud/fwcloud');
 var utilsModel = require("./utils/utils.js");
 var api_resp = require('./utils/api_response');
+var UserModel = require('./models/user/user');
 var url = require('url');
 
 
@@ -150,24 +151,30 @@ app.use(control_routes, function (request, response, next) {
     var pathname = url_parts.pathname;
 
 
+
     logger.debug("---------------- RECEIVED HEADERS-----------------");
     logger.debug("\n", request.headers);
     logger.debug("--------------------------------------------------");
-    logger.debug("PATHNAME: " + pathname);
+    logger.debug("METHOD: " + request.method + "   PATHNAME: " + pathname);
 
     var iduser = request.headers.x_fwc_iduser;
     var fwcloud = request.headers.x_fwc_fwcloud;
-    var update = request.headers.x_fwc_action;
+    var update = true;
+    if (request.method==='GET')
+        update=false;
 
 
     logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
     utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
             .then(resp => {
+                //save access to user                
+                var userData = {id: iduser};
+                UserModel.updateUserTS(userData, function (error, data){});
                 next();
             })
             .catch(err => {
-                logger.error("ERROR ---> err: "  + err);
+                logger.error("ERROR ---> err: " + err);
                 api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
                     response.status(200).json(jsonResp);
                 });

@@ -94,6 +94,25 @@ userModel.updateUser = function (userData, callback) {
     });
 };
 
+//Update user
+userModel.updateUserTS = function (userData, callback) {
+
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var sql = 'UPDATE user SET ' +             
+            'last_access = NOW() ' +
+            'WHERE id = ' + userData.id;
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            }
+            else {
+                callback(null, { "result": true });
+            }
+        });
+    });
+};
+
 //Remove user with id to remove
 userModel.deleteUser = function (id, callback) {
     db.get(function (error, connection) {
