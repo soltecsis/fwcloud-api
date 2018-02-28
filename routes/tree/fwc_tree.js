@@ -105,7 +105,7 @@ router.get('/firewalls/:idfirewall',utilsModel.checkFirewallAccess,  function (r
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/',  function (req, res)
+router.get('/objects/:objStandard/:objCloud/',  function (req, res)
 {
     var iduser = req.iduser;
     var objs = req.params.objStandard;
@@ -154,7 +154,7 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/',  functi
 /* Get fwc_tree NODE OBJECTS by User and by ID*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',  function (req, res)
+router.get('/objects/:objStandard/:objCloud/:id',  function (req, res)
 {
     var iduser = req.iduser;
     var objs = req.params.objStandard;
@@ -202,7 +202,7 @@ router.get('/objects/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',  fun
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud',  function (req, res)
+router.get('/services/:objStandard/:objCloud',  function (req, res)
 {
     var iduser = req.iduser;
     var objs = req.params.objStandard;
@@ -246,7 +246,7 @@ router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud',  functi
 /* Get all fwc_tree NODE SERVICES by User and ID NODE*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/user/:iduser/fwc/:fwcloud/:objStandard/:objCloud/:id',  function (req, res)
+router.get('/services/:objStandard/:objCloud/:id',  function (req, res)
 {
     var iduser = req.iduser;
     var objs = req.params.objStandard;
