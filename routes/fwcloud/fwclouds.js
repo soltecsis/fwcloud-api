@@ -100,7 +100,7 @@ var db = require('../../db.js');
  */
 router.get('/:iduser', function (req, res)
 {
-    var iduser = req.iduser;
+    var iduser = req.params.iduser;
     FwcloudModel.getFwclouds(iduser, function (error, data)
     {
         //Get data
@@ -134,10 +134,10 @@ router.get('/:iduser', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('', function (req, res)
+router.get('/:iduser/:fwcloud', function (req, res)
 {
-    var iduser = req.iduser;
-    var fwcloud = req.fwcloud;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
 
     if (!isNaN(fwcloud))
     {
@@ -186,7 +186,7 @@ router.get('', function (req, res)
  */
 router.get('/:iduser/name/:name', function (req, res)
 {
-    var iduser = req.iduser;
+    var iduser = req.params.iduser;
     var name = req.params.name;
 
     if (name.length > 0)
@@ -261,7 +261,7 @@ router.post("/fwcloud", function (req, res)
         id: null,
         name: req.body.name
     };
-    var iduser = req.iduser;
+    var iduser = req.params.iduser;
     FwcloudModel.insertFwcloud(iduser, fwcloudData, function (error, data)
     {
 
@@ -316,11 +316,11 @@ router.post("/fwcloud", function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud', function (req, res)
+router.put('/fwcloud/:iduser', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.body.id, name: req.body.name, user: req.iduser};
+    var fwcloudData = {id: req.body.id, name: req.body.name, user: req.params.iduser};
 
     FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
     {
@@ -373,11 +373,11 @@ router.put('/fwcloud', function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/lock', function (req, res)
+router.put('/fwcloud/lock/:iduser/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {fwcloud: req.fwcloud, iduser: req.iduser};
+    var fwcloudData = {fwcloud: req.params.fwcloud, iduser: req.params.iduser};
 
     FwcloudModel.updateFwcloudLock(fwcloudData)
             .then(data => {                
@@ -437,11 +437,11 @@ router.put('/fwcloud/lock', function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/unlock', function (req, res)
+router.put('/fwcloud/unlock/:iduser/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.fwcloud, iduser: req.iduser};
+    var fwcloudData = {id: req.params.fwcloud, iduser: req.params.iduser};
     FwcloudModel.updateFwcloudUnlock(fwcloudData)
             .then(data => {
                 if (data.result) {
@@ -478,11 +478,11 @@ router.put('/fwcloud/unlock', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/locked', function (req, res)
+router.get('/locked/:iduser/:fwcloud', function (req, res)
 {
 
-    var iduser = req.iduser;
-    var fwcloud = req.fwcloud;
+    var iduser = req.params.iduser;
+    var fwcloud = req.params.fwcloud;
     if (!isNaN(fwcloud))
     {
         FwcloudModel.getFwcloud(iduser, fwcloud, function (error, data)
@@ -551,11 +551,11 @@ router.get('/locked', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/fwcloud/:iduser", function (req, res)
+router.put("/del/fwcloud/:iduser/:fwcloud", function (req, res)
 {
 
-    var id = req.param('fwcloud');
-    var iduser = req.param('iduser');
+    var id = req.params.fwcloud;
+    var iduser = req.params.iduser;
     FwcloudModel.deleteFwcloud(iduser, id, function (error, data)
     {
         if (data && data.result)
