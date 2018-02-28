@@ -76,7 +76,7 @@ reset_all() {
 
 
 policy_load() {
-log "FWCloud.net - Loading firewall policy generated: Fri Feb 23 2018 17:28:40 GMT+0100 (CET)"
+log "FWCloud.net - Loading firewall policy generated: Wed Feb 28 2018 17:47:55 GMT+0100 (CET)"
 
 echo -e "\nINPUT TABLE\n-----------"
 
