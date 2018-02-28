@@ -24,7 +24,6 @@
  * @type express
  */
 var express = require('express');
-
 /**
  * Property  to manage  route
  *
@@ -32,8 +31,6 @@ var express = require('express');
  * @type express.Router 
  */
 var router = express.Router();
-
-
 /**
  * Property Model to manage API RESPONSE data
  *
@@ -42,7 +39,6 @@ var router = express.Router();
  * 
  */
 var api_resp = require('../../utils/api_response');
-
 /**
  * Property to identify Data Object
  *
@@ -50,7 +46,6 @@ var api_resp = require('../../utils/api_response');
  * @type text
  */
 var objModel = 'FIREWALLS_CLUSTER';
-
 /**
  * Property Model to manage Cluster Data
  *
@@ -58,12 +53,8 @@ var objModel = 'FIREWALLS_CLUSTER';
  * @type ../../models/firewalls_cluster
  */
 var FirewallsClusterModel = require('../../models/firewall/firewalls_cluster');
-
 var utilsModel = require("../../utils/utils.js");
-
 var logger = require('log4js').getLogger("app");
-
-
 /**
  * My method description.  Like other pieces of your comment blocks, 
  * this can span multiple lines.
@@ -81,38 +72,60 @@ var logger = require('log4js').getLogger("app");
 router.get('/:idcluster', function (req, res)
 {
     var idcluster = req.params.idcluster;
-    FirewallsClusterModel.getFirewallsClusters(idcluster, function (error, data)
+    FirewallsClusterModel.getFirewallsClusters(idcluster, function (error, datalist)
     {
         //Get data
-        if (data && data.length > 0)
+        if (datalist && datalist.length > 0)
         {
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
+//            var actions = datalist.map(utilsModel.decryptDataUserPass);
+//            var results = Promise.all(actions);
+//
+//            results.then(data1 => { // or just .then(console.log)
+//                logger.debug(data1);
+//            });
+
+            var res2 = Promise.all(datalist.map(utilsModel.decryptDataUserPass))
+                    .then(data => {
+                        api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    })
+                    .catch(e => {
+                        logger.debug("CATCH ERROR: ", e);
+                    });
         }
         //get error
         else
         {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            api_resp.getJson(datalist, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }
     });
 });
-
 router.get('/:idcluster/:id', function (req, res)
 {
     var idcluster = req.params.idcluster;
     var id = req.params.id;
-
     FirewallsClusterModel.getFirewallsCluster(idcluster, id, function (error, data)
     {
         //Get data
         if (data && data.length > 0)
         {
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
+            utilsModel.decrypt(data[0].sshuser)
+                    .then(sshuser_dec => {
+                        data[0].sshuser = sshuser_dec;
+                    })
+                    .then(utilsModel.decrypt(data[0].sshpass)
+                            .then(sshpass_dec => {
+                                data[0].sshpass = sshpass_dec;
+                            })
+                            )
+                    .then(() => {
+                        api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    });
         }
         //get error
         else
@@ -123,12 +136,10 @@ router.get('/:idcluster/:id', function (req, res)
         }
     });
 });
-
 router.get('/:idcluster/firewall/:idfirewall', function (req, res)
 {
     var idcluster = req.params.idcluster;
     var idfirewall = req.params.idfirewall;
-
     FirewallsClusterModel.getFirewallsClusterFirewall(idcluster, idfirewall, function (error, data)
     {
         //Get data
@@ -147,12 +158,10 @@ router.get('/:idcluster/firewall/:idfirewall', function (req, res)
         }
     });
 });
-
 router.get('/:idcluster/name/:name', function (req, res)
 {
     var idcluster = req.params.idcluster;
     var name = req.params.name;
-
     FirewallsClusterModel.getFirewallsClusterName(idcluster, name, function (error, data)
     {
         //Get data
@@ -171,9 +180,6 @@ router.get('/:idcluster/name/:name', function (req, res)
         }
     });
 });
-
-
-
 /* New firewallcluster */
 router.post("/firewallcluster", function (req, res)
 {
@@ -189,31 +195,45 @@ router.post("/firewallcluster", function (req, res)
         ipobj: req.body.ipobj
     };
     logger.debug(FCData);
-
-
     if (FCData.firewall === undefined || FCData.firewall === '' || isNaN(FCData.firewall)) {
         logger.error("DETECTED UNDEFINED: firewall");
-        req.params.FCData.firewall = -1;
+        FCData.firewall = -1;
     }
-
-    FirewallsClusterModel.insertFirewallCluster(FCData, function (error, data)
-    {
-        //get cluster info
-        if (data && data.insertId)
-        {
-            var dataresp = {"insertId": data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'CLUSTER INSERTED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    //encript username and password
+    utilsModel.encrypt(FCData.sshuser)
+            .then(data => {
+                logger.debug("SSHUSER: " + FCData.sshuser + "   ENCRYPTED: " + data);
+                FCData.sshuser = data;
+            })
+            .then(utilsModel.encrypt(FCData.sshpass)
+                    .then(data => {
+                        logger.debug("SSPASS: " + FCData.sshpass + "   ENCRYPTED: " + data);
+                        FCData.sshpass = data;
+                    }))
+            .then(() => {
+                logger.debug("SAVING DATA NODE CLUSTER");
+                FirewallsClusterModel.insertFirewallCluster(FCData, function (error, data)
+                {
+                    //get cluster info
+                    if (data && data.insertId)
+                    {
+                        var dataresp = {"insertId": data.insertId};
+                        api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'CLUSTER INSERTED OK', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    } else
+                    {
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                });
+            })
+            .catch(e => {
+                logger.debug(e);
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
-});
-
+}
+);
 /* firewallcluster update */
 router.put('/firewallcluster', function (req, res)
 {
@@ -228,7 +248,6 @@ router.put('/firewallcluster', function (req, res)
         interface: req.body.interface,
         ipobj: req.body.ipobj
     };
-
     if (FCData.firewall === undefined || FCData.firewall === '' || isNaN(FCData.firewall)) {
         logger.error("DETECTED UNDEFINED: firewall");
         req.params.FCData.firewall = -1;
@@ -250,9 +269,6 @@ router.put('/firewallcluster', function (req, res)
         }
     });
 });
-
-
-
 /* Remove cluster */
 router.put("/del/firewallcluster/:id", function (req, res)
 {
@@ -273,5 +289,4 @@ router.put("/del/firewallcluster/:id", function (req, res)
         }
     });
 });
-
 module.exports = router;
