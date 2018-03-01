@@ -95,11 +95,12 @@ firewallsclusterModel.updateFirewallCluster = function (FCData, callback) {
 
     db.get(function (error, connection) {
         if (error) callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(FCData.name) + ', ' +
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' firewall=' + connection.escape(FCData.firewall) + ', ' +
                 ' firewall_name=' + connection.escape(FCData.firewall_name) + ', ' +
                 ' sshuser=' + connection.escape(FCData.sshuser) + ', ' +
                 ' sshpass=' + connection.escape(FCData.sshpass) + ', ' +
+                ' save_user_pass=' + connection.escape(FCData.save_user_pass) + ', ' +
                 ' interface=' + connection.escape(FCData.interface) + ', ' +
                 ' ipobj=' + connection.escape(FCData.ipobj) + ' ' +
             ' WHERE id = ' + FCData.id;
