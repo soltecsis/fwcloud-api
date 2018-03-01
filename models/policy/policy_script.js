@@ -48,9 +48,9 @@ PolicyScript.append = (path) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dump = (accessData,cloud,fw,type) => {
+PolicyScript.dump = (accessData,fw,type) => {
 	return new Promise((resolve,reject) => { 
-  	Policy_cModel.getPolicy_cs_type(cloud, fw, type, async (error, data) => {
+  	Policy_cModel.getPolicy_cs_type(accessData.fwcloud, fw, type, async (error, data) => {
 			if (error)
 				return reject(error);
 
@@ -64,7 +64,7 @@ PolicyScript.dump = (accessData,cloud,fw,type) => {
 				else { // We must compile the rule.
 					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
 					// For this reason we use await and async for the callbac function of Policy_cModel.getPolicy_cs_type
-					await RuleCompile.get(cloud,fw,type,data[i].id)
+					await RuleCompile.get(accessData.fwcloud,fw,type,data[i].id)
 						.then(data => ps += data)
 						.catch (error => reject(error) )				
 				}
@@ -77,7 +77,7 @@ PolicyScript.dump = (accessData,cloud,fw,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.upload = (cloud,fw,connSettings) => {
+PolicyScript.upload = (cloud,fw,SSHconn) => {
   var Client = require('ssh2').Client;
 	var conn = new Client();
 
@@ -99,13 +99,13 @@ PolicyScript.upload = (cloud,fw,connSettings) => {
 			});
 		})
 		.on('error',error => reject(error))
-		.connect(connSettings);
+		.connect(SSHconn);
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.run_ssh_command = (connSettings,cmd) => {
+PolicyScript.run_ssh_command = (SSHconn,cmd) => {
   var Client = require('ssh2').Client;
 	var conn = new Client();
 	var stdout_log = "";
@@ -125,8 +125,8 @@ PolicyScript.run_ssh_command = (connSettings,cmd) => {
 				}).on('data', data => {
 					//console.log('STDOUT: ' + data);
 					var str=""+data;
-					if (str==="[sudo] password for "+connSettings.username+": ")
-						stream.write(connSettings.password+"\n");
+					if (str==="[sudo] password for "+SSHconn.username+": ")
+						stream.write(SSHconn.password+"\n");
 					stdout_log += data;
 				}).stderr.on('data', data => {
 					//console.log('STDERR: ' + data);
@@ -135,30 +135,23 @@ PolicyScript.run_ssh_command = (connSettings,cmd) => {
 			});
 		})
 		.on('error', error => reject(error))
-		.connect(connSettings);
+		.connect(SSHconn);
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (accessData,cloud,fw,sshuser,sshpass) => {
-	var connSettings = {
-		host: '10.99.5.101',
-		port: 22,
-		username: sshuser,
-		password: sshpass
-	}
-
+PolicyScript.install = (accessData,SSHconn,fw) => {
 	return new Promise(async (resolve,reject) => { 
-		streamModel.pushMessageCompile(accessData, "Uploading firewall scritp ("+connSettings.host+")\n");
-		await PolicyScript.upload(cloud,fw,connSettings)
+		streamModel.pushMessageCompile(accessData, "Uploading firewall scritp ("+SSHconn.host+")\n");
+		await PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-				return PolicyScript.run_ssh_command(connSettings,"sudo sh ./"+config.policy.script_name+" install")
+				return PolicyScript.run_ssh_command(SSHconn,"sudo sh ./"+config.policy.script_name+" install")
 			})
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-				return PolicyScript.run_ssh_command(connSettings,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start")
+				return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start")
 			})
 			.then(data => {
 				streamModel.pushMessageCompile(accessData, data+"\n");
