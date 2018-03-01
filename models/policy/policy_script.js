@@ -154,7 +154,7 @@ PolicyScript.install = (accessData,cloud,fw,sshuser,sshpass) => {
 		await PolicyScript.upload(cloud,fw,connSettings)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-				return PolicyScript.run_ssh_command(connSettings,"sudo ./"+config.policy.script_name+" install")
+				return PolicyScript.run_ssh_command(connSettings,"sudo sh ./"+config.policy.script_name+" install")
 			})
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");

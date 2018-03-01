@@ -79,11 +79,10 @@ const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 /* Compile a firewall rule. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/:idfirewall/:type/:rule',utilsModel.checkFirewallAccess,  (req, res) => {
-    var user = req.iduser;
-    var cloud = req.fwcloud;
     var fw = req.params.idfirewall;
     var type = req.params.type;
     var rule = req.params.rule;
+    var cloud = req.headers.x_fwc_fwcloud;
 
     /* The get method of the RuleCompile model returns a promise. */
     RuleCompile.get(cloud, fw, type, rule)
@@ -96,9 +95,9 @@ router.put('/:idfirewall/:type/:rule',utilsModel.checkFirewallAccess,  (req, res
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/:idfirewall',utilsModel.checkFirewallAccess,  (req, res) => {
-    var user = req.iduser;
-    var cloud = req.fwcloud;
-    var fw = req.params.fw;
+    var fw = req.params.idfirewall;
+    var user = req.headers.x_fwc_iduser;
+    var cloud = req.headers.x_fwc_fwcloud;
     var code = "";
 
     var fs = require('fs');
