@@ -66,7 +66,7 @@ PolicyScript.dump = (accessData,cloud,fw,type) => {
 					// For this reason we use await and async for the callbac function of Policy_cModel.getPolicy_cs_type
 					await RuleCompile.get(cloud,fw,type,data[i].id)
 						.then(data => ps += data)
-						.catch (error => api_resp.getJson(null,api_resp.ACR_ERROR,'','COMPILE',error,jsonResp => res.status(200).json(jsonResp)))				
+						.catch (error => reject(error) )				
 				}
 			}
 		

@@ -173,6 +173,7 @@ RuleCompileModel.pre_compile = (data) => {
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
+    try{
 	if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
 		return "MASQUERADE";
 
@@ -191,6 +192,10 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 		action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port))[0];
 
 	return action;
+    }
+    catch (e){        
+        return null;	
+    }
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
