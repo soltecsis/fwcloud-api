@@ -199,8 +199,8 @@ utilModel.decryptDataUserPass = function (data) {
             reject(e);
         }
     });
-
 };
+
 
 
 async function fetchRepoInfos () {  

@@ -103,6 +103,37 @@ router.get('/:idcluster', function (req, res)
         }
     });
 });
+
+router.get('/install/:idcluster', function (req, res)
+{
+    var idcluster = req.params.idcluster;
+    FirewallsClusterModel.getFirewallsClustersIPData(idcluster, function (error, datalist)
+    {
+        //Get data
+        if (datalist && datalist.length > 0)
+        {
+            Promise.all(datalist.map(utilsModel.decryptDataUserPass))
+                    .then(data => {
+                        api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    })
+                    .catch(e => {
+                        logger.debug("CATCH ERROR: ", e);
+                    });
+        }
+        //get error
+        else
+        {
+            api_resp.getJson(datalist, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
+
+
 router.get('/:idcluster/:id', function (req, res)
 {
     var idcluster = req.params.idcluster;
@@ -136,6 +167,32 @@ router.get('/:idcluster/:id', function (req, res)
         }
     });
 });
+
+router.get('/install/:idcluster/:id', function (req, res)
+{
+    var idcluster = req.params.idcluster;
+    var id = req.params.id;
+    FirewallsClusterModel.getFirewallsClustersIPData_id(idcluster, id, function (error, data)
+    {
+        //Get data
+        if (data && data.length > 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+
+        }
+        //get error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
+
 router.get('/:idcluster/firewall/:idfirewall', function (req, res)
 {
     var idcluster = req.params.idcluster;
@@ -212,7 +269,7 @@ router.post("/firewallcluster", function (req, res)
         logger.error("DETECTED UNDEFINED: firewall");
         FCData.firewall = -1;
     }
-    if (FCData.save_user_pass === undefined || FCData.save_user_pass === '' || isNaN(FCData.save_user_pass) || FCData.save_user_pass==0) {
+    if (FCData.save_user_pass === undefined || FCData.save_user_pass === '' || isNaN(FCData.save_user_pass) || FCData.save_user_pass == 0) {
         FCData.save_user_pass = false;
     } else
         FCData.save_user_pass = true;
@@ -229,7 +286,7 @@ router.post("/firewallcluster", function (req, res)
                         FCData.sshpass = data;
                     }))
             .then(() => {
-                logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);        
+                logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);
                 if (!FCData.save_user_pass) {
                     FCData.sshuser = '';
                     FCData.sshpass = '';
@@ -275,28 +332,28 @@ router.put('/firewallcluster', function (req, res)
         logger.error("DETECTED UNDEFINED: firewall");
         FCData.firewall = -1;
     }
-    
-    if (FCData.save_user_pass === undefined || FCData.save_user_pass === '' || isNaN(FCData.save_user_pass) || FCData.save_user_pass==0) {
+
+    if (FCData.save_user_pass === undefined || FCData.save_user_pass === '' || isNaN(FCData.save_user_pass) || FCData.save_user_pass == 0) {
         FCData.save_user_pass = false;
     } else
         FCData.save_user_pass = true;
 
     //encript username and password
     utilsModel.encrypt(FCData.sshuser)
-            .then(data => {                                
+            .then(data => {
                 FCData.sshuser = data;
             })
             .then(utilsModel.encrypt(FCData.sshpass)
-                    .then(data => {                                            
+                    .then(data => {
                         FCData.sshpass = data;
                     }))
             .then(() => {
-                logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);        
+                logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);
                 if (!FCData.save_user_pass) {
                     FCData.sshuser = '';
                     FCData.sshpass = '';
                 }
-                
+
                 FirewallsClusterModel.updateFirewallCluster(FCData, function (error, data)
                 {
                     //cluster ok
