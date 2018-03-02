@@ -173,29 +173,28 @@ RuleCompileModel.pre_compile = (data) => {
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
-    try{
-	if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
-		return "MASQUERADE";
+  try {
+		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
+			return "MASQUERADE";
 
-	if (trans_addr.length !== 1 || (trans_port.length !== 0 && trans_port.length !==1))
-		return null;
+		if (trans_addr.length !== 1 || (trans_port.length !== 0 && trans_port.length !==1))
+			return null;
 	
-	var action = "";
-	if (policy_type===POLICY_TYPE_SNAT)
-		action = "SNAT --to-source "
-	else
-		action = "DNAT --to-destination "
+		var action = "";
+		if (policy_type===POLICY_TYPE_SNAT)
+			action = "SNAT --to-source "
+		else
+			action = "DNAT --to-destination "
 
-	if (trans_addr.length === 1) 
-		action += (RuleCompileModel.pre_compile_sd("",trans_addr))[0];
-	if (trans_port.length === 1) 
-		action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port))[0];
+		if (trans_addr.length === 1) 
+			action += (RuleCompileModel.pre_compile_sd("",trans_addr))[0];
+		if (trans_port.length === 1) 
+			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port))[0];
 
-	return action;
-    }
-    catch (e){        
-        return null;	
-    }
+		return action;
+  } catch (e) {        
+    return null;	
+  }
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -219,6 +218,13 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 
 		var cs = "$IPTABLES "; // Compile string.
 		var cs_trail = statefull = table = action = "";
+
+		// Apply rule only to the selected firewall.
+		if (data.fw_apply_to) {
+			cs = "if [ \"$HOSTNAME\" = \""+data.firewall_name+"\" ]; then\n"+cs;
+			cs_trail += "\nfi\n";
+		}
+
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
 			cs += table+" -A POSTROUTING ";

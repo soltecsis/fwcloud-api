@@ -55,18 +55,20 @@ var utilsModel = require("../../utils/utils.js");
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.put('/:idfirewall',utilsModel.checkFirewallAccess,  async (req, res) => {
-  var fw = req.params.idfirewall;
-  var user = req.headers.x_fwc_iduser;
-  var cloud = req.headers.x_fwc_fwcloud;
-  var sshuser = req.headers.x_fwc_sshuser;
-  var sshpass = req.headers.x_fwc_sshpass;
+router.put('/:idfirewall',utilsModel.checkFirewallAccess, async (req, res) => {
+  // Obtain SSH connSettings for the firewall to which we want install the policy.
+  var SSHconn = {
+		host: '10.99.5.101',
+		port: 22,
+		username: req.post.sshuser,
+		password: req.post.sshpass
+	}
 
-  var accessData = {sessionID: req.sessionID, iduser: user, fwcloud: cloud};
+  var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
   streamModel.pushMessageCompile(accessData, "STARTING FIREWALL INSTALL PROCESS\n");
 
   /* The get method of the RuleCompile model returns a promise. */
-  await PolicyScript.install(accessData,cloud,fw,sshuser,sshpass)
+  await PolicyScript.install(accessData,SSHconn,req.params.fw)
     .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
     .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
 });
