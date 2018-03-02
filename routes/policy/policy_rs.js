@@ -289,7 +289,7 @@ router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto',utils
     var idcluster = req.params.idcluster;
     var fwapplyto = req.params.fwapplyto;
     
-    Policy_rModel.updatePolicy_r_applyto(idfirewall, type, id,idcluster, fwapplyto, function (error, data)
+    Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id,idcluster, fwapplyto, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {

@@ -32,10 +32,10 @@ firewallsclusterModel.getFirewallsClustersIPData = function (idcluster, callback
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = "SELECT C.id,C.idcluster,C.firewall,C.firewall_name, C.sshuser, '' as sshpass, save_user_pass, I.name as interface_name, O.name as ip_name, O.address as ip " +
+        var sql = "SELECT C.id,C.idcluster,C.firewall,C.firewall_name, C.install_user, '' as install_pass, save_user_pass, I.name as interface_name, O.name as ip_name, O.address as ip " +
                 " FROM " + tableModel + " C " +
-                " inner join interface I on I.id=C.interface " +
-                " inner join ipobj O on O.id=C.ipobj and O.interface=I.id " +
+                " LEFT join interface I on I.id=C.interface " +
+                " LEFT join ipobj O on O.id=C.ipobj and O.interface=I.id " +
                 " WHERE C.idcluster= " + connection.escape(idcluster) +
                 " ORDER BY C.id ";
 
@@ -53,26 +53,24 @@ firewallsclusterModel.getFirewallsClustersIPData_id = function (idcluster, id, c
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = "SELECT C.id,C.idcluster,C.firewall,C.firewall_name, C.sshuser, C.sshpass, save_user_pass, I.name as interface_name, O.name as ip_name, O.address as ip " +
+        var sql = "SELECT C.id,C.idcluster,C.firewall,C.firewall_name, C.install_user, C.install_pass, save_user_pass, I.name as interface_name, O.name as ip_name, O.address as ip " +
                 " FROM " + tableModel + " C " +
-                " inner join interface I on I.id=C.interface " +
-                " inner join ipobj O on O.id=C.ipobj and O.interface=I.id " +
+                " LEFT join interface I on I.id=C.interface " +
+                " LEFT join ipobj O on O.id=C.ipobj and O.interface=I.id " +
                 " WHERE C.idcluster= " + connection.escape(idcluster) + " AND C.id=" + connection.escape(id);
         " ORDER BY C.id ";
-
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
-
                 Promise.all(rows.map(utilsModel.decryptDataUserPass))
                         .then(data => {
-                            callback(null, rows);
+                            callback(null, data);
                         })
                         .catch(e => {
                             callback(e, null);
                         });
-
             }
         });
     });
@@ -156,8 +154,8 @@ firewallsclusterModel.updateFirewallCluster = function (FCData, callback) {
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' firewall=' + connection.escape(FCData.firewall) + ', ' +
                 ' firewall_name=' + connection.escape(FCData.firewall_name) + ', ' +
-                ' sshuser=' + connection.escape(FCData.sshuser) + ', ' +
-                ' sshpass=' + connection.escape(FCData.sshpass) + ', ' +
+                ' install_user=' + connection.escape(FCData.install_user) + ', ' +
+                ' install_pass=' + connection.escape(FCData.install_pass) + ', ' +
                 ' save_user_pass=' + connection.escape(FCData.save_user_pass) + ', ' +
                 ' interface=' + connection.escape(FCData.interface) + ', ' +
                 ' ipobj=' + connection.escape(FCData.ipobj) + ' ' +

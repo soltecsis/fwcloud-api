@@ -81,6 +81,16 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 
+router.param('cluster', function (req, res, next, param) {
+    logger.debug("DETECTED PARAM CLUSTER");
+    if (param === undefined || param === '' || isNaN(param)) {
+
+        req.params.cluster = null;
+    } else
+        next();
+});
+
+
 /**
  * Get Firewalls by User
  * 
@@ -113,7 +123,7 @@ var utilsModel = require("../../utils/utils.js");
  *       };
  * 
  */
-router.get('',  function (req, res)
+router.get('', function (req, res)
 {
     var iduser = req.iduser;
     FirewallModel.getFirewalls(iduser, function (error, data)
@@ -167,7 +177,7 @@ router.get('',  function (req, res)
  *       };
  * 
  */
-router.get('/:id',  function (req, res)
+router.get('/:id', function (req, res)
 {
     var iduser = req.iduser;
     var id = req.params.id;
@@ -206,7 +216,7 @@ router.get('/:id',  function (req, res)
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.get('/firewall/:id',  function (req, res)
+router.get('/firewall/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.iduser;
@@ -275,7 +285,7 @@ router.get('/firewall/:id',  function (req, res)
  *       };
  * 
  */
-router.get('/fwname/:name',  function (req, res)
+router.get('/fwname/:name', function (req, res)
 {
     var iduser = req.iduser;
     var name = req.params.name;
@@ -394,33 +404,82 @@ router.get('/cluster/:idcluster', function (req, res)
  *         ]
  *       };
  */
-router.post("/firewall",  function (req, res)
+//FALTA CREACION  DE ESTRUCTURA de ARBOL
+router.post("/firewall", function (req, res)
 {
-
+    var iduser = req.iduser;
     var firewallData = {
         id: null,
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment,
-        fwcloud: req.body.fwcloud
+        fwcloud: req.fwcloud,
+        ip_admin: req.body.ip_admin,
+        install_user: req.body.install_user,
+        install_pass: req.body.install_pass,
+        save_user_pass: req.body.save_user_pass,
+        install_interface: req.body.install_interface,
+        install_ipobj: req.body.install_ipobj,
+        fwmaster: req.body.fwmaster,
+        by_user: iduser
     };
-    var iduser = req.body.iduser;
-    FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
-    {
 
-        if (data && data.insertId)
-        {
-            var dataresp = {"insertId": data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    checkBodyFirewall(firewallData, true)
+            .then(result => {
+                firewallData = result;
+
+                //encript username and password
+                utilsModel.encrypt(firewallData.install_user)
+                        .then(data => {
+                            logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
+                            firewallData.install_user = data;
+                        })
+                        .then(utilsModel.encrypt(firewallData.install_pass)
+                                .then(data => {
+                                    logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
+                                    firewallData.install_pass = data;
+                                }))
+                        .then(() => {
+                            logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
+                            if (!firewallData.save_user_pass) {
+                                firewallData.install_user = '';
+                                firewallData.install_pass = '';
+                            }
+                            FirewallModel.insertFirewall(iduser, firewallData, function (error, data)
+                            {
+                                if (data && data.insertId)
+                                {
+                                    var dataresp = {"insertId": data.insertId};
+                                    //////////////////////////////////
+                                    //INSER FIREWALL NODE STRUCTURE
+                                    
+                                    
+                                    
+                                    //////////////////////////////////
+                                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                } else
+                                {
+                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                }
+                            });
+                        })
+                        .catch(e => {
+                            logger.debug(e);
+                            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        });
+            })
+            .catch(e => {
+                logger.error("ERROR CREATING FIREWALL: ", e);
+                api_resp.getJson(null, api_resp.ACR_ERROR, e, objModel, e, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 
@@ -461,30 +520,138 @@ router.post("/firewall",  function (req, res)
  *         ]
  *       };
  */
-router.put('/firewall',utilsModel.checkFirewallAccess,  function (req, res)
+//FALTA ACTUALIZAR NODO ARBOL
+router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 {
 
-    //Save firewall data into objet
-    var firewallData = {id: req.body.id, name: req.body.name, cluster: req.body.cluster, user: req.body.user, comment: req.body.comment, fwcloud: req.body.fwcloud};
+    //Save firewall data into objet    
+    var firewallData = {
+        id: req.body.id,
+        cluster: req.body.cluster,
+        name: req.body.name,
+        comment: req.body.comment,
+        fwcloud: req.fwcloud, //working cloud
+        ip_admin: req.body.ip_admin,
+        install_user: req.body.install_user,
+        install_pass: req.body.install_pass,
+        save_user_pass: req.body.save_user_pass,
+        install_interface: req.body.install_interface,
+        install_ipobj: req.body.install_ipobj,
+        fwmaster: req.body.fwmaster,
+        by_user: req.iduser  //working user
+    };
 
-    FirewallModel.updateFirewall(firewallData, function (error, data)
-    {
-        //Saved ok
-        if (data && data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    logger.debug(firewallData);
+
+    checkBodyFirewall(firewallData, false)
+            .then(result => {
+                firewallData = result;
+                //encript username and password
+                utilsModel.encrypt(firewallData.install_user)
+                        .then(data => {
+                            logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
+                            firewallData.install_user = data;
+                        })
+                        .then(utilsModel.encrypt(firewallData.install_pass)
+                                .then(data => {
+                                    logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
+                                    firewallData.install_pass = data;
+                                }))
+                        .then(() => {
+                            logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
+                            if (!firewallData.save_user_pass) {
+                                firewallData.install_user = '';
+                                firewallData.install_pass = '';
+                            }
+
+                            FirewallModel.updateFirewall(req.iduser, firewallData, function (error, data)
+                            {
+                                //Saved ok
+                                if (data && data.result)
+                                {
+                                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                } else
+                                {
+                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                }
+                            });
+
+                        })
+                        .catch(e => {
+                            logger.debug(e);
+                            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        });
+
+            })
+            .catch(e => {
+                logger.error("ERROR UPDATING FIREWALL: ", e);
+                api_resp.getJson(null, api_resp.ACR_ERROR, e, objModel, e, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
+
+
 });
 
 
+function checkBodyFirewall(body, isNew) {
+    try {
+        return new Promise((resolve, reject) => {
+            var param = "";
+            if (!isNew) {
+                param = body.id;
+                if (param === undefined || param === '' || isNaN(param) || param == null) {
+                    reject("Firewall ID not valid");
+                }
+            }
+            param = body.cluster;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.cluster = null;
+            }
+
+            param = body.name;
+            if (param === undefined || param === '' || param == null) {
+                reject("Firewall name not valid");
+            }
+
+            param = body.ip_admin;
+            if (param === undefined || param === '' || param == null) {
+                body.ip_admin = null;
+            }
+            param = body.save_user_pass;
+            if (param === undefined || param === '' || param == null || param == 0) {
+                body.save_user_pass = false;
+            } else
+                body.save_user_pass = true;
+
+            param = body.install_user;
+            if (param === undefined || param === '' || param == null) {
+                body.install_user = '';
+            }
+            param = body.install_pass;
+            if (param === undefined || param === '' || param == null) {
+                body.install_pass = '';
+            }
+            param = body.install_interface;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_interface = null;
+            }
+            param = body.install_ipobj;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_ipobj = null;
+            }
+            resolve(body);
+        });
+    } catch (e) {
+        reject("Carch Error: ", e);
+    }
+}
 
 /* Get locked Status of firewall by Id */
 /**
@@ -574,7 +741,7 @@ router.get('/accesslock/:id', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/firewall/:id",utilsModel.checkFirewallAccess,  function (req, res)
+router.put("/del/firewall/:id", utilsModel.checkFirewallAccess, function (req, res)
 {
 
     var id = req.param('id');

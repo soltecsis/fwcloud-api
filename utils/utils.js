@@ -1,6 +1,11 @@
 //create object
 var utilModel = {};
 
+
+//Export the object
+module.exports = utilModel;
+
+
 /**
  * Property Logger to manage App logs
  *
@@ -160,7 +165,7 @@ utilModel.encrypt = function (text) {
             crypted += cipher.final('hex');
             resolve(crypted);
         } catch (e) {
-            reject(e);
+            resolve(text);
         }
     });
 
@@ -174,26 +179,32 @@ utilModel.decrypt = function (text) {
             dec += decipher.final('utf8');
             resolve(dec);
         } catch (e) {
-            reject(e);
+            resolve(text);
         }
     });
 
 };
 
 utilModel.decryptDataUserPass = function (data) {
-    
+
     return new Promise((resolve, reject) => {
         try {
-            var decipher = crypto.createDecipher(algorithm, password);
-            var decUser = decipher.update(data.sshuser, 'hex', 'utf8');
-            decUser += decipher.final('utf8');
-            data.sshuser=decUser;
-            
-            var decipherPass = crypto.createDecipher(algorithm, password);
-            var decPass = decipherPass.update(data.sshpass, 'hex', 'utf8');
-            decPass += decipherPass.final('utf8');
-            data.sshpass=decPass;
-            
+            logger.debug("DENTRO de decryptDataUserPass");            
+            if (data.install_user !== null) {
+                logger.debug("DECRYPT USER: ",data.install_user );
+                var decipher = crypto.createDecipher(algorithm, password);
+                var decUser = decipher.update(data.install_user, 'hex', 'utf8');
+                decUser += decipher.final('utf8');
+                data.install_user = decUser;
+            }
+            if (data.install_pass !== null) {
+                logger.debug("DECRYPT PASS: ",data.install_pass );
+                var decipherPass = crypto.createDecipher(algorithm, password);
+                var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
+                decPass += decipherPass.final('utf8');
+                data.install_pass = decPass;
+            }
+
             resolve(data);
         } catch (e) {
             reject(e);
@@ -203,40 +214,36 @@ utilModel.decryptDataUserPass = function (data) {
 
 
 
-async function fetchRepoInfos () {  
-  // load repository details for this array of repo URLs
-  const repos = [
-    {
-      url: 'https://api.github.com/repos/fs-opensource/futureflix-starter-kit'
-    },
-    {
-      url: 'https://api.github.com/repos/fs-opensource/android-tutorials-glide'
-    }
-  ];
+async function fetchRepoInfos() {
+    // load repository details for this array of repo URLs
+    const repos = [
+        {
+            url: 'https://api.github.com/repos/fs-opensource/futureflix-starter-kit'
+        },
+        {
+            url: 'https://api.github.com/repos/fs-opensource/android-tutorials-glide'
+        }
+    ];
 
-  // map through the repo list
-  const promises = repos.map(async repo => {
-    // request details from GitHub’s API with Axios
-    const response = await Axios({
-      method: 'GET',
-      url: repo.url,
-      headers: {
-        Accept: 'application/vnd.github.v3+json'
-      }
+    // map through the repo list
+    const promises = repos.map(async repo => {
+        // request details from GitHub’s API with Axios
+        const response = await Axios({
+            method: 'GET',
+            url: repo.url,
+            headers: {
+                Accept: 'application/vnd.github.v3+json'
+            }
+        });
+
+        return {
+            name: response.data.full_name,
+            description: response.data.description
+        };
     });
 
-    return {
-      name: response.data.full_name,
-      description: response.data.description
-    };
-  });
+    // wait until all promises resolve
+    const results = await Promise.all(promises);
 
-  // wait until all promises resolve
-  const results = await Promise.all(promises);
-
-  // use the results
+    // use the results
 }
-
-
-//Export the object
-module.exports = utilModel;

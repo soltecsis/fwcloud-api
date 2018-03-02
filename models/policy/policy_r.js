@@ -488,10 +488,11 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
     });
 };
 
-var FirewallsClusterModel = require('../firewall/firewalls_cluster');
+//var FirewallsClusterModel = require('../firewall/firewalls_cluster');
+var FirewallModel = require('../../models/firewall/firewall');
 
 //Update APPLYTO de policy_r 
-policy_rModel.updatePolicy_r_applyto = function (idfirewall, type, id, idcluster, fwapplyto, callback) {
+policy_rModel.updatePolicy_r_applyto = function (iduser, fwcloud, idfirewall, type, id, idcluster, fwapplyto, callback) {
     Policy_typeModel.getPolicy_type(type, function (error, data_types) {
         if (error)
             callback(error, null);
@@ -500,7 +501,8 @@ policy_rModel.updatePolicy_r_applyto = function (idfirewall, type, id, idcluster
                 type = data_types[0].id;
             else
                 type = 1;
-            FirewallsClusterModel.getFirewallsCluster(idcluster, fwapplyto, function (error, data_fc) {
+            
+            FirewallModel.getFirewall(iduser, fwcloud, fwapplyto, function (error, data_fc) {
                 if (error)
                     callback(error, null);
                 else {

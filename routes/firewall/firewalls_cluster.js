@@ -143,13 +143,13 @@ router.get('/:idcluster/:id', function (req, res)
         //Get data
         if (data && data.length > 0)
         {
-            utilsModel.decrypt(data[0].sshuser)
-                    .then(sshuser_dec => {
-                        data[0].sshuser = sshuser_dec;
+            utilsModel.decrypt(data[0].install_user)
+                    .then(install_user_dec => {
+                        data[0].install_user = install_user_dec;
                     })
-                    .then(utilsModel.decrypt(data[0].sshpass)
-                            .then(sshpass_dec => {
-                                data[0].sshpass = sshpass_dec;
+                    .then(utilsModel.decrypt(data[0].install_pass)
+                            .then(install_pass_dec => {
+                                data[0].install_pass = install_pass_dec;
                             })
                             )
                     .then(() => {
@@ -258,8 +258,8 @@ router.post("/firewallcluster", function (req, res)
         idcluster: req.body.idcluster,
         firewall: req.body.firewall,
         firewall_name: req.body.firewall_name,
-        sshuser: req.body.sshuser,
-        sshpass: req.body.sshpass,
+        install_user: req.body.install_user,
+        install_pass: req.body.install_pass,
         save_user_pass: req.body.save_user_pass,
         interface: req.body.interface,
         ipobj: req.body.ipobj
@@ -275,21 +275,21 @@ router.post("/firewallcluster", function (req, res)
         FCData.save_user_pass = true;
 
     //encript username and password
-    utilsModel.encrypt(FCData.sshuser)
+    utilsModel.encrypt(FCData.install_user)
             .then(data => {
-                logger.debug("SSHUSER: " + FCData.sshuser + "   ENCRYPTED: " + data);
-                FCData.sshuser = data;
+                logger.debug("SSHUSER: " + FCData.install_user + "   ENCRYPTED: " + data);
+                FCData.install_user = data;
             })
-            .then(utilsModel.encrypt(FCData.sshpass)
+            .then(utilsModel.encrypt(FCData.install_pass)
                     .then(data => {
-                        logger.debug("SSPASS: " + FCData.sshpass + "   ENCRYPTED: " + data);
-                        FCData.sshpass = data;
+                        logger.debug("SSPASS: " + FCData.install_pass + "   ENCRYPTED: " + data);
+                        FCData.install_pass = data;
                     }))
             .then(() => {
                 logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);
                 if (!FCData.save_user_pass) {
-                    FCData.sshuser = '';
-                    FCData.sshpass = '';
+                    FCData.install_user = '';
+                    FCData.install_pass = '';
                 }
                 FirewallsClusterModel.insertFirewallCluster(FCData, function (error, data)
                 {
@@ -322,8 +322,8 @@ router.put('/firewallcluster', function (req, res)
         idcluster: req.body.idcluster,
         firewall: req.body.firewall,
         firewall_name: req.body.firewall_name,
-        sshuser: req.body.sshuser,
-        sshpass: req.body.sshpass,
+        install_user: req.body.install_user,
+        install_pass: req.body.install_pass,
         save_user_pass: req.body.save_user_pass,
         interface: req.body.interface,
         ipobj: req.body.ipobj
@@ -339,19 +339,19 @@ router.put('/firewallcluster', function (req, res)
         FCData.save_user_pass = true;
 
     //encript username and password
-    utilsModel.encrypt(FCData.sshuser)
+    utilsModel.encrypt(FCData.install_user)
             .then(data => {
-                FCData.sshuser = data;
+                FCData.install_user = data;
             })
-            .then(utilsModel.encrypt(FCData.sshpass)
+            .then(utilsModel.encrypt(FCData.install_pass)
                     .then(data => {
-                        FCData.sshpass = data;
+                        FCData.install_pass = data;
                     }))
             .then(() => {
                 logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", FCData.save_user_pass);
                 if (!FCData.save_user_pass) {
-                    FCData.sshuser = '';
-                    FCData.sshpass = '';
+                    FCData.install_user = '';
+                    FCData.install_pass = '';
                 }
 
                 FirewallsClusterModel.updateFirewallCluster(FCData, function (error, data)
