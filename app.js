@@ -142,7 +142,7 @@ var UserModel = require('./models/user/user');
 var url = require('url');
 
 
-var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*];
+var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/stream*'];
 //control_routes="^((?!\/ipobjs).)*";
 //CONTROL FWCLOUD ACCESS
 app.use(control_routes, function (request, response, next) {
