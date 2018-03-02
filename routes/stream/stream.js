@@ -25,7 +25,7 @@ router.get('/update-stream/compile/',  function (req, res) {
     try {
         // let request last as long as possible
         req.socket.setTimeout(99999999);
-        var accessData = {sessionID: req.sessionID, iduser: req.params.iduser, fwcloud: req.params.fwcloud};
+        var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
 
         
         
