@@ -18,14 +18,14 @@ var publisherClient = redis.createClient();
 var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
-
-router.get('/update-stream/compile',  function (req, res) {
+//FALTA CONTROL de BLOQUEO CLOUD y AUTH
+router.get('/update-stream/compile/;iduser/:fwcloud',  function (req, res) {
 
 
     try {
         // let request last as long as possible
         req.socket.setTimeout(99999999);
-        var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+        var accessData = {sessionID: req.sessionID, iduser: req.params.iduser, fwcloud: req.params.fwcloud};
 
         
         
