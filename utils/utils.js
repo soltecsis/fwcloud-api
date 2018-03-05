@@ -140,7 +140,7 @@ utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, respo
 utilModel.checkFirewallAccess = function (req, res, next) {
     logger.debug("---- DENTRO de ROUTER checkFirewallAccess ---");
     var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
-    logger.debug(accessData);
+    //logger.debug(accessData);
     FirewallModel.getFirewallAccess(accessData)
             .then(resp => {
                 next();
@@ -151,6 +151,21 @@ utilModel.checkFirewallAccess = function (req, res, next) {
                 });
             })
             ;
+};
+
+utilModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
+    return new Promise((resolve, reject) => {
+        var accessData = {iduser: iduser, fwcloud: fwcloud, idfirewall: idfirewall};
+        //logger.debug(accessData);
+        FirewallModel.getFirewallAccess(accessData)
+                .then(resp => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    resolve(false);
+                })
+                ;
+    });
 };
 
 var algorithm = 'aes-256-ctr';
@@ -189,16 +204,16 @@ utilModel.decryptDataUserPass = function (data) {
 
     return new Promise((resolve, reject) => {
         try {
-            logger.debug("DENTRO de decryptDataUserPass");            
+            logger.debug("DENTRO de decryptDataUserPass");
             if (data.install_user !== null) {
-                logger.debug("DECRYPT USER: ",data.install_user );
+                logger.debug("DECRYPT USER: ", data.install_user);
                 var decipher = crypto.createDecipher(algorithm, password);
                 var decUser = decipher.update(data.install_user, 'hex', 'utf8');
                 decUser += decipher.final('utf8');
                 data.install_user = decUser;
             }
             if (data.install_pass !== null) {
-                logger.debug("DECRYPT PASS: ",data.install_pass );
+                logger.debug("DECRYPT PASS: ", data.install_pass);
                 var decipherPass = crypto.createDecipher(algorithm, password);
                 var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
                 decPass += decipherPass.final('utf8');

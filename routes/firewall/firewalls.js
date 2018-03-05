@@ -80,6 +80,8 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
+var fwcTreemodel = require('../../models/tree/fwc_tree');
+
 
 router.param('cluster', function (req, res, next, param) {
     logger.debug("DETECTED PARAM CLUSTER");
@@ -408,6 +410,8 @@ router.get('/cluster/:idcluster', function (req, res)
 router.post("/firewall", function (req, res)
 {
     var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+
     var firewallData = {
         id: null,
         cluster: req.body.cluster,
@@ -451,14 +455,24 @@ router.post("/firewall", function (req, res)
                                 {
                                     var dataresp = {"insertId": data.insertId};
                                     //////////////////////////////////
-                                    //INSER FIREWALL NODE STRUCTURE
-                                    
-                                    
-                                    
-                                    //////////////////////////////////
-                                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                                        res.status(200).json(jsonResp);
+                                    //INSERT FIREWALL NODE STRUCTURE
+
+                                    fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF", data.insertId, function (error, data) {
+                                        if (error)
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        else if (data && data.result)
+                                            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        else
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+
                                     });
+
                                 } else
                                 {
                                     api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
@@ -524,9 +538,11 @@ router.post("/firewall", function (req, res)
 router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 {
 
+    var idfirewall= req.params.idfirewall;
+    
     //Save firewall data into objet    
     var firewallData = {
-        id: req.body.id,
+        id: idfirewall,
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment,
@@ -569,9 +585,22 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (re
                                 //Saved ok
                                 if (data && data.result)
                                 {
-                                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-                                        res.status(200).json(jsonResp);
-                                    });
+                                     //////////////////////////////////
+                                    //UPDATE FIREWALL NODE STRUCTURE                                    
+                                    fwcTreemodel.updateFwc_Tree_Firewall(req.iduser, req.fwcloud, firewallData, function (error, data) {
+                                        if (error)
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        else if (data && data.result)
+                                            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        else
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });                                        
+                                    });                                   
                                 } else
                                 {
                                     api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {

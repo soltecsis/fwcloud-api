@@ -28,7 +28,7 @@ router.get('/firewalls',  function (req, res)
                 var root_node = new fwc_tree_node(row);
                 //console.log(root_node);
                 var tree = new Tree(root_node);
-                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", function (error, data)
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF",'', function (error, data)
                 {
                     //If exists fwc_tree get data
                     if (data && data.length > 0)
@@ -57,8 +57,9 @@ router.get('/firewalls',  function (req, res)
 });
 
 //FALTA HACER FILTRO POR NODO PADRE
+//FALTA CONTROL Por CLUSTER
 /* Get all fwc_tree NODE FIREWALL by IdFirewall*/
-router.get('/firewalls/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
+router.get('/firewall/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -74,7 +75,7 @@ router.get('/firewalls/:idfirewall',utilsModel.checkFirewallAccess,  function (r
                 var root_node = new fwc_tree_node(row);
                 //console.log(root_node);
                 var tree = new Tree(root_node);
-                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", function (error, data)
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", idfirewall, function (error, data)
                 {
                     //If exists fwc_tree get data
                     if (data && data.length > 0)
