@@ -81,6 +81,12 @@ router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
     var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
     streamModel.pushMessageCompile(accessData, "STARTING FIREWALL INSTALL PROCESS\n");
 
+    // If we have no user or password for the ssh connection, then error.
+    if (!SSHconn.username || !SSHconn.password) {
+      api_resp.getJson({"Msg": "User or password for the SSH connection not found."},api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));
+      return;
+    }
+
     /* The get method of the RuleCompile model returns a promise. */
     PolicyScript.install(accessData,SSHconn,req.params.fw)
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
