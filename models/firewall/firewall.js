@@ -37,6 +37,7 @@ var logger = require('log4js').getLogger("app");
 
 var FwcloudModel = require('../../models/fwcloud/fwcloud');
 var utilsModel = require("../../utils/utils.js");
+var InterfaceModel = require('../../models/interface/interface');
 
 
 /**
@@ -549,20 +550,20 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-firewallModel.deleteFirewall = function (iduser, id, callback) {
+firewallModel.deleteFirewall = function (iduser, idfirewall, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
         //var sqlExists = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE id = ' + connection.escape(id);
         var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
                 ' AND U.id_user=' + connection.escape(iduser) +
-                ' WHERE T.id = ' + connection.escape(id) + ' AND U.allow_access=1 AND U.allow_edit=1 ' +
-                ' AND (locked=1 AND locked_by=' + connection.escape(iduser) + ') ';
+                ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ' ;
+                
         connection.query(sqlExists, function (error, row) {
             //If exists Id from firewall to remove
             if (row && row.length > 0) {
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             callback(error, null);
@@ -572,6 +573,21 @@ firewallModel.deleteFirewall = function (iduser, id, callback) {
                                 if (error) {
                                     callback(error, null);
                                 } else {
+                                    
+                                    //DELETE INTERFACES FROM FIREWALL
+                                    
+                                    //InterfaceModel.searchInterfaceInrulesFirewall(fwcloud, idfirewall)
+                                        
+                                    
+                                    //DELETE IPOBJ UNDER INTERFACES FIREWALL
+                                    
+                                    
+                                    //DELETE POLICY
+                                    
+                                    
+                                    //DELETE TREE NODES 
+                                    
+                                    
                                     callback(null, {"result": true, "msg": "deleted"});
                                 }
                             });

@@ -385,4 +385,63 @@ router.put("/del/interface/:idfirewall/:id/:type",utilsModel.checkFirewallAccess
     });
 });
 
+/* Remove interface */
+router.put("/del/interface/all/:idfirewall/",utilsModel.checkFirewallAccess, function (req, res)
+{
+    //Id from interface to remove
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    var idfirewall = req.params.idfirewall;
+
+
+
+    InterfaceModel.deleteInterfaceFirewall(fwcloud, idfirewall, function (error, data)
+    {
+        if (error)
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        else {
+            if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
+            {
+                if (data.msg === "deleted") {
+                    //DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
+                    //DELETE  ALL IPOBJ UNDER INTERFACE
+                    //Interface__ipobjModel.deleteInterface__ipobj(id, null, function (error, data)
+                    //{});
+                    //
+                    //DELETE FROM TREE
+//                    fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
+//                        if (data && data.result) {
+//                            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, function (jsonResp) {
+//                                res.status(200).json(jsonResp);
+//                            });
+//                        } else {
+//                            logger.debug(error);
+//                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error DELETING', objModel, error, function (jsonResp) {
+//                                res.status(200).json(jsonResp);
+//                            });
+//                        }
+//                    });
+
+                    //DELETE FROM RULES
+
+                } else if (data.msg === "Restricted") {
+                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'INTERFACE restricted to delete', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            } else {
+                api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        }
+    });
+});
+
 module.exports = router;
