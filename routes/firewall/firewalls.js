@@ -425,6 +425,7 @@ router.post("/firewall", function (req, res)
         install_interface: req.body.install_interface,
         install_ipobj: req.body.install_ipobj,
         fwmaster: req.body.fwmaster,
+        install_port: req.body.install_port,
         by_user: iduser
     };
 
@@ -553,6 +554,7 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess,utilsModel.ch
         install_interface: req.body.install_interface,
         install_ipobj: req.body.install_ipobj,
         fwmaster: req.body.fwmaster,
+        install_port: req.body.install_port,
         by_user: req.iduser  //working user
     };
 
@@ -673,6 +675,10 @@ function checkBodyFirewall(body, isNew) {
             param = body.install_ipobj;
             if (param === undefined || param === '' || isNaN(param) || param == null) {
                 body.install_ipobj = null;
+            }
+            param = body.install_port;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_port = 22;
             }
             resolve(body);
         });

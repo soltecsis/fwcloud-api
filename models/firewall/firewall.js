@@ -393,6 +393,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
                         'install_interface = ' + connection.escape(firewallData.install_interface) + ', ' +
                         'install_ipobj = ' + connection.escape(firewallData.install_ipobj) + ', ' +
                         'fwmaster = ' + connection.escape(firewallData.fwmaster) + ', ' +
+                        'install_port = ' + connection.escape(firewallData.install_port) + ', ' +
                         'by_user = ' + connection.escape(iduser) +
                         ' WHERE id = ' + firewallData.id;
                 logger.debug(sql);
