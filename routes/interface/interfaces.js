@@ -13,7 +13,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all interfaces by firewall*/
-router.get('/:idfirewall/',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.fwcloud;
@@ -61,7 +61,7 @@ router.get('/host/:idhost', function (req, res)
 });
 
 /* Get  interface by id and  by firewall*/
-router.get('/:idfirewall/interface/:id',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/interface/:id', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.fwcloud;
@@ -86,7 +86,7 @@ router.get('/:idfirewall/interface/:id',utilsModel.checkFirewallAccess, function
 });
 
 /* Get all interfaces by name and by firewall*/
-router.get('/:idfirewall/name/:name',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/name/:name', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var fwcloud = req.fwcloud;
@@ -111,7 +111,7 @@ router.get('/:idfirewall/name/:name',utilsModel.checkFirewallAccess, function (r
 });
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface in RULES  */
-router.get("/interface_search_rules/:id/:type",  function (req, res)
+router.get("/interface_search_rules/:id/:type", function (req, res)
 {
 
     var iduser = req.iduser;
@@ -119,25 +119,27 @@ router.get("/interface_search_rules/:id/:type",  function (req, res)
     var id = req.params.id;
     var type = req.params.type;
 
-    InterfaceModel.searchInterfaceInrules(id, type, fwcloud, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    InterfaceModel.searchInterfaceInrulesPro(id, type, fwcloud, '')
+            .then(data =>
+            {
+                if (data && data.result)
+                {
+                    api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(error => {
+                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+
             });
-        else
-        if (data && data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
@@ -265,7 +267,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Update interface that exist */
-router.put('/interface/',  function (req, res)
+router.put('/interface/', function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -327,7 +329,7 @@ router.put('/interface/',  function (req, res)
 
 
 /* Remove interface */
-router.put("/del/interface/:idfirewall/:id/:type",utilsModel.checkFirewallAccess, function (req, res)
+router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAccess, function (req, res)
 {
     //Id from interface to remove
     var iduser = req.iduser;
@@ -386,7 +388,7 @@ router.put("/del/interface/:idfirewall/:id/:type",utilsModel.checkFirewallAccess
 });
 
 /* Remove interface */
-router.put("/del/interface/all/:idfirewall/",utilsModel.checkFirewallAccess, function (req, res)
+router.put("/del/interface/all/:idfirewall/", utilsModel.checkFirewallAccess, function (req, res)
 {
     //Id from interface to remove
     var iduser = req.iduser;

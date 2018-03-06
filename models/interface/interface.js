@@ -2,6 +2,7 @@ var db = require('../../db.js');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
+var utilsModel = require("../../utils/utils.js");
 
 
 //create object
@@ -103,6 +104,7 @@ interfaceModel.getInterface_data = function (id, type, callback) {
         if (error)
             callback(error, null);
         var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type);
+
         connection.query(sql, function (error, row) {
             if (error || (row.length === 0))
                 callback(error, null);
@@ -135,79 +137,105 @@ interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback)
 };
 
 
-/* Search where is in RULES ALL interfaces from FIREWALL  */
-interfaceModel.searchInterfaceInrulesFirewall = function (fwcloud, idfirewall) {
+
+
+/* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
+interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewall) {
     return new Promise((resolve, reject) => {
+        var found = false;
+        var found_resp = "";
+
         interfaceModel.getInterfaces(idfirewall, fwcloud, async (error, data) => {
             if (error)
                 return reject(error);
-            
-            for (i=0; i<data.length; i++) {
-                await interfaceModel.searchInterfaceInrules(data.id, data.type, fwcloud, function(error, resp){
-                   logger.debug("INTERFACE: " + data.id + " - " + data.name) ;                   
-                   logger.debug("RESP: ", resp);
-                }); 
-            resolve(resp);                    
+            for (i = 0; i < data.length; i++) {
+                await interfaceModel.searchInterfaceInrulesPro(data[i].id, data[i].interface_type, fwcloud, idfirewall)
+                        .then(resp => {
+                            if (resp.result) {
+                                var respI = {resp};
+                                found = true;
+                                var obj = "";
+                                if (!utilsModel.isEmptyObject(found_resp)) {
+                                    obj = utilsModel.mergeObj(found_resp, respI);
+                                } else {
+                                    obj = respI;
+                                }
+                                found_resp = obj;
+                            }
+                        })
+                        .catch();
             }
+            if (!found)
+                found_resp = "";
+            else
+                found_resp = {"found": true, "search": found_resp};
+            //logger.debug("FINAL RESP: " + JSON.stringify(found_resp));
+            resolve(found_resp);
         });
 
     });
 };
 
-// ====> FALTA BUSCAR INTERFACES CON IPOBJ en GRUPOS//
-/* Search where is in RULES interface  */
-interfaceModel.searchInterfaceInrules = function (id, type, fwcloud, callback) {
-    //SEARCH INTERFACE DATA
-    interfaceModel.getInterface_data(id, type, function (error, data) {
-        if (error) {
-            callback(error, null);
-        } else {
-            if (data && data.length > 0) {
-                var firewall = data[0].firewall;
-                logger.debug("firewall interface: " + firewall);
-                //SEARCH INTERFACE IN RULES I POSITIONS
-                Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, firewall, function (error, data_rules_I) {
-                    if (error) {
-                        callback(error, null);
-                    } else {
-                        //SEARCH INTERFACE IN RULES O POSITIONS
-                        Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, firewall, function (error, data_rules_O) {
-                            if (error) {
-                                callback(error, null);
-                            } else {
-                                //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
-                                Policy_r__ipobjModel.searchIpobjInterfacesInRules(id, type, fwcloud, firewall, function (error, data_ipobj_interfaces) {
-                                    if (error) {
-                                        callback(error, null);
-                                    } else {
-                                        //SEARCH HOST with INTERFACE UNDER IPOBJ HOST WITH HOST IN RULES
-                                        Policy_r__ipobjModel.searchHostInterfacesHostInRule(id, type, fwcloud, firewall, function (error, data_host_interfaces) {
-                                            if (error) {
-                                                callback(error, null);
-                                            } else {
-                                                //logger.debug(data_ipobj);
-                                                if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
-                                                    callback(null, {"result": true, "msg": "INTERFACE FOUND", "search": {
-                                                            "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
-                                                            "IpobjInterfaceInrules": data_ipobj_interfaces}});
+/* Search where is in RULES interface in OTHER FIREWALLS  */
+interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_firewall) {
+    return new Promise((resolve, reject) => {
+        logger.debug("SEARCHING INTERFACE: " + id + " - " + type + "  DIFF FW: " + diff_firewall);
+        //SEARCH INTERFACE DATA
+        interfaceModel.getInterface_data(id, type, function (error, data) {
+            if (error) {
+                reject(error);
+            } else {
+                if (data && data.length > 0) {
+                    //FALTA REVISAR CONTROL de FIREWALL de INTERFAZ
+                    //var firewall = data[0].firewall;
+                    //logger.debug("firewall interface: " + firewall);
+                    var firewall = null;
+
+                    //SEARCH INTERFACE IN RULES I POSITIONS
+                    Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, firewall, diff_firewall, function (error, data_rules_I) {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            //SEARCH INTERFACE IN RULES O POSITIONS
+                            Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, firewall, diff_firewall, function (error, data_rules_O) {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
+                                    Policy_r__ipobjModel.searchIpobjInterfacesInRules(id, type, fwcloud, firewall, diff_firewall, function (error, data_ipobj_interfaces) {
+                                        if (error) {
+                                            reject(error);
+                                        } else {
+                                            //SEARCH HOST with INTERFACE UNDER IPOBJ HOST WITH HOST IN RULES
+                                            Policy_r__ipobjModel.searchHostInterfacesHostInRule(id, type, fwcloud, firewall, diff_firewall, function (error, data_host_interfaces) {
+                                                if (error) {
+                                                    reject(error);
                                                 } else {
-                                                    callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
-                                                            "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+                                                    //logger.debug(data_ipobj);
+                                                    if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
+                                                        resolve({"result": true, "msg": "INTERFACE FOUND", "search": {
+                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
+                                                                "IpobjInterfaceInrules": data_ipobj_interfaces}});
+                                                    } else {
+                                                        resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+                                                    }
                                                 }
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            } else
-                callback(null, {"result": false, "msg": "INTERFACE NOT FOUND", "search": {
-                        "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
-        }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                } else
+                    resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                            "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+            }
+        });
     });
 };
+
 
 /* Search where is used interface  */
 interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
@@ -218,16 +246,17 @@ interfaceModel.searchInterface = function (id, type, fwcloud, callback) {
         } else {
             logger.debug(data);
             if (data && data.length > 0) {
-                var firewall = data[0].firewall;
-                logger.debug("firewall interface: " + firewall);
+                //var firewall = data[0].firewall;
+                //logger.debug("firewall interface: " + firewall);
+                var firewall = null;
 
                 //SEARCH INTERFACE IN RULES I POSITIONS
-                Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, firewall, function (error, data_rules_I) {
+                Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, firewall, '', function (error, data_rules_I) {
                     if (error) {
                         callback(error, null);
                     } else {
                         //SEARCH INTERFACE IN RULES O POSITIONS
-                        Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, firewall, function (error, data_rules_O) {
+                        Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, firewall, '', function (error, data_rules_O) {
                             if (error) {
                                 callback(error, null);
                             } else {
@@ -352,44 +381,47 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
 interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callback) {
 
     //Check interface in RULE O POSITIONS
-    this.searchInterfaceInrules(id, type, fwcloud, function (error, data) {
-        if (error) {
-            callback(error, null);
-        } else {
-            //CHECK RESULTS
-            if (data.result) {
-                logger.debug("RESTRICTED INTERFACE: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
-                callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
-            } else {
-                db.get(function (error, connection) {
-                    if (error)
-                        callback(error, null);
-                    var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                    connection.query(sqlExists, function (error, row) {
-                        //If exists Id from interface to remove
-                        if (row) {
-                            db.get(function (error, connection) {
-                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                                connection.query(sql, function (error, result) {
-                                    if (error) {
-                                        logger.debug(error);
-                                        callback(error, null);
-                                    } else {
-                                        if (result.affectedRows > 0)
-                                            callback(null, {"result": true, "msg": "deleted"});
-                                        else
-                                            callback(null, {"result": false, "msg": "notExist"});
-                                    }
+    this.searchInterfaceInrulesPro(id, type, fwcloud, '')
+            .then(data =>
+            {
+                //CHECK RESULTS
+                if (data.result) {
+                    logger.debug("RESTRICTED INTERFACE: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
+                    callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
+                } else {
+                    db.get(function (error, connection) {
+                        if (error)
+                            callback(error, null);
+                        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                        connection.query(sqlExists, function (error, row) {
+                            //If exists Id from interface to remove
+                            if (row) {
+                                db.get(function (error, connection) {
+                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                                    connection.query(sql, function (error, result) {
+                                        if (error) {
+                                            logger.debug(error);
+                                            callback(error, null);
+                                        } else {
+                                            if (result.affectedRows > 0)
+                                                callback(null, {"result": true, "msg": "deleted"});
+                                            else
+                                                callback(null, {"result": false, "msg": "notExist"});
+                                        }
+                                    });
                                 });
-                            });
-                        } else {
-                            callback(null, {"result": false, "msg": "notExist"});
-                        }
+                            } else {
+                                callback(null, {"result": false, "msg": "notExist"});
+                            }
+                        });
                     });
-                });
-            }
-        }
-    });
+                }
+
+            })
+            .catch(error => {
+                callback(error, null);
+            });
+
 };
 
 
@@ -397,34 +429,33 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
 interfaceModel.deleteInterfaceFirewall = function (fwcloud, idfirewall, callback) {
 
     //Check interface in RULE O POSITIONS
-    this.searchInterfaceInrulesFirewall(fwcloud,idfirewall, function (error, data) {
-        if (error) {
-            callback(error, null);
-        } else {
-            //CHECK RESULTS
-            if (data.result) {
-                logger.debug("RESTRICTED INTERFACES Fwcloud: " + fwcloud + "  Firewall: " + idfirewall);
-                callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
-            } else {
-
-                db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE firewallX = ' + connection.escape(idfirewall);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            logger.debug(error);
-                            callback(error, null);
-                        } else {
-                            if (result.affectedRows > 0)
-                                callback(null, {"result": true, "msg": "deleted"});
-                            else
-                                callback(null, {"result": false, "msg": "notExist"});
-                        }
+    this.searchInterfaceInrulesFirewall(fwcloud, idfirewall)
+            .then(found => {
+                //CHECK RESULTS
+                if (found) {
+                    logger.debug("RESTRICTED INTERFACES Fwcloud: " + fwcloud + "  Firewall: " + idfirewall);
+                    callback(null, {"result": false, "msg": "Restricted", "restrictions": ""});
+                } else {
+                    db.get(function (error, connection) {
+                        var sql = 'DELETE FROM ' + tableModel + ' WHERE firewallX = ' + connection.escape(idfirewall);
+                        connection.query(sql, function (error, result) {
+                            if (error) {
+                                logger.debug(error);
+                                callback(error, null);
+                            } else {
+                                if (result.affectedRows > 0)
+                                    callback(null, {"result": true, "msg": "deleted"});
+                                else
+                                    callback(null, {"result": false, "msg": "notExist"});
+                            }
+                        });
                     });
-                });
-            }
-        }
+                }
+            })
+            .catch(() => {
+                callback(null, {"result": false, "msg": "notExist"});
+            });
 
-    });
 };
 //Export the object
 module.exports = interfaceModel;

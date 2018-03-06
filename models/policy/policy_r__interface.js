@@ -88,9 +88,8 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfa
                         }
                     });
                 });
-            }
-            else{
-                 callback(null, {"result": false, "allowed": "0"});
+            } else {
+                callback(null, {"result": false, "allowed": "0"});
             }
         }
     });
@@ -105,7 +104,7 @@ policy_r__interfaceModel.duplicatePolicy_r__interface = function (rule, new_rule
             callback(error, null);
         var sql = 'INSERT INTO  ' + tableModel + ' (rule,  interface, position,position_order, negate) ' +
                 '(SELECT ' + connection.escape(new_rule) + ', interface, position, position_order, negate ' +
-                'from ' + tableModel + ' where rule=' +  connection.escape(rule) + ' order by  position, position_order)';
+                'from ' + tableModel + ' where rule=' + connection.escape(rule) + ' order by  position, position_order)';
 
         connection.query(sql, function (error, result) {
             if (error) {
@@ -113,7 +112,7 @@ policy_r__interfaceModel.duplicatePolicy_r__interface = function (rule, new_rule
                 logger.debug(sql);
                 callback(error, null);
             } else {
-                if (result.affectedRows > 0) {                    
+                if (result.affectedRows > 0) {
                     callback(null, {"result": true});
                 } else {
                     callback(null, {"result": false});
@@ -209,7 +208,7 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, in
                     }
                 });
             } else {
-                callback(null,{ "result": false, "allowed": 0});
+                callback(null, {"result": false, "allowed": 0});
             }
         }
     });
@@ -414,7 +413,7 @@ policy_r__interfaceModel.orderPolicyPosition = function (rule, position, callbac
         if (error)
             callback(error, null);
         var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
-        logger.debug(sqlPos);
+        //logger.debug(sqlPos);
         connection.query(sqlPos, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
@@ -456,7 +455,7 @@ policy_r__interfaceModel.orderPolicy = function (rule, callback) {
         if (error)
             callback(error, null);
         var sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
-        logger.debug(sqlRule);
+        //logger.debug(sqlRule);
         connection.query(sqlRule, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
@@ -505,7 +504,7 @@ policy_r__interfaceModel.orderAllPolicy = function (callback) {
         if (error)
             callback(error, null);
         var sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
-        logger.debug(sqlRule);
+        //logger.debug(sqlRule);
         connection.query(sqlRule, function (error, rows) {
             if (rows.length > 0) {
                 var order = 0;
@@ -564,7 +563,7 @@ policy_r__interfaceModel.checkInterfaceInRule = function (interface, type, fwclo
                 ' inner join interface I on I.id=O.interface ' +
                 ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                 ' AND C.id=' + connection.escape(fwcloud);
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
@@ -596,7 +595,7 @@ policy_r__interfaceModel.checkHostAllInterfacesInRule = function (ipobj_host, fw
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND C.id=' + connection.escape(fwcloud);
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
@@ -636,11 +635,11 @@ policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, call
                 'inner join policy_position P on P.id=O.position ' +
                 'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE J.id=' + connection.escape(ipobj) + ' AND C.id=' + connection.escape(fwcloud);
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
-                    logger.debug("FOUND interfaces IN RULE:" + ipobj + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
+                    logger.debug(">>>>>>>>> FOUND interfaces IN RULE:" + ipobj + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
                     callback(null, {"found": rows});
 
                 } else {
@@ -653,15 +652,15 @@ policy_r__interfaceModel.searchInterfacesInRule = function (ipobj, fwcloud, call
 };
 
 //search if INTERFACE Exists in any rule I POSITIONS
-policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwcloud, firewall, callback) {
-    
+policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwcloud, firewall, diff_firewall, callback) {
+
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
         var sql = "";
         if (firewall === null) {
             //Search interfaces in all Firewalls from Cloud
-            logger.debug("SEARCH interface I POSITIONS IN ALL CLOUD's Firewalls:" + interface + " Type:" + type + "  fwcloud:" + fwcloud);
+            logger.debug("SEARCH interface I POSITIONS IN ALL CLOUD's Firewalls:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Different FW: " + diff_firewall);
             sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
                     'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
                     'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
@@ -673,10 +672,13 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join policy_position P on P.id=O.position ' +
                     'inner join policy_type PT on PT.id=R.type ' +
                     'inner join fwcloud C on C.id=F.fwcloud ' +
-                    ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + ' AND C.id=' + connection.escape(fwcloud);
+                    ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
+                    ' AND C.id=' + connection.escape(fwcloud);
+            if (diff_firewall.length > 0)
+                sql += ' AND F.id<>' + connection.escape(diff_firewall);
         } else {
-                //Search interfaces only in Firewall interface
-            logger.debug("SEARCH interface I POSITIONS IN INTERFACE's FIREWALL:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall);   
+            //Search interfaces only in Firewall interface
+            logger.debug("SEARCH interface I POSITIONS IN INTERFACE's FIREWALL:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall + "  Different FW: " + diff_firewall);
             sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
                     'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
                     'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
@@ -688,14 +690,18 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join policy_position P on P.id=O.position ' +
                     'inner join policy_type PT on PT.id=R.type ' +
                     'inner join fwcloud C on C.id=F.fwcloud ' +
-                    ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) + 
-                    ' AND C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall) ;
+                    ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
+                    ' AND C.id=' + connection.escape(fwcloud);
+            if (diff_firewall.length > 0)
+                sql += ' AND F.id<>' + connection.escape(diff_firewall);
+            else
+                sql += ' AND F.id=' + connection.escape(firewall);
         }
-        logger.debug(sql);
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
-                    logger.debug("FOUND interface IN RULES:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
+                    logger.debug(">>>>>>>>> FOUND interface IN RULES:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
                     callback(null, {"found": rows});
 
                 } else {

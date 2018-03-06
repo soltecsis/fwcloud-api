@@ -1,11 +1,7 @@
 //create object
 var utilModel = {};
-
-
 //Export the object
 module.exports = utilModel;
-
-
 /**
  * Property Logger to manage App logs
  *
@@ -14,14 +10,12 @@ module.exports = utilModel;
  * 
  */
 var logger = require('log4js').getLogger("app");
-
 var FirewallModel = require('../models/firewall/firewall');
 var FwcloudModel = require('../models/fwcloud/fwcloud');
 var api_resp = require('./api_response');
-
+var UserModel = require('../models/user/user');
 var crypto = require('crypto');
-
-
+var randomString = require('random-string');
 utilModel.checkParameters = function (obj, callback) {
     for (var propt in obj) {
         logger.debug(propt + ': ' + obj[propt]);
@@ -32,7 +26,6 @@ utilModel.checkParameters = function (obj, callback) {
     }
     callback(obj);
 };
-
 utilModel.checkEmptyRow = function (obj, callback) {
     var resp = true;
     logger.debug(obj);
@@ -45,14 +38,42 @@ utilModel.checkEmptyRow = function (obj, callback) {
     logger.debug(resp);
     callback(resp);
 };
+utilModel.isEmptyObject = function (obj) {
+    return !Object.keys(obj).length;
+};
+utilModel.getRandomString = function (size) {
+    var x = randomString({length: size});
+    return x;
+};
+utilModel.mergeObj = function () {
+    var destination = {},
+            sources = [].slice.call(arguments, 0);
+    sources.forEach(function (source) {
+        var prop;
+        for (prop in source) {
+            if (prop in destination && Array.isArray(destination[ prop ])) {
 
+                // Concat Arrays
+                destination[ prop ] = destination[ prop ].concat(source[ prop ]);
+            } else if (prop in destination && typeof destination[ prop ] === "object") {
+
+                // Merge Objects
+                destination[ prop ] = utilModel.mergeObj(destination[ prop ], source[ prop ]);
+            } else {
+
+                // Set new values
+                destination[ prop ] = source[ prop ];
+            }
+        }
+    });
+    return destination;
+};
 //CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
 utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
 
     return new Promise((resolve, reject) => {
         if (iduser && fwcloud) {
             var fwcloudData = {fwcloud: fwcloud, iduser: iduser};
-
             //Checl FWCLOUD LOCK
             FwcloudModel.getFwcloudAccess(iduser, fwcloud)
                     .then(resp => {
@@ -114,7 +135,6 @@ utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, respo
                             });
                         }
                         logger.warn("--------------------------------------------------");
-
                     })
                     .catch(resp => {
                         logger.warn(resp);
@@ -125,7 +145,6 @@ utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, respo
                             response.status(200).json(jsonResp);
                         });
                     });
-
         } else {
             logger.error("ERROR ---> IDUSER & FWCLOUD NOT FOUND IN URL");
             api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
@@ -134,11 +153,24 @@ utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, respo
         }
     });
 };
-
-
-
+utilModel.checkConfirmationToken = function (req, res, next) {
+    var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, confirm_token: req.confirm_token, sessionID: req.sessionID};
+    logger.debug("checkConfirmationToken: ", accessData);
+    UserModel.checkConfirmationtoken(accessData)
+            .then(resp => {
+                if (resp.result) {
+                    //Confirmation ok
+                    next();
+                } else {
+                    //Need confirmation, send new token
+                    var token= {"fwc_confirm_token": resp.token};
+                    api_resp.getJson(token, api_resp.ACR_CONFIRM_ASK, ' Need to confirm action', 'ACTION', null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            });
+};
 utilModel.checkFirewallAccess = function (req, res, next) {
-    logger.debug("---- DENTRO de ROUTER checkFirewallAccess ---");
     var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
     //logger.debug(accessData);
     FirewallModel.getFirewallAccess(accessData)
@@ -152,7 +184,6 @@ utilModel.checkFirewallAccess = function (req, res, next) {
             })
             ;
 };
-
 utilModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
     return new Promise((resolve, reject) => {
         var accessData = {iduser: iduser, fwcloud: fwcloud, idfirewall: idfirewall};
@@ -167,11 +198,8 @@ utilModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
                 ;
     });
 };
-
 var algorithm = 'aes-256-ctr';
 var password = 'RJ23edrf9)8JsjseE%6m,35HsjS84MK';
-
-
 utilModel.encrypt = function (text) {
     return new Promise((resolve, reject) => {
         try {
@@ -183,9 +211,7 @@ utilModel.encrypt = function (text) {
             resolve(text);
         }
     });
-
 };
-
 utilModel.decrypt = function (text) {
     return new Promise((resolve, reject) => {
         try {
@@ -197,9 +223,7 @@ utilModel.decrypt = function (text) {
             resolve(text);
         }
     });
-
 };
-
 utilModel.decryptDataUserPass = function (data) {
 
     return new Promise((resolve, reject) => {
@@ -226,9 +250,6 @@ utilModel.decryptDataUserPass = function (data) {
         }
     });
 };
-
-
-
 async function fetchRepoInfos() {
     // load repository details for this array of repo URLs
     const repos = [
@@ -239,7 +260,6 @@ async function fetchRepoInfos() {
             url: 'https://api.github.com/repos/fs-opensource/android-tutorials-glide'
         }
     ];
-
     // map through the repo list
     const promises = repos.map(async repo => {
         // request details from GitHub’s API with Axios
@@ -250,15 +270,12 @@ async function fetchRepoInfos() {
                 Accept: 'application/vnd.github.v3+json'
             }
         });
-
         return {
             name: response.data.full_name,
             description: response.data.description
         };
     });
-
     // wait until all promises resolve
     const results = await Promise.all(promises);
-
     // use the results
 }

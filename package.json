@@ -30,6 +30,7 @@
     "node-datetime": "^2.0.6",
     "passport": "*",
     "passport-local": "*",
+    "random-string": "^0.2.0",
     "redis": "^2.8.0",
     "serve-favicon": "~2.3.0",
     "sse-channel": "^3.0.1",

@@ -159,6 +159,8 @@ app.use(control_routes, function (request, response, next) {
 
     var iduser = request.headers.x_fwc_iduser;
     var fwcloud = request.headers.x_fwc_fwcloud;
+    var confirm_token=request.headers.x_fwc_confirm_token;
+    
     var update = true;
     if (request.method==='GET')
         update=false;
@@ -171,6 +173,7 @@ app.use(control_routes, function (request, response, next) {
                 //save access to user                
                 var userData = {id: iduser};
                 UserModel.updateUserTS(userData, function (error, data){});
+                request.confirm_token=confirm_token;
                 next();
             })
             .catch(err => {

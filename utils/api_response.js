@@ -129,6 +129,14 @@ respModel.ACR_ACCESS_LOCKED = 'ACR_ACCESS_LOCKED';
 respModel.ACR_COMPILED_OK = 'ACR_COMPILED_OK';
 
 /**
+ * Property ACR_CONFIRM_ASK
+ *
+ * @property ACR_CONFIRM_ASK
+ * @type String
+ */
+respModel.ACR_CONFIRM_ASK = 'ACR_CONFIRM_ASK';
+
+/**
  * Property Logger to manage App logs
  *
  * @attribute logger
@@ -288,6 +296,10 @@ respModel.getMsgCodeResp = function (respCode, custom_obj, error, callback) {
         case this.ACR_COMPILED_OK:
             status = true;
             msg = custom_obj + " compile success";
+            break;    
+        case this.ACR_CONFIRM_ASK:
+            status = true;
+            msg = custom_obj + " Confirmation ask";
             break;    
         default:
             status = false;

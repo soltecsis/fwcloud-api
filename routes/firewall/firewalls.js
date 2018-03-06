@@ -534,8 +534,7 @@ router.post("/firewall", function (req, res)
  *         ]
  *       };
  */
-//FALTA ACTUALIZAR NODO ARBOL
-router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
+router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
 {
 
     var idfirewall= req.params.idfirewall;
@@ -770,14 +769,15 @@ router.get('/accesslock/:id', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, function (req, res)
+router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
 
     var id = req.params.idfirewall;
     var iduser = req.iduser;
+    var fwcloud= req.fwcloud;
     
     //CHECK FIREWALL DATA TO DELETE
-    FirewallModel.deleteFirewall(iduser, id, function (error, data)
+    FirewallModel.deleteFirewall(iduser,fwcloud,  id, function (error, data)
     {
         if (data && data.result)
         {
@@ -786,7 +786,7 @@ router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, function
             });
         } else
         {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         }

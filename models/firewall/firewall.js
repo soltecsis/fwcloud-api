@@ -69,10 +69,10 @@ firewallModel.getFirewalls = function (iduser, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT T.* ' + 
+        var sql = 'SELECT T.* ' +
                 ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-                ' FROM ' + tableModel +                 
-                ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' + 
+                ' FROM ' + tableModel +
+                ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' ORDER BY T.id';
@@ -87,7 +87,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
                         })
                         .catch(e => {
                             callback(e, null);
-                        });                
+                        });
             }
         });
     });
@@ -124,18 +124,18 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT T.* ' + 
+        var sql = 'SELECT T.* ' +
                 ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
                 ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1';
-        
-        
+
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
-            else {                
+            else {
                 Promise.all(rows.map(utilsModel.decryptDataUserPass))
                         .then(data => {
                             callback(null, data);
@@ -217,18 +217,18 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
         if (error)
             callback(error, null);
         var namesql = '%' + name + '%';
-        var sql = 'SELECT T.* ' + 
+        var sql = 'SELECT T.* ' +
                 ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
                 ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE name like  ' + connection.escape(namesql) + ' AND U.allow_access=1 ';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
-            else{
-                 Promise.all(rows.map(utilsModel.decryptDataUserPass))
+            else {
+                Promise.all(rows.map(utilsModel.decryptDataUserPass))
                         .then(data => {
                             callback(null, data);
                         })
@@ -269,18 +269,18 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'SELECT T.* ' + 
+        var sql = 'SELECT T.* ' +
                 ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
                 ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
-            else{
-                 Promise.all(rows.map(utilsModel.decryptDataUserPass))
+            else {
+                Promise.all(rows.map(utilsModel.decryptDataUserPass))
                         .then(data => {
                             callback(null, data);
                         })
@@ -403,8 +403,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
                         callback(null, {"result": true});
                     }
                 });
-            }
-            else{
+            } else {
                 callback(null, {"result": false});
             }
         });
@@ -550,50 +549,60 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-firewallModel.deleteFirewall = function (iduser, idfirewall, callback) {
+firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        //var sqlExists = 'SELECT T.* FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' WHERE id = ' + connection.escape(id);
+
         var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
                 ' AND U.id_user=' + connection.escape(iduser) +
-                ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ' ;
-                
+                ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+
         connection.query(sqlExists, function (error, row) {
             //If exists Id from firewall to remove
             if (row && row.length > 0) {
-                db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            var sql = 'DELETE FROM user_firewall WHERE id_firewall = ' + connection.escape(id) + ' AND id_user=' + connection.escape(iduser);
-                            connection.query(sql, function (error, result) {
-                                if (error) {
-                                    callback(error, null);
-                                } else {
+//                db.get(function (error, connection) {
+//                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
+//                    connection.query(sql, function (error, result) {
+//                        if (error) {
+//                            callback(error, null);
+//                        } else {
+//                            var sql = 'DELETE FROM user_firewall WHERE id_firewall = ' + connection.escape(idfirewall) + ' AND id_user=' + connection.escape(iduser);
+//                            connection.query(sql, function (error, result) {
+//                                if (error) {
+//                                    callback(error, null);
+//                                } else {
+//                                    
+                //CHECK INTERFACES FROM FIREWALL                                    
+                InterfaceModel.searchInterfaceInrulesOtherFirewall(fwcloud, idfirewall)
+                        .then(found_resp => {
+                            if (found_resp.found) {
+                                callback(null, {"result": false, "msg": "restricted", "search": found_resp});
+                            } else {
+                                // DELETE INTERFACES AND IPOBJS UNDER
+
+                                //DELETE POLICY
+
+
+                                //DELETE TREE NODES 
+
                                     
-                                    //DELETE INTERFACES FROM FIREWALL
-                                    
-                                    //InterfaceModel.searchInterfaceInrulesFirewall(fwcloud, idfirewall)
-                                        
-                                    
-                                    //DELETE IPOBJ UNDER INTERFACES FIREWALL
-                                    
-                                    
-                                    //DELETE POLICY
-                                    
-                                    
-                                    //DELETE TREE NODES 
-                                    
-                                    
-                                    callback(null, {"result": true, "msg": "deleted"});
-                                }
-                            });
-                        }
-                    });
-                });
+                                //DELETE USERS
+                             
+                                //DELETE FIREWALL
+                             
+                            
+
+                                callback(null, {"result": true, "msg": "deleted"});
+                            }
+                        });
+
+//                                }
+//                            });
+//                        }
+//                    });
+//                });//XXX
+
             } else {
                 callback(null, {"result": false});
             }
