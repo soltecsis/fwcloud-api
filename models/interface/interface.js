@@ -1,12 +1,19 @@
 var db = require('../../db.js');
+
+//create object
+var interfaceModel = {};
+//Export the object
+module.exports = interfaceModel;
+
+
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var utilsModel = require("../../utils/utils.js");
+var IpobjModel = require('../../models/ipobj/ipobj');
 
 
-//create object
-var interfaceModel = {};
+
 var tableModel = "interface";
 
 
@@ -30,6 +37,36 @@ interfaceModel.getInterfaces = function (idfirewall, fwcloud, callback) {
                 callback(error, null);
             else
                 callback(null, rows);
+        });
+    });
+};
+
+//Get All interface by firewall and IPOBJ UNDER Interfaces
+interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
+        var sql = 'SELECT ' + fwcloud + ' as fwc, I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud   FROM ' + tableModel + ' I ' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
+                ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else{
+                logger.debug("-----> BUSCANDO INTERFACES");
+                //Bucle por interfaces
+                 Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
+                        .then(data => {
+                            callback(null,data);
+                        })
+                        .catch(e => {
+                            callback(e, null);
+                        });
+            }
         });
     });
 };
@@ -457,5 +494,3 @@ interfaceModel.deleteInterfaceFirewall = function (fwcloud, idfirewall, callback
             });
 
 };
-//Export the object
-module.exports = interfaceModel;

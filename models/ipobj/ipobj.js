@@ -14,6 +14,9 @@
  */
 var ipobjModel = {};
 
+//Export the object
+module.exports = ipobjModel;
+
 /**
  * Property  to manage Dabase Access
  *
@@ -369,6 +372,41 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
                 callback(error, null);
             else
                 callback(null, rows);
+        });
+    });
+};
+
+/**
+ * Get All ipobj by Interface PROMISE
+ * 
+ * @method getAllIpobjsInterface
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idinterface Interface identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getAllIpobjsInterfacePro = function (data) {       
+    var fwcloud=data.fwc;
+    
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                    ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                    ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
+                    ' ORDER BY I.id';
+            logger.debug(sql);
+
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else
+                    resolve({"interface": data, "ipobjs": rows});
+            });
         });
     });
 };
@@ -818,5 +856,3 @@ ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
     });
 
 };
-//Export the object
-module.exports = ipobjModel;

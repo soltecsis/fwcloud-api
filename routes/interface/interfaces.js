@@ -36,6 +36,30 @@ router.get('/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
     });
 });
 
+/* Get all interfaces by firewall and IPOBJ under interfaces*/
+router.get('/full/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
+{
+    var idfirewall = req.params.idfirewall;
+    var fwcloud = req.fwcloud;
+    InterfaceModel.getInterfacesFull(idfirewall, fwcloud, function (error, data)
+    {
+        //If exists interface get data
+        if (data && data.length > 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+        //Get Error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
 /* Get all interfaces by HOST*/
 router.get('/host/:idhost', function (req, res)
 {
