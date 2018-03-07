@@ -601,7 +601,7 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Remove policy_r */
-router.put("/del/policy-r/:idfirewall",utilsModel.checkFirewallAccess, function (req, res)
+router.put("/del/policy-r/:idfirewall",utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from policy_r to remove
     var iduser = req.iduser;

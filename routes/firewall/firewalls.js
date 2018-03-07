@@ -406,7 +406,6 @@ router.get('/cluster/:idcluster', function (req, res)
  *         ]
  *       };
  */
-//FALTA CREACION  DE ESTRUCTURA de ARBOL
 router.post("/firewall", function (req, res)
 {
     var iduser = req.iduser;

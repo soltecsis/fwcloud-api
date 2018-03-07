@@ -765,7 +765,7 @@ router.put('/ipobj',  function (req, res)
  *      "data": {}
  *      };
  */
-router.put("/del/ipobj/:id/:type",  function (req, res)
+router.put("/del/ipobj/:id/:type",utilsModel.checkConfirmationToken,  function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;
