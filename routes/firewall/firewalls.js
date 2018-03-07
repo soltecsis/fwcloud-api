@@ -147,6 +147,62 @@ router.get('', function (req, res)
     });
 });
 
+/**
+ * Get Firewalls by Cloud
+ * 
+ * 
+ * > ROUTE CALL:  __/firewalls/Cloud/__      
+ * > METHOD:  __GET__
+ * 
+ * @method getFirewallByUser_and_Cloud
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Number} fwcloud Cloud identifier
+ * 
+ * @return {JSON} Returns `JSON` Data from Firewall
+ * @example #### JSON RESPONSE
+ *    
+ *       {"data" : [
+ *          {  //Data Firewall 1       
+ *           "id" : ,            //Firewall Identifier
+ *           "cluster" : ,       //Cluster
+ *           "fwcloud" : ,       //Id Firewall cloud
+ *           "name" : ,          //Firewall name
+ *           "comment" : ,       //comment
+ *           "created_at" : ,    //Date Created
+ *           "updated_at" : ,    //Date Updated
+ *           "by_user" : ,       //User last update
+ *           "id_fwb" :          //ID firewall in FWbuilder
+ *          },
+ *          {....}, //Data Firewall 2
+ *          {....}  //Data Firewall ...n 
+ *         ]
+ *       };
+ * 
+ */
+router.get('/cloud', function (req, res)
+{
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    FirewallModel.getFirewallCloud(iduser, fwcloud, function (error, data)
+    {
+        //get data
+        if (data && data.length > 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+        //Get Error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
 
 /**
  * Get Firewalls by User and ID
@@ -366,8 +422,6 @@ router.get('/cluster/:idcluster', function (req, res)
         }
     });
 });
-
-
 
 
 /**
