@@ -56,12 +56,12 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
-            else{
+            else {
                 logger.debug("-----> BUSCANDO INTERFACES");
                 //Bucle por interfaces
-                 Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
+                Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
                         .then(data => {
-                            callback(null,data);
+                            callback(null, data);
                         })
                         .catch(e => {
                             callback(e, null);
@@ -174,6 +174,20 @@ interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback)
 };
 
 
+interfaceModel.checkRestrictionsOtherFirewall = function (req, res, next) {
+    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+
+    interfaceModel.searchInterfaceInrulesOtherFirewall(req.fwcloud, req.params.idfirewall)
+            .then(found_resp => {
+                if (found_resp.found) {
+                    logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall +  "  Fwcloud: " + req.fwcloud);
+                    //callback(null, {"result": false, "msg": "restricted", "search": found_resp});
+                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": found_resp};
+                }
+                next();
+            })
+            .catch(e => next());
+};
 
 
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
@@ -212,6 +226,23 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewa
 
     });
 };
+
+interfaceModel.checkRestrictions = function (req, res, next) {
+    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+    //Check interface in RULE O POSITIONS
+    interfaceModel.searchInterfaceInrulesPro(req.params.id, req.params.type, req.fwcloud, '')
+            .then(data =>
+            {
+                //CHECK RESULTS
+                if (data.result) {
+                    logger.debug("RESTRICTED INTERFACE: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
+                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+                }
+                next();
+            })
+            .catch(e => next());
+};
+
 
 /* Search where is in RULES interface in OTHER FIREWALLS  */
 interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_firewall) {
@@ -417,47 +448,32 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
 //FALTA BORRADO EN CASCADA 
 interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callback) {
 
-    //Check interface in RULE O POSITIONS
-    this.searchInterfaceInrulesPro(id, type, fwcloud, '')
-            .then(data =>
-            {
-                //CHECK RESULTS
-                if (data.result) {
-                    logger.debug("RESTRICTED INTERFACE: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
-                    callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
-                } else {
-                    db.get(function (error, connection) {
-                        if (error)
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from interface to remove
+            if (row) {
+                db.get(function (error, connection) {
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            logger.debug(error);
                             callback(error, null);
-                        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                        connection.query(sqlExists, function (error, row) {
-                            //If exists Id from interface to remove
-                            if (row) {
-                                db.get(function (error, connection) {
-                                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
-                                    connection.query(sql, function (error, result) {
-                                        if (error) {
-                                            logger.debug(error);
-                                            callback(error, null);
-                                        } else {
-                                            if (result.affectedRows > 0)
-                                                callback(null, {"result": true, "msg": "deleted"});
-                                            else
-                                                callback(null, {"result": false, "msg": "notExist"});
-                                        }
-                                    });
-                                });
-                            } else {
+                        } else {
+                            if (result.affectedRows > 0)
+                                callback(null, {"result": true, "msg": "deleted"});
+                            else
                                 callback(null, {"result": false, "msg": "notExist"});
-                            }
-                        });
+                        }
                     });
-                }
-
-            })
-            .catch(error => {
-                callback(error, null);
-            });
+                });
+            } else {
+                callback(null, {"result": false, "msg": "notExist"});
+            }
+        });
+    });
 
 };
 

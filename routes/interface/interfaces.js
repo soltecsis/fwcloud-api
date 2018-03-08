@@ -353,7 +353,8 @@ router.put('/interface/', function (req, res)
 
 
 /* Remove interface */
-router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
+//FALTA BORRADO en CASCADA
+router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictions, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from interface to remove
     var iduser = req.iduser;
@@ -409,10 +410,12 @@ router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAcces
             }
         }
     });
+
 });
 
 /* Remove interface */
-router.put("/del/interface/all/:idfirewall/", utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
+//FALTA ACABAR ALL
+router.put("/del/interface/all/:idfirewall/", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from interface to remove
     var iduser = req.iduser;

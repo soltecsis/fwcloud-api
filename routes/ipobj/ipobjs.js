@@ -13,7 +13,7 @@
  * Class to manage IPOBJ routing
  *
  * @class IpobjsRouter
-  * 
+ * 
  */
 
 /**
@@ -133,72 +133,72 @@ var logger = require('log4js').getLogger("app");
  *            "name": "PC-AALMODOVAR",
  *            "type": 8,
  *            "fwcloud": 1,
-            "interface": null,
-            "protocol": null,
-            "address": null,
-            "netmask": null,
-            "diff_serv": null,
-            "ip_version": null,
-            "code": null,
-            "tcp_flags_mask": null,
-            "tcp_flags_settings": null,
-            "range_start": null,
-            "range_end": null,
-            "source_port_start": null,
-            "source_port_end": null,
-            "destination_port_start": null,
-            "destination_port_end": null,
-            "options": null,
-            "comment": "",
-            "id_node": 102,
-            "id_parent_node": 8,
-            "interfaces": [         //Interface Node with Interfaces 
-                {
-                    "id": 73,
-                    "firewall": null,
-                    "name": "eth0",
-                    "labelname": "eth0",
-                    "type": "11",
-                    "securityLevel": "0",
-                    "interface_type": 11,
-                    "comment": null,
-                    "id_node": 318,
-                    "id_parent_node": 102,
-                    "ipobjs": [     //Ipobj Node with ipobjs into Interface
-                        {
-                            "id": 1525,
-                            "name": "PC-AALMODOVAR:eth0",
-                            "type": 5,
-                            "fwcloud": 1,
-                            "interface": 73,
-                            "protocol": null,
-                            "address": "10.98.1.16",
-                            "netmask": "255.255.255.0",
-                            "diff_serv": null,
-                            "ip_version": "IPv4",
-                            "code": null,
-                            "tcp_flags_mask": null,
-                            "tcp_flags_settings": null,
-                            "range_start": null,
-                            "range_end": null,
-                            "source_port_start": null,
-                            "source_port_end": null,
-                            "destination_port_start": null,
-                            "destination_port_end": null,
-                            "options": null,
-                            "comment": "",
-                            "id_node": 339,
-                            "id_parent_node": 318
-                        },
-                    ]
-                },
-            ]
-        }
-        ]
-        }
+ "interface": null,
+ "protocol": null,
+ "address": null,
+ "netmask": null,
+ "diff_serv": null,
+ "ip_version": null,
+ "code": null,
+ "tcp_flags_mask": null,
+ "tcp_flags_settings": null,
+ "range_start": null,
+ "range_end": null,
+ "source_port_start": null,
+ "source_port_end": null,
+ "destination_port_start": null,
+ "destination_port_end": null,
+ "options": null,
+ "comment": "",
+ "id_node": 102,
+ "id_parent_node": 8,
+ "interfaces": [         //Interface Node with Interfaces 
+ {
+ "id": 73,
+ "firewall": null,
+ "name": "eth0",
+ "labelname": "eth0",
+ "type": "11",
+ "securityLevel": "0",
+ "interface_type": 11,
+ "comment": null,
+ "id_node": 318,
+ "id_parent_node": 102,
+ "ipobjs": [     //Ipobj Node with ipobjs into Interface
+ {
+ "id": 1525,
+ "name": "PC-AALMODOVAR:eth0",
+ "type": 5,
+ "fwcloud": 1,
+ "interface": 73,
+ "protocol": null,
+ "address": "10.98.1.16",
+ "netmask": "255.255.255.0",
+ "diff_serv": null,
+ "ip_version": "IPv4",
+ "code": null,
+ "tcp_flags_mask": null,
+ "tcp_flags_settings": null,
+ "range_start": null,
+ "range_end": null,
+ "source_port_start": null,
+ "source_port_end": null,
+ "destination_port_start": null,
+ "destination_port_end": null,
+ "options": null,
+ "comment": "",
+ "id_node": 339,
+ "id_parent_node": 318
+ },
+ ]
+ },
+ ]
+ }
+ ]
+ }
  * 
  */
-router.get('/group/:idgroup',  function (req, res)
+router.get('/group/:idgroup', function (req, res)
 {
     var idgroup = req.params.idgroup;
     var iduser = req.iduser;
@@ -239,7 +239,7 @@ router.get('/group/:idgroup',  function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/group/:idgroup/:id',  function (req, res)
+router.get('/group/:idgroup/:id', function (req, res)
 {
     var idgroup = req.params.idgroup;
     var id = req.params.id;
@@ -281,14 +281,14 @@ router.get('/group/:idgroup/:id',  function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/:id',  function (req, res)
+router.get('/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
 
     logger.debug("Req Access: " + req.fwc_access);
-    
+
 
     IpobjModel.getIpobj(fwcloud, id, function (error, data)
     {
@@ -326,7 +326,7 @@ router.get('/:id',  function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/group/:idgroup/name/:name',  function (req, res)
+router.get('/group/:idgroup/name/:name', function (req, res)
 {
     var name = req.params.name;
     var idgroup = req.params.idgroup;
@@ -368,7 +368,7 @@ router.get('/group/:idgroup/name/:name',  function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_rules/:id/:type",  function (req, res)
+router.get("/ipobj_search_rules/:id/:type", function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;
@@ -378,25 +378,28 @@ router.get("/ipobj_search_rules/:id/:type",  function (req, res)
     var type = req.params.type;
 
 
-    IpobjModel.searchIpobjInRules(id, type, fwcloud, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    IpobjModel.searchIpobjInRules(id, type, fwcloud)
+            .then(data =>
+            {
+                if (data && data.result)
+                {
+                    api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(error => {
+
+                api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+
             });
-        else
-        if (data && data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 /**
@@ -415,7 +418,7 @@ router.get("/ipobj_search_rules/:id/:type",  function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_used/:id/:type",  function (req, res)
+router.get("/ipobj_search_used/:id/:type", function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;
@@ -516,7 +519,7 @@ router.get("/ipobj_search_used/:id/:type",  function (req, res)
  *      "data": {}
  *      };
  * */
-router.post("/ipobj/:node_parent/:node_order/:node_type",  function (req, res)
+router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -662,7 +665,7 @@ router.post("/ipobj/:node_parent/:node_order/:node_type",  function (req, res)
  *      "data": {}
  *      };
  * */
-router.put('/ipobj',  function (req, res)
+router.put('/ipobj', function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -765,7 +768,7 @@ router.put('/ipobj',  function (req, res)
  *      "data": {}
  *      };
  */
-router.put("/del/ipobj/:id/:type",utilsModel.checkConfirmationToken,  function (req, res)
+router.put("/del/ipobj/:id/:type", IpobjModel.checkRestrictions, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from ipobj to remove
     //var idfirewall = req.params.idfirewall;

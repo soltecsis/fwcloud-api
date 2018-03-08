@@ -126,12 +126,14 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
             callback(error, null);
         var sql = 'SELECT T.* ' +
                 ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
+                ' , M.id as id_fwmaster ' +
                 ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
+                ' LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1 ' +
                 ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1';
 
-
+        //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -275,7 +277,7 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -422,7 +424,6 @@ firewallModel.insertFirewall = function (iduser, firewallData, callback) {
  *       callback(error, null);
  *       
  */
-//FATAL CONTROL DE BLOQUEO POR CLOUD
 firewallModel.updateFirewall = function (iduser, firewallData, callback) {
 
     db.get(function (error, connection) {
@@ -448,6 +449,77 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
                         'by_user = ' + connection.escape(iduser) +
                         ' WHERE id = ' + firewallData.id;
                 logger.debug(sql);
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        callback(null, {"result": true});
+                    }
+                });
+            } else {
+                callback(null, {"result": false});
+            }
+        });
+    });
+};
+
+firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, fwmaster, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+                ' AND U.id_user=' + connection.escape(iduser) +
+                ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+
+        connection.query(sqlExists, function (error, row) {
+            if (row && row.length > 0) {
+                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        'fwmaster = ' + fwmaster + ', ' +
+                        'by_user = ' + connection.escape(iduser) +
+                        ' WHERE id = ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
+                logger.debug(sql);
+                connection.query(sql, function (error, result) {
+                    if (error) {
+                        callback(error, null);
+                    } else {
+                        if (fwmaster == 1) {
+                            var sql = 'UPDATE ' + tableModel + ' SET ' +
+                                    'fwmaster = 0, ' +
+                                    'by_user = ' + connection.escape(iduser) +
+                                    ' WHERE id <> ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
+                            logger.debug(sql);
+                            connection.query(sql, function (error, result) {
+                                if (error) {
+                                    callback(error, null);
+                                }
+                            });
+                        }
+                        callback(null, {"result": true});
+                    }
+                });
+            } else {
+                callback(null, {"result": false});
+            }
+        });
+    });
+};
+
+firewallModel.updateFirewallCluster = function (firewallData, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+                ' AND U.id_user=' + connection.escape(firewallData.iduser) +
+                ' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ' ;
+        connection.query(sqlExists, function (error, row) {
+
+            if (row && row.length > 0) {
+                var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +                        
+                        'by_user = ' + connection.escape(firewallData.iduser) + ' ' +
+                        ' WHERE id = ' + firewallData.id;
+
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -625,29 +697,23 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall, callback) 
 //                                    callback(error, null);
 //                                } else {
 //                                    
-                //CHECK INTERFACES FROM FIREWALL                                    
-                InterfaceModel.searchInterfaceInrulesOtherFirewall(fwcloud, idfirewall)
-                        .then(found_resp => {
-                            if (found_resp.found) {
-                                callback(null, {"result": false, "msg": "restricted", "search": found_resp});
-                            } else {
-                                // DELETE INTERFACES AND IPOBJS UNDER
 
-                                //DELETE POLICY
+                // DELETE INTERFACES AND IPOBJS UNDER
+
+                //DELETE POLICY
 
 
-                                //DELETE TREE NODES 
+                //DELETE TREE NODES 
 
-                                    
-                                //DELETE USERS
-                             
-                                //DELETE FIREWALL
-                             
-                            
 
-                                callback(null, {"result": true, "msg": "deleted"});
-                            }
-                        });
+                //DELETE USERS
+
+                //DELETE FIREWALL
+
+
+
+                callback(null, {"result": true, "msg": "deleted"});
+
 
 //                                }
 //                            });

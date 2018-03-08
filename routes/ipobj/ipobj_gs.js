@@ -11,7 +11,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 /* Get all ipobj_gs*/
-router.get('',  function (req, res)
+router.get('', function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -37,7 +37,7 @@ router.get('',  function (req, res)
 
 
 /* Get  ipobj_g by id */
-router.get('/:id',  function (req, res)
+router.get('/:id', function (req, res)
 {
     var id = req.params.id;
     var iduser = req.iduser;
@@ -63,7 +63,7 @@ router.get('/:id',  function (req, res)
 
 
 /* Get all ipobj_gs by nombre */
-router.get('/name/:name',  function (req, res)
+router.get('/name/:name', function (req, res)
 {
     var iduser = req.iduser;
     var name = req.params.name;
@@ -88,7 +88,7 @@ router.get('/name/:name',  function (req, res)
 });
 
 /* Get all ipobj_gs by tipo */
-router.get('/type/:type',  function (req, res)
+router.get('/type/:type', function (req, res)
 {
     var iduser = req.iduser;
     var type = req.params.type;
@@ -114,36 +114,37 @@ router.get('/type/:type',  function (req, res)
 
 
 /* Search GROUPS AND members in Rules */
-router.get("/ipobj_g_search_rules/:idg",  function (req, res)
+router.get("/ipobj_g_search_rules/:idg", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     var idg = req.params.idg;
 
 
-    Ipobj_gModel.searchGroupInRules(idg, fwcloud, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    Ipobj_gModel.searchGroupInRules(idg, fwcloud)
+            .then(data =>
+            {
+                if (data && data.length > 0)
+                {
+                    api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(error => {
+                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        else
-        if (data && data.length > 0)
-        {
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 /* Search where is used Group  */
-router.get("/ipobj_g_search_used/:idg",  function (req, res)
+router.get("/ipobj_g_search_used/:idg", function (req, res)
 {
 
     var iduser = req.iduser;
@@ -176,7 +177,7 @@ router.get("/ipobj_g_search_used/:idg",  function (req, res)
 
 
 /* Create New ipobj_g */
-router.post("/ipobj-g/:node_parent/:node_order/:node_type",  function (req, res)
+router.post("/ipobj-g/:node_parent/:node_order/:node_type", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -232,7 +233,7 @@ router.post("/ipobj-g/:node_parent/:node_order/:node_type",  function (req, res)
 });
 
 /* Update ipobj_g that exist */
-router.put('/ipobj-g',  function (req, res)
+router.put('/ipobj-g', function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -275,7 +276,7 @@ router.put('/ipobj-g',  function (req, res)
 
 
 /* Remove ipobj_g */
-router.put("/del/ipobj-g/:id/:type", utilsModel.checkConfirmationToken, function (req, res)
+router.put("/del/ipobj-g/:id/:type", Ipobj_gModel.checkRestrictions, utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;

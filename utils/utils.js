@@ -1,7 +1,7 @@
 //create object
-var utilModel = {};
+var utilsModel = {};
 //Export the object
-module.exports = utilModel;
+module.exports = utilsModel;
 /**
  * Property Logger to manage App logs
  *
@@ -16,7 +16,9 @@ var api_resp = require('./api_response');
 var UserModel = require('../models/user/user');
 var crypto = require('crypto');
 var randomString = require('random-string');
-utilModel.checkParameters = function (obj, callback) {
+
+
+utilsModel.checkParameters = function (obj, callback) {
     for (var propt in obj) {
         logger.debug(propt + ': ' + obj[propt]);
         if (obj[propt] === undefined) {
@@ -26,7 +28,7 @@ utilModel.checkParameters = function (obj, callback) {
     }
     callback(obj);
 };
-utilModel.checkEmptyRow = function (obj, callback) {
+utilsModel.checkEmptyRow = function (obj, callback) {
     var resp = true;
     logger.debug(obj);
     if (obj === null)
@@ -38,14 +40,14 @@ utilModel.checkEmptyRow = function (obj, callback) {
     logger.debug(resp);
     callback(resp);
 };
-utilModel.isEmptyObject = function (obj) {
+utilsModel.isEmptyObject = function (obj) {
     return !Object.keys(obj).length;
 };
-utilModel.getRandomString = function (size) {
+utilsModel.getRandomString = function (size) {
     var x = randomString({length: size});
     return x;
 };
-utilModel.mergeObj = function () {
+utilsModel.mergeObj = function () {
     var destination = {},
             sources = [].slice.call(arguments, 0);
     sources.forEach(function (source) {
@@ -58,7 +60,7 @@ utilModel.mergeObj = function () {
             } else if (prop in destination && typeof destination[ prop ] === "object") {
 
                 // Merge Objects
-                destination[ prop ] = utilModel.mergeObj(destination[ prop ], source[ prop ]);
+                destination[ prop ] = utilsModel.mergeObj(destination[ prop ], source[ prop ]);
             } else {
 
                 // Set new values
@@ -69,7 +71,7 @@ utilModel.mergeObj = function () {
     return destination;
 };
 //CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
-utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
+utilsModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
 
     return new Promise((resolve, reject) => {
         if (iduser && fwcloud) {
@@ -153,9 +155,12 @@ utilModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, respo
         }
     });
 };
-utilModel.checkConfirmationToken = function (req, res, next) {
+
+utilsModel.checkConfirmationToken = function (req, res, next) {
     var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, confirm_token: req.confirm_token, sessionID: req.sessionID};
     logger.debug("checkConfirmationToken: ", accessData);
+    logger.debug("Restricted: ", req.restricted);
+    
     UserModel.checkConfirmationtoken(accessData)
             .then(resp => {
                 if (resp.result) {
@@ -163,14 +168,19 @@ utilModel.checkConfirmationToken = function (req, res, next) {
                     next();
                 } else {
                     //Need confirmation, send new token
-                    var token= {"fwc_confirm_token": resp.token};
-                    api_resp.getJson(token, api_resp.ACR_CONFIRM_ASK, ' Need to confirm action', 'ACTION', null, function (jsonResp) {
+                    var objResp= {"fwc_confirm_token": resp.token};
+                    if (req.restricted.result===false){
+                        //Add restricted search to response
+                        objResp=utilsModel.mergeObj(objResp, req.restricted);
+                    }
+                    api_resp.getJson(objResp, api_resp.ACR_CONFIRM_ASK, ' Need to confirm action', 'ACTION', null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
                 }
             });
 };
-utilModel.checkFirewallAccess = function (req, res, next) {
+
+utilsModel.checkFirewallAccess = function (req, res, next) {
     var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
     //logger.debug(accessData);
     FirewallModel.getFirewallAccess(accessData)
@@ -184,7 +194,7 @@ utilModel.checkFirewallAccess = function (req, res, next) {
             })
             ;
 };
-utilModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
+utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
     return new Promise((resolve, reject) => {
         var accessData = {iduser: iduser, fwcloud: fwcloud, idfirewall: idfirewall};
         //logger.debug(accessData);
@@ -200,7 +210,7 @@ utilModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
 };
 var algorithm = 'aes-256-ctr';
 var password = 'RJ23edrf9)8JsjseE%6m,35HsjS84MK';
-utilModel.encrypt = function (text) {
+utilsModel.encrypt = function (text) {
     return new Promise((resolve, reject) => {
         try {
             var cipher = crypto.createCipher(algorithm, password);
@@ -212,7 +222,7 @@ utilModel.encrypt = function (text) {
         }
     });
 };
-utilModel.decrypt = function (text) {
+utilsModel.decrypt = function (text) {
     return new Promise((resolve, reject) => {
         try {
             var decipher = crypto.createDecipher(algorithm, password);
@@ -224,7 +234,7 @@ utilModel.decrypt = function (text) {
         }
     });
 };
-utilModel.decryptDataUserPass = function (data) {
+utilsModel.decryptDataUserPass = function (data) {
 
     return new Promise((resolve, reject) => {
         try {

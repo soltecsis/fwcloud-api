@@ -174,6 +174,7 @@ app.use(control_routes, function (request, response, next) {
                 var userData = {id: iduser};
                 UserModel.updateUserTS(userData, function (error, data){});
                 request.confirm_token=confirm_token;
+                request.restricted ={};
                 next();
             })
             .catch(err => {

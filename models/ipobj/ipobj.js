@@ -386,9 +386,9 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
  * 
  * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
  * */
-ipobjModel.getAllIpobjsInterfacePro = function (data) {       
-    var fwcloud=data.fwc;
-    
+ipobjModel.getAllIpobjsInterfacePro = function (data) {
+    var fwcloud = data.fwc;
+
     return new Promise((resolve, reject) => {
         db.get(function (error, connection) {
             if (error)
@@ -587,39 +587,27 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
  *      {"result": false, "msg": "Restricted", "restrictions": data.search}
  * */
 ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
-    //Search IPOBJ in RULES
-    this.searchIpobjInRules(id, type, fwcloud, function (error, data) {
-        if (error) {
-            logger.debug(error);
+
+    db.get(function (error, connection) {
+        if (error)
             callback(error, null);
-        } else {
-            //CHECK RESULTS
-            if (data.result) {
-                logger.debug("RESTRICTED IPOBJ: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
-                callback(null, {"result": false, "msg": "Restricted", "restrictions": data.search});
+        var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+        logger.debug(sql);
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.debug(error);
+                callback(error, null);
             } else {
-                db.get(function (error, connection) {
-                    if (error)
-                        callback(error, null);
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-                    logger.debug(sql);
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            logger.debug(error);
-                            callback(error, null);
-                        } else {
-                            if (result.affectedRows > 0) {
-                                logger.debug("OK DELETED IPOBJ: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
-                                callback(null, {"result": true, "msg": "deleted"});
-                            } else {
-                                callback(null, {"result": false, "msg": "notExist"});
-                            }
-                        }
-                    });
-                });
+                if (result.affectedRows > 0) {
+                    logger.debug("OK DELETED IPOBJ: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
+                    callback(null, {"result": true, "msg": "deleted"});
+                } else {
+                    callback(null, {"result": false, "msg": "notExist"});
+                }
             }
-        }
+        });
     });
+
 };
 
 
@@ -672,6 +660,20 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
 
 };
 
+ipobjModel.checkRestrictions = function (req, res, next) {
+    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+
+    ipobjModel.searchIpobjInRules(req.params.id, req.params.type, req.fwcloud)
+            .then(data => {
+                if (data.result) {
+                    logger.debug("RESTRICTED IPOBJ: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
+                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+                }
+                next();
+            })
+            .catch(e => next());
+};
+
 /**
  * ### searchIpobjInRules
  * Search where is used IPOBJ in RULES
@@ -714,79 +716,81 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
  }
  *      
  * */
-ipobjModel.searchIpobjInRules = function (id, type, fwcloud, callback) {
-    //SEARCH IPOBJ IN RULES
-    Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
-        if (error) {
-            callback(error, null);
-        } else {
-            //SEARCH IPOBJ GROUP IN RULES
-            Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
-                if (error) {
-                    callback(error, null);
-                } else {
-                    //SEARCH IPOBJ IN GROUPS
-                    Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
-                            Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
-                                if (error) {
-                                    callback(error, null);
-                                } else {
-                                    //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
-                                    Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud, function (error, data_interfaces_above) {
-                                        if (error) {
-                                            callback(error, null);
-                                        } else {
-                                            //SEARCH INTERFACES WITH IPOBJ UNDER  IN RULES  'I'  POSITIONS
-                                            Policy_r__interfaceModel.searchInterfacesInRule(id, fwcloud, function (error, data_interfaces_f) {
-                                                if (error) {
-                                                    callback(error, null);
-                                                } else {
-                                                    //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-                                                    Policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_ipobj_host) {
-                                                        if (error) {
-                                                            callback(error, null);
-                                                        } else {
-                                                            //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-                                                            Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
-                                                                if (error) {
-                                                                    callback(error, null);
-                                                                } else {
-                                                                    if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
-                                                                            || data_interfaces.found !== "" || data_ipobj_host.found !== "" || data_ipobj_ipobj.found !== ""
-                                                                            || data_interfaces_f.found !== "") {
-                                                                        callback(null, {"result": true, "msg": "IPOBJ FOUND", "search":
-                                                                                    {"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
-                                                                                        "InterfacesIpobjInRules": data_interfaces, "InterfacesFIpobjInRules": data_interfaces_f,
-                                                                                        "InterfacesAboveIpobjInRules": data_interfaces_above,
-                                                                                        "HostIpobjInterfacesIpobjInRules": data_ipobj_host, "IpobjInterfacesIpobjInRules": data_ipobj_ipobj
-                                                                                    }});
+ipobjModel.searchIpobjInRules = function (id, type, fwcloud) {
+    return new Promise((resolve, reject) => {
+        //SEARCH IPOBJ IN RULES
+        Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
+            if (error) {
+                reject(error);
+            } else {
+                //SEARCH IPOBJ GROUP IN RULES
+                Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        //SEARCH IPOBJ IN GROUPS
+                        Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
+                                Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
+                                    if (error) {
+                                        reject(error);
+                                    } else {
+                                        //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
+                                        Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud, function (error, data_interfaces_above) {
+                                            if (error) {
+                                                reject(error);
+                                            } else {
+                                                //SEARCH INTERFACES WITH IPOBJ UNDER  IN RULES  'I'  POSITIONS
+                                                Policy_r__interfaceModel.searchInterfacesInRule(id, fwcloud, function (error, data_interfaces_f) {
+                                                    if (error) {
+                                                        reject(error);
+                                                    } else {
+                                                        //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
+                                                        Policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_ipobj_host) {
+                                                            if (error) {
+                                                                reject(error);
+                                                            } else {
+                                                                //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
+                                                                Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
+                                                                    if (error) {
+                                                                        reject(error);
                                                                     } else {
-                                                                        callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "search": {
-                                                                                "IpobjInRules": "", "GroupInRules": "",
-                                                                                "IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
-                                                                                "InterfacesAboveIpobjInRules": "",
-                                                                                "HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
+                                                                        if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
+                                                                                || data_interfaces.found !== "" || data_ipobj_host.found !== "" || data_ipobj_ipobj.found !== ""
+                                                                                || data_interfaces_f.found !== "") {
+                                                                            resolve({"result": true, "msg": "IPOBJ FOUND", "search":
+                                                                                        {"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
+                                                                                            "InterfacesIpobjInRules": data_interfaces, "InterfacesFIpobjInRules": data_interfaces_f,
+                                                                                            "InterfacesAboveIpobjInRules": data_interfaces_above,
+                                                                                            "HostIpobjInterfacesIpobjInRules": data_ipobj_host, "IpobjInterfacesIpobjInRules": data_ipobj_ipobj
+                                                                                        }});
+                                                                        } else {
+                                                                            resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
+                                                                                    "IpobjInRules": "", "GroupInRules": "",
+                                                                                    "IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
+                                                                                    "InterfacesAboveIpobjInRules": "",
+                                                                                    "HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
+                                                                        }
                                                                     }
-                                                                }
-                                                            });
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
 
+        });
     });
 };
 
