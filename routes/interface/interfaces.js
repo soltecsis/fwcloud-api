@@ -209,7 +209,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
     var node_type = req.params.node_type;
     var host = req.params.host;
 
-    if (host === undefined || host === '') {
+    if (host === undefined || host === '' || isNaN(host) || req.body.interface_type==10 ) {
         host = null;
     }
 
