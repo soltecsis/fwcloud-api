@@ -48,9 +48,8 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
         if (error)
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
-        var sql = 'SELECT ' + fwcloud + ' as fwc, I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud   FROM ' + tableModel + ' I ' +
-                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
-                ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
+        var sql = 'SELECT ' + fwcloud + ' as fwc, I.*,  T.id id_node, T.id_parent id_parent_node   FROM ' + tableModel + ' I ' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +                
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
