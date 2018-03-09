@@ -52,7 +52,7 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
-
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
