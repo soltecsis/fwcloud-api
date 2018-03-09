@@ -58,7 +58,9 @@ var FirewallModel = require('../../models/firewall/firewall');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
-  FirewallModel.getFirewall(req.iduser, req.fwcloud, req.params.idfirewall, (error, data) => {
+  var idfirewall = req.params.idfirewall;
+
+  FirewallModel.getFirewall(req.iduser, req.fwcloud, idfirewall, (error, data) => {
     if (error) {
       api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));
       return;
@@ -67,7 +69,7 @@ router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
     // Obtain SSH connSettings for the firewall to which we want install the policy.
     var SSHconn = {
 		  host: data[0].ip,
-		  port: 22,
+		  port: data[0].install_port,
 		  username: data[0].install_user,
 		  password: data[0].install_pass
     }
@@ -87,8 +89,12 @@ router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
       return;
     }
 
+    // If the firewall is not a master firewall, then use the script of the master for the policy install.
+    if (!(data[0].fwmaster))
+      idfirewall = data[0].id_fwmaster;
+
     /* The get method of the RuleCompile model returns a promise. */
-    PolicyScript.install(accessData,SSHconn,req.params.fw)
+    PolicyScript.install(accessData,SSHconn,idfirewall)
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
       .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
   });
