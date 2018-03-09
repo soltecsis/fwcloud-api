@@ -49,7 +49,7 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
         var sql = 'SELECT ' + fwcloud + ' as fwc, I.*,  T.id id_node, T.id_parent id_parent_node   FROM ' + tableModel + ' I ' +
-                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +                
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
@@ -179,7 +179,7 @@ interfaceModel.checkRestrictionsOtherFirewall = function (req, res, next) {
     interfaceModel.searchInterfaceInrulesOtherFirewall(req.fwcloud, req.params.idfirewall)
             .then(found_resp => {
                 if (found_resp.found) {
-                    logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall +  "  Fwcloud: " + req.fwcloud);
+                    logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall + "  Fwcloud: " + req.fwcloud);
                     //callback(null, {"result": false, "msg": "restricted", "search": found_resp});
                     req.restricted = {"result": false, "msg": "Restricted", "restrictions": found_resp};
                 }
@@ -477,35 +477,53 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
 };
 
 
-//Remove ALL interface from Firewall
-interfaceModel.deleteInterfaceFirewall = function (fwcloud, idfirewall, callback) {
 
-    //Check interface in RULE O POSITIONS
-    this.searchInterfaceInrulesFirewall(fwcloud, idfirewall)
-            .then(found => {
-                //CHECK RESULTS
-                if (found) {
-                    logger.debug("RESTRICTED INTERFACES Fwcloud: " + fwcloud + "  Firewall: " + idfirewall);
-                    callback(null, {"result": false, "msg": "Restricted", "restrictions": ""});
-                } else {
-                    db.get(function (error, connection) {
-                        var sql = 'DELETE FROM ' + tableModel + ' WHERE firewallX = ' + connection.escape(idfirewall);
-                        connection.query(sql, function (error, result) {
-                            if (error) {
-                                logger.debug(error);
-                                callback(error, null);
-                            } else {
-                                if (result.affectedRows > 0)
-                                    callback(null, {"result": true, "msg": "deleted"});
-                                else
-                                    callback(null, {"result": false, "msg": "notExist"});
-                            }
-                        });
-                    });
+//Remove all IPOBJ UNDER INTERFACES UNDER FIREWALL
+interfaceModel.deleteInterfacesIpobjFirewall = function (fwcloud, idfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);     
+            var sql = 'SELECT ' + fwcloud + ' as fwc, I.*   FROM ' + tableModel + ' I ' +                    
+                    ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+            
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    logger.debug("-----> DELETING IPOBJ UNDER INTERFACE");
+                    //Bucle por interfaces
+                    Promise.all(rows.map(IpobjModel.deleteIpobjInterface))
+                            .then(data => {
+                                resolve(data);
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
                 }
-            })
-            .catch(() => {
-                callback(null, {"result": false, "msg": "notExist"});
             });
+        });
+    });
+};
 
+
+//Remove ALL interface from Firewall
+interfaceModel.deleteInterfaceFirewall = function (fwcloud, idfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            var sql = 'DELETE FROM ' + tableModel + ' WHERE firewall = ' + connection.escape(idfirewall);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0)
+                        resolve({"result": true, "msg": "deleted"});
+                    else
+                        resolve({"result": false, "msg": "notExist"});
+                }
+            });
+        });
+
+    });
 };

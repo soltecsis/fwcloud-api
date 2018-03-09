@@ -15,7 +15,7 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all policy_rs by firewall and group*/
-router.get('/:idfirewall/group/:idgroup',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -67,7 +67,7 @@ router.get('/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (
     });
 });
 /* Get all policy_rs by firewall and type and Rule */
-router.get('/:idfirewall/type/:type/rule/:rule',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/type/:type/rule/:rule', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var type = req.params.type;
@@ -94,7 +94,7 @@ router.get('/:idfirewall/type/:type/rule/:rule',utilsModel.checkFirewallAccess, 
     });
 });
 /* Get  policy_r by id and  by Id */
-router.get('/:idfirewall/:id',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -119,7 +119,7 @@ router.get('/:idfirewall/:id',utilsModel.checkFirewallAccess, function (req, res
     });
 });
 /* Get all policy_rs by nombre and by firewall*/
-router.get('/:idfirewall/group/:idgroup/name/:name',utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAccess, function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -145,7 +145,7 @@ router.get('/:idfirewall/group/:idgroup/name/:name',utilsModel.checkFirewallAcce
     });
 });
 /* Create New policy_r */
-router.post("/policy-r/:idfirewall",utilsModel.checkFirewallAccess, function (req, res)
+router.post("/policy-r/:idfirewall", utilsModel.checkFirewallAccess, function (req, res)
 {
     //Create New objet with data policy_r
     var policy_rData = {
@@ -189,7 +189,7 @@ router.post("/policy-r/:idfirewall",utilsModel.checkFirewallAccess, function (re
     });
 });
 /* Update policy_r that exist */
-router.put('/policy-r/:idfirewall',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var policy_rData = {id: req.body.id, idgroup: req.body.idgroup, firewall: req.body.firewall, rule_order: req.body.rule_order, options: req.body.options, action: req.body.action, time_start: req.body.time_start, time_end: req.body.time_end, comment: req.body.comment, active: req.body.active, type: req.body.type, style: req.body.style};
@@ -221,7 +221,7 @@ router.put('/policy-r/:idfirewall',utilsModel.checkFirewallAccess, function (req
     });
 });
 /* Compile policy_r that exist */
-router.put('/policy-r/compile/:idfirewall/:rule',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/compile/:idfirewall/:rule', utilsModel.checkFirewallAccess, function (req, res)
 {
 
     var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule};
@@ -248,7 +248,7 @@ router.put('/policy-r/compile/:idfirewall/:rule',utilsModel.checkFirewallAccess,
     });
 });
 /* Update ORDER de policy_r that exist */
-router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -280,7 +280,7 @@ router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order',utilsMo
 });
 
 /* Update APPLY_TO de policy_r that exist */
-router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -288,8 +288,8 @@ router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto',utils
     var id = req.params.id;
     var idcluster = req.params.idcluster;
     var fwapplyto = req.params.fwapplyto;
-    
-    Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id,idcluster, fwapplyto, function (error, data)
+
+    Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
@@ -342,7 +342,7 @@ router.put('/policy-r/style/:idfirewall/:type', utilsModel.checkFirewallAccess, 
 
 });
 /* Update Active policy_r  */
-router.put('/policy-r/activate/:idfirewall/:type',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/activate/:idfirewall/:type', utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
     var idfirewall = req.params.idfirewall;
@@ -372,7 +372,7 @@ router.put('/policy-r/activate/:idfirewall/:type',utilsModel.checkFirewallAccess
     });
 });
 /* Copy or Move RULES */
-router.put('/policy-r/copy-rules/:idfirewall',utilsModel.checkFirewallAccess, function (req, res)
+router.put('/policy-r/copy-rules/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 {
     try {
         //logger.debug("BODY:");
@@ -601,7 +601,7 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Remove policy_r */
-router.put("/del/policy-r/:idfirewall",utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
+router.put("/del/policy-r/:idfirewall", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from policy_r to remove
     var iduser = req.iduser;
@@ -631,20 +631,20 @@ async function removeRules(idfirewall, rulesIds)
 
 function ruleRemove(idfirewall, rule) {
     return new Promise((resolve, reject) => {
-        Policy_rModel.deletePolicy_r(idfirewall, rule, function (error, data)
-        {
-            if (error)
-                reject(error);
-            else
-            if (data && data.result)
-            {
-                resolve(api_resp.ACR_DELETED_OK);
-            } else
-            {
-                resolve(api_resp.ACR_NOTEXIST);
-            }
+        Policy_rModel.deletePolicy_r(idfirewall, rule
+                .then(data =>
+                {
+                    if (data && data.result)
+                    {
+                        resolve(api_resp.ACR_DELETED_OK);
+                    } else
+                    {
+                        resolve(api_resp.ACR_NOTEXIST);
+                    }
 
-        });
+                })
+                .catch(e => reject(e))
+                );
     });
 }
 

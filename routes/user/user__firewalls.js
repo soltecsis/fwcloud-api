@@ -168,28 +168,29 @@ router.put("/del/user__firewall/", function (req, res)
 {
     var id_user = req.params.id_user;
     var id_firewall = req.params.id_firewall;
-    User__firewallModel.deleteUser__firewall(id_user, id_firewall, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', '', error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        else {
-            if (data && data.result)
+    User__firewallModel.deleteUser__firewall(id_user, id_firewall)
+            .then(data =>
             {
-                //res.redirect("/user__firewalls/");
-                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        }
+                if (data && data.result)
+                {
+                    //res.redirect("/user__firewalls/");
+                    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
 
-    });
+
+            })
+            .catch(error => {
+                api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', '', error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
 });
 
 module.exports = router;

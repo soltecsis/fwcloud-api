@@ -134,17 +134,17 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
                                             logger.debug("DETECTED FIRWEWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
                                             utilsModel.checkFirewallAccessTree(iduser, fwcloud, idfirewall).
                                                     then(resp => {
-                                                        add_node = resp;                                                        
+                                                        add_node = resp;
                                                         //CHECK FILTER FIREWALL
-                                                        if (filter_idfirewall!='' && filter_idfirewall!=idfirewall)
-                                                            add_node=false;
-                                                        
+                                                        if (filter_idfirewall != '' && filter_idfirewall != idfirewall)
+                                                            add_node = false;
+
                                                         if (add_node) {
                                                             var treeP = new Tree(tree_node);
                                                             tree.append([], treeP);
-                                                            fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type, filter_idfirewall,callback);
+                                                            fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type, filter_idfirewall, callback);
                                                         } else {
-                                                            logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id );
+                                                            logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id);
                                                             callback();
                                                         }
                                                     });
@@ -155,7 +155,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 
                                             var treeP = new Tree(tree_node);
                                             tree.append([], treeP);
-                                            fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type,filter_idfirewall, callback);
+                                            fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type, filter_idfirewall, callback);
                                         }
                                     }
                                 });
@@ -171,6 +171,75 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
             }
         });
 
+    });
+};
+
+
+//REMOVE FULL TREE FROM PARENT NODE
+fwc_treeModel.deleteFwc_TreeFullNode = function (data) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id);
+            //logger.debug(sql);            
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    if (rows.length > 0) {
+                        logger.debug("-----> DELETING NODES UNDER PARENT: " + data.id);
+                        //Bucle por interfaces
+                        Promise.all(rows.map(fwc_treeModel.deleteFwc_TreeFullNode))
+                                .then(resp => {
+                                    //logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
+                                    fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id)
+                                            .then(resp => {
+                                                //logger.debug("DELETED NODE: ", data.id);
+                                                resolve();
+                                            })
+                                            .catch(e => reject(e));                                    
+                                })
+                                .catch(e => {
+                                    reject(e);
+                                });
+                    } else {
+                        //logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
+                        resolve();
+                        //Node whithout children, delete node
+                        fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id)
+                                .then(resp => {
+                                    //logger.debug("DELETED NODE: ", data.id);
+                                    resolve();
+                                })
+                                .catch(e => reject(e));
+                    }
+
+                }
+            });
+        });
+    });
+};
+
+
+//DELETE NODE
+fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id = ' + connection.escape(id);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(sql);
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    resolve({"result": true, "msg": "deleted"});
+                }
+            });
+        });
     });
 };
 

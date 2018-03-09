@@ -512,13 +512,13 @@ router.post("/firewall", function (req, res)
                                 if (data && data.insertId)
                                 {
                                     var dataresp = {"insertId": data.insertId};
-                                    var idfirewall=data.insertId;
-                                    
+                                    var idfirewall = data.insertId;
+
                                     FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                         //////////////////////////////////
                                         //INSERT FIREWALL NODE STRUCTURE
 
-                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF",idfirewall, function (error, dataTree) {
+                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF", idfirewall, function (error, dataTree) {
                                             if (error)
                                                 api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
                                                     res.status(200).json(jsonResp);
@@ -933,20 +933,26 @@ router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, Interfac
     var fwcloud = req.fwcloud;
 
     //CHECK FIREWALL DATA TO DELETE
-    FirewallModel.deleteFirewall(iduser, fwcloud, id, function (error, data)
-    {
-        if (data && data.result)
-        {
-            api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    FirewallModel.deleteFirewall(iduser, fwcloud, id)
+            .then(data =>
+            {
+                if (data && data.result)
+                {
+                    api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+                    .catch(error => {
+                       api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    }); 
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 module.exports = router;

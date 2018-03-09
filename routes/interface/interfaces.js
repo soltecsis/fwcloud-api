@@ -414,7 +414,7 @@ router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAcces
 });
 
 /* Remove interface */
-//FALTA ACABAR ALL
+//FALTA CONTROLAR RESTRICCIONES
 router.put("/del/interface/all/:idfirewall/", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from interface to remove

@@ -607,8 +607,33 @@ ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
             }
         });
     });
+};
+
+//DELETE ALL IPOBJ UNDER INTERFACE
+ipobjModel.deleteIpobjInterface = function (data) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'DELETE FROM ' + tableModel + ' WHERE interface = ' + connection.escape(data.id);
+
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        resolve({"result": true, "msg": "deleted"});
+                    } else {
+                        resolve({"result": false, "msg": "notExist"});
+                    }
+                }
+            });
+        });
+    });
 
 };
+
 
 
 /**

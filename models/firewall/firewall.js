@@ -38,6 +38,9 @@ var logger = require('log4js').getLogger("app");
 var FwcloudModel = require('../../models/fwcloud/fwcloud');
 var utilsModel = require("../../utils/utils.js");
 var InterfaceModel = require('../../models/interface/interface');
+var User__firewallModel = require('../../models/user/user__firewall');
+var Policy_rModel = require('../../models/policy/policy_r');
+var fwcTreemodel = require('../../models/tree/fwc_tree');
 
 
 /**
@@ -512,11 +515,11 @@ firewallModel.updateFirewallCluster = function (firewallData, callback) {
             callback(error, null);
         var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
                 ' AND U.id_user=' + connection.escape(firewallData.iduser) +
-                ' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ' ;
+                ' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
         connection.query(sqlExists, function (error, row) {
 
             if (row && row.length > 0) {
-                var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +                        
+                var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +
                         'by_user = ' + connection.escape(firewallData.iduser) + ' ' +
                         ' WHERE id = ' + firewallData.id;
 
@@ -673,57 +676,56 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
+firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sqlExists = 'SELECT T.id, A.id as idnode FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+                    ' AND U.id_user=' + connection.escape(iduser) +
+                    ' INNER JOIN fwc_tree A ON A.id_obj = T.id ' +
+                    ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+            connection.query(sqlExists, function (error, row) {
+                //If exists Id from firewall to remove
+                if (row && row.length > 0) {
+                    var idnode=row[0].idnode;
+                    
+                    //DELETE POLICY AND Objects in Positions
+                    Policy_rModel.deletePolicy_r_Firewall(idfirewall)
+                            .then(resp => {
+                                // DELETE IPOBJS UNDER INTERFACES
+                                InterfaceModel.deleteInterfacesIpobjFirewall(fwcloud, idfirewall)
+                                        .then(resp1 => {
+                                            //DELETE INTEFACES
+                                            InterfaceModel.deleteInterfaceFirewall(fwcloud, idfirewall)
+                                                    .then(resp2 => {
+                                                        //DELETE USERS_FIREWALL
+                                                        User__firewallModel.deleteAllUser__firewall(idfirewall)
+                                                                .then(resp3 => {
+                                                                    //DELETE TREE NODES From firewall
+                                                                    var dataNode = {  id: idnode, fwcloud: fwcloud,iduser: iduser};
+                                                                    fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
+                                                                            .then(resp4 => {
+                                                                                //DELETE FIREWALL
+                                                                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
+                                                                                connection.query(sql, function (error, result) {
+                                                                                    if (error) {
+                                                                                        reject(error);
+                                                                                    } else {
+                                                                                        resolve({"result": true, "msg": "deleted"});
+                                                                                    }
+                                                                                });
+                                                                            });
 
-        var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-                ' AND U.id_user=' + connection.escape(iduser) +
-                ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+                                                                });
 
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from firewall to remove
-            if (row && row.length > 0) {
-//                db.get(function (error, connection) {
-//                    var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
-//                    connection.query(sql, function (error, result) {
-//                        if (error) {
-//                            callback(error, null);
-//                        } else {
-//                            var sql = 'DELETE FROM user_firewall WHERE id_firewall = ' + connection.escape(idfirewall) + ' AND id_user=' + connection.escape(iduser);
-//                            connection.query(sql, function (error, result) {
-//                                if (error) {
-//                                    callback(error, null);
-//                                } else {
-//                                    
-
-                // DELETE INTERFACES AND IPOBJS UNDER
-
-                //DELETE POLICY
-
-
-                //DELETE TREE NODES 
-
-
-                //DELETE USERS
-
-                //DELETE FIREWALL
-
-
-
-                callback(null, {"result": true, "msg": "deleted"});
-
-
-//                                }
-//                            });
-//                        }
-//                    });
-//                });//XXX
-
-            } else {
-                callback(null, {"result": false});
-            }
+                                                    });
+                                        });
+                            });
+                } else {
+                    resolve({"result": false, "msg": "Not Exist"});
+                }
+            });
         });
     });
 };

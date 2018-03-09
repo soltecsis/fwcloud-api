@@ -406,7 +406,7 @@ policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfir
                 policy_rData.type = dataPol[0].id;
                 //Insert Empty Rule
                 policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-                    if (dataRule && dataRule.result) {                        
+                    if (dataRule && dataRule.result) {
                         logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL INPUT RULE CREATED:  " + dataRule.insertId);
                     }
                 });
@@ -420,7 +420,7 @@ policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfir
                 policy_rData.type = dataPol[0].id;
                 //Insert Empty Rule
                 policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-                    if (dataRule && dataRule.result) {                        
+                    if (dataRule && dataRule.result) {
                         logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL OUTPUT RULE CREATED:  " + dataRule.insertId);
                     }
                 });
@@ -433,7 +433,7 @@ policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfir
                 policy_rData.type = dataPol[0].id;
                 //Insert Empty Rule
                 policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-                    if (dataRule && dataRule.result) {                        
+                    if (dataRule && dataRule.result) {
                         logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL FORWARD RULE CREATED:  " + dataRule.insertId);
                     }
                 });
@@ -730,63 +730,110 @@ function OrderList(new_order, idfirewall, old_order, id) {
 
 }
 ;
-//FALTA DELETE POLICY_C
-//Remove policy_r with id to remove
-policy_rModel.deletePolicy_r = function (idfirewall, id, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from policy_r to remove
-            if (row && row.length > 0) {
-                var rule_order = row[0].rule_order;
-                logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall + "  ORDER: " + rule_order);
-                //DELETE FROM policy_r__ipobj
-                Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
-                {
-                    if (error)
-                        callback(error, null);
-                    else {
-                        //DELETE FROM policy_r__interface
-                        Policy_r__interfaceModel.deletePolicy_r__All(id, function (error, data)
-                        {
-                            if (error)
-                                callback(error, null);
-                            else {
-                                //DELETE POLICY_C compilation
-                                Policy_cModel.deletePolicy_c(idfirewall, id, function (error, data)
-                                {
-                                    if (error)
-                                        callback(error, null);
-                                    else {
-                                        db.get(function (error, connection) {
-                                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-                                            connection.query(sql, function (error, result) {
-                                                if (error) {
-                                                    logger.debug(error);
-                                                    callback(error, null);
-                                                } else {
-                                                    if (result.affectedRows > 0) {
-                                                        OrderList(999999, idfirewall, rule_order, id);
-                                                        callback(null, {"result": true, "msg": "deleted"});
-                                                    } else {
-                                                        callback(null, {"result": false, "msg": "notExist"});
-                                                    }
-                                                }
-                                            });
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
 
+//Remove All policy_r from firewall
+policy_rModel.deletePolicy_r_Firewall = function (idfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'SELECT  I.*   FROM ' + tableModel + ' I ' +
+                    ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    logger.debug("-----> DELETING RULES FROM FIREWALL: " + idfirewall);
+                    //Bucle por reglas
+                    Promise.all(rows.map(policy_rModel.deletePolicy_rPro))
+                            .then(data => {
+                                resolve(data);
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
+                }
+            });
+        });
+
+    });
+};
+
+
+policy_rModel.deletePolicy_rPro = function (data) {
+    return new Promise((resolve, reject) => {
+        policy_rModel.deletePolicy_r(data.firewall, data.id)
+                .then(resp => {
+                    resolve(resp);
+                })
+                .catch(e => {
+                    reject(e);
                 });
-            } else {
-                callback(null, {"result": false, "msg": "notExist"});
-            }
+    });
+};
+
+
+//Remove policy_r with id to remove
+policy_rModel.deletePolicy_r = function (idfirewall, id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+            //logger.debug(sqlExists);
+            
+            connection.query(sqlExists, function (error, row) {
+                //If exists Id from policy_r to remove
+                if (row && row.length > 0) {
+                    var rule_order = row[0].rule_order;
+                    logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall + "  ORDER: " + rule_order);
+                    //DELETE FROM policy_r__ipobj
+                    Policy_r__ipobjModel.deletePolicy_r__All(id, function (error, data)
+                    {
+                        if (error)
+                            reject(error);
+                        else {
+                            //DELETE FROM policy_r__interface
+                            Policy_r__interfaceModel.deletePolicy_r__All(id, function (error, data)
+                            {
+                                if (error)
+                                    reject(error);
+                                else {
+                                    //DELETE POLICY_C compilation
+                                    Policy_cModel.deletePolicy_c(idfirewall, id, function (error, data)
+                                    {
+                                        if (error)
+                                            reject(error);
+                                        else {
+                                            db.get(function (error, connection) {
+                                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+                                                connection.query(sql, function (error, result) {
+                                                    if (error) {
+                                                        logger.debug(error);
+                                                        reject(error);
+                                                    } else {
+                                                        if (result.affectedRows > 0) {
+                                                            OrderList(999999, idfirewall, rule_order, id);
+                                                            resolve({"result": true, "msg": "deleted"});
+                                                        } else {
+                                                            resolve({"result": false, "msg": "notExist"});
+                                                        }
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                    });
+                } else {
+                    resolve({"result": false, "msg": "notExist"});
+                }
+            });
         });
     });
 };
