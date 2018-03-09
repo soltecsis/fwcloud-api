@@ -41,6 +41,21 @@ policy_typeModel.getPolicy_type = function (id, callback) {
     });
 };
 
+//Get policy_type by  type Letter
+policy_typeModel.getPolicy_typeL = function (id, callback) {
+    db.get(function (error, connection) {
+        if (error) callback(error, null);
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE type = ' + connection.escape(id);
+        connection.query(sql, function (error, row) {
+            if (error)
+                callback(error, null);
+            else{                
+                callback(null, row);
+            }
+        });
+    });
+};
+
 //Get policy_type by name
 policy_typeModel.getPolicy_typeName = function (name, callback) {
     db.get(function (error, connection) {

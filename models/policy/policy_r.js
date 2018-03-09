@@ -25,6 +25,7 @@ var data_policy_position_ipobjs = require('../../models/data/data_policy_positio
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
 
+
 var logger = require('log4js').getLogger("app");
 
 
@@ -380,6 +381,70 @@ policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
     });
 };
 
+policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfirewall) {
+    return new Promise((resolve, reject) => {
+
+        var policy_rData = {
+            id: null,
+            idgroup: null,
+            firewall: idfirewall,
+            rule_order: 1,
+            action: 2,
+            time_start: null,
+            time_end: null,
+            active: 1,
+            options: '',
+            comment: 'Catching All Rule',
+            type: 0,
+            style: null
+        };
+
+        //CREATE INPUT RULE
+        //Get Policy Type I
+        Policy_typeModel.getPolicy_typeL('I', function (error, dataPol) {
+            if (dataPol && dataPol.length > 0) {
+                policy_rData.type = dataPol[0].id;
+                //Insert Empty Rule
+                policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
+                    if (dataRule && dataRule.result) {                        
+                        logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL INPUT RULE CREATED:  " + dataRule.insertId);
+                    }
+                });
+            }
+        });
+
+
+        //Create Output rule 
+        Policy_typeModel.getPolicy_typeL('O', function (error, dataPol) {
+            if (dataPol && dataPol.length > 0) {
+                policy_rData.type = dataPol[0].id;
+                //Insert Empty Rule
+                policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
+                    if (dataRule && dataRule.result) {                        
+                        logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL OUTPUT RULE CREATED:  " + dataRule.insertId);
+                    }
+                });
+            }
+        });
+
+        //Create Forward rule 
+        Policy_typeModel.getPolicy_typeL('F', function (error, dataPol) {
+            if (dataPol && dataPol.length > 0) {
+                policy_rData.type = dataPol[0].id;
+                //Insert Empty Rule
+                policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
+                    if (dataRule && dataRule.result) {                        
+                        logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL FORWARD RULE CREATED:  " + dataRule.insertId);
+                    }
+                });
+            }
+        });
+
+        resolve();
+
+    });
+
+};
 
 
 //Add new policy_r from user
@@ -501,7 +566,7 @@ policy_rModel.updatePolicy_r_applyto = function (iduser, fwcloud, idfirewall, ty
                 type = data_types[0].id;
             else
                 type = 1;
-            
+
             FirewallModel.getFirewall(iduser, fwcloud, fwapplyto, function (error, data_fc) {
                 if (error)
                     callback(error, null);
@@ -509,7 +574,7 @@ policy_rModel.updatePolicy_r_applyto = function (iduser, fwcloud, idfirewall, ty
                     if (data_fc.length > 0) {
                         db.get(function (error, connection) {
                             if (error)
-                                callback(error, null);                            
+                                callback(error, null);
                             if (fwapplyto === undefined || fwapplyto === '' || isNaN(fwapplyto)) {
                                 fwapplyto = null;
                             }
@@ -732,7 +797,7 @@ var streamModel = require('../stream/stream');
 policy_rModel.compilePolicy_r = function (accessData, callback) {
 
     var rule = accessData.rule;
-             
+
 
     policy_rModel.getPolicy_r_id(rule, function (error, data) {
         if (error)
@@ -741,7 +806,7 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
             var strRule = " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
             logger.debug("---------- COMPILING RULE " + strRule + " -------");
             streamModel.pushMessageCompile(accessData, "COMPILING RULE " + rule + " COMPILATION PROCESS\n");
-            
+
             //RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
             RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
                     .then(data => {
@@ -750,7 +815,7 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
                             logger.debug(data);
                             logger.debug("-----------------------");
                             streamModel.pushMessageCompile(accessData, "RULE " + rule + "  COMPILED\n");
-                            streamModel.pushMessageCompile(accessData, "\n" +  data + " \n");
+                            streamModel.pushMessageCompile(accessData, "\n" + data + " \n");
                             streamModel.pushMessageCompile(accessData, "\nCOMPILATION COMPLETED\n\n");
                             callback(null, {"result": true, "msg": "Rule compiled"});
                         } else {

@@ -84,6 +84,8 @@ var fwcTreemodel = require('../../models/tree/fwc_tree');
 
 var InterfaceModel = require('../../models/interface/interface');
 
+var Policy_rModel = require('../../models/policy/policy_r');
+
 
 router.param('cluster', function (req, res, next, param) {
     logger.debug("DETECTED PARAM CLUSTER");
@@ -510,20 +512,28 @@ router.post("/firewall", function (req, res)
                                 if (data && data.insertId)
                                 {
                                     var dataresp = {"insertId": data.insertId};
-                                    FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, data.insertId, firewallData.fwmaster, function (error, data) {
+                                    var idfirewall=data.insertId;
+                                    
+                                    FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                         //////////////////////////////////
                                         //INSERT FIREWALL NODE STRUCTURE
 
-                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF", data.insertId, function (error, data) {
+                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF",idfirewall, function (error, dataTree) {
                                             if (error)
-                                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
                                                     res.status(200).json(jsonResp);
                                                 });
-                                            else if (data && data.result)
-                                                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                                                    res.status(200).json(jsonResp);
-                                                });
-                                            else
+                                            else if (dataTree && dataTree.result) {
+                                                ///CREATE CATCHING ALL RULES
+                                                Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
+                                                        .then(() => {
+                                                            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                                                res.status(200).json(jsonResp);
+                                                            });
+                                                        });
+
+
+                                            } else
                                                 api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
                                                     res.status(200).json(jsonResp);
                                                 });
@@ -540,7 +550,7 @@ router.post("/firewall", function (req, res)
                         })
                         .catch(e => {
                             logger.debug(e);
-                            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
                                 res.status(200).json(jsonResp);
                             });
                         });
@@ -735,7 +745,7 @@ router.put('/firewall/:idfirewall/cluster/:cluster', utilsModel.checkFirewallAcc
 
     var firewallData = {
         id: idfirewall,
-        fwcloud: req.fwcloud, 
+        fwcloud: req.fwcloud,
         cluster: cluster,
         iduser: req.iduser
     };
