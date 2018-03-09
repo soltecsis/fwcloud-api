@@ -160,18 +160,23 @@ utilsModel.checkConfirmationToken = function (req, res, next) {
     var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, confirm_token: req.confirm_token, sessionID: req.sessionID};
     logger.debug("checkConfirmationToken: ", accessData);
     logger.debug("Restricted: ", req.restricted);
-    
+
     UserModel.checkConfirmationtoken(accessData)
             .then(resp => {
                 if (resp.result) {
                     //Confirmation ok
-                    next();
+                    if (req.restricted.result === false) {
+                        api_resp.getJson(req.restricted, api_resp.ACR_RESTRICTED, ' FIREWALL RESTRICTED', '', null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    } else
+                        next();
                 } else {
                     //Need confirmation, send new token
-                    var objResp= {"fwc_confirm_token": resp.token};
-                    if (req.restricted.result===false){
+                    var objResp = {"fwc_confirm_token": resp.token};
+                    if (req.restricted.result === false) {
                         //Add restricted search to response
-                        objResp=utilsModel.mergeObj(objResp, req.restricted);
+                        objResp = utilsModel.mergeObj(objResp, req.restricted);
                     }
                     api_resp.getJson(objResp, api_resp.ACR_CONFIRM_ASK, ' Need to confirm action', 'ACTION', null, function (jsonResp) {
                         res.status(200).json(jsonResp);
