@@ -76,6 +76,7 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
                 ' LEFT JOIN firewall FC on FC.id=R.fw_apply_to ' +
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
                 ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
+        logger.debug(sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
