@@ -69,14 +69,14 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
         var sql = 'SELECT R.id,R.rule_order,  ' + 
-                ' ((R.updated_at>C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
+                ' ((R.updated_at>=C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
                 ' R.comment, R.fw_apply_to, IFNULL(FC.name , F.name) as firewall_name ' +
                 ' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
                 ' INNER JOIN firewall F on F.id=R.firewall ' + 
                 ' LEFT JOIN firewall FC on FC.id=R.fw_apply_to ' +
                 ' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
                 ' AND F.fwcloud=' +  connection.escape(fwcloud) ;
-        logger.debug(sql);
+        
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
