@@ -61,6 +61,8 @@ var ClusterModel = require('../../models/firewall/cluster');
 
 var utilsModel = require("../../utils/utils.js");
 
+var fwcTreemodel = require('../../models/tree/fwc_tree');
+var Policy_rModel = require('../../models/policy/policy_r');
 
 
 /**
@@ -77,7 +79,7 @@ var utilsModel = require("../../utils/utils.js");
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('',  function (req, res)
+router.get('', function (req, res)
 {
     ClusterModel.getClusters(function (error, data)
     {
@@ -102,12 +104,16 @@ router.get('',  function (req, res)
 
 
 /* New cluster */
-router.post("/cluster",  function (req, res)
+router.post("/cluster", function (req, res)
 {
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+
     //new objet with Cluster data
-    var clusterData = {
-        id: null,
-        name: req.body.name
+    var clusterData = {        
+        name: req.body.name,
+        comment: req.body.comment,
+        fwcloud: fwcloud
     };
     ClusterModel.insertCluster(clusterData, function (error, data)
     {
@@ -115,9 +121,25 @@ router.post("/cluster",  function (req, res)
         if (data && data.insertId)
         {
             var dataresp = {"insertId": data.insertId};
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'CLUSTER INSERTED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+            var idcluster = data.insertId;
+
+            //////////////////////////////////
+            //INSERT CLUSTER NODE STRUCTURE
+            fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, "FDC", idcluster, function (error, dataTree) {
+                if (error)
+                    api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                else if (dataTree && dataTree.result) {
+                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'CLUSTER INSERTED OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
             });
+
         } else
         {
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
@@ -128,7 +150,7 @@ router.post("/cluster",  function (req, res)
 });
 
 /* cluster update */
-router.put('/cluster',  function (req, res)
+router.put('/cluster', function (req, res)
 {
     //Save cluster data into objet 
     var clusterData = {id: req.param('id'), name: req.param('name')};
@@ -150,7 +172,7 @@ router.put('/cluster',  function (req, res)
 });
 
 /* Get cluster by Id */
-router.get('/cluster/:id',  function (req, res)
+router.get('/cluster/:id', function (req, res)
 {
     var id = req.params.id;
 
@@ -189,7 +211,7 @@ router.get('/cluster/:id',  function (req, res)
 
 
 /* Remove cluster */
-router.put("/del/cluster/:id",  function (req, res)
+router.put("/del/cluster/:id", function (req, res)
 {
 
     var id = req.param('id');
@@ -198,8 +220,8 @@ router.put("/del/cluster/:id",  function (req, res)
         if (data && data.result)
         {
             api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+                res.status(200).json(jsonResp);
+            });
         } else
         {
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {

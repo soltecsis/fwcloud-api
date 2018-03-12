@@ -12,8 +12,50 @@ var objModel = 'FWC TREE';
 var logger = require('log4js').getLogger("app");
 
 
+/* Get all fwc_tree NODE CLUSTERS*/
+router.get('/clusters', function (req, res)
+{
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDC", function (error, rows)
+    {
+        utilsModel.checkEmptyRow(rows, function (notempty)
+        {
+            if (notempty) {
+                var row = rows[0];
+                //create object
+                var root_node = new fwc_tree_node(row);
+                //console.log(root_node);
+                var tree = new Tree(root_node);
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDC", '', function (error, data)
+                {
+                    
+                    if (!error)
+                    {
+                        api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                    //Get Error
+                    else
+                    {
+                        api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                });
+            } else {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            }
+        });
 
-/* Get all fwc_tree NODE FIREWALL by User*/
+
+    });
+});
+
+/* Get all fwc_tree NODE FIREWALL*/
 router.get('/firewalls', function (req, res)
 {
     var iduser = req.iduser;
@@ -29,9 +71,8 @@ router.get('/firewalls', function (req, res)
                 //console.log(root_node);
                 var tree = new Tree(root_node);
                 fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", '', function (error, data)
-                {
-                    //If exists fwc_tree get data
-                    if (data && data.length > 0)
+                {                    
+                    if (!error)
                     {
                         api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                             res.status(200).json(jsonResp);
@@ -78,7 +119,7 @@ router.get('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (re
                 fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", idfirewall, function (error, data)
                 {
                     //If exists fwc_tree get data
-                    if (data && data.length > 0)
+                    if (!error)
                     {
                         api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                             res.status(200).json(jsonResp);
@@ -128,7 +169,7 @@ router.get('/objects/:objStandard/:objCloud/', function (req, res)
             fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO", '', function (error, data)
             {
                 //If exists fwc_tree get data
-                if (data && data.length > 0)
+                if (!error)
                 {
                     api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -176,7 +217,7 @@ router.get('/objects/:objStandard/:objCloud/:id', function (req, res)
             fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO", '', function (error, data)
             {
                 //If exists fwc_tree get data
-                if (data && data.length > 0)
+                if (!error)
                 {
                     api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -220,7 +261,7 @@ router.get('/services/:objStandard/:objCloud', function (req, res)
             fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS", '', function (error, data)
             {
                 //If exists fwc_tree get data
-                if (data && data.length > 0)
+                if (!error)
                 {
                     api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
@@ -265,7 +306,7 @@ router.get('/services/:objStandard/:objCloud/:id', function (req, res)
             fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS", '', function (error, data)
             {
                 //If exists fwc_tree get data
-                if (data && data.length > 0)
+                if (!error)
                 {
                     api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);

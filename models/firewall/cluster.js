@@ -3,6 +3,10 @@ var db = require('../../db.js');
 
 //create object
 var clusterModel = {};
+
+//Export the object
+module.exports = clusterModel;
+
 var tableModel="cluster";
 
 
@@ -58,6 +62,7 @@ clusterModel.getClusterName = function (name, callback) {
 clusterModel.insertCluster = function (clusterData, callback) {
     db.get(function (error, connection) {
         if (error) callback(error, null);
+        logger.debug(clusterData);
         connection.query('INSERT INTO ' + tableModel + ' SET ?', clusterData, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -116,5 +121,3 @@ clusterModel.deleteCluster = function (id, callback) {
     });
 };
 
-//Export the object
-module.exports = clusterModel;
