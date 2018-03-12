@@ -517,8 +517,7 @@ router.post("/firewall", function (req, res)
                                     FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                         //////////////////////////////////
                                         //INSERT FIREWALL NODE STRUCTURE
-
-                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, "FDF", idfirewall, function (error, dataTree) {
+                                        fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud,  idfirewall,firewallData.cluster, firewallData.fwmaster, function (error, dataTree) {
                                             if (error)
                                                 api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
                                                     res.status(200).json(jsonResp);
@@ -733,6 +732,7 @@ router.put('/firewall/:idfirewall/fwmaster/:fwmaster', utilsModel.checkFirewallA
 });
 
 //UPDATE FIREWALL cluster
+//FALTA CAMBIAR de NODO a CLUSTER O FIREWALLS
 router.put('/firewall/:idfirewall/cluster/:cluster', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
 

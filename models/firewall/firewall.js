@@ -438,8 +438,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         logger.debug(sqlExists);
         connection.query(sqlExists, function (error, row) {
             if (row && row.length > 0) {
-                var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
-                        'cluster = ' + connection.escape(firewallData.cluster) + ',' +
+                var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +                        
                         'comment = ' + connection.escape(firewallData.comment) + ', ' +
                         'ip_admin = ' + connection.escape(firewallData.ip_admin) + ', ' +
                         'install_user = ' + connection.escape(firewallData.install_user) + ', ' +
@@ -447,7 +446,6 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
                         'save_user_pass = ' + connection.escape(firewallData.save_user_pass) + ', ' +
                         'install_interface = ' + connection.escape(firewallData.install_interface) + ', ' +
                         'install_ipobj = ' + connection.escape(firewallData.install_ipobj) + ', ' +
-                        'fwmaster = ' + connection.escape(firewallData.fwmaster) + ', ' +
                         'install_port = ' + connection.escape(firewallData.install_port) + ', ' +
                         'by_user = ' + connection.escape(iduser) +
                         ' WHERE id = ' + firewallData.id;
