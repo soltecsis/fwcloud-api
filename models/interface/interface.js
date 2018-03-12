@@ -205,12 +205,15 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewa
                                 var respI = {resp};
                                 found = true;
                                 var obj = "";
-                                if (!utilsModel.isEmptyObject(found_resp)) {
-                                    obj = utilsModel.mergeObj(found_resp, respI);
+                                if (!utilsModel.isEmptyObject(found_resp)) {                                    
+                                    if (!utilsModel.isEmptyObject(respI))
+                                        obj = utilsModel.mergeObj(found_resp, respI);
+                                    else
+                                        obj = found_resp;
                                 } else {
                                     obj = respI;
-                                }
-                                found_resp = obj;
+                                }                                
+                                found_resp = obj;                                
                             }
                         })
                         .catch();
@@ -280,12 +283,26 @@ interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_fir
                                                 } else {
                                                     //logger.debug(data_ipobj);
                                                     if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
-                                                        resolve({"result": true, "msg": "INTERFACE FOUND", "search": {
-                                                                "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
-                                                                "IpobjInterfaceInrules": data_ipobj_interfaces}});
+                                                        var resp={"result": true, "msg": "INTERFACE FOUND", "search": {}};
+                                                        if (data_rules_I.found!=="")
+                                                            resp.search["InterfaceInRules_I"]= data_rules_I;
+                                                        if (data_rules_O.found!=="")
+                                                            resp.search["InterfaceInRules_O"]= data_rules_O;
+                                                        if (data_host_interfaces.found!=="")
+                                                            resp.search["HostInterfaceInRules"]= data_host_interfaces;
+                                                        if (data_ipobj_interfaces.found!=="")
+                                                            resp.search["IpobjInterfaceInrules"]= data_ipobj_interfaces;
+                                                                
+                                                                
+                                                        
+                                                        //var resp={"result": true, "msg": "INTERFACE FOUND", "search": {
+                                                        //        "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
+                                                        //        "IpobjInterfaceInrules": data_ipobj_interfaces}};
+                                                        resolve(resp);
                                                     } else {
-                                                        resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
-                                                                "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+                                                        //resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+                                                        //        "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+                                                        resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}})
                                                     }
                                                 }
                                             });
@@ -296,8 +313,7 @@ interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_fir
                         }
                     });
                 } else
-                    resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
-                            "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+                    resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}});
             }
         });
     });
@@ -483,10 +499,10 @@ interfaceModel.deleteInterfacesIpobjFirewall = function (fwcloud, idfirewall) {
     return new Promise((resolve, reject) => {
         db.get(function (error, connection) {
             if (error)
-                reject(error);     
-            var sql = 'SELECT ' + fwcloud + ' as fwc, I.*   FROM ' + tableModel + ' I ' +                    
+                reject(error);
+            var sql = 'SELECT ' + fwcloud + ' as fwc, I.*   FROM ' + tableModel + ' I ' +
                     ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
-            
+
             connection.query(sql, function (error, rows) {
                 if (error)
                     reject(error);
