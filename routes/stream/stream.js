@@ -19,71 +19,85 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 //FALTA CONTROL de BLOQUEO CLOUD y AUTH
-router.get('/update-stream/compile/:iduser/:fwcloud/:token',  function (req, res) {
+router.get('/update-stream/compile/:iduser/:fwcloud/:token', function (req, res) {
 
     try {
-        
-        // let request last as long as possible
-        req.socket.setTimeout(99999999);
-        var accessData = {sessionID: req.sessionID, iduser: req.params.iduser, fwcloud: req.params.fwcloud};
+        var iduser = req.params.iduser;
+        var fwcloud = req.params.fwcloud;
+        var update = false;
 
-        
-        
-        var messageCount = 0;
-        var subscriber = redis.createClient();
-        
-        var channel= StreamModel.getTagPublishCompile(accessData);
 
-        logger.debug("REQUESTING SUBSCRIPTON STREAMING COMPILE DATA. CHANNEL : " + channel);
-        
-        
-        subscriber.subscribe(channel);
+        logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
-        // In case we encounter an error...print it out to the console
-        subscriber.on("error", function (err) {
-            logger.debug("Redis Error: " + err);
-        });
+        utilsModel.checkFwCloudAccess(iduser, fwcloud, update, req, res)
+                .then(resp => {
+                    // let request last as long as possible
+                    req.socket.setTimeout(99999999);
+                    var accessData = {sessionID: req.sessionID, iduser: iduser, fwcloud: fwcloud};
 
-        // When we receive a message from the redis connection
-        subscriber.on("message", function (channel, message) {
-            messageCount++; // Increment our message count
 
-            logger.debug("CHANNEL: " + channel);
-            logger.debug("RECEIVING STREAMING COMPILE DATA: " + messageCount + "  MSG: " + message);
-            
 
-            //res.write('id: ' + messageCount + '\n');
-            //res.write("data: " + message + '\n\n'); // Note the extra newline
+                    var messageCount = 0;
+                    var subscriber = redis.createClient();
 
-            // Flush out line by line.
-            var str = message;
-            var lines = str.split("\n");
-            for (var i in lines) {
-                if (i == lines.length - 1) {
-                    str = lines[i];
-                } else {
-                    // Note: The double-newline is *required*
-                    res.write('data: ' + lines[i] + "\n\n");
-                }
-            }
-        });
+                    var channel = StreamModel.getTagPublishCompile(accessData);
 
-        //send headers for event-stream connection
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
-        res.write('\n');
+                    logger.debug("REQUESTING SUBSCRIPTON STREAMING COMPILE DATA. CHANNEL : " + channel);
 
-        // The 'close' event is fired when a user closes their browser window.
-        // In that situation we want to make sure our redis channel subscription
-        // is properly shut down to prevent memory leaks...and incorrect subscriber
-        // counts to the channel.
-        req.on("close", function () {
-            subscriber.unsubscribe();
-            subscriber.quit();
-        });
+
+                    subscriber.subscribe(channel);
+
+                    // In case we encounter an error...print it out to the console
+                    subscriber.on("error", function (err) {
+                        logger.debug("Redis Error: " + err);
+                    });
+
+                    // When we receive a message from the redis connection
+                    subscriber.on("message", function (channel, message) {
+                        messageCount++; // Increment our message count
+
+                        logger.debug("CHANNEL: " + channel);
+                        logger.debug("RECEIVING STREAMING COMPILE DATA: " + messageCount + "  MSG: " + message);
+
+
+                        //res.write('id: ' + messageCount + '\n');
+                        //res.write("data: " + message + '\n\n'); // Note the extra newline
+
+                        // Flush out line by line.
+                        var str = message;
+                        var lines = str.split("\n");
+                        for (var i in lines) {
+                            if (i == lines.length - 1) {
+                                str = lines[i];
+                            } else {
+                                // Note: The double-newline is *required*
+                                res.write('data: ' + lines[i] + "\n\n");
+                            }
+                        }
+                    });
+
+                    //send headers for event-stream connection
+                    res.writeHead(200, {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive'
+                    });
+                    res.write('\n');
+
+                    // The 'close' event is fired when a user closes their browser window.
+                    // In that situation we want to make sure our redis channel subscription
+                    // is properly shut down to prevent memory leaks...and incorrect subscriber
+                    // counts to the channel.
+                    req.on("close", function () {
+                        subscriber.unsubscribe();
+                        subscriber.quit();
+                    });
+
+                })
+                .catch(err => {
+                    logger.error("ERROR ---> err: " + err);
+                    res.write('data: ' + "\n\n");
+                });
     } catch (err) {
         res.write('data: ' + "\n\n");
     }
@@ -97,16 +111,16 @@ router.get('/update-stream/compile_1/:iduser/:fwcloud/:token', function (req, re
         req.socket.setTimeout(99999999);
         var accessData = {sessionID: req.sessionID, iduser: "1", fwcloud: "1"};
 
-        
-        
+
+
         var messageCount = 0;
         var subscriber = redis.createClient();
-        
-        var channel= StreamModel.getTagPublishCompile(accessData);
+
+        var channel = StreamModel.getTagPublishCompile(accessData);
 
         logger.debug("REQUESTING SUBSCRIPTON STEAMING COMPILE DATA. CHANNEL : " + channel);
-        
-        
+
+
         subscriber.subscribe(channel);
 
         // In case we encounter an error...print it out to the console
@@ -120,7 +134,7 @@ router.get('/update-stream/compile_1/:iduser/:fwcloud/:token', function (req, re
 
             logger.debug("CHANNEL: " + channel);
             logger.debug("RECEIVING STREAMING COMPILE DATA: " + messageCount + "  MSG: " + message);
-            
+
 
             //res.write('id: ' + messageCount + '\n');
             //res.write("data: " + message + '\n\n'); // Note the extra newline
