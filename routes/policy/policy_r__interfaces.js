@@ -163,6 +163,8 @@ router.get('/:idfirewall/:rule/:interface',utilsModel.checkFirewallAccess,  func
 /* Create New policy_r__interface */
 router.post("/policy-r__interface/:idfirewall",utilsModel.checkFirewallAccess,  function (req, res)
 {
+    var idfirewall= req.params.idfirewall;
+    
     //Create New objet with data policy_r__interface
     var policy_r__interfaceData = {
         rule: req.body.rule,
@@ -174,7 +176,7 @@ router.post("/policy-r__interface/:idfirewall",utilsModel.checkFirewallAccess,  
 
     policy_r__interfaceData = checkPostParameters(policy_r__interfaceData);
 
-    Policy_r__interfaceModel.insertPolicy_r__interface(policy_r__interfaceData, function (error, data)
+    Policy_r__interfaceModel.insertPolicy_r__interface(idfirewall, policy_r__interfaceData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
@@ -214,6 +216,7 @@ router.put('/policy-r__interface/:idfirewall', utilsModel.checkFirewallAccess, f
     var interface = req.body.get_interface;
     var position = req.body.get_position;
     var position_order = req.body.get_position_order;
+    var idfirewall= req.params.idfirewall;
 
     //Save New data into object
     var policy_r__interfaceData = {
@@ -225,7 +228,7 @@ router.put('/policy-r__interface/:idfirewall', utilsModel.checkFirewallAccess, f
     };
     policy_r__interfaceData = checkPostParameters(policy_r__interfaceData);
 
-    Policy_r__interfaceModel.updatePolicy_r__interface(rule, interface, position, position_order, policy_r__interfaceData, function (error, data)
+    Policy_r__interfaceModel.updatePolicy_r__interface(idfirewall, rule, interface, position, position_order, policy_r__interfaceData, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
@@ -268,6 +271,7 @@ router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/:positio
     var new_rule = req.params.new_rule;
     var new_position = req.params.new_position;
     var new_order = req.params.new_order;
+     var idfirewall= req.params.idfirewall;
 
     var content1 = 'O', content2 = 'O';
 
@@ -282,7 +286,7 @@ router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/:positio
             content2 = data.content2;
 
             if (content1 === content2) { //SAME POSITION
-                Policy_r__interfaceModel.updatePolicy_r__interface_position(rule, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
+                Policy_r__interfaceModel.updatePolicy_r__interface_position(idfirewall, rule, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
                 {
                     //If saved policy_r__ipobj saved ok, get data
                     if (data) {

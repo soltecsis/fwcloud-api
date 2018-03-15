@@ -61,11 +61,11 @@ policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, cal
 
 
 //Add new policy_r__interface
-policy_r__interfaceModel.insertPolicy_r__interface = function (policy_r__interfaceData, callback) {
+policy_r__interfaceModel.insertPolicy_r__interface = function (idfirewall, policy_r__interfaceData, callback) {
 
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkInterfacePosition(policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
+    checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
         if (error) {
             callback(error, null);
         } else {
@@ -124,10 +124,10 @@ policy_r__interfaceModel.duplicatePolicy_r__interface = function (rule, new_rule
 
 
 //Update policy_r__interface
-policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, old_position, old_position_order, policy_r__interfaceData, callback) {
+policy_r__interfaceModel.updatePolicy_r__interface = function (idfirewall, rule, interface, old_position, old_position_order, policy_r__interfaceData, callback) {
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkInterfacePosition(policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
+    checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
         if (error) {
             callback(error, null);
         } else {
@@ -160,10 +160,10 @@ policy_r__interfaceModel.updatePolicy_r__interface = function (rule, interface, 
 };
 
 //Update policy_r__interface POSITION AND RULE
-policy_r__interfaceModel.updatePolicy_r__interface_position = function (rule, interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
+policy_r__interfaceModel.updatePolicy_r__interface_position = function (idfirewall, rule, interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
 
     //Check if IPOBJ TYPE is ALLOWED in this Position
-    checkInterfacePosition(new_rule, interface, new_position, function (error, data) {
+    checkInterfacePosition(idfirewall, new_rule, interface, new_position, function (error, data) {
         if (error) {
             callback(error, null);
         } else {
@@ -284,7 +284,7 @@ function OrderList(new_order, rule, position, old_order, interface) {
 ;
 
 //Check if a object (type) can be inserted in a position type
-function checkInterfacePosition(rule, id, position, callback) {
+function checkInterfacePosition(idfirewall, rule, id, position, callback) {
 
     var allowed = 0;
     db.get(function (error, connection) {
@@ -293,7 +293,8 @@ function checkInterfacePosition(rule, id, position, callback) {
         var sql = 'select A.allowed from ipobj_type__policy_position A  ' +
                 'inner join interface I on A.type=I.interface_type ' +
                 'inner join policy_position P on P.id=A.position ' +
-                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) + ' AND P.content="I"';
+                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) + 
+                ' AND P.content="I" AND I.firewall= ' + connection.escape(idfirewall);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
