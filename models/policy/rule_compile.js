@@ -108,7 +108,8 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 				}
 				break;
 
-			default:
+			default: // Other IP protocols.
+				items.push("-p "+svc[i].protocol);
 				break;
 		}
 	}
@@ -177,7 +178,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
 			return "MASQUERADE";
 
-		if (trans_addr.length !== 1 || (trans_port.length !== 0 && trans_port.length !==1))
+		if (trans_addr.length !== 1 || (trans_port.length!==0 && trans_port.length!==1))
 			return null;
 	
 		var action = "";
@@ -249,7 +250,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				return;
 			}
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
-			statefull ="-m state --state NEW";
+			statefull ="-m state --state NEW ";
 			action = ACTION[data[0].action];
 		}
 		cs_trail = statefull+"-j "+action+"\n";
