@@ -201,7 +201,7 @@ router.post("/policy-r__interface/:idfirewall",utilsModel.checkFirewallAccess,  
                     });
             } else
             {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, ' INTERFACE not allowed in this position', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             }
