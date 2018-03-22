@@ -55,7 +55,7 @@ PolicyScript.dump = (accessData,fw,type) => {
 				return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
-				streamModel.pushMessageCompile(accessData, "RULE "+data[i].rule_order+" (ID: "+data[i].id+")\n");
+				streamModel.pushMessageCompile(accessData, "Rule "+data[i].rule_order+" (ID: "+data[i].id+")\n");
 				ps += "\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
 					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";

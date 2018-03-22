@@ -49,11 +49,14 @@ const ACTION = ['', 'ACCEPT', 'DENY', 'REJECT', 'CONTINUE'];
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_sd = (dir, sd) => {
 	var items = [];
+	var negate = "";
+
 	for (var i = 0; i < sd.length; i++) {
+		negate = (sd[i].negate) ? "! " : "";
 		if (sd[i].type === 5) // Host
-			items.push(dir + sd[i].address);
+			items.push(negate+dir+sd[i].address);
 		else if (sd[i].type === 7) // Network
-			items.push(dir + sd[i].address + "/" + sd[i].netmask);
+			items.push(negate+dir+sd[i].address+"/"+sd[i].netmask);
 	}
 
 	return ((items.length>0) ? items : null);
@@ -63,8 +66,12 @@ RuleCompileModel.pre_compile_sd = (dir, sd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_if = (dir, ifs) => {
 	var items = [];
-	for (var i = 0; i < ifs.length; i++)
-		items.push(dir + ifs[i].name);
+	var negate = "";
+
+	for (var i = 0; i < ifs.length; i++) {
+		negate = (ifs[i].negate) ? "! " : "";
+		items.push(negate+dir+ifs[i].name);
+	}
 	
 	return ((items.length>0) ? items : null);
 };
@@ -76,11 +83,10 @@ RuleCompileModel.pre_compile_if = (dir, ifs) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_svc = (sep,svc) => {
 	var items = [];
-	var tcp = "";
-	var udp = "";
-	var icmp = "";
-	var tmp = "";
+	var negate = tcp = udp = imcp = tmp = "";
+
 	for (var i = 0; i < svc.length; i++) {
+		negate = (svc[i].negate) ? "! " : "";
 		switch (svc[i].protocol) {
 			case 6: // TCP
 				if (svc[i].source_port_end === 0) { // No source port.
@@ -109,19 +115,19 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 				break;
 
 			default: // Other IP protocols.
-				items.push("-p "+svc[i].protocol);
+				items.push("-p "+negate+svc[i].protocol);
 				break;
 		}
 	}
 
 	if (tcp) {
 		if (sep===":")
-			tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports " + tcp) : ("-p tcp --dport " + tcp);
+			tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport "+negate+"--dports "+tcp) : ("-p tcp "+negate+"--dport "+tcp);
 		items.push(tcp);
 	}
 	if (udp) {
 		if (sep===":")
-			udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports " + udp) : ("-p udp --dport " + udp);
+			udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport "+negate+"--dports "+udp) : ("-p udp "+negate+" --dport "+udp);
 		items.push(udp);
 	}
 
