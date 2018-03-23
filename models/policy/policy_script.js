@@ -143,7 +143,7 @@ PolicyScript.run_ssh_command = (SSHconn,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (accessData,SSHconn,fw) => {
 	return new Promise(async (resolve,reject) => { 
-		streamModel.pushMessageCompile(accessData, "Uploading firewall scritp ("+SSHconn.host+")\n");
+		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
 		await PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");

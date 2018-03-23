@@ -109,7 +109,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 		/* Generate the policy script. */
 		await PolicyScript.append(config.policy.header_file)
 				.then(data => {
-					streamModel.pushMessageCompile(accessData, "\nINPUT TABLE:\n");
+					streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
 					stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"" + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
 					return PolicyScript.dump(accessData,req.params.idfirewall,1)
 				})
