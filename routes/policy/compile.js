@@ -91,9 +91,8 @@ router.put('/:idfirewall/:type/:rule',utilsModel.checkFirewallAccess, (req, res)
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 	var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
-	streamModel.pushMessageCompile(accessData, "STARTING FIREWALL COMPILATION PROCESS\n");
 
-  var fs = require('fs');
+	var fs = require('fs');
 	var path = config.policy.data_dir;
 	if (!fs.existsSync(path))
 		fs.mkdirSync(path);
@@ -110,7 +109,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 		/* Generate the policy script. */
 		await PolicyScript.append(config.policy.header_file)
 				.then(data => {
-					streamModel.pushMessageCompile(accessData, "\nINPUT TABLE:\n");
+					streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
 					stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"" + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
 					return PolicyScript.dump(accessData,req.params.idfirewall,1)
 				})
@@ -140,7 +139,6 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 				})
 				.then(data => {
 					stream.write(data);
-					streamModel.pushMessageCompile(accessData,"\nCOMPILATION COMPLETED\n\n");
 					api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
 				})
 				.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));

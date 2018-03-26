@@ -55,7 +55,7 @@ PolicyScript.dump = (accessData,fw,type) => {
 				return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
-				streamModel.pushMessageCompile(accessData, "RULE "+data[i].rule_order+" (ID: "+data[i].id+")\n");
+				streamModel.pushMessageCompile(accessData, "Rule "+data[i].rule_order+" (ID: "+data[i].id+")\n");
 				ps += "\necho \"RULE "+data[i].rule_order+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
 					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
@@ -143,7 +143,7 @@ PolicyScript.run_ssh_command = (SSHconn,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (accessData,SSHconn,fw) => {
 	return new Promise(async (resolve,reject) => { 
-		streamModel.pushMessageCompile(accessData, "Uploading firewall scritp ("+SSHconn.host+")\n");
+		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
 		await PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");

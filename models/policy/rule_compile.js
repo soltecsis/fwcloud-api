@@ -48,25 +48,33 @@ const ACTION = ['', 'ACCEPT', 'DENY', 'REJECT', 'CONTINUE'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_sd = (dir, sd) => {
-	var items = [];
+	var items = {
+		'negate' : ((sd.length>0) ? sd[0].negate : 0),
+		'str': []
+	};
+
 	for (var i = 0; i < sd.length; i++) {
 		if (sd[i].type === 5) // Host
-			items.push(dir + sd[i].address);
+			items.str.push(dir+sd[i].address);
 		else if (sd[i].type === 7) // Network
-			items.push(dir + sd[i].address + "/" + sd[i].netmask);
+			items.str.push(dir+sd[i].address+"/"+sd[i].netmask);
 	}
 
-	return ((items.length>0) ? items : null);
+	return ((items.str.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_if = (dir, ifs) => {
-	var items = [];
+	var items = {
+		'negate' : ((ifs.length>0) ? ifs[0].negate : 0),
+		'str': []
+	};
+
 	for (var i = 0; i < ifs.length; i++)
-		items.push(dir + ifs[i].name);
+		items.str.push(dir+ifs[i].name);
 	
-	return ((items.length>0) ? items : null);
+	return ((items.str.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -75,13 +83,14 @@ RuleCompileModel.pre_compile_if = (dir, ifs) => {
 // Returns an array of strings with the services agrupated by protocol.
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_svc = (sep,svc) => {
-	var items = [];
-	var tcp = "";
-	var udp = "";
-	var icmp = "";
-	var tmp = "";
+	var items = {
+		'negate' : ((svc.length>0) ? svc[0].negate : 0),
+		'str': []
+	};
+	var tcp = udp = imcp = tmp = "";
+	
 	for (var i = 0; i < svc.length; i++) {
-		switch (svc[i].protocol) {
+		switch (svc[i].protocol) { // PROTOCOL NUMBER
 			case 6: // TCP
 				if (svc[i].source_port_end === 0) { // No source port.
 					if (tcp)
@@ -91,7 +100,7 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 					tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
 					if (svc[i].destination_port_end !== 0)
 						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
-					items.push(tmp);
+					items.str.push(tmp);
 				}
 				break;
 
@@ -104,28 +113,37 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 					tmp = "-p udp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
 					if (svc[i].destination_port_end !== 0)
 						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
-					items.push(tmp);
+					items.str.push(tmp);
 				}
 				break;
 
+			case 1: // ICMP
+				if (svc[i].type===-1 && svc[i].code===-1) // Any ICMP
+					items.str.push("-p icmp -m icmp --icmp-type any");
+				else if (svc[i].type!==-1 && svc[i].code===-1)
+					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].type);
+				else if (svc[i].type!==-1 && svc[i].code!==-1)
+					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].type+"/"+svc[i].code);
+				break;
+
 			default: // Other IP protocols.
-				items.push("-p "+svc[i].protocol);
+				items.str.push("-p "+svc[i].protocol);
 				break;
 		}
 	}
 
 	if (tcp) {
 		if (sep===":")
-			tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports " + tcp) : ("-p tcp --dport " + tcp);
-		items.push(tcp);
+			tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports "+tcp) : ("-p tcp --dport "+tcp);
+		items.str.push(tcp);
 	}
 	if (udp) {
 		if (sep===":")
-			udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports " + udp) : ("-p udp --dport " + udp);
-		items.push(udp);
+			udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports "+udp) : ("-p udp --dport "+udp);
+		items.str.push(udp);
 	}
 
-	return ((items.length>0) ? items : null);
+	return ((items.str.length>0) ? items : null);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -137,6 +155,7 @@ RuleCompileModel.pre_compile = (data) => {
 	var position_items = [];
 	const policy_type = data[0].type;
 	var items, src_position, dst_position, svc_position;
+	var i, j, p;
 
 	if (policy_type === POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
 	else { src_position=1; dst_position=2; svc_position=3;}
@@ -158,9 +177,9 @@ RuleCompileModel.pre_compile = (data) => {
 	// Order the resulting array by number of strings into each array.
 	if (position_items.length < 2) // Don't need ordering.
 		return position_items;
-	for (var i = 0; i < position_items.length; i++) {
-		for (var p = i, j = i + 1; j < position_items.length; j++) {
-			if (position_items[j].length < position_items[p].length)
+	for (i = 0; i < position_items.length; i++) {
+		for (p = i, j = i + 1; j < position_items.length; j++) {
+			if (position_items[j].str.length < position_items[p].str.length)
 				p = j;
 		}
 		tmp = position_items[i];
@@ -168,7 +187,21 @@ RuleCompileModel.pre_compile = (data) => {
 		position_items[p] = tmp;
 	}
 
-	return position_items;
+	// If we have negated positions and not negated positions, then move the negated positions to the end of the array.
+	if (position_items.length === 1) // Don't need it.
+		return position_items;
+	
+	var position_items_not_negate = [];
+	var position_items_negate = [];
+	for (i = 0; i < position_items.length; i++) {
+		// Is this position item is negated, search for the next one no negated.
+		if (!(position_items[i].negate))
+			position_items_not_negate.push(position_items[i]);
+		else
+			position_items_negate.push(position_items[i]);
+	}
+
+	return position_items_not_negate.concat(position_items_negate);
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -260,36 +293,44 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		// Rule compilation process.
 		if (position_items.length === 0) // No conditions rule.
 			cs += cs_trail;
-		else if (position_items.length === 1) { // One condition rule.
-			if (position_items[0].length === 1) // Only one item in the condition.
-				cs += position_items[0][0] + " " + cs_trail;
+		else if (position_items.length===1 && !(position_items[0].negate)) { // One condition rule and no negated position.
+			if (position_items[0].str.length === 1) // Only one item in the condition.
+				cs += position_items[0].str[0] + " " + cs_trail;
 			else { // Multiple items in the condition.
 				var cs1 = cs;
 				cs = "";
-				for (var i = 0; i < position_items[0].length; i++)
-					cs += cs1 + position_items[0][i] + " " + cs_trail;
+				for (var i = 0; i < position_items[0].str.length; i++)
+					cs += cs1 + position_items[0].str[i] + " " + cs_trail;
 			}
-		} else { // Multiple condition rules.
+		} else { // Multiple condition rules or one condition rule with the condition (position) negated.
 			for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
 				// We have the position_items array ordered by arrays length.
-				if (position_items[i].length === 1)
-					cs += position_items[i][0]+" ";
+				if (position_items[i].str.length===1 && !(position_items[i].negate))
+					cs += position_items[i].str[0]+" ";
 				else {
 					chain_name = "FWCRULE"+rule+".CH"+chain_number;
-					// If we are in the first condition.
-					if (i === 0) {
+					// If we are in the first condition and it is not negated.
+					if (i===0 && !(position_items[i].negate)) {
 						var cs1 = cs;
 						cs = "";
-						for (var j = 0; j < position_items[0].length; j++)
-							cs += cs1+position_items[0][j]+((j < (position_items[0].length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
+						for (var j = 0; j < position_items[0].str.length; j++)
+							cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
 					} else {
-						// If we are at the end of the array, the next chain will be the rule action.
-						chain_next = (i === ((position_items.length) - 1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
+						if (!(position_items[i].negate)) {
+							// If we are at the end of the array, the next chain will be the rule action.
+							chain_next = (i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
+						} else { // If the position is negated.
+							chain_next = "RETURN";
+						}
+
 						cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
-						for (j = 0; j < position_items[i].length; j++) {
-							cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i][j]+" -j "+chain_next+"\n";
+						for (j = 0; j < position_items[i].str.length; j++) {
+							cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
 						}
 						chain_number++;
+
+						if (position_items[i].negate)
+							cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
 					}
 				}
 			}
@@ -298,6 +339,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			if (chain_number === 1)
 				cs += cs_trail;
 		}
+
+		cs = cs.replace(/  +/g,' ');
 
 		//Save compilation
 		var policy_cData = {
