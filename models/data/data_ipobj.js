@@ -10,7 +10,8 @@ function ipobjs_Data(data) {
     this.netmask = data.netmask;
     this.diff_serv = data.diff_serv;
     this.ip_version = data.ip_version;
-    this.code = data.code;
+    this.icmp_code = data.icmp_code;
+    this.icmp_type = data.icmp_type;
     this.tcp_flags_mask = data.tcp_flags_mask;
     this.tcp_flags_settings = data.tcp_flags_settings;
     this.range_start = data.range_start;

@@ -540,7 +540,8 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
         netmask: req.body.netmask,
         diff_serv: req.body.diff_serv,
         ip_version: req.body.ip_version,
-        code: req.body.code,
+        icmp_code: req.body.icmp_code,
+        icmp_type: req.body.icmp_type,
         tcp_flags_mask: req.body.tcp_flags_mask,
         tcp_flags_settings: req.body.tcp_flags_settings,
         range_start: req.body.range_start,
@@ -625,7 +626,7 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
  * @param {Integer} netmask
  * @param {Integer} diff_serv
  * @param {Integer} ip_version
- * @param {Integer} code
+ * @param {Integer} icmp_code
  * @param {Integer} tcp_flags_mask
  * @param {Integer} tcp_flags_settings
  * @param {Integer} range_start
@@ -670,7 +671,7 @@ router.put('/ipobj', function (req, res)
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     //Save data into object
-    var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, code: req.body.code, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
+    var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, icmp_code: req.body.icmp_code,icmp_type: req.body.icmp_type, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
 
     utilsModel.checkParameters(ipobjData, function (obj) {
         ipobjData = obj;
