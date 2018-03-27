@@ -6,7 +6,7 @@ module.exports = policy_rModel;
 
 var db = require('../../db.js');
 var asyncMod = require('async');
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var Policy_typeModel = require('../../models/policy/policy_type');
 
@@ -25,7 +25,7 @@ var data_policy_position_ipobjs = require('../../models/data/data_policy_positio
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
 
-
+var utilsModel= require('../../utils/utils');
 var logger = require('log4js').getLogger("app");
 
 
@@ -284,6 +284,77 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                                     function (err) {
                                         //logger.debug("---------- FINAL BUCLE 1 --------");
                                     });
+                        } else {
+                            //NO existe regla
+                            logger.debug("NO HAY REGLAS");
+                            AllDone("", null);
+                        }
+
+                    }
+                });
+            }
+        });
+    });
+};
+
+//Get All policy_r by firewall and type
+policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule, AllDone) {
+
+
+    var policy = [];
+    var policy_cont = 0;
+    var position_cont = 0;
+    var ipobj_cont = 0;
+    var i, j, k;
+    var sqlRule = "";
+
+
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        if (rule !== "") {
+            sqlRule = " AND P.id=" + connection.escape(rule);
+            //TEST
+            sqlRule = " AND (P.id=760 OR P.id=761) ";
+            sqlRule = " AND (P.id=760) ";
+        }
+        Policy_typeModel.getPolicy_type(type, function (error, data_types) {
+            if (error)
+                AllDone(error, null);
+            else {
+                if (data_types.length > 0)
+                    type = data_types[0].id;
+                else
+                    type = 1;
+
+                var sql = 'SELECT ' + fwcloud + ' as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, ' +
+                        ' C.updated_at as c_updated_at, ' +
+                        ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
+                        ' FROM ' + tableModel + ' P ' +
+                        ' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
+                        ' LEFT JOIN policy_c C ON C.rule=P.id ' +
+                        ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
+                        sqlRule + ' ORDER BY P.rule_order';
+                logger.debug(sql);
+                connection.query(sql, function (error, rows) {
+                    if (error)
+                        AllDone(error, null);
+                    else {
+                        if (rows.length > 0) {
+                            //Bucle por REGLAS                            
+                            logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas" );
+                            Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
+                                    .then(data => {                                                                               
+                                        logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
+                                        AllDone(null, data);
+                                    })
+                                    .catch(e => {
+                                        AllDone(e, null);
+                                    });
+
+
                         } else {
                             //NO existe regla
                             logger.debug("NO HAY REGLAS");
@@ -783,7 +854,7 @@ policy_rModel.deletePolicy_r = function (idfirewall, id) {
                 reject(error);
             var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
             //logger.debug(sqlExists);
-            
+
             connection.query(sqlExists, function (error, row) {
                 //If exists Id from policy_r to remove
                 if (row && row.length > 0) {

@@ -294,7 +294,7 @@ function checkInterfacePosition(idfirewall, rule, id, position, callback) {
                 'inner join interface I on A.type=I.interface_type ' +
                 'inner join policy_position P on P.id=A.position ' +
                 ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) + 
-                ' AND P.content="I" AND I.firewall= ' + connection.escape(idfirewall);
+                ' AND I.firewall= ' + connection.escape(idfirewall);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)

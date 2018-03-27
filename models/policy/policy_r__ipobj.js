@@ -4,6 +4,7 @@ var asyncMod = require('async');
 //create object
 var policy_r__ipobjModel = {};
 var tableModel = "policy_r__ipobj";
+var IpobjModel = require('../../models/ipobj/ipobj');
 
 var logger = require('log4js').getLogger("app");
 
@@ -65,6 +66,39 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position = function (rule, p
         });
     });
 
+};
+
+//Get All policy_r__ipobj by Policy_r (rule) and position
+policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (position) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule,ipobj, ipobj_g, interface, position, position_order, negate, "O" as type ' +
+                    ' FROM ' + tableModel + ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+                    ' UNION ' +
+                    ' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule,interface,-1,-1,position,position_order, negate, "I" as type  from policy_r__interface ' +
+                    ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+                    ' ORDER BY position_order';
+            //logger.debug(sql);
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    logger.debug("DENTRO de BUCLE de IPOBJS dentro de POSITION: " + position.id + " FWCLOUD: " + position.fwcloud + " --> " + rows.length + " IPOBJS");
+                    Promise.all(rows.map(IpobjModel.getIpobjPro))
+                            .then(dataI => {
+                                position.ipobjs = dataI;
+                                logger.debug("-------------------------> FINAL de POSITIONS : " + position.id + " ----");
+                                resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "position_objs": dataI});
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
+                }
+            });
+        });
+    });
 };
 
 //Get All policy_r__ipobj by Policy_r (rule) and position
@@ -978,7 +1012,7 @@ policy_r__ipobjModel.searchIpobjInRule = function (ipobj, type, fwcloud, callbac
 };
 
 //check if INTERFACE Exists in any rule
-policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud, firewall,diff_firewall, callback) {
+policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud, firewall, diff_firewall, callback) {
 
     logger.debug("SEARCH IN RULES interface:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  firewall: " + firewall + "  DIFF FW: " + diff_firewall);
     db.get(function (error, connection) {
@@ -998,10 +1032,10 @@ policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud,
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE O.interface=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                 ' AND C.id=' + connection.escape(fwcloud);
-        if (diff_firewall.length>0)
-            sql  +=   ' AND  F.id<>' + connection.escape(diff_firewall);
+        if (diff_firewall.length > 0)
+            sql += ' AND  F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null) {
-            sql +=  ' AND F.id=' + connection.escape(firewall);
+            sql += ' AND F.id=' + connection.escape(firewall);
         }
 
         //logger.debug(sql);
@@ -1235,7 +1269,7 @@ policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type,
                 'INNER JOIN policy_type PT ON PT.id = R.type ' +
                 'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
-        if (diff_firewall.length>0)
+        if (diff_firewall.length > 0)
             sql = sql + ' AND F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null)
             sql = sql + ' AND F.id=' + connection.escape(firewall);
@@ -1377,7 +1411,7 @@ policy_r__ipobjModel.searchIpobjInterfaces = function (ipobj, type, fwcloud, cal
 };
 
 //check if Exist IPOBJS under INTERFACES  IN RULES 
-policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, fwcloud, firewall,diff_firewall, callback) {
+policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, fwcloud, firewall, diff_firewall, callback) {
 
     logger.debug("SEARCH IPOBJ UNDER INTERFACE in RULES:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall + "  DIFF FW: " + diff_firewall);
     db.get(function (error, connection) {
@@ -1399,7 +1433,7 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
                 'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) +
                 ' AND F.fwcloud=' + connection.escape(fwcloud);
-        if (diff_firewall.length>0)
+        if (diff_firewall.length > 0)
             sql = sql + ' AND F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null)
             sql = sql + ' AND F.id=' + connection.escape(firewall);

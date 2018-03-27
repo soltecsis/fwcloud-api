@@ -92,6 +92,37 @@ interfaceModel.getInterfacesHost = function (idhost, fwcloud, callback) {
     });
 };
 
+//Get All interface by HOST and IPOBJECTS UNDER INTERFACES
+interfaceModel.getInterfacesHost_Full_Pro = function (idhost, fwcloud) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            //SELECT INTERFACES UNDER HOST
+            var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                    ' inner join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj' +
+                    ' WHERE (O.ipobj=' + connection.escape(idhost) + ')';
+
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    //BUCLE DE INTERFACES del HOST -> Obtenemos IPOBJS por cada Interface
+                    Promise.all(rows.map(interfaceModel.getInterfaceFullProData))
+                            .then(dataI => {
+                                //dataI es una Inteface y sus ipobjs
+                                logger.debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
+                                resolve(dataI);
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
+                }
+            });
+        });
+    });
+};
 
 
 
@@ -109,12 +140,94 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
                 ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-        logger.debug("INTERFACE SQL: " + sql);
+        //logger.debug("INTERFACE SQL: " + sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
             else
                 callback(null, row);
+        });
+    });
+};
+
+//Get interface by  id and interface
+interfaceModel.getInterfacePro = function (idfirewall, fwcloud, id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
+                    ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
+                    ' FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type ' +
+                    ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                    ' left join interface__ipobj O on O.interface=I.id ' +
+                    ' left join ipobj J ON J.id=O.ipobj ' +
+                    ' left join firewall F on F.id=I.firewall ' +
+                    ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+            connection.query(sql, function (error, row) {
+                if (error)
+                    reject(error);
+                else
+                    resolve(row);
+            });
+        });
+    });
+};
+
+interfaceModel.getInterfaceFullProData = function (data) {
+    return new Promise((resolve, reject) => {
+        interfaceModel.getInterfaceFullPro(data.idfirewall, data.fwcloud, data.id)
+                .then(dataI => {
+                    resolve(dataI);
+                })
+                .catch(e => {
+                    reject(e);
+                });
+    });
+};
+
+//Get interface by  id and interface
+interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
+                    ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
+                    ' FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type ' +
+                    ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                    ' left join interface__ipobj O on O.interface=I.id ' +
+                    ' left join ipobj J ON J.id=O.ipobj ' +
+                    ' left join firewall F on F.id=I.firewall ' +
+                    ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+            logger.debug("getInterfaceFullPro ->", sql);
+            connection.query(sql, function (error, row) {
+                if (error)
+                    reject(error);
+                else {
+                    //GET ALL IPOBJ UNDER INTERFACE
+                    //logger.debug("INTERFACE -> " , row[0]);
+                    IpobjModel.getAllIpobjsInterfacePro(row[0])
+                            .then(dataI => {
+                                logger.debug("ENCONTRADO IPOBJS DENTRO de INTERFAZ: ", dataI);
+                                Promise.all(dataI.ipobjs.map(IpobjModel.getIpobjPro))
+                                        .then(dataO => {
+                                            dataI.ipobjs = dataO;
+                                            logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
+                                            //resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
+                                            resolve(dataI);
+                                        })
+                                        .catch(e => {
+                                            reject(e);
+                                        });
+                            })
+                            .catch(e => {
+                                resolve({});
+                            });
+                }
+            });
         });
     });
 };
@@ -205,15 +318,15 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewa
                                 var respI = {resp};
                                 found = true;
                                 var obj = "";
-                                if (!utilsModel.isEmptyObject(found_resp)) {                                    
+                                if (!utilsModel.isEmptyObject(found_resp)) {
                                     if (!utilsModel.isEmptyObject(respI))
                                         obj = utilsModel.mergeObj(found_resp, respI);
                                     else
                                         obj = found_resp;
                                 } else {
                                     obj = respI;
-                                }                                
-                                found_resp = obj;                                
+                                }
+                                found_resp = obj;
                             }
                         })
                         .catch();
@@ -283,18 +396,18 @@ interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_fir
                                                 } else {
                                                     //logger.debug(data_ipobj);
                                                     if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
-                                                        var resp={"result": true, "msg": "INTERFACE FOUND", "search": {}};
-                                                        if (data_rules_I.found!=="")
-                                                            resp.search["InterfaceInRules_I"]= data_rules_I;
-                                                        if (data_rules_O.found!=="")
-                                                            resp.search["InterfaceInRules_O"]= data_rules_O;
-                                                        if (data_host_interfaces.found!=="")
-                                                            resp.search["HostInterfaceInRules"]= data_host_interfaces;
-                                                        if (data_ipobj_interfaces.found!=="")
-                                                            resp.search["IpobjInterfaceInrules"]= data_ipobj_interfaces;
-                                                                
-                                                                
-                                                        
+                                                        var resp = {"result": true, "msg": "INTERFACE FOUND", "search": {}};
+                                                        if (data_rules_I.found !== "")
+                                                            resp.search["InterfaceInRules_I"] = data_rules_I;
+                                                        if (data_rules_O.found !== "")
+                                                            resp.search["InterfaceInRules_O"] = data_rules_O;
+                                                        if (data_host_interfaces.found !== "")
+                                                            resp.search["HostInterfaceInRules"] = data_host_interfaces;
+                                                        if (data_ipobj_interfaces.found !== "")
+                                                            resp.search["IpobjInterfaceInrules"] = data_ipobj_interfaces;
+
+
+
                                                         //var resp={"result": true, "msg": "INTERFACE FOUND", "search": {
                                                         //        "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
                                                         //        "IpobjInterfaceInrules": data_ipobj_interfaces}};

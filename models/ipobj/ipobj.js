@@ -46,6 +46,7 @@ var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface'
  * @type async
  */
 var asyncMod = require('async');
+
 /**
  * Property  to manage Interfaces Data
  *
@@ -82,7 +83,7 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  */
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 
-
+var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 
 /**
@@ -147,6 +148,80 @@ ipobjModel.getIpobj = function (fwcloud, id, callback) {
 
 
             }
+        });
+    });
+};
+
+/**
+ * Get ipobj by Ipobj id
+ * 
+ * @method getIpobjPro
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getIpobjPro = function (position_ipobj) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            if (position_ipobj.negate === undefined)
+                position_ipobj.negate = 0;
+
+
+            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR T.fwcloud IS NULL)' +
+                    ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                    ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
+
+            logger.debug("getIpobjPro -> ", sql);
+            connection.query(sql, function (error, row) {
+                if (error) {
+                    reject(error);
+                } else {
+                    //CHECK IF IPOBJ IS a HOST
+                    if (row.length > 0) {
+                        if (row[0].type === 8) {
+                            logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
+                            //GET ALL HOST INTERFACES
+                            InterfaceModel.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
+                                    .then(interfacesHost => {
+
+                                        //RETURN IPOBJ HOST DATA                                                                            
+                                        var hostdata = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+                                        hostdata.interfaces= interfacesHost;
+
+                                        resolve(hostdata);
+                                    })
+                                    .catch(e => {
+                                        resolve({});
+                                    });
+                        } else {
+                            //RETURN IPOBJ DATA
+                            var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+                            logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                            resolve(ipobj);
+                        }
+                    } else if (position_ipobj.type === 'I') {
+                        InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
+                                .then(dataInt => {
+                                    logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                                    //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, position_ipobj.negate, 'I');
+                                    //RETURN INTERFACE DATA
+                                    resolve(dataInt);
+                                })
+                                .catch(() =>
+                                    resolve({})
+                                );
+                    } else {
+                        resolve({});
+                    }
+
+
+                }
+            });
         });
     });
 };
@@ -387,25 +462,27 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
  * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
  * */
 ipobjModel.getAllIpobjsInterfacePro = function (data) {
-    var fwcloud = data.fwc;
+    var fwcloud = data.fwcloud;
 
     return new Promise((resolve, reject) => {
         db.get(function (error, connection) {
             if (error)
                 reject(error);
 
-            var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+            var sql = 'SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
                     ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
                     ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
-            logger.debug(sql);
+            logger.debug("getAllIpobjsInterfacePro -> ", sql);
 
             connection.query(sql, function (error, rows) {
                 if (error)
                     reject(error);
-                else
-                    resolve({"interface": data, "ipobjs": rows});
+                else {
+                    data.ipobjs = rows;
+                    resolve(data);
+                }
             });
         });
     });
