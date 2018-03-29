@@ -90,7 +90,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (posi
                     Promise.all(rows.map(IpobjModel.getIpobjPro))
                             .then(dataI => {
                                 position.ipobjs = dataI;
-                                //logger.debug("-------------------------> FINAL de POSITIONS : " + position.id + " ----");
+                                logger.debug("-------------------------> FINAL de POSITIONS : " + position.id + " ----");
                                 resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "position_objs": dataI});
                             })
                             .catch(e => {

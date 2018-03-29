@@ -81,7 +81,8 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  * @property Ipobj__ipobjgModel
  * @type models.ipobj__ipobjg
  */
-var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
+
+var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
 
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -170,11 +171,13 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
             if (position_ipobj.negate === undefined)
                 position_ipobj.negate = 0;
 
-                //SELECT IPOBJ DATA UNDER POSITION
-            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node ' + 
+            //logger.debug("IPOBJ: ", position_ipobj);
+
+            //SELECT IPOBJ DATA UNDER POSITION
+            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node ' +
                     ' FROM ' + tableModel + ' I ' +
                     ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR T.fwcloud IS NULL)' +
-                    ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+                    ' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 
             //logger.debug("getIpobjPro -> ", sql);
@@ -182,17 +185,17 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                 if (error) {
                     reject(error);
                 } else {
-                    //CHECK IF IPOBJ IS a HOST
                     if (row.length > 0) {
+                        //CHECK IF IPOBJ IS a HOST
                         if (row[0].type === 8) {
-                            //logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
+                            logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
                             //GET ALL HOST INTERFACES
                             InterfaceModel.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
                                     .then(interfacesHost => {
 
                                         //RETURN IPOBJ HOST DATA                                                                            
                                         var hostdata = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
-                                        hostdata.interfaces= interfacesHost;
+                                        hostdata.interfaces = interfacesHost;
 
                                         resolve(hostdata);
                                     })
@@ -202,14 +205,14 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                         } else {
                             //RETURN IPOBJ DATA
                             var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
-                            //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                            logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                             resolve(ipobj);
                         }
                     } else if (position_ipobj.type === 'I') {
                         //SEARCH INTERFACE DATA
                         InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
                                 .then(dataInt => {
-                                    //logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                                    logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                                     //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, position_ipobj.negate, 'I');
                                     //RETURN INTERFACE DATA
                                     resolve(dataInt);
@@ -217,6 +220,21 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                                 .catch(() =>
                                     resolve({})
                                 );
+                    } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g>0) {
+                        logger.debug("======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g);
+                        //GET ALL GROUP's IPOBJS
+                        Ipobj_gModel.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
+                                .then(ipobjsGroup => {
+                                    logger.debug("-------------------------> FINAL de GROUP : " +  position_ipobj.ipobj_g + " ----");                                    
+                                    //RETURN IPOBJ GROUP DATA                                                                            
+                                    var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, position_ipobj.negate, 'G');
+                                    groupdata.ipobjs = ipobjsGroup;                                    
+                                    resolve(groupdata);
+                                })
+                                .catch(e => {
+                                    resolve({});
+                                });
+
                     } else {
                         resolve({});
                     }

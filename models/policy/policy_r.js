@@ -346,7 +346,7 @@ policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule
                                 //logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
                                 Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
                                         .then(data => {
-                                            //logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
+                                            logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
                                             resolve(data);
                                         })
                                         .catch(e => {
