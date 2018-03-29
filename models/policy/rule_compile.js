@@ -118,12 +118,12 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 				break;
 
 			case 1: // ICMP
-				if (svc[i].type===-1 && svc[i].code===-1) // Any ICMP
+				if (svc[i].icmp_type===-1 && svc[i].icmp_code===-1) // Any ICMP
 					items.str.push("-p icmp -m icmp --icmp-type any");
-				else if (svc[i].type!==-1 && svc[i].code===-1)
-					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].type);
-				else if (svc[i].type!==-1 && svc[i].code!==-1)
-					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].type+"/"+svc[i].code);
+				else if (svc[i].icmp_type!==-1 && svc[i].icmp_code===-1)
+					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].icmp_type);
+				else if (svc[i].icmp_type!==-1 && svc[i].icmp_code!==-1)
+					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].icmp_type+"/"+svc[i].icmp_code);
 				break;
 
 			default: // Other IP protocols.
@@ -236,7 +236,8 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {        
-	Policy_rModel.getPolicy_rs_type(cloud, fw, type, rule, (error, data) => {
+	Policy_rModel.getPolicy_rs_type_full(cloud, fw, type, rule)
+	.then(data => {
 		if (!data) {
 			callback({"Msg": "Rule data not found."},null);
 			return;
@@ -354,7 +355,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			/* We don't worry about if the rule compilation string is stored fine in the database. */ });
 
 		callback(null,cs);
-	});
+	})
+	.catch(error => api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
