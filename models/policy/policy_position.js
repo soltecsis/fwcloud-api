@@ -53,7 +53,7 @@ policy_positionModel.getPolicy_positionsTypePro = function (data) {
                     reject(error);
                 else {
                     //Bucle por POSITIONS
-                    logger.debug("DENTRO de BUCLE de POSITIONS REGLA: " + data.id + " --> " + rows.length + " Positions");
+                    //logger.debug("DENTRO de BUCLE de POSITIONS REGLA: " + data.id + " --> " + rows.length + " Positions");
                     Promise.all(rows.map(Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro))
                             .then(dataP => {                                
                                 data.positions = dataP;                                

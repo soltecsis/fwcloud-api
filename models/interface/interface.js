@@ -114,7 +114,7 @@ interfaceModel.getInterfacesHost_Full_Pro = function (idhost, fwcloud) {
                     Promise.all(rows.map(interfaceModel.getInterfaceFullProData))
                             .then(dataI => {
                                 //dataI es una Inteface y sus ipobjs
-                                logger.debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
+                                //logger.debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
                                 resolve(dataI);
                             })
                             .catch(e => {
@@ -217,7 +217,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                                 Promise.all(dataI.ipobjs.map(IpobjModel.getIpobjPro))
                                         .then(dataO => {
                                             //dataI.ipobjs = dataO;
-                                            logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
+                                            //logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
                                             //resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
                                             var interface = new data_policy_position_ipobjs(row[0], 0, 0, 'I');
                                             interface.ipobjs = dataO;

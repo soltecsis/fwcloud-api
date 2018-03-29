@@ -336,17 +336,17 @@ policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule
                             ' LEFT JOIN policy_c C ON C.rule=P.id ' +
                             ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
                             sqlRule + ' ORDER BY P.rule_order';
-                    logger.debug(sql);
+                    //logger.debug(sql);
                     connection.query(sql, function (error, rows) {
                         if (error)
                             reject(error);
                         else {
                             if (rows.length > 0) {
                                 //Bucle por REGLAS                            
-                                logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
+                                //logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
                                 Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
                                         .then(data => {
-                                            logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
+                                            //logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
                                             resolve(data);
                                         })
                                         .catch(e => {

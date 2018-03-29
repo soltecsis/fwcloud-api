@@ -185,7 +185,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                     //CHECK IF IPOBJ IS a HOST
                     if (row.length > 0) {
                         if (row[0].type === 8) {
-                            logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
+                            //logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
                             //GET ALL HOST INTERFACES
                             InterfaceModel.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
                                     .then(interfacesHost => {
@@ -202,14 +202,14 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                         } else {
                             //RETURN IPOBJ DATA
                             var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
-                            logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                            //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                             resolve(ipobj);
                         }
                     } else if (position_ipobj.type === 'I') {
                         //SEARCH INTERFACE DATA
                         InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
                                 .then(dataInt => {
-                                    logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                                    //logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                                     //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, position_ipobj.negate, 'I');
                                     //RETURN INTERFACE DATA
                                     resolve(dataInt);
@@ -476,7 +476,7 @@ ipobjModel.getAllIpobjsInterfacePro = function (data) {
                     ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
-            logger.debug("getAllIpobjsInterfacePro -> ", sql);
+            //logger.debug("getAllIpobjsInterfacePro -> ", sql);
 
             connection.query(sql, function (error, rows) {
                 if (error)
