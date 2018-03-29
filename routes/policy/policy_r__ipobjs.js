@@ -239,7 +239,7 @@ router.post("/policy-r__ipobj/:idfirewall",utilsModel.checkFirewallAccess,  func
         else {
             //If saved policy_r__ipobj Get data
             if (data && data.result) {
-                if (data.result) {                    
+                if (data.result && data.allowed) {                    
                     Policy_rModel.compilePolicy_r(policy_r__ipobjData.rule, function (error, datac) {});
                     api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);

@@ -185,7 +185,7 @@ policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_
                     }
                 });
             } else {
-                callback(null, {"result": false, "allowed": 0});
+                callback(null, {"result": true, "allowed": 0});
             }
         }
     });
@@ -450,9 +450,36 @@ function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback)
                 if (rows.length > 0) {
                     allowed = rows[0].allowed;
                     logger.debug("ALLOWED: " + allowed);
-                    if (allowed > 0)
-                        callback(null, 1);
-                    else
+                    if (allowed > 0) {
+                        if (ipobj_g > 0) {
+                            logger.debug("CHECKING GROUP IPOBJS: ", ipobj_g);
+                            //Check if all IPOBJS under Group are allowed all
+                            sql = 'select count(*) as n from ipobj__ipobjg I ' +
+                                    'inner join ipobj O on O.id=I.ipobj ' +
+                                    'inner join ipobj_type T on O.type=T.id ' +
+                                    'inner join ipobj_type__policy_position A on A.type=O.type ' +
+                                    'inner join policy_position P on P.id=A.position ' +
+                                    ' WHERE I.ipobj_g = ' + connection.escape(ipobj_g) +
+                                    ' AND A.position=' + connection.escape(position) +
+                                    ' AND P.content="O"  AND A.allowed=0';
+
+                            connection.query(sql, function (error, rows) {
+                                if (error) {
+                                    logger.debug(error);
+                                    callback(error, null);
+                                } else {
+                                    logger.debug(rows);
+                                    var notallowed = rows[0].n;
+                                    if (notallowed > 0)
+                                        callback(null, 0);
+                                    else
+                                        callback(null, 1);
+                                }
+                            });
+
+                        } else
+                            callback(null, 1);
+                    } else
                         callback(null, 0);
                 } else
                     callback(null, 0);
