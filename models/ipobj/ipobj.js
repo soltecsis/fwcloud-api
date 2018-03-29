@@ -170,13 +170,14 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
             if (position_ipobj.negate === undefined)
                 position_ipobj.negate = 0;
 
-
-            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+                //SELECT IPOBJ DATA UNDER POSITION
+            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node ' + 
+                    ' FROM ' + tableModel + ' I ' +
                     ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR T.fwcloud IS NULL)' +
                     ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 
-            logger.debug("getIpobjPro -> ", sql);
+            //logger.debug("getIpobjPro -> ", sql);
             connection.query(sql, function (error, row) {
                 if (error) {
                     reject(error);
@@ -205,6 +206,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                             resolve(ipobj);
                         }
                     } else if (position_ipobj.type === 'I') {
+                        //SEARCH INTERFACE DATA
                         InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
                                 .then(dataInt => {
                                     logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);

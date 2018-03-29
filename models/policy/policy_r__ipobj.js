@@ -74,6 +74,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (posi
         db.get(function (error, connection) {
             if (error)
                 reject(error);
+            //SELECT ALL IPOBJ UNDER a POSITION
             var sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule,ipobj, ipobj_g, interface, position, position_order, negate, "O" as type ' +
                     ' FROM ' + tableModel + ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
                     ' UNION ' +

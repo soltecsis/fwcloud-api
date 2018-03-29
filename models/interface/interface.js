@@ -12,6 +12,8 @@ var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var utilsModel = require("../../utils/utils.js");
 var IpobjModel = require('../../models/ipobj/ipobj');
 
+var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+
 
 
 var tableModel = "interface";
@@ -193,6 +195,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
         db.get(function (error, connection) {
             if (error)
                 reject(error);
+            //SELECT INTERFACE
             var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
                     ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
                     ' FROM ' + tableModel + ' I ' +
@@ -202,7 +205,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                     ' left join ipobj J ON J.id=O.ipobj ' +
                     ' left join firewall F on F.id=I.firewall ' +
                     ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-            logger.debug("getInterfaceFullPro ->", sql);
+            //logger.debug("getInterfaceFullPro ->", sql);
             connection.query(sql, function (error, row) {
                 if (error)
                     reject(error);
@@ -210,14 +213,15 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                     //GET ALL IPOBJ UNDER INTERFACE
                     //logger.debug("INTERFACE -> " , row[0]);
                     IpobjModel.getAllIpobjsInterfacePro(row[0])
-                            .then(dataI => {
-                                logger.debug("ENCONTRADO IPOBJS DENTRO de INTERFAZ: ", dataI);
+                            .then(dataI => {                                
                                 Promise.all(dataI.ipobjs.map(IpobjModel.getIpobjPro))
                                         .then(dataO => {
-                                            dataI.ipobjs = dataO;
+                                            //dataI.ipobjs = dataO;
                                             logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
                                             //resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
-                                            resolve(dataI);
+                                            var interface = new data_policy_position_ipobjs(row[0], 0, 0, 'I');
+                                            interface.ipobjs = dataO;
+                                            resolve(interface);
                                         })
                                         .catch(e => {
                                             reject(e);

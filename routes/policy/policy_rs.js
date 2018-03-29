@@ -66,6 +66,41 @@ router.get('/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (
         }
     });
 });
+
+/* Get all policy_rs by firewall and type */
+router.get('/full/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (req, res)
+{
+    var idfirewall = req.params.idfirewall;
+    var type = req.params.type;
+    var rule = "";
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + "  TYPE:" + type);
+    Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
+            .then(data =>
+            {
+                //If exists policy_r get data
+                if (data && data.length > 0)
+                {
+                    api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+                //Get Error
+                else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(e => {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+});
+
 /* Get all policy_rs by firewall and type and Rule */
 router.get('/:idfirewall/type/:type/rule/:rule', utilsModel.checkFirewallAccess, function (req, res)
 {
@@ -103,23 +138,29 @@ router.get('/full/:idfirewall/type/:type/rule/:rule', utilsModel.checkFirewallAc
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type);
-    Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule, function (error, data)
-    {
-        //If exists policy_r get data
-        if (data && data.length > 0)
-        {
-            api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
+            .then(data =>
+            {
+                //If exists policy_r get data
+                if (data && data.length > 0)
+                {
+                    api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+                //Get Error
+                else
+                {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(e => {
+                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
-        }
-        //Get Error
-        else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 /* Get  policy_r by id and  by Id */
