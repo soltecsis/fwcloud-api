@@ -805,7 +805,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                                                     sqlinsert = 'UPDATE fwc_tree T ' +                                                             
                                                             ' INNER JOIN fwc_tree P ON P.id = T.id_parent ' +
                                                             ' AND P.node_type = "CL" AND P.id_obj =' +  connection.escape(idcluster) +
-                                                            ' SET id_obj= ' + connection.escape(idfirewall);
+                                                            ' SET T.id_obj= ' + connection.escape(idfirewall);
                                                     connection.query(sqlinsert, function (error, result) {
                                                         if (error){
                                                             logger.debug("ERROR CLUSTER FWMASTER1: " + error);
@@ -816,7 +816,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                                                             ' inner join fwc_tree P1 on P1.id=T.id_parent ' +
                                                             ' inner join fwc_tree P2 on P2.id=P1.id_parent and P2.node_type="CL" ' +
                                                             ' AND P2.id_obj =' +  connection.escape(idcluster) +
-                                                            ' SET id_obj= ' + connection.escape(idfirewall) + 
+                                                            ' SET T.id_obj= ' + connection.escape(idfirewall) + 
                                                             ' WHERE T.node_type<>"FW"';
                                                     connection.query(sqlinsert, function (error, result) {
                                                         if (error){

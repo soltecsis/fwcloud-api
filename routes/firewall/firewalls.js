@@ -486,7 +486,7 @@ router.post("/firewall", function (req, res)
         by_user: iduser
     };
 
-    checkBodyFirewall(firewallData, true)
+    FirewallModel.checkBodyFirewall(firewallData, true)
             .then(result => {
                 firewallData = result;
 
@@ -625,7 +625,7 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 
     logger.debug(firewallData);
 
-    checkBodyFirewall(firewallData, false)
+    FirewallModel.checkBodyFirewall(firewallData, false)
             .then(result => {
                 firewallData = result;
                 //encript username and password
@@ -776,66 +776,7 @@ router.put('/firewall/:idfirewall/cluster/:cluster', utilsModel.checkFirewallAcc
 });
 
 
-function checkBodyFirewall(body, isNew) {
-    try {
-        return new Promise((resolve, reject) => {
-            var param = "";
-            if (!isNew) {
-                param = body.id;
-                if (param === undefined || param === '' || isNaN(param) || param == null) {
-                    reject("Firewall ID not valid");
-                }
-            }
-            param = body.cluster;
-            if (param === undefined || param === '' || isNaN(param) || param == null) {
-                body.cluster = null;
-            }
 
-            param = body.name;
-            if (param === undefined || param === '' || param == null) {
-                reject("Firewall name not valid");
-            }
-
-            param = body.ip_admin;
-            if (param === undefined || param === '' || param == null) {
-                body.ip_admin = null;
-            }
-            param = body.save_user_pass;
-            if (param === undefined || param === '' || param == null || param == 0) {
-                body.save_user_pass = false;
-            } else
-                body.save_user_pass = true;
-
-            param = body.install_user;
-            if (param === undefined || param === '' || param == null) {
-                body.install_user = '';
-            }
-            param = body.install_pass;
-            if (param === undefined || param === '' || param == null) {
-                body.install_pass = '';
-            }
-            param = body.install_interface;
-            if (param === undefined || param === '' || isNaN(param) || param == null) {
-                body.install_interface = null;
-            }
-            param = body.install_ipobj;
-            if (param === undefined || param === '' || isNaN(param) || param == null) {
-                body.install_ipobj = null;
-            }
-            param = body.install_port;
-            if (param === undefined || param === '' || isNaN(param) || param == null) {
-                body.install_port = 22;
-            }
-            param = body.fwmaster;
-            if (param === undefined || param === '' || isNaN(param) || param == null) {
-                body.fwmaster = 0;
-            }
-            resolve(body);
-        });
-    } catch (e) {
-        reject("Carch Error: ", e);
-    }
-}
 
 /* Get locked Status of firewall by Id */
 /**

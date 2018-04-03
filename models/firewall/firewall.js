@@ -377,24 +377,30 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
  *       callback(error, null);
  *       
  */
-firewallModel.insertFirewall = function (iduser, firewallData, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        connection.query('INSERT INTO ' + tableModel + ' SET ?', firewallData, function (error, result) {
-            if (error) {
-                callback(error, null);
-            } else {
-                var fwid = result.insertId;
-                connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
-                    if (error) {
-                        callback(error, null);
-                    } else {
-                        //devolvemos la última id insertada
-                        callback(null, {"insertId": fwid});
-                    }
-                });
-            }
+firewallModel.insertFirewall = function (iduser, firewallData) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            connection.query('INSERT INTO ' + tableModel + ' SET ?', firewallData, function (error, result) {
+                if (error) {
+                    logger.debug("SQL ERROR INSERT: ", error);
+                    logger.debug("SQL ERROR Data: ", firewallData);
+                    reject(error);
+                } else {
+                    var fwid = result.insertId;
+                    connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
+                        if (error) {
+                             logger.debug("SQL ERROR USER INSERT: ", error);
+                            reject(error);
+                        } else {
+                            //devolvemos la última id insertada
+                            //callback(null, {"insertId": fwid});
+                            resolve({"insertId": fwid});
+                        }
+                    });
+                }
+            });
         });
     });
 };
@@ -438,7 +444,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         logger.debug(sqlExists);
         connection.query(sqlExists, function (error, row) {
             if (row && row.length > 0) {
-                var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +                        
+                var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
                         'comment = ' + connection.escape(firewallData.comment) + ', ' +
                         'ip_admin = ' + connection.escape(firewallData.ip_admin) + ', ' +
                         'install_user = ' + connection.escape(firewallData.install_user) + ', ' +
@@ -686,8 +692,8 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
             connection.query(sqlExists, function (error, row) {
                 //If exists Id from firewall to remove
                 if (row && row.length > 0) {
-                    var idnode=row[0].idnode;
-                    
+                    var idnode = row[0].idnode;
+
                     //DELETE POLICY AND Objects in Positions
                     Policy_rModel.deletePolicy_r_Firewall(idfirewall)
                             .then(resp => {
@@ -701,7 +707,7 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
                                                         User__firewallModel.deleteAllUser__firewall(idfirewall)
                                                                 .then(resp3 => {
                                                                     //DELETE TREE NODES From firewall
-                                                                    var dataNode = {  id: idnode, fwcloud: fwcloud,iduser: iduser};
+                                                                    var dataNode = {id: idnode, fwcloud: fwcloud, iduser: iduser};
                                                                     fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
                                                                             .then(resp4 => {
                                                                                 //DELETE FIREWALL
@@ -728,3 +734,63 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
     });
 };
 
+firewallModel.checkBodyFirewall = function (body, isNew) {
+    try {
+        return new Promise((resolve, reject) => {
+            var param = "";
+            if (!isNew) {
+                param = body.id;
+                if (param === undefined || param === '' || isNaN(param) || param == null) {
+                    reject("Firewall ID not valid");
+                }
+            }
+            param = body.cluster;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.cluster = null;
+            }
+
+            param = body.name;
+            if (param === undefined || param === '' || param == null) {
+                reject("Firewall name not valid");
+            }
+
+            param = body.ip_admin;
+            if (param === undefined || param === '' || param == null) {
+                body.ip_admin = null;
+            }
+            param = body.save_user_pass;
+            if (param === undefined || param === '' || param == null || param == 0) {
+                body.save_user_pass = false;
+            } else
+                body.save_user_pass = true;
+
+            param = body.install_user;
+            if (param === undefined || param === '' || param == null) {
+                body.install_user = '';
+            }
+            param = body.install_pass;
+            if (param === undefined || param === '' || param == null) {
+                body.install_pass = '';
+            }
+            param = body.install_interface;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_interface = null;
+            }
+            param = body.install_ipobj;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_ipobj = null;
+            }
+            param = body.install_port;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.install_port = 22;
+            }
+            param = body.fwmaster;
+            if (param === undefined || param === '' || isNaN(param) || param == null) {
+                body.fwmaster = 0;
+            }
+            resolve(body);
+        });
+    } catch (e) {
+        reject("Carch Error: ", e);
+    }
+}
