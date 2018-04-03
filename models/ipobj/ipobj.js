@@ -84,6 +84,8 @@ var ipobj_Data = require('../../models/data/data_ipobj');
 
 var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
 
+var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
+
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 

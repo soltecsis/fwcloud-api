@@ -3,6 +3,9 @@ var asyncMod = require('async');
 
 //create object
 var policy_r__ipobjModel = {};
+//Export the object
+module.exports = policy_r__ipobjModel;
+
 var tableModel = "policy_r__ipobj";
 var IpobjModel = require('../../models/ipobj/ipobj');
 
@@ -1482,5 +1485,3 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
     });
 };
 
-//Export the object
-module.exports = policy_r__ipobjModel;

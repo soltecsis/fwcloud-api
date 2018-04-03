@@ -3,6 +3,10 @@ var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 
 //create object
 var ipobj__ipobjgModel = {};
+
+//Export the object
+module.exports = ipobj__ipobjgModel;
+
 var tableModel = "ipobj__ipobjg";
 
 
@@ -191,5 +195,3 @@ ipobj__ipobjgModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) 
     });
 };
 
-//Export the object
-module.exports = ipobj__ipobjgModel;
