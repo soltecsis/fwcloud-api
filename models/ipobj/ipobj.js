@@ -182,7 +182,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                     ' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 
-            //logger.debug("getIpobjPro -> ", sql);
+            logger.debug("getIpobjPro -> ", sql);
             connection.query(sql, function (error, row) {
                 if (error) {
                     reject(error);
@@ -207,7 +207,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                         } else {
                             //RETURN IPOBJ DATA
                             var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
-                            logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                            //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                             resolve(ipobj);
                         }
                     } else if (position_ipobj.type === 'I') {
@@ -222,20 +222,60 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                                 .catch(() =>
                                     resolve({})
                                 );
-                    } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g>0) {
+                    } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
                         logger.debug("======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g);
                         //GET ALL GROUP's IPOBJS
                         Ipobj_gModel.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
                                 .then(ipobjsGroup => {
-                                    logger.debug("-------------------------> FINAL de GROUP : " +  position_ipobj.ipobj_g + " ----");                                    
+                                    logger.debug("-------------------------> FINAL de GROUP : " + position_ipobj.ipobj_g + " ----");
                                     //RETURN IPOBJ GROUP DATA                                                                            
                                     var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, position_ipobj.negate, 'G');
-                                    groupdata.ipobjs = ipobjsGroup;                                    
+                                    groupdata.ipobjs = ipobjsGroup;
                                     resolve(groupdata);
                                 })
                                 .catch(e => {
                                     resolve({});
                                 });
+
+                    } else {
+                        resolve({});
+                    }
+
+
+                }
+            });
+        });
+    });
+};
+
+
+ipobjModel.getFinalIpobjPro = function (position_ipobj) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            if (position_ipobj.negate === undefined)
+                position_ipobj.negate = 0;
+
+            //logger.debug("IPOBJ: ", position_ipobj);
+
+            //SELECT IPOBJ DATA UNDER POSITION
+            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node ' +
+                    ' FROM ' + tableModel + ' I ' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR T.fwcloud IS NULL)' +
+                    ' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
+                    ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
+
+            //logger.debug("getIpobjPro -> ", sql);
+            connection.query(sql, function (error, row) {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (row.length > 0) {
+                        //RETURN IPOBJ DATA
+                        var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+                        //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                        resolve(ipobj);
 
                     } else {
                         resolve({});
