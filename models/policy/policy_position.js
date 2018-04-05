@@ -57,7 +57,7 @@ policy_positionModel.getPolicy_positionsTypePro = function (data) {
                     Promise.all(rows.map(Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro))
                             .then(dataP => {                                
                                 data.positions = dataP;                                
-                                resolve({"rule": data});                                
+                                resolve(data);                                
                             })
                             .catch(e => {
                                 reject(e);

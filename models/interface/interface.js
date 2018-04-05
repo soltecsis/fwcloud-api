@@ -50,7 +50,7 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
         if (error)
             callback(error, null);
         //var sql = 'SELECT * FROM ' + tableModel + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
-        var sql = 'SELECT ' + fwcloud + ' as fwc, I.*,  T.id id_node, T.id_parent id_parent_node   FROM ' + tableModel + ' I ' +
+        var sql = 'SELECT ' + fwcloud + ' as fwcloud, I.*,  T.id id_node, T.id_parent id_parent_node   FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
         logger.debug(sql);
@@ -58,7 +58,7 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
             if (error)
                 callback(error, null);
             else {
-                logger.debug("-----> BUSCANDO INTERFACES");
+                logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
                 //Bucle por interfaces
                 Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
                         .then(data => {
@@ -222,6 +222,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                                             var interface = new data_policy_position_ipobjs(row[0], 0, 0, 'I');
                                             interface.ipobjs = dataO;
                                             resolve(interface);
+                                            //resolve(dataO);
                                         })
                                         .catch(e => {
                                             reject(e);

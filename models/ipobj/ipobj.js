@@ -202,7 +202,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
                                         resolve(hostdata);
                                     })
                                     .catch(e => {
-                                        resolve({});
+                                        resolve();
                                     });
                         } else {
                             //RETURN IPOBJ DATA
