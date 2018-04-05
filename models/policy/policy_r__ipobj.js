@@ -98,9 +98,15 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (posi
                     ' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
                     ' inner join ipobj O on O.id=G.ipobj ' +
                     ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-                    ' UNION ' + //SELECT IPOBJ UNDER INTERFACE
+                    ' UNION ' + //SELECT IPOBJ UNDER INTERFACE POSITION I
                     ' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, O.id as ipobj,-1,-1,position,position_order, negate, "O" as type ' +
                     ' FROM policy_r__interface P ' +
+                    ' inner join interface I on I.id=P.interface ' +
+                    ' inner join ipobj O on O.interface=I.id ' +
+                    ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+                    ' UNION ' + //SELECT IPOBJ UNDER INTERFACE POSITION O
+                    ' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, O.id as ipobj,-1,-1,position,position_order, negate, "O" as type ' +
+                    ' FROM ' + tableModel + ' P ' +
                     ' inner join interface I on I.id=P.interface ' +
                     ' inner join ipobj O on O.interface=I.id ' +
                     ' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
