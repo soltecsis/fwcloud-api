@@ -141,8 +141,10 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
                 ' left join interface__ipobj O on O.interface=I.id ' +
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
-                ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-        logger.debug("INTERFACE SQL: " + sql);
+                ' WHERE I.id = ' + connection.escape(id) ;
+                //Quitamos filtro de firewall
+                //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+        //logger.debug("INTERFACE SQL: " + sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
@@ -166,7 +168,8 @@ interfaceModel.getInterfacePro = function (idfirewall, fwcloud, id) {
                     ' left join interface__ipobj O on O.interface=I.id ' +
                     ' left join ipobj J ON J.id=O.ipobj ' +
                     ' left join firewall F on F.id=I.firewall ' +
-                    ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                    ' WHERE I.id = ' + connection.escape(id) ;
+                    //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
             connection.query(sql, function (error, row) {
                 if (error)
                     reject(error);
@@ -204,7 +207,8 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                     ' left join interface__ipobj O on O.interface=I.id ' +
                     ' left join ipobj J ON J.id=O.ipobj ' +
                     ' left join firewall F on F.id=I.firewall ' +
-                    ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                    ' WHERE I.id = ' + connection.escape(id) ;
+                    //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
             //logger.debug("getInterfaceFullPro ->", sql);
             connection.query(sql, function (error, row) {
                 if (error)
@@ -279,7 +283,8 @@ interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback)
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
-                ' WHERE I.name like ' + connection.escape(namesql) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                ' WHERE I.name like ' + connection.escape(namesql) ;
+                //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
 
         connection.query(sql, function (error, row) {
             if (error)
