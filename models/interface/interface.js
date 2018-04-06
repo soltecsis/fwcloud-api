@@ -142,7 +142,7 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
                 ' WHERE I.id = ' + connection.escape(id) + ' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-        //logger.debug("INTERFACE SQL: " + sql);
+        logger.debug("INTERFACE SQL: " + sql);
         connection.query(sql, function (error, row) {
             if (error)
                 callback(error, null);
