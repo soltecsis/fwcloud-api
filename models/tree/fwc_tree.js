@@ -710,9 +710,10 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                                                 parent_firewall = result.insertId;
 
                                                 ////////////////////////////////////////////////////////
-                                                //ONLY CREATE NODE STRUCTURE FOR FIREWALL not in cluster
+                                                //ONLY CREATE NODE STRUCTURE FOR FIREWALL not in cluster and 
                                                 if (idcluster === null)
                                                 {
+                                                    logger.debug("CREATING FIREWALL STRUCTURE: " + rnode.id + " - " + rnode.name );
                                                     var parent_FP = 0;
                                                     //Insertamos nodo PADRE FILTER POLICIES
                                                     sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud) ' +
@@ -800,7 +801,10 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                                                         else
                                                             nodeInterfaces = result.insertId;
                                                     });
-                                                } else if (idcluster !== null && fwmaster) {
+                                                } 
+                                                //UPDATE CLUSTER STRCUTURE WITH FIREWALL MASTER
+                                                else if (idcluster !== null && fwmaster==1) {
+                                                    logger.debug("UPDATING CLUSTER STRUCTURE: " + rnode.id + " - " + rnode.name + "  CLUSTER: " , idcluster, "  IDFIREWAL: ", idfirewall, "  FWMASTER: " , fwmaster);
                                                     //Update Cluster policy folders with Master id firewall                                                    
                                                     sqlinsert = 'UPDATE fwc_tree T ' +                                                             
                                                             ' INNER JOIN fwc_tree P ON P.id = T.id_parent ' +
@@ -889,7 +893,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, folder, idcluster,
                                                 connection.escape(rnode.name) + ',' +
                                                 connection.escape(rnode.comment) + ',' + connection.escape(row.id) + ',' +
                                                 i + ',' + (row.node_level + 1) + ',"CL",' +
-                                                '0,0,' + connection.escape(rnode.id) + ',0,' +
+                                                '0,0,' + connection.escape(rnode.id) + ',100,' +
                                                 connection.escape(fwcloud) + ")";
                                         //logger.debug(sqlinsert);
                                         var parent_cluster;

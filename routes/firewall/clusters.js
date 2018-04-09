@@ -209,11 +209,11 @@ router.post("/cluster", function (req, res)
                                                             FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                                                 //INSERT FIREWALL NODE STRUCTURE
                                                                 fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, idcluster, firewallData.fwmaster, function (error, dataTree) {
-                                                                    if (dataTree && dataTree.result && firewallData.fwmaster) {
+                                                                    if (dataTree && dataTree.result && firewallData.fwmaster==1) {
                                                                         ///CREATE CATCHING ALL RULES
                                                                         Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
                                                                                 .then(() => {
-                                                                                    logger.debug("CATCHING RULES CREATED");
+                                                                                    logger.debug("CATCHING RULES CREATED FOR FIREWALL: ", idfirewall, "  FWMASTER: ", firewallData.fwmaster );
                                                                                 });
 
                                                                     }
