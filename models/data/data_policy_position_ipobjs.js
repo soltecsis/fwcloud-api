@@ -26,6 +26,8 @@ function policy_position_ipobjs_data(data, order, negate, type) {
         this.destination_port_start = data.destination_port_start;
         this.destination_port_end = data.destination_port_end;
         this.options = data.options;
+        this.icmp_type= data.icmp_type;
+        this.icmp_code= data.icmp_code;
         
     } 
     else if (type === 'I') {
