@@ -445,8 +445,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         connection.query(sqlExists, function (error, row) {
             if (row && row.length > 0) {
                 var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
-                        'comment = ' + connection.escape(firewallData.comment) + ', ' +
-                        'ip_admin = ' + connection.escape(firewallData.ip_admin) + ', ' +
+                        'comment = ' + connection.escape(firewallData.comment) + ', ' +                        
                         'install_user = ' + connection.escape(firewallData.install_user) + ', ' +
                         'install_pass = ' + connection.escape(firewallData.install_pass) + ', ' +
                         'save_user_pass = ' + connection.escape(firewallData.save_user_pass) + ', ' +
@@ -754,10 +753,7 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
                 reject("Firewall name not valid");
             }
 
-            param = body.ip_admin;
-            if (param === undefined || param === '' || param == null) {
-                body.ip_admin = null;
-            }
+           
             param = body.save_user_pass;
             if (param === undefined || param === '' || param == null || param == 0) {
                 body.save_user_pass = false;

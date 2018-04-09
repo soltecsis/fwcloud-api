@@ -474,8 +474,7 @@ router.post("/firewall", function (req, res)
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment,
-        fwcloud: req.fwcloud,
-        ip_admin: req.body.ip_admin,
+        fwcloud: req.fwcloud,        
         install_user: req.body.install_user,
         install_pass: req.body.install_pass,
         save_user_pass: req.body.save_user_pass,
@@ -620,8 +619,7 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment,
-        fwcloud: req.fwcloud, //working cloud
-        ip_admin: req.body.ip_admin,
+        fwcloud: req.fwcloud, //working cloud      
         install_user: req.body.install_user,
         install_pass: req.body.install_pass,
         save_user_pass: req.body.save_user_pass,
