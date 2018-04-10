@@ -391,7 +391,7 @@ firewallModel.insertFirewall = function (iduser, firewallData) {
                     var fwid = result.insertId;
                     connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
                         if (error) {
-                             logger.debug("SQL ERROR USER INSERT: ", error);
+                            logger.debug("SQL ERROR USER INSERT: ", error);
                             reject(error);
                         } else {
                             //devolvemos la última id insertada
@@ -445,7 +445,7 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         connection.query(sqlExists, function (error, row) {
             if (row && row.length > 0) {
                 var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
-                        'comment = ' + connection.escape(firewallData.comment) + ', ' +                        
+                        'comment = ' + connection.escape(firewallData.comment) + ', ' +
                         'install_user = ' + connection.escape(firewallData.install_user) + ', ' +
                         'install_pass = ' + connection.escape(firewallData.install_pass) + ', ' +
                         'save_user_pass = ' + connection.escape(firewallData.save_user_pass) + ', ' +
@@ -656,6 +656,21 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
     });
 };
 
+
+firewallModel.deleteFirewallPro = function (fwdata) {
+    return new Promise((resolve, reject) => {
+        firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
+                .then(data => {
+                    logger.debug("DELETED FIREWALL: " + fwdata.id + " - " + fwdata.name)    ;                    
+                    resolve(data);
+                })
+                .catch(e => {
+                    reject(e);
+                });
+    });
+
+};
+
 /**
  * DELETE Firewall
  *  
@@ -753,7 +768,7 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
                 reject("Firewall name not valid");
             }
 
-           
+
             param = body.save_user_pass;
             if (param === undefined || param === '' || param == null || param == 0) {
                 body.save_user_pass = false;
@@ -789,4 +804,4 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
     } catch (e) {
         reject("Carch Error: ", e);
     }
-}
+};

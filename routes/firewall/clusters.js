@@ -277,9 +277,12 @@ router.put('/cluster', function (req, res)
 /* Remove cluster */
 router.put("/del/cluster/:id", function (req, res)
 {
-
-    var id = req.param('id');
-    ClusterModel.deleteCluster(id, function (error, data)
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    
+    var id = req.params.id;
+    
+    ClusterModel.deleteCluster(id,iduser,fwcloud, function (error, data)
     {
         if (data && data.result)
         {

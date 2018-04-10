@@ -183,7 +183,7 @@ fwc_treeModel.deleteFwc_TreeFullNode = function (data) {
                 reject(error);
 
             var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id);
-            //logger.debug(sql);            
+            logger.debug(sql);            
             connection.query(sql, function (error, rows) {
                 if (error)
                     reject(error);
@@ -205,12 +205,12 @@ fwc_treeModel.deleteFwc_TreeFullNode = function (data) {
                                     reject(e);
                                 });
                     } else {
-                        //logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
+                        logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
                         resolve();
                         //Node whithout children, delete node
                         fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id)
                                 .then(resp => {
-                                    //logger.debug("DELETED NODE: ", data.id);
+                                    logger.debug("DELETED NODE: ", data.id);
                                     resolve();
                                 })
                                 .catch(e => reject(e));
