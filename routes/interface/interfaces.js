@@ -221,7 +221,6 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
         labelName: req.body.labelName,
         type: req.body.type,
         interface_type: req.body.interface_type,
-        securityLevel: req.body.securityLevel,
         comment: req.body.comment,
         mac: req.body.mac
     };
@@ -296,7 +295,7 @@ router.put('/interface/', function (req, res)
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     //Save data into object
-    var interfaceData = {id: req.body.id, name: req.body.name, labelName: req.body.labelName, type: req.body.type, securityLevel: req.body.securityLevel, comment: req.body.comment, mac: req.body.mac, interface_type: req.body.interface_type};
+    var interfaceData = {id: req.body.id, name: req.body.name, labelName: req.body.labelName, type: req.body.type, comment: req.body.comment, mac: req.body.mac, interface_type: req.body.interface_type};
 
     utilsModel.checkParameters(interfaceData, function (obj) {
         interfaceData = obj;
