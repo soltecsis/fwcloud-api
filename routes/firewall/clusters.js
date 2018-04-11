@@ -275,7 +275,7 @@ router.put('/cluster', function (req, res)
 
 
 /* Remove cluster */
-router.put("/del/cluster/:id", function (req, res)
+router.put("/del/cluster/:id",  utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;

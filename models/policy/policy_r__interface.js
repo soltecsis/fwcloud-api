@@ -675,7 +675,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                     ' AND C.id=' + connection.escape(fwcloud);
-            if (diff_firewall.length > 0)
+            if (diff_firewall!=='')
                 sql += ' AND F.id<>' + connection.escape(diff_firewall);
         } else {
             //Search interfaces only in Firewall interface
@@ -693,7 +693,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                     ' AND C.id=' + connection.escape(fwcloud);
-            if (diff_firewall.length > 0)
+            if (diff_firewall!=='')
                 sql += ' AND F.id<>' + connection.escape(diff_firewall);
             else
                 sql += ' AND F.id=' + connection.escape(firewall);

@@ -903,4 +903,35 @@ router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, Interfac
             });
 });
 
+//DELETE FIREWALL FROM CLUSTER
+router.put("/delfromcluster/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, function (req, res)
+{
+
+    var id = req.params.idfirewall;
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+
+    //CHECK FIREWALL DATA TO DELETE
+    FirewallModel.deleteFirewall(iduser, fwcloud, id)
+            .then(data =>
+            {
+                if (data && data.result)
+                {
+                    api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(error => {
+                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+});
+
 module.exports = router;

@@ -52,7 +52,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
                 ' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent=0 ' +
                 ' AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
                 ' ORDER BY T.id limit 1';
-        logger.debug(sql);
+        //logger.debug(sql);
 
         connection.query(sql, function (error, rows) {
             if (error) {

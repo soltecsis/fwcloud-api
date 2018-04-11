@@ -425,7 +425,7 @@ interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_fir
                                                     } else {
                                                         //resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
                                                         //        "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
-                                                        resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}})
+                                                        resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}});
                                                     }
                                                 }
                                             });

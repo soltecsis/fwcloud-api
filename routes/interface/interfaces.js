@@ -353,7 +353,7 @@ router.put('/interface/', function (req, res)
 
 
 /* Remove interface */
-//FALTA BORRADO en CASCADA
+//FALTA BORRADO en CASCADA Y RESTRICCIONES
 router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictions, utilsModel.checkConfirmationToken, function (req, res)
 {
     //Id from interface to remove

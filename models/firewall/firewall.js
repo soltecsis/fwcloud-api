@@ -1,5 +1,4 @@
 var db = require('../../db.js');
-
 /**
  * Module to manage Firewalls data
  *
@@ -17,10 +16,8 @@ var db = require('../../db.js');
  * 
  */
 var firewallModel = {};
-
 //Export the object
 module.exports = firewallModel;
-
 /**
  * Property Table
  *
@@ -30,19 +27,13 @@ module.exports = firewallModel;
  * 
  */
 var tableModel = "firewall";
-
-
-
 var logger = require('log4js').getLogger("app");
-
 var FwcloudModel = require('../../models/fwcloud/fwcloud');
 var utilsModel = require("../../utils/utils.js");
 var InterfaceModel = require('../../models/interface/interface');
 var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../../models/tree/fwc_tree');
-
-
 /**
  * Get Firewalls by User
  *  
@@ -95,9 +86,6 @@ firewallModel.getFirewalls = function (iduser, callback) {
         });
     });
 };
-
-
-
 /**
  * Get Firewalls by User and ID
  *  
@@ -135,7 +123,6 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1 ' +
                 ' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1';
-
         //logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
@@ -152,7 +139,6 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
         });
     });
 };
-
 /**
  * Get Firewall Access by Locked 
  *  
@@ -178,7 +164,6 @@ firewallModel.getFirewallAccess = function (accessData) {
                     ' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(accessData.iduser) +
                     ' WHERE T.id = ' + connection.escape(accessData.idfirewall) +
                     ' AND T.fwcloud=' + connection.escape(accessData.fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
-
             connection.query(sql, function (error, row) {
                 if (error)
                     reject(false);
@@ -191,7 +176,6 @@ firewallModel.getFirewallAccess = function (accessData) {
         });
     });
 };
-
 /**
  * Get Firewalls by User and Name
  *  
@@ -228,7 +212,6 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE name like  ' + connection.escape(namesql) + ' AND U.allow_access=1 ';
-
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -244,7 +227,6 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
         });
     });
 };
-
 /**
  * Get Firewalls by User and Cluster
  *  
@@ -280,7 +262,6 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ';
-
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -296,7 +277,6 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
         });
     });
 };
-
 /**
  * Get Firewalls by User and Cloud
  *  
@@ -348,7 +328,6 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
         });
     });
 };
-
 /**
  * ADD New Firewall
  *  
@@ -404,7 +383,6 @@ firewallModel.insertFirewall = function (iduser, firewallData) {
         });
     });
 };
-
 /**
  * UPDATE Firewall
  *  
@@ -468,7 +446,6 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         });
     });
 };
-
 firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, fwmaster, callback) {
 
     db.get(function (error, connection) {
@@ -477,7 +454,6 @@ firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, f
         var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
                 ' AND U.id_user=' + connection.escape(iduser) +
                 ' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-
         connection.query(sqlExists, function (error, row) {
             if (row && row.length > 0) {
                 var sql = 'UPDATE ' + tableModel + ' SET ' +
@@ -510,7 +486,6 @@ firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, f
         });
     });
 };
-
 firewallModel.updateFirewallCluster = function (firewallData, callback) {
 
     db.get(function (error, connection) {
@@ -525,7 +500,6 @@ firewallModel.updateFirewallCluster = function (firewallData, callback) {
                 var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +
                         'by_user = ' + connection.escape(firewallData.iduser) + ' ' +
                         ' WHERE id = ' + firewallData.id;
-
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -539,7 +513,6 @@ firewallModel.updateFirewallCluster = function (firewallData, callback) {
         });
     });
 };
-
 /**
  * UPDATE Firewall lock status
  *  
@@ -583,7 +556,6 @@ firewallModel.updateFirewallLock = function (firewallData, callback) {
                         'locked_at = CURRENT_TIMESTAMP ,' +
                         'locked_by = ' + connection.escape(firewallData.iduser) + ' ' +
                         ' WHERE id = ' + firewallData.id;
-
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -597,7 +569,6 @@ firewallModel.updateFirewallLock = function (firewallData, callback) {
         });
     });
 };
-
 /**
  * UNLOCK Firewall status
  *  
@@ -641,7 +612,6 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
                         'locked_at = CURRENT_TIMESTAMP ,' +
                         'locked_by = ' + connection.escape(firewallData.iduser) + ' ' +
                         ' WHERE id = ' + firewallData.id;
-
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -655,22 +625,30 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
         });
     });
 };
-
-
 firewallModel.deleteFirewallPro = function (fwdata) {
     return new Promise((resolve, reject) => {
-        firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
-                .then(data => {
-                    logger.debug("DELETED FIREWALL: " + fwdata.id + " - " + fwdata.name)    ;                    
-                    resolve(data);
+
+        InterfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id)
+                .then(found_resp => {
+                    if (found_resp.found) {
+                        logger.debug("RESTRICTED FIREWALL: " + fwdata.id + "  Fwcloud: " + fwdata.fwcloud);
+                        resolve({"result": false, "msg": "Restricted", "restrictions": found_resp});
+                    } else {
+                        firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
+                                .then(data => {
+                                    logger.debug("DELETED FIREWALL: " + fwdata.id + " - " + fwdata.name);
+                                    resolve({"result": true, "msg": "Deleted", "restrictions": ""});
+                                })
+                                .catch(e => {
+                                    resolve({"result": false, "msg": "Error", "restrictions": ""});
+                                });
+                    }
                 })
                 .catch(e => {
-                    reject(e);
+                    resolve({"result": false, "msg": "Error", "restrictions": ""});
                 });
     });
-
 };
-
 /**
  * DELETE Firewall
  *  
@@ -707,7 +685,6 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
                 //If exists Id from firewall to remove
                 if (row && row.length > 0) {
                     var idnode = row[0].idnode;
-
                     //DELETE POLICY AND Objects in Positions
                     Policy_rModel.deletePolicy_r_Firewall(idfirewall)
                             .then(resp => {
@@ -734,9 +711,7 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
                                                                                     }
                                                                                 });
                                                                             });
-
                                                                 });
-
                                                     });
                                         });
                             });
@@ -747,7 +722,6 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
         });
     });
 };
-
 firewallModel.checkBodyFirewall = function (body, isNew) {
     try {
         return new Promise((resolve, reject) => {
@@ -774,7 +748,6 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
                 body.save_user_pass = false;
             } else
                 body.save_user_pass = true;
-
             param = body.install_user;
             if (param === undefined || param === '' || param == null) {
                 body.install_user = '';

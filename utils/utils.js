@@ -37,7 +37,7 @@ utilsModel.checkEmptyRow = function (obj, callback) {
         resp = false;
     else if (obj.length === 0)
         resp = false;
-    logger.debug(resp);
+    //logger.debug(resp);
     callback(resp);
 };
 utilsModel.isEmptyObject = function (obj) {

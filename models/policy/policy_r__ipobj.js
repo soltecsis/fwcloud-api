@@ -1093,7 +1093,7 @@ policy_r__ipobjModel.searchInterfaceInRule = function (interface, type, fwcloud,
                 'inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE O.interface=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                 ' AND C.id=' + connection.escape(fwcloud);
-        if (diff_firewall.length > 0)
+        if (diff_firewall!== '')
             sql += ' AND  F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null) {
             sql += ' AND F.id=' + connection.escape(firewall);
@@ -1330,7 +1330,7 @@ policy_r__ipobjModel.searchHostInterfacesHostInRule = function (interface, type,
                 'INNER JOIN policy_type PT ON PT.id = R.type ' +
                 'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
-        if (diff_firewall.length > 0)
+        if (diff_firewall!=='')
             sql = sql + ' AND F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null)
             sql = sql + ' AND F.id=' + connection.escape(firewall);
@@ -1494,7 +1494,7 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = function (interface, type, f
                 'inner join policy_type PT on PT.id=R.type ' +
                 ' WHERE K.id=' + connection.escape(interface) + ' AND K.interface_type=' + connection.escape(type) +
                 ' AND F.fwcloud=' + connection.escape(fwcloud);
-        if (diff_firewall.length > 0)
+        if (diff_firewall!=='')
             sql = sql + ' AND F.id<>' + connection.escape(diff_firewall);
         else if (firewall !== null)
             sql = sql + ' AND F.id=' + connection.escape(firewall);
