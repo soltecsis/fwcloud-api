@@ -564,7 +564,6 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
                 'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
                 'type = ' + connection.escape(interfaceData.type) + ', ' +
                 'comment = ' + connection.escape(interfaceData.comment) + ', ' +
-                'securityLevel = ' + connection.escape(interfaceData.securityLevel) + ', ' +
                 'mac = ' + connection.escape(interfaceData.mac) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
         logger.debug(sql);
