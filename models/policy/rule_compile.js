@@ -44,7 +44,7 @@ const POLICY_TYPE_FORWARD = 3;
 const POLICY_TYPE_SNAT = 4;
 const POLICY_TYPE_DNAT = 5;
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
-const ACTION = ['', 'ACCEPT', 'DENY', 'REJECT', 'CONTINUE'];
+const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.pre_compile_sd = (dir, sd) => {
@@ -54,10 +54,12 @@ RuleCompileModel.pre_compile_sd = (dir, sd) => {
 	};
 
 	for (var i = 0; i < sd.length; i++) {
-		if (sd[i].type === 5) // Host
+		if (sd[i].type === 5) // Address
 			items.str.push(dir+sd[i].address);
 		else if (sd[i].type === 7) // Network
 			items.str.push(dir+sd[i].address+"/"+sd[i].netmask);
+		else if (sd[i].type === 6) // Address range
+			items.str.push("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ") +sd[i].range_start+"-"+sd[i].range_end);
 	}
 
 	return ((items.str.length>0) ? items : null);
@@ -284,8 +286,13 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				return;
 			}
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
-			statefull ="-m state --state NEW ";
 			action = ACTION[data[0].action];
+			if (action==="ACCEPT")
+				statefull ="-m state --state NEW ";
+			else if (action==="ACCOUNTING") {
+				action = "FWCRULE"+rule+".ACC";
+				cs = "$IPTABLES "+table+" -N "+action+"\n"+cs;
+			}
 		}
 		cs_trail = statefull+"-j "+action+"\n";
 
