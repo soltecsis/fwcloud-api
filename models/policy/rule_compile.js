@@ -291,7 +291,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				statefull ="-m state --state NEW ";
 			else if (action==="ACCOUNTING") {
 				action = "FWCRULE"+rule+".ACC";
-				cs = "$IPTABLES "+table+" -N "+action+"\n"+cs;
+				cs = "$IPTABLES -N "+action+"\n" + "$IPTABLES -A "+action+" -j RETURN\n" + cs;
 			}
 		}
 		cs_trail = statefull+"-j "+action+"\n";
