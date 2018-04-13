@@ -135,7 +135,7 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
             callback(error, null);
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
                 ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud, ' +
-                ' F.id as firewall_id, F.name as firewall_name, ' +
+                ' F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name, ' +
                 ' J.id as host_id, J.name as host_name ' +
                 ' FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type ' +
@@ -143,6 +143,7 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
                 ' left join interface__ipobj O on O.interface=I.id ' +
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
+                ' left join cluster C on C.id=F.cluster ' +
                 ' WHERE I.id = ' + connection.escape(id) ;
                 //Quitamos filtro de firewall
                 //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';

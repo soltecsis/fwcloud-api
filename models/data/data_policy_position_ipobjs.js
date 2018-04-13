@@ -7,9 +7,9 @@ function policy_position_ipobjs_data(data, order, negate, type) {
     this.negate = negate;
     this.fwcloud = data.fwcloud;
     this.comment = data.comment;
-    
+
     if (type === 'O') {
-        this.type = data.type;        
+        this.type = data.type;
         this.interface = data.interface;
         this.protocol = data.protocol;
         this.address = data.address;
@@ -26,28 +26,31 @@ function policy_position_ipobjs_data(data, order, negate, type) {
         this.destination_port_start = data.destination_port_start;
         this.destination_port_end = data.destination_port_end;
         this.options = data.options;
-        this.icmp_type= data.icmp_type;
-        this.icmp_code= data.icmp_code;
-        
-    } 
-    else if (type === 'I') {
+        this.icmp_type = data.icmp_type;
+        this.icmp_code = data.icmp_code;
+
+    } else if (type === 'I') {
         this.type = data.interface_type;
         this.labelName = data.labelName;
         this.securityLevel = data.securityLevel;
-        if (data.interface_type==10){  //interface Firewall
-            this.parent_id=data.firewall_id;
-            this.parent_name=data.firewall_name;
-            this.parent_type=0;
+        if (data.interface_type == 10) {  //interface Firewall
+            if (data.cluster_id !== null) {
+                this.parent_id = data.cluster_id;
+                this.parent_name = data.cluster_name;
+                this.parent_type = 1000;
+            } else {
+                this.parent_id = data.firewall_id;
+                this.parent_name = data.firewall_name;
+                this.parent_type = 0;
+            }
+        } else {   //interface Host
+            this.parent_id = data.host_id;
+            this.parent_name = data.host_name;
+            this.parent_type = 8;
         }
-        else{   //interface Host
-            this.parent_id= data.host_id;
-            this.parent_name= data.host_name;
-            this.parent_type=8;
-        }
-        
-        
-    } 
-    else if (type === 'G') {
+
+
+    } else if (type === 'G') {
         this.type = data.type;
     }
 
