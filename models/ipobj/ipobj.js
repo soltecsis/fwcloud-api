@@ -258,12 +258,18 @@ ipobjModel.getFinalIpobjPro = function (position_ipobj) {
                 position_ipobj.negate = 0;
 
             //logger.debug("IPOBJ: ", position_ipobj);
-
-            //SELECT IPOBJ DATA UNDER POSITION
-            var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
-                    ' FROM ' + tableModel + ' I ' +                    
-                    ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
-
+            var sql = "";
+            
+            if (position_ipobj.type === "O") {
+                //SELECT IPOBJ DATA UNDER POSITION
+                sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
+                        ' FROM ' + tableModel + ' I ' +
+                        ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
+            } else {
+                sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
+                        ' FROM interface I ' +
+                        ' WHERE I.id = ' + connection.escape(position_ipobj.interface) ;
+            }
             //logger.debug("getIpobjPro -> ", sql);
             connection.query(sql, function (error, row) {
                 if (error) {
@@ -271,7 +277,7 @@ ipobjModel.getFinalIpobjPro = function (position_ipobj) {
                 } else {
                     if (row.length > 0) {
                         //RETURN IPOBJ DATA
-                        var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+                        var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, position_ipobj.type);
                         //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                         resolve(ipobj);
 

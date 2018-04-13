@@ -31,8 +31,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 
     } else if (type === 'I') {
         this.type = data.interface_type;
-        this.labelName = data.labelName;
-        this.securityLevel = data.securityLevel;
+        this.labelName = data.labelName;        
         if (data.interface_type == 10) {  //interface Firewall
             if (data.cluster_id !== null) {
                 this.parent_id = data.cluster_id;
