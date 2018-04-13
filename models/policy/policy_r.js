@@ -568,7 +568,8 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
                         'active = ' + connection.escape(policy_rData.active) + ',' +
                         'comment = ' + connection.escape(policy_rData.comment) + ', ' +
                         'type = ' + connection.escape(type) + ', ' +
-                        'style = ' + connection.escape(policy_rData.style) + ' ' +
+                        'style = ' + connection.escape(policy_rData.style) + ', ' +
+                        'fw_apply_to = ' + connection.escape(policy_rData.fw_apply_to) + ' ' +
                         ' WHERE id = ' + policy_rData.id;
 
                 connection.query(sql, function (error, result) {

@@ -230,7 +230,8 @@ router.post("/policy-r/:idfirewall", utilsModel.checkFirewallAccess, function (r
         options: req.body.options,
         comment: req.body.comment,
         type: req.body.type,
-        style: req.body.style
+        style: req.body.style,
+        fw_apply_to: req.body.fw_apply_to
     };
     utilsModel.checkParameters(policy_rData, function (obj) {
         policy_rData = obj;
@@ -262,7 +263,7 @@ router.post("/policy-r/:idfirewall", utilsModel.checkFirewallAccess, function (r
 router.put('/policy-r/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 {
     //Save data into object
-    var policy_rData = {id: req.body.id, idgroup: req.body.idgroup, firewall: req.body.firewall, rule_order: req.body.rule_order, options: req.body.options, action: req.body.action, time_start: req.body.time_start, time_end: req.body.time_end, comment: req.body.comment, active: req.body.active, type: req.body.type, style: req.body.style};
+    var policy_rData = {id: req.body.id, idgroup: req.body.idgroup, firewall: req.body.firewall, rule_order: req.body.rule_order, options: req.body.options, action: req.body.action, time_start: req.body.time_start, time_end: req.body.time_end, comment: req.body.comment, active: req.body.active, type: req.body.type, style: req.body.style, fw_apply_to: req.body.fw_apply_to};
     utilsModel.checkParameters(policy_rData, function (obj) {
         policy_rData = obj;
     });
