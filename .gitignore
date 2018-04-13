@@ -1,4 +1,23 @@
-/logs/
-/nbproject/private/
-/.vscode/
-/nbproject/
+# Logs
+logs
+*.log
+*.fwcloud.log.*
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+
+nbproject/private/
+.vscode/
+nbproject/
+
+routes/xml
+*.fwb
+
+*.swp
+DATA/
+
