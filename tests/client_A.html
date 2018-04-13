@@ -1,0 +1,33 @@
+<!DOCTYPE Html>
+<html> 
+<body>
+   <ul id="eventlist"> </ul>
+
+   <script>              
+    var eventList = document.getElementById("eventlist");    
+    var evtSource = new EventSource("http://apitest.fwcloud.net:3000/stream/update-stream/compile/1/1");
+
+    var newElement = document.createElement("li");
+    newElement.innerHTML = "Messages:";
+    eventList.appendChild(newElement);
+
+
+    evtSource.onmessage = function(e) {
+        console.log("received event");
+        console.log(e);
+        var newElement = document.createElement("li");
+
+        newElement.innerHTML = "message: " + e.data;
+        eventList.appendChild(newElement);
+    };      
+
+    evtSource.onerror = function(e) {
+        console.log("EventSource failed.");
+    };
+
+    console.log(evtSource);
+
+    </script>
+
+</body>
+</html>

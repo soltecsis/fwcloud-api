@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>IpobjsRouter - FWCloud API REST Documentation</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.8.0pr2/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <script src="http://yui.yahooapis.com/combo?3.8.0pr2/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+            <h1><a href="../index.html"><img src="../assets/css/logo.png" width="117" height="52">FWCloud API REST Documentation: IpobjsRouter</a></h1>
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: 1.0.0</em>
+        </div>
+    </div>
+    <div class="yui3-g">
+
+        <div id="sidebar" class="yui3-u">
+            <div id="modules" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Modules</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="../modules/api_response.html">api_response</a>
+                            </li>
+                            <li><a href="../modules/Cluster.html">Cluster</a>
+                            </li>
+                            <li><a href="../modules/Firewall.html">Firewall</a>
+                            </li>
+                            <li><a href="../modules/Ipobjs.html">Ipobjs</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="classes" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Classes</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
+                            <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
+                            <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                            <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
+                            <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                            <li><a href="../classes/respModel.html">respModel</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="elements" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Elements</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="methods-on-page" class="sidebox on-page">
+                <div class="hd">
+                    <h2 class="no-toc">Methods On Page</h2>
+                </div>
+                <div class="bd">
+                    <ul>
+                            <li><a href="#methods_getAllIpobjByGroup">getAllIpobjByGroup</a></li>
+                            <li><a href="#methods_getIpobjByGroup">getIpobjByGroup</a></li>
+                            <li><a href="#methods_getIpobjById">getIpobjById</a></li>
+                            <li><a href="#methods_getAllIpobjByGroupName">getAllIpobjByGroupName</a></li>
+                            <li><a href="#methods_SearchIpobjInRules">SearchIpobjInRules</a></li>
+                            <li><a href="#methods_SearchIpobjWhereUsed">SearchIpobjWhereUsed</a></li>
+                            <li><a href="#methods_NewIpobj">NewIpobj</a></li>
+                            <li><a href="#methods_UpdateIpobj">UpdateIpobj</a></li>
+                            <li><a href="#methods_DeleteIpobj">DeleteIpobj</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+            
+            
+            <div id="fileTree" class="sidebox">
+                <div class="hd">
+                    <h2 class="no-toc">Files</h2>
+                </div>
+                <div class="bd">
+                    <ul><li>models/<ul><li><a href="../files/models_firewall.js.html">firewall.js</a></li><li><a href="../files/models_ipobj.js.html">ipobj.js</a></li></ul></li><li>routes/<ul><li><a href="../files/routes_clusters.js.html">clusters.js</a></li><li><a href="../files/routes_firewalls.js.html">firewalls.js</a></li><li><a href="../files/routes_ipobjs.js.html">ipobjs.js</a></li></ul></li><li>utils/<ul><li><a href="../files/utils_api_response.js.html">api_response.js</a></li><li><a href="../files/utils_mng-error.js.html">mng-error.js</a></li><li><a href="../files/utils_utils.js.html">utils.js</a></li></ul></li></ul>
+                </div>
+            </div>
+            
+        </div>
+
+        <div id="main" class="yui3-u">
+            <div class="content"><h4>Class IpobjsRouter</h4>
+<span class="foundat">Class defined in: <a href="../files/routes_ipobjs.js.html#l12"><code>routes&#x2F;ipobjs.js:12</code></a></span>
+<div class="intro"><p>Class to manage IPOBJ routing</p>
+</div>
+
+
+<div id="classdocs">
+    <ul>
+        <li><a href="#methods">Methods</a></li>
+        <li><a href="#props">Properties</a></li>
+        <li><a href="#attrs">Attributes</a></li>
+    </ul>
+    <div>
+            <div id="methods">
+<a name="methods_getAllIpobjByGroup"></a>
+<div class="method item">
+    JSON <strong class="name"><code>getAllIpobjByGroup</code></strong>( <code>iduser, fwcloud, idgroup </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l107"><code>routes&#x2F;ipobjs.js:107</code></a>
+    </span><br>
+    <p>Get all ipobjs by  group</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/:iduser/:fwcloud/group/:idgroup</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>idgroup</code> <strong>&lt;Integer&gt;</strong>
+        <p>Group identifier</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Ipobj</p>
+</div>
+        <h5>Example</h5>
+        <h4>JSON RESPONSE</h4>
+<pre class="code prettyprint"><code>&quot;response&quot;: {
+   &quot;respStatus&quot;:         //Response status  TRUE | FALSE
+   &quot;respCode&quot;:           //Response Code 
+   &quot;respCodeMsg&quot;:        //Response message
+   &quot;respMsg&quot;:            //Response custom message
+   &quot;errorCode&quot;:          //Error code
+   &quot;errorMsg&quot;:           //Error message
+     },
+&quot;data&quot;: [                //Data node with de IPOBJ DATA
+   { &quot;id&quot;: 1488,
+       &quot;name&quot;: &quot;PC-AALMODOVAR&quot;,
+       &quot;type&quot;: 8,
+       &quot;fwcloud&quot;: 1,
+       &quot;interface&quot;: null,
+       &quot;protocol&quot;: null,
+       &quot;address&quot;: null,
+       &quot;netmask&quot;: null,
+       &quot;diff_serv&quot;: null,
+       &quot;ip_version&quot;: null,
+       &quot;code&quot;: null,
+       &quot;tcp_flags_mask&quot;: null,
+       &quot;tcp_flags_settings&quot;: null,
+       &quot;range_start&quot;: null,
+       &quot;range_end&quot;: null,
+       &quot;source_port_start&quot;: null,
+       &quot;source_port_end&quot;: null,
+       &quot;destination_port_start&quot;: null,
+       &quot;destination_port_end&quot;: null,
+       &quot;options&quot;: null,
+       &quot;comment&quot;: &quot;&quot;,
+       &quot;id_node&quot;: 102,
+       &quot;id_parent_node&quot;: 8,
+       &quot;interfaces&quot;: [         //Interface Node with Interfaces 
+           {
+               &quot;id&quot;: 73,
+               &quot;firewall&quot;: null,
+               &quot;name&quot;: &quot;eth0&quot;,
+               &quot;labelname&quot;: &quot;eth0&quot;,
+               &quot;type&quot;: &quot;11&quot;,
+               &quot;securityLevel&quot;: &quot;0&quot;,
+               &quot;interface_type&quot;: 11,
+               &quot;comment&quot;: null,
+               &quot;id_node&quot;: 318,
+               &quot;id_parent_node&quot;: 102,
+               &quot;ipobjs&quot;: [     //Ipobj Node with ipobjs into Interface
+                   {
+                       &quot;id&quot;: 1525,
+                       &quot;name&quot;: &quot;PC-AALMODOVAR:eth0&quot;,
+                       &quot;type&quot;: 5,
+                       &quot;fwcloud&quot;: 1,
+                       &quot;interface&quot;: 73,
+                       &quot;protocol&quot;: null,
+                       &quot;address&quot;: &quot;10.98.1.16&quot;,
+                       &quot;netmask&quot;: &quot;255.255.255.0&quot;,
+                       &quot;diff_serv&quot;: null,
+                       &quot;ip_version&quot;: &quot;IPv4&quot;,
+                       &quot;code&quot;: null,
+                       &quot;tcp_flags_mask&quot;: null,
+                       &quot;tcp_flags_settings&quot;: null,
+                       &quot;range_start&quot;: null,
+                       &quot;range_end&quot;: null,
+                       &quot;source_port_start&quot;: null,
+                       &quot;source_port_end&quot;: null,
+                       &quot;destination_port_start&quot;: null,
+                       &quot;destination_port_end&quot;: null,
+                       &quot;options&quot;: null,
+                       &quot;comment&quot;: &quot;&quot;,
+                       &quot;id_node&quot;: 339,
+                       &quot;id_parent_node&quot;: 318
+                   },
+               ]
+           },
+       ]
+   }
+   ]
+   }
+</code></pre>
+
+</div>
+<a name="methods_getIpobjByGroup"></a>
+<div class="method item">
+    JSON <strong class="name"><code>getIpobjByGroup</code></strong>( <code>iduser, fwcloud, idgroup, id </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l226"><code>routes&#x2F;ipobjs.js:226</code></a>
+    </span><br>
+    <p>Get ipobj by  group and Ipobj id</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/:iduser/:fwcloud/group/:idgroup/:id</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>idgroup</code> <strong>&lt;Integer&gt;</strong>
+        <p>Group identifier</p>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj identifier</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Ipobj</p>
+</div>
+</div>
+<a name="methods_getIpobjById"></a>
+<div class="method item">
+    JSON <strong class="name"><code>getIpobjById</code></strong>( <code>iduser, fwcloud, id </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l269"><code>routes&#x2F;ipobjs.js:269</code></a>
+    </span><br>
+    <p>Get ipobj by Ipobj id</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/:iduser/:fwcloud/:id</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj identifier</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Ipobj</p>
+</div>
+</div>
+<a name="methods_getAllIpobjByGroupName"></a>
+<div class="method item">
+    JSON <strong class="name"><code>getAllIpobjByGroupName</code></strong>( <code>iduser, fwcloud, idgroup, name </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l311"><code>routes&#x2F;ipobjs.js:311</code></a>
+    </span><br>
+    <p>Get all ipobjs by name and by group</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/:iduser/:fwcloud/group/:idgroup/name/:name</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>idgroup</code> <strong>&lt;Integer&gt;</strong>
+        <p>Group identifier</p>
+
+        </li>
+        <li>
+            <code>name</code> <strong>&lt;String&gt;</strong>
+        <p>Ipobj name</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Ipobj</p>
+</div>
+</div>
+<a name="methods_SearchIpobjInRules"></a>
+<div class="method item">
+    JSON <strong class="name"><code>SearchIpobjInRules</code></strong>( <code>iduser, fwcloud, id, type </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l353"><code>routes&#x2F;ipobjs.js:353</code></a>
+    </span><br>
+    <p>Search where ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/ipobj_search_rules/:iduser/:fwcloud/:id/:type</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj identifier</p>
+
+        </li>
+        <li>
+            <code>type</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj type</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Search</p>
+</div>
+</div>
+<a name="methods_SearchIpobjWhereUsed"></a>
+<div class="method item">
+    JSON <strong class="name"><code>SearchIpobjWhereUsed</code></strong>( <code>iduser, fwcloud, id, type </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l400"><code>routes&#x2F;ipobjs.js:400</code></a>
+    </span><br>
+    <p>Search where ipobj is Used</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/ipobj_search_used/:iduser/:fwcloud/:id/:type</strong><br>
+METHOD:  <strong>GET</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj identifier</p>
+
+        </li>
+        <li>
+            <code>type</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj type</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Search</p>
+</div>
+</div>
+<a name="methods_NewIpobj"></a>
+<div class="method item">
+    JSON <strong class="name"><code>NewIpobj</code></strong>( <code>iduser, fwcloud, node_parent, node_order, node_type, fwcloud, interface, name, type, protocol, address, netmask, diff_serv, ip_version, code, tcp_flags_mask, tcp_flags_settings, range_start, range_end, source_port_start, source_port_end, destination_port_start, destination_port_end, options, comment </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l448"><code>routes&#x2F;ipobjs.js:448</code></a>
+    </span><br>
+    <h4>Create new ipobj</h4>
+<p>Crea un nuevo objeto en el Cloud que se le pasa.
+Se le pasa tambien los datos del Nodo en el arbol de navegación para que una vez
+añadido el objeto se enlace al nodo del árbol</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type</strong><br>
+METHOD:  <strong>POST</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>node_parent</code> <strong>&lt;Integer&gt;</strong>
+        <p>Node parent to insert object</p>
+
+        </li>
+        <li>
+            <code>node_order</code> <strong>&lt;Integer&gt;</strong>
+        <p>Node order</p>
+
+        </li>
+        <li>
+            <code>node_type</code> <strong>&lt;Integer&gt;</strong>
+        <p>Node type</p>
+<h4>POST PARAMETERS</h4>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>interface</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>name</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>type</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>protocol</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>address</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>netmask</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>diff_serv</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>ip_version</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>code</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>tcp_flags_mask</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>tcp_flags_settings</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>range_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>range_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>source_port_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>source_port_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>destination_port_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>destination_port_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>options</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>comment</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Result</p>
+<ul>
+<li>
+<ul>
+<li>@example</li>
+</ul>
+</li>
+</ul>
+<h4>JSON RESPONSE OK:</h4>
+<pre><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: true,
+   &quot;respCode&quot;: &quot;ACR_INSERTED_OK&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };
+</code></pre>
+<h4>JSON RESPONSE ERROR:</h4>
+<pre><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: false,
+   &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };</code></pre>
+</div>
+</div>
+<a name="methods_UpdateIpobj"></a>
+<div class="method item">
+    JSON <strong class="name"><code>UpdateIpobj</code></strong>( <code>iduser, fwcloud, id, fwcloud, interface, name, type, protocol, address, netmask, diff_serv, ip_version, code, tcp_flags_mask, tcp_flags_settings, range_start, range_end, source_port_start, source_port_end, destination_port_start, destination_port_end, options, comment </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l598"><code>routes&#x2F;ipobjs.js:598</code></a>
+    </span><br>
+    <h4>Update Ipobj</h4>
+<p>Actualiza los datos de un IPOBJ.</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/ipobj/:iduser/:fwcloud</strong><br>
+METHOD:  <strong>PUT</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+<h4>POST PARAMETERS</h4>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>interface</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>name</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>type</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>protocol</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>address</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>netmask</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>diff_serv</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>ip_version</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>code</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>tcp_flags_mask</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>tcp_flags_settings</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>range_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>range_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>source_port_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>source_port_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>destination_port_start</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>destination_port_end</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>options</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+        <li>
+            <code>comment</code> <strong>&lt;Integer&gt;</strong>
+         
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns <code>JSON</code> Data from Search</p>
+<ul>
+<li>@example</li>
+</ul>
+<h4>JSON RESPONSE OK:</h4>
+<pre><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: true,
+   &quot;respCode&quot;: &quot;ACR_UPDATED_OK&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };
+</code></pre>
+<h4>JSON RESPONSE ERROR:</h4>
+<pre><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: false,
+   &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };</code></pre>
+</div>
+</div>
+<a name="methods_DeleteIpobj"></a>
+<div class="method item">
+    JSON <strong class="name"><code>DeleteIpobj</code></strong>( <code>iduser, fwcloud, id, type </code> ) 
+    <br>
+    <span class="foundat">
+        
+        <a href="../files/routes_ipobjs.js.html#l722"><code>routes&#x2F;ipobjs.js:722</code></a>
+    </span><br>
+    <p>DELETE IPOBJ</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/ipobjs/ipobj/:iduser/:fwcloud/:id/:type</strong><br>
+METHOD:  <strong>DELETE</strong></p>
+</blockquote>
+
+    <strong>Parameters:</strong>
+    <ul class="params">
+        <li>
+            <code>iduser</code> <strong>&lt;Integer&gt;</strong>
+        <p>User identifier</p>
+
+        </li>
+        <li>
+            <code>fwcloud</code> <strong>&lt;Integer&gt;</strong>
+        <p>FwCloud identifier</p>
+
+        </li>
+        <li>
+            <code>id</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj identifier</p>
+
+        </li>
+        <li>
+            <code>type</code> <strong>&lt;Integer&gt;</strong>
+        <p>Ipobj type</p>
+
+        </li>
+    </ul>
+    <br><div class="returns"><strong>Returns:</strong> &lt;JSON&gt; <p>Returns Json result</p>
+</div>
+        <h5>Example</h5>
+        <h4>JSON RESPONSE OK:</h4>
+<pre class="code prettyprint"><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: true,
+   &quot;respCode&quot;: &quot;ACR_DELETED_OK&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };
+</code></pre>
+<h4>JSON RESPONSE ERROR:</h4>
+<pre class="code prettyprint"><code> {&quot;response&quot;: {
+   &quot;respStatus&quot;: false,
+   &quot;respCode&quot;: &quot;ACR_ERROR&quot;,
+   &quot;respCodeMsg&quot;: &quot;&quot;,
+   &quot;respMsg&quot;: &quot;&quot;,
+   &quot;errorCode&quot;: &quot;&quot;,
+   &quot;errorMsg&quot;: &quot;&quot;
+ },
+ &quot;data&quot;: {}
+ };</code></pre>
+
+</div>
+            </div>
+            <div id="props">
+<a name="props_express"></a>
+<div class="props item">
+    <code>express</code> &lt;<strong>Express</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l19"><code>routes&#x2F;ipobjs.js:19</code></a></span>
+    <p>Property  to manage express</p>
+
+</div>
+<a name="props_router"></a>
+<div class="props item">
+    <code>router</code> &lt;<strong>express.Router</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l27"><code>routes&#x2F;ipobjs.js:27</code></a></span>
+    <p>Property  to manage IPOBJ route</p>
+
+</div>
+<a name="props_IpobjlModel"></a>
+<div class="props item">
+    <code>IpobjlModel</code> &lt;<strong>/models/ipobj</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l35"><code>routes&#x2F;ipobjs.js:35</code></a></span>
+    <p>Property Model to manage IPOBJ Data</p>
+
+</div>
+<a name="props_fwcTreemodel"></a>
+<div class="props item">
+    <code>fwcTreemodel</code> &lt;<strong>/models/fwc_tree</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l44"><code>routes&#x2F;ipobjs.js:44</code></a></span>
+    <p>Property Model to manage FWC_TREE Data</p>
+
+</div>
+<a name="props_fwc_tree_nodeModel"></a>
+<div class="props item">
+    <code>fwc_tree_nodeModel</code> &lt;<strong>/models/fwc_tree_node</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l53"><code>routes&#x2F;ipobjs.js:53</code></a></span>
+    <p>Property Model to manage FWC_TREE_NODE Data</p>
+
+</div>
+<a name="props_utilsModel"></a>
+<div class="props item">
+    <code>utilsModel</code> &lt;<strong>/models/utils</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l62"><code>routes&#x2F;ipobjs.js:62</code></a></span>
+    <p>Property Model to manage UTIL functions</p>
+
+</div>
+<a name="props_Interface__ipobjModel"></a>
+<div class="props item">
+    <code>Interface__ipobjModel</code> &lt;<strong>/models/interface__ipobj</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l71"><code>routes&#x2F;ipobjs.js:71</code></a></span>
+    <p>Property Model to manage interface__ipobj data relation</p>
+
+</div>
+<a name="props_api_resp"></a>
+<div class="props item">
+    <code>api_resp</code> &lt;<strong>/models/api_response</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l80"><code>routes&#x2F;ipobjs.js:80</code></a></span>
+    <p>Property Model to manage API RESPONSE data</p>
+
+</div>
+<a name="props_objModel"></a>
+<div class="props item">
+    <code>objModel</code> &lt;<strong>Text</strong>&gt;<br>
+    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l89"><code>routes&#x2F;ipobjs.js:89</code></a></span>
+    <p>Property to identify Data Object</p>
+
+</div>
+            </div>
+            <div id="attrs">
+                <a name="attrs_logger"></a>
+                <div class="attrs item">
+                    <code>logger</code> <strong>&lt;Log4js/app&gt;</strong>
+                    
+                    
+                    <br>
+                    <span class="foundat"><a href="../files/routes_ipobjs.js.html#l97"><code>routes&#x2F;ipobjs.js:97</code></a></span>
+                    <p>Property Logger to manage App logs</p>
+                
+                </div>
+            </div>
+    </div>
+</div>
+</div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/js/tabs.js"></script>
+</body>
+</html>

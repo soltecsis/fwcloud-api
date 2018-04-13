@@ -1,0 +1,2327 @@
+{
+    "project": {
+        "name": "FWCloud API REST Documentation",
+        "description": "[SOLTECSIS] FWCloud API REST code documentation",
+        "version": "1.0.0",
+        "url": "http://foswiki.soltecsis.com/codedoc/",
+        "logo": "http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png"
+    },
+    "files": {
+        "models/firewall.js": {
+            "name": "models/firewall.js",
+            "modules": {},
+            "classes": {
+                "FirewallModel": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "models/ipobj.js": {
+            "name": "models/ipobj.js",
+            "modules": {},
+            "classes": {
+                "IpobjModel": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/clusters.js": {
+            "name": "routes/clusters.js",
+            "modules": {
+                "Cluster": 1
+            },
+            "classes": {
+                "ClusterRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/firewalls.js": {
+            "name": "routes/firewalls.js",
+            "modules": {
+                "Firewall": 1
+            },
+            "classes": {
+                "FirewallRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "routes/ipobjs.js": {
+            "name": "routes/ipobjs.js",
+            "modules": {
+                "Ipobjs": 1
+            },
+            "classes": {
+                "IpobjsRouter": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "utils/api_response.js": {
+            "name": "utils/api_response.js",
+            "modules": {
+                "api_response": 1
+            },
+            "classes": {
+                "respModel": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "utils/mng-error.js": {
+            "name": "utils/mng-error.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "utils/utils.js": {
+            "name": "utils/utils.js",
+            "modules": {},
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        }
+    },
+    "modules": {
+        "Firewall": {
+            "name": "Firewall",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "FirewallModel": 1,
+                "FirewallRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/firewalls.js",
+            "line": 10,
+            "description": "Module to routing Firewalls requests\n<br>BASE ROUTE CALL: <b>/firewalls</b>",
+            "requires": [
+                "db"
+            ]
+        },
+        "Ipobjs": {
+            "name": "Ipobjs",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "IpobjModel": 1,
+                "IpobjsRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/ipobjs.js",
+            "line": 12,
+            "description": "ROUTE Module to routing IPOBJ requests\n<br>BASE ROUTE CALL: <b>/ipobjs</b>",
+            "requires": [
+                "db"
+            ]
+        },
+        "Cluster": {
+            "name": "Cluster",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "ClusterRouter": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "routes/clusters.js",
+            "line": 13,
+            "description": "Module to routing CLUSTER requests\n<br>BASE ROUTE CALL: <b>/clusters</b>",
+            "requires": [
+                "express",
+                "Clustermodel"
+            ]
+        },
+        "api_response": {
+            "name": "api_response",
+            "submodules": {},
+            "elements": {},
+            "classes": {
+                "respModel": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "module",
+            "file": "utils/api_response.js",
+            "line": 10,
+            "description": "Module to manage responses\n<br>BASE ROUTE CALL: <b>/firewalls</b>"
+        }
+    },
+    "classes": {
+        "FirewallModel": {
+            "name": "FirewallModel",
+            "shortname": "FirewallModel",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "Firewall",
+            "namespace": "",
+            "file": "models/firewall.js",
+            "line": 12,
+            "description": "Class to manage firewalls data",
+            "uses": [
+                "db"
+            ]
+        },
+        "IpobjModel": {
+            "name": "IpobjModel",
+            "shortname": "IpobjModel",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "Ipobjs",
+            "namespace": "",
+            "file": "models/ipobj.js",
+            "line": 9,
+            "description": "## Class to manage IPOBJ DATA"
+        },
+        "ClusterRouter": {
+            "name": "ClusterRouter",
+            "shortname": "ClusterRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "Cluster",
+            "namespace": "",
+            "file": "routes/clusters.js",
+            "line": 13,
+            "description": "Clase to manage CLUSTER DATA"
+        },
+        "FirewallRouter": {
+            "name": "FirewallRouter",
+            "shortname": "FirewallRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "Firewall",
+            "namespace": "",
+            "file": "routes/firewalls.js",
+            "line": 10,
+            "description": "Class to manage firewalls routing"
+        },
+        "IpobjsRouter": {
+            "name": "IpobjsRouter",
+            "shortname": "IpobjsRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "Ipobjs",
+            "namespace": "",
+            "file": "routes/ipobjs.js",
+            "line": 12,
+            "description": "Class to manage IPOBJ routing"
+        },
+        "respModel": {
+            "name": "respModel",
+            "shortname": "respModel",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "api_response",
+            "namespace": "",
+            "file": "utils/api_response.js",
+            "line": 10,
+            "description": "Class to manage firewalls routing"
+        }
+    },
+    "elements": {},
+    "classitems": [
+        {
+            "file": "models/firewall.js",
+            "line": 21,
+            "description": "Property Table",
+            "itemtype": "property",
+            "name": "tableModel",
+            "type": "\"firewall\"",
+            "access": "private",
+            "tagname": "",
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 36,
+            "description": "Get Firewalls by User",
+            "itemtype": "method",
+            "name": "getFirewalls",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 78,
+            "description": "Get Firewalls by User and ID",
+            "itemtype": "method",
+            "name": "getFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "Firewall object"
+            },
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 117,
+            "description": "Get Firewalls by User and Name",
+            "itemtype": "method",
+            "name": "getFirewallName",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "Name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 158,
+            "description": "Get Firewalls by User and Cluster",
+            "itemtype": "method",
+            "name": "getFirewallCluster",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idcluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "Returns `ARRAY OBJECT FIREWALL DATA` \n\nTable: __firewall__\n\n          id\tint(11) AI PK\n          cluster\tint(11)\n          fwcloud\tint(11)\n          name\tvarchar(255)\n          comment\tlongtext\n          created_at\tdatetime\n          updated_at\tdatetime\n          by_user\tint(11)\n          id_fwb\tvarchar(45)",
+                "type": "ARRAY of Firewall objects"
+            },
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 199,
+            "description": "ADD New Firewall",
+            "itemtype": "method",
+            "name": "insertFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "firewallData",
+                    "description": "Firewall Object data",
+                    "type": "Firewall Object",
+                    "props": [
+                        {
+                            "name": "id",
+                            "description": "",
+                            "type": "NULL"
+                        },
+                        {
+                            "name": "cluster",
+                            "description": "Cluster ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "fwcloud",
+                            "description": "FWcloud ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "name",
+                            "description": "Firewall Name",
+                            "type": "String"
+                        },
+                        {
+                            "name": "comment",
+                            "description": "comment text",
+                            "type": "String",
+                            "optional": true
+                        }
+                    ]
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"insertId\": fwid});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 249,
+            "description": "UPDATE Firewall",
+            "itemtype": "method",
+            "name": "updateFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "firewallData",
+                    "description": "Firewall Object data",
+                    "type": "Firewall Object",
+                    "props": [
+                        {
+                            "name": "id",
+                            "description": "",
+                            "type": "NULL"
+                        },
+                        {
+                            "name": "cluster",
+                            "description": "Cluster ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "fwcloud",
+                            "description": "FWcloud ID",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "name",
+                            "description": "Firewall Name",
+                            "type": "String"
+                        },
+                        {
+                            "name": "comment",
+                            "description": "comment text",
+                            "type": "String",
+                            "optional": true
+                        }
+                    ]
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"result\": true});\n      \n#### RESPONSE ERROR:\n   \n      callback(error, null);\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/firewall.js",
+            "line": 297,
+            "description": "DELETE Firewall",
+            "itemtype": "method",
+            "name": "deleteFirewall",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "callback",
+                    "description": "Function callback response\n\n      callback(error, Rows)",
+                    "type": "Function"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "CALLBACK RESPONSE"
+            },
+            "example": [
+                "\n#### RESPONSE OK:\n   \n      callback(null, {\"result\": true, \"msg\": \"deleted\"});\n      \n#### RESPONSE ERROR:\n   \n      callback(null, {\"result\": false});\n      "
+            ],
+            "class": "FirewallModel",
+            "module": "Firewall"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 17,
+            "description": "Property  to manage Dabase Access",
+            "itemtype": "property",
+            "name": "db",
+            "type": "db",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 25,
+            "description": "Property  to manage Ipobj in Rules",
+            "itemtype": "property",
+            "name": "Policy_r__ipobjModel",
+            "type": "models.policy_r__ipobj",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 32,
+            "description": "Property  to manage Interfaces in Rules",
+            "itemtype": "property",
+            "name": "Policy_r__interfaceModel",
+            "type": "models.policy_r__interface",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 39,
+            "description": "Property manage async process",
+            "itemtype": "property",
+            "name": "async",
+            "type": "async",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 46,
+            "description": "Property  to manage Interfaces Data",
+            "itemtype": "property",
+            "name": "InterfaceModel",
+            "type": "models.interface",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 53,
+            "description": "Property  to manage Ipobj host data",
+            "itemtype": "property",
+            "name": "host_Data",
+            "type": "models.data_ipobj_host",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 60,
+            "description": "Property  to manage Interface data",
+            "itemtype": "property",
+            "name": "interface_Data",
+            "type": "models.data_interface",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 67,
+            "description": "Property  to manage Ipobj  data",
+            "itemtype": "property",
+            "name": "ipobj_Data",
+            "type": "models.data_ipobj",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 74,
+            "description": "Property  to manage Ipobj in Groups",
+            "itemtype": "property",
+            "name": "Ipobj__ipobjgModel",
+            "type": "models.ipobj__ipobjg",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 85,
+            "description": "Property Table",
+            "itemtype": "property",
+            "name": "tableModel",
+            "type": "\"ipobj\"",
+            "access": "private",
+            "tagname": "",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 95,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "attribute",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 105,
+            "description": "Get ipobj by Ipobj id",
+            "itemtype": "method",
+            "name": "getIpobj",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROW Data from Ipobj and FWC_TREE",
+                "type": "ROW"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 152,
+            "description": "Get ipobj HOST DATA and Interfaces and Ipobj bellow Interfaces",
+            "itemtype": "method",
+            "name": "getIpobj_Host_Full",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROW Data from Ipobj_Host/Interfaces/Ipobjs",
+                "type": "ROW"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 283,
+            "description": "Get ipobj by id_fwb",
+            "itemtype": "method",
+            "name": "getIpobj_fwb",
+            "params": [
+                {
+                    "name": "id_fwb",
+                    "description": "id firewall Builder identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROW Data from Ipobj",
+                "type": "ROW"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 307,
+            "description": "Get All ipobj by Group",
+            "itemtype": "method",
+            "name": "getAllIpobjsGroup",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROWS Data from Ipobj and FWC_TREE",
+                "type": "ROWS"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 342,
+            "description": "Get All ipobj by Interface",
+            "itemtype": "method",
+            "name": "getAllIpobjsInterface",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idinterface",
+                    "description": "Interface identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROWS Data from Ipobj and FWC_TREE",
+                "type": "ROWS"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 376,
+            "description": "Get ipobj by id and Group",
+            "itemtype": "method",
+            "name": "getIpobjGroup",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "id Group identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "id ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns ROW Data from Ipobj",
+                "type": "ROW"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 404,
+            "description": "Get ipobj by name",
+            "itemtype": "method",
+            "name": "getIpobjName",
+            "params": [
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "name ipobj identifier",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns ROW Data from Ipobj",
+                "type": "ROW"
+            },
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 438,
+            "description": "Add ipobj",
+            "itemtype": "method",
+            "name": "insertIpobj",
+            "params": [
+                {
+                    "name": "ipobjData",
+                    "description": "Ipobj Data",
+                    "type": "Object"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n     {result: true, \"insertId\": result.insertId}\n\n#### JSON RESPONSE ERROR:\n     {result: false, \"insertId\": ''}"
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 471,
+            "description": "Update ipobj",
+            "itemtype": "method",
+            "name": "updateIpobj",
+            "params": [
+                {
+                    "name": "ipobjData",
+                    "description": "Ipobj Data",
+                    "type": "Object"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n     {result: true}\n\n#### JSON RESPONSE ERROR:\n     {result: false}"
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 528,
+            "description": "### Delete ipobj",
+            "itemtype": "method",
+            "name": "deleteIpobj",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "id ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "ipobj type",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n\n     {\"result\": true, \"msg\": \"deleted\"}\n\n#### JSON RESPONSE ERROR NOT EXIST:\n\n     {\"result\": false, \"msg\": \"notExist\"}\n     \n#### JSON RESPONSE RESTRICTED:\n\n     {\"result\": false, \"msg\": \"Restricted\", \"restrictions\": data.search}"
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 588,
+            "description": "### check if IPOBJ Exists in any Group",
+            "itemtype": "method",
+            "name": "checkIpobjInGroup",
+            "params": [
+                {
+                    "name": "ipobj",
+                    "description": "id ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "ipobj type",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n\n     {\"result\": true};\n\n#### JSON RESPONSE ERROR NOT EXIST:\n\n     {\"result\": false};\n     "
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 637,
+            "description": "### searchIpobjInRules\nSearch where is used IPOBJ in RULES",
+            "itemtype": "method",
+            "name": "searchIpobjInRules",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "id ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "ipobj type",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE OK\n\n         {\"result\": true, \"msg\": \"IPOBJ FOUND\", \n             \"search\":\n                 {   \"IpobjInRules\": data_ipobj, \n                     \"GroupInRules\": data_grouprule, \n                     \"IpobjInGroup\": data_group,\n                     \"InterfacesIpobjInRules\": data_interfaces, \n                     \"InterfacesFIpobjInRules\": data_interfaces_f,\n                     \"InterfacesAboveIpobjInRules\": data_interfaces_above,\n                     \"HostIpobjInterfacesIpobjInRules\": data_ipobj_host, \n                     \"IpobjInterfacesIpobjInRules\": data_ipobj_ipobj\n                 }\n         }\n\n#### JSON RESPONSE ERROR NOT EXIST:\n\n     {\"result\": false, \"msg\": \"IPOBJ NOT FOUND\", \n         \"search\": {\n\"IpobjInRules\": \"\", \n\"GroupInRules\": \"\",\n\"IpobjInGroup\": \"\", \n\"InterfacesIpobjInRules\": \"\", \n\"InterfacesFIpobjInRules\": \"\",\n\"InterfacesAboveIpobjInRules\": \"\",\n\"HostIpobjInterfacesIpobjInRules\": \"\", \n\"IpobjInterfacesIpobjInRules\": \"\"\n}\n}\n     "
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "models/ipobj.js",
+            "line": 755,
+            "description": "### searchIpobj\nSearch where is used IPOBJ",
+            "itemtype": "method",
+            "name": "searchIpobj",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "id ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "ipobj type",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns JSON result",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE OK\n\n         {\"result\": true, \"msg\": \"IPOBJ FOUND\", \n             \"search\": {\n                 \"IpobjInRules\": data_ipobj, \n                 \"IpobjInGroup\": data_group, \n                 \"IpobjInterfaces\": data_ipobj_interfaces\n                 }\n         }\n\n#### JSON RESPONSE ERROR NOT EXIST:\n\n     {\"result\": false, \"msg\": \"IPOBJ NOT FOUND\", \n             \"search\": {\n                 \"IpobjInRules\": \"\", \n                 \"IpobjInGroup\": \"\", \n                 \"IpobjInterfaces\": \"\"\n              }\n     }\n     "
+            ],
+            "class": "IpobjModel",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 20,
+            "description": "Property  to manage express",
+            "itemtype": "property",
+            "name": "express",
+            "type": "express",
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 28,
+            "description": "Property  to manage  route",
+            "itemtype": "property",
+            "name": "router",
+            "type": "express.Router",
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 37,
+            "description": "Property Model to manage API RESPONSE data",
+            "itemtype": "property",
+            "name": "api_resp",
+            "type": "/models/api_response",
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 46,
+            "description": "Property to identify Data Object",
+            "itemtype": "property",
+            "name": "objModel",
+            "type": "text",
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 54,
+            "description": "Property Model to manage Cluster Data",
+            "itemtype": "property",
+            "name": "ClusterModel",
+            "type": "/models/cluster",
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 66,
+            "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.\nROUTE CALL:  /",
+            "itemtype": "method",
+            "name": "getclusters",
+            "params": [
+                {
+                    "name": "foo",
+                    "description": "Argument 1",
+                    "type": "String"
+                },
+                {
+                    "name": "config",
+                    "description": "A config object",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "name",
+                            "description": "The name on the config object",
+                            "type": "String"
+                        },
+                        {
+                            "name": "callback",
+                            "description": "A callback function on the config object",
+                            "type": "Function"
+                        }
+                    ]
+                },
+                {
+                    "name": "extra",
+                    "description": "Do extra, optional work",
+                    "type": "Boolean",
+                    "optional": true,
+                    "optdefault": "false"
+                }
+            ],
+            "return": {
+                "description": "Returns true on success",
+                "type": "Boolean"
+            },
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/clusters.js",
+            "line": 102,
+            "description": "My method description.  Like other pieces of your comment blocks, \nthis can span multiple lines.",
+            "itemtype": "method",
+            "name": "Newcluster",
+            "params": [
+                {
+                    "name": "foo",
+                    "description": "Argument 1",
+                    "type": "String"
+                },
+                {
+                    "name": "config",
+                    "description": "A config object",
+                    "type": "Object"
+                }
+            ],
+            "return": {
+                "description": "Returns true on success",
+                "type": "Boolean"
+            },
+            "class": "ClusterRouter",
+            "module": "Cluster"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 18,
+            "description": "Property  to manage express",
+            "itemtype": "property",
+            "name": "express",
+            "type": "express",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 26,
+            "description": "Property  to manage Firewall route",
+            "itemtype": "property",
+            "name": "router",
+            "type": "express.Router",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 34,
+            "description": "Property Model to manage API RESPONSE data: {{#crossLinkModule \"api_response\"}}{{/crossLinkModule}}",
+            "itemtype": "property",
+            "name": "api_resp",
+            "type": "api_respModel",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 43,
+            "description": "Property to identify Data Object",
+            "itemtype": "property",
+            "name": "objModel",
+            "type": "text",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 51,
+            "description": "Property Model to manage Firewall Data",
+            "itemtype": "property",
+            "name": "FirewallModel",
+            "type": "/models/firewall",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 61,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "attribute",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 73,
+            "description": "Get Firewalls by User\n\n\n> ROUTE CALL:  __/firewalls/:iduser__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 128,
+            "description": "Get Firewalls by User and ID\n\n\n> ROUTE CALL:  __/firewalls/:iduser/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Id",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall        \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         }\n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 184,
+            "description": "Get Firewalls by User and Name\n\n\n> ROUTE CALL:  __/firewalls/:iduser/fwname/:name__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Name",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "firewall name",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 242,
+            "description": "Get Firewalls by Cluster\n\n\n> ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Cluster",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idcluster",
+                    "description": "Cluster identifier",
+                    "type": "Number"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Firewall",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n      {\"data\" : [\n         {  //Data Firewall 1       \n          \"id\" : ,            //Firewall Identifier\n          \"cluster\" : ,       //Cluster\n          \"fwcloud\" : ,       //Id Firewall cloud\n          \"name\" : ,          //Firewall name\n          \"comment\" : ,       //comment\n          \"created_at\" : ,    //Date Created\n          \"updated_at\" : ,    //Date Updated\n          \"by_user\" : ,       //User last update\n          \"id_fwb\" :          //ID firewall in FWbuilder\n         },\n         {....}, //Data Firewall 2\n         {....}  //Data Firewall ...n \n        ]\n      };\n"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 301,
+            "description": "CREATE New firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __POST__",
+            "itemtype": "method",
+            "name": "AddFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier (AUTO)",
+                    "type": "Integer"
+                },
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "cluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "comment",
+                    "description": "Firewall comment",
+                    "type": "String",
+                    "optional": true
+                }
+            ],
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"insertId : ID,   //firewall identifier           \n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 366,
+            "description": "UPDATE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __PUT__",
+            "itemtype": "method",
+            "name": "UpdateFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "cluster",
+                    "description": "Cluster identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                },
+                {
+                    "name": "comment",
+                    "description": "Firewall comment",
+                    "type": "String"
+                }
+            ],
+            "optional": 1,
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"msg : \"success\",   //result\n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 427,
+            "description": "Get Firewalls by ID and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id</b>\n<br>METHOD: <b>GET</b>",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_ID_V2",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns Json Data from Firewall",
+                "type": "JSON"
+            },
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 476,
+            "description": "Get Firewalls by Name and User\n\n<br>ROUTE CALL:  <b>/firewalls/:iduser/name/:name</b>\n<br>METHOD: <b>GET</b>",
+            "itemtype": "method",
+            "name": "getFirewallByUser_and_Name_V2",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Firewall Name",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns Json Data from Firewall",
+                "type": "JSON"
+            },
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/firewalls.js",
+            "line": 526,
+            "description": "DELETE firewall\n\n\n> ROUTE CALL:  __/firewalls/firewall__      \n> METHOD:  __DELETE__",
+            "itemtype": "method",
+            "name": "DeleteFirewall",
+            "params": [
+                {
+                    "name": "id",
+                    "description": "Firewall identifier",
+                    "type": "Integer"
+                }
+            ],
+            "optional": 1,
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n      {\"data\" : [\n         { \n          \"msg : \"success\",   //result\n         }\n        ]\n      };\n      \n#### JSON RESPONSE ERROR:\n   \n      {\"data\" : [\n         { \n          \"msg : ERROR,   //Text Error\n         }\n        ]\n      };"
+            ],
+            "class": "FirewallRouter",
+            "module": "Firewall"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 19,
+            "description": "Property  to manage express",
+            "itemtype": "property",
+            "name": "express",
+            "type": "express",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 27,
+            "description": "Property  to manage IPOBJ route",
+            "itemtype": "property",
+            "name": "router",
+            "type": "express.Router",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 35,
+            "description": "Property Model to manage IPOBJ Data",
+            "itemtype": "property",
+            "name": "IpobjlModel",
+            "type": "/models/ipobj",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 44,
+            "description": "Property Model to manage FWC_TREE Data",
+            "itemtype": "property",
+            "name": "fwcTreemodel",
+            "type": "/models/fwc_tree",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 53,
+            "description": "Property Model to manage FWC_TREE_NODE Data",
+            "itemtype": "property",
+            "name": "fwc_tree_nodeModel",
+            "type": "/models/fwc_tree_node",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 62,
+            "description": "Property Model to manage UTIL functions",
+            "itemtype": "property",
+            "name": "utilsModel",
+            "type": "/models/utils",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 71,
+            "description": "Property Model to manage interface__ipobj data relation",
+            "itemtype": "property",
+            "name": "Interface__ipobjModel",
+            "type": "/models/interface__ipobj",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 80,
+            "description": "Property Model to manage API RESPONSE data",
+            "itemtype": "property",
+            "name": "api_resp",
+            "type": "/models/api_response",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 89,
+            "description": "Property to identify Data Object",
+            "itemtype": "property",
+            "name": "objModel",
+            "type": "text",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 97,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "attribute",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 107,
+            "description": "Get all ipobjs by  group\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getAllIpobjByGroup",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "example": [
+                " #### JSON RESPONSE\n   \n    \"response\": {\n       \"respStatus\":         //Response status  TRUE | FALSE\n       \"respCode\":           //Response Code \n       \"respCodeMsg\":        //Response message\n       \"respMsg\":            //Response custom message\n       \"errorCode\":          //Error code\n       \"errorMsg\":           //Error message\n         },\n    \"data\": [                //Data node with de IPOBJ DATA\n       { \"id\": 1488,\n           \"name\": \"PC-AALMODOVAR\",\n           \"type\": 8,\n           \"fwcloud\": 1,\n           \"interface\": null,\n           \"protocol\": null,\n           \"address\": null,\n           \"netmask\": null,\n           \"diff_serv\": null,\n           \"ip_version\": null,\n           \"code\": null,\n           \"tcp_flags_mask\": null,\n           \"tcp_flags_settings\": null,\n           \"range_start\": null,\n           \"range_end\": null,\n           \"source_port_start\": null,\n           \"source_port_end\": null,\n           \"destination_port_start\": null,\n           \"destination_port_end\": null,\n           \"options\": null,\n           \"comment\": \"\",\n           \"id_node\": 102,\n           \"id_parent_node\": 8,\n           \"interfaces\": [         //Interface Node with Interfaces \n               {\n                   \"id\": 73,\n                   \"firewall\": null,\n                   \"name\": \"eth0\",\n                   \"labelname\": \"eth0\",\n                   \"type\": \"11\",\n                   \"securityLevel\": \"0\",\n                   \"interface_type\": 11,\n                   \"comment\": null,\n                   \"id_node\": 318,\n                   \"id_parent_node\": 102,\n                   \"ipobjs\": [     //Ipobj Node with ipobjs into Interface\n                       {\n                           \"id\": 1525,\n                           \"name\": \"PC-AALMODOVAR:eth0\",\n                           \"type\": 5,\n                           \"fwcloud\": 1,\n                           \"interface\": 73,\n                           \"protocol\": null,\n                           \"address\": \"10.98.1.16\",\n                           \"netmask\": \"255.255.255.0\",\n                           \"diff_serv\": null,\n                           \"ip_version\": \"IPv4\",\n                           \"code\": null,\n                           \"tcp_flags_mask\": null,\n                           \"tcp_flags_settings\": null,\n                           \"range_start\": null,\n                           \"range_end\": null,\n                           \"source_port_start\": null,\n                           \"source_port_end\": null,\n                           \"destination_port_start\": null,\n                           \"destination_port_end\": null,\n                           \"options\": null,\n                           \"comment\": \"\",\n                           \"id_node\": 339,\n                           \"id_parent_node\": 318\n                       },\n                   ]\n               },\n           ]\n       }\n       ]\n       }\n"
+            ],
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 226,
+            "description": "Get ipobj by  group and Ipobj id\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getIpobjByGroup",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 269,
+            "description": "Get ipobj by Ipobj id\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/:id__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getIpobjById",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 311,
+            "description": "Get all ipobjs by name and by group\n\n\n> ROUTE CALL:  __/ipobjs/:iduser/:fwcloud/group/:idgroup/name/:name__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "getAllIpobjByGroupName",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "idgroup",
+                    "description": "Group identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "Ipobj name",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Ipobj",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 353,
+            "description": "Search where ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules\n\n\n> ROUTE CALL:  __/ipobjs/ipobj_search_rules/:iduser/:fwcloud/:id/:type__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "SearchIpobjInRules",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "Ipobj type",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Search",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 400,
+            "description": "Search where ipobj is Used\n\n\n> ROUTE CALL:  __/ipobjs/ipobj_search_used/:iduser/:fwcloud/:id/:type__      \n> METHOD:  __GET__",
+            "itemtype": "method",
+            "name": "SearchIpobjWhereUsed",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "Ipobj type",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Search",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 448,
+            "description": "#### Create new ipobj\nCrea un nuevo objeto en el Cloud que se le pasa.\nSe le pasa tambien los datos del Nodo en el arbol de navegación para que una vez \nañadido el objeto se enlace al nodo del árbol\n\n\n> ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud/:node_parent/:node_order/:node_type__      \n> METHOD:  __POST__",
+            "itemtype": "method",
+            "name": "NewIpobj",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "node_parent",
+                    "description": "Node parent to insert object",
+                    "type": "Integer"
+                },
+                {
+                    "name": "node_order",
+                    "description": "Node order",
+                    "type": "Integer"
+                },
+                {
+                    "name": "node_type",
+                    "description": "Node type\n\n#### POST PARAMETERS",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "interface",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "protocol",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "address",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "netmask",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "diff_serv",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "ip_version",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "code",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "tcp_flags_mask",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "tcp_flags_settings",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "range_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "range_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "source_port_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "source_port_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "destination_port_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "destination_port_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "options",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "comment",
+                    "description": "",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Result\n* * @example \n#### JSON RESPONSE OK:\n   \n     {\"response\": {\n       \"respStatus\": true,\n       \"respCode\": \"ACR_INSERTED_OK\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };\n      \n#### JSON RESPONSE ERROR:\n   \n     {\"response\": {\n       \"respStatus\": false,\n       \"respCode\": \"ACR_ERROR\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 598,
+            "description": "#### Update Ipobj\nActualiza los datos de un IPOBJ.\n\n\n> ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud__      \n> METHOD:  __PUT__",
+            "itemtype": "method",
+            "name": "UpdateIpobj",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier\n\n#### POST PARAMETERS",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "interface",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "name",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "protocol",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "address",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "netmask",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "diff_serv",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "ip_version",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "code",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "tcp_flags_mask",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "tcp_flags_settings",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "range_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "range_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "source_port_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "source_port_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "destination_port_start",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "destination_port_end",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "options",
+                    "description": "",
+                    "type": "Integer"
+                },
+                {
+                    "name": "comment",
+                    "description": "",
+                    "type": "Integer"
+                }
+            ],
+            "return": {
+                "description": "Returns `JSON` Data from Search\n* @example \n#### JSON RESPONSE OK:\n   \n     {\"response\": {\n       \"respStatus\": true,\n       \"respCode\": \"ACR_UPDATED_OK\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };\n      \n#### JSON RESPONSE ERROR:\n   \n     {\"response\": {\n       \"respStatus\": false,\n       \"respCode\": \"ACR_ERROR\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };",
+                "type": "JSON"
+            },
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "routes/ipobjs.js",
+            "line": 722,
+            "description": "DELETE IPOBJ\n\n\n> ROUTE CALL:  __/ipobjs/ipobj/:iduser/:fwcloud/:id/:type__      \n> METHOD:  __DELETE__",
+            "itemtype": "method",
+            "name": "DeleteIpobj",
+            "params": [
+                {
+                    "name": "iduser",
+                    "description": "User identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "fwcloud",
+                    "description": "FwCloud identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "id",
+                    "description": "Ipobj identifier",
+                    "type": "Integer"
+                },
+                {
+                    "name": "type",
+                    "description": "Ipobj type",
+                    "type": "Integer"
+                }
+            ],
+            "optional": 1,
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE OK:\n   \n     {\"response\": {\n       \"respStatus\": true,\n       \"respCode\": \"ACR_DELETED_OK\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };\n      \n#### JSON RESPONSE ERROR:\n   \n     {\"response\": {\n       \"respStatus\": false,\n       \"respCode\": \"ACR_ERROR\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };"
+            ],
+            "class": "IpobjsRouter",
+            "module": "Ipobjs"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 17,
+            "description": "Property Model to manage response Data",
+            "itemtype": "property",
+            "name": "respModel",
+            "type": "/utils/api_response",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 30,
+            "description": "Property ACR_ERROR",
+            "itemtype": "property",
+            "name": "ACR_ERROR",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 37,
+            "description": "Property ACR_OK",
+            "itemtype": "property",
+            "name": "ACR_OK",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 44,
+            "description": "Property reACR_NOTEXISTsp",
+            "itemtype": "property",
+            "name": "ACR_NOTEXIST",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 51,
+            "description": "Property resp",
+            "itemtype": "property",
+            "name": "ACR_MISSING",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 58,
+            "description": "Property ACR_DELETED_OK",
+            "itemtype": "property",
+            "name": "ACR_DELETED_OK",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 65,
+            "description": "Property ACR_RESTRICTED",
+            "itemtype": "property",
+            "name": "ACR_RESTRICTED",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 72,
+            "description": "Property ACR_INSERTED_OK",
+            "itemtype": "property",
+            "name": "ACR_INSERTED_OK",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 79,
+            "description": "Property ACR_UPDATED_OK",
+            "itemtype": "property",
+            "name": "ACR_UPDATED_OK",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 86,
+            "description": "Property ACR_DATA_ERROR",
+            "itemtype": "property",
+            "name": "ACR_DATA_ERROR",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 93,
+            "description": "Property ACR_NOT_ALLOWED",
+            "itemtype": "property",
+            "name": "ACR_NOT_ALLOWED",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 100,
+            "description": "Property ACR_PARAM_ERROR",
+            "itemtype": "property",
+            "name": "ACR_PARAM_ERROR",
+            "type": "String",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 108,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "attribute",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 127,
+            "description": "### GET JSON RESONSE",
+            "itemtype": "method",
+            "name": "getJson",
+            "params": [
+                {
+                    "name": "data",
+                    "description": "Data response from Call",
+                    "type": "Object"
+                },
+                {
+                    "name": "respCode",
+                    "description": "Response code",
+                    "type": "String"
+                },
+                {
+                    "name": "custom_response",
+                    "description": "custom Message from Call",
+                    "type": "String"
+                },
+                {
+                    "name": "custom_obj",
+                    "description": "Custon name of object",
+                    "type": "String"
+                },
+                {
+                    "name": "error",
+                    "description": "Object Error",
+                    "type": "Object"
+                },
+                {
+                    "name": "callback",
+                    "description": "function(jsonresp)",
+                    "type": "Callback"
+                }
+            ],
+            "return": {
+                "description": "Returns Json result",
+                "type": "JSON"
+            },
+            "example": [
+                " \n#### JSON RESPONSE :\n   \n     {\"response\": {\n       \"respStatus\": true | false,\n       \"respCode\": \"ACR_CODE\",\n       \"respCodeMsg\": \"\",\n       \"respMsg\": \"\",\n       \"errorCode\": \"\",\n       \"errorMsg\": \"\"\n     },\n     \"data\": {}\n     };\n      "
+            ],
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/api_response.js",
+            "line": 184,
+            "description": "### GET Message from Response Code",
+            "itemtype": "method",
+            "name": "getMsgCodeResp",
+            "params": [
+                {
+                    "name": "respCode",
+                    "description": "Response code",
+                    "type": "String"
+                },
+                {
+                    "name": "custom_response",
+                    "description": "custom Message from Call",
+                    "type": "String"
+                },
+                {
+                    "name": "custom_obj",
+                    "description": "Custon name of object",
+                    "type": "String"
+                },
+                {
+                    "name": "error",
+                    "description": "Object Error",
+                    "type": "Object"
+                },
+                {
+                    "name": "callback",
+                    "description": "function(status,message)",
+                    "type": "Callback"
+                }
+            ],
+            "return": {
+                "description": "Returns Status and message response",
+                "type": "Boolean, String"
+            },
+            "class": "respModel",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/mng-error.js",
+            "line": 4,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/mng-error.js",
+            "line": 15,
+            "params": [
+                {
+                    "name": "name",
+                    "description": "is the name of the newly created error",
+                    "type": "String"
+                },
+                {
+                    "name": "init",
+                    "description": "optional initialization function",
+                    "type": "Function",
+                    "optional": true
+                }
+            ],
+            "return": {
+                "description": "The new Error",
+                "type": "Err"
+            },
+            "class": "",
+            "module": "api_response"
+        },
+        {
+            "file": "utils/utils.js",
+            "line": 4,
+            "description": "Property Logger to manage App logs",
+            "itemtype": "property",
+            "name": "logger",
+            "type": "log4js/app",
+            "class": "",
+            "module": "api_response"
+        }
+    ],
+    "warnings": [
+        {
+            "message": "replacing incorrect tag: returns with return",
+            "line": " utils/mng-error.js:15"
+        },
+        {
+            "message": "Missing item type",
+            "line": " utils/mng-error.js:15"
+        }
+    ]
+}

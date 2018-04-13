@@ -1,0 +1,67 @@
+}
+
+status() {
+  NL=`$IPTABLES -nL | wc -l`
+  if [ $NL -lt 9 ]; then
+    echo "ERROR: Policy not loaded"
+    exit 1
+  else
+    echo "OK. Polilcy loaded."
+  fi 
+}
+
+# Verify that we have all the needed commands.
+check_cmds
+
+ACTION="$1"
+test -z "$ACTION" && ACTION="start"
+
+case "$ACTION" in
+  start)
+    load_modules
+    reset_all
+    #prolog_commands
+    policy_load
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    #epilog_commands
+    ;;
+
+  stop)
+    reset_all
+    $IPTABLES -P OUTPUT  ACCEPT
+    $IPTABLES -P INPUT   ACCEPT
+    $IPTABLES -P FORWARD ACCEPT
+    ;;
+
+  reload)
+    $0 stop
+    $0 start
+    ;;
+
+  block)
+    reset_all
+    ;;
+
+  status)
+    status
+    ;;
+
+  install)
+    chown root:root "$0"
+    chmod 700 "$0"
+
+    INSTALL_DIR="/etc/fwcloud"    
+    test ! -d "$INSTALL_DIR" && {
+      mkdir -m 700 -p "$INSTALL_DIR"
+      chown root:root "$INSTALL_DIR"
+    }
+
+    mv "$0" "$INSTALL_DIR"
+    ;;
+
+  *)
+    echo "Usage $0 [start|stop|reload|block|status|install]"
+    ;;
+esac
+
+exit 0
