@@ -84,6 +84,32 @@ router.get('/host/:idhost', function (req, res)
     });
 });
 
+/* Get interface by id and HOST*/
+router.get('/host/:idhost/interface/:id', function (req, res)
+{
+    var idhost = req.params.idhost;
+    var fwcloud = req.fwcloud;
+    var id = req.params.id;
+    
+    InterfaceModel.getInterfaceHost(idhost, fwcloud, id, function (error, data)
+    {
+        //If exists interface get data
+        if (data && data.length > 0)
+        {
+            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+        //Get Error
+        else
+        {
+            api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
 /* Get  interface by id and  by firewall*/
 router.get('/:idfirewall/interface/:id', utilsModel.checkFirewallAccess, function (req, res)
 {
