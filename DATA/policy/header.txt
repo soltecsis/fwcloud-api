@@ -2,9 +2,10 @@
 #############################################
 ##                                         ##
 ##  FWCloud.net                            ##
-##  Developed by SOLTECSIS, S.L.           ##
+##  @ Developed by SOLTECSIS, S.L.         ##
 ##  http://www.soltecsis.com               ##
 ##  info@soltecsis.com                     ##
+##  support@fwcloud.net                    ##
 ##                                         ##
 #############################################
 
