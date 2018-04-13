@@ -181,7 +181,7 @@ policy_rModel.getPolicy_rs_type = function (fwcloud, idfirewall, type, rule, All
                                                                 //Get Error
                                                                 else
                                                                 {
-                                                                    logger.debug("ERROR getIpobj: " + error);
+                                                                    logger.debug("ERROR GROUP getIpobj: " + error);
                                                                     callback3();
                                                                 }
                                                             });

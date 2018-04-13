@@ -34,6 +34,18 @@ function policy_position_ipobjs_data(data, order, negate, type) {
         this.type = data.interface_type;
         this.labelName = data.labelName;
         this.securityLevel = data.securityLevel;
+        if (data.interface_type==10){  //interface Firewall
+            this.parent_id=data.firewall_id;
+            this.parent_name=data.firewall_name;
+            this.parent_type=0;
+        }
+        else{   //interface Host
+            this.parent_id= data.host_id;
+            this.parent_name= data.host_name;
+            this.parent_type=8;
+        }
+        
+        
     } 
     else if (type === 'G') {
         this.type = data.type;
