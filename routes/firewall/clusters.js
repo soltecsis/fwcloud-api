@@ -209,11 +209,11 @@ router.post("/cluster", function (req, res)
                                                             FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                                                 //INSERT FIREWALL NODE STRUCTURE
                                                                 fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, idcluster, firewallData.fwmaster, function (error, dataTree) {
-                                                                    if (dataTree && dataTree.result && firewallData.fwmaster==1) {
+                                                                    if (dataTree && dataTree.result && firewallData.fwmaster == 1) {
                                                                         ///CREATE CATCHING ALL RULES
                                                                         Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
                                                                                 .then(() => {
-                                                                                    logger.debug("CATCHING RULES CREATED FOR FIREWALL: ", idfirewall, "  FWMASTER: ", firewallData.fwmaster );
+                                                                                    logger.debug("CATCHING RULES CREATED FOR FIREWALL: ", idfirewall, "  FWMASTER: ", firewallData.fwmaster);
                                                                                 });
 
                                                                     }
@@ -227,7 +227,7 @@ router.post("/cluster", function (req, res)
                                             });
                                 })
                                 .catch(e => {
-                                    logger.error("ERROR CHECK PARAMS FIREWALL: ", e);                                   
+                                    logger.error("ERROR CHECK PARAMS FIREWALL: ", e);
                                 });
                     }
                     //----------------------------------------------
@@ -250,6 +250,74 @@ router.post("/cluster", function (req, res)
     });
 });
 
+/* New cluster FROM FIREWALL */
+router.post("/cluster/convertfirewall/:idfirewall", function (req, res)
+{
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    var idfirewall = req.params.idfirewall;
+    
+
+    FirewallModel.getFirewall(iduser, fwcloud, idfirewall, function (error, firewallDataArry)
+    {
+        //Get Data
+        if (firewallDataArry && firewallDataArry.length > 0)
+        {
+            var firewallData= firewallDataArry[0];
+            //new objet with Cluster data
+            var clusterData = {
+                name: "Cluster " + firewallData.name,
+                comment: "New cluster from Firewall : " + firewallData.name,
+                fwcloud: fwcloud
+            };
+            
+            ClusterModel.insertCluster(clusterData, function (error, data)
+            {
+                //get cluster info
+                if (data && data.insertId)
+                {
+                    var dataresp = {"insertId": data.insertId};
+                    var idcluster = data.insertId;
+                    //////////////////////////////////
+                    //INSERT AND UPDATE CLUSTER NODE STRUCTURE
+                    fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, "FDC", idcluster, idfirewall, function (error, dataTree) {
+                        if (error)
+                            api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        else if (dataTree && dataTree.result) {
+
+                            //UPDATE CLUSTERS FIREWALL
+                            //-------------------------------------------
+                            firewallData.cluster = idcluster;
+                            firewallData.fwcloud = fwcloud;
+                            firewallData.by_user = iduser;
+
+                            FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
+                                FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, 1, function (error, data) {
+
+                                });
+                            });
+                            api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+
+                        } else
+                        {
+                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        }
+                    });
+                } else {
+                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            });
+        }
+    });
+});
 /* cluster update */
 router.put('/cluster', function (req, res)
 {
@@ -271,18 +339,13 @@ router.put('/cluster', function (req, res)
         }
     });
 });
-
-
-
 /* Remove cluster */
-router.put("/del/cluster/:id",  utilsModel.checkConfirmationToken, function (req, res)
+router.put("/del/cluster/:id", utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
-    
     var id = req.params.id;
-    
-    ClusterModel.deleteCluster(id,iduser,fwcloud, function (error, data)
+    ClusterModel.deleteCluster(id, iduser, fwcloud, function (error, data)
     {
         if (data && data.result)
         {
@@ -297,5 +360,4 @@ router.put("/del/cluster/:id",  utilsModel.checkConfirmationToken, function (req
         }
     });
 });
-
 module.exports = router;
