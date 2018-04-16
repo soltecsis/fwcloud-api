@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/bash
 #############################################
 ##                                         ##
 ##  FWCloud.net                            ##
@@ -10,8 +10,7 @@
 
 LSMOD=`which lsmod`
 MODPROBE=`which modprobe`
-#IPTABLES=`which iptables`
-IPTABLES="echo"
+IPTABLES=`which iptables`
 IP6TABLES=`which ip6tables`
 IP=`which ip`
 
@@ -76,3 +75,4 @@ reset_all() {
 
 
 policy_load() {
+  
