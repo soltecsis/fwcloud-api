@@ -90,7 +90,7 @@ router.get('/host/:idhost/interface/:id', function (req, res)
     var idhost = req.params.idhost;
     var fwcloud = req.fwcloud;
     var id = req.params.id;
-    
+
     InterfaceModel.getInterfaceHost(idhost, fwcloud, id, function (error, data)
     {
         //If exists interface get data
@@ -235,7 +235,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
     var node_type = req.params.node_type;
     var host = req.params.host;
 
-    if (host === undefined || host === '' || isNaN(host) || req.body.interface_type==10 ) {
+    if (host === undefined || host === '' || isNaN(host) || req.body.interface_type == 10) {
         host = null;
     }
 
@@ -274,17 +274,21 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
                         interface_order: 1
                     };
 
-                    Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
+                    Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, dataH)
                     {
                         //If saved interface__ipobj Get data
-                        if (data && data.result)
+                        if (dataH && dataH.result)
                         {
+                            Interface__ipobjModel.UpdateHOST(data.insertId)
+                                    .then(() => {
+                                    });
                             logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
                         } else
                         {
                             logger.debug(error);
                         }
                     });
+
                 }
                 var id = data.insertId;
                 logger.debug("NEW INTERFACE id:" + id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
@@ -338,27 +342,30 @@ router.put('/interface/', function (req, res)
                 //If saved interface saved ok, get data
                 if (data && data.result)
                 {
-                    if (data.result) {
-                        interfaceData.type = interfaceData.interface_type;
-                        logger.debug("UPDATED INTERFACE id:" + interfaceData.id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
-                        //UPDATE TREE            
-                        fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, interfaceData, function (error, data) {
-                            if (data && data.result) {
-                                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
-                                    res.status(200).json(jsonResp);
-                                });
-                            } else {
-                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
-                                    res.status(200).json(jsonResp);
-                                });
-                            }
-                        });
-                    } else {
-                        logger.debug("TREE NOT UPDATED");
-                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
-                    }
+                    Interface__ipobjModel.UpdateHOST(interfaceData.id)
+                            .then(() => {
+                                if (data.result) {
+                                    interfaceData.type = interfaceData.interface_type;
+                                    logger.debug("UPDATED INTERFACE id:" + interfaceData.id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
+                                    //UPDATE TREE            
+                                    fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, interfaceData, function (error, data) {
+                                        if (data && data.result) {
+                                            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        } else {
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        }
+                                    });
+                                } else {
+                                    logger.debug("TREE NOT UPDATED");
+                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                }
+                            });
 
                 } else
                 {
@@ -399,10 +406,14 @@ router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAcces
             if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
             {
                 if (data.msg === "deleted") {
+
                     //DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
                     //DELETE  ALL IPOBJ UNDER INTERFACE
-                    Interface__ipobjModel.deleteInterface__ipobj(id, null, function (error, data)
-                    {});
+                    Interface__ipobjModel.UpdateHOST(id)
+                            .then(() => {
+                                Interface__ipobjModel.deleteInterface__ipobj(id, null, function (error, data)
+                                {});
+                            });
                     //DELETE FROM TREE
                     fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
                         if (data && data.result) {
