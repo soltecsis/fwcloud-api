@@ -259,7 +259,7 @@ ipobjModel.getFinalIpobjPro = function (position_ipobj) {
 
             //logger.debug("IPOBJ: ", position_ipobj);
             var sql = "";
-            
+
             if (position_ipobj.type === "O") {
                 //SELECT IPOBJ DATA UNDER POSITION
                 sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
@@ -268,7 +268,7 @@ ipobjModel.getFinalIpobjPro = function (position_ipobj) {
             } else {
                 sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
                         ' FROM interface I ' +
-                        ' WHERE I.id = ' + connection.escape(position_ipobj.interface) ;
+                        ' WHERE I.id = ' + connection.escape(position_ipobj.interface);
             }
             //logger.debug("getIpobjPro -> ", sql);
             connection.query(sql, function (error, row) {
@@ -698,6 +698,8 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
                 callback(error, null);
             } else {
                 if (result.affectedRows > 0) {
+                    ipobjModel.UpdateHOST(ipobjData.id)
+                            .then(ipobjModel.UpdateINTERFACE(ipobjData.id));                    
                     callback(null, {"result": true});
                 } else {
                     callback(null, {"result": false});
@@ -777,6 +779,63 @@ ipobjModel.deleteIpobjInterface = function (data) {
     });
 
 };
+
+//UPDATE HOST IF IPOBJ IS UNDER 
+ipobjModel.UpdateHOST = function (id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'UPDATE ipobj H  ' +
+                    'inner join interface__ipobj II on II.ipobj=H.id ' +
+                    'inner join interface I on I.id=II.interface ' +
+                    'inner join ipobj O on O.interface= I.id ' +
+                    'set H.updated_at= CURRENT_TIMESTAMP ' +
+                    ' WHERE O.id = ' + connection.escape(id);
+            logger.debug(sql);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        resolve({"result": true});
+                    } else {
+                        resolve({"result": false});
+                    }
+                }
+            });
+        });
+    });
+};
+
+//UPDATE INTEFACE IF IPOBJ IS UNDER 
+ipobjModel.UpdateINTERFACE = function (id) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'UPDATE interface I  ' +
+                    'inner join ipobj O on O.interface= I.id ' +
+                    'set I.updated_at= CURRENT_TIMESTAMP ' +
+                    ' WHERE O.id = ' + connection.escape(id);
+            logger.debug(sql);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        resolve({"result": true});
+                    } else {
+                        resolve({"result": false});
+                    }
+                }
+            });
+        });
+    });
+};
+
 
 
 

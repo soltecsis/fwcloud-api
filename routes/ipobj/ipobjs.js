@@ -570,24 +570,28 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
             //If saved ipobj Get data
             if (data && data.insertId > 0)
             {
-                var id = data.insertId;
-                logger.debug("NEW IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-                ipobjData.id = id;
-                //INSERT IN TREE
-                fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
-                    if (data && data.insertId) {
-                        //res.status(200).json({"insertId": id, "TreeinsertId": data.insertId});
-                        var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
-                        api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
+                IpobjModel.UpdateHOST(data.insertId)
+                        .then(IpobjModel.UpdateINTERFACE(data.insertId))
+                        .then(() => {
+                            var id = data.insertId;
+                            logger.debug("NEW IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+                            ipobjData.id = id;
+                            //INSERT IN TREE
+                            fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
+                                if (data && data.insertId) {
+                                    //res.status(200).json({"insertId": id, "TreeinsertId": data.insertId});
+                                    var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
+                                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
 
-                    } else {
-                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting TREE NODE IPOBJ', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
+                                } else {
+                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting TREE NODE IPOBJ', objModel, error, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                }
+                            })
                         });
-                    }
-                });
             } else
             {
                 api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
@@ -671,7 +675,7 @@ router.put('/ipobj', function (req, res)
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     //Save data into object
-    var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, icmp_code: req.body.icmp_code,icmp_type: req.body.icmp_type, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
+    var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, icmp_code: req.body.icmp_code, icmp_type: req.body.icmp_type, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
 
     utilsModel.checkParameters(ipobjData, function (obj) {
         ipobjData = obj;
@@ -778,54 +782,58 @@ router.put("/del/ipobj/:id/:type", IpobjModel.checkRestrictions, utilsModel.chec
     var id = req.params.id;
     var type = req.params.type;
 
-    IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        else {
-            if (data && (data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted"))
-            {
-                if (data.msg === "deleted") {
-                    //DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
-                    //IF HOST -> DELETE ALL INTERFACE UNDER HOST and ALL IPOBJ UNDER INTERFACES
+    IpobjModel.UpdateHOST(id)
+            .then(IpobjModel.UpdateINTERFACE(id))
+            .then(
+                    IpobjModel.deleteIpobj(id, type, fwcloud, function (error, data)
+                    {
+                        if (error)
+                            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        else {
+                            if (data && (data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted"))
+                            {
+                                if (data.msg === "deleted") {
+                                    //DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
+                                    //IF HOST -> DELETE ALL INTERFACE UNDER HOST and ALL IPOBJ UNDER INTERFACES
 
-                    // Interface__ipobjModel.deleteInterface(fwcloud, iduser,idinterface , function (error, data)
-                    //    {});
-                    //REORDER TREE
+                                    // Interface__ipobjModel.deleteInterface(fwcloud, iduser,idinterface , function (error, data)
+                                    //    {});
+                                    //REORDER TREE
 
-                    fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
-                        //DELETE FROM TREE
-                        fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-                            if (data && data.result) {
-                                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, function (jsonResp) {
-                                    res.status(200).json(jsonResp);
-                                });
-                            } else {
-                                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'TREE NODE Error updating', 'TREE NODE', null, function (jsonResp) {
+                                    fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
+                                        //DELETE FROM TREE
+                                        fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
+                                            if (data && data.result) {
+                                                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, function (jsonResp) {
+                                                    res.status(200).json(jsonResp);
+                                                });
+                                            } else {
+                                                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'TREE NODE Error updating', 'TREE NODE', null, function (jsonResp) {
+                                                    res.status(200).json(jsonResp);
+                                                });
+                                            }
+                                        });
+                                    });
+                                } else if (data.msg === "Restricted") {
+                                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                } else {
+                                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
+                                    });
+                                }
+                            } else
+                            {
+                                api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
                                     res.status(200).json(jsonResp);
                                 });
                             }
-                        });
-                    });
-                } else if (data.msg === "Restricted") {
-                    api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, function (jsonResp) {
-                        res.status(200).json(jsonResp);
-                    });
-                } else {
-                    api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
-                        res.status(200).json(jsonResp);
-                    });
-                }
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        }
-    });
+                        }
+                    })
+                    );
 });
 
 module.exports = router;
