@@ -109,8 +109,13 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 		/* Generate the policy script. */
 		await PolicyScript.append(config.policy.header_file)
 				.then(data => {
+					stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n"
+					+"# Statefull firewall.\n"
+					+"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n"
+					+"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n"
+					+"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n"
+					+"\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
 					streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
-					stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"" + "\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
 					return PolicyScript.dump(accessData,req.params.idfirewall,1)
 				})
 				.then(data => {
