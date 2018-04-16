@@ -23,7 +23,7 @@
 		"data_dir": "./DATA/",
 		"script_name": "fwcloud.sh",
 		"script_dir": "/etc/fwcloud/",
-		"header_file": "./DATA/policy/header.txt",
-		"footer_file": "./DATA/policy/footer.txt"
+		"header_file": "./config/policy/header.txt",
+		"footer_file": "./config/policy/footer.txt"
 	}  
 }
