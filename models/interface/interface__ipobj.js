@@ -149,6 +149,34 @@ interface__ipobjModel.updateInterface__ipobj_order = function (new_order, interf
     });
 };
 
+//UPDATE HOST IF IPOBJ IS UNDER 
+interface__ipobjModel.UpdateHOST = function (interface) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'UPDATE ipobj H  ' +   
+                    'inner join interface__ipobj I on I.ipobj=H.id ' +
+                    'set H.updated_at= CURRENT_TIMESTAMP ' +
+                    ' WHERE I.interface = ' + connection.escape(interface);            
+            logger.debug(sql);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        resolve({"result": true});
+                    } else {
+                        resolve({"result": false});
+                    }
+                }
+            });
+        });
+    });
+};
+
+
 
 function OrderList(new_order, interface, old_order) {
     var increment = '+1';

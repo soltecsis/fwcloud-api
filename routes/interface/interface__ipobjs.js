@@ -11,7 +11,7 @@ var utilsModel = require("../../utils/utils.js");
 //FALTA CONTROLAR ACCESO a FIREWALL
 
 /* Get all interface__ipobjs by interface*/
-router.get('/interface/:interface',  function (req, res)
+router.get('/interface/:interface', function (req, res)
 {
     var interface = req.params.interface;
     Interface__ipobjModel.getInterface__ipobjs_interface(interface, function (error, data)
@@ -34,7 +34,7 @@ router.get('/interface/:interface',  function (req, res)
 });
 
 /* Get all interface__ipobjs by ipobj*/
-router.get('/ipobj/:ipobj',  function (req, res)
+router.get('/ipobj/:ipobj', function (req, res)
 {
     var ipobj = req.params.ipobj;
     Interface__ipobjModel.getInterface__ipobjs_ipobj(ipobj, function (error, data)
@@ -57,7 +57,7 @@ router.get('/ipobj/:ipobj',  function (req, res)
 });
 
 /* Get  interface__ipobj by interface and ipobj*/
-router.get('/interface__ipobj/:interface/:ipobj',  function (req, res)
+router.get('/interface__ipobj/:interface/:ipobj', function (req, res)
 {
     var interface = req.params.interface;
     var ipobj = req.params.ipobj;
@@ -84,7 +84,7 @@ router.get('/interface__ipobj/:interface/:ipobj',  function (req, res)
 
 
 /* Create New interface__ipobj */
-router.post("/interface__ipobj/",  function (req, res)
+router.post("/interface__ipobj/", function (req, res)
 {
     //Create New objet with data interface__ipobj
     var interface__ipobjData = {
@@ -93,32 +93,35 @@ router.post("/interface__ipobj/",  function (req, res)
         interface_order: req.body.interface_order
     };
 
-    Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    Interface__ipobjModel.UpdateHOST(req.body.interface)
+            .then(() => {
+                Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
+                {
+                    if (error)
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    else {
+                        //If saved interface__ipobj Get data
+                        if (data && data.result)
+                        {
+                            var dataresp = {"insertId": data.insertId};
+                            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        } else
+                        {
+                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        }
+                    }
+                });
             });
-        else {
-            //If saved interface__ipobj Get data
-            if (data && data.result)
-            {
-                var dataresp = {"insertId": data.insertId};
-                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        }
-    });
 });
 
 /* Update interface__ipobj that exist */
-router.put('/interface__ipobj/',  function (req, res)
+router.put('/interface__ipobj/', function (req, res)
 {
     //Save data into object
     var interface__ipobjData = {interface: req.param('interface'), ipobj: req.param('ipobj'), interface_order: req.param('interface_order')};
@@ -126,30 +129,33 @@ router.put('/interface__ipobj/',  function (req, res)
     var get_ipobj = req.param('get_ipobj');
     var get_interface_order = req.param('get_interface_order');
 
-    Interface__ipobjModel.updateInterface__ipobj(get_interface, get_ipobj, get_interface_order, interface__ipobjData, function (error, data)
-    {
-        if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    Interface__ipobjModel.UpdateHOST(get_interface)            
+            .then(() => {
+                Interface__ipobjModel.updateInterface__ipobj(get_interface, get_ipobj, get_interface_order, interface__ipobjData, function (error, data)
+                {
+                    if (error)
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    else {
+                        //If saved interface__ipobj saved ok, get data
+                        if (data && data.result)
+                        {
+                            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        } else
+                        {
+                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        }
+                    }
+                });
             });
-        else {
-            //If saved interface__ipobj saved ok, get data
-            if (data && data.result)
-            {
-                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        }
-    });
 });
 /* Update ORDER interface__ipobj that exist */
-router.put('/interface__ipobj/order/:new_order',  function (req, res)
+router.put('/interface__ipobj/order/:new_order', function (req, res)
 {
     var new_order = req.param('new_order');
     //Save data into object
@@ -180,26 +186,29 @@ router.put('/interface__ipobj/order/:new_order',  function (req, res)
 
 
 /* Remove interface__ipobj */
-router.put("/del/interface__ipobj/",  function (req, res)
+router.put("/del/interface__ipobj/", function (req, res)
 {
     //Id from interface__ipobj to remove
     var interface = req.param('interface');
     var ipobj = req.param('ipobj');
-    Interface__ipobjModel.deleteInterface__ipobj(interface, ipobj, function (error, data)
-    {
-        if (data && data.result)
-        {
-            //res.redirect("/interface__ipobjs/");
-            api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+    Interface__ipobjModel.UpdateHOST(interface)
+            .then(() => {
+                Interface__ipobjModel.deleteInterface__ipobj(interface, ipobj, function (error, data)
+                {
+                    if (data && data.result)
+                    {
+                        //res.redirect("/interface__ipobjs/");
+                        api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    } else
+                    {
+                        api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                });
             });
-        } else
-        {
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
 });
 
 module.exports = router;
