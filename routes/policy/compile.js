@@ -109,7 +109,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 		/* Generate the policy script. */
 		await PolicyScript.append(config.policy.header_file)
 				.then(data => {
-					stream.write(data + "log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n"
+					stream.write(data + "\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n"
 					+"# Statefull firewall.\n"
 					+"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n"
 					+"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n"
