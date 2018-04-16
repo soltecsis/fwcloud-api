@@ -143,7 +143,7 @@ router.get('/cluster/:id', function (req, res)
 
 
 /* New cluster */
-router.post("/cluster", function (req, res)
+router.post("/cluster",  utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -251,7 +251,7 @@ router.post("/cluster", function (req, res)
 });
 
 /* New cluster FROM FIREWALL */
-router.post("/cluster/convertfirewall/:idfirewall", function (req, res)
+router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess,  utilsModel.checkConfirmationToken,function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
