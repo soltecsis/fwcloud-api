@@ -36,7 +36,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
             if (data.cluster_id !== null) {
                 this.parent_id = data.cluster_id;
                 this.parent_name = data.cluster_name;
-                this.parent_type = 1000;
+                this.parent_type = 100;
             } else {
                 this.parent_id = data.firewall_id;
                 this.parent_name = data.firewall_name;
