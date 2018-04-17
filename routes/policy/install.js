@@ -81,7 +81,6 @@ router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
     }
 
     var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
-    streamModel.pushMessageCompile(accessData, "STARTING FIREWALL INSTALL PROCESS\n");
 
     // If we have no user or password for the ssh connection, then error.
     if (!SSHconn.username || !SSHconn.password) {
