@@ -275,10 +275,12 @@ router.put('/policy-r/:idfirewall', utilsModel.checkFirewallAccess, function (re
                 res.status(200).json(jsonResp);
             });
         else {
+            logger.debug("POLICY UPDATED: ", data);
             //If saved policy_r saved ok, get data
             if (data && data.result)
             {
-                Policy_rModel.compilePolicy_r(policy_rData.id, function (error, datac) {});
+                var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: policy_rData.id};
+                Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -370,6 +372,8 @@ router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', util
             //If saved policy_r saved ok, get data
             if (data && data.result)
             {
+                var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: id};
+                Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                 api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });

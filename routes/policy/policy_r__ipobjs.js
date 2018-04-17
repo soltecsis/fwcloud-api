@@ -239,8 +239,9 @@ router.post("/policy-r__ipobj/:idfirewall",utilsModel.checkFirewallAccess,  func
         else {
             //If saved policy_r__ipobj Get data
             if (data && data.result) {
-                if (data.result && data.allowed) {                    
-                    Policy_rModel.compilePolicy_r(policy_r__ipobjData.rule, function (error, datac) {});
+                if (data.result && data.allowed) {  
+                    var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: policy_r__ipobjData.rule};                
+                    Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                     api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
@@ -394,11 +395,10 @@ router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:posit
 
                     Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
                     {
-                        logger.debug("PORAKI 1");
+                        
                         //If saved policy_r__ipobj Get data
                         if (data) {
                             if (data.result) {
-                                logger.debug("PORAKI 2");
                                 //Delete position 'I'
                                 Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function (error, data)
                                 {
@@ -473,7 +473,8 @@ router.put('/policy-r__ipobj/:idfirewall/:rule/:position/:negate',utilsModel.che
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result)
             {
-                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
+                var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule};                
+                Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -509,8 +510,9 @@ router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:posit
         else {
             //If saved policy_r__ipobj saved ok, get data
             if (data && data.result)
-            {                
-                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
+            {          
+                var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule};                
+                Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -543,7 +545,8 @@ router.put("/del/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:p
         if (data && data.result) {
             if (data.msg === "deleted")
             {
-                Policy_rModel.compilePolicy_r(rule, function (error, datac) {});
+                var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule};                
+                Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
                 api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });

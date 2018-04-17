@@ -917,7 +917,6 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
 
     var rule = accessData.rule;
 
-
     policy_rModel.getPolicy_r_id(rule, function (error, data) {
         if (error)
             callback(error, null);
