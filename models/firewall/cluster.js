@@ -131,10 +131,11 @@ clusterModel.deleteCluster = function (id, iduser, fwcloud, callback) {
                                 restrictions = true;
                             });
                 }
-            };            
+            }
+            ;
 
             if (!restrictions) {
-                logger.debug("------>>>> DELETING CLUSTER: ", id );
+                logger.debug("------>>>> DELETING CLUSTER: ", id);
                 var sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableModel + ' T ' +
                         ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
                         ' WHERE T.id = ' + connection.escape(id);
@@ -160,15 +161,50 @@ clusterModel.deleteCluster = function (id, iduser, fwcloud, callback) {
                         callback(null, {"result": false});
                     }
                 });
-                
-            }
-            else{
-                logger.debug("------>>>> FOUND RESTRICTIONS, CLUSTER NOT DELETED: ", id );
+
+            } else {
+                logger.debug("------>>>> FOUND RESTRICTIONS, CLUSTER NOT DELETED: ", id);
                 callback(null, {"result": false});
             }
 
         });
 
+
+    });
+};
+
+//Remove cluster with id to remove
+clusterModel.deleteClusterSimple = function (id, iduser, fwcloud, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        logger.debug("------>>>> DELETING CLUSTER: ", id);
+        var sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableModel + ' T ' +
+                ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
+                ' WHERE T.id = ' + connection.escape(id);
+        logger.debug("SQL DELETE CLUSTER: ", sqlExists);
+        connection.query(sqlExists, function (error, row) {
+            //If exists Id from cluster to remove
+            if (row.length > 0) {
+                var dataNode = {id: row[0].idnode, fwcloud: fwcloud, iduser: iduser};
+                fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
+                        .then(resp => {
+                            db.get(function (error, connection) {
+                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                                connection.query(sql, function (error, result) {
+                                    if (error) {
+                                        callback(error, null);
+                                    } else {
+                                        callback(null, {"result": true});
+                                    }
+                                });
+                            });
+                        });
+            } else {
+                callback(null, {"result": false});
+            }
+        });
 
     });
 };

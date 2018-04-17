@@ -277,6 +277,34 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
         });
     });
 };
+
+firewallModel.getFirewallClusterMaster = function (iduser, idcluster, callback) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'SELECT T.* ' +
+                ' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
+                ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
+                ' LEFT join interface I on I.id=T.install_interface ' +
+                ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
+                ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 AND fwmaster=1';
+        //logger.debug(sql);
+        connection.query(sql, function (error, rows) {
+            if (error)
+                callback(error, null);
+            else {
+                Promise.all(rows.map(utilsModel.decryptDataUserPass))
+                        .then(data => {
+                            callback(null, data);
+                        })
+                        .catch(e => {
+                            callback(e, null);
+                        });
+            }
+        });
+    });
+};
+
 /**
  * Get Firewalls by User and Cloud
  *  
@@ -492,14 +520,16 @@ firewallModel.updateFirewallCluster = function (firewallData, callback) {
         if (error)
             callback(error, null);
         var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-                ' AND U.id_user=' + connection.escape(firewallData.iduser) +
+                ' AND U.id_user=' + connection.escape(firewallData.by_user) +
                 ' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+        logger.debug(sqlExists);
         connection.query(sqlExists, function (error, row) {
 
             if (row && row.length > 0) {
                 var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +
-                        'by_user = ' + connection.escape(firewallData.iduser) + ' ' +
+                        'by_user = ' + connection.escape(firewallData.by_user) + ' ' +
                         ' WHERE id = ' + firewallData.id;
+                logger.debug("updateFirewallCluster: ", sql);
                 connection.query(sql, function (error, result) {
                     if (error) {
                         callback(error, null);
@@ -509,6 +539,24 @@ firewallModel.updateFirewallCluster = function (firewallData, callback) {
                 });
             } else {
                 callback(null, {"result": false});
+            }
+        });
+    });
+};
+
+firewallModel.removeFirewallClusterSlaves = function (cluster, fwcloud, callback) {
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+
+        var sql = 'DELETE FROM ' + tableModel +                 
+                ' WHERE cluster = ' + connection.escape(cluster) + ' AND fwcloud='+ connection.escape(fwcloud) + ' AND fwmaster=0';
+        connection.query(sql, function (error, result) {
+            if (error) {
+                callback(error, null);
+            } else {
+                callback(null, {"result": true});
             }
         });
     });
