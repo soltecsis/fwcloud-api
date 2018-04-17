@@ -349,7 +349,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
                     firewallData.cluster = null;
                     firewallData.fwcloud = fwcloud;
                     firewallData.by_user = iduser;
-                    logger.debug("firewallData: ", firewallData);
+                    //logger.debug("firewallData: ", firewallData);
                     FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
                         FirewallModel.removeFirewallClusterSlaves(idCluster, fwcloud, function (error, dataFC) {
                             ClusterModel.deleteClusterSimple(idCluster, iduser, fwcloud, function (error, data) {
