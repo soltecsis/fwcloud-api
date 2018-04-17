@@ -24,7 +24,7 @@ utilsModel.checkParameters = function (obj, callback) {
         if (obj[propt] === undefined) {
             //logger.debug("PARAMETRO UNDEFINED: " + propt);
             obj[propt] = null;
-        }
+        }        
     }
     callback(obj);
 };

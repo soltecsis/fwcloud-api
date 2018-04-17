@@ -103,6 +103,7 @@ var objModel = 'IPOBJ';
  */
 var logger = require('log4js').getLogger("app");
 
+var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 
 /**
  * Get all ipobjs by  group
@@ -558,46 +559,68 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
     utilsModel.checkParameters(ipobjData, function (obj) {
         ipobjData = obj;
     });
+     if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
+        ipobjData.source_port_start = 0;
+    if (ipobjData.source_port_start === null || ipobjData.source_port_start ==='' )
+        ipobjData.source_port_start = 0;
+    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
+        ipobjData.destination_port_start = 0;
+    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
+        ipobjData.destination_port_end = 0;
 
 
-    IpobjModel.insertIpobj(ipobjData, function (error, data)
-    {
+    //GET PROTOCOL NUMBER FROM IPOBJ_TYPE
+
+    Ipobj_typeModel.getIpobj_type(ipobjData.type, function (error, data) {
         if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+            api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
                 res.status(200).json(jsonResp);
             });
         else {
-            //If saved ipobj Get data
-            if (data && data.insertId > 0)
-            {
-                IpobjModel.UpdateHOST(data.insertId)
-                        .then(IpobjModel.UpdateINTERFACE(data.insertId))
-                        .then(() => {
-                            var id = data.insertId;
-                            logger.debug("NEW IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-                            ipobjData.id = id;
-                            //INSERT IN TREE
-                            fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
-                                if (data && data.insertId) {
-                                    //res.status(200).json({"insertId": id, "TreeinsertId": data.insertId});
-                                    var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
-                                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
-                                        res.status(200).json(jsonResp);
-                                    });
-
-                                } else {
-                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting TREE NODE IPOBJ', objModel, error, function (jsonResp) {
-                                        res.status(200).json(jsonResp);
-                                    });
-                                }
-                            })
-                        });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
+            if (data && data[0].protocol_number !== null) {
+                ipobjData.protocol = data[0].protocol_number;
             }
+            logger.debug(ipobjData);
+            IpobjModel.insertIpobj(ipobjData, function (error, data)
+            {
+                if (error)
+                    api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                else {
+                    //If saved ipobj Get data
+                    if (data && data.insertId > 0)
+                    {
+                        IpobjModel.UpdateHOST(data.insertId)
+                                .then(IpobjModel.UpdateINTERFACE(data.insertId))
+                                .then(() => {
+                                    var id = data.insertId;
+                                    logger.debug("NEW IPOBJ id:" + id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+                                    ipobjData.id = id;
+                                    //INSERT IN TREE
+                                    fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobjData, function (error, data) {
+                                        if (data && data.insertId) {
+                                            //res.status(200).json({"insertId": id, "TreeinsertId": data.insertId});
+                                            var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
+                                            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+
+                                        } else {
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting TREE NODE IPOBJ', objModel, error, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        }
+                                    });
+                                });
+                    } else
+                    {
+                        api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                }
+            });
         }
     });
 
@@ -681,44 +704,67 @@ router.put('/ipobj', function (req, res)
         ipobjData = obj;
     });
 
+    if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
+        ipobjData.source_port_start = 0;
+    if (ipobjData.source_port_start === null || ipobjData.source_port_start ==='' )
+        ipobjData.source_port_start = 0;
+    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
+        ipobjData.destination_port_start = 0;
+    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
+        ipobjData.destination_port_end = 0;
 
     if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
-        IpobjModel.updateIpobj(ipobjData, function (error, data)
-        {
+        Ipobj_typeModel.getIpobj_type(ipobjData.type, function (error, data) {
             if (error)
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, function (jsonResp) {
+                api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
             else {
-                //If saved ipobj saved ok, get data
-                if (data && data.result)
+                if (data && data[0].protocol_number !== null) {
+                    ipobjData.protocol = data[0].protocol_number;
+                }
+                IpobjModel.updateIpobj(ipobjData, function (error, data)
                 {
-                    if (data.result) {
-                        logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-                        //UPDATE TREE            
-                        fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, function (error, data) {
-                            if (data && data.result) {
-                                api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
-                                    res.status(200).json(jsonResp);
-                                });
+                    if (error)
+                        api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    else {
+                        //If saved ipobj saved ok, get data
+                        if (data && data.result)
+                        {
+                            if (data.result) {
+                                IpobjModel.UpdateHOST(ipobjData.id)
+                                        .then(IpobjModel.UpdateINTERFACE(ipobjData.id))
+                                        .then(() => {
+                                            logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+                                            //UPDATE TREE            
+                                            fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, function (error, data) {
+                                                if (data && data.result) {
+                                                    api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
+                                                        res.status(200).json(jsonResp);
+                                                    });
+                                                } else {
+                                                    api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, function (jsonResp) {
+                                                        res.status(200).json(jsonResp);
+                                                    });
+                                                }
+                                            });
+                                        });
                             } else {
-                                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, function (jsonResp) {
+                                api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
                                     res.status(200).json(jsonResp);
                                 });
                             }
-                        });
-                    } else {
-                        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
-                    }
 
-                } else
-                {
-                    api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
-                        res.status(200).json(jsonResp);
-                    });
-                }
+                        } else
+                        {
+                            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
+                                res.status(200).json(jsonResp);
+                            });
+                        }
+                    }
+                });
             }
         });
     } else

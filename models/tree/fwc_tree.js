@@ -1026,7 +1026,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, folder, idcluster,
 
 };
 
-//UPDATE TREE FIREWALL TO  CLUSTER for a New CLuster
+//CONVERT TREE FIREWALL TO  CLUSTER for a New CLuster
 fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = function (fwcloud, folder, idcluster, idfirewall, AllDone) {
     db.get(function (error, connection) {
         if (error)
@@ -1139,13 +1139,107 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = function (fwcloud, folde
 
 };
 
+//CONVERT TREE CLUSTER TO FIREWALL for a New Firewall
+fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = function (fwcloud, folder, idcluster, idfirewall, AllDone) {
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        getFirewallNodeId(idfirewall, function (datafw) {
+            var firewallNode = datafw;
+            //Select Parent Node CLUSTERS 
+            sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
+            logger.debug(sql);
+            connection.query(sql, function (error, rows) {
+                if (error) {
+                    AllDone(error, null);
+                } else {
+                    //For each node Select Objects by  type
+                    if (rows && rows.length > 0) {
+                        var row = rows[0];
+                        //logger.debug(row);
+                        //logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
 
+                        //SEARCH IDNODE for CLUSTER
+                        sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="CL" and T1.id_parent=' + row.id + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' AND id_obj=' + idcluster;
+                        connection.query(sql, function (error, rowsCL) {
+                            if (error) {
+                                AllDone(error, null);
+                            } else if (rowsCL && rowsCL.length > 0) {
+
+                                var clusterNode = rowsCL[0].id;
+
+                                //update ALL NODES UNDER CLUSTER to FIREWALL
+                                sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallNode +
+                                        ' WHERE id_parent=' + clusterNode + ' AND node_type<>"FCF"';
+                                logger.debug(sqlinsert);
+                                connection.query(sqlinsert, function (error, result) {
+                                    if (error)
+                                        logger.debug("ERROR ALL NODES : " + error);
+                                });
+
+                                //SEARCH node NODES
+                                sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FCF" and T1.id_parent=' + clusterNode + ' AND T1.fwcloud=' + connection.escape(fwcloud);
+                                logger.debug(sql);
+                                connection.query(sql, function (error, rowsN) {
+                                    if (error) {
+                                        AllDone(error, null);
+                                    } else if (rowsN && rowsN.length > 0) {
+                                        var idNodes = rowsN[0].id;
+                                        //Remove nodo NODES
+                                        sqldel = 'DELETE FROM  ' + tableModel + ' ' +
+                                                ' WHERE node_type= "FCF" and id_parent=' + clusterNode;
+                                        logger.debug(sqldel);
+                                        connection.query(sqldel, function (error, result) {
+                                            if (error)
+                                                logger.debug("ERROR FCF : " + error);
+                                        });
+                                        //SEARCH IDNODE for FIREWALLS NODE
+                                        sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud);
+                                        logger.debug(sql);
+                                        connection.query(sql, function (error, rowsF) {
+                                            var firewallsNode = rowsF[0].id;
+                                            //update  FIREWALL under NODES to FIREWALLS NODE
+                                            sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallsNode +
+                                                    ' WHERE id=' + firewallNode;
+                                            logger.debug(sqlinsert);
+                                            connection.query(sqlinsert, function (error, result) {
+                                                if (error)
+                                                    logger.debug("ERROR FIREWALL NODE : " + error);
+                                                else {
+                                                    //Remove nodo Firewalls Slaves
+                                                    sqldel = 'DELETE FROM  ' + tableModel + ' ' +
+                                                            ' WHERE node_type= "FW"  and id_parent=' + idNodes;
+                                                    logger.debug(sqldel);
+                                                    connection.query(sqldel, function (error, result) {
+                                                        if (error)
+                                                            logger.debug("ERROR FW - FCF : " + error);
+                                                        else {
+                                                            AllDone(null, {"result": true});
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        });
+
+                                    }
+                                });
+
+
+                            } else
+                                AllDone(error, null);
+                        });
+                    } else
+                        AllDone(null, {"result": true});
+                }
+            });
+        });
+    });
+};
 //Add new TREE OBJECTS from user
 fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         //Select Parent Node by type   
         sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND (T1.fwcloud=' + connection.escape(fwcloud) + ' OR T1.fwcloud is null) order by T1.node_order';
         logger.debug(sql);
@@ -1166,7 +1260,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                             sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj_g  where type=' + row.obj_type + ' AND (fwcloud=' + fwcloud + ' OR fwcloud is null) ';
                                         } else
                                             sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null' + ' AND (fwcloud=' + fwcloud + ' OR fwcloud is null) ';
-
                                         logger.debug(sqlnodes);
                                         connection.query(sqlnodes, function (error, rowsnodes) {
                                             if (error)
@@ -1190,7 +1283,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                                                 connection.query(sqlinsert, function (error, result) {
                                                                     if (error) {
                                                                         logger.debug("ERROR INSERT : " + rnode.id + " - " + rnode.name + " Type: " + rnode.type + " --> " + error);
-
                                                                     } else {
                                                                         var NodeId = result.insertId;
                                                                         logger.debug("INSERT OK NODE : " + rnode.id + " - " + rnode.name + "  Type: " + rnode.type + "  fwcloud:" + rnode.fwcloud);
@@ -1228,7 +1320,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                                                                     asyncMod.forEachSeries(rowsnodesObj,
                                                                                             function (rnodeObj, callback2) {
                                                                                                 j++;
-
                                                                                                 sqlinsert = 'INSERT INTO ' + tableModel +
                                                                                                         '( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud) ' +
                                                                                                         ' SELECT O.name, O.comment,' + connection.escape(NodeId) + ',1,' + (row.node_level + 2) + ',' +
@@ -1260,8 +1351,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 
                                                                                                             }
                                                                                                         });
-
-
                                                                                                     }
                                                                                                 });
                                                                                                 callback2();
@@ -1279,8 +1368,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                                                 }
                                             }
                                         });
-
-
                                         callback();
                                     },
                                     function (err) {
@@ -1295,7 +1382,6 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
                 });
     });
 };
-
 //Add new NODE from user
 fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
     db.get(function (error, connection) {
@@ -1311,7 +1397,6 @@ fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
         });
     });
 };
-
 //Add new NODE from IPOBJ or Interface
 fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
 
@@ -1332,7 +1417,6 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
             fwcloud: fwcloud,
             comment: node_Data.comment
         };
-
         db.get(function (error, connection) {
             if (error)
                 callback(error, null);
@@ -1351,7 +1435,6 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
         });
     });
 };
-
 //Update NODE from user
 fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 
@@ -1361,7 +1444,6 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
         var sql = 'UPDATE ' + tableModel + ' SET ' +
                 ' name = ' + connection.escape(nodeTreeData.name) + ' ' +
                 ' WHERE id = ' + nodeTreeData.id;
-
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
@@ -1371,7 +1453,6 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
         });
     });
 };
-
 //Update NODE from FIREWALL UPDATE
 fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callback) {
 
@@ -1396,7 +1477,6 @@ fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callb
         });
     });
 };
-
 //Update NODE from IPOBJ or INTERFACE UPDATE
 fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 
@@ -1421,8 +1501,6 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
         });
     });
 };
-
-
 //Remove ALL NODES with id_obj to remove
 fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback) {
     db.get(function (error, connection) {
@@ -1463,13 +1541,11 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
         });
     });
 };
-
 //Remove NODE FROM GROUP with id_obj to remove
 fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_group, id_obj, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         var sqlExists = 'SELECT * FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
@@ -1492,14 +1568,11 @@ fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, i
         });
     });
 };
-
 function hasLines(id, callback) {
     var ret;
-
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         var sql = 'SELECT * FROM  ' + tableModel + '  where id_parent = ' + id;
         connection.query(sql, function (error, rows) {
             if (rows.length > 0) {
@@ -1510,16 +1583,13 @@ function hasLines(id, callback) {
             callback(ret);
         });
     });
-
 }
 
 function getFirewallNodeId(idfirewall, callback) {
     var ret;
-
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         var sql = 'SELECT id FROM  ' + tableModel + '  where node_type="FW" AND id_obj = ' + idfirewall;
         connection.query(sql, function (error, rows) {
             if (rows.length > 0) {
@@ -1530,16 +1600,13 @@ function getFirewallNodeId(idfirewall, callback) {
             callback(ret);
         });
     });
-
 }
 
 function getParentLevelChild(id, callback) {
     var ret;
-
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         var sql = 'SELECT node_level FROM  ' + tableModel + '  where id = ' + id;
         connection.query(sql, function (error, rows) {
             if (rows.length > 0) {
@@ -1550,7 +1617,6 @@ function getParentLevelChild(id, callback) {
             callback(ret);
         });
     });
-
 }
 
 function OrderList(new_order, fwcloud, id_parent, old_order, id) {
@@ -1575,7 +1641,6 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
         connection.query(sql);
         //logger.debug(sql);
     });
-
 }
 //Busca todos los padres donde aparece el IPOBJ a borrar
 //Ordena todos los nodos padres sin contar el nodo del IPOBJ
@@ -1614,27 +1679,23 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
                             );
                         }
                     });
-
                 }, //Fin de bucle
                         function (err) {
                             callback(null, {"result": true});
                         }
 
                 );
-
             } else {
                 callback(null, {"result": false});
             }
         });
     });
 };
-
 //Order Tree Node by IPOBJ
 fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-
         var sqlNodes = 'SELECT * FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_parent=' + connection.escape(id_parent) + '  order by node_order';
         logger.debug(sqlNodes);
         connection.query(sqlNodes, function (error, rowsnodes) {

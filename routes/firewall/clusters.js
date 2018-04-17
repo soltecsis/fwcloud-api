@@ -143,7 +143,7 @@ router.get('/cluster/:id', function (req, res)
 
 
 /* New cluster */
-router.post("/cluster",  utilsModel.checkConfirmationToken, function (req, res)
+router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -251,26 +251,26 @@ router.post("/cluster",  utilsModel.checkConfirmationToken, function (req, res)
 });
 
 /* New cluster FROM FIREWALL */
-router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess,  utilsModel.checkConfirmationToken,function (req, res)
+router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     var idfirewall = req.params.idfirewall;
-    
+
 
     FirewallModel.getFirewall(iduser, fwcloud, idfirewall, function (error, firewallDataArry)
     {
         //Get Data
         if (firewallDataArry && firewallDataArry.length > 0)
         {
-            var firewallData= firewallDataArry[0];
+            var firewallData = firewallDataArry[0];
             //new objet with Cluster data
             var clusterData = {
                 name: "Cluster " + firewallData.name,
                 comment: "New cluster from Firewall : " + firewallData.name,
                 fwcloud: fwcloud
             };
-            
+
             ClusterModel.insertCluster(clusterData, function (error, data)
             {
                 //get cluster info
@@ -318,6 +318,65 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
         }
     });
 });
+
+/* New FIREWALL FROM CLUSTER */
+router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationToken, function (req, res)
+{
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+    var idCluster = req.params.idcluster;
+
+
+    FirewallModel.getFirewallClusterMaster(iduser, idCluster, function (error, firewallDataArry)
+    {
+        //Get Data
+        if (firewallDataArry && firewallDataArry.length > 0)
+        {
+            var firewallData = firewallDataArry[0];
+
+            //////////////////////////////////
+            //UPDATE CLUSTER NODE STRUCTURE
+            fwcTreemodel.updateFwc_Tree_convert_cluster_firewall(fwcloud, "FDC", idCluster, firewallData.id, function (error, dataTree) {
+                logger.debug("DATATREE: ", dataTree);
+                if (error)
+                    api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                else if (dataTree && dataTree.result) {
+
+                    //UPDATE CLUSTERS FIREWALL
+                    //-------------------------------------------
+                    firewallData.cluster = null;
+                    firewallData.fwcloud = fwcloud;
+                    firewallData.by_user = iduser;
+                    //logger.debug("firewallData: ", firewallData);
+                    FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
+                        FirewallModel.removeFirewallClusterSlaves(idCluster, fwcloud, function (error, dataFC) {
+                            ClusterModel.deleteClusterSimple(idCluster, iduser, fwcloud, function (error, data) {
+                            });
+                        });
+                    });
+
+                    api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'CONVERT OK', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+
+                } else
+                {
+                    api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            });
+
+        } else {
+            api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
+                res.status(200).json(jsonResp);
+            });
+        }
+    });
+});
+
 /* cluster update */
 router.put('/cluster', function (req, res)
 {
