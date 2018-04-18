@@ -329,11 +329,13 @@ policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule
                         type = 1;
 
                     var sql = 'SELECT ' + fwcloud + ' as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, ' +
+                            ' F.name as firewall_name, ' + 
                             ' C.updated_at as c_updated_at, ' +
                             ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
                             ' FROM ' + tableModel + ' P ' +
                             ' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
                             ' LEFT JOIN policy_c C ON C.rule=P.id ' +
+                            ' LEFT JOIN firewall F ON F.id=P.fw_apply_to ' +
                             ' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
                             sqlRule + ' ORDER BY P.rule_order';
                     //logger.debug(sql);
