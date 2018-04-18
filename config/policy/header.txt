@@ -95,6 +95,9 @@ ExecStop=/etc/fwcloud/fwcloud.sh stop
 # Just Execute the shell script
 Type=oneshot
 RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
 EOL
 }
 
