@@ -57,6 +57,11 @@ case "$ACTION" in
     }
 
     mv "$0" "$INSTALL_DIR"
+
+    if [ "$SYSTEMCTL" -a ! -f "$SYSTEMD_FILE" ]; then
+      create_systemd_service
+      systemctl enable fwcloud.service
+    fi
     ;;
 
   *)

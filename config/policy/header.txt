@@ -13,6 +13,8 @@ MODPROBE=`which modprobe`
 IPTABLES=`which iptables`
 IP6TABLES=`which ip6tables`
 IP=`which ip`
+SYSTEMCTL=`which systemctl`
+SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 
 log() {
   echo "$1"
@@ -73,6 +75,25 @@ reset_all() {
   reset_iptables_v6
 }
 
+create_systemd_service() {
+  echo <<< EOL
+[Unit]
+Description=FWCloud.net management script
+DefaultDependencies=no
+After=sysinit.target local-fs.target
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/fwcloud/fwcloud.sh start
+ExecStop=/etc/fwcloud/fwcloud.sh stop
+TimeoutSec=0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target
+EOL >> "$SYSTEMD_FILE"
+}
 
 policy_load() {
   
