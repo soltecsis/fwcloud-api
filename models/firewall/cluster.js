@@ -74,7 +74,7 @@ clusterModel.getClusterFullPro = function (iduser, fwcloud, idcluster) {
                                         var idFwMaster = dataFwM[0].id;
                                         InterfaceModel.getInterfacesFull(idFwMaster, fwcloud, function (error, dataI) {
                                             if (dataI && dataI.length>0){
-                                                dataCluster.intefaces = dataI;
+                                                dataCluster.interfaces = dataI;
                                             }
                                             else
                                                 dataCluster.interfaces = [];
