@@ -76,7 +76,7 @@ reset_all() {
 }
 
 create_systemd_service() {
-  echo <<< EOL
+cat > "$SYSTEMD_FILE" << EOL
 [Unit]
 Description=FWCloud.net management script
 DefaultDependencies=no
@@ -92,7 +92,7 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=basic.target
-EOL >> "$SYSTEMD_FILE"
+EOL
 }
 
 policy_load() {
