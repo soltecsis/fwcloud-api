@@ -9,6 +9,7 @@ var tableModel = "cluster";
 
 var FirewallModel = require('../../models/firewall/firewall');
 var fwcTreemodel = require('../../models/tree/fwc_tree');
+var InterfaceModel = require('../../models/interface/interface');
 
 var logger = require('log4js').getLogger("app");
 
@@ -42,6 +43,60 @@ clusterModel.getCluster = function (id, callback) {
                 callback(error, null);
             else
                 callback(null, row);
+        });
+    });
+};
+
+//Get FULL cluster by  id
+clusterModel.getClusterFullPro = function (iduser, fwcloud, idcluster) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(idcluster) + ' AND fwcloud=' + connection.escape(fwcloud);
+            connection.query(sql, function (error, row) {
+                if (error)
+                    reject(error);
+                else {
+                    if (row && row.length > 0) {
+                        var dataCluster = row[0];
+                        //SEARCH FIREWALL NODES
+                        FirewallModel.getFirewallCluster(iduser, idcluster, function (error, dataFw)
+                        {
+                            //get data
+                            if (dataFw && dataFw.length > 0)
+                            {
+                                dataCluster.nodes = dataFw;
+                                //SEARCH INTERFACES FW-MASTER
+                                FirewallModel.getFirewallClusterMaster(iduser, idcluster, function (error, dataFwM)
+                                {
+                                    if (dataFwM && dataFwM.length > 0) {
+                                        var idFwMaster = dataFwM[0].id;
+                                        InterfaceModel.getInterfacesFull(idFwMaster, fwcloud, function (error, dataI) {
+                                            if (dataI && dataI.length>0){
+                                                dataCluster.intefaces = dataI;
+                                            }
+                                            else
+                                                dataCluster.intefaces = [];
+                                            resolve({"cluster": dataCluster});
+                                        });
+                                    }
+                                    else
+                                        resolve({"cluster": dataCluster});
+                                });
+                            }
+                            else{
+                                dataCluster.nodes = [];
+                                resolve({"cluster": dataCluster});
+                            }
+                            
+                        });
+
+                    } else
+                        resolve(null);
+
+                }
+            });
         });
     });
 };

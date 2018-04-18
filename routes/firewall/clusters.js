@@ -103,8 +103,48 @@ router.get('', function (req, res)
 });
 
 
+/* Get FULL cluster by Id */
+router.get('/full/:id', function (req, res)
+{
+    var id = req.params.id;
+    var iduser= req.iduser;
+    var fwcloud= req.fwcloud;
+    
+
+    if (!isNaN(id))
+    {
+        ClusterModel.getClusterFullPro(iduser, fwcloud, id)
+                .then(data =>
+                {
+                    //cluster ok
+                    if (data)
+                    {
+                        api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+
+                    }
+                    //Get error
+                    else
+                    {
+                        api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+                            res.status(200).json(jsonResp);
+                        });
+                    }
+                })
+                .catch(e => {
+
+                });
+    } else
+    {
+        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+            res.status(200).json(jsonResp);
+        });
+    }
+});
+
 /* Get cluster by Id */
-router.get('/cluster/:id', function (req, res)
+router.get('/:id', function (req, res)
 {
     var id = req.params.id;
 
@@ -115,10 +155,6 @@ router.get('/cluster/:id', function (req, res)
             //cluster ok
             if (data && data.length > 0)
             {
-//                res.render("update_cluster",{ 
-//                    title : "", 
-//                    info : data
-//                });
                 api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
                     res.status(200).json(jsonResp);
                 });
@@ -139,7 +175,6 @@ router.get('/cluster/:id', function (req, res)
         });
     }
 });
-
 
 
 /* New cluster */
