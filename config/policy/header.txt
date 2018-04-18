@@ -79,19 +79,22 @@ create_systemd_service() {
 cat > "$SYSTEMD_FILE" << EOL
 [Unit]
 Description=FWCloud.net management script
+
+# Start before Network Interfaces coming up
+Before=network-pre.target
+Wants=network-pre.target
+After=local-fs.target
+
+# Do not start after basic.target!
 DefaultDependencies=no
-After=sysinit.target local-fs.target
-Before=basic.target
 
 [Service]
-Type=oneshot
 ExecStart=/etc/fwcloud/fwcloud.sh start
 ExecStop=/etc/fwcloud/fwcloud.sh stop
-TimeoutSec=0
-RemainAfterExit=yes
 
-[Install]
-WantedBy=basic.target
+# Just Execute the shell script
+Type=oneshot
+RemainAfterExit=yes
 EOL
 }
 
