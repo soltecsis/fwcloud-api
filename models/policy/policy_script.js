@@ -63,7 +63,7 @@ PolicyScript.dump = (accessData,fw,type) => {
 					ps += data[i].c_compiled;
 				else { // We must compile the rule.
 					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
-					// For this reason we use await and async for the callbac function of Policy_cModel.getPolicy_cs_type
+					// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
 					await RuleCompile.get(accessData.fwcloud,fw,type,data[i].id)
 						.then(data => ps += data)
 						.catch (error => reject(error) )				

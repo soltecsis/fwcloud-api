@@ -257,8 +257,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		var cs_trail = statefull = table = action = "";
 
 		// Apply rule only to the selected firewall.
-		if (data.fw_apply_to) {
-			cs = "if [ \"$HOSTNAME\" = \""+data.firewall_name+"\" ]; then\n"+cs;
+		if (data[0].fw_apply_to) {
+			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs;
 			cs_trail += "\nfi\n";
 		}
 
@@ -369,7 +369,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get the rule compilation string or compile it if this string is not uptodate.
- /*----------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.get = (cloud, fw, type, rule) => {
 	return new Promise((resolve,reject) => { 
 		Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
