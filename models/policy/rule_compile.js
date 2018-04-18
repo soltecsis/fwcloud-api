@@ -256,12 +256,6 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		var cs = "$IPTABLES "; // Compile string.
 		var cs_trail = statefull = table = action = "";
 
-		// Apply rule only to the selected firewall.
-		if (data[0].fw_apply_to) {
-			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs;
-			cs_trail += "\nfi\n";
-		}
-
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
 			cs += table+" -A POSTROUTING ";
@@ -348,6 +342,10 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				cs += cs_trail;
 		}
 
+		// Apply rule only to the selected firewall.
+		if (data[0].fw_apply_to)
+			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs+"fi\n";		
+		
 		cs = cs.replace(/  +/g,' ');
 
 		//Save compilation

@@ -60,7 +60,7 @@ case "$ACTION" in
 
     if [ "$SYSTEMCTL" -a ! -f "$SYSTEMD_FILE" ]; then
       create_systemd_service
-      systemctl enable fwcloud.service
+      $SYSTEMCTL enable fwcloud
     fi
     ;;
 
