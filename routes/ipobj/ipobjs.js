@@ -561,8 +561,8 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
     });
      if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
         ipobjData.source_port_start = 0;
-    if (ipobjData.source_port_start === null || ipobjData.source_port_start ==='' )
-        ipobjData.source_port_start = 0;
+    if (ipobjData.source_port_end === null || ipobjData.source_port_end ==='' )
+        ipobjData.source_port_end = 0;
     if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
         ipobjData.destination_port_start = 0;
     if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
@@ -706,8 +706,8 @@ router.put('/ipobj', function (req, res)
 
     if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
         ipobjData.source_port_start = 0;
-    if (ipobjData.source_port_start === null || ipobjData.source_port_start ==='' )
-        ipobjData.source_port_start = 0;
+    if (ipobjData.source_port_end === null || ipobjData.source_port_end ==='' )
+        ipobjData.source_port_end = 0;
     if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
         ipobjData.destination_port_start = 0;
     if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
