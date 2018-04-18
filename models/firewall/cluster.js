@@ -77,7 +77,7 @@ clusterModel.getClusterFullPro = function (iduser, fwcloud, idcluster) {
                                                 dataCluster.intefaces = dataI;
                                             }
                                             else
-                                                dataCluster.intefaces = [];
+                                                dataCluster.interfaces = [];
                                             resolve({"cluster": dataCluster});
                                         });
                                     }
