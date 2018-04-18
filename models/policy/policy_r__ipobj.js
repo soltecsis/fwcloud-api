@@ -868,21 +868,24 @@ policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
         var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN  ipobj_g G on G.id=O.ipobj_g ' +
                 ' WHERE O.ipobj_g=' + connection.escape(ipobj_g) + ' AND F.fwcloud=' + connection.escape(fwcloud);
-        logger.debug(sql);
+        
         connection.query(sql, function (error, rows) {
             if (!error) {
                 if (rows.length > 0) {
                     if (rows[0].n > 0) {
-                        logger.debug("ALERT DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
-                        callback(null, {"result": true});
+                        msg= "ALERT DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES";
+                        logger.debug(msg);
+                        //Devolvemos FALSE con mensaje de restricciones y dejamos borrar
+                        callback(null, {"result": false, "msg": msg});
                     } else {
-                        logger.debug("OK DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES");
-                        callback(null, {"result": false});
+                        msg= "OK DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES";
+                        logger.debug(msg);                        
+                        callback(null, {"result": false, "msg": msg});
                     }
                 } else
-                    callback(null, {"result": false});
+                    callback(null, {"result": false, "msg": ""});
             } else
-                callback(null, {"result": false});
+                callback(null, {"result": false, "msg": ""});
         });
     });
 };

@@ -112,22 +112,27 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callb
         if (error) {
             callback(error, null);
         } else {
+            logger.debug(data);
             if (!data.result) {
                 db.get(function (error, connection) {
                     if (error)
                         callback(error, null);
                     var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
+                    
                     connection.query(sqlExists, function (error, row) {
                         //If exists Id from ipobj__ipobjg to remove
-                        if (row) {
+                        if (row.length>0) {
                             db.get(function (error, connection) {
                                 var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
+                                
                                 connection.query(sql, function (error, result) {
                                     if (error) {
+                                        logger.debug("ERROR SQL:" , error);
                                         callback(error, null);
                                     } else {
+                                        
                                         if (result.affectedRows > 0)
-                                            callback(null, {"result": true, "msg": "deleted"});
+                                            callback(null, {"result": true, "msg": "deleted", "alert": data.msg });
                                         else
                                             callback(null, {"result": false, "msg": "notExist"});
                                     }

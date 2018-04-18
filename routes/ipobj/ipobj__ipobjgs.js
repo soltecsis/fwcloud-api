@@ -194,7 +194,7 @@ router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj",  function (req, res
                         if (data && data.result) {
                             logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
                             fwcTreemodel.orderTreeNode(fwcloud, node_parent, function (error, data) {
-                                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+                                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK ' + data.alert, objModel, null, function (jsonResp) {
                                     res.status(200).json(jsonResp);
                                 });
                             });
