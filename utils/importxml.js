@@ -482,12 +482,12 @@ router.get('/importobj/:library/:fwcloud', function (req, res)
         fwcloud = null;
         fwc_file = "FWCLOUD_LIBRARY_STANDARD.json";
         searchlibrary = "Standard";
-    } else if (library === "USER") {        
+    } else if (library === "CLOUD") {        
         fwc_file = "FWCLOUD_LIBRARY_CLOUD.json";
-        searchlibrary = "User";
+        searchlibrary = "Cloud";
     }
 
-    FwcloudModel.EmptyFwcloudStandard()
+    FwcloudModel.EmptyFwcloudStandard(fwcloud)
             .then(() => {
 
                 logger.debug("READING LIBRARY: " + library, "  FILE: ", fwc_file);

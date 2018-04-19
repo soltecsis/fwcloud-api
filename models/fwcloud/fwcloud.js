@@ -528,8 +528,12 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
     });
 };
 
-fwcloudModel.EmptyFwcloudStandard = function () {
+fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
     return new Promise((resolve, reject) => {
+        var sqlcloud="  is null";
+        if (fwcloud!==null)
+                sqlcloud="= " + fwcloud;
+            
         db.get(function (error, connection) {
             if (error)
                 reject(error);
@@ -537,27 +541,27 @@ fwcloudModel.EmptyFwcloudStandard = function () {
                 if (error) {
                     reject(error);
                 } else {
-                    connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                    connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
                         if (error) {
                             reject(error);
                         } else {
-                            connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                            connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
                                 if (error) {
                                     reject(error);
                                 } else {
-                                    connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                                    connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
                                         if (error) {
                                             reject(error);
                                         } else {
-                                            connection.query("DELETE  FROM ipobj_g where fwcloud IS NULL", function (error, result) {
+                                            connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, function (error, result) {
                                                 if (error) {
                                                     reject(error);
                                                 } else {
-                                                    connection.query("DELETE  FROM ipobj where fwcloud IS NULL", function (error, result) {
+                                                    connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
                                                         if (error) {
                                                             reject(error);
                                                         } else {
-                                                            connection.query("DELETE  FROM ipobj where fwcloud IS NULL", function (error, result) {
+                                                            connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
                                                                 if (error) {
                                                                     reject(error);
                                                                 } else {
