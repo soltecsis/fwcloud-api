@@ -34,6 +34,9 @@ var InterfaceModel = require('../../models/interface/interface');
 var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../../models/tree/fwc_tree');
+
+var firewall_Data = require('../../models/data/data_firewall');
+
 /**
  * Get Firewalls by User
  *  
@@ -261,14 +264,18 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
                 ' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-                ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ';
+                ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ' +
+                ' ORDER BY T.fwmaster desc, T.id';
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
             else {
                 Promise.all(rows.map(utilsModel.decryptDataUserPass))
                         .then(data => {
-                            callback(null, data);
+                            Promise.all(data.map(getfirewallData))
+                                    .then(dataF => {
+                                        callback(null, dataF);
+                                    });
                         })
                         .catch(e => {
                             callback(e, null);
@@ -277,6 +284,14 @@ firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
         });
     });
 };
+
+
+function getfirewallData(row) {
+    return new Promise((resolve, reject) => {
+        var firewall = new firewall_Data(row);
+        resolve(firewall);
+    });
+}
 
 firewallModel.getFirewallClusterMaster = function (iduser, idcluster, callback) {
     db.get(function (error, connection) {
@@ -550,8 +565,8 @@ firewallModel.removeFirewallClusterSlaves = function (cluster, fwcloud, callback
         if (error)
             callback(error, null);
 
-        var sql = 'DELETE FROM ' + tableModel +                 
-                ' WHERE cluster = ' + connection.escape(cluster) + ' AND fwcloud='+ connection.escape(fwcloud) + ' AND fwmaster=0';
+        var sql = 'DELETE FROM ' + tableModel +
+                ' WHERE cluster = ' + connection.escape(cluster) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND fwmaster=0';
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);

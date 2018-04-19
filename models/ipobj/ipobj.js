@@ -541,18 +541,32 @@ ipobjModel.getAllIpobjsInterfacePro = function (data) {
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
             //logger.debug("getAllIpobjsInterfacePro -> ", sql);
-
+             var interface = new interface_Data(data);
             connection.query(sql, function (error, rows) {
                 if (error)
                     reject(error);
                 else {
-                    data.ipobjs = rows;
-                    resolve(data);
+                    Promise.all(rows.map(getIpobjData))
+                            .then(ipobjs => {
+                                interface.ipobjs = ipobjs;
+                                resolve(interface);
+                            })
+                            .catch(e => {
+                                resolve(null);
+                            });
+
                 }
             });
         });
     });
 };
+
+function getIpobjData(row) {
+    return new Promise((resolve, reject) => {
+        var ipobj = new ipobj_Data(row);
+        resolve(ipobj);
+    });
+}
 
 /**
  * Get ipobj by id and Group
@@ -699,7 +713,7 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
             } else {
                 if (result.affectedRows > 0) {
                     ipobjModel.UpdateHOST(ipobjData.id)
-                            .then(ipobjModel.UpdateINTERFACE(ipobjData.id));                    
+                            .then(ipobjModel.UpdateINTERFACE(ipobjData.id));
                     callback(null, {"result": true});
                 } else {
                     callback(null, {"result": false});
