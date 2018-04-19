@@ -59,7 +59,7 @@ RuleCompileModel.pre_compile_sd = (dir, sd) => {
 		else if (sd[i].type === 7) // Network
 			items.str.push(dir+sd[i].address+"/"+sd[i].netmask);
 		else if (sd[i].type === 6) // Address range
-			items.str.push("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ") +sd[i].range_start+"-"+sd[i].range_end);
+			items.str.push((dir!=="" ? ("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ")) : " ")+sd[i].range_start+"-"+sd[i].range_end);
 	}
 
 	return ((items.str.length>0) ? items : null);
@@ -215,6 +215,10 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 
 		if (trans_addr.length !== 1 || (trans_port.length!==0 && trans_port.length!==1))
 			return null;
+
+		// Anly TCP and UDP protocols are allowed for the translated service position.
+		if (trans_port.length===1 && trans_port[0].protocol!==6 && trans_port[0].protocol!==17)
+		  return null;
 	
 		var action = "";
 		if (policy_type===POLICY_TYPE_SNAT)
@@ -223,9 +227,9 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 			action = "DNAT --to-destination "
 
 		if (trans_addr.length === 1) 
-			action += (RuleCompileModel.pre_compile_sd("",trans_addr))[0];
+			action += (RuleCompileModel.pre_compile_sd("",trans_addr)).str[0];
 		if (trans_port.length === 1) 
-			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port))[0];
+			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port)).str[0];
 
 		return action;
   } catch (e) {        
@@ -342,6 +346,23 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				cs += cs_trail;
 		}
 
+		// If we are using UDP or TCP ports in translated service position for NAT rules, 
+		// make sure that the -p tcp or -p udp is included in the compilation string.
+		if ((policy_type===4 || policy_type===5) && data[0].positions[5].position_objs.length===1) { // SNAT or DNAT
+			var substr="";
+			if (data[0].positions[5].position_objs[0].protocol===6) // TCP
+			 	substr += " -p tcp ";
+			else if (data[0].positions[5].position_objs[0].protocol===17) // UDP
+				substr += " -p udp ";
+				 
+			if(cs.indexOf(substr) === -1) {
+				if (policy_type===4)  // SNAT
+					cs = cs.replace(/-A POSTROUTING/g,"-A POSTROUTING"+substr);
+				else // DNAT
+				  cs = cs.replace(/-A PREROUTING/g,"-A PREROUTING"+substr);
+			}
+		}
+
 		// Apply rule only to the selected firewall.
 		if (data[0].fw_apply_to)
 			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs+"fi\n";		
@@ -361,7 +382,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 
 		callback(null,cs);
 	})
-	.catch(error => api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
+	.catch(error => callback(error,null));
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
