@@ -18,6 +18,12 @@ var db = require('../../db.js');
  */
 var fwcloudModel = {};
 
+
+
+//Export the object
+module.exports = fwcloudModel;
+
+
 /**
  * Property Table
  *
@@ -148,23 +154,21 @@ fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
                     //logger.debug(row[0]);
                     logger.debug("IDUSER: " + iduser);
                     if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser))
-                    {   
+                    {
                         //Access OK, LOCKED by USER
-                        resolve({"access": true, "locked": true, "mylock" : true , "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
-                    } 
-                    else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser))
-                    {   
+                        resolve({"access": true, "locked": true, "mylock": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+                    } else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser))
+                    {
                         //Access OK, LOCKED by OTHER USER
-                        resolve({"access": true, "locked": true , "mylock" : false , "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
-                    } 
-                    else if (row[0].locked === 0)
+                        resolve({"access": true, "locked": true, "mylock": false, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+                    } else if (row[0].locked === 0)
                     {
                         //Access OK, NOT LOCKED
-                        resolve({"access": true, "locked": false , "mylock" : false , "locked_at": "", "locked_by": ""});
+                        resolve({"access": true, "locked": false, "mylock": false, "locked_at": "", "locked_by": ""});
                     }
                 } else {
                     //Access ERROR, NOT LOCKED
-                    resolve({"access": false, "locked": "",  "mylock" : false , "locked_at": "", "locked_by": ""});
+                    resolve({"access": false, "locked": "", "mylock": false, "locked_at": "", "locked_by": ""});
                 }
             });
         });
@@ -524,5 +528,62 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
     });
 };
 
-//Export the object
-module.exports = fwcloudModel;
+fwcloudModel.EmptyFwcloudStandard = function () {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            connection.query("SET FOREIGN_KEY_CHECKS = 0", function (error, result) {
+                if (error) {
+                    reject(error);
+                } else {
+                    connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                                if (error) {
+                                    reject(error);
+                                } else {
+                                    connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud is null", function (error, result) {
+                                        if (error) {
+                                            reject(error);
+                                        } else {
+                                            connection.query("DELETE  FROM ipobj_g where fwcloud IS NULL", function (error, result) {
+                                                if (error) {
+                                                    reject(error);
+                                                } else {
+                                                    connection.query("DELETE  FROM ipobj where fwcloud IS NULL", function (error, result) {
+                                                        if (error) {
+                                                            reject(error);
+                                                        } else {
+                                                            connection.query("DELETE  FROM ipobj where fwcloud IS NULL", function (error, result) {
+                                                                if (error) {
+                                                                    reject(error);
+                                                                } else {
+                                                                    connection.query("SET FOREIGN_KEY_CHECKS = 1", function (error, result) {
+                                                                        if (error) {
+                                                                            reject(error);
+                                                                        } else {
+                                                                            resolve({"result": true});
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
+        });
+    });
+};
+

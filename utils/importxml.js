@@ -13,6 +13,8 @@ var Policy_rModel = require('../models/policy/policy_r');
 var Policy_r__ipobjModel = require('../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../models/policy/policy_r__interface');
 
+var FwcloudModel = require('../models/fwcloud/fwcloud');
+
 var fs = require('fs');
 var xml2js = require('xml2js');
 
@@ -42,27 +44,26 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
     var fwc_file = "";
 
     var library = req.params.library.toUpperCase();
-    
-    
+
+
     var iduser = req.params.iduser;
     var searchlibrary = "";
     logger.debug("READING LIBRARY: " + library);
 
     if (library === "STANDARD") {
         fwcloud = null;
-        //fwc_file = "/xml/FW-TEST_STANDAR.fwb";
-        fwc_file = "/xml/FW-ViajesAlameda.fwb";        
+        fwc_file = "/xml/FW-TEST_STANDAR.fwb";
+
         searchlibrary = "Standard";
-    } else if (library === "USER") {        
-        //fwc_file = "/xml/FW-TEST_USER.fwb";
-        fwc_file = "/xml/FW-ViajesAlameda.fwb";
+    } else if (library === "USER") {
+        fwc_file = "/xml/FW-TEST_USER.fwb";
         searchlibrary = "User";
     }
 
     fs.readFile(__dirname + fwc_file, function (error, data) {
         if (error) {
             logger.debug(error);
-            res.status(500).json( {"error": error});
+            res.status(500).json({"error": error});
         } else {
             parser.parseString(data, function (err, result) {
 
@@ -159,7 +160,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                                                                 AddPolicyObj(idPolicy, rowNR.TSrv, 16, "S");
                                                                 AddPolicyInterface(idfirewall, idPolicy, rowNR.ItfInb, 23);
                                                                 AddPolicyInterface(idfirewall, idPolicy, rowNR.ItfOutb, 24);
-                                                                
+
                                                                 AddPolicyObj(idPolicy, rowNR.ItfInb, 23, "O");
                                                                 AddPolicyObj(idPolicy, rowNR.ItfOutb, 24, "O");
                                                             } else
@@ -230,7 +231,7 @@ router.get('/importfirewalls/:iduser/fwcloud/:fwcloud/library/:library', functio
                     logger.debug("ERROR Objects FIREWALL: " + e);
                 }
 
-                res.status(200).json( {"data": result});
+                res.status(200).json({"data": result});
             });
         }
     });
@@ -273,8 +274,7 @@ function AddInterfaceFw(idfirewall, row, callback)
         firewall: idfirewall,
         name: row.name,
         labelName: row.label,
-        type: '',
-        securityLevel: row.security_level,
+        type: '',        
         comment: row.comment,
         interface_type: 10,
         id_fwb: row.id
@@ -457,7 +457,7 @@ function AddPolicyInterface(idfirewall, idPolicy, row, position)
                                 callback(error, null);
                             }
                         });
-                        
+
                     } else {
                         logger.debug("NO ECONTRADO INTERFACE REF : " + ref);
                     }
@@ -466,72 +466,65 @@ function AddPolicyInterface(idfirewall, idPolicy, row, position)
 
 }
 
-
-router.get('/importobj/:library', function (req, res)
+//////////////////////////////////////////////////////////////////////////////////////////////
+// IMPORT LIBRARY STANDARD 
+router.get('/importobj/:library/:fwcloud', function (req, res)
 {
-    var parser = new xml2js.Parser();
-    var fwcloud = null;
+
+    var fwcloud =req.params.fwcloud;
     var fwc_file = "";
 
     var library = req.params.library.toUpperCase();
     var searchlibrary = "";
-    logger.debug("READING LIBRARY: " + library);
+
 
     if (library === "STANDARD") {
         fwcloud = null;
-        fwc_file = "/xml/FW-TEST_STANDAR.fwb";
+        fwc_file = "FWCLOUD_LIBRARY_STANDARD.json";
         searchlibrary = "Standard";
-    } else if (library === "USER") {
-        fwcloud = 1;
-        fwc_file = "/xml/FW-TEST_USER.fwb";
+    } else if (library === "USER") {        
+        fwc_file = "FWCLOUD_LIBRARY_CLOUD.json";
         searchlibrary = "User";
     }
 
-    fs.readFile(__dirname + fwc_file, function (error, data) {
-        if (error) {
-            logger.debug(error);
-            res.status(500).json( {"error": error});
-        } else {
-            parser.parseString(data, function (err, result) {
+    FwcloudModel.EmptyFwcloudStandard()
+            .then(() => {
+
+                logger.debug("READING LIBRARY: " + library, "  FILE: ", fwc_file);
+
+                var obj = require("../config/data_ini/" + fwc_file);
 
 
-                //KK  logger.debug(util.inspect(result, false, null));
-                logger.debug('Done');
-                try {
-                    var jsonstr = JSON.stringify(result);
-                    var obj = JSON.parse(jsonstr);
-                } catch (e) {
-                    logger.debug(e);
-                }
 
-                //logger.debug(obj);
-                //logger.debug("DATOS OBJ");
-                //logger.debug(util.inspect(obj.FWObjectDatabase.Library[0].AnyNetwork[0].$.id, false, null));
+                logger.debug("-----------------  DATOS OBJ JSON ---------------------------------");
+                logger.debug(obj);
+                logger.debug("--------------------------------------------------");
+                logger.debug(util.inspect(obj.FWCLOUDObjectDatabase.Library[0].AnyNetwork[0].data.id, false, null));
 
                 try {
                     var row;
                     //Buscamos libreria
                     var library;
-                    SearchNode(obj.FWObjectDatabase.Library, searchlibrary, function (row) {
-                        logger.debug("-------> DEVUELTO Library : " + row.$.name);
+                    SearchNode(obj.FWCLOUDObjectDatabase.Library, searchlibrary, function (row) {
+                        logger.debug("-------> DEVUELTO Library : " + row.data.name);
                         library = row;
                     }
                     );
 
                     //añadimos objetos ANY                    
-                    logger.debug("Añadiendo OBJETO ANYNETWORK: " + library.AnyNetwork[0].$.name);
-                    AddIpobjectAddress(library.AnyNetwork[0].$, 5, '', null, fwcloud);
+                    logger.debug("Añadiendo OBJETO ANYNETWORK: " + library.AnyNetwork[0].data.name);
+                    AddIpobjectAddress(library.AnyNetwork[0].data, 5, '', null, fwcloud);
 
-                    logger.debug("Añadiendo OBJETO ANYSERVICE: " + library.AnyIPService[0].$.name);
-                    AddServiceIP(library.AnyIPService[0].$, 1, fwcloud);
+                    logger.debug("Añadiendo OBJETO ANYSERVICE: " + library.AnyIPService[0].data.name);
+                    AddServiceIP(library.AnyIPService[0].data, 1, fwcloud);
 
-                    logger.debug("Añadiendo OBJETO ANYINTERVAL: " + library.AnyInterval[0].$.name);
-                    //KK AddServiceIP(library.AnyIPService.$, 1, fwcloud);
+                    logger.debug("Añadiendo OBJETO ANYINTERVAL: " + library.AnyInterval[0].data.name);
+                    //KK AddServiceIP(library.AnyIPService.data, 1, fwcloud);
 
                     var objectsGroup;
                     //Buscamos Grupo Objects
                     SearchNode(library.ObjectGroup, "Objects", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         objectsGroup = row;
                     }
                     );
@@ -544,7 +537,7 @@ router.get('/importobj/:library', function (req, res)
                 try {
                     var rows;
                     SearchNode(objectsGroup.ObjectGroup, "Addresses", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
@@ -552,8 +545,8 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.IPv4,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO Address:" + i + " - " + row.$.name);
-                                AddIpobjectAddress(row.$, 5, '', null, fwcloud);
+                                logger.debug("Añadiendo OBJETO Address:" + i + " - " + row.data.name);
+                                AddIpobjectAddress(row.data, 5, '', null, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -565,15 +558,15 @@ router.get('/importobj/:library', function (req, res)
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[6].AddressRange;
                     var rows;
                     SearchNode(objectsGroup.ObjectGroup, "Address Ranges", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     var i = 0;
                     asyncMod.forEach(rows.AddressRange,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO Address Range:" + i + " - " + row.$.name);
-                                AddIpobjectAddressRanges(row.$, 6, null, fwcloud);
+                                logger.debug("Añadiendo OBJETO Address Range:" + i + " - " + row.data.name);
+                                AddIpobjectAddressRanges(row.data, 6, null, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -586,15 +579,15 @@ router.get('/importobj/:library', function (req, res)
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[5].Network;
                     var rows;
                     SearchNode(objectsGroup.ObjectGroup, "Networks", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     var i = 0;
                     asyncMod.forEach(rows.Network,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO Network:" + i + " - " + row.$.name);
-                                AddIpobjectAddress(row.$, 7, 'IPv4', null, fwcloud);
+                                logger.debug("Añadiendo OBJETO Network:" + i + " - " + row.data.name);
+                                AddIpobjectAddress(row.data, 7, 'IPv4', null, fwcloud);
                             }
                     );
 
@@ -603,8 +596,8 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.NetworkIPv6,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO NetworkIPV6:" + i + " - " + row.$.name);
-                                AddIpobjectAddress(row.$, 7, 'IPv6', null, fwcloud);
+                                logger.debug("Añadiendo OBJETO NetworkIPV6:" + i + " - " + row.data.name);
+                                AddIpobjectAddress(row.data, 7, 'IPv6', null, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -617,15 +610,15 @@ router.get('/importobj/:library', function (req, res)
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[4].Host;
                     var rows;
                     SearchNode(objectsGroup.ObjectGroup, "Hosts", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     var i = 0;
                     asyncMod.forEach(rows.Host,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO HOST:" + i + " - " + row.$.name);
-                                AddIpobject(row.$, 8, fwcloud, function (error, data) {
+                                logger.debug("Añadiendo OBJETO HOST:" + i + " - " + row.data.name);
+                                AddIpobject(row.data, 8, fwcloud, function (error, data) {
                                     if (error)
                                         logger.debug("ERROR Añadiendo host");
                                     else {
@@ -635,7 +628,7 @@ router.get('/importobj/:library', function (req, res)
                                         //FALTA BUCLE por INTERFACES
                                         var rowI = row.Interface[0];
                                         logger.debug(rowI);
-                                        AddInterfaceHost(rowI.$, 11, idhost, function (error, data) {
+                                        AddInterfaceHost(rowI.data, 11, idhost, function (error, data) {
                                             if (error)
                                                 logger.debug("ERROR Añadiendo Interface de  host: " + error);
                                             else {
@@ -650,7 +643,7 @@ router.get('/importobj/:library', function (req, res)
                                                 });
                                                 //Add IP Address 
                                                 var rowIP = rowI.IPv4[0];
-                                                AddIpobjectAddress(rowIP.$, 5, 'IPv4', id_interface, fwcloud);
+                                                AddIpobjectAddress(rowIP.data, 5, 'IPv4', id_interface, fwcloud);
                                             }
 
                                         });
@@ -672,15 +665,15 @@ router.get('/importobj/:library', function (req, res)
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[3].ObjectGroup;
                     var rows;
                     SearchNode(objectsGroup.ObjectGroup, "Groups", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     var i = 0;
                     asyncMod.forEach(rows.ObjectGroup,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo OBJETO GROUP:" + i + " - " + row.$.name);
-                                AddGroup(row.$, 20, fwcloud, function (error, data) {
+                                logger.debug("Añadiendo OBJETO GROUP:" + i + " - " + row.data.name);
+                                AddGroup(row.data, 20, fwcloud, function (error, data) {
                                     if (error) {
                                         logger.debug("ERROR Añadiendo GROUP: " + error);
                                     } else {
@@ -689,8 +682,8 @@ router.get('/importobj/:library', function (req, res)
                                         var rowsR = row.ObjectRef;
                                         asyncMod.forEach(rowsR,
                                                 function (rowR, callback) {
-                                                    logger.debug("Añadiendo OBJETO de Grupo :" + idgroup + "   objref: " + rowR.$.ref);
-                                                    AddGroupObj(idgroup, rowR.$.ref);
+                                                    logger.debug("Añadiendo OBJETO de Grupo :" + idgroup + "   objref: " + rowR.data.ref);
+                                                    AddGroupObj(idgroup, rowR.data.ref);
                                                 });
 
                                     }
@@ -708,7 +701,7 @@ router.get('/importobj/:library', function (req, res)
                 var ServicesGroup;
                 //Buscamos Grupo Services
                 SearchNode(library.ServiceGroup, "Services", function (row) {
-                    logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                    logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                     ServicesGroup = row;
                 }
                 );
@@ -717,7 +710,7 @@ router.get('/importobj/:library', function (req, res)
                 try {
                     var rows;
                     SearchNode(ServicesGroup.ServiceGroup, "IP", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
@@ -725,8 +718,8 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.IPService,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo SERVICE IP:" + i + " - " + row.$.name);
-                                AddServiceIP(row.$, 1, fwcloud);
+                                logger.debug("Añadiendo SERVICE IP:" + i + " - " + row.data.name);
+                                AddServiceIP(row.data, 1, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -737,7 +730,7 @@ router.get('/importobj/:library', function (req, res)
                 try {
                     var rows;
                     SearchNode(ServicesGroup.ServiceGroup, "TCP", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
@@ -745,8 +738,8 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.TCPService,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo SERVICE TCP:" + i + " - " + row.$.name);
-                                AddServiceTCP(row.$, 2, fwcloud);
+                                logger.debug("Añadiendo SERVICE TCP:" + i + " - " + row.data.name);
+                                AddServiceTCP(row.data, 2, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -757,7 +750,7 @@ router.get('/importobj/:library', function (req, res)
                 try {
                     var rows;
                     SearchNode(ServicesGroup.ServiceGroup, "UDP", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
@@ -765,8 +758,8 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.UDPService,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo SERVICE UDP:" + i + " - " + row.$.name);
-                                AddServiceUDP(row.$, 4, fwcloud);
+                                logger.debug("Añadiendo SERVICE UDP:" + i + " - " + row.data.name);
+                                AddServiceUDP(row.data, 4, fwcloud);
                             }
                     );
                 } catch (e) {
@@ -777,7 +770,7 @@ router.get('/importobj/:library', function (req, res)
                 try {
                     var rows;
                     SearchNode(ServicesGroup.ServiceGroup, "ICMP", function (row) {
-                        logger.debug("-------> DEVUELTO GRUPO : " + row.$.name);
+                        logger.debug("-------> DEVUELTO GRUPO : " + row.data.name);
                         rows = row;
                     });
                     //var rows = obj.FWObjectDatabase.Library[0].ObjectGroup[0].ObjectGroup[0].IPv4;
@@ -785,20 +778,21 @@ router.get('/importobj/:library', function (req, res)
                     asyncMod.forEach(rows.ICMPService,
                             function (row, callback) {
                                 i++;
-                                logger.debug("Añadiendo SERVICE ICMP:" + i + " - " + row.$.name);
-                                AddServiceICMP(row.$, 3, fwcloud);
+                                logger.debug("Añadiendo SERVICE ICMP:" + i + " - " + row.data.name);
+                                AddServiceICMP(row.data, 3, fwcloud);
                             }
                     );
                 } catch (e) {
                     logger.debug("ERROR Service ICMP: " + e);
                 }
-
-
-
-                res.status(200).json( {"data": result});
+                res.status(200).json({"data": obj});
+            })
+                    .catch(e =>{
+                        res.status(200).json({"error": e});
             });
-        }
-    });
+
+    
+
 });
 
 
@@ -807,9 +801,9 @@ function SearchNodeSync(rows, searchname, callback) {
     //Buscamos Grupo
     asyncMod.forEach(rows,
             function (row, foundcall) {
-                logger.debug("ESTAMOS en GRUPO: " + row.$.name);
-                if (row.$.name === searchname) {
-                    logger.debug("ENCONTRADO GRUPO: " + row.$.name);
+                logger.debug("ESTAMOS en GRUPO: " + row.data.name);
+                if (row.data.name === searchname) {
+                    logger.debug("ENCONTRADO GRUPO: " + row.data.name);
                     return foundcall(row);
                 }
                 foundcall();
@@ -825,11 +819,11 @@ function SearchNode(rows, searchname, callback) {
     //Buscamos Grupo
     var n = rows.length;
     for (i = 0; i < n; i++) {
-        var name = rows[i].$.name.toUpperCase();
+        var name = rows[i].data.name.toUpperCase();
         var sname = searchname.toUpperCase();
         logger.debug("ESTAMOS en GRUPO: " + name + " -> comparando con : " + sname);
         if (name === sname) {
-            logger.debug("ENCONTRADO GRUPO: " + rows[i].$.name);
+            logger.debug("ENCONTRADO GRUPO: " + rows[i].data.name);
             return callback(rows[i]);
         }
     }
@@ -851,15 +845,16 @@ function AddIpobject(row, obj_type, fwcloud, callback) {
         netmask: null,
         diff_serv: null,
         ip_version: null,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
         range_end: null,
-        source_port_start: null,
-        source_port_end: null,
-        destination_port_start: null,
-        destination_port_end: null,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 0,
+        destination_port_end: 0,
         options: null,
         comment: row.comment,
         id_fwb: row.id
@@ -891,8 +886,7 @@ function AddInterfaceHost(row, type, idhost, callback)
         firewall: null,
         name: row.name,
         labelName: row.name,
-        type: type,
-        securityLevel: row.security_level,
+        type: type,        
         interface_type: type,
         id_fwb: row.id
     };
@@ -946,15 +940,16 @@ function AddIpobjectAddress(row, obj_type, ipversion, id_interface, fwcloud) {
         netmask: row.netmask,
         diff_serv: null,
         ip_version: ipversion,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
         range_end: null,
-        source_port_start: null,
-        source_port_end: null,
-        destination_port_start: null,
-        destination_port_end: null,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 0,
+        destination_port_end: 0,
         options: null,
         comment: row.comment,
         id_fwb: row.id
@@ -988,15 +983,16 @@ function AddIpobjectAddressRanges(row, obj_type, fwcloud) {
         netmask: null,
         diff_serv: null,
         ip_version: null,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: row.start_address,
         range_end: row.end_address,
-        source_port_start: null,
-        source_port_end: null,
-        destination_port_start: null,
-        destination_port_end: null,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 0,
+        destination_port_end: 0,
         options: null,
         comment: row.comment,
         id_fwb: row.id
@@ -1071,15 +1067,16 @@ function AddServiceIP(row, obj_type, fwcloud) {
         netmask: null,
         diff_serv: 2,
         ip_version: null,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
         range_end: null,
-        source_port_start: null,
-        source_port_end: null,
-        destination_port_start: null,
-        destination_port_end: null,
+        source_port_start: 0,
+        source_port_end: 0,
+        destination_port_start: 0,
+        destination_port_end: 0,
         options: null,
         comment: row.comment,
         id_fwb: row.id
@@ -1111,7 +1108,8 @@ function AddServiceTCP(row, obj_type, fwcloud) {
         netmask: null,
         diff_serv: 2,
         ip_version: null,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
@@ -1152,7 +1150,8 @@ function AddServiceUDP(row, obj_type, fwcloud) {
         netmask: null,
         diff_serv: null,
         ip_version: null,
-        code: null,
+        icmp_code: null,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
@@ -1194,7 +1193,8 @@ function AddServiceICMP(row, obj_type, fwcloud) {
         netmask: null,
         diff_serv: null,
         ip_version: null,
-        code: row.code,
+        icmp_code: row.code,
+        icmp_type: null,
         tcp_flags_mask: null,
         tcp_flags_settings: null,
         range_start: null,
