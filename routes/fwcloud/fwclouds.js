@@ -336,7 +336,7 @@ router.put('/fwcloud/:iduser', utilsModel.checkConfirmationToken, function (req,
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.body.id, name: req.body.name, user: req.params.iduser};
+    var fwcloudData = {id: req.body.id, name: req.body.name, comment: req.body.comment, image: req.body.image ,user: req.iduser};
 
     FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
     {

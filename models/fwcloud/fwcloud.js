@@ -332,7 +332,9 @@ fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) + ' ' +
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name)  +
+                ' ,comment = ' + connection.escape(fwcloudData.comment)  +
+                ' ,image = ' + connection.escape(fwcloudData.image)  +
                 ' WHERE id = ' + fwcloudData.id;
         logger.debug(sql);
         connection.query(sql, function (error, result) {
@@ -523,6 +525,10 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
         connection.query(sqlExists, function (error, row) {
             //If exists Id from fwcloud to remove
             if (row) {
+                //DELETE FIREWALLS
+                
+                //DELETE OBJECTS
+                
                 db.get(function (error, connection) {                    
                     var sql = 'DELETE FROM user_cloud WHERE fwcloud = ' + connection.escape(id) ;
                     connection.query(sql, function (error, result) {
