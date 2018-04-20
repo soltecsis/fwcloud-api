@@ -18,9 +18,14 @@ function fwc_tree_node(node_data) {
         this.fwcloud = node_data.fwcloud;
         this.show_action = node_data.show_action;
         this.status_compiled = node_data.status_compiled;
+        try {
+            this.fwcloud_tree = node_data.fwcloud_tree;
+        } catch (err) {
+            this.fwcloud_tree = node_data.fwcloud;
+        }
     } catch (err) {
         // Handle the error here.
-        
+
     }
 }
 

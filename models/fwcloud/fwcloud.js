@@ -288,10 +288,10 @@ fwcloudModel.insertFwcloud = function (iduser, fwcloudData, callback) {
                 callback(error, null);
             } else {
                 var fwid = result.insertId;
-                sqlinsert='INSERT INTO  user__cloud  SET fwcloud=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1';
+                sqlinsert = 'INSERT INTO  user__cloud  SET fwcloud=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1';
                 connection.query(sqlinsert, function (error, result) {
                     if (error) {
-                        logger.debug("SQL ERROR USER INSERT: ", error,"\n", sqlinsert);
+                        logger.debug("SQL ERROR USER INSERT: ", error, "\n", sqlinsert);
                         callback(error, null);
                     } else {
                         callback(null, {"insertId": fwid});
@@ -332,9 +332,9 @@ fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name)  +
-                ' ,comment = ' + connection.escape(fwcloudData.comment)  +
-                ' ,image = ' + connection.escape(fwcloudData.image)  +
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +
+                ' ,comment = ' + connection.escape(fwcloudData.comment) +
+                ' ,image = ' + connection.escape(fwcloudData.image) +
                 ' WHERE id = ' + fwcloudData.id;
         logger.debug(sql);
         connection.query(sql, function (error, result) {
@@ -395,7 +395,7 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
                             //        ' AND U.allow_access=1 AND U.allow_edit=1 ';
                             //        
                             //Check if there are FWCloud with Access and Edit permissions
-                            var sqlExists = 'SELECT C.id FROM ' + tableModel  + ' C ' +
+                            var sqlExists = 'SELECT C.id FROM ' + tableModel + ' C ' +
                                     ' INNER JOIN user__cloud U on U.fwcloud=C.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
                                     ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
                                     ' AND U.allow_access=1 AND U.allow_edit=1 ';
@@ -513,38 +513,48 @@ fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-
-//FALTA BORADO EN CASCADA DE TODO: IPOBJS, FIREWALL, INTERFACES, REGLAS
 fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
+    //El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT T.* FROM ' + tableModel + 
+        var sqlExists = 'SELECT T.* FROM ' + tableModel +
                 ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
                 ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.id= ' + connection.escape(id);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from fwcloud to remove
-            if (row) {
-                //DELETE FIREWALLS
-                
-                //DELETE OBJECTS
-                
-                db.get(function (error, connection) {                    
-                    var sql = 'DELETE FROM user_cloud WHERE fwcloud = ' + connection.escape(id) ;
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            callback(error, null);
-                        } else {
-                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-                            connection.query(sql, function (error, result) {
-                                if (error) {
-                                    callback(error, null);
-                                } else {
-                                    callback(null, {"result": true, "msg": "deleted"});
-                                }
-                            });
-                        }
-                    });
+            if (row && row.length > 0) {
+                var sqlF = "select * from firewall where fwcloud=" + connection.escape(id);
+                connection.query(sqlF, function (error, rowF) {
+                    //If exists Id from fwcloud to remove
+                    if (rowF && rowF.length > 0) {
+                        callback(null, {"result": false, "msg": "FWCLOUD NOT EMPTY"});
+                    } else {
+                        //DELETE OBJECTS FROM CLOUD
+                        fwcloudModel.EmptyFwcloudStandard(id)
+                                .then(() => {
+                                    db.get(function (error, connection) {
+                                        var sql = 'DELETE FROM user_cloud WHERE fwcloud = ' + connection.escape(id);
+                                        connection.query(sql, function (error, result) {
+                                            if (error) {
+                                                callback(error, null);
+                                            } else {
+                                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+                                                connection.query(sql, function (error, result) {
+                                                    if (error) {
+                                                        callback(error, null);
+                                                    } else {
+                                                        callback(null, {"result": true, "msg": "deleted"});
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    });
+                                })
+                                .catch(e => {
+                                    callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
+                                });
+                    }
                 });
             } else {
                 callback(null, {"result": false});
@@ -590,11 +600,17 @@ fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
                                                                 if (error) {
                                                                     reject(error);
                                                                 } else {
-                                                                    connection.query("SET FOREIGN_KEY_CHECKS = 1", function (error, result) {
+                                                                    connection.query("DELETE  FROM fwc_tree where fwcloud_tree" + sqlcloud, function (error, result) {
                                                                         if (error) {
                                                                             reject(error);
                                                                         } else {
-                                                                            resolve({"result": true});
+                                                                            connection.query("SET FOREIGN_KEY_CHECKS = 1", function (error, result) {
+                                                                                if (error) {
+                                                                                    reject(error);
+                                                                                } else {
+                                                                                    resolve({"result": true});
+                                                                                }
+                                                                            });
                                                                         }
                                                                     });
                                                                 }
