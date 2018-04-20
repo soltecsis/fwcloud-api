@@ -208,17 +208,32 @@ RuleCompileModel.pre_compile = (data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
+RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
   try {
-		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length === 0)
-			return "MASQUERADE";
-
-		if (trans_addr.length !== 1 || (trans_port.length!==0 && trans_port.length!==1))
+		if (trans_addr.length>1 || trans_port.length>1) {
+			callback({"Msg": "Translated fields must contain a maximum of one item."},null);			
 			return null;
+		}
 
-		// Anly TCP and UDP protocols are allowed for the translated service position.
+		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length===0) {
+			if (trans_port.length===0)
+				return "MASQUERADE";
+			callback({"Msg": "For SNAT 'Translated Service' must be empty if 'Translated Source' is empty."},null);
+			return null;
+		}
+
+		// For DNAT the translated destination is mandatory.
+		if (policy_type===POLICY_TYPE_DNAT && trans_addr.length===0) {
+			callback({"Msg": "For DNAT 'Translated Destination' is mandatory."},null);
+			return null;
+		}
+	
+		// Only TCP and UDP protocols are allowed for the translated service position.
 		if (trans_port.length===1 && trans_port[0].protocol!==6 && trans_port[0].protocol!==17)
-		  return null;
+		{
+			callback({"Msg": "For 'Translated Service' only protocols TCP and UDP are allowed."},null);
+			return null;
+		}
 	
 		var action = "";
 		if (policy_type===POLICY_TYPE_SNAT)
@@ -233,6 +248,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port) => {
 
 		return action;
   } catch (e) {        
+		callback(e,null);
     return null;	
   }
 };
@@ -263,18 +279,14 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
 			cs += table+" -A POSTROUTING ";
-			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs))) {
-				callback({"Msg": "Invalid NAT positions."},null);
+			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
 				return;
-			}
 		}
 		else if (policy_type === 5) { // DNAT
 			table = "-t nat";
 			cs += table+" -A PREROUTING ";
-			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs))) {
-				callback({"Msg": "Invalid NAT positions."},null);
+			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
 				return;
-			}
 		}
 		else { // Filter policy
 			if (data.length != 1 || !(data[0].positions)
