@@ -142,47 +142,69 @@ var UserModel = require('./models/user/user');
 var url = require('url');
 
 
-var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*','/clusters*'];
+var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
 //control_routes="^((?!\/ipobjs).)*";
 //CONTROL FWCLOUD ACCESS
 app.use(control_routes, function (request, response, next) {
 
     var url_parts = url.parse(request.url);
     var pathname = url_parts.pathname;
-
+    var originalURL = request.originalUrl;
 
 
     logger.debug("---------------- RECEIVED HEADERS-----------------");
     logger.debug("\n", request.headers);
     logger.debug("--------------------------------------------------");
-    logger.debug("METHOD: " + request.method + "   PATHNAME: " + pathname);
+    logger.debug("METHOD: " + request.method + "   PATHNAME: " + originalURL);
+
+
 
     var iduser = request.headers.x_fwc_iduser;
     var fwcloud = request.headers.x_fwc_fwcloud;
-    var confirm_token=request.headers.x_fwc_confirm_token;
-    
+    var confirm_token = request.headers.x_fwc_confirm_token;
+
     var update = true;
-    if (request.method==='GET')
-        update=false;
+    if (request.method === 'GET')
+        update = false;
 
 
     logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
-    utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
-            .then(resp => {
-                //save access to user                
-                var userData = {id: iduser};
-                UserModel.updateUserTS(userData, function (error, data){});
-                request.confirm_token=confirm_token;
-                request.restricted ={};
-                next();
-            })
-            .catch(err => {
-                logger.error("ERROR ---> err: " + err);
-                api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
-                    response.status(200).json(jsonResp);
+    if (originalURL === '/fwclouds/fwcloud' && request.method === 'POST') {
+        logger.debug("FWCLOUD ACCESS TO CREATE");
+        logger.debug(request.body);
+        //save access to user                
+        var userData = {id: iduser};
+        UserModel.updateUserTS(userData, function (error, data) {});        
+        request.fwc_access = true;
+        request.iduser = iduser;
+        next();
+    } else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
+        //Acces to GET ALL clouds
+        logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
+        var userData = {id: iduser};
+        UserModel.updateUserTS(userData, function (error, data) {});        
+        request.fwc_access = true;
+        request.iduser = iduser;
+        next();
+    }
+    else {
+        utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
+                .then(resp => {
+                    //save access to user                
+                    var userData = {id: iduser};
+                    UserModel.updateUserTS(userData, function (error, data) {});
+                    request.confirm_token = confirm_token;
+                    request.restricted = {};
+                    next();
+                })
+                .catch(err => {
+                    logger.error("ERROR ---> err: " + err);
+                    api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
+                        response.status(200).json(jsonResp);
+                    });
                 });
-            });
+    }
 
 });
 

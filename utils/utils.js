@@ -47,6 +47,11 @@ utilsModel.getRandomString = function (size) {
     var x = randomString({length: size});
     return x;
 };
+
+utilsModel.startsWith = function(str, word) {
+    return str.lastIndexOf(word, 0) === 0;
+};
+
 utilsModel.mergeObj = function () {
     var destination = {},
             sources = [].slice.call(arguments, 0);
@@ -80,7 +85,7 @@ utilsModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, resp
             FwcloudModel.getFwcloudAccess(iduser, fwcloud)
                     .then(resp => {
                         //{"access": true, "locked": false, , "mylock" : true  "locked_at": "", "locked_by": ""}
-                        logger.warn(resp);
+                        //logger.warn(resp);
                         logger.debug("UPDATE: " + update);
                         if (resp.access && !update) {
                             logger.warn("OK --> FWCLOUD ACCESS ALLOWED TO READ ");
@@ -294,3 +299,5 @@ async function fetchRepoInfos() {
     const results = await Promise.all(promises);
     // use the results
 }
+
+

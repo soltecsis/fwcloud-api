@@ -47,12 +47,11 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
 
         var sql = 'SELECT T.* FROM ' + tableModel + ' T' +
                 ' inner join fwcloud C on C.id=T.fwcloud ' +
-                ' inner join firewall F on F.fwcloud=C.id ' +
-                ' inner join user__firewall U on U.id_firewall=F.id ' +
+                ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +                
                 ' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent=0 ' +
                 ' AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
                 ' ORDER BY T.id limit 1';
-        //logger.debug(sql);
+        logger.debug(sql);
 
         connection.query(sql, function (error, rows) {
             if (error) {
@@ -277,6 +276,57 @@ fwc_treeModel.getFwc_TreeName = function (fwcloud, name, callback) {
     });
 };
 
+fwc_treeModel.createAllTreeCloud= function(iduser, fwcloud, AllDone){
+   logger.debug("------------- CREATING FWCTREE INIT");
+    fwc_treeModel.insertFwc_Tree_init(fwcloud, function (error, data)
+    {
+        //If saved fwc-tree Get data
+        if (data && data.result)
+        {
+            logger.debug("------------- CREATING FWCTREE FIREWALLS");
+            fwc_treeModel.insertFwc_Tree_firewalls(fwcloud, "FDF", function (error, data)
+            {
+                //If saved fwc-tree Get data
+                if (data && data.result)
+                {
+                    logger.debug("------------- CREATING FWCTREE OBJECTS");
+                    fwc_treeModel.insertFwc_Tree_objects(fwcloud, "FDO", function (error, data)
+                    {
+                        //If saved fwc-tree Get data
+                        if (data && data.result)
+                        {
+                            logger.debug("------------- CREATING FWCTREE SERVICES");
+                            fwc_treeModel.insertFwc_Tree_objects(fwcloud, "FDS", function (error, data)
+                            {
+                                //If saved fwc-tree Get data
+                                if (data && data.result)
+                                {
+                                   
+                                     AllDone(null, {"result": true});
+                                } else
+                                {
+                                    AllDone(null, {"result": false});
+                                }
+                            });
+                        } else
+                        {
+                            AllDone(null, {"result": false});
+                        }
+                    });
+                } else
+                {
+                    AllDone(null, {"result": false});
+                }
+            });
+        }
+        else{
+            AllDone(null, {"result": false});
+        }
+    });
+    
+};
+
+
 //Init TREE  from cloud
 fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
     db.get(function (error, connection) {
@@ -285,8 +335,8 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 
         //QUITAR PARA MERMITIR VARIOS CLOUD
         //DELETE PREVIUS DATA
-        //sqldelete = "delete from fwc_tree where fwcloud=" +  connection.escape(fwcloud) ;
-        sqldelete = "truncate table fwc_tree ";
+        sqldelete = "delete from fwc_tree where fwcloud=" +  connection.escape(fwcloud) ;
+        //sqldelete = "truncate table fwc_tree ";
         connection.query(sqldelete, function (error, result) {
             if (error) {
                 AllDone(error, null);
