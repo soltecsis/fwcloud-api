@@ -24,6 +24,7 @@
     "knex": "^0.12.6",
     "lodash": "^4.17.4",
     "log4js": "~2.5.3",
+    "log4js-extend": "^0.2.1",
     "method-override": "^2.3.7",
     "morgan": "~1.7.0",
     "mysql": "^2.13.0",

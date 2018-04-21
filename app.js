@@ -9,7 +9,15 @@
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
+
 var log4js = require("log4js");
+const log4js_extend = require("log4js-extend");
+log4js_extend(log4js, {
+  path: __dirname,
+  //format: "at @name (@file:@line:@column)"
+  format: "[@file:@line:@column]"
+});
+
 //var morgan = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
