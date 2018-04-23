@@ -518,9 +518,10 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT T.* FROM ' + tableModel +
+        var sqlExists = 'SELECT C.* FROM ' + tableModel + ' C ' +
                 ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
                 ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.id= ' + connection.escape(id);
+        logger.debug(sqlExists);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from fwcloud to remove
             if (row && row.length > 0) {
@@ -534,7 +535,7 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
                         fwcloudModel.EmptyFwcloudStandard(id)
                                 .then(() => {
                                     db.get(function (error, connection) {
-                                        var sql = 'DELETE FROM user_cloud WHERE fwcloud = ' + connection.escape(id);
+                                        var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
                                         connection.query(sql, function (error, result) {
                                             if (error) {
                                                 callback(error, null);

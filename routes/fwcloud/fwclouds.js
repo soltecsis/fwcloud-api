@@ -567,11 +567,11 @@ router.get('/locked/:iduser/:fwcloud', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/fwcloud/:iduser/:fwcloud", utilsModel.checkConfirmationToken, function (req, res)
+router.put("/del/fwcloud/:fwcloud", utilsModel.checkConfirmationToken, function (req, res)
 {
 
     var id = req.params.fwcloud;
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     FwcloudModel.deleteFwcloud(iduser, id, function (error, data)
     {
         if (data && data.result)

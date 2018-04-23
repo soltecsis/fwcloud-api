@@ -220,8 +220,6 @@ fwc_treeModel.deleteFwc_TreeFullNode = function (data) {
         });
     });
 };
-
-
 //DELETE NODE
 fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
     return new Promise((resolve, reject) => {
@@ -236,6 +234,77 @@ fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
                     reject(error);
                 } else {
                     resolve({"result": true, "msg": "deleted"});
+                }
+            });
+        });
+    });
+};
+
+//UPDATE ID_OBJ FOR FIREWALL CLUSTER FULL TREE FROM PARENT NODE
+fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            var sql = 'SELECT ' + connection.escape(data.OLDFW) +' as OLDFW, ' + connection.escape(data.NEWFW) + ' as NEWFW, T.* ' + 
+                    ' FROM ' + tableModel + ' T ' + 
+                    ' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id) + 
+                    ' AND id_obj=' + connection.escape(data.OLDFW);
+            logger.debug(sql);
+            connection.query(sql, function (error, rows) {
+                if (error)
+                    reject(error);
+                else {
+                    if (rows.length > 0) {
+                        logger.debug("-----> UPDATING NODES UNDER PARENT: " + data.id);
+                        //Bucle por interfaces
+                        Promise.all(rows.map(fwc_treeModel.updateIDOBJFwc_TreeFullNode))
+                                .then(resp => {
+                                    //logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
+                                    fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW )
+                                            .then(resp => {
+                                                //logger.debug("UPDATED NODE: ", data.id);
+                                                resolve();
+                                            })
+                                            .catch(e => reject(e));
+                                })
+                                .catch(e => {
+                                    reject(e);
+                                });
+                    } else {
+                        logger.debug("NODE FINAL: TO UPDATE NODE: ", data.id);
+                        resolve();
+                        //Node whithout children, delete node
+                        fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW)
+                                .then(resp => {
+                                    logger.debug("UPDATED NODE: ", data.id);
+                                    resolve();
+                                })
+                                .catch(e => reject(e));
+                    }
+
+                }
+            });
+        });
+    });
+};
+
+
+//UPDATE NODE
+fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            var sql = 'UPDATE ' + tableModel + ' SET id_obj= ' + connection.escape(fwcloud)  + ' WHERE node_type<>"CL" AND node_type<>"FW"  AND fwcloud = ' + connection.escape(fwcloud) + ' AND id = ' + connection.escape(id);
+            connection.query(sql, function (error, result) {
+                if (error) {
+                    logger.debug(sql);
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    resolve({"result": true});
                 }
             });
         });
