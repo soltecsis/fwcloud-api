@@ -904,7 +904,7 @@ router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, Interfac
 });
 
 //DELETE FIREWALL FROM CLUSTER
-router.put("/delfromcluster/:idcluster/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, function (req, res)
+router.put("/delfromcluster/:idcluster/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, FirewallModel.checkRestrictionsFirewallApplyTo, utilsModel.checkConfirmationToken, function (req, res)
 {
 
     var id = req.params.idfirewall;
