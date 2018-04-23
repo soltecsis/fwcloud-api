@@ -188,6 +188,17 @@ app.use(control_routes, function (request, response, next) {
         request.iduser = iduser;
         next();
     }
+     else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && request.method === 'PUT' && fwcloud==='') {
+        //Acces to GET ALL clouds
+        logger.debug("FWCLOUD DELETE");
+        var userData = {id: iduser};
+        UserModel.updateUserTS(userData, function (error, data) {});        
+        request.fwc_access = true;
+        request.confirm_token = confirm_token;
+        request.iduser = iduser;
+        request.restricted = {};
+        next();
+    }
     else {
         utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
                 .then(resp => {
@@ -252,7 +263,6 @@ var user__firewalls = require('./routes/user/user__firewalls');
 var customers = require('./routes/user/customers');
 var clusters = require('./routes/firewall/clusters');
 var firewalls = require('./routes/firewall/firewalls');
-var firewallscluster = require('./routes/firewall/firewalls_cluster');
 var fwclouds = require('./routes/fwcloud/fwclouds');
 var routing_gs = require('./routes/routing/routing_gs');
 var routing_rs = require('./routes/routing/routing_rs');
@@ -288,7 +298,6 @@ app.use('/user__firewalls', user__firewalls);
 app.use('/customers', customers);
 app.use('/clusters', clusters);
 app.use('/firewalls', firewalls);
-app.use('/firewallscluster', firewallscluster);
 app.use('/fwclouds', fwclouds);
 app.use('/policy-gs', policy_gs);
 app.use('/policy-rs', policy_rs);
