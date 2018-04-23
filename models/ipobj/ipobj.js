@@ -468,7 +468,7 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
         //var sql = 'SELECT * FROM ' + tableModel + ' I ' + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
 
         var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' + innergroup +
-                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ' )' +
                 ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                 ' WHERE G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                 ' ORDER BY G.id_gi';
@@ -502,7 +502,7 @@ ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
 
 
         var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
-                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ')' +
                 ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                 ' WHERE I.interface=' + connection.escape(idinterface) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                 ' ORDER BY I.id';
@@ -536,7 +536,7 @@ ipobjModel.getAllIpobjsInterfacePro = function (data) {
                 reject(error);
 
             var sql = 'SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
-                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                    ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ' )' +
                     ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
@@ -613,7 +613,7 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
         var namesql = '%' + name + '%';
 
         var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
-                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+                ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ' )' +
                 ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                 ' WHERE I.name like  = ' + connection.escape(namesql) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
 
