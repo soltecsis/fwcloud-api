@@ -1626,13 +1626,14 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
+        var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE node_type not like "F%" AND  fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);        
         connection.query(sqlExists, function (error, row) {
             //If exists Id from ipobj to remove
             if (row) {
-                var id_parent = row.id;
+                var id_parent = row[0].id;
                 db.get(function (error, connection) {
-                    var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
+                    var sql = 'DELETE FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
+                    logger.debug("DELETE PARENT: ", sql);
                     connection.query(sql, function (error, result) {
                         if (error) {
                             logger.debug(sql);
@@ -1640,7 +1641,8 @@ fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback
                         } else {
                             if (result.affectedRows > 0) {
                                 //CASCADE DELETE
-                                var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent = ' + connection.escape(id_parent);
+                                var sql = 'DELETE FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent = ' + connection.escape(id_parent);
+                                logger.debug(" DELETE FROM PARENT: ",sql);
                                 connection.query(sql, function (error, result) {
                                     if (error) {
                                         logger.debug(sql);

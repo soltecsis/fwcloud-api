@@ -392,11 +392,11 @@ router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAcces
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     var idfirewall = req.params.idfirewall;
-    var id = req.params.id;
+    var idInterface = req.params.id;
     var type = req.params.type;
 
 
-    InterfaceModel.deleteInterface(fwcloud, idfirewall, id, type, function (error, data)
+    InterfaceModel.deleteInterface(fwcloud, idfirewall, idInterface, type, function (error, data)
     {
         if (error)
             api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {
@@ -409,13 +409,13 @@ router.put("/del/interface/:idfirewall/:id/:type", utilsModel.checkFirewallAcces
 
                     //DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
                     //DELETE  ALL IPOBJ UNDER INTERFACE
-                    Interface__ipobjModel.UpdateHOST(id)
+                    Interface__ipobjModel.UpdateHOST(idInterface)
                             .then(() => {
-                                Interface__ipobjModel.deleteInterface__ipobj(id, null, function (error, data)
+                                Interface__ipobjModel.deleteInterface__ipobj(idInterface, null, function (error, data)
                                 {});
                             });
                     //DELETE FROM TREE
-                    fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
+                    fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, idInterface, type, function (error, data) {
                         if (data && data.result) {
                             api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, function (jsonResp) {
                                 res.status(200).json(jsonResp);

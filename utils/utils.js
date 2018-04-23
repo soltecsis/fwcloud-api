@@ -169,12 +169,13 @@ utilsModel.checkConfirmationToken = function (req, res, next) {
     UserModel.checkConfirmationtoken(accessData)
             .then(resp => {
                 if (resp.result) {
-                    //Confirmation ok
-                    if (req.restricted.result === false) {
-                        api_resp.getJson(req.restricted, api_resp.ACR_RESTRICTED, ' FIREWALL RESTRICTED', '', null, function (jsonResp) {
-                            res.status(200).json(jsonResp);
-                        });
-                    } else
+//                    //Confirmation ok
+//                    if (req.restricted.result === false) {
+//                        api_resp.getJson(req.restricted, api_resp.ACR_RESTRICTED, ' FIREWALL RESTRICTED', '', null, function (jsonResp) {
+//                            res.status(200).json(jsonResp);
+//                        });
+//                    } else
+//                        next();                        
                         next();
                 } else {
                     //Need confirmation, send new token
