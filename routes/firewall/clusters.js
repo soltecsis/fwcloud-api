@@ -391,8 +391,8 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
                             });
                         });
                     });
-
-                    api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'CONVERT OK', objModel, null, function (jsonResp) {
+                    var resp={"result": true, "insertId": firewallData.id};
+                    api_resp.getJson(resp, api_resp.ACR_INSERTED_OK, 'CONVERT OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
 
