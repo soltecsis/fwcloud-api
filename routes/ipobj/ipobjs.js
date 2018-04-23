@@ -559,13 +559,13 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
     utilsModel.checkParameters(ipobjData, function (obj) {
         ipobjData = obj;
     });
-     if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
+    if (ipobjData.source_port_start === null || ipobjData.source_port_start === '')
         ipobjData.source_port_start = 0;
-    if (ipobjData.source_port_end === null || ipobjData.source_port_end ==='' )
+    if (ipobjData.source_port_end === null || ipobjData.source_port_end === '')
         ipobjData.source_port_end = 0;
-    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
+    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start === '')
         ipobjData.destination_port_start = 0;
-    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
+    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end === '')
         ipobjData.destination_port_end = 0;
 
 
@@ -704,13 +704,13 @@ router.put('/ipobj', function (req, res)
         ipobjData = obj;
     });
 
-    if (ipobjData.source_port_start === null || ipobjData.source_port_start==='')
+    if (ipobjData.source_port_start === null || ipobjData.source_port_start === '')
         ipobjData.source_port_start = 0;
-    if (ipobjData.source_port_end === null || ipobjData.source_port_end ==='' )
+    if (ipobjData.source_port_end === null || ipobjData.source_port_end === '')
         ipobjData.source_port_end = 0;
-    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start ==='')
+    if (ipobjData.destination_port_start === null || ipobjData.destination_port_start === '')
         ipobjData.destination_port_start = 0;
-    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end ==='')
+    if (ipobjData.destination_port_end === null || ipobjData.destination_port_end === '')
         ipobjData.destination_port_end = 0;
 
     if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
@@ -851,16 +851,10 @@ router.put("/del/ipobj/:id/:type", IpobjModel.checkRestrictions, utilsModel.chec
                                     fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
                                         //DELETE FROM TREE
                                         fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-                                            if (data && data.result) {
-                                                api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, function (jsonResp) {
-                                                    res.status(200).json(jsonResp);
-                                                });
-                                            } else {
-                                                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'TREE NODE Error updating', 'TREE NODE', null, function (jsonResp) {
-                                                    res.status(200).json(jsonResp);
-                                                });
-                                            }
                                         });
+                                    });
+                                    api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, function (jsonResp) {
+                                        res.status(200).json(jsonResp);
                                     });
                                 } else if (data.msg === "Restricted") {
                                     api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, function (jsonResp) {
@@ -879,7 +873,12 @@ router.put("/del/ipobj/:id/:type", IpobjModel.checkRestrictions, utilsModel.chec
                             }
                         }
                     })
-                    );
+                    )
+            .catch(error => {
+                api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
 });
 
 module.exports = router;
