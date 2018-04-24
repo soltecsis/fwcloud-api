@@ -777,7 +777,9 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
         if (idcluster !== null) {
             //Select node NODES root for firewalls cluster
             folder = "FCF";
-            sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_obj=' + idcluster + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
+            sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + 
+                    ' AND T1.id_obj=(select id from firewall where cluster=' + connection.escape(idcluster) + ' and fwmaster=1 and fwcloud=' + connection.escape(fwcloud) + ') ' + 
+                    ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
         } else {
             //Select Parent Node by type   
             sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
@@ -799,7 +801,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                         var id_parent = row.id;
                         //Añadimos nodos FIREWALL del CLOUD
                         sqlnodes = 'SELECT  F.id,F.name,F.fwcloud, F.comment FROM firewall F inner join fwcloud C on C.id=F.fwcloud WHERE C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(idfirewall);
-                        //logger.debug(sqlnodes);
+                        logger.debug(sqlnodes);
                         connection.query(sqlnodes, function (error, rowsnodes) {
                             if (error)
                                 callback(error, null);
@@ -818,7 +820,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
                                                 i + ',' + (row.node_level + 1) + ',"FW",' +
                                                 '0,0,' + connection.escape(idfirewall) + ',0,' +
                                                 connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-                                        //logger.debug(sqlinsert);
+                                        logger.debug(sqlinsert);
                                         var parent_firewall;
 
                                         connection.query(sqlinsert, function (error, result) {
