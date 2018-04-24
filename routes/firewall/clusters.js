@@ -413,7 +413,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 });
 
 /* cluster update */
-router.put('/cluster', function (req, res)
+router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 {
     var fwcloud = req.fwcloud;
     
