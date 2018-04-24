@@ -158,7 +158,7 @@ var jwt = require('jsonwebtoken');
 
 app.all('*',(req, res, next) => {
     // Exclude the login route.
-    if (reqt.path == '/users/login') return next();
+    if (req.path == '/users/login') return next();
     
     logger.debug("Into the authentication middleware."); 
     next();
