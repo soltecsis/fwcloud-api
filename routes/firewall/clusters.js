@@ -422,6 +422,7 @@ router.put('/cluster', function (req, res)
     logger.debug("JSON RECIBIDO: ", JsonData);
     //new objet with Cluster data
     var clusterData = {
+        id: JsonData.clusterData.id,
         name: JsonData.clusterData.name,
         comment: JsonData.clusterData.comment,
         fwcloud: fwcloud
