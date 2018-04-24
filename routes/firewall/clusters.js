@@ -416,10 +416,17 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 router.put('/cluster', function (req, res)
 {
     var fwcloud = req.fwcloud;
-    logger.debug("BODY: ", req.body);
     
-    //Save cluster data into objet 
-    var clusterData = {id: req.body.id, name: req.body.name, comment: req.body.comment};
+    var JsonData = req.body;
+    var fwnodes = JsonData.clusterData.fwnodes;
+    logger.debug("JSON RECIBIDO: ", JsonData);
+    //new objet with Cluster data
+    var clusterData = {
+        name: JsonData.clusterData.name,
+        comment: JsonData.clusterData.comment,
+        fwcloud: fwcloud
+    };
+    
     ClusterModel.updateCluster(fwcloud, clusterData, function (error, data)
     {
         //cluster ok
