@@ -736,7 +736,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, AllDone) {
                                                         }
 
                                                     }
-
+                                                    
                                                 });
 
 
@@ -778,7 +778,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
             //Select node NODES root for firewalls cluster
             folder = "FCF";
             sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + 
-                    ' AND T1.id_obj=(select id from firewall where cluster=' + connection.escape(idcluster) + ' and fwmaster=1 and fwcloud=' + connection.escape(fwcloud) + ') ' + 
+                    ' AND (T1.id_obj=(select id from firewall where cluster=' + connection.escape(idcluster) + ' and fwmaster=1 and fwcloud=' + connection.escape(fwcloud) + ') OR T1.id_obj=' + connection.escape(idcluster) + ')  ' + 
                     ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
         } else {
             //Select Parent Node by type   
