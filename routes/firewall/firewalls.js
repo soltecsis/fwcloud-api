@@ -474,7 +474,7 @@ router.post("/firewall", function (req, res)
         cluster: req.body.cluster,
         name: req.body.name,
         comment: req.body.comment,
-        fwcloud: req.fwcloud,        
+        fwcloud: req.fwcloud,
         install_user: req.body.install_user,
         install_pass: req.body.install_pass,
         save_user_pass: req.body.save_user_pass,
@@ -484,6 +484,7 @@ router.post("/firewall", function (req, res)
         install_port: req.body.install_port,
         by_user: iduser
     };
+    logger.debug("NEW FIREWALL: ", firewallData);
 
     FirewallModel.checkBodyFirewall(firewallData, true)
             .then(result => {
@@ -508,12 +509,12 @@ router.post("/firewall", function (req, res)
                             }
                             FirewallModel.insertFirewall(iduser, firewallData)
                                     .then(data =>
-                                    {                                        
+                                    {
                                         if (data && data.insertId)
                                         {
                                             var dataresp = {"insertId": data.insertId};
                                             var idfirewall = data.insertId;
-                                     
+
                                             FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
                                                 //////////////////////////////////
                                                 //INSERT FIREWALL NODE STRUCTURE                                                
@@ -524,14 +525,19 @@ router.post("/firewall", function (req, res)
                                                             res.status(200).json(jsonResp);
                                                         });
                                                     } else if (dataTree && dataTree.result) {
-                                                        ///CREATE CATCHING ALL RULES
-                                                        Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
-                                                                .then(() => {
-                                                                    api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                                                                        res.status(200).json(jsonResp);
+                                                        if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
+                                                            ///CREATE CATCHING ALL RULES
+                                                            Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
+                                                                    .then(() => {
+                                                                        api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                                                            res.status(200).json(jsonResp);
+                                                                        });
                                                                     });
-                                                                });
-
+                                                        } else {
+                                                            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+                                                                res.status(200).json(jsonResp);
+                                                            });
+                                                        }
 
                                                     } else
                                                         api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
@@ -550,8 +556,8 @@ router.post("/firewall", function (req, res)
                                     .catch(error => {
                                         logger.debug("ERROR INSERTING FIREWALL: ", error);
                                         api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                                                res.status(200).json(jsonResp);
-                                            });
+                                            res.status(200).json(jsonResp);
+                                        });
 
                                     });
                         })
