@@ -1597,6 +1597,31 @@ fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callb
         });
     });
 };
+
+//Update NODE from CLUSTER UPDATE
+fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback) {
+
+
+    db.get(function (error, connection) {
+        if (error)
+            callback(error, null);
+        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                ' name = ' + connection.escape(Data.name) + ' , comment= ' + connection.escape(Data.comment) +
+                ' WHERE id_obj = ' + connection.escape(Data.id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="CL"';
+        connection.query(sql, function (error, result) {
+            if (error) {
+                logger.debug(sql);
+                logger.debug(error);
+                callback(error, null);
+            } else {
+                if (result.affectedRows > 0)
+                    callback(null, {"result": true});
+                else
+                    callback(null, {"result": false});
+            }
+        });
+    });
+};
 //Update NODE from IPOBJ or INTERFACE UPDATE
 fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 

@@ -107,9 +107,9 @@ router.get('', function (req, res)
 router.get('/full/:id', function (req, res)
 {
     var id = req.params.id;
-    var iduser= req.iduser;
-    var fwcloud= req.fwcloud;
-    
+    var iduser = req.iduser;
+    var fwcloud = req.fwcloud;
+
 
     if (!isNaN(id))
     {
@@ -391,7 +391,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
                             });
                         });
                     });
-                    var resp={"result": true, "insertId": firewallData.id};
+                    var resp = {"result": true, "insertId": firewallData.id};
                     api_resp.getJson(resp, api_resp.ACR_INSERTED_OK, 'CONVERT OK', objModel, null, function (jsonResp) {
                         res.status(200).json(jsonResp);
                     });
@@ -415,15 +415,19 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 /* cluster update */
 router.put('/cluster', function (req, res)
 {
+    var fwcloud = req.fwcloud;
     //Save cluster data into objet 
-    var clusterData = {id: req.param('id'), name: req.param('name')};
-    ClusterModel.updateCluster(clusterData, function (error, data)
+    var clusterData = {id: req.body.id, name: req.body.name, comment: req.body.comment};
+    ClusterModel.updateCluster(fwcloud, clusterData, function (error, data)
     {
         //cluster ok
         if (data && data.result)
         {
-            api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-                res.status(200).json(jsonResp);
+            //UPDATE TREE
+            fwcTreemodel.updateFwc_Tree_Cluster(req.iduser, req.fwcloud, clusterData, function (error, dataT) {
+                api_resp.getJson(data,api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
             });
         } else
         {

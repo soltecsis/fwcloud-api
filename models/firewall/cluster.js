@@ -73,23 +73,20 @@ clusterModel.getClusterFullPro = function (iduser, fwcloud, idcluster) {
                                     if (dataFwM && dataFwM.length > 0) {
                                         var idFwMaster = dataFwM[0].id;
                                         InterfaceModel.getInterfacesFull(idFwMaster, fwcloud, function (error, dataI) {
-                                            if (dataI && dataI.length>0){
+                                            if (dataI && dataI.length > 0) {
                                                 dataCluster.interfaces = dataI;
-                                            }
-                                            else
+                                            } else
                                                 dataCluster.interfaces = [];
                                             resolve({"cluster": dataCluster});
                                         });
-                                    }
-                                    else
+                                    } else
                                         resolve({"cluster": dataCluster});
                                 });
-                            }
-                            else{
+                            } else {
                                 dataCluster.nodes = [];
                                 resolve({"cluster": dataCluster});
                             }
-                            
+
                         });
 
                     } else
@@ -134,19 +131,20 @@ clusterModel.insertCluster = function (clusterData, callback) {
 };
 
 //Update cluster
-clusterModel.updateCluster = function (clusterData, callback) {
+clusterModel.updateCluster = function (fwcloud, clusterData, callback) {
 
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ' ' +
-                ' WHERE id = ' + clusterData.id;
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ', ' +
+                ' comment=' + connection.escape(clusterData.comment) +
+                ' WHERE id = ' + clusterData.id + ' AND fwcloud=' + fwcloud;
 
         connection.query(sql, function (error, result) {
             if (error) {
                 callback(error, null);
-            } else {
-                callback(null, {"result": true});
+            } else {               
+                    callback(null, {"result": true});                
             }
         });
     });
