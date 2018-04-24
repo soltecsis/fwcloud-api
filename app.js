@@ -12,10 +12,11 @@ var favicon = require('serve-favicon');
 
 var log4js = require("log4js");
 const log4js_extend = require("log4js-extend");
+// This will log file name and line number in each log.
 log4js_extend(log4js, {
   path: __dirname,
   //format: "at @name (@file:@line:@column)"
-  format: "[@file:@line:@column]"
+  format: "[@file:@line]"
 });
 
 //var morgan = require('morgan');
@@ -125,7 +126,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined, 'undefined', 'null', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080'];
+var whitelist = [undefined, 'undefined', 'null', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
     origin: function (origin, callback) {
         logger.debug("ORIGIN: " + origin);
@@ -148,6 +149,21 @@ var utilsModel = require("./utils/utils.js");
 var api_resp = require('./utils/api_response');
 var UserModel = require('./models/user/user');
 var url = require('url');
+
+
+/*--------------------------------------------------------------------------------------*/
+// Middleware for user authentication and token validation.
+// All routes will use this middleware.
+var jwt = require('jsonwebtoken');
+
+app.all('*',(request, response, next) => {
+    // Exclude the login route.
+    if (request.path == '/user/login') return next();
+    
+    logger.debug("Into the authentication middleware."); 
+    next();
+});
+/*--------------------------------------------------------------------------------------*/
 
 
 var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
