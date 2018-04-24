@@ -10,14 +10,60 @@ var SseChannel = require('sse-channel');
 var redis = require('redis');
 var publisherClient = redis.createClient();
 
+var bcrypt = require('bcrypt-nodejs');
 
 var logger = require('log4js').getLogger("app");
 
 var cp = require("child_process");
 
+var jwt = require('jsonwebtoken');
+
 //BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
 
-        
+
+/*---------------------------------------------------------------------------*/
+/* AUTHENTICATION: Validate the user credentials.
+If all ok, then send the AUTHORIZATION token in the json answer.
+*/
+router.post('/login',(req, res) => {
+  // Verify that we have all the required parameters for autenticate the user.
+  if (!req.body.customer || !req.body.username || !req.body.password) {
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad data', objModel, null, jsonResp => { res.status(500).json(jsonResp) });
+    return;
+  }
+
+  logger.debug("LOGIN: customer="+req.body.customer+", user="+req.body.username);
+
+  UserModel.getUserName(req.body.customer, req.body.username, (error, data) => {
+    if (data.length===0) {
+      logger.debug("USER NOT FOUND: customer="+req.body.customer+", user="+req.body.username);
+      api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid user or password.', objModel, null, jsonResp => { res.status(500).json(jsonResp) });
+      return;
+    }
+    
+    // Validate credentials.
+    /* WARNING: As recomended in the bcrypt manual:
+    Why is async mode recommended over sync mode?
+    If you are using bcrypt on a simple script, using the sync mode is perfectly fine. 
+    However, if you are using bcrypt on a server, the async mode is recommended. 
+    This is because the hashing done by bcrypt is CPU intensive, so the sync version 
+    will block the event loop and prevent your application from servicing any other 
+    inbound requests or events.
+    */
+    bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password, (error, doesMatch) => {
+      if (doesMatch) {
+        // Return authorization token.
+        var token = jwt.sign({ customer: req.body.customer, user: req.body.user }, "MYSECRET", { expiresIn: 86400 });
+        api_resp.getJson({ token: token }, api_resp.ACR_OK, '', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
+      } else {
+        logger.debug("INVALID PASSWORD: customer="+req.body.customer+", user="+req.body.username);
+        api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid user or password.', objModel, error, jsonResp => { res.status(500).json(jsonResp) });
+      }
+    });
+  });
+});
+/*---------------------------------------------------------------------------*/
+
         
 
 router.get('/update-stream', function(req, res) {
@@ -188,40 +234,57 @@ router.get('/:customer/username/:username', function (req, res)
 /* new user */
 router.post("/user", function (req, res)
 {
-    //Objet to create new user
-    var userData = {
-        id: null,
-        customer: req.body.customer,
-        username: req.body.username,
-        allowed_ip: req.body.allowed_ip,
-        name: req.body.name,
-        email: req.body.email,
-        password: req.body.password,
-        role: req.body.role
-    };
-    UserModel.insertUser(userData, function (error, data)
-    {
+  //Objet to create new user
+  var userData = {
+    id: null,
+    customer: req.body.customer,
+    username: req.body.username.toLowerCase(),
+    allowed_ip: req.body.allowed_ip,
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    role: req.body.role
+  };
+
+  /* WARNING: As recomended in the bcrypt manual:
+  Why is async mode recommended over sync mode?
+  If you are using bcrypt on a simple script, using the sync mode is perfectly fine. 
+  However, if you are using bcrypt on a server, the async mode is recommended. 
+  This is because the hashing done by bcrypt is CPU intensive, so the sync version 
+  will block the event loop and prevent your application from servicing any other 
+  inbound requests or events.
+  */
+  bcrypt.genSalt(10, (error,salt) => {
+    bcrypt.hash(req.body.customer+req.body.username+req.body.password, salt, null, (error, hash) => {
+      if (error) api_resp.getJson(data, api_resp.ACR_ERROR, 'Error generating password hash.', '', error, jsonResp => { res.status(200).json(jsonResp) });
+      logger.debug("HASH: "+hash);
+      userData.password = hash;
+
+      UserModel.insertUser(userData, function (error, data)
+      {
         if (error)
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', '', error, function (jsonResp) {
-                res.status(200).json(jsonResp);
-            });
+          api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', '', error, function (jsonResp) {
+            res.status(200).json(jsonResp);
+          });
         else {
-            //User created  ok
-            if (data && data.insertId)
-            {
-                //res.redirect("/users/user/" + data.insertId);
-                var dataresp = {"insertId": data.insertId};
-                api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else
-            {
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
+          //User created  ok
+          if (data && data.insertId)
+          {
+            //res.redirect("/users/user/" + data.insertId);
+            var dataresp = {"insertId": data.insertId};
+            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+              res.status(200).json(jsonResp);
+          });
+          } else
+          {
+            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+              res.status(200).json(jsonResp);
+            });
+          }
         }
-    });
+      });
+    })
+  });
 });
 
 /* udate user */

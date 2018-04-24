@@ -35,7 +35,7 @@ var methodOverride = require('method-override');
 
 // custom libraries
 // routes
-var route = require('./route');
+//var route = require('./route');
 // model
 var Model = require('./model');
 
@@ -156,9 +156,9 @@ var url = require('url');
 // All routes will use this middleware.
 var jwt = require('jsonwebtoken');
 
-app.all('*',(request, response, next) => {
+app.all('*',(req, res, next) => {
     // Exclude the login route.
-    if (request.path == '/user/login') return next();
+    if (reqt.path == '/users/login') return next();
     
     logger.debug("Into the authentication middleware."); 
     next();
@@ -258,6 +258,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
+/*
 // GET
 app.get('/', route.index);
 
@@ -278,7 +279,7 @@ app.post('/signup', route.signUpPost);
 app.get('/signout', route.signOut);
 
 //CONTROL de LOGIN
-
+*/
 
 
 //var routes = require('./routes/index');
