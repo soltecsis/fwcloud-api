@@ -263,7 +263,9 @@ router.post("/fwcloud", function (req, res)
 
     var fwcloudData = {
         id: null,
-        name: req.body.name
+        name: req.body.name,
+        comment: req.body.comment,
+        image: req.body.image
     };
     var iduser = req.iduser;
 
@@ -275,7 +277,7 @@ router.post("/fwcloud", function (req, res)
             logger.debug("insertFwcloud: ", data);
             var dataresp = {"insertId": data.insertId};
             //CREATE INITIAL STRUCTURE 
-            logger.debug(">>>>>>> CLUSTER CREATED: ", data.insertId, " - ", fwcloudData.name);
+            logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
             fwcTreemodel.createAllTreeCloud(iduser, data.insertId, function (error, dataT) {
                 if (dataT && dataT.result) {
                     api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
