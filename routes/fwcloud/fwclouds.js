@@ -102,7 +102,7 @@ var db = require('../../db.js');
  *       };
  * 
  */
-router.get('/:iduser', function (req, res)
+router.get('/', function (req, res)
 {
     var iduser = req.iduser;
     FwcloudModel.getFwclouds(iduser, function (error, data)
@@ -138,10 +138,10 @@ router.get('/:iduser', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/:iduser/:fwcloud', function (req, res)
+router.get('/:fwcloud', function (req, res)
 {
     var iduser = req.iduser;
-    var fwcloud = req.fwcloud;
+    var fwcloud = req.params.fwcloud;
 
     if (!isNaN(fwcloud))
     {
@@ -188,9 +188,9 @@ router.get('/:iduser/:fwcloud', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/:iduser/name/:name', function (req, res)
+router.get('/name/:name', function (req, res)
 {
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var name = req.params.name;
 
     if (name.length > 0)
@@ -332,7 +332,7 @@ router.post("/fwcloud", function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/:iduser', utilsModel.checkConfirmationToken, function (req, res)
+router.put('/fwcloud', utilsModel.checkConfirmationToken, function (req, res)
 {
 
     //Save fwcloud data into objet
@@ -389,11 +389,11 @@ router.put('/fwcloud/:iduser', utilsModel.checkConfirmationToken, function (req,
  *         ]
  *       };
  */
-router.put('/fwcloud/lock/:iduser/:fwcloud', function (req, res)
+router.put('/fwcloud/lock/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {fwcloud: req.params.fwcloud, iduser: req.params.iduser};
+    var fwcloudData = {fwcloud: req.params.fwcloud, iduser: req.iduser};
 
     FwcloudModel.updateFwcloudLock(fwcloudData)
             .then(data => {
@@ -453,11 +453,11 @@ router.put('/fwcloud/lock/:iduser/:fwcloud', function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/unlock/:iduser/:fwcloud', function (req, res)
+router.put('/fwcloud/unlock/:fwcloud', function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.params.fwcloud, iduser: req.params.iduser};
+    var fwcloudData = {id: req.params.fwcloud, iduser: req.iduser};
     FwcloudModel.updateFwcloudUnlock(fwcloudData)
             .then(data => {
                 if (data.result) {
@@ -494,10 +494,10 @@ router.put('/fwcloud/unlock/:iduser/:fwcloud', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/locked/:iduser/:fwcloud', function (req, res)
+router.get('/locked/:fwcloud', function (req, res)
 {
 
-    var iduser = req.params.iduser;
+    var iduser = req.iduser;
     var fwcloud = req.params.fwcloud;
     if (!isNaN(fwcloud))
     {
