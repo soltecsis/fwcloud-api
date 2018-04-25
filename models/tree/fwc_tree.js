@@ -297,7 +297,8 @@ fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
         db.get(function (error, connection) {
             if (error)
                 reject(error);
-            var sql = 'UPDATE ' + tableModel + ' SET id_obj= ' + connection.escape(fwcloud)  + ' WHERE node_type<>"CL" AND node_type<>"FW"  AND fwcloud = ' + connection.escape(fwcloud) + ' AND id = ' + connection.escape(id);
+            var sql = 'UPDATE ' + tableModel + ' SET id_obj= ' + connection.escape(idNew)  + ' WHERE node_type<>"CL" AND node_type<>"FW"  AND fwcloud = ' + connection.escape(fwcloud) + ' AND id = ' + connection.escape(id);
+            logger.debug("SQL UPDATE NODE: ", sql);
             connection.query(sql, function (error, result) {
                 if (error) {
                     logger.debug(sql);

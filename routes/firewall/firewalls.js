@@ -878,7 +878,6 @@ router.get('/accesslock/:id', function (req, res)
  *         ]
  *       };
  */
-//FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, function (req, res)
 {
 
