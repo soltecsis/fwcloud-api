@@ -38,50 +38,6 @@ var methodOverride = require('method-override');
 
 var app = express();
 
-/*
-passport.use(new LocalStrategy(function (username, password, done) {
-    new Model.User({username: username}).fetch().then(function (data) {
-        var user = data;
-        if (user === null) {
-            return done(null, false, {message: 'Invalid username or password'});
-        } else {
-            user = data.toJSON();
-            // Generate a salt
-            var salt = bcrypt.genSaltSync(10);
-            // Hash the password with the salt
-            var hash = bcrypt.hashSync(password, salt);
-
-            if (!bcrypt.compareSync(password, user.password)) {
-                return done(null, false, {message: 'Invalid username or password'});
-            } else {
-                return done(null, user);
-            }
-        }
-    });
-}));
-
-passport.serializeUser(function (user, done) {
-    done(null, user.username);
-});
-
-passport.deserializeUser(function (username, done) {
-    new Model.User({username: username}).fetch().then(function (user) {
-        done(null, user);
-    });
-});
-*/
-
-/*
-//configuración para ejs
-app.set('views', path.join(__dirname, 'views'));
-app.engine("html", require("ejs").renderFile);
-app.set('view engine', 'html');
-*/
-
-
-//configuración para Logger and morgan
-
-
 var logger = log4js.getLogger('app');
 
 
