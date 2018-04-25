@@ -19,7 +19,7 @@ log4js_extend(log4js, {
   format: "[@file:@line]"
 });
 
-//var morgan = require('morgan');
+
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
@@ -33,16 +33,12 @@ var cors = require('cors');
 
 var methodOverride = require('method-override');
 
-// custom libraries
-// routes
-//var route = require('./route');
-// model
-var Model = require('./model');
+
 
 
 var app = express();
 
-
+/*
 passport.use(new LocalStrategy(function (username, password, done) {
     new Model.User({username: username}).fetch().then(function (data) {
         var user = data;
@@ -73,12 +69,15 @@ passport.deserializeUser(function (username, done) {
         done(null, user);
     });
 });
+*/
 
-
+/*
 //configuración para ejs
 app.set('views', path.join(__dirname, 'views'));
 app.engine("html", require("ejs").renderFile);
 app.set('view engine', 'html');
+*/
+
 
 //configuración para Logger and morgan
 
@@ -88,24 +87,6 @@ var logger = log4js.getLogger('app');
 
 app.use(log4js.connectLogger(log4js.getLogger("http"), {level: 'auto'}));
 
-//var http_logger = log4js.getLogger('http');
-
-//var theHTTPLog = morgan({
-//  "format": "default",
-//  "stream": {
-//    write: function(str) { http_logger.debug(str); }
-//  }
-//});
-//
-//app.use(morgan('dev'));
-
-//app.use(theHTTPLog);
-
-
-
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(__dirname + '/public/favicon.ico'));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -167,7 +148,6 @@ app.all('*',(req, res, next) => {
 
 
 var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
-//control_routes="^((?!\/ipobjs).)*";
 //CONTROL FWCLOUD ACCESS
 app.use(control_routes, function (request, response, next) {
 
@@ -258,31 +238,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-/*
-// GET
-app.get('/', route.index);
 
-// signin
-// GET
-app.get('/signin', route.signIn);
-// POST
-app.post('/signin', route.signInPost);
-
-// signup
-// GET
-app.get('/signup', route.signUp);
-// POST
-app.post('/signup', route.signUpPost);
-
-// logout
-// GET
-app.get('/signout', route.signOut);
-
-//CONTROL de LOGIN
-*/
-
-
-//var routes = require('./routes/index');
 var users = require('./routes/user/users');
 var user__firewalls = require('./routes/user/user__firewalls');
 var customers = require('./routes/user/customers');
