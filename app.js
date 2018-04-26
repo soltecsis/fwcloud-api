@@ -95,14 +95,12 @@ var url = require('url');
 //    saveUninitialized: true}));
 
 app.use(session({
-  name: 'FWCloud.net-cookie',
+  //name: 'FWCloud.net-cookie',
   secret: 'Xwq5LXpeViXGxMf6LR8UXaybJ46BBan9JoC3jwaJbFXjNvLSWi8bjBJ8at4Vf3PC',
   saveUninitialized: true,
   resave: true,
   store: new FileStore(),
-  cookie: {
-    sameSite: true
-  }
+  cookie: {maxAge: 60000}
 }));
 
 app.all('*',(req, res, next) => {
@@ -116,7 +114,7 @@ app.all('*',(req, res, next) => {
 
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
 
