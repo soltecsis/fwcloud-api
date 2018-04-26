@@ -31,6 +31,13 @@ var cors = require('cors');
 var methodOverride = require('method-override');
 
 var app = express();
+
+
+//configuración para ejs
+app.set('views', path.join(__dirname, 'views'));
+app.engine("html", require("ejs").renderFile);
+app.set('view engine', 'html');
+
 var logger = log4js.getLogger('app');
 
 app.use(log4js.connectLogger(log4js.getLogger("http"), {level: 'auto'}));
@@ -157,7 +164,18 @@ app.use(control_routes, function (request, response, next) {
         request.fwc_access = true;
         request.iduser = iduser;
         next();
-    } else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
+    } 
+    else if (originalURL === '/fwclouds/fwcloud' && request.method === 'PUT') {
+        logger.debug("FWCLOUD ACCESS TO UPDATE");
+        logger.debug(request.body);
+        //save access to user                
+        var userData = {id: iduser};
+        UserModel.updateUserTS(userData, function (error, data) {});        
+        request.fwc_access = true;
+        request.iduser = iduser;
+        next();
+    }
+    else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
         //Acces to GET ALL clouds
         logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
         var userData = {id: iduser};
