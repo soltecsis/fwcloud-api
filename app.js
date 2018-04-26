@@ -199,7 +199,7 @@ app.use(control_routes, function (request, response, next) {
         request.fwc_access = true;
         request.confirm_token = confirm_token;
         request.iduser = iduser;
-        request.fwcloud = request.body.id;
+        request.fwcloud = request.params.fwcloud;
         request.restricted = {};
         next();
     }

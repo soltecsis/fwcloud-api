@@ -332,7 +332,7 @@ fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
     db.get(function (error, connection) {
         if (error)
             callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +             
+        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +
                 ' ,image = ' + connection.escape(fwcloudData.image) +
                 ' ,comment = ' + connection.escape(fwcloudData.comment) +
                 ' WHERE id = ' + fwcloudData.id;
@@ -513,7 +513,7 @@ fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
+fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
     //El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
     db.get(function (error, connection) {
         if (error)
@@ -525,11 +525,10 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
         connection.query(sqlExists, function (error, row) {
             //If exists Id from fwcloud to remove
             if (row && row.length > 0) {
-                var sqlF = "select * from firewall where fwcloud=" + connection.escape(id);
-                connection.query(sqlF, function (error, rowF) {
-                    //If exists Id from fwcloud to remove
-                    if (rowF && rowF.length > 0) {
-                        callback(null, {"result": false, "msg": "FWCLOUD NOT EMPTY"});
+               
+                    
+                    if (restricted!=="") {
+                        callback(null, {"result": false, "msg": "Restricted", "restrictions": restricted});
                     } else {
                         //DELETE OBJECTS FROM CLOUD
                         fwcloudModel.EmptyFwcloudStandard(id)
@@ -556,7 +555,7 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
                                     callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
                                 });
                     }
-                });
+              
             } else {
                 callback(null, {"result": false});
             }
@@ -564,12 +563,39 @@ fwcloudModel.deleteFwcloud = function (iduser, id, callback) {
     });
 };
 
+fwcloudModel.checkRestrictionsCloud = function (req, res, next) {
+    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+    db.get(function (error, connection) {
+
+        var sqlR = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CF, ' +
+                ' (SELECT count(*) FROM fwcloud_db.cluster where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CC ';
+        logger.debug(sqlR);
+        connection.query(sqlR, function (error, row) {
+            if (row && row.length > 0) {
+                var cadRestricted = "";
+                if (row[0].CF > 0) {
+                    cadRestricted = " FIREWALLS";
+                    if (row[0].CC > 0)
+                        cadRestricted = cadRestricted + " AND CLUSTERS";
+                } else if (row[0].CC > 0)
+                    cadRestricted = "  CLUSTERS";
+                if (cadRestricted !== "") {
+                    logger.debug("RESTRICTED CLOUD: " + req.params.fwcloud);
+                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
+                }
+                next();
+
+            } else
+                next();
+        });
+    }
+    );
+};
 fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
     return new Promise((resolve, reject) => {
         var sqlcloud = "  is null";
         if (fwcloud !== null)
             sqlcloud = "= " + fwcloud;
-
         db.get(function (error, connection) {
             if (error)
                 reject(error);
@@ -628,7 +654,6 @@ fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
                     });
                 }
             });
-
         });
     });
 };
