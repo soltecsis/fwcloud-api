@@ -110,7 +110,7 @@ app.all('*',(req, res, next) => {
   logger.debug("Into the authentication middleware."); 
     
   // Remove this line for enable the token validation.
-  //return next();
+  return next();
 
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
