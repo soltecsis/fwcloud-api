@@ -12,14 +12,16 @@ exports.MODE_PRODUCTION = 'mode_production';
 var state = {
     pool: null,
     mode: null,
-    commit:1
+    commit: 1
 };
 
 var conn = null;
 
 exports.connect = function (dbconf, done) {
-    
-    configDB=config[dbconf];
+
+    logger.debug("---- CREATING DATABASE POOL : ");
+
+    configDB = config[dbconf];
     state.pool = mysql.createPool({
         connectionLimit: configDB.connectionLimit,
         host: configDB.host,
@@ -30,16 +32,20 @@ exports.connect = function (dbconf, done) {
     });
 
     state.mode = configDB.mode;
-    state.commit=configDB.commitMode;
-    
+    state.commit = configDB.commitMode;
+
+    logger.debug("---- CONECTING DATABASE : ");
+
     state.pool.getConnection(function (err, connection) {
-        if (err)
+        if (err){
+            logger.debug("---- ERROR CONECTING DATABASE: ", err);
             return done(err);
+        }
         else {
             conn = connection;
-            var sql ="SET AUTOCOMMIT=" + state.commit + ";";
+            var sql = "SET AUTOCOMMIT=" + state.commit + ";";
             conn.query(sql, function (error, result) {});
-            logger.debug("---- DATABASE CONNECTED: " + dbconf  + " in MODE: " +  state.mode + "  AUTOCOMMIT: " + state.commit + "  -----");
+            logger.debug("----  DATABASE CONNECTED: " + dbconf + " in MODE: " + state.mode + "  AUTOCOMMIT: " + state.commit + "  -----");
         }
     });
     done();
@@ -58,47 +64,47 @@ exports.get = function (done) {
 
 };
 
-exports.lockTable = function(cn,table, where,  done){    
+exports.lockTable = function (cn, table, where, done) {
     cn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
         if (error)
-            logger.debug("DATABASE ERROR IN LOCK TABLE : " + error );
+            logger.debug("DATABASE ERROR IN LOCK TABLE : " + error);
         else
-            logger.debug("TABLE " + table  + " LOCKED");
+            logger.debug("TABLE " + table + " LOCKED");
     });
     done();
 };
 
-exports.lockTableCon = function(table, where,  done){    
+exports.lockTableCon = function (table, where, done) {
     conn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
         if (error)
-            logger.debug("DATABASE ERROR IN LOCK TABLE : " + error );
+            logger.debug("DATABASE ERROR IN LOCK TABLE : " + error);
         else
-            logger.debug("TABLE " + table  + " LOCKED");
+            logger.debug("TABLE " + table + " LOCKED");
     });
     done();
 };
 
 
-exports.startTX = function(cn, done){    
+exports.startTX = function (cn, done) {
     cn.query("START TRANSACTION;", function (error, result) {
         if (error)
-            logger.debug("DATABASE ERROR IN START TRANSACTION : " + error );
+            logger.debug("DATABASE ERROR IN START TRANSACTION : " + error);
         else
             logger.debug("START TX");
     });
     done();
 };
-exports.startTXcon = function(done){    
+exports.startTXcon = function (done) {
     conn.query("START TRANSACTION;", function (error, result) {
         if (error)
-            logger.debug("DATABASE ERROR IN START TRANSACTION : " + error );
+            logger.debug("DATABASE ERROR IN START TRANSACTION : " + error);
         else
             logger.debug("START TX");
     });
     done();
 };
 
-exports.endTX = function(cn, done){    
+exports.endTX = function (cn, done) {
     cn.query("COMMIT;", function (error, result) {
         if (error)
             logger.debug("DATABASE ERROR IN COMMIT TRANSACTION: " + error);
@@ -108,7 +114,7 @@ exports.endTX = function(cn, done){
     done();
 };
 
-exports.endTXcon = function(done){    
+exports.endTXcon = function (done) {
     conn.query("COMMIT;", function (error, result) {
         if (error)
             logger.debug("DATABASE ERROR IN COMMIT TRANSACTION: " + error);
@@ -118,7 +124,7 @@ exports.endTXcon = function(done){
     done();
 };
 
-exports.backTX = function(cn, done){    
+exports.backTX = function (cn, done) {
     cn.query("ROLLBACK;", function (error, result) {
         if (error)
             logger.debug("DATABASE ERROR IN ROLLBACK TRANSACTION ");
@@ -128,7 +134,7 @@ exports.backTX = function(cn, done){
     done();
 };
 
-exports.backTXcon = function(done){    
+exports.backTXcon = function (done) {
     conn.query("ROLLBACK;", function (error, result) {
         if (error)
             logger.debug("DATABASE ERROR IN ROLLBACK TRANSACTION ");
