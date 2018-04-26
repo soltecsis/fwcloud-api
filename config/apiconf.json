@@ -2,8 +2,8 @@
     "dblocal": {
         "connectionLimit": "100",
         "host": "localhost",
-        "user": "soltecsis",
-        "password": "WdQ?:(x4",
+        "user": "root",
+        "password": "12345",
         "mode": "mode_production",
         "commitMode": "1"
     },
