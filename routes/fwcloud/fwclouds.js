@@ -261,10 +261,8 @@ router.get('/name/:name', function (req, res)
 router.post("/fwcloud", function (req, res)
 {
 
-    var fwcloudData = {
-        id: null,
-        name: req.body.name,
-        comment: req.body.comment,
+    var fwcloudData = {        
+        name: req.body.name,        
         image: req.body.image
     };
     var iduser = req.iduser;
@@ -338,7 +336,7 @@ router.put('/fwcloud', utilsModel.checkConfirmationToken, function (req, res)
 {
 
     //Save fwcloud data into objet
-    var fwcloudData = {id: req.body.id, name: req.body.name, comment: req.body.comment, image: req.body.image ,user: req.iduser};
+    var fwcloudData = {id: req.body.id, name: req.body.name,  image: req.body.image ,user: req.iduser};
 
     FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
     {

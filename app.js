@@ -172,7 +172,10 @@ app.use(control_routes, function (request, response, next) {
         var userData = {id: iduser};
         UserModel.updateUserTS(userData, function (error, data) {});        
         request.fwc_access = true;
+        request.confirm_token = confirm_token;
         request.iduser = iduser;
+        request.fwcloud = request.body.id;
+        request.restricted = {};
         next();
     }
     else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
@@ -192,6 +195,7 @@ app.use(control_routes, function (request, response, next) {
         request.fwc_access = true;
         request.confirm_token = confirm_token;
         request.iduser = iduser;
+        request.fwcloud = request.body.id;
         request.restricted = {};
         next();
     }
