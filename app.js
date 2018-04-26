@@ -88,19 +88,18 @@ var url = require('url');
 // Middleware for user authentication and token validation.
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
-//app.use(session({
-//    secret: 'La nieve cae blanca',
-//    cookie: {maxAge: 60000},
-//    resave: true,
-//    saveUninitialized: true}));
-
 app.use(session({
   name: 'FWCloud.net-cookie',
-  secret: 'Xwq5LXpeViXGxMf6LR8UXaybJ46BBan9JoC3jwaJbFXjNvLSWi8bjBJ8at4Vf3PC',
+  secret: 'Xwq5LXpeViXGxMf6LR8U!aybJ46BBan9JoC*jwaJbFXjNvLSWi8b)(jBJ8at4Vf3PC',
   saveUninitialized: true,
   resave: true,
   store: new FileStore(),
-  cookie: {maxAge: 60000}
+  cookie: { 
+    //maxAge: 60000, 
+    //secure: true, // Enable this when the https is enabled for the API.
+    domain: 'FWCloud.net',
+    httpOnly: true
+  }
 }));
 
 app.all('*',(req, res, next) => {
@@ -109,9 +108,12 @@ app.all('*',(req, res, next) => {
 
   logger.debug("Into the authentication middleware."); 
     
-  // Remove this line for enable the token validation.
+  /////////////////////////////////////////////////////
+  // Remove/comment this code for enable the token validation.
+  req.session.destroy(err => {} );
   return next();
-
+  /////////////////////////////////////////////////////
+  
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
