@@ -16,19 +16,17 @@ var logger = require('log4js').getLogger("app");
 
 var cp = require("child_process");
 
-var jwt = require('jsonwebtoken');
 
 //BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
 
 
 /*---------------------------------------------------------------------------*/
-/* AUTHENTICATION: Validate the user credentials.
-If all ok, then send the AUTHORIZATION token in the json answer.
-*/
+/* AUTHENTICATION: Validate the user credentials and initialize data in the session file. */
 /*---------------------------------------------------------------------------*/
 router.post('/login',(req, res) => {
   // Verify that we have all the required parameters for autenticate the user.
   if (!req.body.customer || !req.body.username || !req.body.password) {
+    req.session.destroy(err => {} );
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad data', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
@@ -37,6 +35,7 @@ router.post('/login',(req, res) => {
 
   UserModel.getUserName(req.body.customer, req.body.username, (error, data) => {
     if (data.length===0) {
+      req.session.destroy(err => {} );
       logger.debug("USER NOT FOUND: customer="+req.body.customer+", user="+req.body.username);
       api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid user or password.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
       return;
@@ -54,9 +53,12 @@ router.post('/login',(req, res) => {
     bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password, (error, doesMatch) => {
       if (doesMatch) {
         // Return authorization token.
-        var token = jwt.sign({ customer_id: data[0].customer, user_id: data[0].id, username: data[0].username }, "MYSECRET", { expiresIn: 86400 });
-        api_resp.getJson({ token: token }, api_resp.ACR_OK, '', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
+        req.session.customer_id = data[0].customer;
+        req.session.user_id = data[0].id;
+        req.session.username = data[0].username;
+        api_resp.getJson(null, api_resp.ACR_OK, 'User loged in.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
       } else {
+        req.session.destroy(err => {} );
         logger.debug("INVALID PASSWORD: customer="+req.body.customer+", user="+req.body.username);
         api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid user or password.', objModel, error, jsonResp => { res.status(200).json(jsonResp) });
       }
@@ -65,7 +67,13 @@ router.post('/login',(req, res) => {
 });
 /*---------------------------------------------------------------------------*/
 
-        
+/*---------------------------------------------------------------------------*/
+router.post('/logout',(req, res) => {
+  req.session.destroy(err => {} );
+  api_resp.getJson(null, api_resp.ACR_OK, 'Session destroyed.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
+});
+/*---------------------------------------------------------------------------*/
+  
 
 router.get('/update-stream', function(req, res) {
   // let request last as long as possible

@@ -23,9 +23,8 @@ log4js_extend(log4js, {
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
+var FileStore = require('session-file-store')(session);
 var bcrypt = require('bcrypt-nodejs');
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
 var cors = require('cors');
 
 var methodOverride = require('method-override');
@@ -89,41 +88,48 @@ var url = require('url');
 // Middleware for user authentication and token validation.
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
-var jwt = require('jsonwebtoken');
+//app.use(session({
+//    secret: 'La nieve cae blanca',
+//    cookie: {maxAge: 60000},
+//    resave: true,
+//    saveUninitialized: true}));
+
+app.use(session({
+  name: 'FWCloud.net-cookie',
+  secret: 'Xwq5LXpeViXGxMf6LR8UXaybJ46BBan9JoC3jwaJbFXjNvLSWi8bjBJ8at4Vf3PC',
+  saveUninitialized: true,
+  resave: true,
+  store: new FileStore(),
+  cookie: {
+    sameSite: true
+  }
+}));
 
 app.all('*',(req, res, next) => {
-    // Exclude the login route.
-    if (req.path == '/users/login') return next();
+  // Exclude the login route.
+  if (req.path == '/users/login') return next();
 
-    logger.debug("Into the authentication middleware."); 
+  logger.debug("Into the authentication middleware."); 
     
-    // Remove this line for enable the token validation.
-    return next();
+  // Remove this line for enable the token validation.
+  return next();
 
-    // Token validation code goes here.
-    var token = req.headers['x_fwc_token_auth'];
-    if (!token) {
-        api_resp.getJson(null, api_resp.ACR_ERROR, 'No authorization token found.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-        return;
+  if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
+    req.session.destroy(err => {} );
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+    return;
+  }
+
+  UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
+    if (data.length===0) {
+      req.session.destroy(err => {} );
+      api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+      return;
     }
-  
-    jwt.verify(token, "MYSECRET", (err, decoded) => {
-        if (err) {
-            api_resp.getJson(null, api_resp.ACR_ERROR, 'Token validation failed.', '', err, jsonResp => { res.status(200).json(jsonResp) });
-            return;
-        }
 
-        UserModel.getUserName(decoded.customer_id, decoded.username, (error, data) => {
-            // If no data found o the decoded user id doesn't match the one in the database, then the token is not valid.
-            if (data.length===0 || decoded.user_id!=data[0].id) {
-              api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid authorization token.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-              return;
-            }
-
-            // If we arrive here, then the token has been succesfully validated.
-            next(); 
-        });
-    });
+    // If we arrive here, then the session is correct.
+    next(); 
+  });
 });
 /*--------------------------------------------------------------------------------------*/
 
@@ -222,16 +228,6 @@ app.use(control_routes, function (request, response, next) {
 
 var db = require('./db');
 
-
-
-
-app.use(session({
-    secret: 'La nieve cae blanca',
-    cookie: {maxAge: 60000},
-    resave: true,
-    saveUninitialized: true}));
-app.use(passport.initialize());
-app.use(passport.session());
 
 
 
