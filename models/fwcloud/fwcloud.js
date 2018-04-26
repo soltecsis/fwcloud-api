@@ -334,6 +334,7 @@ fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
             callback(error, null);
         var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +             
                 ' ,image = ' + connection.escape(fwcloudData.image) +
+                ' ,comment = ' + connection.escape(fwcloudData.comment) +
                 ' WHERE id = ' + fwcloudData.id;
         logger.debug(sql);
         connection.query(sql, function (error, result) {
