@@ -20,3 +20,4 @@ routes/xml
 
 *.swp
 DATA/
+sessions/

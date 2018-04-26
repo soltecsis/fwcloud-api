@@ -95,7 +95,7 @@ var url = require('url');
 //    saveUninitialized: true}));
 
 app.use(session({
-  //name: 'FWCloud.net-cookie',
+  name: 'FWCloud.net-cookie',
   secret: 'Xwq5LXpeViXGxMf6LR8UXaybJ46BBan9JoC3jwaJbFXjNvLSWi8bjBJ8at4Vf3PC',
   saveUninitialized: true,
   resave: true,
