@@ -109,26 +109,29 @@ app.all('*',(req, res, next) => {
     
   /////////////////////////////////////////////////////
   // Remove/comment this code for enable the token validation.
-  //req.session.destroy(err => {} );
-  //return next();
+  req.session.destroy(err => {} );
+  return next();
   /////////////////////////////////////////////////////
   
-  if (req.session.cookie.maxAge < 1) { // See if the session has expired.
+  if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+    logger.debug("Invalid session."); 
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
 
-  if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
+  if (req.session.cookie.maxAge < 1) { // See if the session has expired.
     req.session.destroy(err => {} );
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+    logger.debug("Session expired."); 
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
 
   UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
     if (data.length===0) {
       req.session.destroy(err => {} );
-      api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+      logger.debug("Bad session data."); 
+      api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
       return;
     }
 
