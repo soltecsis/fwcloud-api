@@ -91,14 +91,13 @@ var url = require('url');
 app.use(session({
   name: 'FWCloud.net-cookie',
   secret: 'Xwq5LXpeViXGxMf6LR8U!aybJ46BBan9JoC*jwaJbFXjNvLSWi8b)(jBJ8at4Vf3PC',
-  saveUninitialized: true,
+  saveUninitialized: false,
   resave: true,
   store: new FileStore(),
   cookie: { 
-    //maxAge: 60000, 
+    maxAge: 1 * 60 * 1000, 
     //secure: true, // Enable this when the https is enabled for the API.
-    domain: 'FWCloud.net',
-    httpOnly: true
+    httpOnly: false
   }
 }));
 
@@ -110,10 +109,16 @@ app.all('*',(req, res, next) => {
     
   /////////////////////////////////////////////////////
   // Remove/comment this code for enable the token validation.
-  req.session.destroy(err => {} );
-  return next();
+  //req.session.destroy(err => {} );
+  //return next();
   /////////////////////////////////////////////////////
   
+  if (req.session.cookie.maxAge < 1) { // See if the session has expired.
+    req.session.destroy(err => {} );
+    api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+    return;
+  }
+
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
