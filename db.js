@@ -25,8 +25,7 @@ exports.connect = function (dbconf, done) {
     state.pool = mysql.createPool({
         connectionLimit: configDB.connectionLimit,
         timeout: 100000,
-        connectTimeout: 100000,
-        acquireTimeout: 100000,
+        connectTimeout: 100000,        
         host: configDB.host,
         user: configDB.user,
         password: configDB.password,
