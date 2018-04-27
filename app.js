@@ -61,7 +61,7 @@ app.use(methodOverride(function (req, res) {
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
+/*var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
     origin: function (origin, callback) {
         if (whitelist.indexOf(origin) !== -1) {
@@ -75,7 +75,7 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
+*/
 
 logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 
