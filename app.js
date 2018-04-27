@@ -137,7 +137,7 @@ app.use((req, res, next) => {
     }
 
     // If we arrive here, then the session is correct.
-    logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username,+")");     
+    logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
     next(); 
   });
 });
