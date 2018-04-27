@@ -70,7 +70,7 @@ fwcloudModel.getFwclouds = function (iduser, callback) {
             callback(error, null);
         var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
                 ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ORDER BY C.id';
+                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ORDER BY C.name';
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
