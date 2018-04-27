@@ -63,7 +63,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
-    credentials: true,
+    credentials: true, // WARNING: This is very important and necessary for the session authorization.
     origin: function (origin, callback) {
         if (whitelist.indexOf(origin) !== -1) {
             logger.debug("ORIGIN ALLOWED: " + origin);
@@ -113,8 +113,8 @@ app.use((req, res, next) => {
   // WARNING!!!!: If you enable the next two code lines, then you disable
   // the authorization mechanism for access the API and it will be accesible
   // without autorization.
-  req.session.destroy(err => {} );
-  return next();
+  //req.session.destroy(err => {} );
+  //return next();
   /////////////////////////////////////////////////////////////////////////////////
   
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
