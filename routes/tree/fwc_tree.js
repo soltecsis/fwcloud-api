@@ -27,7 +27,7 @@ router.get('/clusters', function (req, res)
                 var root_node = new fwc_tree_node(row);
                 //console.log(root_node);
                 var tree = new Tree(root_node);
-                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDC", '', function (error, data)
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDC", row.order_mode, '', function (error, data)
                 {
                     
                     if (!error)
@@ -70,7 +70,7 @@ router.get('/firewalls', function (req, res)
                 var root_node = new fwc_tree_node(row);
                 //console.log(root_node);
                 var tree = new Tree(root_node);
-                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", '', function (error, data)
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF",row.order_mode ,'', function (error, data)
                 {                    
                     if (!error)
                     {
@@ -116,7 +116,7 @@ router.get('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (re
                 var root_node = new fwc_tree_node(row);
                 //console.log(root_node);
                 var tree = new Tree(root_node);
-                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF", idfirewall, function (error, data)
+                fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF",row.order_mode, idfirewall, function (error, data)
                 {
                     //If exists fwc_tree get data
                     if (!error)
@@ -166,7 +166,7 @@ router.get('/objects/:objStandard/:objCloud/', function (req, res)
             var tree = new Tree(root_node);
 
             //(iduser, fwcloud, idparent, tree, objStandard, objCloud,node_type, AllDone)
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO", '', function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO",row.order_mode, '', function (error, data)
             {
                 //If exists fwc_tree get data
                 if (!error)
@@ -214,7 +214,7 @@ router.get('/objects/:objStandard/:objCloud/:id', function (req, res)
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO", '', function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDO",row.order_mode, '', function (error, data)
             {
                 //If exists fwc_tree get data
                 if (!error)
@@ -258,7 +258,7 @@ router.get('/services/:objStandard/:objCloud', function (req, res)
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS", '', function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS",row.order_mode, '', function (error, data)
             {
                 //If exists fwc_tree get data
                 if (!error)
@@ -303,7 +303,7 @@ router.get('/services/:objStandard/:objCloud/:id', function (req, res)
             //create object
             var root_node = new fwc_tree_node(row);
             var tree = new Tree(root_node);
-            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS", '', function (error, data)
+            fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, "FDS",row.order_mode, '', function (error, data)
             {
                 //If exists fwc_tree get data
                 if (!error)
