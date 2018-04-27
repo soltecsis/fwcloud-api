@@ -60,7 +60,8 @@ app.use(methodOverride(function (req, res) {
 //app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-
+// Cross-Origin Resource Sharing (CORS)
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
     credentials: true, // WARNING: This is very important and necessary for the session authorization.
