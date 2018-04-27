@@ -16,6 +16,7 @@ var Policy_typeModel = require('../../models/policy/policy_type');
 var tableModel = "policy_r";
 var Policy_positionModel = require('../../models/policy/policy_position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+
 var IpobjModel = require('../../models/ipobj/ipobj');
 var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
 var InterfaceModel = require('../../models/interface/interface');
@@ -329,7 +330,7 @@ policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule
                         type = 1;
 
                     var sql = 'SELECT ' + fwcloud + ' as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, ' +
-                            ' F.name as firewall_name, ' + 
+                            ' F.name as firewall_name, ' +
                             ' C.updated_at as c_updated_at, ' +
                             ' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
                             ' FROM ' + tableModel + ' P ' +
@@ -504,7 +505,7 @@ policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfir
             if (dataPol && dataPol.length > 0) {
                 policy_rData.type = dataPol[0].id;
                 //Insert Empty Rule
-                policy_rData.action=1; // For the OUTPUT chain by default allow all traffic.
+                policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
                 policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
                     if (dataRule && dataRule.result) {
                         logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL OUTPUT RULE CREATED:  " + dataRule.insertId);
@@ -539,6 +540,122 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
                 } else
                     callback(null, {"result": false});
             }
+        });
+    });
+};
+
+//Clone policy and IPOBJ
+policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            sql = ' select ' + connection.escape(idNewfirewall) + ' as newfirewall, P.* ' +
+                    ' from policy_r P ' +
+                    ' where P.firewall=' + connection.escape(idfirewall);
+            logger.debug(sql);
+            connection.query(sql, function (error, rows) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    //Bucle por Policy
+                    Promise.all(rows.map(policy_rModel.clonePolicy))
+                            .then(data => {
+                                logger.debug("-->>>>>>>> FINAL de POLICY para nuevo Firewall : " + idNewfirewall);
+                                resolve(data);
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
+
+                }
+            });
+        });
+    });
+};
+
+policy_rModel.clonePolicy = function (rowData) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            //CREATE NEW POLICY
+
+            var policy_rData = {
+                id: null,
+                idgroup: rowData.idgroup,
+                firewall: rowData.newfirewall,
+                rule_order: rowData.rule_order,
+                action: rowData.action,
+                time_start: rowData.time_start,
+                time_end: rowData.time_end,
+                active: rowData.active,
+                options: rowData.options,
+                comment: rowData.comment,
+                type: rowData.type,
+                style: rowData.style,
+                fw_apply_to: rowData.fw_apply_to,
+                fw_ref: rowData.firewall
+            };
+
+            policy_rModel.insertPolicy_r(policy_rData, function (error, data)
+            {
+                if (error)
+                    resolve(false);
+
+                var newRule = data.insertId;
+                //SELECT ALL IPOBJ UNDER POSITIONS
+                sql = ' select ' + connection.escape(newRule) + ' as newrule, O.* ' +
+                        ' from policy_r__ipobj O ' +
+                        ' where O.rule=' + connection.escape(rowData.id) +
+                        ' ORDER BY position_order';
+                logger.debug(sql);
+                connection.query(sql, function (error, rows) {
+                    if (error) {
+                        logger.debug(error);
+                        reject(error);
+                    } else {
+                        //Bucle por IPOBJS
+                        Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj))
+                                .then(data => {
+                                    logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva POLICY: " + newRule);                                    
+                                })
+                                .then(() => {
+                                    //SELECT ALL INTERFACES UNDER POSITIONS
+                                    sql = ' select ' + connection.escape(newRule) + ' as newrule, O.* ' +
+                                            ' from policy_r__interface O ' +
+                                            ' where O.rule=' + connection.escape(rowData.id) +
+                                            ' ORDER BY position_order';
+                                    logger.debug(sql);
+                                    connection.query(sql, function (error, rowsI) {
+                                        if (error) {
+                                            logger.debug(error);
+                                            reject(error);
+                                        } else {
+                                            //Bucle por IPOBJS
+                                            Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
+                                                    .then(data => {
+                                                        logger.debug("-->>>>>>>> FINAL de INTERFACES PARA nueva POLICY: " + newRule);
+                                                        resolve(data);
+                                                    })
+                                                    .catch(e => {
+                                                        reject(e);
+                                                    });
+
+                                        }
+                                    });
+                                })
+                                .catch(e => {
+                                    reject(e);
+                                });
+
+                    }
+                });
+
+
+            });
         });
     });
 };

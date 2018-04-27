@@ -489,6 +489,48 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
         });
     });
 };
+
+firewallModel.cloneFirewall = function (iduser, firewallData, callback) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                callback(error, null);
+            var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+                    ' AND U.id_user=' + connection.escape(iduser) +
+                    ' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+            logger.debug(sqlExists);
+            connection.query(sqlExists, function (error, row) {
+                //NEW FIREWALL
+                if (row && row.length > 0) {
+                    var sql = 'insert into firewall(cluster,fwcloud,name, comment, by_user, status_compiled, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port, ip_admin) ' +
+                            ' select cluster,fwcloud,' + connection.escape(firewallData.name) + ', comment, ' + connection.escape(iduser) + ' , status_compiled, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port, ip_admin ' +
+                            ' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
+
+
+                    logger.debug(sql);
+                    connection.query(sql, function (error, result) {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            var fwid = result.insertId;
+                            connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
+                                if (error) {
+                                    logger.debug("SQL ERROR USER INSERT: ", error);
+                                    reject(error);
+                                } else {
+                                    resolve({"result": true, "insertId": fwid});                                    
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    resolve({"result": false});
+                }
+            });
+        });
+    });
+};
+
 firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, fwmaster, callback) {
 
     db.get(function (error, connection) {
@@ -961,27 +1003,27 @@ firewallModel.deleteFirewallFromCluster = function (iduser, fwcloud, idfirewall,
     });
 };
 
-firewallModel.checkRestrictionsFirewallApplyTo = function (req, res, next) {    
-        req.restricted = {"result": true, "msg": "", "restrictions": ""};
-        db.get(function (error, connection) {
-            
-            var sqlR = 'SELECT count(*) as cont FROM fwcloud_db.policy_r  R inner join firewall F on R.firewall=F.id ' +
-                    ' where fw_apply_to=' + connection.escape(req.params.idfirewall) +
-                    ' AND F.cluster=' + connection.escape(req.params.idcluster) + 
-                    ' AND F.fwcloud=' + connection.escape(req.fwcloud) ;
-            logger.debug(sqlR);
-            connection.query(sqlR, function (error, row) {
-                if (row && row.length > 0) {
-                    if (row[0].cont > 0) {
-                        logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall + " CLUSTER:" + req.params.idcluster + "  Fwcloud: " + req.fwcloud);
-                        req.restricted = {"result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES"};
-                        next();
-                    } else
-                        next();
+firewallModel.checkRestrictionsFirewallApplyTo = function (req, res, next) {
+    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+    db.get(function (error, connection) {
+
+        var sqlR = 'SELECT count(*) as cont FROM fwcloud_db.policy_r  R inner join firewall F on R.firewall=F.id ' +
+                ' where fw_apply_to=' + connection.escape(req.params.idfirewall) +
+                ' AND F.cluster=' + connection.escape(req.params.idcluster) +
+                ' AND F.fwcloud=' + connection.escape(req.fwcloud);
+        logger.debug(sqlR);
+        connection.query(sqlR, function (error, row) {
+            if (row && row.length > 0) {
+                if (row[0].cont > 0) {
+                    logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall + " CLUSTER:" + req.params.idcluster + "  Fwcloud: " + req.fwcloud);
+                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES"};
+                    next();
                 } else
                     next();
-            });
-        });    
+            } else
+                next();
+        });
+    });
 };
 
 firewallModel.checkBodyFirewall = function (body, isNew) {

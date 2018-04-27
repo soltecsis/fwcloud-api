@@ -708,6 +708,89 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 
 
 });
+//utilsModel.checkConfirmationToken,
+router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
+{
+
+    var idfirewall = req.params.idfirewall;
+
+    //Save firewall data into objet    
+    var firewallData = {
+        id: idfirewall,
+        name: req.body.name,
+        comment: req.body.comment,
+        fwcloud: req.fwcloud, //working cloud      
+        by_user: req.iduser  //working user
+    };
+
+    logger.debug(firewallData);
+
+    FirewallModel.cloneFirewall(req.iduser, firewallData)
+            .then(data =>
+            {
+                //Saved ok
+                if (data && data.result)
+                {
+                    logger.debug("NUEVO FIREWALL CREADO: " + data.insertId);
+                    var idNewFirewall = data.insertId;
+
+                    //CLONE INTERFACES
+                    InterfaceModel.cloneFirewallInterfaces(req.iduser, req.fwcloud, idfirewall, idNewFirewall)
+                            .then(dataI =>
+                            {
+                                //CLONE RULES
+                                Policy_rModel.cloneFirewallPolicy(req.iduser, req.fwcloud, idfirewall, idNewFirewall)
+                                        .then(dataP => {
+                                            //INSERT FIREWALL NODE STRUCTURE                                                
+                                            //fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, idNewFirewall, null, 1, function (error, dataTree) {
+                                            fwcTreemodel.insertFwc_Tree_firewalls(req.fwcloud, "FDF", idNewFirewall, function (error, dataTree) {
+
+                                                if (error)
+                                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                        res.status(200).json(jsonResp);
+                                                    });
+                                                else if (data && data.result)
+                                                    api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, function (jsonResp) {
+                                                        res.status(200).json(jsonResp);
+                                                    });
+                                                else
+                                                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+                                                        res.status(200).json(jsonResp);
+                                                    });
+                                            });
+                                        })
+                                        .catch(err => {
+                                            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, function (jsonResp) {
+                                                res.status(200).json(jsonResp);
+                                            });
+                                        });
+                            })
+                            .catch(err => {
+                                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, function (jsonResp) {
+                                    res.status(200).json(jsonResp);
+                                });
+                            });
+
+
+                } else
+                {
+                    api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, function (jsonResp) {
+                        res.status(200).json(jsonResp);
+                    });
+                }
+            })
+            .catch(e => {
+                api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
+                    res.status(200).json(jsonResp);
+                });
+            });
+
+
+
+
+
+});
+
 
 //UPDATE FIREWALL FWMASTER
 router.put('/firewall/:idfirewall/fwmaster/:fwmaster', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)

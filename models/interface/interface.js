@@ -54,7 +54,7 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ' +
                 ' ORDER BY I.id';
-        
+
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);
@@ -143,15 +143,14 @@ interfaceModel.getInterfaceHost = function (idhost, fwcloud, id, callback) {
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
                 ' left join cluster C on C.id=F.cluster ' +
-                ' WHERE I.id = ' + connection.escape(id) ;
-                
+                ' WHERE I.id = ' + connection.escape(id);
+
         //logger.debug("INTERFACE SQL: " + sql);
         connection.query(sql, function (error, row) {
-            if (error){
-                logger.debug("ERROR getinterface: " , error, "\n", sql);
+            if (error) {
+                logger.debug("ERROR getinterface: ", error, "\n", sql);
                 callback(error, null);
-            }
-            else
+            } else
                 callback(null, row);
         });
     });
@@ -173,16 +172,15 @@ interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
                 ' left join ipobj J ON J.id=O.ipobj ' +
                 ' left join firewall F on F.id=I.firewall ' +
                 ' left join cluster C on C.id=F.cluster ' +
-                ' WHERE I.id = ' + connection.escape(id) ;
-                //Quitamos filtro de firewall
-                //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                ' WHERE I.id = ' + connection.escape(id);
+        //Quitamos filtro de firewall
+        //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
         //logger.debug("INTERFACE SQL: " + sql);
         connection.query(sql, function (error, row) {
-            if (error){
-                logger.debug("ERROR getinterface: " , error, "\n", sql);
+            if (error) {
+                logger.debug("ERROR getinterface: ", error, "\n", sql);
                 callback(error, null);
-            }
-            else
+            } else
                 callback(null, row);
         });
     });
@@ -202,8 +200,8 @@ interfaceModel.getInterfacePro = function (idfirewall, fwcloud, id) {
                     ' left join interface__ipobj O on O.interface=I.id ' +
                     ' left join ipobj J ON J.id=O.ipobj ' +
                     ' left join firewall F on F.id=I.firewall ' +
-                    ' WHERE I.id = ' + connection.escape(id) ;
-                    //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                    ' WHERE I.id = ' + connection.escape(id);
+            //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
             connection.query(sql, function (error, row) {
                 if (error)
                     reject(error);
@@ -241,8 +239,8 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                     ' left join interface__ipobj O on O.interface=I.id ' +
                     ' left join ipobj J ON J.id=O.ipobj ' +
                     ' left join firewall F on F.id=I.firewall ' +
-                    ' WHERE I.id = ' + connection.escape(id) ;
-                    //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                    ' WHERE I.id = ' + connection.escape(id);
+            //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
             //logger.debug("getInterfaceFullPro ->", sql);
             connection.query(sql, function (error, row) {
                 if (error)
@@ -251,7 +249,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
                     //GET ALL IPOBJ UNDER INTERFACE
                     //logger.debug("INTERFACE -> " , row[0]);
                     IpobjModel.getAllIpobjsInterfacePro(row[0])
-                            .then(dataI => {                                
+                            .then(dataI => {
                                 Promise.all(dataI.ipobjs.map(IpobjModel.getIpobjPro))
                                         .then(dataO => {
                                             //dataI.ipobjs = dataO;
@@ -317,8 +315,8 @@ interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback)
         var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +
                 ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
-                ' WHERE I.name like ' + connection.escape(namesql) ;
-                //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
+                ' WHERE I.name like ' + connection.escape(namesql);
+        //' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
 
         connection.query(sql, function (error, row) {
             if (error)
@@ -614,6 +612,91 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
         });
     });
 };
+
+//Clone interfaces and IPOBJ
+interfaceModel.cloneFirewallInterfaces = function (iduser, fwcloud, idfirewall, idNewfirewall) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            sql = ' select ' + connection.escape(idNewfirewall) + ' as newfirewall, I.* ' +
+                    ' from interface I ' +
+                    ' where I.firewall=' + connection.escape(idfirewall);
+            logger.debug(sql);
+            connection.query(sql, function (error, rows) {
+                if (error) {
+                    logger.debug(error);
+                    reject(error);
+                } else {
+                    //Bucle por interfaces
+                    Promise.all(rows.map(interfaceModel.cloneInterface))
+                            .then(data => {
+                                logger.debug("-->>>>>>>> FINAL de INTERFACES para nuevo Firewall : " + idNewfirewall);
+                                resolve(data);
+                            })
+                            .catch(e => {
+                                reject(e);
+                            });
+
+                }
+            });
+        });
+    });
+};
+
+interfaceModel.cloneInterface = function (rowData) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            //CREATE NEW INTERFACE
+            //Create New objet with data interface
+            var interfaceData = {
+                id: null,
+                firewall: rowData.newfirewall,
+                name: rowData.name,
+                labelName: rowData.labelName,
+                type: rowData.type,
+                interface_type: rowData.interface_type,
+                comment: rowData.comment,
+                mac: rowData.mac,
+                id_fwb: rowData.id
+            };
+            interfaceModel.insertInterface(interfaceData, function (error, data) {
+                if (error)
+                    resolve(false);
+                
+                var newInterface= data.insertId; 
+                //SELECT ALL IPOBJ UNDER INTERFACE
+                sql = ' select ' + connection.escape(newInterface) + ' as newinterface, O.* ' +
+                        ' from ipobj O ' +
+                        ' where O.interface=' + connection.escape(rowData.id);
+                logger.debug(sql);
+                connection.query(sql, function (error, rows) {
+                    if (error) {
+                        logger.debug(error);
+                        reject(error);
+                    } else {
+                        //Bucle por IPOBJS
+                        Promise.all(rows.map(IpobjModel.cloneIpobj))
+                                .then(data => {
+                                    logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva INTERFACE: " + newInterface);
+                                    resolve(data);
+                                })
+                                .catch(e => {
+                                    reject(e);
+                                });
+
+                    }
+                });
+            });
+        });
+    });
+};
+
+
+
 
 //Remove interface with id to remove
 //FALTA BORRADO EN CASCADA 

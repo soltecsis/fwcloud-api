@@ -541,7 +541,7 @@ ipobjModel.getAllIpobjsInterfacePro = function (data) {
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
             //logger.debug("getAllIpobjsInterfacePro -> ", sql);
-             var interface = new interface_Data(data);
+            var interface = new interface_Data(data);
             connection.query(sql, function (error, rows) {
                 if (error)
                     reject(error);
@@ -659,6 +659,52 @@ ipobjModel.insertIpobj = function (ipobjData, callback) {
                 } else
                     callback(null, {result: false, "insertId": ''});
             }
+        });
+    });
+};
+
+ipobjModel.cloneIpobj = function (ipobjDataclone) {
+    return new Promise((resolve, reject) => {
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+
+            var ipobjData = {
+                id: null,
+                fwcloud: ipobjDataclone.fwcloud,
+                interface: ipobjDataclone.newinterface,
+                name: ipobjDataclone.name,
+                type: ipobjDataclone.type,
+                protocol: ipobjDataclone.protocol,
+                address: ipobjDataclone.address,
+                netmask: ipobjDataclone.netmask,
+                diff_serv: ipobjDataclone.diff_serv,
+                ip_version: ipobjDataclone.ip_version,
+                icmp_code: ipobjDataclone.icmp_code,
+                icmp_type: ipobjDataclone.icmp_type,
+                tcp_flags_mask: ipobjDataclone.tcp_flags_mask,
+                tcp_flags_settings: ipobjDataclone.tcp_flags_settings,
+                range_start: ipobjDataclone.range_start,
+                range_end: ipobjDataclone.range_end,
+                source_port_start: ipobjDataclone.source_port_start,
+                source_port_end: ipobjDataclone.source_port_end,
+                destination_port_start: ipobjDataclone.destination_port_start,
+                destination_port_end: ipobjDataclone.destination_port_end,
+                options: ipobjDataclone.options,
+                comment: ipobjDataclone.comment,
+                id_fwb: ipobjDataclone.id
+            };
+            connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        //devolvemos la última id insertada
+                        resolve({result: true, "insertId": result.insertId});                        
+                    } else
+                        resolve({result: false, "insertId": ''});
+                }
+            });
         });
     });
 };

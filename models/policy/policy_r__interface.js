@@ -95,6 +95,38 @@ policy_r__interfaceModel.insertPolicy_r__interface = function (idfirewall, polic
     });
 };
 
+//Clone policy_r__interface
+policy_r__interfaceModel.clonePolicy_r__interface = function ( policy_r__interfaceData) {
+    return new Promise((resolve, reject) => {
+
+        var p_interfaceData = {
+            rule: policy_r__interfaceData.newrule,
+            interface: policy_r__interfaceData.interface,
+            negate: policy_r__interfaceData.negate,
+            position: policy_r__interfaceData.position,
+            position_order: policy_r__interfaceData.position_order          
+        };
+
+        db.get(function (error, connection) {
+            if (error)
+                reject(error);
+            connection.query('INSERT INTO ' + tableModel + ' SET ?', p_interfaceData, function (error, result) {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (result.affectedRows > 0) {
+                        OrderList(p_interfaceData.position_order, p_interfaceData.rule, p_interfaceData.position, 999999, p_interfaceData.interface);
+
+                        resolve({"result": true, "allowed": "1"});
+                    } else {
+                        resolve({"result": false, "allowed": "1"});
+                    }
+                }
+            });
+        });
+    });
+};
+
 //Duplicate policy_r__interface RULES
 policy_r__interfaceModel.duplicatePolicy_r__interface = function (rule, new_rule, callback) {
 
@@ -293,7 +325,7 @@ function checkInterfacePosition(idfirewall, rule, id, position, callback) {
         var sql = 'select A.allowed from ipobj_type__policy_position A  ' +
                 'inner join interface I on A.type=I.interface_type ' +
                 'inner join policy_position P on P.id=A.position ' +
-                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) + 
+                ' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) +
                 ' AND I.firewall= ' + connection.escape(idfirewall);
         logger.debug(sql);
         connection.query(sql, function (error, rows) {
@@ -675,7 +707,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                     ' AND C.id=' + connection.escape(fwcloud);
-            if (diff_firewall!=='')
+            if (diff_firewall !== '')
                 sql += ' AND F.id<>' + connection.escape(diff_firewall);
         } else {
             //Search interfaces only in Firewall interface
@@ -693,7 +725,7 @@ policy_r__interfaceModel.SearchInterfaceInRules = function (interface, type, fwc
                     'inner join fwcloud C on C.id=F.fwcloud ' +
                     ' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
                     ' AND C.id=' + connection.escape(fwcloud);
-            if (diff_firewall!=='')
+            if (diff_firewall !== '')
                 sql += ' AND F.id<>' + connection.escape(diff_firewall);
             else
                 sql += ' AND F.id=' + connection.escape(firewall);

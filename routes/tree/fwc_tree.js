@@ -383,7 +383,7 @@ router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
-    fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF", function (error, data)
+    fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF",'', function (error, data)
     {
         //If saved fwc-tree Get data
         if (data && data.result)
@@ -456,7 +456,7 @@ router.put("/create-ALL/user", function (req, res)
         if (data && data.result)
         {
             logger.debug("------------- CREATING FWCTREE FIREWALLS");
-            fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF", function (error, data)
+            fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF",'', function (error, data)
             {
                 //If saved fwc-tree Get data
                 if (data && data.result)
