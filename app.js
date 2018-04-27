@@ -64,10 +64,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
     origin: function (origin, callback) {
-        logger.debug("ORIGIN: " + origin);
         if (whitelist.indexOf(origin) !== -1) {
+            logger.debug("ORIGIN ALLOWED: " + origin);
             callback(null, true);
         } else {
+            logger.debug("ORIGIN NOT ALLOWED BY CORS: " + origin);
             callback(new Error('Not allowed by CORS'));
         }
     }
@@ -103,7 +104,14 @@ app.use(session({
   }
 }));
 
-app.all('*',(req, res, next) => {
+app.use((req, res, next) => {
+  //res.header("Access-Control-Allow-Origin", "*");
+  //res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+
+
   // Exclude the login route.
   if (req.path == '/users/login') return next();
 
