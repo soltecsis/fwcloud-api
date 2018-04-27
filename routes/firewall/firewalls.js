@@ -709,7 +709,7 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 
 });
 //utilsModel.checkConfirmationToken,
-router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
+router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
 {
 
     var idfirewall = req.params.idfirewall;
