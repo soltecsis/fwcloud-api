@@ -105,6 +105,7 @@ app.use(session({
 }));
 
 app.use((req, res, next) => {
+  logger.debug("SET RESPONSE HEADERS");
   res.header("Access-Control-Allow-Origin", "*");
   //res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   // Set to true if you need the website to include cookies in the requests sent
