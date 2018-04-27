@@ -97,6 +97,7 @@ app.use(session({
   resave: false,
   store: new FileStore({ path: config.session.files_path }),
   cookie: { 
+    httpOnly: false,
     secure: config.session.force_HTTPS, // Enable this when the https is enabled for the API.
     maxAge: config.session.expire * 1000
   }
