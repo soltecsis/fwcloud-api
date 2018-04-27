@@ -192,7 +192,6 @@ respModel.getJson = function (data, respCode, custom_response, custom_obj, error
     if (error) {
         error_code = error.code;
         error_msg = error.message;
-        logger.debug(error);
     }
     if (data === null)
         data = {};
@@ -205,6 +204,10 @@ respModel.getJson = function (data, respCode, custom_response, custom_obj, error
                 "errorCode": error_code,
                 "errorMsg": error_msg},
             "data": data};
+
+        // If error, then log it.
+        if (error || respCode.search("ERROR")>=0)
+            logger.debug(resp_json);
 
         callback(resp_json);
     });
