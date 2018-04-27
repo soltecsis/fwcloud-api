@@ -69,6 +69,7 @@ router.post('/login',(req, res) => {
 
 /*---------------------------------------------------------------------------*/
 router.post('/logout',(req, res) => {
+  logger.debug("DESTROYING SESSION (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
   req.session.destroy(err => {} );
   api_resp.getJson(null, api_resp.ACR_OK, 'Session destroyed.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
 });

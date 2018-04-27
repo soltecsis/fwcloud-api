@@ -1,4 +1,11 @@
 {
+	"session":{
+        "name": "FWCloud.net-cookie",
+        "secret": "Xwq5LXpeViXGxMf6LR8U!aybJ46BBan9JoC*jwaJbFXjNvLSWi8b)(jBJ8at4Vf3PC",
+        "force_HTTPS": false,
+        "expire": 600,
+        "files_path": "./sessions"
+	},
     "dblocal": {
         "connectionLimit": "100",
         "host": "localhost",

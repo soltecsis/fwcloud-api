@@ -6,6 +6,8 @@
  * 
  */
 
+var config = require('./config/apiconf.json');
+
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -20,7 +22,7 @@ log4js_extend(log4js, {
 });
 
 
-var cookieParser = require('cookie-parser');
+//var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);
@@ -55,18 +57,20 @@ app.use(methodOverride(function (req, res) {
     }
 }));
 
-app.use(cookieParser());
+//app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-var whitelist = [undefined, 'undefined', 'null', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
+var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
+    credentials: true, // WARNING: This is very important and necessary for the session authorization.
     origin: function (origin, callback) {
-        logger.debug("ORIGIN: " + origin);
         if (whitelist.indexOf(origin) !== -1) {
+            logger.debug("ORIGIN ALLOWED: " + origin);
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            logger.debug("ORIGIN NOT ALLOWED BY CORS: " + origin);
+            callback(new Error('Not allowed by CORS'),false);
         }
     }
 };
@@ -89,40 +93,38 @@ var url = require('url');
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
 app.use(session({
-  name: 'FWCloud.net-cookie',
-  secret: 'Xwq5LXpeViXGxMf6LR8U!aybJ46BBan9JoC*jwaJbFXjNvLSWi8b)(jBJ8at4Vf3PC',
+  name: config.session.name,
+  secret: config.session.secret,
   saveUninitialized: false,
-  resave: true,
-  store: new FileStore(),
+  resave: false,
+  store: new FileStore({ path: config.session.files_path }),
   cookie: { 
-    maxAge: 1 * 60 * 1000, 
-    //secure: true, // Enable this when the https is enabled for the API.
-    httpOnly: false
+    httpOnly: false,
+    secure: config.session.force_HTTPS, // Enable this when the https is enabled for the API.
+    maxAge: config.session.expire * 1000
   }
 }));
 
-app.all('*',(req, res, next) => {
+app.use((req, res, next) => {
   // Exclude the login route.
   if (req.path == '/users/login') return next();
 
-  logger.debug("Into the authentication middleware."); 
-    
-  /////////////////////////////////////////////////////
-  // Remove/comment this code for enable the token validation.
-  req.session.destroy(err => {} );
-  return next();
-  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////
+  // WARNING!!!!: If you enable the next two code lines, then you disable
+  // the authorization mechanism for access the API and it will be accesible
+  // without autorization.
+  //req.session.destroy(err => {} );
+  //return next();
+  /////////////////////////////////////////////////////////////////////////////////
   
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
     req.session.destroy(err => {} );
-    logger.debug("Invalid session."); 
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
 
   if (req.session.cookie.maxAge < 1) { // See if the session has expired.
     req.session.destroy(err => {} );
-    logger.debug("Session expired."); 
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
     return;
   }
@@ -130,12 +132,12 @@ app.all('*',(req, res, next) => {
   UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
     if (data.length===0) {
       req.session.destroy(err => {} );
-      logger.debug("Bad session data."); 
       api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
       return;
     }
 
     // If we arrive here, then the session is correct.
+    logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
     next(); 
   });
 });
@@ -316,10 +318,7 @@ db.connect(dbconf, function (err) {
     }
 });
 
-
 //Interval control for unlock FWCLouds 
-var config = require('./config/apiconf.json');
-
 const intervalObj = setInterval(() => {
     FwcloudModel.checkFwcloudLockTimeout(config.lock.unlock_timeout_min)
             .then(result => {
