@@ -97,7 +97,8 @@ app.use(session({
   name: config.session.name,
   secret: config.session.secret,
   saveUninitialized: false,
-  resave: false,
+  resave: true,
+  rolling: true,
   store: new FileStore({ path: config.session.files_path }),
   cookie: { 
     httpOnly: false,
