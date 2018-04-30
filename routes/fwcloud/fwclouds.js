@@ -570,10 +570,9 @@ router.get('/locked/:fwcloud', function (req, res)
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.put("/del/fwcloud/:fwcloud", FwcloudModel.checkRestrictionsCloud, utilsModel.checkConfirmationToken, function (req, res)
 {
-
-	var id = req.params.fwcloud;
+        req.fwcloud = req.params.fwcloud;
 	var iduser = req.iduser;
-	FwcloudModel.deleteFwcloud(iduser, id,req.restricted, function (error, data)
+	FwcloudModel.deleteFwcloud(iduser, req.fwcloud,req.restricted, function (error, data)
 	{
 		if (data && data.result)
 		{
