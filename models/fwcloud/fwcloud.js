@@ -524,10 +524,9 @@ fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
         logger.debug(sqlExists);
         connection.query(sqlExists, function (error, row) {
             //If exists Id from fwcloud to remove
-            if (row && row.length > 0) {
-               
-                    
-                    if (restricted!=="") {
+            if (row && row.length > 0) {               
+                    logger.debug("DELFWCLOUD Restricted: ", restricted);
+                    if (!restricted.result) {
                         callback(null, {"result": false, "msg": "Restricted", "restrictions": restricted});
                     } else {
                         //DELETE OBJECTS FROM CLOUD
