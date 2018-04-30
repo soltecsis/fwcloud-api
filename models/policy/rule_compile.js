@@ -377,7 +377,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		}
 
 		// Apply rule only to the selected firewall.
-		if (data[0].fw_apply_to)
+		if (data[0].fw_apply_to && data[0].firewall_name)
 			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs+"fi\n";		
 		
 		cs = cs.replace(/  +/g,' ');

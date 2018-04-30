@@ -19,7 +19,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 
-router.get('/update-stream/compile/:iduser/:fwcloud/:token', function (req, res) {
+router.get('/update-stream/compile/:iduser/:fwcloud', function (req, res) {
 
     try {
         var iduser = req.params.iduser;
@@ -103,7 +103,7 @@ router.get('/update-stream/compile/:iduser/:fwcloud/:token', function (req, res)
     }
 });
 
-router.get('/update-stream/compile_1/:iduser/:fwcloud/:token', function (req, res) {
+router.get('/update-stream/compile_1/:iduser/:fwcloud', function (req, res) {
 
 
     try {

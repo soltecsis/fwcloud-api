@@ -1073,3 +1073,18 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
     });
 
 };
+
+
+policy_rModel.cleanApplyTo = function (idfirewall, callback) {
+    db.get(function (error, connection) {
+            if (error) callback(error);
+            
+            var sql = 'UPDATE '+tableModel+' SET fw_apply_to=null WHERE firewall=' + connection.escape(idfirewall);
+            connection.query(sql, (error, result) => {
+                    if (error)
+                            callback(error, null);
+                    else
+                            callback(null, {"result": true});
+            });
+    });
+};
