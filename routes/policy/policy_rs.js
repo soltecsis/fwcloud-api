@@ -706,7 +706,7 @@ async function removeRules(idfirewall, rulesIds)
 
 function ruleRemove(idfirewall, rule) {
     return new Promise((resolve, reject) => {
-        Policy_rModel.deletePolicy_r(idfirewall, rule
+        Policy_rModel.deletePolicy_r(idfirewall, rule)
                 .then(data =>
                 {
                     if (data && data.result)
@@ -718,8 +718,10 @@ function ruleRemove(idfirewall, rule) {
                     }
 
                 })
-                .catch(e => reject(e))
-                );
+                .catch(e => {
+                    reject(e);
+                });
+
     });
 }
 
