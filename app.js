@@ -93,7 +93,6 @@ var url = require('url');
 // Middleware for user authentication and token validation.
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
-
 app.use(session({
   name: config.session.name,
   secret: config.session.secret,
@@ -117,8 +116,8 @@ app.use((req, res, next) => {
   // WARNING!!!!: If you enable the next two code lines, then you disable
   // the authorization mechanism for access the API and it will be accesible
   // without autorization.
-  req.session.destroy(err => {} );
-  return next();
+  //req.session.destroy(err => {} );
+  //return next();
   /////////////////////////////////////////////////////////////////////////////////
   
   if (req.session.cookie.maxAge < 1) { // See if the session has expired.
