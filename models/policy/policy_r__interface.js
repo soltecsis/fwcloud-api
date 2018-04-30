@@ -101,7 +101,7 @@ policy_r__interfaceModel.clonePolicy_r__interface = function ( policy_r__interfa
 
         var p_interfaceData = {
             rule: policy_r__interfaceData.newrule,
-            interface: policy_r__interfaceData.interface,
+            interface: policy_r__interfaceData.newInterface,
             negate: policy_r__interfaceData.negate,
             position: policy_r__interfaceData.position,
             position_order: policy_r__interfaceData.position_order          

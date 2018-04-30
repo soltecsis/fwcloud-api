@@ -607,7 +607,7 @@ policy_rModel.clonePolicy = function (rowData) {
 
                 var newRule = data.insertId;
                 //SELECT ALL IPOBJ UNDER POSITIONS
-                sql = ' select ' + connection.escape(newRule) + ' as newrule, O.* ' +
+                sql = ' select ' + connection.escape(rowData.newfirewall) + ' as newfirewall, ' + connection.escape(newRule) + ' as newrule, O.* ' +
                         ' from policy_r__ipobj O ' +
                         ' where O.rule=' + connection.escape(rowData.id) +
                         ' ORDER BY position_order';
@@ -624,11 +624,13 @@ policy_rModel.clonePolicy = function (rowData) {
                                 })
                                 .then(() => {
                                     //SELECT ALL INTERFACES UNDER POSITIONS
-                                    sql = ' select ' + connection.escape(newRule) + ' as newrule, O.* ' +
+                                    sql = ' select ' + connection.escape(newRule) + ' as newrule, I.id as newInterface, O.* ' +
                                             ' from policy_r__interface O ' +
+                                            ' inner join interface I on I.id_fwb=O.interface ' +
                                             ' where O.rule=' + connection.escape(rowData.id) +
+                                            ' AND I.firewall= ' + connection.escape(rowData.newfirewall) +
                                             ' ORDER BY position_order';
-                                    logger.debug(sql);
+                                    logger.debug("-------> SQL ALL INTERFACES: ", sql);
                                     connection.query(sql, function (error, rowsI) {
                                         if (error) {
                                             logger.debug(error);

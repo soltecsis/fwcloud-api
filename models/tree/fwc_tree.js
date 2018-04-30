@@ -634,7 +634,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 												logger.debug(sqlinsert);
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
-														logger.debug("ERROR FP : " + error);
+														logger.debug("ERROR NAT : " + error);
 													else {
 														parent_NAT = result.insertId;
 														//Insertamos nodo SNAT
