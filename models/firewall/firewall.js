@@ -303,7 +303,7 @@ firewallModel.getFirewallClusterMaster = function (iduser, idcluster, callback) 
                 ' LEFT join interface I on I.id=T.install_interface ' +
                 ' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
                 ' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 AND fwmaster=1';
-        //logger.debug(sql);
+        logger.debug(sql);
         connection.query(sql, function (error, rows) {
             if (error)
                 callback(error, null);

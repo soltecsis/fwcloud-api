@@ -532,7 +532,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 	});
 };
 
-//FALTA CONTROLAR OBJETOS IP en INTERFACE DE TIPO <> 5
+
 //Add new TREE FIREWALLS from cloud
 fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,AllDone) {
 	db.get(function (error, connection) {
