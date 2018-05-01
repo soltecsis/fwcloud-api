@@ -67,7 +67,7 @@ var PolicyScript = require('../../models/policy/policy_script');
 
 var streamModel = require('../../models/stream/stream');
 
-var config = require('../../config/apiconf.json');
+var config = require('../../config/config');
 
 var utilsModel = require("../../utils/utils.js");
 
@@ -93,7 +93,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 	var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
 
 	var fs = require('fs');
-	var path = config.policy.data_dir;
+	var path = config.get('policy').data_dir;
 	if (!fs.existsSync(path))
 		fs.mkdirSync(path);
 	path += "/" + req.fwcloud;
@@ -102,12 +102,12 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 	path += "/" + req.params.idfirewall;
 	if (!fs.existsSync(path))
 		fs.mkdirSync(path);
-	path += "/" + config.policy.script_name;
+	path += "/" + config.get('policy').script_name;
 	var stream = fs.createWriteStream(path);
 
 	stream.on('open', async fd => {
 		/* Generate the policy script. */
-		await PolicyScript.append(config.policy.header_file)
+		await PolicyScript.append(config.get('policy').header_file)
 				.then(data => {
 					stream.write(data + "\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n"
 					+"# Statefull firewall.\n"
@@ -140,7 +140,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 				})
 				.then(data => {
 					stream.write(data);
-					return PolicyScript.append(config.policy.footer_file)
+					return PolicyScript.append(config.get('policy').footer_file)
 				})
 				.then(data => {
 					stream.write(data);

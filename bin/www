@@ -4,6 +4,7 @@
  * Module dependencies.
  */
 
+var config = require('../config/config');
 var app = require('../app');
 var debug = require('debug')('nodeapi:server');
 var http = require('http');
@@ -34,8 +35,11 @@ var log = log4js.getLogger("startup");
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+//var port = normalizePort(process.env.PORT || '3000');
+const port = config.get('listen').port;
+const listen_ip = config.get('listen').ip;
 app.set('port', port);
+app.set('domain', listen_ip);
 
 /**
  * Create HTTP server.
@@ -47,7 +51,7 @@ var server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
+server.listen(port,listen_ip);
 server.on('error', onError);
 server.on('listening', onListening);
 

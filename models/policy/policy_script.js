@@ -30,7 +30,7 @@ var api_resp = require('../../utils/api_response');
 
 var streamModel = require('../../models/stream/stream');
 
-var config = require('../../config/apiconf.json');
+var config = require('../../config/config');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.append = (path) => {
@@ -87,8 +87,8 @@ PolicyScript.upload = (cloud,fw,SSHconn) => {
 				if (err)  return reject(err);
 
 				var fs = require("fs"); // Use node filesystem
-        var readStream = fs.createReadStream(config.policy.data_dir+"/"+cloud+"/"+fw+"/"+config.policy.script_name).on('error',error => {conn.end(); reject(error)});
-        var writeStream = sftp.createWriteStream(config.policy.script_name).on('error',error => {conn.end(); reject(error)});
+        var readStream = fs.createReadStream(config.get('policy').data_dir+"/"+cloud+"/"+fw+"/"+config.get('policy').script_name).on('error',error => {conn.end(); reject(error)});
+        var writeStream = sftp.createWriteStream(config.get('policy').script_name).on('error',error => {conn.end(); reject(error)});
 
 				writeStream
 					.on('close',() => resolve( "File transferred succesfully"))
@@ -147,11 +147,11 @@ PolicyScript.install = (accessData,SSHconn,fw) => {
 		await PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-				return PolicyScript.run_ssh_command(SSHconn,"sudo sh ./"+config.policy.script_name+" install")
+				return PolicyScript.run_ssh_command(SSHconn,"sudo sh ./"+config.get('policy').script_name+" install")
 			})
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-				return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.policy.script_dir+"/"+config.policy.script_name+" start")
+				return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
 			})
 			.then(data => {
 				streamModel.pushMessageCompile(accessData, data+"\n");

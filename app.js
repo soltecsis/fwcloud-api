@@ -6,7 +6,7 @@
  * 
  */
 
-var config = require('./config/apiconf.json');
+var config = require('./config/config');
 
 var express = require('express');
 var path = require('path');
@@ -22,7 +22,6 @@ log4js_extend(log4js, {
 });
 
 
-//var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);
@@ -49,31 +48,30 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 //configuramos methodOverride
 app.use(methodOverride(function (req, res) {
-    if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-        // look in urlencoded POST bodies and delete it
-        var method = req.body._method;
-        delete req.body._method;
-        return method;
-    }
+	if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+		// look in urlencoded POST bodies and delete it
+		var method = req.body._method;
+		delete req.body._method;
+		return method;
+	}
 }));
 
-//app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Cross-Origin Resource Sharing (CORS)
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 var whitelist = [undefined, 'undefined', 'null', 'http://apitest.fwcloud.net:3000', 'http://localhost:4200', 'http://webtest.fwcloud.net', 'http://webtest-out.fwcloud.net:8080', 'http://localhost:3000'];
 var corsOptions = {
-    credentials: true, // WARNING: This is very important and necessary for the session authorization.
-    origin: function (origin, callback) {
-        if (whitelist.indexOf(origin) !== -1) {
-            logger.debug("ORIGIN ALLOWED: " + origin);
-            callback(null, true);
-        } else {
-            logger.debug("ORIGIN NOT ALLOWED BY CORS: " + origin);
-            callback(new Error('Not allowed by CORS'),false);
-        }
-    }
+	credentials: true, // WARNING: This is very important and necessary for the session authorization.
+	origin: function (origin, callback) {
+		if (whitelist.indexOf(origin) !== -1) {
+			logger.debug("ORIGIN ALLOWED: " + origin);
+			callback(null, true);
+		} else {
+			logger.debug("ORIGIN NOT ALLOWED BY CORS: " + origin);
+			callback(new Error('Not allowed by CORS'),false);
+		}
+	}
 };
 
 app.use(cors(corsOptions));
@@ -94,16 +92,16 @@ var url = require('url');
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
 app.use(session({
-  name: config.session.name,
-  secret: config.session.secret,
+  name: config.get('session').name,
+  secret: config.get('session').secret,
   saveUninitialized: false,
   resave: true,
   rolling: true,
-  store: new FileStore({ path: config.session.files_path }),
+  store: new FileStore({ path: config.get('session').files_path }),
   cookie: { 
-    httpOnly: false,
-    secure: config.session.force_HTTPS, // Enable this when the https is enabled for the API.
-    maxAge: config.session.expire * 1000
+		httpOnly: false,
+		secure: config.get('session').force_HTTPS, // Enable this when the https is enabled for the API.
+		maxAge: config.get('session').expire * 1000
   }
 }));
 
@@ -121,27 +119,27 @@ app.use((req, res, next) => {
   /////////////////////////////////////////////////////////////////////////////////
   
   if (req.session.cookie.maxAge < 1) { // See if the session has expired.
-    req.session.destroy(err => {} );
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-    return;
+	req.session.destroy(err => {} );
+	api_resp.getJson(null, api_resp.ACR_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+	return;
   }
 
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
-    req.session.destroy(err => {} );
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-    return;
+	req.session.destroy(err => {} );
+	api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+	return;
   }
 
   UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
-    if (data.length===0) {
-      req.session.destroy(err => {} );
-      api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-      return;
-    }
+	if (data.length===0) {
+	  req.session.destroy(err => {} );
+	  api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+	  return;
+	}
 
-    // If we arrive here, then the session is correct.
-    logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
-    next(); 
+	// If we arrive here, then the session is correct.
+	logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
+	next(); 
   });
 });
 /*--------------------------------------------------------------------------------------*/
@@ -151,91 +149,91 @@ var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/rout
 //CONTROL FWCLOUD ACCESS
 app.use(control_routes, function (request, response, next) {
 
-    var url_parts = url.parse(request.url);
-    var pathname = url_parts.pathname;
-    var originalURL = request.originalUrl;
+	var url_parts = url.parse(request.url);
+	var pathname = url_parts.pathname;
+	var originalURL = request.originalUrl;
 
 
-    logger.debug("---------------- RECEIVED HEADERS-----------------");
-    logger.debug("\n", request.headers);
-    logger.debug("--------------------------------------------------");
-    logger.debug("METHOD: " + request.method + "   PATHNAME: " + originalURL);
+	logger.debug("---------------- RECEIVED HEADERS-----------------");
+	logger.debug("\n", request.headers);
+	logger.debug("--------------------------------------------------");
+	logger.debug("METHOD: " + request.method + "   PATHNAME: " + originalURL);
 
 
 
-    var iduser = request.headers.x_fwc_iduser;
-    var fwcloud = request.headers.x_fwc_fwcloud;
-    var confirm_token = request.headers.x_fwc_confirm_token;
+	var iduser = request.headers.x_fwc_iduser;
+	var fwcloud = request.headers.x_fwc_fwcloud;
+	var confirm_token = request.headers.x_fwc_confirm_token;
 
-    var update = true;
-    if (request.method === 'GET')
-        update = false;
+	var update = true;
+	if (request.method === 'GET')
+		update = false;
 
 
-    logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
+	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
-    if (originalURL === '/fwclouds/fwcloud' && request.method === 'POST') {
-        logger.debug("FWCLOUD ACCESS TO CREATE");
-        logger.debug(request.body);
-        //save access to user                
-        var userData = {id: iduser};
-        UserModel.updateUserTS(userData, function (error, data) {});        
-        request.fwc_access = true;
-        request.iduser = iduser;
-        next();
-    } 
-    else if (originalURL === '/fwclouds/fwcloud' && request.method === 'PUT') {
-        logger.debug("FWCLOUD ACCESS TO UPDATE");
-        logger.debug(request.body);
-        //save access to user                
-        var userData = {id: iduser};
-        UserModel.updateUserTS(userData, function (error, data) {});        
-        request.fwc_access = true;
-        request.confirm_token = confirm_token;
-        request.iduser = iduser;
-        request.fwcloud = request.body.id;
-        request.restricted = {};
-        next();
-    }
-    else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
-        //Acces to GET ALL clouds
-        logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
-        var userData = {id: iduser};
-        UserModel.updateUserTS(userData, function (error, data) {});        
-        request.fwc_access = true;
-        request.iduser = iduser;
-        next();
-    }
-     else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && request.method === 'PUT' && fwcloud==='') {
-        //Acces to GET ALL clouds
-        logger.debug("FWCLOUD DELETE");
-        var userData = {id: iduser};
-        UserModel.updateUserTS(userData, function (error, data) {});        
-        request.fwc_access = true;
-        request.confirm_token = confirm_token;
-        request.iduser = iduser;
-        //request.fwcloud = request.params.fwcloud;
-        request.restricted = {};
-        //logger.debug("DELETING FWCLOUD: " + request.fwcloud );
-        next();
-    }
-    else {
-        utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
-                .then(resp => {
-                    //save access to user                
-                    var userData = {id: iduser};
-                    UserModel.updateUserTS(userData, function (error, data) {});
-                    request.confirm_token = confirm_token;
-                    request.restricted = {};
-                    next();
-                })
-                .catch(err => {
-                    logger.error("ERROR ---> err: " + err);
-                    api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
-                        response.status(200).json(jsonResp);
-                    });
-                });
-    }
+	if (originalURL === '/fwclouds/fwcloud' && request.method === 'POST') {
+		logger.debug("FWCLOUD ACCESS TO CREATE");
+		logger.debug(request.body);
+		//save access to user                
+		var userData = {id: iduser};
+		UserModel.updateUserTS(userData, function (error, data) {});        
+		request.fwc_access = true;
+		request.iduser = iduser;
+		next();
+	} 
+	else if (originalURL === '/fwclouds/fwcloud' && request.method === 'PUT') {
+		logger.debug("FWCLOUD ACCESS TO UPDATE");
+		logger.debug(request.body);
+		//save access to user                
+		var userData = {id: iduser};
+		UserModel.updateUserTS(userData, function (error, data) {});        
+		request.fwc_access = true;
+		request.confirm_token = confirm_token;
+		request.iduser = iduser;
+		request.fwcloud = request.body.id;
+		request.restricted = {};
+		next();
+	}
+	else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
+		//Acces to GET ALL clouds
+		logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
+		var userData = {id: iduser};
+		UserModel.updateUserTS(userData, function (error, data) {});        
+		request.fwc_access = true;
+		request.iduser = iduser;
+		next();
+	}
+	 else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && request.method === 'PUT' && fwcloud==='') {
+		//Acces to GET ALL clouds
+		logger.debug("FWCLOUD DELETE");
+		var userData = {id: iduser};
+		UserModel.updateUserTS(userData, function (error, data) {});        
+		request.fwc_access = true;
+		request.confirm_token = confirm_token;
+		request.iduser = iduser;
+		//request.fwcloud = request.params.fwcloud;
+		request.restricted = {};
+		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
+		next();
+	}
+	else {
+		utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
+				.then(resp => {
+					//save access to user                
+					var userData = {id: iduser};
+					UserModel.updateUserTS(userData, function (error, data) {});
+					request.confirm_token = confirm_token;
+					request.restricted = {};
+					next();
+				})
+				.catch(err => {
+					logger.error("ERROR ---> err: " + err);
+					api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
+						response.status(200).json(jsonResp);
+					});
+				});
+	}
 
 });
 
@@ -312,57 +310,55 @@ app.use('/fwc-tree', fwc_tree);
 app.use('/stream', stream);
 
 
-var dbconf = process.argv[2] || "dblocal";
-
 // Connect to MySQL on start
-db.connect(dbconf, function (err) {
-    if (err) {
-        console.log('Unable to connect to MySQL.');
-        process.exit(1);
-    }
+db.connect(err => {
+	if (err) {
+		console.log('Unable to connect to MySQL.');
+		process.exit(1);
+	}
 });
 
 //Interval control for unlock FWCLouds 
 const intervalObj = setInterval(() => {
-    FwcloudModel.checkFwcloudLockTimeout(config.lock.unlock_timeout_min)
-            .then(result => {
-                logger.debug("OK CHECKLOCK: " + result);
-            })
-            .catch(result => {
-            });
-}, config.lock.check_interval_mls);
+	FwcloudModel.checkFwcloudLockTimeout(config.get('lock').unlock_timeout_min)
+			.then(result => {
+				logger.debug("OK CHECKLOCK: " + result);
+			})
+			.catch(result => {
+			});
+}, config.get('lock').check_interval_mls);
 
 
 // error handlers
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
+	var err = new Error('Not Found');
+	err.status = 404;
+	next(err);
 });
 
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-    app.use(function (err, req, res, next) {
-        logger.error("Something went wrong: ", err.message);
-        res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
-    });
+	app.use(function (err, req, res, next) {
+		logger.error("Something went wrong: ", err.message);
+		res.status(err.status || 500);
+		res.render('error', {
+			message: err.message,
+			error: err
+		});
+	});
 }
 
 // production error handler
 // no stacktraces leaked to user
 app.use(function (err, req, res, next) {
-    logger.error("Something went wrong: ", err.message);
-    res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
+	logger.error("Something went wrong: ", err.message);
+	res.status(err.status || 500);
+	res.render('error', {
+		message: err.message,
+		error: {}
+	});
 });
 
 
