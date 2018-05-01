@@ -5,7 +5,7 @@ var convict = require('convict');
 const config = convict({
   env: {
     doc: 'The application environment.',
-    format: ['prod', 'dev', 'test'],
+    format: ['prod', 'dev'],
     default: 'dev',
     env: 'NODE_ENV'
   },
@@ -43,7 +43,7 @@ const config = convict({
     force_HTTPS: {
       doc: 'Force the use of HTTPS for session cookie.',
       format: Boolean,
-      default: false
+      default: true
     },
     expire: {
       doc: 'Expiration seconds for the session cookie.',
@@ -153,12 +153,9 @@ const config = convict({
   }
 });
 
-// Load environment dependent configuration.
-//var env = config.get('env');
-//config.loadFile('./config/' + env + '.json');
-
 // Perform validation
 try {
+  config.loadFile('./config/' + config.get('env') + '.json');
   config.validate({allowed: 'strict'});
 } catch(err) {
   console.log("Configuration "+err);
