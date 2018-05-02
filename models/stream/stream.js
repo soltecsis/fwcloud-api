@@ -28,10 +28,7 @@ var streamModel = {};
 
 var redis = require('redis');
 var publisherClient = redis.createClient();
-
 var dateTime = require('node-datetime');
-
-
 
 /**
  * Property MSG_COMPILE_RULE
@@ -65,7 +62,6 @@ streamModel.MSG_UPDATE_OBJ = 'update_obj';
  */
 streamModel.MSG_LOCK_CLOUD = 'lock_cloud';
 
-
 /**
  * Property Logger to manage App logs
  *
@@ -75,43 +71,34 @@ streamModel.MSG_LOCK_CLOUD = 'lock_cloud';
  */
 var logger = require('log4js').getLogger("app");
 
-streamModel.getTagPublishCompile = (accessData) => {
-    
-    //var tagPublish = accessData.iduser + '-' + accessData.sessionID + '-' + streamModel.MSG_COMPILE_RULE;
-    var tagPublish = accessData.iduser + '-' + "XXXXX" + '-' + streamModel.MSG_COMPILE_RULE;
-    logger.debug("TAG PUBLISH: [" + tagPublish + "]");
-    return  tagPublish;
-   
+streamModel.getTagPublishCompile = (accessData) => {    
+	var tagPublish = accessData.iduser + '-' + accessData.sessionID + '-' + streamModel.MSG_COMPILE_RULE;
+	logger.debug("TAG PUBLISH: [" + tagPublish + "]");
+	return  tagPublish;
 };
 
 streamModel.pushMessageCompile = (accessData, data) => {
-    
-        try {
-            var dt = dateTime.create();
-            var dtf = dt.format('d-m-Y H:M:S');
+	try {
+		var dt = dateTime.create();
+		var dtf = dt.format('d-m-Y H:M:S');
 
-            //create json structure for rule compile
-            var stream_json = {"stream": {
-                    "iduser": accessData.iduser,
-                    "fwcloud": accessData.fwcloud,
-                    "dt": dtf,
-                    "stream_type": streamModel.MSG_COMPILE_RULE,
-                    "data": data}};
-            
-            
+		//create json structure for rule compile
+		var stream_json = {"stream": {
+			"iduser": accessData.iduser,
+			"fwcloud": accessData.fwcloud,
+			"dt": dtf,
+			"stream_type": streamModel.MSG_COMPILE_RULE,
+			"data": data}
+		};
 
-            //publisherClient.publish(streamModel.getTagPublishCompile(accessData), JSON.stringify(stream_json));
-            publisherClient.publish(streamModel.getTagPublishCompile(accessData), data);
-            
-        } catch (err) {
-            logger.error("Error en pushMessageCompile ");
-            logger.error(err);
-        }
-
+		//publisherClient.publish(streamModel.getTagPublishCompile(accessData), JSON.stringify(stream_json));
+		publisherClient.publish(streamModel.getTagPublishCompile(accessData), data);
+			
+	} catch (err) {
+		logger.error("Error en pushMessageCompile ");
+		logger.error(err);
+	}
 };
-
-
-
 
 //Export the object
 module.exports = streamModel;

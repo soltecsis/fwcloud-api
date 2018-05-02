@@ -154,7 +154,7 @@ PolicyScript.install = (accessData,SSHconn,fw) => {
 				return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
 			})
 			.then(data => {
-				streamModel.pushMessageCompile(accessData, data+"\n");
+				streamModel.pushMessageCompile(accessData, data+"\nEND\n");
 				resolve("DONE")
 			})
 			.catch(error => {

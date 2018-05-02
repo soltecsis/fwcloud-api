@@ -143,7 +143,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 					return PolicyScript.append(config.get('policy').footer_file)
 				})
 				.then(data => {
-					stream.write(data);
+					stream.write(data+"\nEND\n");
 					api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
 				})
 				.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
