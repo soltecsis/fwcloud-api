@@ -112,7 +112,7 @@ CREATE TABLE `firewall` (
   UNIQUE KEY `id_fwb_UNIQUE` (`id_fwb`),
   KEY `IDX_48011B7EE5C56994` (`cluster`),
   KEY `fk_firewall_1_idx` (`fwcloud`),
-  KEY `index_unique_name` (`fwcloud`,`name`),
+  UNIQUE KEY `index_unique_name` (`fwcloud`,`name`),
   CONSTRAINT `fk_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
