@@ -159,9 +159,7 @@ app.use(control_routes, function (request, response, next) {
 	logger.debug("--------------------------------------------------");
 	logger.debug("METHOD: " + request.method + "   PATHNAME: " + originalURL);
 
-
-
-	var iduser = request.headers.x_fwc_iduser;
+	var iduser = request.session.user_id;
 	var fwcloud = request.headers.x_fwc_fwcloud;
 	var confirm_token = request.headers.x_fwc_confirm_token;
 
