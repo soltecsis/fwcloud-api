@@ -552,7 +552,6 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 	var fwcloud = req.fwcloud;
 	
 	var JsonData = req.body;
-	var fwnodes = JsonData.clusterData.fwnodes;
 	logger.debug("JSON RECIBIDO: ", JsonData);
 	//new objet with Cluster data
 	var clusterData = {
@@ -580,38 +579,8 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 			});
 		}
 	});
-	var fwcloud = req.fwcloud;
-
-	var JsonData = req.body;
-	var fwnodes = JsonData.clusterData.fwnodes;
-	logger.debug("JSON RECIBIDO: ", JsonData);
-	//new objet with Cluster data
-	var clusterData = {
-		id: JsonData.clusterData.id,
-		name: JsonData.clusterData.name,
-		comment: JsonData.clusterData.comment,
-		fwcloud: fwcloud
-	};
-
-	ClusterModel.updateCluster(fwcloud, clusterData, function (error, data)
-	{
-		//cluster ok
-		if (data && data.result)
-		{
-			//UPDATE TREE
-			fwcTreemodel.updateFwc_Tree_Cluster(req.iduser, req.fwcloud, clusterData, function (error, dataT) {
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
 });
+
 /* Remove cluster */
 router.put("/del/cluster/:id", utilsModel.checkConfirmationToken, function (req, res)
 {
