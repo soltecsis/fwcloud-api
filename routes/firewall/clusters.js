@@ -417,8 +417,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 });
 
 /* CLONE CLUSTER */
-//, utilsModel.checkConfirmationToken
-router.put("/clone/cluster/:idcluster", function (req, res)
+router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, function (req, res)
 {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
