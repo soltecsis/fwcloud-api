@@ -290,6 +290,7 @@ CREATE TABLE `fwcloud` (
   `locked_by` int(11) DEFAULT NULL,
   `locked` tinyint(1) NOT NULL DEFAULT '0',
   `image` varchar(255) DEFAULT NULL,
+  `comment` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index2` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
