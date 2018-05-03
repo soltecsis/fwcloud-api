@@ -3,12 +3,6 @@ var logger = require('log4js').getLogger("app");
 var mysql = require('mysql');
 var config = require('./config/config');
 
-var PRODUCTION_DB = 'fwcloud_db'
-		, TEST_DB = 'fwcloud_db';
-
-exports.MODE_TEST = 'mode_test';
-exports.MODE_PRODUCTION = 'mode_production';
-
 var state = {
 	pool: null,
 	mode: null,
@@ -29,7 +23,7 @@ exports.connect = function (done) {
 		host: configDB.host,
 		user: configDB.user,
 		password: configDB.pass,
-		database: configDB.mode === exports.MODE_PRODUCTION ? PRODUCTION_DB : TEST_DB
+		database: configDB.name
 
 	});
 
