@@ -74,7 +74,7 @@ const config = convict({
     user: {
       doc: 'Database user.',
       format: String,
-      default: 'fwcloudusr',
+      default: 'fwcdbusr',
       env: 'DB_USER'
     },
     pass: {
