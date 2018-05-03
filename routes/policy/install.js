@@ -57,7 +57,7 @@ var FirewallModel = require('../../models/firewall/firewall');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
+router.post('/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, (req, res) => {
   var idfirewall = req.params.idfirewall;
 
   FirewallModel.getFirewall(req.iduser, req.fwcloud, idfirewall, (error, data) => {
@@ -75,11 +75,11 @@ router.post('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
     }
 
     // If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
-    if (req.post && req.post.sshuser && req.post.sshpass) {
-      SSHconn.username = req.post.sshuser;
-      SSHconn.username = req.post.sshpass;
-    }
-
+    if (req.body.sshuser && req.body.sshpass) {
+      SSHconn.username = req.body.sshuser;
+      SSHconn.password = req.body.sshpass;
+    }  
+    
     var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
 
     // If we have no user or password for the ssh connection, then error.
