@@ -1761,7 +1761,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-PROCEDURE `check_firewall_compiled`(IN param_firewall int(11))
+CREATE PROCEDURE `check_firewall_compiled`(IN param_firewall int(11))
 BEGIN
 DECLARE rules_not_compiled INT;
 
@@ -1795,7 +1795,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-PROCEDURE `update__rule_ts`(IN param_rule int(11))
+CREATE PROCEDURE `update__rule_ts`(IN param_rule int(11))
 BEGIN
 	UPDATE policy_r set updated_at= CURRENT_TIMESTAMP WHERE id=param_rule;
     UPDATE policy_c set status_compiled=0  WHERE rule=param_rule;
