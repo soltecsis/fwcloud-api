@@ -7,7 +7,6 @@
 var config = require('../config/config');
 var app = require('../app');
 var debug = require('debug')('nodeapi:server');
-var http = require('http');
 
 
 /**
@@ -42,10 +41,28 @@ app.set('port', port);
 app.set('domain', listen_ip);
 
 /**
- * Create HTTP server.
+ * Create HTTP or HTTPS server.
  */
-
-var server = http.createServer(app);
+var server;
+try {
+  if (config.get('https').enable) {
+    var https = require('https');
+    var fs = require('fs');
+    var tlsOptions = {
+      key: fs.readFileSync(config.get('https').key),
+      cert: fs.readFileSync(config.get('https').cert),
+      ca: fs.readFileSync(config.get('https').ca_bundle)
+    }; 
+    server = https.createServer(tlsOptions, app);
+  } 
+  else {
+    var http = require('http');
+    server = http.createServer(app);
+  }
+} catch(e) {
+  console.error("ERROR CREATING HTTP/HTTPS SERVER: ",e);
+  process.exit(1);
+}
 
 /**
  * Listen on provided port, on all network interfaces.

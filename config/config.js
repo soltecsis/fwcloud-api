@@ -81,6 +81,7 @@ const config = convict({
     force_HTTPS: {
       doc: 'Force the use of HTTPS for session cookie.',
       format: Boolean,
+      env: 'SESSION_FORCE_HTTPS',
       default: true
     },
     expire: {
