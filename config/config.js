@@ -22,8 +22,46 @@ const config = convict({
       doc: 'The port to bind.',
       format: 'port',
       default: 3000,
-      env: 'LISTEN_PORT',
+      env: 'LISTEN_PORT'
     }
+  },
+
+  // HTTPS settings for communicate with the API.
+  https: {
+    enable: {
+      doc: 'Force the use of HTTPS for API communication.',
+      format: Boolean,
+      default: true,
+      env: 'HTTPS_ENABLE'
+    },
+    cert: {
+      doc: 'Path to certificate file.',
+      format: String,
+      default: './config/tls/certificate.crt',
+      env: 'HTTPS_CERT'
+    },
+    key: {
+      doc: 'Path to key file.',
+      format: String,
+      default: './config/tls/private.key',
+      env: 'HTTPS_KEY'
+    },
+    ca_bundle: {
+      doc: 'Path to CA bundle file.',
+      format: String,
+      default: './config/tls/ca_bundle.crt',
+      env: 'HTTPS_CA_BUNDLE'
+    }
+  },
+
+  // CORS (Cross-Origin Resource Sharing) options.
+  CORS: {
+    whitelist: {
+      doc: 'CORS (Cross-Origin Resource Sharing) withelist.',
+      format:  Array,
+      default: [],
+      env: 'CORS_WHITELIST'
+    },
   },
 
   // Session cookie configuration parameters.
@@ -171,5 +209,7 @@ if (!config.get('db').pass) {
   console.log("Configuration Error: Database password must be defined in .env");
   process.exit();  
 }
+
+config.set('CORS.whitelist',process.env.CORS_WHITELIST.replace(/ +/g,'').split(','));
 
 module.exports = config;

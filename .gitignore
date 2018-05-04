@@ -21,3 +21,4 @@ routes/xml
 DATA/
 sessions/
 .env
+config/tls/

@@ -1,4 +1,7 @@
 {
+  "https": {
+    "enable" : true
+  },
   "session": {
     "force_HTTPS" : true    
   }
