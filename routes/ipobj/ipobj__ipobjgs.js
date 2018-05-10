@@ -63,7 +63,7 @@ router.get('/:ipobjg/:ipobj',  function (req, res)
 
 
 /* Create New ipobj__ipobjg */
-router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type",  function (req, res)
+router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
@@ -136,7 +136,7 @@ router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type",  function (req
 });
 
 /* Update ipobj__ipobjg that exist */
-router.put('/ipobj__ipobjg/:ipobjg/:ipobj',  function (req, res)
+router.put('/ipobj__ipobjg/:ipobjg/:ipobj', utilsModel.checkConfirmationToken, function (req, res)
 {
     var ipobjg = req.params.ipobjg;
     var ipobj = req.params.ipobj;
@@ -168,7 +168,7 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj',  function (req, res)
 
 
 /* Remove ipobj__ipobjg */
-router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj",  function (req, res)
+router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj", utilsModel.checkConfirmationToken, function (req, res)
 {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
