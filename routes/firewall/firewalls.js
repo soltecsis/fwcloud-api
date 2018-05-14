@@ -232,6 +232,8 @@ router.get('/cloud', function (req, res)
  *           "comment" : ,       //comment
  *           "created_at" : ,    //Date Created
  *           "updated_at" : ,    //Date Updated
+ *           "compiled_at" : ,   //Date Compiled
+ *           "installed_at" : ,  //Date Installed
  *           "by_user" : ,       //User last update
  *           "id_fwb" :          //ID firewall in FWbuilder
  *          }
@@ -709,8 +711,7 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 
 });
 
-//utilsModel.checkConfirmationToken,
-router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess,utilsModel.checkConfirmationToken, function (req, res)
+router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {
 	var idfirewall = req.params.idfirewall;
 	//Save firewall data into objet    

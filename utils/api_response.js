@@ -104,6 +104,7 @@ respModel.ACR_NOT_ALLOWED = 'ACR_NOT_ALLOWED';
  * @type String
  */
 respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
+
 /**
  * Property ACR_ACCESS_ERROR
  *
@@ -111,6 +112,14 @@ respModel.ACR_PARAM_ERROR = 'ACR_PARAM_ERROR';
  * @type String
  */
 respModel.ACR_ACCESS_ERROR = 'ACR_ACCESS_ERROR';
+
+/**
+ * Property ACR_SESSION_ERROR
+ *
+ * @property ACR_SESSION_ERROR
+ * @type String
+ */
+respModel.ACR_ACCESS_ERROR = 'ACR_SESSION_ERROR';
 
 /**
  * Property ACR_ACCESS_LOCKED

@@ -71,6 +71,8 @@ var config = require('../../config/config');
 
 var utilsModel = require("../../utils/utils.js");
 
+var FirewallModel = require('../../models/firewall/firewall');
+
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 
 
@@ -145,6 +147,9 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 				.then(data => {
 					stream.write(data);
 					streamModel.pushMessageCompile(accessData,"\nEND\n");
+					return FirewallModel.updateFirewallStatus(req.iduser,req.params.idfirewall,"compiled")
+				})
+				.then(data => {
 					api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
 				})
 				.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
