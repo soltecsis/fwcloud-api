@@ -1839,7 +1839,7 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
 										callback(null, {"result": true});
 									}
 							);
-						}
+						} else callback1();
 					});
 				}, //Fin de bucle
 						function (err) {
