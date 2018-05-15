@@ -119,7 +119,7 @@ respModel.ACR_ACCESS_ERROR = 'ACR_ACCESS_ERROR';
  * @property ACR_SESSION_ERROR
  * @type String
  */
-respModel.ACR_ACCESS_ERROR = 'ACR_SESSION_ERROR';
+respModel.ACR_SESSION_ERROR = 'ACR_SESSION_ERROR';
 
 /**
  * Property ACR_ACCESS_LOCKED

@@ -118,15 +118,15 @@ app.use((req, res, next) => {
   /////////////////////////////////////////////////////////////////////////////////
   
   if (req.session.cookie.maxAge < 1) { // See if the session has expired.
-	req.session.destroy(err => {} );
-	api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-	return;
+		req.session.destroy(err => {} );
+		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+		return;
   }
 
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
-	req.session.destroy(err => {} );
-	api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-	return;
+		req.session.destroy(err => {} );
+		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+		return;
   }
 
   UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {

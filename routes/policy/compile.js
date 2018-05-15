@@ -146,7 +146,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 				})
 				.then(data => {
 					stream.write(data);
-					streamModel.pushMessageCompile(accessData,"\nEND\n");
+					streamModel.pushMessageCompile(accessData,"END\n");
 					return FirewallModel.updateFirewallStatus(req.iduser,req.params.idfirewall,"compiled")
 				})
 				.then(data => {
