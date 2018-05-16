@@ -582,8 +582,7 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 });
 
 /* Remove cluster */
-router.put("/del/cluster/:id", utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put("/del/cluster/:id", InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var id = req.params.id;
