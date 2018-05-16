@@ -1570,6 +1570,7 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
 		});
 	});
 };
+
 //Update NODE from user
 fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 
@@ -1588,10 +1589,9 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 		});
 	});
 };
+
 //Update NODE from FIREWALL UPDATE
 fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callback) {
-
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -1615,8 +1615,6 @@ fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callb
 
 //Update NODE from CLUSTER UPDATE
 fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback) {
-
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -1637,10 +1635,9 @@ fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback
 		});
 	});
 };
+
 //Update NODE from IPOBJ or INTERFACE UPDATE
 fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
-
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -1661,6 +1658,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 		});
 	});
 };
+
 //Remove ALL NODES with id_obj to remove
 fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback) {
 	db.get(function (error, connection) {
@@ -1885,4 +1883,28 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 		});
 	});
 };
+
+//Update firewall NODE status
+fwc_treeModel.updateFwc_Tree_Firewall_status = function (fwcloud, firewall, status, callback) {
+	db.get((error, connection) => {
+		if (error)
+			callback(error, null);
+		var sql_set = (status==="compiled") ? "status_compiled=1" : "status_installed=1";
+		var sql='UPDATE '+tableModel+' SET '+sql_set+' WHERE id_obj=' + connection.escape(firewall) + ' AND fwcloud_tree=' + connection.escape(fwcloud) + ' AND node_type="FW"';
+		
+		connection.query(sql, function (error, result) {
+			if (error) {
+				logger.debug(sql);
+				logger.debug(error);
+				callback(error, null);
+			} else {
+				if (result.affectedRows > 0)
+					callback(null, {"result": true});
+				else
+					callback(null, {"result": false});
+			}
+		});
+	});
+};
+
 

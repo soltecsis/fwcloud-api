@@ -490,32 +490,34 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
 };
 
 
-firewallModel.updateFirewallStatus = function (iduser, idfirewall, status) {
+firewallModel.updateFirewallStatus = function (iduser, fwcloud, firewall, status) {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error)
 				reject(error);
 			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
 				' AND U.id_user=' + connection.escape(iduser) +
-				' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+				' WHERE T.id = ' + connection.escape(firewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
 			logger.debug(sqlExists);
 			connection.query(sqlExists, (error, row) => {
 				if (row && row.length > 0) {
-					var sql="";
-					if (status=="compiled")
-						sql='UPDATE '+tableModel+' SET compiled_at=CURRENT_TIMESTAMP,status_compiled=1 WHERE id='+connection.escape(idfirewall);
-					else
-						sql='UPDATE '+tableModel+' SET installed_at=CURRENT_TIMESTAMP,status_installed=1 WHERE id='+connection.escape(idfirewall);
-					logger.debug(sql);
+					var sql_set = (status==="compiled") ? "compiled_at=CURRENT_TIMESTAMP,status_compiled=1" : "installed_at=CURRENT_TIMESTAMP,status_installed=1";
+					var sql='UPDATE '+tableModel+' SET '+sql_set+' WHERE id='+connection.escape(firewall)+' and fwcloud='+connection.escape(fwcloud);
+					//logger.debug(sql);
 					connection.query(sql, (error, result) => {
 						if (error) {
 							reject(error);
 						} else {
-							resolve({"result": true});
+							// Update the status in the node into of the tree.
+							fwcTreemodel.updateFwc_Tree_Firewall_status(fwcloud, firewall, status, (error,data) => {
+								if (error)
+									logger.debug(sql);
+								resolve({"result": true});
+							});
 						}
 					});
 				} else {
-					rsolve({"result": false});
+					resolve({"result": false});
 				}
 			});
 		});

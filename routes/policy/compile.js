@@ -147,7 +147,7 @@ router.put('/:idfirewall',utilsModel.checkFirewallAccess, (req, res) => {
 				.then(data => {
 					stream.write(data);
 					streamModel.pushMessageCompile(accessData,"END\n");
-					return FirewallModel.updateFirewallStatus(req.iduser,req.params.idfirewall,"compiled")
+					return FirewallModel.updateFirewallStatus(req.iduser,req.fwcloud,req.params.idfirewall,"compiled")
 				})
 				.then(data => {
 					api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
