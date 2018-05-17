@@ -523,6 +523,22 @@ firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action)
 	});
 };
 
+firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, status_action) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) reject(error);
+			var sql='UPDATE '+tableModel+' F INNER JOIN policy_r PR ON PR.firewall=F.id INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
+			' SET F.status=F.status'+status_action+
+			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj);
+			//logger.debug(sql);
+			connection.query(sql, (error, result) => {
+				if (error) 
+					reject(error);
+				resolve({"result": true});
+			});
+		});
+	});
+};
 
 firewallModel.cloneFirewall = function (iduser, firewallData, callback) {
 	return new Promise((resolve, reject) => {

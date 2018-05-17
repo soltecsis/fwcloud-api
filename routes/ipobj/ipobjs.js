@@ -104,6 +104,8 @@ var objModel = 'IPOBJ';
 var logger = require('log4js').getLogger("app");
 
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
+var FirewallModel = require('../../models/firewall/firewall');
+
 
 /**
  * Get all ipobjs by  group
@@ -693,8 +695,7 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", function (req, res)
  *      "data": {}
  *      };
  * */
-router.put('/ipobj', function (req, res)
-{
+router.put('/ipobj', (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	//Save data into object
@@ -714,63 +715,48 @@ router.put('/ipobj', function (req, res)
 		ipobjData.destination_port_end = 0;
 
 	if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
-		Ipobj_typeModel.getIpobj_type(ipobjData.type, function (error, data) {
+		Ipobj_typeModel.getIpobj_type(ipobjData.type, (error, data) => {
 			if (error)
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
+				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 			else {
-				if (data && data[0].protocol_number !== null) {
+				if (data && data[0].protocol_number !== null)
 					ipobjData.protocol = data[0].protocol_number;
-				}
 				IpobjModel.updateIpobj(ipobjData, function (error, data)
 				{
 					if (error)
-						api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
+						api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, jsonResp => res.status(200).json(jsonResp));
 					else {
 						//If saved ipobj saved ok, get data
 						if (data && data.result)
 						{
 							if (data.result) {
-								IpobjModel.UpdateHOST(ipobjData.id)
-										.then(IpobjModel.UpdateINTERFACE(ipobjData.id))
-										.then(() => {
-											logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-											//UPDATE TREE            
-											fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, function (error, data) {
-												if (data && data.result) {
-													api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function (jsonResp) {
-														res.status(200).json(jsonResp);
-													});
-												} else {
-													api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, function (jsonResp) {
-														res.status(200).json(jsonResp);
-													});
-												}
-											});
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,"& ~3")
+								.then(data => {
+									IpobjModel.UpdateHOST(ipobjData.id)
+									.then(IpobjModel.UpdateINTERFACE(ipobjData.id))
+									.then(() => {
+										logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
+											
+										//UPDATE TREE            
+										fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
+											if (data && data.result)
+												api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+											else
+												api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 										});
-							} else {
-								api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
-									res.status(200).json(jsonResp);
-								});
-							}
-
+									});
+								})
+								.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
+							} else 
+								api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 						} else
-						{
-							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						}
+							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 					}
 				});
 			}
 		});
 	} else
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'Null identifiers', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
+		api_resp.getJson(null, api_resp.ACR_ERROR, 'Null identifiers', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 
