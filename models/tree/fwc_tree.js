@@ -590,7 +590,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 
 												//Insertamos nodo PADRE FILTER POLICIES
 												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"FILTER POLICIES","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"FP",0,0,' + connection.escape(idfirewall) + ',0,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+														' VALUES (' + '"FILTER POLICIES","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"FP",0,0,' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
 												logger.debug(sqlinsert);
 												connection.query(sqlinsert, function (error2, result2) {
 													if (error2) {
@@ -630,7 +630,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 
 												//Insertamos nodo PADRE NAT
 												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"NAT","",' + parent_firewall + ',2,' + (row.node_level + 2) + ',"NT",0,0,' + connection.escape(idfirewall) + ',0,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+														' VALUES (' + '"NAT","",' + parent_firewall + ',2,' + (row.node_level + 2) + ',"NT",0,0,' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
 												logger.debug(sqlinsert);
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
@@ -1130,7 +1130,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, folder, idcluster,
 
 												//Insertamos nodo NODE FIREWALLS
 												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
-														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',0,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
 														logger.debug("ERROR RR : " + error);
@@ -1230,7 +1230,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = function (fwcloud, folde
 
 												//Insertamos nodo NODE FIREWALLS
 												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',0,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
 														logger.debug("ERROR RR : " + error);
