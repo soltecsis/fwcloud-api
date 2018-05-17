@@ -295,11 +295,11 @@ ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
                     } else {
 
                         if (data_grouprule.found !== "" || data_ipobjrule.found !== "") {
-                            resolve({"result": true, "msg": "GROUP FOUND", "search": [{
-                                        "groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}]});
+                            resolve({"result": true, "msg": "GROUP FOUND", "search": {
+                                        "groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}});
                         } else {
-                            resolve({"result": false, "msg": "GROUP NOT FOUND", "search": [{
-                                        "groupInRules": "", "ipobjInGroupInRules": ""}]});
+                            resolve({"result": false, "msg": "GROUP NOT FOUND", "search": {
+                                        "groupInRules": "", "ipobjInGroupInRules": ""}});
                         }
                     }
                 });

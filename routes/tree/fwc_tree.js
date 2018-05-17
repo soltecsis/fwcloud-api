@@ -6,96 +6,44 @@ var Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/fwc_tree_node.js");
 var utilsModel = require("../../utils/utils.js");
 var api_resp = require('../../utils/api_response');
+var FirewallModel = require('../../models/firewall/firewall');
 var objModel = 'FWC TREE';
-
 
 var logger = require('log4js').getLogger("app");
 
+function create_FirewallsClustersTree (req,res,type) { 
+	var iduser = req.iduser;
+	var fwcloud = req.fwcloud;
+	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, type, (error, rows) => {
+		utilsModel.checkEmptyRow(rows, notempty => {
+			if (notempty) {
+				var row = rows[0];
+				//create object
+				var root_node = new fwc_tree_node(row);
+				//console.log(root_node);
+				var tree = new Tree(root_node);
+				fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, type,row.order_mode ,'', function (error, data)
+				{                    
+					if (!error) {
+						// Obtain the firewalls with status!=0 and add them to the data structure.
+						FirewallModel.getFirewallStatusNotZero(fwcloud,0,data)
+							.then(data => api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+							.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+					 } else //Get Error)
+						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				});
+			} else
+				api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		});
+	});
+}
+
 
 /* Get all fwc_tree NODE CLUSTERS*/
-router.get('/clusters', function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDC", function (error, rows)
-	{
-		utilsModel.checkEmptyRow(rows, function (notempty)
-		{
-			if (notempty) {
-				var row = rows[0];
-				//create object
-				var root_node = new fwc_tree_node(row);
-				//console.log(root_node);
-				var tree = new Tree(root_node);
-				fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDC", row.order_mode, '', function (error, data)
-				{
-					
-					if (!error)
-					{
-						api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-					//Get Error
-					else
-					{
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-
-
-	});
-});
+router.get('/clusters', (req, res) => create_FirewallsClustersTree(req, res, "FDC"));
 
 /* Get all fwc_tree NODE FIREWALL*/
-router.get('/firewalls', function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
-	{
-		utilsModel.checkEmptyRow(rows, function (notempty)
-		{
-			if (notempty) {
-				var row = rows[0];
-				//create object
-				var root_node = new fwc_tree_node(row);
-				//console.log(root_node);
-				var tree = new Tree(root_node);
-				fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, "FDF",row.order_mode ,'', function (error, data)
-				{                    
-					if (!error)
-					{
-						api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-					//Get Error
-					else
-					{
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-
-
-	});
-});
+router.get('/firewalls', (req, res) => create_FirewallsClustersTree(req, res, "FDF"));
 
 //FALTA HACER FILTRO POR NODO PADRE
 //FALTA CONTROL Por CLUSTER

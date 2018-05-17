@@ -1883,28 +1883,3 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 		});
 	});
 };
-
-//Update firewall NODE status
-fwc_treeModel.updateFwc_Tree_Firewall_status = function (fwcloud, firewall, status, callback) {
-	db.get((error, connection) => {
-		if (error)
-			callback(error, null);
-		var sql_set = (status==="compiled") ? "status_compiled=1" : "status_installed=1";
-		var sql='UPDATE '+tableModel+' SET '+sql_set+' WHERE id_obj=' + connection.escape(firewall) + ' AND fwcloud_tree=' + connection.escape(fwcloud) + ' AND node_type="FW"';
-		
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(sql);
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0)
-					callback(null, {"result": true});
-				else
-					callback(null, {"result": false});
-			}
-		});
-	});
-};
-
-

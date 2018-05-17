@@ -6,7 +6,7 @@ function firewalls_Data(data) {
     this.cluster = data.cluster;
     this.name = data.name;
     this.comment = data.comment;
-    this.status_compiled = data.status_compiled;
+    this.status = data.status;
     this.install_user = data.install_user;
     this.install_pass = data.install_pass;
     this.save_user_pass = data.save_user_pass;

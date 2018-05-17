@@ -490,35 +490,34 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
 };
 
 
-firewallModel.updateFirewallStatus = function (iduser, fwcloud, firewall, status) {
+// Get the ID of all firewalls who's status field is not zero.
+firewallModel.getFirewallStatusNotZero = function (fwcloud, cluster, data) {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
-			if (error)
-				reject(error);
-			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(iduser) +
-				' WHERE T.id = ' + connection.escape(firewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-			logger.debug(sqlExists);
-			connection.query(sqlExists, (error, row) => {
-				if (row && row.length > 0) {
-					var sql_set = (status==="compiled") ? "compiled_at=CURRENT_TIMESTAMP,status_compiled=1" : "installed_at=CURRENT_TIMESTAMP,status_installed=1";
-					var sql='UPDATE '+tableModel+' SET '+sql_set+' WHERE id='+connection.escape(firewall)+' and fwcloud='+connection.escape(fwcloud);
-					//logger.debug(sql);
-					connection.query(sql, (error, result) => {
-						if (error) {
-							reject(error);
-						} else {
-							// Update the status in the node into of the tree.
-							fwcTreemodel.updateFwc_Tree_Firewall_status(fwcloud, firewall, status, (error,data) => {
-								if (error)
-									logger.debug(sql);
-								resolve({"result": true});
-							});
-						}
-					});
-				} else {
-					resolve({"result": false});
-				}
+			if (error) reject(error);
+
+			var sql_cond = (cluster===1) ? "cluster IS NOT NULL" : "cluster IS NULL";
+			var sql = 'SELECT id,status FROM '+tableModel+' WHERE fwcloud='+connection.escape(fwcloud)+' AND '+sql_cond+ ' AND status!=0';
+			connection.query(sql, (error, rows) => {
+				if (error) reject(error);
+				data.fw_status = rows;
+				resolve(data);
+			});
+		});
+	});
+};
+
+
+firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) reject(error);
+			var sql='UPDATE '+tableModel+' SET status=status'+status_action+' WHERE id='+connection.escape(firewall)+' AND fwcloud='+connection.escape(fwcloud);
+			//logger.debug(sql);
+			connection.query(sql, (error, result) => {
+				if (error) 
+					reject(error);
+				resolve({"result": true});
 			});
 		});
 	});
@@ -537,8 +536,8 @@ firewallModel.cloneFirewall = function (iduser, firewallData, callback) {
 			connection.query(sqlExists, function (error, row) {
 				//NEW FIREWALL
 				if (row && row.length > 0) {
-					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status_compiled,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port) ' +
-							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , status_compiled, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port ' +
+					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port) ' +
+							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 0, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port ' +
 							' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 
 

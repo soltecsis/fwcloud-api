@@ -94,7 +94,7 @@ router.post('/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConf
 
     /* The get method of the RuleCompile model returns a promise. */
     PolicyScript.install(accessData,SSHconn,idfirewall)
-      .then(data => {return FirewallModel.updateFirewallStatus(req.iduser,req.fwcloud,idfirewall,"installed")})
+      .then(data => {return FirewallModel.updateFirewallStatus(req.fwcloud,idfirewall,"|2")})
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
       .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
   });

@@ -17,8 +17,6 @@ function fwc_tree_node(node_data) {
 		this.node_level = node_data.node_level;
 		this.fwcloud = node_data.fwcloud;
 		this.show_action = node_data.show_action;
-		this.status_compiled = node_data.status_compiled;
-		this.status_installed = node_data.status_installed;
 		try {
 			this.fwcloud_tree = node_data.fwcloud_tree;
 		} catch (err) {
