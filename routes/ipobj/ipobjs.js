@@ -730,17 +730,17 @@ router.put('/ipobj', (req, res) => {
 						if (data && data.result)
 						{
 							if (data.result) {
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,"& ~3")
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,"& ~3")
 								.then(() => {return IpobjModel.UpdateHOST(ipobjData.id)})
 								.then(() => {return IpobjModel.UpdateINTERFACE(ipobjData.id)})
 								.then(() => {return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
-								.then((affected_fws) => {
+								.then((not_zero_status_fws) => {
 									logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
 											
 									//UPDATE TREE            
 									fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
 										if (data && data.result)
-											api_resp.getJson(affected_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+											api_resp.getJson(not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 										else
 											api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 									});

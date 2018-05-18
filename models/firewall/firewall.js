@@ -530,18 +530,32 @@ firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action)
 	});
 };
 
-firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, status_action) {
+firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, status_action) {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) reject(error);
-			var sql='UPDATE '+tableModel+' F INNER JOIN policy_r PR ON PR.firewall=F.id INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
+			var sql='UPDATE '+tableModel+' F'+
+			' INNER JOIN policy_r PR ON PR.firewall=F.id'+
+			' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
 			' SET F.status=F.status'+status_action+
-			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj);
-			//logger.debug(sql);
+			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj)+' AND PRI.ipobj_g='+connection.escape(ipobj_g);
 			connection.query(sql, (error, result) => {
-				if (error) 
-					reject(error);
-				resolve({"result": true});
+				if (error) reject(error);
+
+				// If ipobj!=-1 we must see if it is part of a group and then update the status of the firewalls that use that group.
+				if (ipobj != -1) {
+					sql='UPDATE '+tableModel+' F'+
+					' INNER JOIN policy_r PR ON PR.firewall=F.id'+
+					' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
+					' INNER JOIN ipobj__ipobjg IG ON IG.id_gi=PRI.ipobj_g'+
+					' SET F.status=F.status'+status_action+
+					' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND IG.ipobj='+connection.escape(ipobj);					
+						connection.query(sql, (error, result) => {
+							if (error) reject(error);
+							resolve({"result": true});
+						});
+				} else
+					resolve({"result": true});
 			});
 		});
 	});
