@@ -730,7 +730,7 @@ router.put('/ipobj', (req, res) => {
 						if (data && data.result)
 						{
 							if (data.result) {
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,"|2")
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,"|3")
 								.then(() => {return IpobjModel.UpdateHOST(ipobjData.id)})
 								.then(() => {return IpobjModel.UpdateINTERFACE(ipobjData.id)})
 								.then(() => {return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
