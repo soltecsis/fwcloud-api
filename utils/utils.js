@@ -213,7 +213,7 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 		firewall=req.body.firewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
-	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"& ~3")
+	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"|3")
 	.then(data => next())
 	.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
 };

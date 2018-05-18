@@ -108,7 +108,7 @@ router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.che
 						fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, NodeData, (error, data2) => {
 							if (data2 && data2.insertId) {
 								// Update affected firewalls status.
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.body.ipobj_g,"& ~3")
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.body.ipobj_g,"|3")
 								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
 								.then(not_zero_status_fws => api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp=> res.status(200).json(jsonResp)))
 								.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
@@ -186,7 +186,7 @@ utilsModel.checkConfirmationToken,
 							logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
 							fwcTreemodel.orderTreeNode(fwcloud, node_parent, (error, data) => {
 								// Update affected firewalls status.
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.params.ipobjg,"& ~3")
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.params.ipobjg,"|3")
 								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
 								.then(not_zero_status_fws => 
 									api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK '+data.alert, objModel, null, jsonResp=> res.status(200).json(jsonResp)))
