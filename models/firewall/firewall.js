@@ -547,7 +547,7 @@ firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, sta
 					sql='UPDATE '+tableModel+' F'+
 					' INNER JOIN policy_r PR ON PR.firewall=F.id'+
 					' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
-					' INNER JOIN ipobj__ipobjg IG ON IG.id_gi=PRI.ipobj_g'+
+					' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PRI.ipobj_g'+
 					' SET F.status=F.status'+status_action+
 					' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND IG.ipobj='+connection.escape(ipobj);					
 						connection.query(sql, (error, result) => {

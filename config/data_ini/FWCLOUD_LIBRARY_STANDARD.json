@@ -437,15 +437,6 @@
 									},
 									{
 										"data": {
-											"id": "id3F4ECE3F",
-											"name": "test-net",
-											"comment": "192.0.2.0/24 - This block is assigned as \"TEST-NET\" for use in\ndocumentation and example code.  It is often used in conjunction with\ndomain names example.com or example.net in vendor and protocol\ndocumentation.  Addresses within this block should not appear on the\npublic Internet.\n",
-											"address": "192.0.2.0",
-											"netmask": "255.255.255.0"
-										}
-									},
-									{
-										"data": {
 											"id": "id3F4ECE40",
 											"name": "this-net",
 											"comment": "0.0.0.0/8 - Addresses in this block refer to source hosts on \"this\"\nnetwork.  Address 0.0.0.0/32 may be used as a source address for this\nhost on this network; other addresses within 0.0.0.0/8 may be used to\nrefer to specified hosts on this network [RFC1700, page 4].",
@@ -468,24 +459,6 @@
 											"name": "net-192.168.2.0",
 											"comment": "192.168.2.0/24 - Address often used for home and small office networks.\n",
 											"address": "192.168.2.0",
-											"netmask": "255.255.255.0"
-										}
-									},
-									{
-										"data": {
-											"id": "id3289X12564",
-											"name": "TEST-NET-2",
-											"comment": "RFC 5735\nRFC 5737\n",
-											"address": "198.51.100.0",
-											"netmask": "255.255.255.0"
-										}
-									},
-									{
-										"data": {
-											"id": "id3300X12564",
-											"name": "TEST-NET-3",
-											"comment": "RFC 5735\nRFC 5737",
-											"address": "203.0.113.0",
 											"netmask": "255.255.255.0"
 										}
 									},

@@ -208,7 +208,12 @@ utilsModel.checkFirewallAccess = function (req, res, next) {
 
 // Disable compiled and installed status flags.
 utilsModel.disableFirewallCompileStatus = function (req, res, next) {
-	FirewallModel.updateFirewallStatus(req.fwcloud,req.body.firewall,"& ~3")
+	var firewall=0;
+	if (req.body.firewall)
+		firewall=req.body.firewall;
+	else if (req.body.rulesData)
+		firewall=req.body.rulesData.firewall;
+	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"& ~3")
 	.then(data => next())
 	.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
 };
