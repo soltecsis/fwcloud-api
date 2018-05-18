@@ -26,7 +26,7 @@ function create_FirewallsClustersTree (req,res,type) {
 				{                    
 					if (!error) {
 						// Obtain the firewalls with status!=0 and add them to the data structure.
-						FirewallModel.getFirewallStatusNotZero(fwcloud,0,data)
+						FirewallModel.getFirewallStatusNotZero(fwcloud,((type==="FDC") ? 1 : 0),data)
 							.then(data => api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)))
 							.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 					 } else //Get Error)

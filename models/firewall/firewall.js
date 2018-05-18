@@ -496,12 +496,19 @@ firewallModel.getFirewallStatusNotZero = function (fwcloud, cluster, data) {
 		db.get((error, connection) => {
 			if (error) reject(error);
 
-			var sql_cond = (cluster===1) ? "cluster IS NOT NULL" : "cluster IS NULL";
-			var sql = 'SELECT id,status FROM '+tableModel+' WHERE fwcloud='+connection.escape(fwcloud)+' AND '+sql_cond+ ' AND status!=0';
+			var sql_cond = "";
+			if (cluster===1) 
+				sql_cond = " AND cluster IS NOT NULL"
+			else if (cluster===0) 
+			  sql_cond = " AND cluster IS NULL";
+			var sql = 'SELECT id,cluster,status FROM '+tableModel+' WHERE status!=0 AND fwcloud='+connection.escape(fwcloud)+sql_cond;
 			connection.query(sql, (error, rows) => {
 				if (error) reject(error);
-				data.fw_status = rows;
-				resolve(data);
+				if (data) {
+					data.fw_status = rows;
+					resolve(data);
+				} else
+					resolve(rows);
 			});
 		});
 	});
