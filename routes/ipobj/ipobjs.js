@@ -598,9 +598,7 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", (req, res) => {
 								if (data && data.insertId) {
 									var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
 									if (ipobjData.interface) {
-										// If we have inserted object into a network interface, update the status of the firewalls that use it.
-										FirewallModel.updateFirewallStatusINTERFACE(fwcloud,ipobjData.interface,"|3")
-										.then(() => FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,-1,ipobjData.interface,"|3"))
+										FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,ipobjData.interface,ipobjData.type,"|3")
 										.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,2,null))
 										.then((not_zero_status_fws) => {
 											dataresp.fw_status=not_zero_status_fws;
@@ -722,7 +720,7 @@ router.put('/ipobj', (req, res) => {
 						if (data && data.result)
 						{
 							if (data.result) {
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,"|3")
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3")
 								.then(() => IpobjModel.UpdateHOST(ipobjData.id))
 								.then(() => IpobjModel.UpdateINTERFACE(ipobjData.id))
 								.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,2,null))
@@ -807,7 +805,7 @@ utilsModel.checkConfirmationToken,
 	var id = req.params.id;
 	var type = req.params.type;
 
-	FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,"|3")
+	FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,type,"|3")
 	.then(() => IpobjModel.UpdateHOST(id))
 	.then(() => IpobjModel.UpdateINTERFACE(id))
 	.then(() => IpobjModel.deleteIpobj(id, type, fwcloud, (error, data) => {
