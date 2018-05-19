@@ -161,8 +161,10 @@ router.get('/:idfirewall/:rule/:interface',utilsModel.checkFirewallAccess,  func
 
 
 /* Create New policy_r__interface */
-router.post("/policy-r__interface/:idfirewall",utilsModel.checkFirewallAccess,  function (req, res)
-{
+router.post("/policy-r__interface/:idfirewall",
+utilsModel.checkFirewallAccess,  
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var idfirewall= req.params.idfirewall;
 	
 	//Create New objet with data policy_r__interface
@@ -210,8 +212,10 @@ router.post("/policy-r__interface/:idfirewall",utilsModel.checkFirewallAccess,  
 });
 
 /* Update policy_r__interface that exist */
-router.put('/policy-r__interface/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.put('/policy-r__interface/:idfirewall', 
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var rule = req.body.get_rule;
 	var interface = req.body.get_interface;
 	var position = req.body.get_position;
@@ -261,9 +265,10 @@ router.put('/policy-r__interface/:idfirewall', utilsModel.checkFirewallAccess, f
 });
 
 /* Update POSITION policy_r__interface that exist */
-router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/:position_order/:new_rule/:new_position/:new_order',utilsModel.checkFirewallAccess,
-  function (req, res)
-{
+router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/:position_order/:new_rule/:new_position/:new_order',
+utilsModel.checkFirewallAccess,
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var rule = req.params.rule;
 	var interface = req.params.interface;
 	var position = req.params.position;
@@ -375,8 +380,10 @@ router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/:positio
 
 
 /* Update NEGATE de policy_r__interface that exist */
-router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/negate/:negate',utilsModel.checkFirewallAccess, function (req, res)
-{
+router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/negate/:negate',
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var rule = req.params.rule;
 	var interface = req.params.interface;
 	var negate = req.params.negate;
@@ -407,8 +414,10 @@ router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/negate/:
 });
 
 /* Update ORDER de policy_r__interface that exist */
-router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/order/:old_order/:new_order',utilsModel.checkFirewallAccess,  function (req, res)
-{
+router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/order/:old_order/:new_order',
+utilsModel.checkFirewallAccess,  
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var rule = req.params.rule;
 	var interface = req.params.interface;
 	var position = req.params.position;
@@ -442,8 +451,10 @@ router.put('/policy-r__interface/:idfirewall/:rule/:interface/:position/order/:o
 
 
 /* Remove policy_r__interface */
-router.put("/del/policy-r__interface/:idfirewall/:rule/:interface/:position/:position_order", utilsModel.checkFirewallAccess, function (req, res)
-{
+router.put("/del/policy-r__interface/:idfirewall/:rule/:interface/:position/:position_order", 
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	//Id from policy_r__interface to remove
 	var rule = req.params.rule;
 	var interface = req.params.interface;
@@ -475,8 +486,10 @@ router.put("/del/policy-r__interface/:idfirewall/:rule/:interface/:position/:pos
 });
 
 /* Reorder ALL rule positions  */
-router.put("/policy-r__interface/order/:idfirewall",utilsModel.checkFirewallAccess,  function (req, res)
-{
+router.put("/policy-r__interface/order/:idfirewall",
+utilsModel.checkFirewallAccess,
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 
 	Policy_r__interfaceModel.orderAllPolicy(function (error, data)
 	{
@@ -495,8 +508,10 @@ router.put("/policy-r__interface/order/:idfirewall",utilsModel.checkFirewallAcce
 });
 
 /* Reorder ALL rule positions FROM RULE  */
-router.put("/policy-r__interface/order//:idfirewall/:rule",utilsModel.checkFirewallAccess,  function (req, res)
-{
+router.put("/policy-r__interface/order//:idfirewall/:rule",
+utilsModel.checkFirewallAccess,  
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
 	var rule = req.params.rule;
 	Policy_r__interfaceModel.orderPolicy(rule, function (error, data)
 	{

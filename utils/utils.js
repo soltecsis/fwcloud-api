@@ -211,6 +211,8 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 	var firewall=0;
 	if (req.body.firewall)
 		firewall=req.body.firewall;
+	else if (req.params.idfirewall)
+		firewall=req.params.idfirewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
 	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"|3")
