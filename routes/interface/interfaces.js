@@ -5,6 +5,7 @@ var fwcTreemodel = require('../../models/tree/fwc_tree');
 var fwc_tree_node = require("../../models/tree/fwc_tree_node.js");
 var utilsModel = require("../../utils/utils.js");
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
+var IpobjModel = require('../../models/ipobj/ipobj');
 var api_resp = require('../../utils/api_response');
 var objModel = 'INTERFACE';
 
@@ -384,7 +385,7 @@ router.put('/interface/', function (req, res)
 
 
 
-/* Remove interface */
+/* Remove firewall interface */
 //FALTA BORRADO en CASCADA Y RESTRICCIONES
 router.put("/del/interface/:idfirewall/:id/:type", 
 utilsModel.checkFirewallAccess, 
@@ -397,7 +398,6 @@ utilsModel.checkConfirmationToken,
 	var idfirewall = req.params.idfirewall;
 	var idInterface = req.params.id;
 	var type = req.params.type;
-
 
 	InterfaceModel.deleteInterface(fwcloud, idfirewall, idInterface, type, function (error, data)
 	{
@@ -449,8 +449,37 @@ utilsModel.checkConfirmationToken,
 			}
 		}
 	});
-
 });
+
+
+/* Remove host interface */
+router.put("/del/interface_host/:idhost/:idinterface", 
+//InterfaceModel.checkRestrictions, 
+//utilsModel.checkConfirmationToken,
+(req, res) => {
+	Interface__ipobjModel.deleteInterface__ipobj(req.params.idinterface, req.params.idhost, (error,data) => {
+		if (data) {
+			if (data.msg === "deleted") {
+				IpobjModel.deleteIpobjInterface({"id": req.params.idinterface})
+				.then(() => InterfaceModel.deleteInterfaceHOST(req.params.idinterface))
+				.then(() => {
+					fwcTreemodel.deleteFwc_Tree(req.iduser, req.fwcloud, req.params.idinterface, 11, (error, data) => {	
+						if (data && data.result)
+							api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+						else
+							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error DELETING', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					});
+				})
+				.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+			}
+			else if (data.msg === "notExist")
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		}
+		else
+			api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	});
+});
+
 
 /* Remove interface */
 //FALTA CONTROLAR RESTRICCIONES
