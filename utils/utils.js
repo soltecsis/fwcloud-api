@@ -191,19 +191,12 @@ utilsModel.checkConfirmationToken = function (req, res, next) {
 			});
 };
 
-utilsModel.checkFirewallAccess = function (req, res, next) {
+utilsModel.checkFirewallAccess =  (req, res, next) => {
 	var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
 	//logger.debug(accessData);
 	FirewallModel.getFirewallAccess(accessData)
-			.then(resp => {
-				next();
-			})
-			.catch(err => {
-				api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CHECK FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			})
-			;
+	.then(resp => next())
+	.catch(err => api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CHECK FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, jsonResp => res.status(200).json(jsonResp)));
 };
 
 // Disable compiled and installed status flags.
@@ -211,6 +204,8 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 	var firewall=0;
 	if (req.body.firewall)
 		firewall=req.body.firewall;
+	else if (req.params.idfirewall)
+		firewall=req.params.idfirewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
 	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"|3")

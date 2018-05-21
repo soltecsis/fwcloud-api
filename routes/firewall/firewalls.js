@@ -475,6 +475,7 @@ router.post("/firewall", function (req, res)
 		id: null,
 		cluster: req.body.cluster,
 		name: req.body.name,
+		status: 3,
 		comment: req.body.comment,
 		fwcloud: req.fwcloud,
 		install_user: req.body.install_user,

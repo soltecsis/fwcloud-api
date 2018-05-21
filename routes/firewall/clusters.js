@@ -218,6 +218,7 @@ router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 						firewallData.cluster = idcluster;
 						firewallData.fwcloud = fwcloud;
 						firewallData.by_user = iduser;
+						firewallData.status = 3;
 						FirewallModel.checkBodyFirewall(firewallData, true)
 								.then(result => {
 									firewallData = result;

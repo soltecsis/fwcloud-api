@@ -388,16 +388,15 @@ interfaceModel.checkRestrictions = function (req, res, next) {
 	req.restricted = {"result": true, "msg": "", "restrictions": ""};
 	//Check interface in RULE O POSITIONS
 	interfaceModel.searchInterfaceInrulesPro(req.params.id, req.params.type, req.fwcloud, '')
-			.then(data =>
-			{
-				//CHECK RESULTS
-				if (data.result) {
-					logger.debug("RESTRICTED INTERFACE: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
-					req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
-				}
-				next();
-			})
-			.catch(e => next());
+	.then(data => {
+		//CHECK RESULTS
+		if (data.result) {
+			logger.debug("RESTRICTED INTERFACE: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
+			req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+		}
+		next();
+	})
+	.catch(e => next());
 };
 
 
@@ -701,7 +700,6 @@ interfaceModel.cloneInterface = function (rowData) {
 //Remove interface with id to remove
 //FALTA BORRADO EN CASCADA 
 interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callback) {
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -728,9 +726,20 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
 			}
 		});
 	});
-
 };
 
+
+interfaceModel.deleteInterfaceHOST = function (interface) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			sql = 'DELETE FROM '+tableModel+' WHERE type=11 AND id='+connection.escape(interface);
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve("DONE");
+			});
+		});
+	});
+};
 
 
 //Remove all IPOBJ UNDER INTERFACES UNDER FIREWALL

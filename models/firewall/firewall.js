@@ -530,17 +530,18 @@ firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action)
 	});
 };
 
-firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, status_action) {
+firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, interface, type, status_action) {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
-			if (error) reject(error);
+			if (error) return reject(error);
 			var sql='UPDATE '+tableModel+' F'+
 			' INNER JOIN policy_r PR ON PR.firewall=F.id'+
 			' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
 			' SET F.status=F.status'+status_action+
-			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj)+' AND PRI.ipobj_g='+connection.escape(ipobj_g);
+			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj)+
+			' AND PRI.ipobj_g='+connection.escape(ipobj_g)+' AND PRI.interface='+connection.escape(interface);
 			connection.query(sql, (error, result) => {
-				if (error) reject(error);
+				if (error) return reject(error);
 
 				// If ipobj!=-1 we must see if it is part of a group and then update the status of the firewalls that use that group.
 				if (ipobj != -1) {
@@ -550,10 +551,37 @@ firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, sta
 					' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PRI.ipobj_g'+
 					' SET F.status=F.status'+status_action+
 					' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND IG.ipobj='+connection.escape(ipobj);					
-						connection.query(sql, (error, result) => {
-							if (error) reject(error);
+					connection.query(sql, (error, result) => {
+						if (error) return reject(error);
+
+						if (type===5 || type==="5") { // ADDRESS
+							// We must see if the ADDRESS is part of a network interface and then update the status of the firewalls that use that network interface.
+							sql='UPDATE '+tableModel+' F'+
+							' INNER JOIN policy_r PR ON PR.firewall=F.id'+
+							' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
+							' INNER JOIN ipobj IPO ON IPO.interface=PRI.interface'+
+							' SET F.status=F.status'+status_action+
+							' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND IPO.id='+connection.escape(ipobj);	
+							connection.query(sql, (error, result) => {				
+								if (error) return reject(error);
+
+								// We must see too if the ADDRESS is part of a network interface that belogns to a host
+								// and then update the status of the firewalls that use that host in any of its positions.
+								sql='UPDATE '+tableModel+' F'+
+								' INNER JOIN policy_r PR ON PR.firewall=F.id'+
+								' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
+								' INNER JOIN interface__ipobj IO ON IO.ipobj=PRI.ipobj'+
+								' INNER JOIN ipobj IPO ON IPO.interface=IO.interface'+
+								' SET F.status=F.status'+status_action+
+								' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND IPO.id='+connection.escape(ipobj);	
+								connection.query(sql, (error, result) => {				
+									if (error) return reject(error);
+									resolve({"result": true});
+								});
+							});
+						} else
 							resolve({"result": true});
-						});
+					});
 				} else
 					resolve({"result": true});
 			});
