@@ -454,8 +454,8 @@ utilsModel.checkConfirmationToken,
 
 /* Remove host interface */
 router.put("/del/interface_host/:idhost/:idinterface", 
-//InterfaceModel.checkRestrictions, 
-//utilsModel.checkConfirmationToken,
+InterfaceModel.checkRestrictions, 
+utilsModel.checkConfirmationToken,
 (req, res) => {
 	Interface__ipobjModel.deleteInterface__ipobj(req.params.idinterface, req.params.idhost, (error,data) => {
 		if (data) {

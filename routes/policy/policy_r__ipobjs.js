@@ -228,8 +228,17 @@ utilsModel.disableFirewallCompileStatus,
 
 	};
 
-
 	policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
+
+
+	/* Before inserting the new IP object into the rule, verify that there is no container in the 
+	destination position that already contains it.
+	It only happens if in the destination position we already have:
+	(*) A host and we are moving and address or interface to that position.
+	(*) A network interface and we are moving a network address to that position.
+	(*) A group and we are moving an object that can be contained in that group to that position.
+	*/
+
 
 
 	Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
