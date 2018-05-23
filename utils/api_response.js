@@ -146,6 +146,14 @@ respModel.ACR_COMPILED_OK = 'ACR_COMPILED_OK';
 respModel.ACR_CONFIRM_ASK = 'ACR_CONFIRM_ASK';
 
 /**
+ * Property ACR_ALREADY_EXISTS
+ *
+ * @property ACR_ALREADY_EXISTS
+ * @type String
+ */
+respModel.ACR_ALREADY_EXISTS = 'ACR_ALREADY_EXISTS';
+
+/**
  * Property Logger to manage App logs
  *
  * @attribute logger

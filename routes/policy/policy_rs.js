@@ -50,20 +50,10 @@ router.get('/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (
 	logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + "  TYPE:" + type);
 	Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
 	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		if (data && data.length > 0) //If exists policy_r get data
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		else //Get Error
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
