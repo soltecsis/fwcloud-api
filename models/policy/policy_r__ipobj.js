@@ -200,28 +200,49 @@ policy_r__ipobjModel.checkExistsInPosition = function (policy_r__ipobjData) {
 				if (error) return reject(error);
 				if (rows.length > 0) return resolve(true);
 
-				// If the new object is an interface or group, then return.
-				if (policy_r__ipobjData.ipobj === -1) return resolve(false);
+				// If the new object is a group, then return.
+				if (policy_r__ipobjData.ipobj_g != -1) return resolve(false);
 
-				// Search if the new object is contained in an interface.
-				sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
-				' INNER JOIN ipobj IPO ON IPO.interface=PR.interface'+
-				' WHERE IPO.type=5 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
-				' AND IPO.id='+connection.escape(policy_r__ipobjData.ipobj);
-				connection.query(sql, (error, rows) => {
-					if (error) return reject(error);
-					if (rows.length > 0) return resolve(true);
-
-					// Search if the new object is contained in a group.
+				// It the new object is an interface verify that its host is not in the same rule position.
+				if (policy_r__ipobjData.interface != -1) {
+					// Search if the new interface is contained in a host.
 					sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
-					' INNER JOIN ipobj IPO ON IPO.interface=PR.interface'+
-					' WHERE IPO.type=5 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+					' INNER JOIN ipobj IPO ON IPO.id=PR.ipobj'+
+					' INNER JOIN interface__ipobj II ON II.ipobj=IPO.id'+
+					' WHERE IPO.type=8 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+					' AND II.interface='+connection.escape(policy_r__ipobjData.interface);
 					connection.query(sql, (error, rows) => {
 						if (error) return reject(error);
 						if (rows.length > 0) return resolve(true);
-						' AND IPO.id='+connection.escape(policy_r__ipobjData.ipobj);
 
-						// Search if the new object is contained in a host.
+						// Search if the new interface is contained in a host that is part of a group that exist in the rule position.
+						sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
+						' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PR.ipobj_g'+
+						' INNER JOIN ipobj IPO ON IPO.id=IG.ipobj'+
+						' INNER JOIN interface__ipobj II ON II.ipobj=IPO.id'+
+						' WHERE IPO.type=8 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+						' AND II.interface='+connection.escape(policy_r__ipobjData.interface);
+						connection.query(sql, (error, rows) => {
+							if (error) return reject(error);
+							if (rows.length > 0) return resolve(true);
+
+							/* Falta el código para detectar si en la posición de la regla existe algún grupo
+							que contenga a la interfaz que estamos arrastrando. */
+	
+							resolve(false);
+						});
+					});
+				} else {
+					// Search if the new object is contained in a group.
+					sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
+					' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PR.ipobj_g'+
+					' WHERE PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+					' AND IG.ipobj='+connection.escape(policy_r__ipobjData.ipobj);
+					connection.query(sql, (error, rows) => {
+						if (error) return reject(error);
+						if (rows.length > 0) return resolve(true);
+
+						// Search if the new object is an address that is contained in an interface.
 						sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
 						' INNER JOIN ipobj IPO ON IPO.interface=PR.interface'+
 						' WHERE IPO.type=5 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
@@ -229,10 +250,36 @@ policy_r__ipobjModel.checkExistsInPosition = function (policy_r__ipobjData) {
 						connection.query(sql, (error, rows) => {
 							if (error) return reject(error);
 							if (rows.length > 0) return resolve(true);
-							resolve(false);
-						});
-					});		
-				});
+
+							// Search if the new object is and address that is contained in an interface that is part of a host.
+							sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
+							' INNER JOIN ipobj IPO ON IPO.id=PR.ipobj'+
+							' INNER JOIN interface__ipobj II ON II.ipobj=IPO.id'+
+							' INNER JOIN ipobj IPO2 ON IPO2.interface=II.interface'+
+							' WHERE IPO.type=8 AND IPO2.type=5 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+							' AND IPO2.id='+connection.escape(policy_r__ipobjData.ipobj);
+							connection.query(sql, (error, rows) => {
+								if (error) return reject(error);
+								if (rows.length > 0) return resolve(true);
+
+								// Search if the new object is and address that is contained in an interface that is part of a host that is 
+								// contained in a group.
+								sql = 'SELECT PR.id_pi FROM '+tableModel+' PR'+
+								' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PR.ipobj_g'+
+								' INNER JOIN ipobj IPO ON IPO.id=IG.ipobj'+
+								' INNER JOIN interface__ipobj II ON II.ipobj=IPO.id'+
+								' INNER JOIN ipobj IPO2 ON IPO2.interface=II.interface'+
+								' WHERE IPO.type=8 AND IPO2.type=5 AND PR.rule='+connection.escape(policy_r__ipobjData.rule)+' AND PR.position='+connection.escape(policy_r__ipobjData.position)+
+								' AND IPO2.id='+connection.escape(policy_r__ipobjData.ipobj);
+								connection.query(sql, (error, rows) => {
+									if (error) return reject(error);
+									if (rows.length > 0) return resolve(true);
+									resolve(false);
+								});		
+							});		
+						});		
+					});
+				}
 			});
 		});
 	});

@@ -79,6 +79,14 @@ router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.che
 		ipobj: req.body.ipobj
 	};
 
+	// ATENCION: 
+	// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
+	// interfaz a un grupo de objetos IP, por el momento.
+	if (req.params.node_type==="IFF" || req.params.node_type==="IFH") {
+		api_resp.getJson(null, api_resp.ACR_ERROR, 'It is not possible to add network interfaces to IP objects groups.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return;
+	}
+
 	Ipobj__ipobjgModel.insertIpobj__ipobjg(ipobj__ipobjgData, function (error, data)
 	{
 		if (error)

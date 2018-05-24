@@ -230,12 +230,7 @@ utilsModel.disableFirewallCompileStatus,
 	policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
 
 	/* Before inserting the new IP object into the rule, verify that there is no container in the 
-	destination position that already contains it.
-	It only happens if in the destination position we already have:
-	(*) A host and we are moving and address or interface to that position.
-	(*) A network interface and we are moving a network address to that position.
-	(*) A group and we are moving an object that can be contained in that group to that position.
-	*/
+	destination position that already contains it. */
 	Policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData)
 	.then((found) => {
 		if (found) 
@@ -264,6 +259,153 @@ utilsModel.disableFirewallCompileStatus,
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)));
 });
 
+
+/* Update POSITION policy_r__ipobj that exist */
+router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_rule/:new_position/:new_order',
+utilsModel.checkFirewallAccess,
+utilsModel.disableFirewallCompileStatus,
+(req, res)  => {
+	var rule = req.params.rule;
+	var ipobj = req.params.ipobj;
+	var ipobj_g = req.params.ipobj_g;
+	var interface = req.params.interface;
+	var position = req.params.position;
+	var position_order = req.params.position_order;
+	var new_rule = req.params.new_rule;
+	var new_position = req.params.new_position;
+	var new_order = req.params.new_order;
+
+	var content1 = 'O', content2 = 'O';
+	
+	var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
+
+	logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+
+	var policy_r__ipobjData = {
+		rule: req.params.new_rule,
+		ipobj: req.params.ipobj,
+		ipobj_g: req.params.ipobj_g,
+		interface: req.params.interface,
+		position: req.params.new_position,
+		position_order: req.params.new_order
+	};
+
+		/* Before inserting the new IP object into the rule, verify that there is no container in the 
+	destination position that already contains it. */
+	Policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData)
+	.then((found) => {
+		if (found) 
+			api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else {
+			//Get position type
+			Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
+			{
+				logger.debug(data);
+				if (data) {
+					content1 = data.content1;
+					content2 = data.content2;
+
+					if (content1 === content2) { //SAME POSITION
+						Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
+						{
+							//If saved policy_r__ipobj saved ok, get data
+							if (data) {
+								if (data.result) {
+									Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+									accessData.rule=new_rule;
+									Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+									api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+										res.status(200).json(jsonResp);
+									});
+								} else if (!data.allowed) {
+									api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
+										res.status(200).json(jsonResp);
+									});
+								} else
+									api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function (jsonResp) {
+										res.status(200).json(jsonResp);
+									});
+							} else
+							{
+								api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+									res.status(200).json(jsonResp);
+								});
+							}
+						});
+					} else {//DIFFERENTS POSITIONS
+						if (content1 === 'I' && content2 === 'O') {
+							//Create New Position 'O'
+							//Create New objet with data policy_r__ipobj
+							var policy_r__ipobjData = {
+								rule: new_rule,
+								ipobj: ipobj,
+								ipobj_g: ipobj_g,
+								interface: interface,
+								position: new_position,
+								position_order: new_order
+							};
+
+							policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
+
+							Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
+							{
+
+								//If saved policy_r__ipobj Get data
+								if (data) {
+									if (data.result) {
+										//Delete position 'I'
+										Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function (error, data)
+										{
+											if (data && data.result)
+											{
+												Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+												accessData.rule=new_rule;
+												Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+												api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+													res.status(200).json(jsonResp);
+												});
+											} else
+											{
+												api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+													res.status(200).json(jsonResp);
+												});
+											}
+										});
+									} else if (!data.allowed) {
+										api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
+											res.status(200).json(jsonResp);
+										});
+									} else
+										api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function (jsonResp) {
+											res.status(200).json(jsonResp);
+										});
+
+								} else
+								{
+									api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+										res.status(200).json(jsonResp);
+									});
+								}
+							});
+						} else {
+							api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, content diffetents', objModel, error, function (jsonResp) {
+								res.status(200).json(jsonResp);
+							});
+						}
+					}
+				} else {
+					api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, data error', objModel, error, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+				}
+			});
+		}
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)));
+
+});
+
+
 /* Update policy_r__ipobj that exist */
 router.put('/policy-r__ipobj/:idfirewall',
 utilsModel.checkFirewallAccess,  
@@ -291,8 +433,6 @@ utilsModel.disableFirewallCompileStatus,
 	policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
 	
 	var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
-
-
 
 	Policy_r__ipobjModel.updatePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, policy_r__ipobjData, function (error, data)
 	{
@@ -324,138 +464,6 @@ utilsModel.disableFirewallCompileStatus,
 			}
 		}
 	});
-});
-
-/* Update POSITION policy_r__ipobj that exist */
-router.put('/policy-r__ipobj/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position/:position_order/:new_rule/:new_position/:new_order',
-utilsModel.checkFirewallAccess,
-utilsModel.disableFirewallCompileStatus,
-(req, res)  => {
-	var rule = req.params.rule;
-	var ipobj = req.params.ipobj;
-	var ipobj_g = req.params.ipobj_g;
-	var interface = req.params.interface;
-	var position = req.params.position;
-	var position_order = req.params.position_order;
-	var new_rule = req.params.new_rule;
-	var new_position = req.params.new_position;
-	var new_order = req.params.new_order;
-
-	var content1 = 'O', content2 = 'O';
-	
-	var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
-
-	logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
-
-	//Get position type
-	Policy_r__ipobjModel.getTypePositions(position, new_position, function (error, data)
-	{
-		logger.debug(data);
-		if (data) {
-			content1 = data.content1;
-			content2 = data.content2;
-
-			if (content1 === content2) { //SAME POSITION
-				Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
-				{
-					//If saved policy_r__ipobj saved ok, get data
-					if (data) {
-						if (data.result) {
-							Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-							accessData.rule=new_rule;
-							Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						} else if (!data.allowed) {
-							api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						} else
-							api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-					} else
-					{
-						api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else {//DIFFERENTS POSITIONS
-				if (content1 === 'I' && content2 === 'O') {
-					//Create New Position 'O'
-					//Create New objet with data policy_r__ipobj
-					var policy_r__ipobjData = {
-						rule: new_rule,
-						ipobj: ipobj,
-						ipobj_g: ipobj_g,
-						interface: interface,
-						position: new_position,
-						position_order: new_order
-					};
-
-					policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
-
-					Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, function (error, data)
-					{
-						
-						//If saved policy_r__ipobj Get data
-						if (data) {
-							if (data.result) {
-								//Delete position 'I'
-								Policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function (error, data)
-								{
-									if (data && data.result)
-									{
-										Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-										accessData.rule=new_rule;
-										Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-										api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									} else
-									{
-										api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									}
-								});
-							} else if (!data.allowed) {
-								api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
-									res.status(200).json(jsonResp);
-								});
-							} else
-								api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function (jsonResp) {
-									res.status(200).json(jsonResp);
-								});
-
-						} else
-						{
-							api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						}
-					});
-
-
-
-				} else {
-					api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, content diffetents', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			}
-		} else {
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, data error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-
-
-
-
 });
 
 /* Update NEGATE policy_r__ipobj that exist */
