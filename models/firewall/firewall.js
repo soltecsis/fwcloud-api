@@ -518,12 +518,11 @@ firewallModel.getFirewallStatusNotZero = function (fwcloud, cluster, data) {
 firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action) {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
-			if (error) reject(error);
+			if (error) return reject(error);
 			var sql='UPDATE '+tableModel+' SET status=status'+status_action+' WHERE id='+connection.escape(firewall)+' AND fwcloud='+connection.escape(fwcloud);
 			//logger.debug(sql);
 			connection.query(sql, (error, result) => {
-				if (error) 
-					reject(error);
+				if (error) return reject(error);
 				resolve({"result": true});
 			});
 		});
