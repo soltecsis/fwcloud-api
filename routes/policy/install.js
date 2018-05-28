@@ -91,12 +91,8 @@ utilsModel.checkConfirmationToken,
       return;
     }
 
-    // If the firewall is not a master firewall, then use the script of the master for the policy install.
-    if (!(data[0].fwmaster))
-      idfirewall = data[0].id_fwmaster;
-
     /* The get method of the RuleCompile model returns a promise. */
-    await PolicyScript.install(accessData,SSHconn,idfirewall)
+    await PolicyScript.install(accessData,SSHconn,data[0].id_fwmaster)
       .then(data => {return FirewallModel.updateFirewallStatus(req.fwcloud,idfirewall,"&~2")})
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
       .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
