@@ -519,7 +519,8 @@ firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action)
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql='UPDATE '+tableModel+' SET status=status'+status_action+' WHERE id='+connection.escape(firewall)+' AND fwcloud='+connection.escape(fwcloud);
+			var sql='UPDATE '+tableModel+' SET status=status'+status_action+
+			' WHERE id='+connection.escape(firewall)+' AND fwcloud='+connection.escape(fwcloud);
 			//logger.debug(sql);
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
@@ -594,17 +595,15 @@ firewallModel.cloneFirewall = function (iduser, firewallData, callback) {
 			if (error)
 				callback(error, null);
 			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-					' AND U.id_user=' + connection.escape(iduser) +
-					' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+			' AND U.id_user=' + connection.escape(iduser) +
+			' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
 			logger.debug(sqlExists);
 			connection.query(sqlExists, function (error, row) {
 				//NEW FIREWALL
 				if (row && row.length > 0) {
 					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port) ' +
-							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 0, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port ' +
-							' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
-
-
+					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port ' +
+					' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 					logger.debug(sql);
 					connection.query(sql, function (error, result) {
 						if (error) {
