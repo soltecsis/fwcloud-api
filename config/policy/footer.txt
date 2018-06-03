@@ -54,7 +54,7 @@ case "$ACTION" in
       INSTALL_DIR="/config/fwcloud"
     else
       INSTALL_DIR="/etc/fwcloud"
-    vi
+    fi
     test ! -d "$INSTALL_DIR" && {
       mkdir -m 700 -p "$INSTALL_DIR"
       chown root:root "$INSTALL_DIR"

@@ -92,7 +92,7 @@ utilsModel.checkConfirmationToken,
     }
 
     /* The get method of the RuleCompile model returns a promise. */
-    await PolicyScript.install(accessData,SSHconn,data[0].id_fwmaster)
+    await PolicyScript.install(accessData,SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
       .then(data => {return FirewallModel.updateFirewallStatus(req.fwcloud,idfirewall,"&~2")})
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
       .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
