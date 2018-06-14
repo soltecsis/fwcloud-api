@@ -418,8 +418,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 });
 
 /* CLONE CLUSTER */
-router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var idCluster = req.params.idcluster;
@@ -428,120 +427,84 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, funct
 	var clusterData = {
 		name: req.body.name,
 		comment: req.body.comment,
-		fwcloud: req.fwcloud //working cloud              
+		fwcloud: fwcloud //working cloud              
 	};
 
 	logger.debug(clusterData);
 
-	FirewallModel.getFirewallClusterMaster(iduser, idCluster, function (error, firewallDataArry)
-	{
+	//FirewallModel.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
+	FirewallModel.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
+		if (error) 
+			api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		
 		//Get Data
-		if (firewallDataArry && firewallDataArry.length > 0)
-		{
-			var firewallData = firewallDataArry[0];
-			logger.debug("firewallData: ", firewallData);
-
-			ClusterModel.insertCluster(clusterData, function (error, data)
-			{
+		if (firewallDataArry && firewallDataArry.length > 0) {
+			ClusterModel.insertCluster(clusterData, (error, data) => {
 				//get cluster info
-				if (data && data.insertId)
-				{
+				if (data && data.insertId) {
 					var dataresp = {"insertId": data.insertId};
 					var newidcluster = data.insertId;
 					//////////////////////////////////
 					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, "FDC", newidcluster, function (error, dataTree) {
+					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, "FDC", newidcluster, async (error, dataTree) => {
 						if (error)
-							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
+							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 						else if (dataTree && dataTree.result) {
+							// Clone cluster nodes.
+							for (let firewallData of firewallDataArry) {
+								firewallData.fwcloud = fwcloud;
+								logger.debug("firewallData: ", firewallData);
+								//CLONE FWMASTER
+								await FirewallModel.cloneFirewall(iduser, firewallData)
+								.then(data => {
+									//Saved ok
+									if (data && data.result) {
+										logger.debug("NUEVO FIREWALL CREADO: " + data.insertId);
+										var idNewFirewall = data.insertId;
+										var oldFirewall = firewallData.id;
 
-							//CLONE FWMASTER
-							FirewallModel.cloneFirewall(req.iduser, firewallData)
-									.then(data =>
-									{
-										//Saved ok
-										if (data && data.result)
-										{
-											logger.debug("NUEVO FIREWALL CREADO: " + data.insertId);
-											var idNewFirewall = data.insertId;
-											var oldFirewall = firewallData.id;
+										//-------------------------------------------
+										firewallData.cluster = newidcluster;
+										firewallData.fwcloud = fwcloud;
+										firewallData.by_user = iduser;
 
-											//-------------------------------------------
-											firewallData.cluster = newidcluster;
-											firewallData.fwcloud = fwcloud;
-											firewallData.by_user = iduser;
-
-											FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
-												FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1, function (error, data) {
-
-												});
-											});
-
-											//CLONE INTERFACES
-											InterfaceModel.cloneFirewallInterfaces(req.iduser, req.fwcloud, oldFirewall, idNewFirewall)
-													.then(dataI =>
-													{
-														//CLONE RULES
-														Policy_rModel.cloneFirewallPolicy(req.iduser, req.fwcloud, oldFirewall, idNewFirewall)
-																.then(dataP => {
-																	//INSERT FIREWALL NODE STRUCTURE UNDER CLUSTER  NODES PARENT
-																	//fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, idNewFirewall, null, 1, function (error, dataTree) {
-																	fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, idNewFirewall,newidcluster,1, function (error, dataTree) {
-
-																		if (error)
-																			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-																				res.status(200).json(jsonResp);
-																			});
-																		else if (data && data.result)
-																			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, function (jsonResp) {
-																				res.status(200).json(jsonResp);
-																			});
-																		else
-																			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-																				res.status(200).json(jsonResp);
-																			});
-																	});
-																})
-																.catch(err => {
-																	api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, function (jsonResp) {
-																		res.status(200).json(jsonResp);
-																	});
-																});
-													})
-													.catch(err => {
-														api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, function (jsonResp) {
-															res.status(200).json(jsonResp);
-														});
-													});
-
-
-										} else
-										{
-											api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, function (jsonResp) {
-												res.status(200).json(jsonResp);
-											});
-										}
-									})
-									.catch(e => {
-										api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
-											res.status(200).json(jsonResp);
+										FirewallModel.updateFirewallCluster(firewallData, (error, dataFC) => {
+											FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1, (err, data) => {});
 										});
-									});
 
-
+										// If we are cloning the master firewall, then clone interfaces, policy, etc.
+										if (firewallData.fwmaster) {
+											//CLONE INTERFACES
+											InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall)
+											.then(dataI => {
+												//CLONE RULES
+												Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall)
+												.then(dataP => {
+													//INSERT FIREWALL NODE STRUCTURE UNDER CLUSTER  NODES PARENT
+													//fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, idNewFirewall, null, 1, function (error, dataTree) {
+													fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idNewFirewall,newidcluster,1, (error, dataTree) => {
+														if (error)
+															api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+														else if (!data || !(data.result))
+															api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+													});
+												})
+												.catch(err => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, jsonResp => res.status(200).json(jsonResp)));
+											})
+											.catch(err => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, jsonResp => res.status(200).json(jsonResp)));
+										}
+									} else
+										api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
+								})
+								.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
+							}
+							// If we arrive here all has gone fine.
+							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 						}
 					});
-
-
-				} else {
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+				} else
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 			});
-
 		}
 	});
 });

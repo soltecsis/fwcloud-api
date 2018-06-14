@@ -32,7 +32,6 @@ CREATE TABLE `cluster` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `index_name` (`name`,`fwcloud`),
   KEY `fk_cluster_cloud` (`fwcloud`) USING BTREE,
   CONSTRAINT `fk_cluster_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -109,7 +108,6 @@ CREATE TABLE `firewall` (
   `install_port` int(11) NOT NULL DEFAULT '22',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_fwb_UNIQUE` (`id_fwb`),
-  UNIQUE KEY `index_unique_name` (`fwcloud`,`name`),
   KEY `IDX_48011B7EE5C56994` (`cluster`),
   KEY `fk_firewall_1_idx` (`fwcloud`),
   CONSTRAINT `fk_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
