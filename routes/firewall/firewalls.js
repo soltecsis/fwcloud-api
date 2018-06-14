@@ -708,9 +708,8 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 					res.status(200).json(jsonResp);
 				});
 			});
-
-
 });
+
 
 router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
 {

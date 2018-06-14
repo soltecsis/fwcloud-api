@@ -589,11 +589,10 @@ firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, int
 	});
 };
 
-firewallModel.cloneFirewall = function (iduser, firewallData, callback) {
+firewallModel.cloneFirewall = function (iduser, firewallData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				callback(error, null);
+			if (error) return reject(error);
 			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
 			' AND U.id_user=' + connection.escape(iduser) +
 			' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
