@@ -487,7 +487,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 									if (firewallData.fwmaster)
 										return Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall);
 									else
-										return new Promise((resolve, reject) => resolve());
+										return new Promise(resolve => resolve());
 								})
 								.then(() => {
 									//INSERT FIREWALL NODE STRUCTURE UNDER CLUSTER  NODES PARENT

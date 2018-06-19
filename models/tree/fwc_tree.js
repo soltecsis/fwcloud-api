@@ -139,7 +139,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 										//FIREWALL CONTROL ACCESS
 										if (row.node_type === 'FW') {
 											var idfirewall = row.id_obj;
-											logger.debug("DETECTED FIRWEWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
+											logger.debug("DETECTED FIREWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
 											utilsModel.checkFirewallAccessTree(iduser, fwcloud, idfirewall).
 													then(resp => {
 														add_node = resp;
@@ -780,6 +780,122 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 
 };
 
+function update_cluster_structure(fwcloud,cluster,firewall) {
+	db.get((error, connection) => {
+		if (error) {
+			logger.debug("ERROR: "+error);
+			return;
+		}
+
+		var idfwcloud = connection.escape(fwcloud);
+		var idcluster = connection.escape(cluster);
+		var idfirewall = connection.escape(firewall);
+		
+		//Update Cluster policy folders with Master id firewall                                                    
+		var sql1 = 'UPDATE fwc_tree T ' +
+			'INNER JOIN fwc_tree P ON P.id = T.id_parent ' +
+			'AND P.node_type = "CL" AND P.id_obj=' +idcluster + ' ' +
+			'SET T.id_obj=' + idfirewall;
+		connection.query(sql, (error, result) => {
+			if (error) logger.debug("ERROR: "+error+" ("+sql+")");
+		});
+
+		sql1 = 'UPDATE fwc_tree T ' +
+			' inner join fwc_tree P1 on P1.id=T.id_parent ' +
+			' inner join fwc_tree P2 on P2.id=P1.id_parent and P2.node_type="CL" ' +
+			' AND P2.id_obj=' + idcluster +
+			' SET T.id_obj=' + idfirewall +
+			' WHERE T.node_type<>"FW"';
+		connection.query(sql, (error, result) => {
+			if (error) logger.debug("ERROR: "+error+" ("+sql+")");
+		});
+
+		// Next we have to create the nodes into the interfaces node of the tree.
+		sql1 = 'select id,node_level from fwc_tree where id_obj='+idcluster+' and node_type="FDI" and fwcloud='+idfwcloud;
+		connection.query(sql1, (error, result) => {
+			if (result.length != 1) return;
+
+			var nodeInterfaces = connection.escape(result[0].id);
+			var node_level = connection.escape(result[0].node_level);
+																
+			//Insertamos nodos hijos Interface
+			sqlInt = 'SELECT id,name,labelName FROM interface where interface_type=10 AND firewall='+idfirewall;
+			connection.query(sqlInt, function (error, rowsnodesInt) {
+				if (error) {
+					logger.debug("Error Select interface");
+					callback(error, null);
+				} else {
+					var j = 0;
+					if (rowsnodesInt) {
+						//logger.debug("INTERFACES: " + rowsnodesInt.length);
+						asyncMod.forEachSeries(rowsnodesInt, function (rnodeInt, callback3) {
+							j++;
+							//Insertamos nodos Interfaces
+							sqlinsert = 'INSERT INTO ' + tableModel +
+									'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
+									' VALUES (' +
+									connection.escape(rnodeInt.name) + ',' +
+									connection.escape(rnodeInt.comment) + ',' + nodeInterfaces + ',' +
+									j + ',' + (node_level + 1) + ',"IFF",' +
+									'0,0,' + connection.escape(rnodeInt.id) + ',10,' +
+									idfwcloud + "," + idfwcloud + ")";
+
+							connection.query(sqlinsert, function (error, result) {
+								var idinterface;
+								if (error) {
+									logger.debug("ERROR INTERFACE INSERT : " + rnodeInt.id + " - " + rnodeInt.name + " -> " + error);
+								} else {
+									//logger.debug("INSERT INTERFACE OK NODE: " + rnodeInt.id + " - " + rnodeInt.name);
+									idinterface = result.insertId;
+								}
+								//Insertamos objetos IP de Interface
+								//Insertamos nodos Interface
+								sqlnodesIP = 'SELECT O.id,O.name,O.type,O.fwcloud,O.comment,T.node_type ' +
+									'FROM ipobj O inner join fwc_tree_node_types T on  T.obj_type=O.type ' +
+									'where O.interface=' + connection.escape(rnodeInt.id);
+								//logger.debug(sqlnodesIP);
+								connection.query(sqlnodesIP, function (error, rowsnodesIP) {
+									if (error) {
+										logger.debug(error);
+									} else {
+										var k = 0;
+										if (rowsnodesIP) {
+											//logger.debug("OBJS IP: " + rowsnodesIP.length);
+											asyncMod.forEachSeries(rowsnodesIP, function (rnodeIP, callback4) {
+												k++;
+												//Insertamos nodos IP
+												sqlinsert = 'INSERT INTO ' + tableModel +
+														'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
+														' VALUES (' +
+														connection.escape(rnodeIP.name) + ',' +
+														connection.escape(rnodeIP.comment) + ',' + connection.escape(idinterface) + ',' +
+														k + ',' + (node_level + 2) + ',' + connection.escape(rnodeIP.node_type) + ',' +
+														'0,0,' + connection.escape(rnodeIP.id) + ',5,' +
+														idfwcloud + "," + idfwcloud + ")";
+												connection.query(sqlinsert, function (error, result) {
+													if (error) {
+														logger.debug("ERROR IP OBJECT INSERT : " + rnodeIP.id + " - " + rnodeIP.name + " -> " + error);
+													} else {
+														//logger.debug("INSERT IPOBJ OK NODE: " + rnodeIP.id + " - " + rnodeIP.name);
+													}
+												});
+												callback4();
+											}
+											);
+										}
+									}	
+								});
+							});
+							callback3();
+						});
+					}
+				}
+			});
+		});
+	});
+}
+
+
 //Add new TREE FIREWALL for a New Firewall
 fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idcluster, fwmaster, AllDone) {
 	db.get(function (error, connection) {
@@ -845,7 +961,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
 
 												////////////////////////////////////////////////////////
 												//ONLY CREATE NODE STRUCTURE FOR FIREWALL not in cluster and 
-												if (idcluster===null || fwmaster===1)
+												if (idcluster===null)
 												{
 													logger.debug("CREATING FIREWALL STRUCTURE: " + rnode.id + " - " + rnode.name);
 													var parent_FP = 0;
@@ -1010,32 +1126,10 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
 													});
 												}
 												
-												//UPDATE CLUSTER STRCUTURE WITH FIREWALL MASTER
+												//UPDATE CLUSTER STRUCTURE WITH FIREWALL MASTER
 												if (idcluster !== null && fwmaster == 1) {
 													logger.debug("UPDATING CLUSTER STRUCTURE: " + rnode.id + " - " + rnode.name + "  CLUSTER: ", idcluster, "  IDFIREWAL: ", idfirewall, "  FWMASTER: ", fwmaster);
-													//Update Cluster policy folders with Master id firewall                                                    
-													sqlinsert = 'UPDATE fwc_tree T ' +
-															' INNER JOIN fwc_tree P ON P.id = T.id_parent ' +
-															' AND P.node_type = "CL" AND P.id_obj =' + connection.escape(idcluster) +
-															' SET T.id_obj= ' + connection.escape(idfirewall);
-													connection.query(sqlinsert, function (error, result) {
-														if (error) {
-															logger.debug("ERROR CLUSTER FWMASTER1: " + error);
-															logger.debug(sqlinsert);
-														}
-													});
-													sqlinsert = 'UPDATE fwc_tree T ' +
-															' inner join fwc_tree P1 on P1.id=T.id_parent ' +
-															' inner join fwc_tree P2 on P2.id=P1.id_parent and P2.node_type="CL" ' +
-															' AND P2.id_obj =' + connection.escape(idcluster) +
-															' SET T.id_obj= ' + connection.escape(idfirewall) +
-															' WHERE T.node_type<>"FW"';
-													connection.query(sqlinsert, function (error, result) {
-														if (error) {
-															logger.debug("ERROR CLUSTER FWMASTER2: " + error);
-															logger.debug(sqlinsert);
-														}
-													});
+													//update_cluster_structure(fwcloud,idcluster,idfirewall);
 												}
 											}
 										});
@@ -1229,9 +1323,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, folder, idcluster,
 					AllDone(null, {"result": true});
 			}
 		});
-
 	});
-
 };
 
 //CONVERT TREE FIREWALL TO  CLUSTER for a New CLuster
