@@ -550,22 +550,12 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 
 /* Remove cluster */
 router.put("/del/cluster/:id/:idfirewall", InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var id = req.params.id;
-	ClusterModel.deleteCluster(id, iduser, fwcloud, function (error, data)
-	{
+	ClusterModel.deleteCluster(req.params.id, req.iduser, req.fwcloud, (error, data) => {
 		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp =>	res.status(200).json(jsonResp));
 	});
 });
+
 module.exports = router;

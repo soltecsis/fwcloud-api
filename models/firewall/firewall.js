@@ -881,7 +881,7 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
 			var sqlExists = 'SELECT T.id, A.id as idnode FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
 					' AND U.id_user=' + connection.escape(iduser) +
 					' INNER JOIN fwc_tree A ON A.id_obj = T.id ' +
-					' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 AND T.cluster IS NULL';
+					' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1';
 			connection.query(sqlExists, function (error, row) {
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
