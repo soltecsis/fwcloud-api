@@ -95,14 +95,69 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 	for (var i = 0; i < svc.length; i++) {
 		switch (svc[i].protocol) { // PROTOCOL NUMBER
 			case 6: // TCP
-				if (svc[i].source_port_end === 0) { // No source port.
-					if (tcp)
-						tcp += ",";
-					tcp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
-				} else {
-					tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
-					if (svc[i].destination_port_end !== 0)
+				const mask = svc[i].tcp_flags_mask;
+			
+				if (!mask || mask===0) { // No TCP flags.
+					if (svc[i].source_port_end === 0) { // No source port.
+						if (tcp)
+							tcp += ",";
+						tcp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
+					} else {
+						tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
+						if (svc[i].destination_port_end !== 0)
+							tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
+						items.str.push(tmp);
+					}
+				}
+				else { // Add the TCP flags.
+					tmp = "-p tcp";
+					if (svc[i].source_port_end !== 0) // Exists source port
+						tmp += " --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
+					if (svc[i].destination_port_end !== 0) // Exists destination port
 						tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
+					tmp += " --tcp-flags ";
+
+					// If all mask bits are set.
+					if (mask === 0b00111111)
+						tmp += "ALL ";
+					else {
+						// Compose the mask.
+						if (mask & 0b00000001) // URG
+							tmp += "URG,";
+						if (mask & 0b00000010) // ACK
+							tmp += "ACK,";
+						if (mask & 0b00000100) // PSH
+							tmp += "PSH,";
+						if (mask & 0b00001000) // RST
+							tmp += "RST,";
+						if (mask & 0b00010000) // SYN
+							tmp += "SYN,";
+						if (mask & 0b00100000) // FIN
+							tmp += "FIN,";
+						tmp = tmp.replace(/.$/," ");
+					}
+
+					// Compose the flags that must be set.
+					const settings = svc[i].tcp_flags_settings;
+					if (!settings || settings === 0)
+						tmp += " NONE";
+					else {
+						// Compose the mask.
+						if (settings & 0b00000001) // URG
+							tmp += "URG,";
+						if (settings & 0b00000010) // ACK
+							tmp += "ACK,";
+						if (settings & 0b00000100) // PSH
+							tmp += "PSH,";
+						if (settings & 0b00001000) // RST
+							tmp += "RST,";
+						if (settings & 0b00010000) // SYN
+							tmp += "SYN,";
+						if (settings & 0b00100000) // FIN
+							tmp += "FIN,";
+						tmp = tmp.substring(0, tmp.length - 1);
+					}
+
 					items.str.push(tmp);
 				}
 				break;
