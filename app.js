@@ -107,7 +107,7 @@ app.use(session({
 
 app.use((req, res, next) => {
   // Exclude the login route.
-  if (req.path == '/users/login') return next();
+	if (req.path == '/users/login') return next();
 
   /////////////////////////////////////////////////////////////////////////////////
   // WARNING!!!!: If you enable the next two code lines, then you disable
@@ -130,15 +130,15 @@ app.use((req, res, next) => {
   }
 
   UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
-	if (data.length===0) {
-	  req.session.destroy(err => {} );
-	  api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-	  return;
-	}
+		if (data.length===0) {
+	  	req.session.destroy(err => {} );
+	  	api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+	  	return;
+		}
 
-	// If we arrive here, then the session is correct.
-	logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
-	next(); 
+		// If we arrive here, then the session is correct.
+		logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
+		next(); 
   });
 });
 /*--------------------------------------------------------------------------------------*/

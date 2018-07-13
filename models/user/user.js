@@ -50,7 +50,8 @@ userModel.getUserName = function (customer, username, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sql = 'SELECT * FROM user WHERE customer=' + connection.escape(customer) + ' AND username like  ' + connection.escape('%' + username + '%') + ' ORDER BY username';
+		var sql = 'SELECT * FROM user '+
+			'WHERE customer='+connection.escape(customer)+' AND username ='+connection.escape(username);
 
 		connection.query(sql, function (error, row) {
 			if (error)
