@@ -56,7 +56,7 @@ router.post('/login',(req, res) => {
         req.session.customer_id = data[0].customer;
         req.session.user_id = data[0].id;
         req.session.username = data[0].username;
-        api_resp.getJson(null, api_resp.ACR_OK, 'User loged in.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
+        api_resp.getJson({user_id: req.session.user_id}, api_resp.ACR_OK, 'User loged in.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
       } else {
         req.session.destroy(err => {} );
         logger.debug("INVALID PASSWORD: customer="+req.body.customer+", user="+req.body.username);
