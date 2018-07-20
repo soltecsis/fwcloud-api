@@ -50,8 +50,13 @@ case "$ACTION" in
     chown root:root "$0"
     chmod 700 "$0"
 
-    if [ `show version|grep EdgeRouter` ]; then
+    if [ "`show version|grep EdgeRouter`" ]; then
       INSTALL_DIR="/config/fwcloud"
+      SLF="/config/scripts/post-config.d/fwcloud.sh"
+      if [ -L "$SLF" ]; then
+        rm "$SLF"
+      fi
+      ln -s "$INSTALL_DIR/fwcloud.sh" "$SLF"
     else
       INSTALL_DIR="/etc/fwcloud"
     fi
