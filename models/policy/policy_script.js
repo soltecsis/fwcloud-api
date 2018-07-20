@@ -151,7 +151,10 @@ PolicyScript.install = (accessData,SSHconn,fw) => {
 			})
 			.then(() => {
 				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-				return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
+				//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
+				return PolicyScript.run_ssh_command(SSHconn,"sudo if [ -d /etc/fwcloud ]; then "+
+					"/etc/fwcloud/"+config.get('policy').script_name+" start;"+
+					"else /config/fwcloud/"+config.get('policy').script_name+" start; fi")
 			})
 			.then(data => {
 				streamModel.pushMessageCompile(accessData, data+"\nEND\n");
