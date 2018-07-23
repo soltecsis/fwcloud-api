@@ -51,13 +51,7 @@ case "$ACTION" in
 
     if [ "`cat /etc/issue | grep EdgeOS`" ]; then
       chown root:vyattacfg "$0"
-      INSTALL_DIR="/config/fwcloud"
-      SLF="/config/scripts/post-config.d/fwcloud.sh"
-      if [ -L "$SLF" ]; then
-        rm "$SLF"
-      fi
-      ln -s "$INSTALL_DIR/fwcloud.sh" "$SLF"
-      chown root:vyattacfg "$SLF"
+      INSTALL_DIR="/config/scripts/post-config.d"
     else
       chown root:root "$0"
       INSTALL_DIR="/etc/fwcloud"
