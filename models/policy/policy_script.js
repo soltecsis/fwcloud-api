@@ -154,7 +154,7 @@ PolicyScript.install = (accessData,SSHconn,fw) => {
 				//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
 				return PolicyScript.run_ssh_command(SSHconn,"sudo bash -c 'if [ -d /etc/fwcloud ]; then "+
 					"/etc/fwcloud/"+config.get('policy').script_name+" start; "+
-					"else /config/fwcloud/"+config.get('policy').script_name+" start; fi'")
+					"else /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
 			})
 			.then(data => {
 				streamModel.pushMessageCompile(accessData, data+"\nEND\n");
