@@ -47,19 +47,22 @@ case "$ACTION" in
     ;;
 
   install)
-    chown root:root "$0"
     chmod 700 "$0"
 
     if [ "`cat /etc/issue | grep EdgeOS`" ]; then
+      chown root:vyattacf "$0"
       INSTALL_DIR="/config/fwcloud"
       SLF="/config/scripts/post-config.d/fwcloud.sh"
       if [ -L "$SLF" ]; then
         rm "$SLF"
       fi
       ln -s "$INSTALL_DIR/fwcloud.sh" "$SLF"
+      chown root:vyattacf "$SLF"
     else
+      chown root:root "$0"
       INSTALL_DIR="/etc/fwcloud"
     fi
+
     test ! -d "$INSTALL_DIR" && {
       mkdir -m 700 -p "$INSTALL_DIR"
       chown root:root "$INSTALL_DIR"
