@@ -387,7 +387,14 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewa
 interfaceModel.checkRestrictions = function (req, res, next) {
 	req.restricted = {"result": true, "msg": "", "restrictions": ""};
 	//Check interface in RULE O POSITIONS
-	interfaceModel.searchInterfaceInrulesPro(req.params.id, req.params.type, req.fwcloud, '')
+	if (req.params.idhost && req.params.idinterface) {
+		id=req.params.idinterface;
+		type=11; // Host interface
+	} else {
+		id=req.params.id;
+		type=req.params.type;
+	}
+	interfaceModel.searchInterfaceInrulesPro(id, type, req.fwcloud, '')
 	.then(data => {
 		//CHECK RESULTS
 		if (data.result) {
