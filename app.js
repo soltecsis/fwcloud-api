@@ -22,6 +22,7 @@ log4js_extend(log4js, {
 });
 
 
+const helmet = require('helmet');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);
@@ -31,7 +32,6 @@ var cors = require('cors');
 var methodOverride = require('method-override');
 
 var app = express();
-
 
 //configuración para ejs
 app.set('views', path.join(__dirname, 'views'));
@@ -45,6 +45,9 @@ app.use(log4js.connectLogger(log4js.getLogger("http"), {level: 'auto'}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
+// Helmet is a middleware that helps you secure your Express apps by setting various HTTP headers. 
+// It's not a silver bullet, but it can help!
+app.use(helmet());
 
 //configuramos methodOverride
 app.use(methodOverride(function (req, res) {
