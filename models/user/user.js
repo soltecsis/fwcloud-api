@@ -46,18 +46,20 @@ userModel.getUser = function (customer, id, callback) {
 };
 
 //Get user by  username
-userModel.getUserName = function (customer, username, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT * FROM user '+
-			'WHERE customer='+connection.escape(customer)+' AND username ='+connection.escape(username);
-
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
+userModel.getUserName = function (customer, username) {
+	return new Promise((resolve,reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+			
+			var sql = 'SELECT * FROM user '+
+				'WHERE customer='+connection.escape(customer)+' AND username ='+connection.escape(username);
+	
+			connection.query(sql, function (error, row) {
+				if (error)
+					reject(error);
+				else
+					resolve(row);
+			});
 		});
 	});
 };

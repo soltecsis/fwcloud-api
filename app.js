@@ -23,10 +23,10 @@ log4js_extend(log4js, {
 
 
 const helmet = require('helmet');
+const compression = require('compression');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);
-var bcrypt = require('bcrypt-nodejs');
 var cors = require('cors');
 
 var methodOverride = require('method-override');
@@ -48,6 +48,9 @@ app.use(bodyParser.urlencoded({extended: false}));
 // Helmet is a middleware that helps you secure your Express apps by setting various HTTP headers. 
 // It's not a silver bullet, but it can help!
 app.use(helmet());
+
+// compress responses
+app.use(compression());
 
 //configuramos methodOverride
 app.use(methodOverride(function (req, res) {
@@ -128,21 +131,22 @@ app.use((req, res, next) => {
 
   if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
 		req.session.destroy(err => {} );
-		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Invalid session.', '', null, jsonResp => { res.status(200).json(jsonResp) });
+		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Invalid session.', '', null, jsonResp => res.status(200).json(jsonResp));
 		return;
   }
 
-  UserModel.getUserName(req.session.customer_id, req.session.username, (error, data) => {
+	UserModel.getUserName(req.session.customer_id, req.session.username)
+	.then(data => {
 		if (data.length===0) {
-	  	req.session.destroy(err => {} );
-	  	api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Bad session data.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-	  	return;
+			req.session.destroy(err => {} );
+			throw null;
 		}
 
 		// If we arrive here, then the session is correct.
 		logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
 		next(); 
-  });
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Bad session data.', '', error, jsonResp => res.status(200).json(jsonResp)));
 });
 /*--------------------------------------------------------------------------------------*/
 
