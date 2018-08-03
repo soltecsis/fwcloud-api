@@ -51,8 +51,7 @@ router.post('/login',async (req, res) => {
 		will block the event loop and prevent your application from servicing any other
 		inbound requests or events.
 		*/
-		const doesMatch = await bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password);
-		if (doesMatch) {
+		if (await bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password)) {
 			// Return authorization token.
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
@@ -64,7 +63,7 @@ router.post('/login',async (req, res) => {
 			throw null;
 		}
 	} catch(error) {
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid user or password.', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid username or password.', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	} 
 });
 /*---------------------------------------------------------------------------*/
