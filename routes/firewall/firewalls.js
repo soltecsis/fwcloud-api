@@ -121,7 +121,6 @@ router.param('cluster', function (req, res, next, param) {
  *           "created_at" : ,    //Date Created
  *           "updated_at" : ,    //Date Updated
  *           "by_user" : ,       //User last update
- *           "id_fwb" :          //ID firewall in FWbuilder
  *          },
  *          {....}, //Data Firewall 2
  *          {....}  //Data Firewall ...n 
@@ -176,7 +175,6 @@ router.get('', function (req, res)
  *           "created_at" : ,    //Date Created
  *           "updated_at" : ,    //Date Updated
  *           "by_user" : ,       //User last update
- *           "id_fwb" :          //ID firewall in FWbuilder
  *          },
  *          {....}, //Data Firewall 2
  *          {....}  //Data Firewall ...n 
@@ -235,7 +233,6 @@ router.get('/cloud', function (req, res)
  *           "compiled_at" : ,   //Date Compiled
  *           "installed_at" : ,  //Date Installed
  *           "by_user" : ,       //User last update
- *           "id_fwb" :          //ID firewall in FWbuilder
  *          }
  *         ]
  *       };
@@ -341,7 +338,6 @@ router.get('/firewall/:id', function (req, res)
  *           "created_at" : ,    //Date Created
  *           "updated_at" : ,    //Date Updated
  *           "by_user" : ,       //User last update
- *           "id_fwb" :          //ID firewall in FWbuilder
  *          },
  *          {....}, //Data Firewall 2
  *          {....}  //Data Firewall ...n 
@@ -398,7 +394,6 @@ router.get('/fwname/:name', function (req, res)
  *           "created_at" : ,    //Date Created
  *           "updated_at" : ,    //Date Updated
  *           "by_user" : ,       //User last update
- *           "id_fwb" :          //ID firewall in FWbuilder
  *          },
  *          {....}, //Data Firewall 2
  *          {....}  //Data Firewall ...n 

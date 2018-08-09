@@ -278,11 +278,6 @@ var ipobj_protocols = require('./routes/ipobj/ipobj_protocols');
 
 var stream = require('./routes/stream/stream');
 
-/* Comentado para evitar que una importación sobre una base de datos ya existente
-provoque que los datos queden todos inconsistentes. */
-//var importxml = require('./utils/importxml');
-//app.use('/importxml', importxml);
-
 //app.use('/', routes);
 app.use('/users', users);
 app.use('/user__firewalls', user__firewalls);

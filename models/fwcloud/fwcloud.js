@@ -61,7 +61,6 @@ var logger = require('log4js').getLogger("app");
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 fwcloudModel.getFwclouds = function (iduser, callback) {
 
@@ -106,7 +105,6 @@ fwcloudModel.getFwclouds = function (iduser, callback) {
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 fwcloudModel.getFwcloud = function (iduser, fwcloud, callback) {
     db.get(function (error, connection) {

@@ -348,7 +348,7 @@ policy_r__ipobjModel.clonePolicy_r__ipobj = function (policy_r__ipobjData) {
 			if (error)
 				reject(error);
 			if (p_ipobjData.interface !== -1) {
-				var sqlI = 'select id from interface where id_fwb=' + policy_r__ipobjData.interface + ' AND firewall= ' + newfirewall;
+				var sqlI = 'select id from interface where id=' + policy_r__ipobjData.interface + ' AND firewall= ' + newfirewall;
 				logger.debug("--------- >>>> SQL INTERFACE OTHER: ",  sqlI);
 				connection.query(sqlI, function (error, result) {
 					if (result && result.length > 0) {
@@ -369,7 +369,7 @@ policy_r__ipobjModel.clonePolicy_r__ipobj = function (policy_r__ipobjData) {
 			} 
 			else if (p_ipobjData.ipobj !== -1) {
 				var sqlI = 'select O.id from ipobj O inner join interface I on I.id=O.interface ' + 
-						' where O.id_fwb=' + policy_r__ipobjData.ipobj + ' AND I.firewall= ' + newfirewall;
+						' where O.id=' + policy_r__ipobjData.ipobj + ' AND I.firewall= ' + newfirewall;
 				logger.debug("--------- >>>> SQL IPOBJ OTHER: ",  sqlI);
 				connection.query(sqlI, function (error, result) {
 					if (result && result.length > 0) {

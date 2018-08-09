@@ -17,16 +17,16 @@ var logger = require('log4js').getLogger("app");
 //Get All ipobj_g
 ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        connection.query('SELECT * FROM ' + tableModel + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', function (error, rows) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, rows);
-        });
-    });
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
+				connection.query('SELECT * FROM ' + tableModel + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', function (error, rows) {
+						if (error)
+								callback(error, null);
+						else
+								callback(null, rows);
+				});
+		});
 };
 
 
@@ -35,356 +35,358 @@ ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
 
 //Get ipobj_g by  id
 ipobj_gModel.getIpobj_g = function (fwcloud, id, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ';
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else {
-                callback(null, row);
-            }
-        });
-    });
+	db.get(function (error, connection) {
+			if (error)
+					callback(error, null);
+			var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ';
+			connection.query(sql, function (error, row) {
+					if (error)
+							callback(error, null);
+					else {
+							callback(null, row);
+					}
+			});
+	});
 };
 
 //Get ipobj_g by  id AND ALL IPOBjs
 ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 
-    var groups = [];
-    var group_cont = 0;
-    var ipobjs_cont = 0;
+		var groups = [];
+		var group_cont = 0;
+		var ipobjs_cont = 0;
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
 
-        var sqlId = '';
-        if (id !== '')
-            sqlId = ' AND G.id = ' + connection.escape(id);
-        var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-                'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
-                ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
-        logger.debug(sql);
-        connection.query(sql, function (error, rows) {
-            if (error)
-                callback(error, null);
-            else if (rows.length > 0) {
-                group_cont = rows.length;
-                var row = rows[0];
-                asyncMod.map(rows, function (row, callback1) {
+				var sqlId = '';
+				if (id !== '')
+						sqlId = ' AND G.id = ' + connection.escape(id);
+				var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
+								'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
+								' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
+				logger.debug(sql);
+				connection.query(sql, function (error, rows) {
+						if (error)
+								callback(error, null);
+						else if (rows.length > 0) {
+								group_cont = rows.length;
+								var row = rows[0];
+								asyncMod.map(rows, function (row, callback1) {
 
-                    var group_node = new ipobj_g_Data(row);
+										var group_node = new ipobj_g_Data(row);
 
-                    logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
-                    var idgroup = row.id;
-                    group_node.ipobjs = new Array();
-                    //GET ALL GROUP OBJECTs
-                    IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
-                        if (data_ipobjs.length > 0) {
-                            ipobjs_cont = data_ipobjs.length;
+										logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
+										var idgroup = row.id;
+										group_node.ipobjs = new Array();
+										//GET ALL GROUP OBJECTs
+										IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+												if (data_ipobjs.length > 0) {
+														ipobjs_cont = data_ipobjs.length;
 
-                            asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
-                                //GET OBJECTS
-                                logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
+														asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+																//GET OBJECTS
+																logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
-                                var ipobj_node = new ipobj_Data(data_ipobj);
-                                //Añadimos ipobj a array Grupo
-                                group_node.ipobjs.push(ipobj_node);
-                                callback2();
-                            }, //Fin de bucle de IPOBJS
-                                    function (err) {
+																var ipobj_node = new ipobj_Data(data_ipobj);
+																//Añadimos ipobj a array Grupo
+																group_node.ipobjs.push(ipobj_node);
+																callback2();
+														}, //Fin de bucle de IPOBJS
+																		function (err) {
 
-                                        if (group_node.ipobjs.length >= ipobjs_cont) {
-                                            groups.push(group_node);
-                                            if (groups.length >= group_cont) {
-                                                AllDone(null, groups);
-                                            }
+																				if (group_node.ipobjs.length >= ipobjs_cont) {
+																						groups.push(group_node);
+																						if (groups.length >= group_cont) {
+																								AllDone(null, groups);
+																						}
 
 
-                                        }
-                                    }
-                            );
-                        } else {
-                            groups.push(group_node);
-                            if (groups.length >= group_cont) {
-                                AllDone(null, groups);
-                            }
-                        }
-                    }
-                    );
-                    callback1();
-                }, //Fin de bucle de GROUPS
-                        function (err) {
-                            if (groups.length >= group_cont) {
+																				}
+																		}
+														);
+												} else {
+														groups.push(group_node);
+														if (groups.length >= group_cont) {
+																AllDone(null, groups);
+														}
+												}
+										}
+										);
+										callback1();
+								}, //Fin de bucle de GROUPS
+												function (err) {
+														if (groups.length >= group_cont) {
 
-                                AllDone(null, groups);
-                            }
-                        }
-                );
-            } else {
-                AllDone("", null);
-            }
-        });
-    });
+																AllDone(null, groups);
+														}
+												}
+								);
+						} else {
+								AllDone("", null);
+						}
+				});
+		});
 };
 
 //Get ipobj_g by  id AND ALL IPOBjs
 ipobj_gModel.getIpobj_g_Full_Pro = function (fwcloud, id) {
-    return new Promise((resolve, reject) => {
-        var groups = [];
-        var group_cont = 0;
-        var ipobjs_cont = 0;
+		return new Promise((resolve, reject) => {
+				var groups = [];
+				var group_cont = 0;
+				var ipobjs_cont = 0;
 
-        db.get(function (error, connection) {
-            if (error)
-                reject(error);
+				db.get(function (error, connection) {
+						if (error)
+								reject(error);
 
-            var sqlId = '';
-            if (id !== '')
-                sqlId = ' AND G.id = ' + connection.escape(id);
-            var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-                    'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
-                    ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
-            //logger.debug(sql);
-            connection.query(sql, function (error, rows) {
-                if (error)
-                    reject(error);
-                else if (rows.length > 0) {
-                    group_cont = rows.length;
-                    var row = rows[0];
-                    asyncMod.map(rows, function (row, callback1) {
+						var sqlId = '';
+						if (id !== '')
+								sqlId = ' AND G.id = ' + connection.escape(id);
+						var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
+										'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
+										' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
+						//logger.debug(sql);
+						connection.query(sql, function (error, rows) {
+								if (error)
+										reject(error);
+								else if (rows.length > 0) {
+										group_cont = rows.length;
+										var row = rows[0];
+										asyncMod.map(rows, function (row, callback1) {
 
-                        var group_node = new ipobj_g_Data(row);
+												var group_node = new ipobj_g_Data(row);
 
-                        logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
-                        var idgroup = row.id;
-                        group_node.ipobjs = new Array();
-                        //GET ALL GROUP OBJECTs
-                        IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
-                            if (data_ipobjs.length > 0) {
-                                ipobjs_cont = data_ipobjs.length;
+												logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
+												var idgroup = row.id;
+												group_node.ipobjs = new Array();
+												//GET ALL GROUP OBJECTs
+												IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+														if (data_ipobjs.length > 0) {
+																ipobjs_cont = data_ipobjs.length;
 
-                                asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
-                                    //GET OBJECTS
-                                    logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
+																asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+																		//GET OBJECTS
+																		logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
-                                    var ipobj_node = new ipobj_Data(data_ipobj);
-                                    //Añadimos ipobj a array Grupo
-                                    group_node.ipobjs.push(ipobj_node);
-                                    callback2();
-                                }, //Fin de bucle de IPOBJS
-                                        function (err) {
+																		var ipobj_node = new ipobj_Data(data_ipobj);
+																		//Añadimos ipobj a array Grupo
+																		group_node.ipobjs.push(ipobj_node);
+																		callback2();
+																}, //Fin de bucle de IPOBJS
+																				function (err) {
 
-                                            if (group_node.ipobjs.length >= ipobjs_cont) {
-                                                groups.push(group_node);
-                                                if (groups.length >= group_cont) {
-                                                    //AllDone(null, groups);
-                                                    resolve(groups);
-                                                }
+																						if (group_node.ipobjs.length >= ipobjs_cont) {
+																								groups.push(group_node);
+																								if (groups.length >= group_cont) {
+																										//AllDone(null, groups);
+																										resolve(groups);
+																								}
 
 
-                                            }
-                                        }
-                                );
-                            } else {
-                                groups.push(group_node);
-                                if (groups.length >= group_cont) {
-                                    resolve(groups);
-                                }
-                            }
-                        }
-                        );
-                        callback1();
-                    }, //Fin de bucle de GROUPS
-                            function (err) {
-                                if (groups.length >= group_cont) {
+																						}
+																				}
+																);
+														} else {
+																groups.push(group_node);
+																if (groups.length >= group_cont) {
+																		resolve(groups);
+																}
+														}
+												}
+												);
+												callback1();
+										}, //Fin de bucle de GROUPS
+														function (err) {
+																if (groups.length >= group_cont) {
 
-                                    resolve(groups);
-                                }
-                            }
-                    );
-                } else {
-                    reject("");
-                }
-            });
-        });
-    });
+																		resolve(groups);
+																}
+														}
+										);
+								} else {
+										reject("");
+								}
+						});
+				});
+		});
 };
 
 //Get ipobj_g by name
 ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var namesql = '%' + name + '%';
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  fwcloud= ' + connection.escape(fwcloud);
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
+				var namesql = '%' + name + '%';
+				var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  fwcloud= ' + connection.escape(fwcloud);
+				connection.query(sql, function (error, row) {
+						if (error)
+								callback(error, null);
+						else
+								callback(null, row);
+				});
+		});
 };
 //Get ipobj_g by  tipo
 ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'SELECT * FROM ' + tableModel + ' WHERE type =  ' + connection.escape(type) + ' AND  fwcloud= ' + connection.escape(fwcloud);
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
+				var sql = 'SELECT * FROM ' + tableModel + ' WHERE type =  ' + connection.escape(type) + ' AND  fwcloud= ' + connection.escape(fwcloud);
+				connection.query(sql, function (error, row) {
+						if (error)
+								callback(error, null);
+						else
+								callback(null, row);
+				});
+		});
 };
 
 
 /* Search where is used GROUP  */
 ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
-    //SEARCH IPOBJ GROUP IN RULES
-    Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
-        if (error) {
-            callback(error, null);
-        } else {
+		//SEARCH IPOBJ GROUP IN RULES
+		Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
+				if (error) {
+						callback(error, null);
+				} else {
 
-            if (data_grouprule.found !== "") {
-                callback(null, {"result": true, "msg": "GROUP FOUND", "search": {
-                        "groupInRules": data_grouprule}});
-            } else {
-                callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": {
-                        "groupInRules": ""}});
-            }
+						if (data_grouprule.found !== "") {
+								callback(null, {"result": true, "msg": "GROUP FOUND", "search": {
+												"groupInRules": data_grouprule}});
+						} else {
+								callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": {
+												"groupInRules": ""}});
+						}
 
-        }
-    });
+				}
+		});
 
 };
 
 
 ipobj_gModel.checkRestrictions = function (req, res, next) {
-    req.restricted = {"result": true, "msg": "", "restrictions": ""};
+		req.restricted = {"result": true, "msg": "", "restrictions": ""};
 
-    ipobj_gModel.searchGroupInRules(req.params.id, req.fwcloud)
-            .then(data => {
-                if (data.result) {
-                    logger.debug("RESTRICTED GROUP: " + req.params.id + "  Fwcloud: " + req.fwcloud);
-                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
-                }
-                next();
-            })
-            .catch(e => next());
+		ipobj_gModel.searchGroupInRules(req.params.id, req.fwcloud)
+						.then(data => {
+								if (data.result) {
+										logger.debug("RESTRICTED GROUP: " + req.params.id + "  Fwcloud: " + req.fwcloud);
+										req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+								}
+								next();
+						})
+						.catch(e => next());
 };
 
 /* Search where is used GROUP IN RULES AND MEMBERS */
 ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
-    return new Promise((resolve, reject) => {
-        //SEARCH IPOBJ GROUP IN RULES
-        Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
-            if (error) {
-                reject(error);
-            } else {
-                //SEARCH IPOBJ GROUP IN RULES
-                Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud, function (error, data_ipobjrule) {
-                    if (error) {
-                        reject(error);
-                    } else {
+		return new Promise((resolve, reject) => {
+				//SEARCH IPOBJ GROUP IN RULES
+				Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
+						if (error) {
+								reject(error);
+						} else {
+								//SEARCH IPOBJ GROUP IN RULES
+								Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud, function (error, data_ipobjrule) {
+										if (error) {
+												reject(error);
+										} else {
 
-                        if (data_grouprule.found !== "" || data_ipobjrule.found !== "") {
-                            resolve({"result": true, "msg": "GROUP FOUND", "search": {
-                                        "groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}});
-                        } else {
-                            resolve({"result": false, "msg": "GROUP NOT FOUND", "search": {
-                                        "groupInRules": "", "ipobjInGroupInRules": ""}});
-                        }
-                    }
-                });
-            }
-        });
-    });
+												if (data_grouprule.found !== "" || data_ipobjrule.found !== "") {
+														resolve({"result": true, "msg": "GROUP FOUND", "search": {
+																				"groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}});
+												} else {
+														resolve({"result": false, "msg": "GROUP NOT FOUND", "search": {
+																				"groupInRules": "", "ipobjInGroupInRules": ""}});
+												}
+										}
+								});
+						}
+				});
+		});
 
 };
 
 //Add new ipobj_g
 ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_gData, function (error, result) {
-            if (error) {
-                callback(error, null);
-            } else {
-                if (result.affectedRows > 0) {
-                    //devolvemos la última id insertada
-                    callback(null, {"insertId": result.insertId});
-                } else
-                    callback(error, null);
-            }
-        });
-    });
+	db.get(function (error, connection) {
+		if (error) return callback(error, null);
+		// The IDs for the user defined IP Objects groups begin from the value 100000. 
+		// IDs values from 0 to 99999 are reserved for standard IP Objects.
+		connection.query('SELECT ID FROM ' + tableModel + ' ORDER BY ID DESC LIMIT 1', (error, result) => {
+			if (error) return callback(error, null);
+			ipobj_gData.id = ((result[0].ID >= 100000) ? (result[0].ID+1) : 100000);
+			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj_gData, (error, result) => {
+				if (error) return callback(error, null);
+					if (result.affectedRows > 0) {
+						//devolvemos la última id insertada
+						callback(null, {"insertId": result.insertId});
+					} else
+						callback(error, null);
+			});
+		});
+	});
 };
 //Update ipobj_g
 ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
-                ' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +
-                ' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +
-                ' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
-        connection.query(sql, function (error, result) {
-            if (error) {
-                logger.debug(sql);
-                logger.debug(error);
-                callback(error, null);
-            } else {
-                callback(null, {"result": true});
-            }
-        });
-    });
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
+				var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
+								' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +
+								' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +
+								' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
+				connection.query(sql, function (error, result) {
+						if (error) {
+								logger.debug(sql);
+								logger.debug(error);
+								callback(error, null);
+						} else {
+								callback(null, {"result": true});
+						}
+				});
+		});
 };
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from ipobj_g to remove
-            if (row) {
-                db.get(function (error, connection) {
-                    //DELETE CHILDREN
-                    Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(id, function (error, data) {
-                        if (error) {
-                            logger.error(error);
-                            callback(error, null);
-                        } else {
-                            var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-                            connection.query(sql, function (error, result) {
-                                if (error) {
-                                    logger.error(error);
-                                    callback(error, null);
-                                } else {
-                                    if (result.affectedRows > 0)
-                                        callback(null, {"result": true, "msg": "deleted"});
-                                    else
-                                        callback(null, {"result": false, "msg": "notExist"});
-                                }
-                            });
-                        }
-                    });
-                });
-            } else {
-                callback(null, {"result": false, "msg": "notExist"});
-            }
-        });
-    });
+		db.get(function (error, connection) {
+				if (error)
+						callback(error, null);
+				var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+				connection.query(sqlExists, function (error, row) {
+						//If exists Id from ipobj_g to remove
+						if (row) {
+								db.get(function (error, connection) {
+										//DELETE CHILDREN
+										Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(id, function (error, data) {
+												if (error) {
+														logger.error(error);
+														callback(error, null);
+												} else {
+														var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
+														connection.query(sql, function (error, result) {
+																if (error) {
+																		logger.error(error);
+																		callback(error, null);
+																} else {
+																		if (result.affectedRows > 0)
+																				callback(null, {"result": true, "msg": "deleted"});
+																		else
+																				callback(null, {"result": false, "msg": "notExist"});
+																}
+														});
+												}
+										});
+								});
+						} else {
+								callback(null, {"result": false, "msg": "notExist"});
+						}
+				});
+		});
 
 
 };

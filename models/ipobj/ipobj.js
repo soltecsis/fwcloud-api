@@ -425,30 +425,6 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
 };
 
 /**
- * Get ipobj by id_fwb
- * 
- * @method getIpobj_fwb
- * 
- * @param {Integer} id_fwb id firewall Builder identifier
- * 
- * @return {ROW} Returns ROW Data from Ipobj
- * */
-ipobjModel.getIpobj_fwb = function (id_fwb, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-/**
  * Get All ipobj by Group
  * 
  * @method getAllIpobjsGroup
@@ -646,19 +622,21 @@ ipobjModel.getIpobjName = function (fwcloud, name, callback) {
  *      {result: false, "insertId": ''}
  * */
 ipobjModel.insertIpobj = function (ipobjData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
+	db.get((error, connection) => {
+		if (error) return callback(error, null);
+		// The IDs for the user defined IP Objects begin from the value 100000. 
+		// IDs values from 0 to 99999 are reserved for standard IP Objects.
+		connection.query('SELECT ID FROM ' + tableModel + ' ORDER BY ID DESC LIMIT 1', (error, result) => {
+			if (error) return callback(error, null);
+			ipobjData.id = ((result[0].ID >= 100000) ? (result[0].ID+1) : 100000);
+			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
+				if (error) return callback(error, null);			
 				if (result.affectedRows > 0) {
 					//devolvemos la última id insertada
 					callback(null, {result: true, "insertId": result.insertId});
 				} else
 					callback(null, {result: false, "insertId": ''});
-			}
+			});
 		});
 	});
 };
@@ -691,8 +669,7 @@ ipobjModel.cloneIpobj = function (ipobjDataclone) {
 				destination_port_start: ipobjDataclone.destination_port_start,
 				destination_port_end: ipobjDataclone.destination_port_end,
 				options: ipobjDataclone.options,
-				comment: ipobjDataclone.comment,
-				id_fwb: ipobjDataclone.id
+				comment: ipobjDataclone.comment
 			};
 			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
 				if (error) {

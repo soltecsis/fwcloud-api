@@ -273,21 +273,6 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
 	});
 };
 
-//Get interface by  id fwb
-interfaceModel.getInterface_fwb = function (idfirewall, id_fwb, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id_fwb = ' + connection.escape(id_fwb) + ' AND (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
 //Get data of interface 
 interfaceModel.getInterface_data = function (id, type, callback) {
 	db.get(function (error, connection) {
@@ -667,7 +652,6 @@ interfaceModel.cloneInterface = function (rowData) {
 				interface_type: rowData.interface_type,
 				comment: rowData.comment,
 				mac: rowData.mac,
-				id_fwb: rowData.id
 			};
 			interfaceModel.insertInterface(interfaceData, function (error, data) {
 				if (error)

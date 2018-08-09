@@ -59,7 +59,6 @@ var firewall_Data = require('../../models/data/data_firewall');
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 firewallModel.getFirewalls = function (iduser, callback) {
 
@@ -112,7 +111,6 @@ firewallModel.getFirewalls = function (iduser, callback) {
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
 	db.get(function (error, connection) {
@@ -202,7 +200,6 @@ firewallModel.getFirewallAccess = function (accessData) {
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 firewallModel.getFirewallName = function (iduser, name, callback) {
 	db.get(function (error, connection) {
@@ -253,7 +250,6 @@ firewallModel.getFirewallName = function (iduser, name, callback) {
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
 	db.get(function (error, connection) {
@@ -343,7 +339,6 @@ firewallModel.getFirewallClusterMaster = function (iduser, idcluster, callback) 
  *           created_at	datetime
  *           updated_at	datetime
  *           by_user	int(11)
- *           id_fwb	varchar(45)
  */
 firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
 	db.get(function (error, connection) {
