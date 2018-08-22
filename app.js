@@ -244,9 +244,6 @@ app.use(control_routes, function (request, response, next) {
 
 var db = require('./db');
 
-
-
-
 var users = require('./routes/user/users');
 var user__firewalls = require('./routes/user/user__firewalls');
 var customers = require('./routes/user/customers');
