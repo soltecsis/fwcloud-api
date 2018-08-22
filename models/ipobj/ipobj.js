@@ -1128,5 +1128,42 @@ ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
 			});
 		}
 	});
-
 };
+
+
+ipobjModel.checkDuplicity = (req, res, next) => {
+	db.get((error, connection) => {
+		var sql = 'SELECT count(*) FROM ' + tableModel +
+		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
+		' AND type' + ((req.body.type===undefined) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
+		' AND protocol' + ((req.body.protocol===undefined) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
+		' AND address' + ((req.body.address===undefined) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
+		' AND netmask' + ((req.body.netmask===undefined) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
+		' AND diff_serv' + ((req.body.diff_serv===undefined) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
+ 		' AND ip_version' + ((req.body.ip_version===undefined) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
+		' AND icmp_type' + ((req.body.icmp_type===undefined) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
+		' AND icmp_code' + ((req.body.icmp_code===undefined) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
+		' AND tcp_flags_mask' + ((req.body.tcp_flags_mask===undefined) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
+		' AND tcp_flags_settings' + ((req.body.tcp_flags_settings===undefined) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
+		' AND range_start' + ((req.body.range_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
+		' AND range_end' + ((req.body.range_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
+		' AND source_port_start' + ((req.body.source_port_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.source_port_start))) +
+		' AND source_port_end' + ((req.body.source_port_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.source_port_end))) +
+		' AND destination_port_start' + ((req.body.destination_port_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_start))) +
+		' AND destination_port_end' + ((req.body.destination_port_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
+		' AND options' +((req.body.options===undefined) ? " IS NULL" : ("="+connection.escape(req.body.options)));
+	
+		connection.query(sql, (error, rows) => {
+			if (!error) {
+				if (rows.length>0 && rows[0].n>0)
+					api_resp.getJson(null, api_resp.ACR_ERROR, 'Duplicated IP Object.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				else
+					next();
+			} else {
+				logger.error(error);
+				next();
+			}
+		});
+	});
+};
+	

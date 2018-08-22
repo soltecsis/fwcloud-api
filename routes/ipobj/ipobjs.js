@@ -522,7 +522,9 @@ router.get("/ipobj_search_used/:id/:type", function (req, res)
  *      "data": {}
  *      };
  * */
-router.post("/ipobj/:node_parent/:node_order/:node_type", (req, res) => {
+router.post("/ipobj/:node_parent/:node_order/:node_type",
+IpobjModel.checkDuplicity,
+(req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var node_parent = req.params.node_parent;
@@ -686,7 +688,9 @@ router.post("/ipobj/:node_parent/:node_order/:node_type", (req, res) => {
  *      "data": {}
  *      };
  * */
-router.put('/ipobj', (req, res) => {
+router.put('/ipobj', 
+IpobjModel.checkDuplicity,
+(req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	//Save data into object
