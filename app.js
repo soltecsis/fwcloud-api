@@ -274,7 +274,6 @@ var policy_positions = require('./routes/policy/policy_positions');
 var fwc_tree = require('./routes/tree/fwc_tree');
 var policy_compile = require('./routes/policy/compile');
 var policy_install = require('./routes/policy/install');
-var ipobj_protocols = require('./routes/ipobj/ipobj_protocols');
 
 var stream = require('./routes/stream/stream');
 
@@ -303,7 +302,6 @@ app.use('/ipobjs', ipobjs);
 app.use('/ipobj-types', ipobj_types);
 app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
-app.use('/ipobj-protocols', ipobj_protocols);
 app.use('/interfaces', interfaces);
 app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/fwc-tree', fwc_tree);
