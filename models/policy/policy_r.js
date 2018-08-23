@@ -540,9 +540,12 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 	});
 };
 
+var testvar;
+
 //Clone policy and IPOBJ
-policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall) {
+policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall, dataI) {
 	return new Promise((resolve, reject) => {
+		testvar=dataI;
 		db.get(function (error, connection) {
 			if (error)
 				reject(error);
@@ -557,14 +560,11 @@ policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNew
 				} else {
 					//Bucle por Policy
 					Promise.all(rows.map(policy_rModel.clonePolicy))
-							.then(data => {
-								logger.debug("-->>>>>>>> FINAL de POLICY para nuevo Firewall : " + idNewfirewall);
-								resolve(data);
-							})
-							.catch(e => {
-								reject(e);
-							});
-
+					.then(data => {
+						logger.debug("-->>>>>>>> FINAL de POLICY para nuevo Firewall : " + idNewfirewall);
+						resolve(data);
+					})
+					.catch(e => reject(e));
 				}
 			});
 		});
@@ -608,51 +608,43 @@ policy_rModel.clonePolicy = function (rowData) {
 						' where O.rule=' + connection.escape(rowData.id) +
 						' ORDER BY position_order';
 				logger.debug(sql);
-				connection.query(sql, function (error, rows) {
+				connection.query(sql, (error, rows) => {
 					if (error) {
 						logger.debug(error);
 						reject(error);
 					} else {
 						//Bucle por IPOBJS
 						Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj))
-								.then(data => {
-									logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva POLICY: " + newRule);                                    
-								})
-								.then(() => {
-									//SELECT ALL INTERFACES UNDER POSITIONS
-									sql = ' select ' + connection.escape(newRule) + ' as newrule, I.id as newInterface, O.* ' +
-											' from policy_r__interface O ' +
-											' inner join interface I on I.id=O.interface ' +
-											' where O.rule=' + connection.escape(rowData.id) +
-											' AND I.firewall= ' + connection.escape(rowData.newfirewall) +
-											' ORDER BY position_order';
-									logger.debug("-------> SQL ALL INTERFACES: ", sql);
-									connection.query(sql, function (error, rowsI) {
-										if (error) {
-											logger.debug(error);
-											reject(error);
-										} else {
-											//Bucle por IPOBJS
-											Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
-													.then(data => {
-														logger.debug("-->>>>>>>> FINAL de INTERFACES PARA nueva POLICY: " + newRule);
-														resolve(data);
-													})
-													.catch(e => {
-														reject(e);
-													});
-
-										}
-									});
-								})
-								.catch(e => {
-									reject(e);
-								});
-
+						.then(data => {
+							logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva POLICY: " + newRule);                                    
+						})
+						.then(() => {
+							//SELECT ALL INTERFACES UNDER POSITIONS
+							sql = ' select ' + connection.escape(newRule) + ' as newrule, I.id as newInterface, O.* ' +
+									' from policy_r__interface O ' +
+									' inner join interface I on I.id=O.interface ' +
+									' where O.rule=' + connection.escape(rowData.id) +
+									' AND I.firewall=' + connection.escape(rowData.newfirewall) +
+									' ORDER BY position_order';
+							logger.debug("-------> SQL ALL INTERFACES: ", sql);
+							connection.query(sql, (error, rowsI) => {
+								if (error) {
+									logger.debug(error);
+									reject(error);
+								} else {
+									//Bucle for INTERFACES
+									Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
+									.then(data => {
+										logger.debug("-->>>>>>>> FINAL de INTERFACES PARA nueva POLICY: " + newRule);
+										resolve(data);
+									})
+									.catch(e => reject(e));
+								}
+							});
+						})
+						.catch(e => reject(e));
 					}
 				});
-
-
 			});
 		});
 	});

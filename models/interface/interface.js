@@ -621,14 +621,8 @@ interfaceModel.cloneFirewallInterfaces = function (iduser, fwcloud, idfirewall, 
 				} else {
 					//Bucle por interfaces
 					Promise.all(rows.map(interfaceModel.cloneInterface))
-							.then(data => {
-								logger.debug("-->>>>>>>> FINAL de INTERFACES para nuevo Firewall : " + idNewfirewall);
-								resolve(data);
-							})
-							.catch(e => {
-								reject(e);
-							});
-
+					.then(data => resolve(data))
+					.catch(e => reject(e));
 				}
 			});
 		});
@@ -657,6 +651,8 @@ interfaceModel.cloneInterface = function (rowData) {
 				if (error)
 					resolve(false);
 				
+				return resolve({"id_org": rowData.id, "id_clon": data.insertId});
+
 				var newInterface= data.insertId; 
 				//SELECT ALL IPOBJ UNDER INTERFACE
 				sql = ' select ' + connection.escape(newInterface) + ' as newinterface, O.* ' +
@@ -670,14 +666,11 @@ interfaceModel.cloneInterface = function (rowData) {
 					} else {
 						//Bucle por IPOBJS
 						Promise.all(rows.map(IpobjModel.cloneIpobj))
-								.then(data => {
-									logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva INTERFACE: " + newInterface);
-									resolve(data);
-								})
-								.catch(e => {
-									reject(e);
-								});
-
+						.then(data => {
+							logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva INTERFACE: " + newInterface);
+							resolve(data);
+						})
+						.catch(e => reject(e));
 					}
 				});
 			});
