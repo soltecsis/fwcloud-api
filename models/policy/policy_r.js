@@ -540,13 +540,13 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 	});
 };
 
-var testvar;
+var interface_org_clon;
 
 //Clone policy and IPOBJ
 policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall, dataI) {
 	return new Promise((resolve, reject) => {
-		testvar=dataI;
-		db.get(function (error, connection) {
+		interface_org_clon=dataI;
+		db.get((error, connection) => {
 			if (error)
 				reject(error);
 			sql = ' select ' + connection.escape(idNewfirewall) + ' as newfirewall, P.* ' +
@@ -613,6 +613,17 @@ policy_rModel.clonePolicy = function (rowData) {
 						logger.debug(error);
 						reject(error);
 					} else {
+						// Replace the interfaces IDs with interfaces IDs of the cloned firewall.
+						for(var i=0; i<rows.length; i++) {
+							if (rows[i].ipobj===-1 && rows[i].interface!==-1) {
+								for(var item of interface_org_clon) {
+									if (rows[i].interface === item.id_org) {
+										rows[i].interface = item.id_clon;
+										break;
+									}
+								}
+							}	
+						}
 						//Bucle por IPOBJS
 						Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj))
 						.then(data => {
@@ -624,7 +635,7 @@ policy_rModel.clonePolicy = function (rowData) {
 									' from policy_r__interface O ' +
 									' inner join interface I on I.id=O.interface ' +
 									' where O.rule=' + connection.escape(rowData.id) +
-									' AND I.firewall=' + connection.escape(rowData.newfirewall) +
+									' AND I.firewall=' + connection.escape(rowData.firewall) +
 									' ORDER BY position_order';
 							logger.debug("-------> SQL ALL INTERFACES: ", sql);
 							connection.query(sql, (error, rowsI) => {
@@ -632,6 +643,15 @@ policy_rModel.clonePolicy = function (rowData) {
 									logger.debug(error);
 									reject(error);
 								} else {
+									// Replace the interfaces IDs with interfaces IDs of the cloned firewall.
+									for(var i=0; i<rowsI.length; i++) {
+										for(var item of interface_org_clon) {
+											if (rowsI[i].newInterface === item.id_org) {
+												rowsI[i].newInterface = item.id_clon;
+												break;
+											}
+										}
+									}
 									//Bucle for INTERFACES
 									Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
 									.then(data => {

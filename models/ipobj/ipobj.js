@@ -688,16 +688,9 @@ ipobjModel.cloneIpobj = function (ipobjDataclone) {
 				options: ipobjDataclone.options,
 				comment: ipobjDataclone.comment
 			};
-			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
-				if (error) {
-					reject(error);
-				} else {
-					if (result.affectedRows > 0) {
-						//devolvemos la última id insertada
-						resolve({result: true, "insertId": result.insertId});                        
-					} else
-						resolve({result: false, "insertId": ''});
-				}
+			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, (error, result) => {
+				if (error) return reject(error);
+				resolve({"id_org": ipobjDataclone.id, "id_clon": result.insertId});                        
 			});
 		});
 	});

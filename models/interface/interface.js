@@ -648,28 +648,21 @@ interfaceModel.cloneInterface = function (rowData) {
 				mac: rowData.mac,
 			};
 			interfaceModel.insertInterface(interfaceData, function (error, data) {
-				if (error)
-					resolve(false);
+				if (error) return resolve(false);
 				
-				return resolve({"id_org": rowData.id, "id_clon": data.insertId});
-
-				var newInterface= data.insertId; 
 				//SELECT ALL IPOBJ UNDER INTERFACE
-				sql = ' select ' + connection.escape(newInterface) + ' as newinterface, O.* ' +
+				sql = ' select ' + connection.escape(data.insertId) + ' as newinterface, O.* ' +
 						' from ipobj O ' +
 						' where O.interface=' + connection.escape(rowData.id);
 				logger.debug(sql);
-				connection.query(sql, function (error, rows) {
+				connection.query(sql, (error, rows) => {
 					if (error) {
 						logger.debug(error);
 						reject(error);
 					} else {
 						//Bucle por IPOBJS
 						Promise.all(rows.map(IpobjModel.cloneIpobj))
-						.then(data => {
-							logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva INTERFACE: " + newInterface);
-							resolve(data);
-						})
+						.then(data => resolve({"id_org": rowData.id, "id_clon": data.insertId, "addr": data}))
 						.catch(e => reject(e));
 					}
 				});
