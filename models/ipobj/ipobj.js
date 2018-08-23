@@ -18,6 +18,14 @@ var ipobjModel = {};
 module.exports = ipobjModel;
 
 /**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = 'IPOBJ';
+
+/**
  * Property  to manage Dabase Access
  *
  * @property db
@@ -81,6 +89,15 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  * @property Ipobj__ipobjgModel
  * @type models.ipobj__ipobjg
  */
+
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type ../../models/api_response
+ * 
+ */
+var api_resp = require('../../utils/api_response');
 
 var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
 
@@ -1133,30 +1150,31 @@ ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
 
 ipobjModel.checkDuplicity = (req, res, next) => {
 	db.get((error, connection) => {
-		var sql = 'SELECT count(*) FROM ' + tableModel +
+		var sql = 'SELECT id,name FROM ' + tableModel +
 		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
-		' AND type' + ((req.body.type===undefined) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
-		' AND protocol' + ((req.body.protocol===undefined) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
-		' AND address' + ((req.body.address===undefined) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
-		' AND netmask' + ((req.body.netmask===undefined) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
-		' AND diff_serv' + ((req.body.diff_serv===undefined) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
- 		' AND ip_version' + ((req.body.ip_version===undefined) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
-		' AND icmp_type' + ((req.body.icmp_type===undefined) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
-		' AND icmp_code' + ((req.body.icmp_code===undefined) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
-		' AND tcp_flags_mask' + ((req.body.tcp_flags_mask===undefined) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
-		' AND tcp_flags_settings' + ((req.body.tcp_flags_settings===undefined) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
-		' AND range_start' + ((req.body.range_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
-		' AND range_end' + ((req.body.range_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
-		' AND source_port_start' + ((req.body.source_port_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.source_port_start))) +
-		' AND source_port_end' + ((req.body.source_port_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.source_port_end))) +
-		' AND destination_port_start' + ((req.body.destination_port_start===undefined) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_start))) +
-		' AND destination_port_end' + ((req.body.destination_port_end===undefined) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
-		' AND options' +((req.body.options===undefined) ? " IS NULL" : ("="+connection.escape(req.body.options)));
+		' AND type' + ((req.body.type===undefined || req.body.type===null) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
+		' AND protocol' + ((req.body.protocol===undefined || req.body.protocol===null) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
+		' AND address' + ((req.body.address===undefined || req.body.address===null) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
+		' AND netmask' + ((req.body.netmask===undefined || req.body.netmask===null) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
+		' AND diff_serv' + ((req.body.diff_serv===undefined || req.body.diff_serv===null) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
+ 		' AND ip_version' + ((req.body.ip_version===undefined || req.body.ip_version===null) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
+		' AND icmp_type' + ((req.body.icmp_type===undefined || req.body.icmp_type===null) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
+		' AND icmp_code' + ((req.body.icmp_code===undefined || req.body.icmp_code===null) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
+		' AND tcp_flags_mask' + ((req.body.tcp_flags_mask===undefined || req.body.tcp_flags_mask===null) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
+		' AND tcp_flags_settings' + ((req.body.tcp_flags_settings===undefined || req.body.tcp_flags_settings===null) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
+		' AND range_start' + ((req.body.range_start===undefined || req.body.range_start===null) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
+		' AND range_end' + ((req.body.range_end===undefined || req.body.range_end===null) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
+		' AND source_port_start' + ((req.body.source_port_start===undefined || req.body.source_port_start===null) ? " IS NULL" : ("="+connection.escape(req.body.source_port_start))) +
+		' AND source_port_end' + ((req.body.source_port_end===undefined || req.body.source_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.source_port_end))) +
+		' AND destination_port_start' + ((req.body.destination_port_start===undefined || req.body.destination_port_start===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_start))) +
+		' AND destination_port_end' + ((req.body.destination_port_end===undefined || req.body.destination_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
+		' AND options' +((req.body.options===undefined || req.body.options===null) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
+		' limit 1';
 	
 		connection.query(sql, (error, rows) => {
 			if (!error) {
-				if (rows.length>0 && rows[0].n>0)
-					api_resp.getJson(null, api_resp.ACR_ERROR, 'Duplicated IP Object.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				if (rows.length>0)
+					api_resp.getJson({"id": rows[0].id, "name": rows[0].name}, api_resp.ACR_ALREADY_EXISTS, 'Duplicated IP Object.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				else
 					next();
 			} else {
