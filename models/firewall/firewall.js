@@ -661,32 +661,26 @@ firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, f
 		});
 	});
 };
-firewallModel.updateFirewallCluster = function (firewallData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(firewallData.by_user) +
-				' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-		logger.debug(sqlExists);
-		connection.query(sqlExists, function (error, row) {
-
-			if (row && row.length > 0) {
-				var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +
-						'by_user = ' + connection.escape(firewallData.by_user) + ' ' +
-						' WHERE id = ' + firewallData.id;
-				logger.debug("updateFirewallCluster: ", sql);
-				connection.query(sql, function (error, result) {
-					if (error) {
-						callback(error, null);
-					} else {
-						callback(null, {"result": true});
-					}
-				});
-			} else {
-				callback(null, {"result": false});
-			}
+firewallModel.updateFirewallCluster = function (firewallData) {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+					' AND U.id_user=' + connection.escape(firewallData.by_user) +
+					' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+			connection.query(sqlExists, (error, row) => {
+				if (error) return reject(error);
+				if (row && row.length > 0) {
+					var sql = 'UPDATE ' + tableModel + ' SET cluster = ' + connection.escape(firewallData.cluster) + ',' +
+							'by_user = ' + connection.escape(firewallData.by_user) + ' ' +
+							' WHERE id = ' + firewallData.id;
+					connection.query(sql, (error, result) => {
+						if (error) return reject(error);
+						resolve({"result": true});
+					});
+				} else 
+					resolve({"result": false});
+			});
 		});
 	});
 };

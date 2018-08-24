@@ -332,11 +332,8 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
 							firewallData.fwcloud = fwcloud;
 							firewallData.by_user = iduser;
 
-							FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
-								FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, 1, function (error, data) {
-
-								});
-							});
+							FirewallModel.updateFirewallCluster(firewallData)
+							.then(() => FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, 1, (error, data) => {}));
 							api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
 								res.status(200).json(jsonResp);
 							});
@@ -389,7 +386,8 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 					firewallData.fwcloud = fwcloud;
 					firewallData.by_user = iduser;
 					//logger.debug("firewallData: ", firewallData);
-					FirewallModel.updateFirewallCluster(firewallData, function (error, dataFC) {
+					FirewallModel.updateFirewallCluster(firewallData)
+					.then(() => {
 						FirewallModel.removeFirewallClusterSlaves(idCluster, fwcloud, function (error, dataFC) {
 							ClusterModel.deleteClusterSimple(idCluster, iduser, fwcloud, function (error, data) {
 								Policy_rModel.cleanApplyTo(firewallData.id, (error, data) => {});
@@ -433,10 +431,9 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 
 	logger.debug(clusterData);
 
-	//FirewallModel.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
 	FirewallModel.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
 		if (error) 
-			api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+			return api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 		
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
@@ -471,7 +468,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 
 									// This function will update the cluster id of the new firewall.
 									firewallData.id = idNewFirewall;
-									await FirewallModel.updateFirewallCluster(firewallData, (error, dataFC) => {});
+									await FirewallModel.updateFirewallCluster(firewallData);
 
 									// If we are cloning the master firewall, then clone interfaces, policy, etc.
 									if (firewallData.fwmaster) {
@@ -482,10 +479,10 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 									else
 										return new Promise((resolve, reject) => resolve());
 								})
-								.then(() => {
+								.then(dataI => {
 									//CLONE RULES
 									if (firewallData.fwmaster)
-										return Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall);
+										return Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall,dataI);
 									else
 										return new Promise(resolve => resolve());
 								})

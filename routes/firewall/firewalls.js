@@ -811,22 +811,14 @@ router.put('/firewall/:idfirewall/cluster/:cluster', utilsModel.checkFirewallAcc
 				res.status(200).json(jsonResp);
 			});
 		else if (data && data.length > 0) {
-			FirewallModel.updateFirewallCluster(firewallData, function (error, data) {
-				if (error)
-					api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				else if (data && data.result)
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED Firewall CLUSTER OK', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-
-			});
+			FirewallModel.updateFirewallCluster(firewallData)
+			.then(data => {
+				if (data && data.result)
+					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED Firewall CLUSTER OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			})
+			.catch(e => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
 		}
 	});
-
-
-
 });
 
 

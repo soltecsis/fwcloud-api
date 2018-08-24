@@ -608,22 +608,20 @@ interfaceModel.updateInterface = function (interfaceData, callback) {
 interfaceModel.cloneFirewallInterfaces = function (iduser, fwcloud, idfirewall, idNewfirewall) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			sql = ' select ' + connection.escape(idNewfirewall) + ' as newfirewall, I.* ' +
-					' from interface I ' +
-					' where I.firewall=' + connection.escape(idfirewall);
-			logger.debug(sql);
+			if (error) return reject(error);
+			sql = 'select ' + connection.escape(idNewfirewall) + ' as newfirewall, I.*,' +
+				' IF(f1.cluster is null,f1.name,(select name from cluster where id=f1.cluster)) as org_name, '+ 
+				' IF(f2.cluster is null,f2.name,(select name from cluster where id=f2.cluster)) as clon_name '+ 
+				' from interface I, firewall f1, firewall f2' +
+				' where I.firewall=' + connection.escape(idfirewall) +
+				' and f1.id=' + connection.escape(idfirewall) +
+				' and f2.id=' + connection.escape(idNewfirewall);
 			connection.query(sql, function (error, rows) {
-				if (error) {
-					logger.debug(error);
-					reject(error);
-				} else {
-					//Bucle por interfaces
-					Promise.all(rows.map(interfaceModel.cloneInterface))
-					.then(data => resolve(data))
-					.catch(e => reject(e));
-				}
+				if (error) return reject(error);
+				//Bucle por interfaces
+				Promise.all(rows.map(interfaceModel.cloneInterface))
+				.then(data => resolve(data))
+				.catch(e => reject(e));
 			});
 		});
 	});
@@ -632,8 +630,7 @@ interfaceModel.cloneFirewallInterfaces = function (iduser, fwcloud, idfirewall, 
 interfaceModel.cloneInterface = function (rowData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
 
 			//CREATE NEW INTERFACE
 			//Create New objet with data interface
@@ -650,21 +647,26 @@ interfaceModel.cloneInterface = function (rowData) {
 			interfaceModel.insertInterface(interfaceData, function (error, data) {
 				if (error) return resolve(false);
 				
+				var id_org = rowData.id;
+				var id_clon = data.insertId;
+
 				//SELECT ALL IPOBJ UNDER INTERFACE
-				sql = ' select ' + connection.escape(data.insertId) + ' as newinterface, O.* ' +
-						' from ipobj O ' +
-						' where O.interface=' + connection.escape(rowData.id);
-				logger.debug(sql);
+				sql = 'select ' + connection.escape(data.insertId) + ' as newinterface, O.*, ' +
+					connection.escape(rowData.org_name) + ' as org_name,' +
+					connection.escape(rowData.clon_name) + ' as clon_name' +
+					' from ipobj O ' +
+					' where O.interface=' + connection.escape(rowData.id);
 				connection.query(sql, (error, rows) => {
-					if (error) {
-						logger.debug(error);
-						reject(error);
-					} else {
-						//Bucle por IPOBJS
-						Promise.all(rows.map(IpobjModel.cloneIpobj))
-						.then(data => resolve({"id_org": rowData.id, "id_clon": data.insertId, "addr": data}))
-						.catch(e => reject(e));
+					if (error) return reject(error);
+
+					for(var i=0; i<rows.length; i++) {
+						if (rows[i].name.indexOf(rows[i].org_name+":",0) === 0) 
+							rows[i].name = rows[i].name.replace(new RegExp("^"+rows[i].org_name+":"),rows[i].clon_name+":");
 					}
+					//Bucle por IPOBJS
+					Promise.all(rows.map(IpobjModel.cloneIpobj))
+					.then(data => resolve({"id_org": id_org, "id_clon": id_clon, "addr": data}))
+					.catch(e => reject(e));
 				});
 			});
 		});

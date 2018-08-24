@@ -660,9 +660,8 @@ ipobjModel.insertIpobj = function (ipobjData, callback) {
 
 ipobjModel.cloneIpobj = function (ipobjDataclone) {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+		db.get((error, connection) => {
+			if (error) return reject(error);
 
 			var ipobjData = {
 				id: null,

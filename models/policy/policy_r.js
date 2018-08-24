@@ -540,12 +540,12 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 	});
 };
 
-var interface_org_clon;
+var clon_data;
 
 //Clone policy and IPOBJ
 policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall, dataI) {
 	return new Promise((resolve, reject) => {
-		interface_org_clon=dataI;
+		clon_data=dataI;
 		db.get((error, connection) => {
 			if (error)
 				reject(error);
@@ -596,10 +596,8 @@ policy_rModel.clonePolicy = function (rowData) {
 				fw_ref: rowData.firewall
 			};
 
-			policy_rModel.insertPolicy_r(policy_rData, function (error, data)
-			{
-				if (error)
-					resolve(false);
+			policy_rModel.insertPolicy_r(policy_rData, (error, data) => {
+				if (error) return resolve(false);
 
 				var newRule = data.insertId;
 				//SELECT ALL IPOBJ UNDER POSITIONS
@@ -609,61 +607,62 @@ policy_rModel.clonePolicy = function (rowData) {
 						' ORDER BY position_order';
 				logger.debug(sql);
 				connection.query(sql, (error, rows) => {
-					if (error) {
-						logger.debug(error);
-						reject(error);
-					} else {
-						// Replace the interfaces IDs with interfaces IDs of the cloned firewall.
+					if (error) return reject(error);
+					if (clon_data) {
 						for(var i=0; i<rows.length; i++) {
-							if (rows[i].ipobj===-1 && rows[i].interface!==-1) {
-								for(var item of interface_org_clon) {
+							for(var item of clon_data) {
+								if (rows[i].ipobj===-1 && rows[i].interface!==-1) {
+									// Replace interfaces IDs with interfaces IDs of the cloned firewall.
 									if (rows[i].interface === item.id_org) {
 										rows[i].interface = item.id_clon;
 										break;
 									}
-								}
-							}	
-						}
-						//Bucle por IPOBJS
-						Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj))
-						.then(data => {
-							logger.debug("-->>>>>>>> FINAL de IPOBJS PARA nueva POLICY: " + newRule);                                    
-						})
-						.then(() => {
-							//SELECT ALL INTERFACES UNDER POSITIONS
-							sql = ' select ' + connection.escape(newRule) + ' as newrule, I.id as newInterface, O.* ' +
-									' from policy_r__interface O ' +
-									' inner join interface I on I.id=O.interface ' +
-									' where O.rule=' + connection.escape(rowData.id) +
-									' AND I.firewall=' + connection.escape(rowData.firewall) +
-									' ORDER BY position_order';
-							logger.debug("-------> SQL ALL INTERFACES: ", sql);
-							connection.query(sql, (error, rowsI) => {
-								if (error) {
-									logger.debug(error);
-									reject(error);
 								} else {
-									// Replace the interfaces IDs with interfaces IDs of the cloned firewall.
-									for(var i=0; i<rowsI.length; i++) {
-										for(var item of interface_org_clon) {
-											if (rowsI[i].newInterface === item.id_org) {
-												rowsI[i].newInterface = item.id_clon;
-												break;
-											}
+									// Replace ipobj IDs with ipobj IDs of the cloned firewall.
+									var found = 0;
+									for(var addr of item.addr) {
+										if (rows[i].ipobj === addr.id_org) {
+											rows[i].ipobj = addr.id_clon;
+											found = 1;
+											break;
 										}
 									}
-									//Bucle for INTERFACES
-									Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
-									.then(data => {
-										logger.debug("-->>>>>>>> FINAL de INTERFACES PARA nueva POLICY: " + newRule);
-										resolve(data);
-									})
-									.catch(e => reject(e));
+									if (found) break;
 								}
-							});
-						})
-						.catch(e => reject(e));
+							}
+						}
 					}
+
+					//Bucle por IPOBJS
+					Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj))
+					.then(() => {
+						//SELECT ALL INTERFACES UNDER POSITIONS
+						sql = ' select ' + connection.escape(newRule) + ' as newrule, I.id as newInterface, O.* ' +
+								' from policy_r__interface O ' +
+								' inner join interface I on I.id=O.interface ' +
+								' where O.rule=' + connection.escape(rowData.id) +
+								' AND I.firewall=' + connection.escape(rowData.firewall) +
+								' ORDER BY position_order';
+						connection.query(sql, (error, rowsI) => {
+							if (error) return reject(error);
+							// Replace the interfaces IDs with interfaces IDs of the cloned firewall.
+							if (clon_data) {
+								for(var i=0; i<rowsI.length; i++) {
+									for(var item of clon_data) {
+										if (rowsI[i].newInterface === item.id_org) {
+											rowsI[i].newInterface = item.id_clon;
+											break;
+										}
+									}
+								}
+							}
+							//Bucle for INTERFACES
+							Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface))
+							.then(data => resolve(data))
+							.catch(e => reject(e));
+						});
+					})
+					.catch(e => reject(e));
 				});
 			});
 		});
