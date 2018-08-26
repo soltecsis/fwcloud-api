@@ -1160,8 +1160,9 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 		' AND source_port_end' + ((req.body.source_port_end===undefined || req.body.source_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.source_port_end))) +
 		' AND destination_port_start' + ((req.body.destination_port_start===undefined || req.body.destination_port_start===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_start))) +
 		' AND destination_port_end' + ((req.body.destination_port_end===undefined || req.body.destination_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
-		' AND options' +((req.body.options===undefined || req.body.options===null) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
-		' limit 1';
+		' AND options' + ((req.body.options===undefined || req.body.options===null) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
+		(req.body.id ? ' AND id!='+connection.escape(req.body.id) : '') +
+		' AND interface IS NULL limit 1';
 	
 		connection.query(sql, (error, rows) => {
 			if (!error) {
