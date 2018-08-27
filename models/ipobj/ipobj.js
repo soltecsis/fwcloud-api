@@ -1201,7 +1201,7 @@ ipobjModel.checkIPObjParameters = (req, res, next) => {
 
 		
 	if (req.body.ip_version===undefined) req.body.ip_version=null;
-	if (req.body.ip_version!==null && ((typeof req.body.ip_version)!="number" || req.body.ip_version!==4 || req.body.ip_version!==6))
+	if (req.body.ip_version!==null && ((typeof req.body.ip_version)!="number" || (req.body.ip_version!==4 && req.body.ip_version!==6)))
 		return api_resp.getJson({name: 'ip_version'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
 	if (req.body.address===undefined) req.body.address=null;
