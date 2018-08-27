@@ -523,6 +523,7 @@ router.get("/ipobj_search_used/:id/:type", function (req, res)
  *      };
  * */
 router.post("/ipobj/:node_parent/:node_order/:node_type",
+IpobjModel.checkIPObjParameters,
 IpobjModel.checkDuplicity,
 (req, res) => {
 	var iduser = req.iduser;
@@ -530,7 +531,6 @@ IpobjModel.checkDuplicity,
 	var node_parent = req.params.node_parent;
 	var node_order = req.params.node_order;
 	var node_type = req.params.node_type;
-
 
 	//Create New objet with data ipobj
 	var ipobjData = {
@@ -558,22 +558,7 @@ IpobjModel.checkDuplicity,
 		comment: req.body.comment
 	};
 
-
-	utilsModel.checkParameters(ipobjData, function (obj) {
-		ipobjData = obj;
-	});
-	if (ipobjData.source_port_start === null || ipobjData.source_port_start === '')
-		ipobjData.source_port_start = 0;
-	if (ipobjData.source_port_end === null || ipobjData.source_port_end === '')
-		ipobjData.source_port_end = 0;
-	if (ipobjData.destination_port_start === null || ipobjData.destination_port_start === '')
-		ipobjData.destination_port_start = 0;
-	if (ipobjData.destination_port_end === null || ipobjData.destination_port_end === '')
-		ipobjData.destination_port_end = 0;
-
-
 	//GET PROTOCOL NUMBER FROM IPOBJ_TYPE
-
 	Ipobj_typeModel.getIpobj_type(ipobjData.type, function (error, data) {
 		if (error)
 			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
@@ -689,25 +674,37 @@ IpobjModel.checkDuplicity,
  *      };
  * */
 router.put('/ipobj', 
+IpobjModel.checkIPObjParameters,
 IpobjModel.checkDuplicity,
 (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
+
 	//Save data into object
-	var ipobjData = {id: req.body.id, fwcloud: req.body.fwcloud, interface: req.body.interface, name: req.body.name, type: req.body.type, protocol: req.body.protocol, address: req.body.address, netmask: req.body.netmask, diff_serv: req.body.diff_serv, ip_version: req.body.ip_version, icmp_code: req.body.icmp_code, icmp_type: req.body.icmp_type, tcp_flags_mask: req.body.tcp_flags_mask, tcp_flags_settings: req.body.tcp_flags_settings, range_start: req.body.range_start, range_end: req.body.range_end, source_port_start: req.body.source_port_start, source_port_end: req.body.source_port_end, destination_port_start: req.body.destination_port_start, destination_port_end: req.body.destination_port_end, options: req.body.options, comment: req.body.comment};
-
-	utilsModel.checkParameters(ipobjData, function (obj) {
-		ipobjData = obj;
-	});
-
-	if (ipobjData.source_port_start === null || ipobjData.source_port_start === '')
-		ipobjData.source_port_start = 0;
-	if (ipobjData.source_port_end === null || ipobjData.source_port_end === '')
-		ipobjData.source_port_end = 0;
-	if (ipobjData.destination_port_start === null || ipobjData.destination_port_start === '')
-		ipobjData.destination_port_start = 0;
-	if (ipobjData.destination_port_end === null || ipobjData.destination_port_end === '')
-		ipobjData.destination_port_end = 0;
+	var ipobjData = {
+		id: req.body.id,
+		fwcloud: req.body.fwcloud, 
+		interface: req.body.interface, 
+		name: req.body.name, 
+		type: req.body.type, 
+		protocol: req.body.protocol, 
+		address: req.body.address, 
+		netmask: req.body.netmask, 
+		diff_serv: req.body.diff_serv, 
+		ip_version: req.body.ip_version, 
+		icmp_code: req.body.icmp_code, 
+		icmp_type: req.body.icmp_type, 
+		tcp_flags_mask: req.body.tcp_flags_mask, 
+		tcp_flags_settings: req.body.tcp_flags_settings, 
+		range_start: req.body.range_start, 
+		range_end: req.body.range_end, 
+		source_port_start: req.body.source_port_start, 
+		source_port_end: req.body.source_port_end, 
+		destination_port_start: req.body.destination_port_start, 
+		destination_port_end: req.body.destination_port_end, 
+		options: req.body.options, 
+		comment: req.body.comment
+	};
 
 	if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
 		Ipobj_typeModel.getIpobj_type(ipobjData.type, (error, data) => {
