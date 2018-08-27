@@ -1182,124 +1182,99 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 
 // Middleware for veriy ipobj parameters.
 ipobjModel.checkIPObjParameters = (req, res, next) => {
-var ipobjData = {
-	id: null,
-	fwcloud: req.body.fwcloud,
-	interface: req.body.interface,
-	name: req.body.name,
-	type: req.body.type,
-	protocol: req.body.protocol,
-	address: req.body.address,
-	netmask: req.body.netmask,
-	diff_serv: req.body.diff_serv,
-	ip_version: req.body.ip_version,
-	icmp_code: req.body.icmp_code,
-	icmp_type: req.body.icmp_type,
-	tcp_flags_mask: req.body.tcp_flags_mask,
-	tcp_flags_settings: req.body.tcp_flags_settings,
-	range_start: req.body.range_start,
-	range_end: req.body.range_end,
-	source_port_start: req.body.source_port_start,
-	source_port_end: req.body.source_port_end,
-	destination_port_start: req.body.destination_port_start,
-	destination_port_end: req.body.destination_port_end,
-	options: req.body.options,
-	comment: req.body.comment
-};
-
 	if (req.body.fwcloud===undefined || req.body.fwcloud===null || (typeof req.body.fwcloud)!="number" || req.body.fwcloud<1)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad fwcloud value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'fwcloud'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.interface===undefined) req.body.interface=null;
 	if (req.body.interface!==null && (typeof req.body.interface)=="number" && req.body.interface<1)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad interface value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'interface'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.name===undefined || req.body.name===null || (typeof req.body.name)!="string" || req.body.name.length<1 || req.body.name.length>255)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad name value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'name'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.type===undefined || req.body.type===null || (typeof req.body.type)!="number" || req.body.type<0 || req.body.type>255)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad type value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'type'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.protocol===undefined) req.body.protocol=null;
 	if (req.body.protocol!==null && ((typeof req.body.protocol)!="number" || req.body.protocol<0 || req.body.protocol>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad protocol value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'protocol'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-
+		
 	if (req.body.ip_version===undefined) req.body.ip_version=null;
 	if (req.body.ip_version!==null && ((typeof req.body.ip_version)!="number" || req.body.ip_version!==4 || req.body.ip_version!==6))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad ip_version value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'ip_version'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
 	if (req.body.address===undefined) req.body.address=null;
 	if (req.body.address!==null && ((typeof req.body.address)!="string" 
 			|| (req.body.ip_version===4 && !isIp.v4(req.body.address))
 			|| (req.body.ip_version===6 && !isIp.v6(req.body.address))))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad address value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'address'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.netmask===undefined) req.body.netmask=null;
 	if (req.body.netmask!==null && ((typeof req.body.netmask)!="string"
 			|| (req.body.ip_version===4 && !isIp.v4(req.body.netmask))
 			|| (req.body.ip_version===6 && !isIp.v6(req.body.netmask))))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad netmask value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'netmask'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 	
 
 	if (req.body.diff_serv===undefined) req.body.diff_serv=null;
 	if (req.body.diff_serv!==null && ((typeof req.body.diff_serv)!="number" || req.body.diff_serv<0 || req.body.diff_serv>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad diff_serv value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'diff_serv'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 			
 	if (req.body.icmp_code===undefined) req.body.icmp_code=null;
 	if (req.body.icmp_code!==null && ((typeof req.body.icmp_code)!="number" || req.body.icmp_code<-1 || req.body.icmp_code>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad icmp_code value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'icmp_code'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 	
 	if (req.body.icmp_type===undefined) req.body.icmp_type=null;
 	if (req.body.icmp_type!==null && ((typeof req.body.icmp_type)!="number" || req.body.icmp_type<-1 || req.body.icmp_type>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad icmp_type value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'icmp_type'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 
 	if (req.body.tcp_flags_mask===undefined) req.body.tcp_flags_mask=null;
 	if (req.body.tcp_flags_mask!==null && ((typeof req.body.tcp_flags_mask)!="number" || req.body.tcp_flags_mask<0 || req.body.tcp_flags_mask>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad tcp_flags_mask value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'tcp_flags_mask'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.tcp_flags_settings===undefined) req.body.tcp_flags_settings=null;
 	if (req.body.tcp_flags_settings!==null && ((typeof req.body.tcp_flags_settings)!="number" || req.body.tcp_flags_settings<0 || req.body.tcp_flags_settings>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad tcp_flags_settings value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'tcp_flags_settings'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 
 	if (req.body.range_start===undefined) req.body.range_start=null;
 	if (req.body.range_start!==null && ((typeof req.body.range_start)!="string"
 			|| (req.body.ip_version===4 && !isIp.v4(req.body.range_start))
 			|| (req.body.ip_version===6 && !isIp.v6(req.body.range_start))))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad range_start value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'range_start'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.range_end===undefined) req.body.range_end=null;
 	if (req.body.range_end!==null && ((typeof req.body.range_end)!="string" 
 			|| (req.body.ip_version===4 && !isIp.v4(req.body.range_end))
 			|| (req.body.ip_version===6 && !isIp.v6(req.body.range_end))))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad range_end value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'range_end'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
 	
 	if (req.body.source_port_start===undefined || req.body.source_port_start===null || req.body.source_port_start==='') req.body.source_port_start=0;
 	if ((typeof req.body.source_port_start)!="number" || req.body.source_port_start<0 || req.body.source_port_start>65535)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad source_port_start value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'source_port_start'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.source_port_end===undefined || req.body.source_port_end===null || req.body.source_port_end==='') req.body.source_port_end=0;
 	if ((typeof req.body.source_port_end)!="number" || req.body.source_port_end<0 || req.body.source_port_end>65535)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad source_port_end value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'source_port_end'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 	
 	if (req.body.destination_port_start===undefined || req.body.destination_port_start===null || req.body.destination_port_start==='') req.body.destination_port_start=0;
 	if ((typeof req.body.destination_port_start)!="number" || req.body.destination_port_start<0 || req.body.destination_port_start>65535)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad destination_port_start value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'destination_port_start'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.destination_port_end===undefined || req.body.destination_port_end===null || req.body.destination_port_end==='') req.body.destination_port_end=0;
 	if ((typeof req.body.destination_port_end)!="number" || req.body.destination_port_end<0 || req.body.destination_port_end>65535)
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad destination_port_end value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'destination_port_end'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		
 	if (req.body.options===undefined) req.body.options=null;	
 
 	if (req.body.comment===undefined) req.body.comment=null;	
 	if (req.body.comment!==null && ((typeof req.body.comment)!="string" || req.body.comment.length<1 || req.body.comment.length>255))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, 'Bad comment value.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return api_resp.getJson({name: 'comment'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	// If we arrive here, then all the parameters are right.
 	next();
