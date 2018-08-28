@@ -251,7 +251,7 @@ fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
 };
 
 //Verify node info.
-fwc_treeModel.verifyNodeInfo = (id, fwcloud, firewall) => {
+fwc_treeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -259,7 +259,7 @@ fwc_treeModel.verifyNodeInfo = (id, fwcloud, firewall) => {
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
 
-				(result.length===1 && fwcloud===result[0].fwcloud && firewall===result[0].id_obj) ? resolve(true) : resolve(false);
+				(result.length===1 && fwcloud===result[0].fwcloud && id_obj===result[0].id_obj) ? resolve(true) : resolve(false);
 			});
 		});
 	});

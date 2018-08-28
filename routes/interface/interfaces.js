@@ -233,7 +233,8 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", async (req, 
 	var node_parent = req.params.node_parent;
 	var node_order = req.params.node_order;
 	var node_type = req.params.node_type;
-	var host = req.params.host;
+	var firewall = parseInt(req.body.firewall);
+	var host = parseInt(req.params.host);
 
 	if (host === undefined || host === '' || isNaN(host) || req.body.interface_type == 10) {
 		host = null;
@@ -241,7 +242,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", async (req, 
 
 	// Verify that the node tree information is consistent with the information in the request.
 	try {
-		if (!(await fwcTreemodel.verifyNodeInfo(node_parent,fwcloud,req.body.firewall)))
+		if (!(await fwcTreemodel.verifyNodeInfo(node_parent,fwcloud,((host===null) ? firewall : host))))
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Inconsistent data between request and node tree', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (err) {
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error verifying consistency between request and node tree', objModel, err, jsonResp => res.status(200).json(jsonResp));
