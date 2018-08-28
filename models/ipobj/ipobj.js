@@ -1143,6 +1143,9 @@ ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
 
 // Middleware for avoid ipobj duplicities.
 ipobjModel.checkDuplicity = (req, res, next) => {
+	// If we are creating an address for a network interface, then don check duplicity.
+	if (req.body.interface!==null) return next();
+
 	db.get((error, connection) => {
 		var sql = 'SELECT id,name FROM ' + tableModel +
 		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
@@ -1271,6 +1274,8 @@ ipobjModel.checkIPObjParameters = (req, res, next) => {
 
 		
 	if (req.body.options===undefined) req.body.options=null;	
+	if (req.body.options!==null)
+		return api_resp.getJson({name: 'options'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.comment===undefined) req.body.comment=null;	
 	if (req.body.comment!==null && ((typeof req.body.comment)!="string" || req.body.comment.length<1 || req.body.comment.length>255))

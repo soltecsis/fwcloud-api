@@ -227,10 +227,9 @@ router.get("/interface_search_used/:id/:type", function (req, res)
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Create New interface */
-router.post("/interface/:node_parent/:node_order/:node_type/:host", function (req, res)
-{
+router.post("/interface/:node_parent/:node_order/:node_type/:host", async (req, res) => {
 	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var fwcloud = parseInt(req.fwcloud);
 	var node_parent = req.params.node_parent;
 	var node_order = req.params.node_order;
 	var node_type = req.params.node_type;
@@ -238,6 +237,14 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", function (re
 
 	if (host === undefined || host === '' || isNaN(host) || req.body.interface_type == 10) {
 		host = null;
+	}
+
+	// Verify that the node tree information is consistent with the information in the request.
+	try {
+		if (!(await fwcTreemodel.verifyNodeInfo(node_parent,fwcloud,req.body.firewall)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Inconsistent data between request and node tree', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (err) {
+		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error verifying consistency between request and node tree', objModel, err, jsonResp => res.status(200).json(jsonResp));
 	}
 
 	//Create New objet with data interface

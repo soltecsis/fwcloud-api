@@ -229,6 +229,7 @@ fwc_treeModel.deleteFwc_TreeFullNode = function (data) {
 		});
 	});
 };
+
 //DELETE NODE
 fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
 	return new Promise((resolve, reject) => {
@@ -244,6 +245,21 @@ fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
 				} else {
 					resolve({"result": true, "msg": "deleted"});
 				}
+			});
+		});
+	});
+};
+
+//Verify node info.
+fwc_treeModel.verifyNodeInfo = (id, fwcloud, firewall) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = 'select fwcloud,id_obj FROM '+tableModel+' WHERE id='+connection.escape(id);
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+
+				(result.length===1 && fwcloud===result[0].fwcloud && firewall===result[0].id_obj) ? resolve(true) : resolve(false);
 			});
 		});
 	});
@@ -1693,10 +1709,9 @@ fwc_treeModel.insertFwc_Tree = function (fwc_treeData, callback) {
 		});
 	});
 };
+
 //Add new NODE from IPOBJ or Interface
 fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
-
-
 	getParentLevelChild(node_parent, function (level) {
 		var fwc_treeData = {
 			id: null,
