@@ -88,6 +88,7 @@ firewallModel.getFirewalls = function (iduser, callback) {
 		});
 	});
 };
+
 /**
  * Get Firewalls by User and ID
  *  
@@ -1129,4 +1130,38 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
 	} catch (e) {
 		reject("Carch Error: ", e);
 	}
+};
+
+firewallModel.exportInterface = row => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = 'select * from ipobj where interface=' + connection.escape(row.id);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows[0]);
+			});
+		});
+	});
+};
+
+/**
+ * Export firewall data
+ *  
+ */
+firewallModel.exportFirewall = id => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = 'select id,firewall,name from interface where firewall=' + connection.escape(id);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				else {
+					Promise.all(rows.map(firewallModel.exportInterface))
+					.then(data => resolve(data))
+					.catch(error => reject(error));
+				}
+			});
+		});
+	});
 };

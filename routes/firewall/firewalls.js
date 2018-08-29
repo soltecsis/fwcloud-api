@@ -973,4 +973,16 @@ router.put("/delfromcluster/:idcluster/firewall/:idfirewall", utilsModel.checkFi
 			});
 });
 
+/**
+ * Get firewall export
+ * 
+ */
+router.get('/export/:idfirewall', (req, res) => {	
+	FirewallModel.exportFirewall(req.params.idfirewall)
+	.then(data => {
+		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	})
+	.catch(err => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, err, jsonResp => res.status(200).json(jsonResp)));
+});
+
 module.exports = router;
