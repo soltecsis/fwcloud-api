@@ -57,6 +57,7 @@ var objModel = 'FIREWALL';
  * 
  */
 var FirewallModel = require('../../models/firewall/firewall');
+var FirewallExport = require('../../models/firewall/export');
 
 /**
  * Property Model to manage Fwcloud Data
@@ -978,7 +979,7 @@ router.put("/delfromcluster/:idcluster/firewall/:idfirewall", utilsModel.checkFi
  * 
  */
 router.get('/export/:idfirewall', (req, res) => {	
-	FirewallModel.exportFirewall(req.params.idfirewall)
+	FirewallExport.exportFirewall(req.params.idfirewall)
 	.then(data => {
 		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	})
