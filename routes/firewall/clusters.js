@@ -253,8 +253,8 @@ router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 																		Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
 																				.then(() => {
 																					logger.debug("CATCHING RULES CREATED FOR FIREWALL: ", idfirewall, "  FWMASTER: ", firewallData.fwmaster);
+																					api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));																																
 																				});
-
 																	}
 																});
 															});
@@ -270,22 +270,12 @@ router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 								});
 					}
 					//----------------------------------------------
-					api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-
 				} else
-					api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
+					api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 			});
 
 		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
