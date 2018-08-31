@@ -138,41 +138,75 @@ var logger = require('log4js').getLogger("app");
  * 
  * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
  * */
-ipobjModel.getIpobj = function (fwcloud, id, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+ipobjModel.getIpobj = (fwcloud, id, callback) => {
+	db.get((error, connection) => {
+		if (error) return callback(error, null);
 
-		var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
-				' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
-				' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
-				' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
+		var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' I ' +
+			' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
+			' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+			' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
 
-		connection.query(sql, function (error, row) {
-			if (error) {
-				callback(error, null);
-			} else {
-				//CHECK IF IPOBJ IS a HOST
-				if (row.length > 0) {
-					if (row[0].type === 8) {
-						ipobjModel.getIpobj_Host_Full(fwcloud, id, function (errorhost, datahost) {
-							if (errorhost) {
-								callback(errorhost, null);
-							} else {
-								callback(null, datahost);
-							}
-						});
-
-					} else
-						callback(null, row);
+		connection.query(sql, (error, row) => {
+			if (error) return callback(error, null);
+			//CHECK IF IPOBJ IS a HOST
+			if (row.length > 0) {
+				if (row[0].type === 8) {
+					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) => {
+						if (errorhost) return callback(errorhost, null);
+							callback(null, datahost);
+					});
+				} else if (row[0].type===5 && row[0].interface!=null) { // Address that is part of an interface.
+					ipobjModel.addressParentsData(connection, row[0])
+					.then(data => callback(null, data))
+					.catch(error => callback(error, null));
 				} else
 					callback(null, row);
-
-
-			}
+			} else
+				callback(null, row);
 		});
 	});
 };
+
+ipobjModel.addressParentsData = (connection,addr) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'select I.name' +
+			' ,case when I.firewall is not null then F.id end as firewall_id' +
+			' ,case when I.firewall is not null then F.name end as firewall_name' +
+			' ,case when C.id is not null then C.id end as cluster_id' +
+			' ,case when C.name is not null then C.name end as cluster_name' +
+			' ,case when OBJ.id is not null then OBJ.id end as host_id' +
+			' ,case when OBJ.name is not null then OBJ.name end as host_name' +
+			' from interface I' +
+			' left join firewall F on F.id=I.firewall' +
+			' left join cluster C on C.id=F.cluster' +
+			' left join interface__ipobj II on II.interface=I.id' +
+			' inner join ipobj OBJ on OBJ.id=II.ipobj' +
+			' where I.id=' + connection.escape(addr.interface);
+		connection.query(sql, (error, row) => {
+			if (error) return reject(error);
+			if (row.length!=1) return reject(new Error('Interface not found'));
+			
+			if (row[0].cluster_id) {
+				addr.cluster_id = row[0].cluster_id;
+				addr.cluster_name = row[0].cluster_name;
+			}
+			if (row[0].firewall_id) {
+				addr.firewall_id = row[0].firewall_id;
+				addr.firewall_name = row[0].firewall_name;
+			}
+			if (row[0].host_id) {
+				addr.host_id = row[0].host_id;
+				addr.host_name = row[0].host_name;
+			}
+			addr.if_id = addr.interface;
+			addr.if_name = row[0].name;
+
+			resolve(addr);
+		});
+	});
+}
+
 
 /**
  * Get ipobj by Ipobj id

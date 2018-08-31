@@ -284,32 +284,14 @@ router.get('/group/:idgroup/:id', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/:id', function (req, res)
-{
-	var id = req.params.id;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
-	logger.debug("Req Access: " + req.fwc_access);
-
-
-	IpobjModel.getIpobj(fwcloud, id, function (error, data)
-	{
+router.get('/:id', (req, res) => {
+	IpobjModel.getIpobj(req.fwcloud, req.params.id, (error, data) =>	{
 		//If exists ipobj get data
 		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-
-		}
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		//Get Error
 		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
