@@ -1143,6 +1143,9 @@ ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
 
 // Middleware for avoid ipobj duplicities.
 ipobjModel.checkDuplicity = (req, res, next) => {
+	// If the user wants to create de IPObj even if it is duplicated, create it.
+	if (req.body.force===1) return next();
+
 	// If we are creating an address for a network interface, then don check duplicity.
 	if (req.body.interface!==null) return next();
 
@@ -1167,12 +1170,12 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 		' AND destination_port_end' + ((req.body.destination_port_end===undefined || req.body.destination_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
 		' AND options' + ((req.body.options===undefined || req.body.options===null) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
 		(req.body.id ? ' AND id!='+connection.escape(req.body.id) : '') +
-		' AND interface IS NULL limit 1';
+		' AND interface IS NULL';
 	
 		connection.query(sql, (error, rows) => {
 			if (!error) {
 				if (rows.length>0)
-					api_resp.getJson({"id": rows[0].id, "name": rows[0].name}, api_resp.ACR_ALREADY_EXISTS, 'Duplicated IP Object.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+					api_resp.getJson(rows, api_resp.ACR_ALREADY_EXISTS, 'Duplicated IP Object.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				else
 					next();
 			} else {

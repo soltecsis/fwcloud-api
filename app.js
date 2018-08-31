@@ -113,7 +113,7 @@ app.use(session({
 
 app.use((req, res, next) => {
   // Exclude the login route.
-	if (req.path == '/users/login') return next();
+	if (req.path==='/users/login') return next();
 
   /////////////////////////////////////////////////////////////////////////////////
   // WARNING!!!!: If you enable the next two code lines, then you disable
