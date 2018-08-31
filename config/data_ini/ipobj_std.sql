@@ -431,7 +431,8 @@ INSERT INTO `ipobj` VALUES
 INSERT INTO `ipobj_g` VALUES 
 -- IDs from 1 to 99999
 (1,'rfc1918-nets',20,NULL,NOW(),NOW(),0,0,NULL),
-(2,'ipv6 private',20,NULL,NOW(),NOW(),0,0,NULL);
+(2,'ipv6 private',20,NULL,NOW(),NOW(),0,0,NULL),
+(3,'DHCP',21,NULL,NOW(),NOW(),0,0,NULL);
 
 
 -- mysql> describe ipobj__ipobjg;
@@ -452,4 +453,6 @@ INSERT INTO `ipobj__ipobjg` VALUES
 (NULL,1,70004,NOW(),NOW(),0,0),
 (NULL,2,70010,NOW(),NOW(),0,0),
 (NULL,2,70013,NOW(),NOW(),0,0),
-(NULL,2,70011,NOW(),NOW(),0,0);
+(NULL,2,70011,NOW(),NOW(),0,0),
+(NULL,3,40008,NOW(),NOW(),0,0),
+(NULL,3,40009,NOW(),NOW(),0,0);
