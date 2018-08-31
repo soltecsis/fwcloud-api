@@ -157,7 +157,7 @@ ipobjModel.getIpobj = (fwcloud, id, callback) => {
 							callback(null, datahost);
 					});
 				} else if (row[0].type===5 && row[0].interface!=null) { // Address that is part of an interface.
-					ipobjModel.addressParentsData(connection, row[0])
+					ipobjModel.addressParentsData(connection, row)
 					.then(data => callback(null, data))
 					.catch(error => callback(error, null));
 				} else
@@ -182,25 +182,25 @@ ipobjModel.addressParentsData = (connection,addr) => {
 			' left join cluster C on C.id=F.cluster' +
 			' left join interface__ipobj II on II.interface=I.id' +
 			' inner join ipobj OBJ on OBJ.id=II.ipobj' +
-			' where I.id=' + connection.escape(addr.interface);
-		connection.query(sql, (error, row) => {
+			' where I.id=' + connection.escape(addr[0].interface);
+		connection.query(sql, (error, row1) => {
 			if (error) return reject(error);
-			if (row.length!=1) return reject(new Error('Interface not found'));
+			if (row1.length!=1) return reject(new Error('Interface not found'));
 			
-			if (row[0].cluster_id) {
-				addr.cluster_id = row[0].cluster_id;
-				addr.cluster_name = row[0].cluster_name;
+			if (row1[0].cluster_id) {
+				addr[0].cluster_id = row1[0].cluster_id;
+				addr[0].cluster_name = row1[0].cluster_name;
 			}
-			if (row[0].firewall_id) {
-				addr.firewall_id = row[0].firewall_id;
-				addr.firewall_name = row[0].firewall_name;
+			if (row1[0].firewall_id) {
+				addr[0].firewall_id = row1[0].firewall_id;
+				addr[0].firewall_name = row1[0].firewall_name;
 			}
-			if (row[0].host_id) {
-				addr.host_id = row[0].host_id;
-				addr.host_name = row[0].host_name;
+			if (row1[0].host_id) {
+				addr[0].host_id = row1[0].host_id;
+				addr[0].host_name = row1[0].host_name;
 			}
-			addr.if_id = addr.interface;
-			addr.if_name = row[0].name;
+			addr[0].if_id = addr.interface;
+			addr[0].if_name = row1[0].name;
 
 			resolve(addr);
 		});
