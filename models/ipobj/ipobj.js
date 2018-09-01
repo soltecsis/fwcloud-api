@@ -147,23 +147,23 @@ ipobjModel.getIpobj = (fwcloud, id, callback) => {
 			' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
 			' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
 
-		connection.query(sql, (error, row) => {
+		connection.query(sql, (error, rows) => {
 			if (error) return callback(error, null);
 			//CHECK IF IPOBJ IS a HOST
-			if (row.length > 0) {
-				if (row[0].type === 8) {
+			if (rows.length > 0) {
+				if (rows[0].type === 8) {
 					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) => {
 						if (errorhost) return callback(errorhost, null);
 							callback(null, datahost);
 					});
-				} else if (row[0].type===5 && row[0].interface!=null) { // Address that is part of an interface.
-					ipobjModel.addressParentsData(connection, row)
-					.then(data => callback(null, data))
+				} else if (rows[0].type===5 && rows[0].interface!=null) { // Address that is part of an interface.
+					ipobjModel.addressParentsData(connection, rows[0])
+					.then(() => callback(null, rows))
 					.catch(error => callback(error, null));
 				} else
-					callback(null, row);
+					callback(null, rows);
 			} else
-				callback(null, row);
+				callback(null, rows);
 		});
 	});
 };
@@ -181,26 +181,26 @@ ipobjModel.addressParentsData = (connection,addr) => {
 			' left join firewall F on F.id=I.firewall' +
 			' left join cluster C on C.id=F.cluster' +
 			' left join interface__ipobj II on II.interface=I.id' +
-			' inner join ipobj OBJ on OBJ.id=II.ipobj' +
-			' where I.id=' + connection.escape(addr[0].interface);
-		connection.query(sql, (error, row1) => {
+			' left join ipobj OBJ on OBJ.id=II.ipobj' +
+			' where I.id=' + connection.escape(addr.interface);
+		connection.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			if (row1.length!=1) return reject(new Error('Interface not found'));
+			if (rows.length!=1) return reject(new Error('Interface not found'));
 			
-			if (row1[0].cluster_id) {
-				addr[0].cluster_id = row1[0].cluster_id;
-				addr[0].cluster_name = row1[0].cluster_name;
+			if (rows[0].cluster_id) {
+				addr.cluster_id = rows[0].cluster_id;
+				addr.cluster_name = rows[0].cluster_name;
 			}
-			if (row1[0].firewall_id) {
-				addr[0].firewall_id = row1[0].firewall_id;
-				addr[0].firewall_name = row1[0].firewall_name;
+			if (rows[0].firewall_id) {
+				addr.firewall_id = rows[0].firewall_id;
+				addr.firewall_name = rows[0].firewall_name;
 			}
-			if (row1[0].host_id) {
-				addr[0].host_id = row1[0].host_id;
-				addr[0].host_name = row1[0].host_name;
+			if (rows[0].host_id) {
+				addr.host_id = rows[0].host_id;
+				addr.host_name = rows[0].host_name;
 			}
-			addr[0].if_id = addr.interface;
-			addr[0].if_name = row1[0].name;
+			addr.if_id = addr.interface;
+			addr.if_name = rows[0].name;
 
 			resolve(addr);
 		});
@@ -1186,23 +1186,23 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 	db.get((error, connection) => {
 		var sql = 'SELECT id,name FROM ' + tableModel +
 		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
-		' AND type' + ((req.body.type===undefined || req.body.type===null) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
-		' AND protocol' + ((req.body.protocol===undefined || req.body.protocol===null) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
-		' AND address' + ((req.body.address===undefined || req.body.address===null) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
-		' AND netmask' + ((req.body.netmask===undefined || req.body.netmask===null) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
-		' AND diff_serv' + ((req.body.diff_serv===undefined || req.body.diff_serv===null) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
- 		' AND ip_version' + ((req.body.ip_version===undefined || req.body.ip_version===null) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
-		' AND icmp_type' + ((req.body.icmp_type===undefined || req.body.icmp_type===null) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
-		' AND icmp_code' + ((req.body.icmp_code===undefined || req.body.icmp_code===null) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
-		' AND tcp_flags_mask' + ((req.body.tcp_flags_mask===undefined || req.body.tcp_flags_mask===null) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
-		' AND tcp_flags_settings' + ((req.body.tcp_flags_settings===undefined || req.body.tcp_flags_settings===null) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
-		' AND range_start' + ((req.body.range_start===undefined || req.body.range_start===null) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
-		' AND range_end' + ((req.body.range_end===undefined || req.body.range_end===null) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
-		' AND source_port_start' + ((req.body.source_port_start===undefined || req.body.source_port_start===null) ? " IS NULL" : ("="+connection.escape(req.body.source_port_start))) +
-		' AND source_port_end' + ((req.body.source_port_end===undefined || req.body.source_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.source_port_end))) +
-		' AND destination_port_start' + ((req.body.destination_port_start===undefined || req.body.destination_port_start===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_start))) +
-		' AND destination_port_end' + ((req.body.destination_port_end===undefined || req.body.destination_port_end===null) ? " IS NULL" : ("="+connection.escape(req.body.destination_port_end))) +
-		' AND options' + ((req.body.options===undefined || req.body.options===null) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
+		' AND type' + ((!req.body.type) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
+		' AND protocol' + ((!req.body.protocol) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
+		' AND address' + ((!req.body.address) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
+		' AND netmask' + ((!req.body.netmask) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
+		' AND diff_serv' + ((!req.body.diff_serv) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
+ 		' AND ip_version' + ((!req.body.ip_version) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
+		' AND icmp_type' + ((!req.body.icmp_type) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
+		' AND icmp_code' + ((!req.body.icmp_code) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
+		' AND tcp_flags_mask' + ((!req.body.tcp_flags_mask) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
+		' AND tcp_flags_settings' + ((!req.body.tcp_flags_settings) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
+		' AND range_start' + ((!req.body.range_start) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
+		' AND range_end' + ((!req.body.range_end) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
+		' AND source_port_start=' + connection.escape(req.body.source_port_start) +
+		' AND source_port_end=' + connection.escape(req.body.source_port_end) +
+		' AND destination_port_start=' + connection.escape(req.body.destination_port_start) +
+		' AND destination_port_end=' + connection.escape(req.body.destination_port_end) +
+		' AND options' + ((!req.body.options) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
 		(req.body.id ? ' AND id!='+connection.escape(req.body.id) : '') +
 		' AND interface IS NULL';
 	
