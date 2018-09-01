@@ -1186,23 +1186,23 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 	db.get((error, connection) => {
 		var sql = 'SELECT id,name FROM ' + tableModel +
 		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
-		' AND type' + ((!req.body.type) ? " IS NULL" : ("="+connection.escape(req.body.type))) +
-		' AND protocol' + ((!req.body.protocol) ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
-		' AND address' + ((!req.body.address) ? " IS NULL" : ("="+connection.escape(req.body.address))) +
-		' AND netmask' + ((!req.body.netmask) ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
-		' AND diff_serv' + ((!req.body.diff_serv) ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
- 		' AND ip_version' + ((!req.body.ip_version) ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
-		' AND icmp_type' + ((!req.body.icmp_type) ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
-		' AND icmp_code' + ((!req.body.icmp_code) ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
-		' AND tcp_flags_mask' + ((!req.body.tcp_flags_mask) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
-		' AND tcp_flags_settings' + ((!req.body.tcp_flags_settings) ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
-		' AND range_start' + ((!req.body.range_start) ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
-		' AND range_end' + ((!req.body.range_end) ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
+		' AND type' + (req.body.type===null ? " IS NULL" : ("="+connection.escape(req.body.type))) +
+		' AND protocol' + (req.body.protocol===null ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
+		' AND address' + (req.body.address===null ? " IS NULL" : ("="+connection.escape(req.body.address))) +
+		' AND netmask' + (req.body.netmask===null ? " IS NULL" : ("="+connection.escape(req.body.netmask))) +
+		' AND diff_serv' + (req.body.diff_serv===null ? " IS NULL" : ("="+connection.escape(req.body.diff_serv))) +
+ 		' AND ip_version' + (req.body.ip_version===null ? " IS NULL" : ("="+connection.escape(req.body.ip_version))) +
+		' AND icmp_type' + (req.body.icmp_type===null ? " IS NULL" : ("="+connection.escape(req.body.icmp_type))) +
+		' AND icmp_code' + (req.body.icmp_code===null ? " IS NULL" : ("="+connection.escape(req.body.icmp_code))) +
+		' AND tcp_flags_mask' + (req.body.tcp_flags_mask===null ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_mask))) +
+		' AND tcp_flags_settings' + (req.body.tcp_flags_settings===null ? " IS NULL" : ("="+connection.escape(req.body.tcp_flags_settings))) +
+		' AND range_start' + (req.body.range_start===null ? " IS NULL" : ("="+connection.escape(req.body.range_start))) +
+		' AND range_end' + (req.body.range_end===null ? " IS NULL" : ("="+connection.escape(req.body.range_end))) +
 		' AND source_port_start=' + connection.escape(req.body.source_port_start) +
 		' AND source_port_end=' + connection.escape(req.body.source_port_end) +
 		' AND destination_port_start=' + connection.escape(req.body.destination_port_start) +
 		' AND destination_port_end=' + connection.escape(req.body.destination_port_end) +
-		' AND options' + ((!req.body.options) ? " IS NULL" : ("="+connection.escape(req.body.options))) +
+		' AND options' + (req.body.options===null ? " IS NULL" : ("="+connection.escape(req.body.options))) +
 		(req.body.id ? ' AND id!='+connection.escape(req.body.id) : '') +
 		' AND interface IS NULL';
 	
@@ -1261,14 +1261,14 @@ ipobjModel.checkIPObjParameters = (req, res, next) => {
 	if (req.body.diff_serv!==null && ((typeof req.body.diff_serv)!="number" || req.body.diff_serv<0 || req.body.diff_serv>255))
 		return api_resp.getJson({name: 'diff_serv'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-			
-	if (req.body.icmp_code===undefined) req.body.icmp_code=null;
-	if (req.body.icmp_code!==null && ((typeof req.body.icmp_code)!="number" || req.body.icmp_code<-1 || req.body.icmp_code>255))
-		return api_resp.getJson({name: 'icmp_code'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
-	
+
 	if (req.body.icmp_type===undefined) req.body.icmp_type=null;
 	if (req.body.icmp_type!==null && ((typeof req.body.icmp_type)!="number" || req.body.icmp_type<-1 || req.body.icmp_type>255))
 		return api_resp.getJson({name: 'icmp_type'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
+				
+	if (req.body.icmp_code===undefined) req.body.icmp_code=null;
+	if (req.body.icmp_code!==null && ((typeof req.body.icmp_code)!="number" || req.body.icmp_code<-1 || req.body.icmp_code>255))
+		return api_resp.getJson({name: 'icmp_code'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));	
 
 
 	if (req.body.tcp_flags_mask===undefined) req.body.tcp_flags_mask=null;
