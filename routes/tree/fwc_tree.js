@@ -326,6 +326,7 @@ router.get('/name/:name', function (req, res)
 		}
 	});
 });
+
 /* Create New fwc_tree Firewall node*/
 router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 {
@@ -347,6 +348,7 @@ router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 		}
 	});
 });
+
 /* Create New fwc_tree Objects*/
 router.put("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
 {
@@ -569,4 +571,43 @@ router.put("/del/fwc-tree/:idnode", function (req, res)
 				}
 			});
 });
+
+/* Create new folder */
+router.post("/folder", (req, res) =>{
+	var nodeData = {
+		id: null,
+		name: req.body.name,
+		id_parent: req.body.id_parent,
+		node_order: req.body.node_order,
+		node_icon: null,
+		expanded: 0,
+		node_type: 'FD',
+		api_call: null,
+		obj_type: null,
+		id_obj: null,
+		node_level: req.body.node_level,
+		fwcloud: req.body.fwcloud,
+		comment: req.body.comment,
+		fwcloud_tree: req.body.fwcloud
+	};
+
+	fwcTreemodel.createFolderNode(nodeData)
+	.then(data => api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+});
+
+/* Delete folder */
+router.put("/folder", (req, res) =>{
+	fwcTreemodel.deleteFolderNode(req.body.fwcloud,req.body.id)
+	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+});
+
+/* Delete folder */
+router.put("/folder-drop", (req, res) =>{
+	fwcTreemodel.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst)
+	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'MOVED INTO FOLDER OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving to folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+});
+
 module.exports = router;
