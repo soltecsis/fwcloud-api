@@ -568,7 +568,7 @@ IpobjModel.checkDuplicity,
 									var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
 									if (ipobjData.interface) {
 										FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,ipobjData.interface,ipobjData.type,"|3")
-										.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,2,null))
+										.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,null))
 										.then((not_zero_status_fws) => {
 											dataresp.fw_status=not_zero_status_fws;
 											api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -706,7 +706,7 @@ IpobjModel.checkDuplicity,
 								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3")
 								.then(() => IpobjModel.UpdateHOST(ipobjData.id))
 								.then(() => IpobjModel.UpdateINTERFACE(ipobjData.id))
-								.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,2,null))
+								.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,null))
 								.then((not_zero_status_fws) => {
 									logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
 											
@@ -807,7 +807,7 @@ utilsModel.checkConfirmationToken,
 					fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
 						//DELETE FROM TREE
 						fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-							FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)
+							FirewallModel.getFirewallStatusNotZero(fwcloud,null)
 							.then((not_zero_status_fws) => api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 						});
 					});

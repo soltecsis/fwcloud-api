@@ -117,7 +117,7 @@ router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.che
 							if (data2 && data2.insertId) {
 								// Update affected firewalls status.
 								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.body.ipobj_g,-1,-1,"|3")
-								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
+								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,null)})
 								.then(not_zero_status_fws => api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp=> res.status(200).json(jsonResp)))
 								.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 							} else {
@@ -195,7 +195,7 @@ utilsModel.checkConfirmationToken,
 							fwcTreemodel.orderTreeNode(fwcloud, node_parent, (error, data) => {
 								// Update affected firewalls status.
 								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.params.ipobjg,-1,-1,"|3")
-								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,2,null)})
+								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,null)})
 								.then(not_zero_status_fws => 
 									api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK '+data.alert, objModel, null, jsonResp=> res.status(200).json(jsonResp)))
 								.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));

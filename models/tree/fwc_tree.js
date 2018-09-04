@@ -436,16 +436,6 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 			if (error) {
 				AllDone(error, null);
 			} else {
-
-				//INSERT NODE CLUSTER
-				sqlinsert = "INSERT INTO " + tableModel + "( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree) " +
-						" VALUES (" + "'CLUSTERS','',0,1,1,'FDC',0,0,null,null," + connection.escape(fwcloud) + "," + connection.escape(fwcloud) + ")";
-				logger.debug(sqlinsert);
-				connection.query(sqlinsert, function (error, result) {
-					if (error)
-						logger.debug("ERROR FDC : " + error);
-				});
-
 				//INSERT NODE FIREWALLS
 				sqlinsert = "INSERT INTO " + tableModel + "( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree) " +
 						" VALUES (" + "'FIREWALLS','',0,1,1,'FDF',0,0,null,null," + connection.escape(fwcloud) + "," + connection.escape(fwcloud) + ")";
@@ -2047,7 +2037,7 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 	});
 };
 
-//Add new NODE from user
+//Add new folder node
 fwc_treeModel.createFolderNode = nodeData => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
@@ -2058,7 +2048,7 @@ fwc_treeModel.createFolderNode = nodeData => {
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
 				if (result.length !== 1) return reject(new Error('Parent node tree not found'));
-				if (result[0].node_type!=='FDF' && result[0].node_type!=='FDC' &&  result[0].node_type!=='FD') 
+				if (result[0].node_type!=='FDF' && result[0].node_type!=='FD') 
 					return reject(new Error('Can not create folders under this node type'));
 
 				connection.query('INSERT INTO ' + tableModel + ' SET ?', nodeData, (error, result) => {

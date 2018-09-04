@@ -1183,7 +1183,12 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 	// If we are creating an address for a network interface, then don check duplicity.
 	if (req.body.interface!==null) return next();
 
+	// If we are creating a new host, then don check duplicity.
+	if (req.body.type===8) return next();
+
 	db.get((error, connection) => {
+		if (error) return next();
+
 		var sql = 'SELECT id,name FROM ' + tableModel +
 		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
 		' AND type' + (req.body.type===null ? " IS NULL" : ("="+connection.escape(req.body.type))) +
