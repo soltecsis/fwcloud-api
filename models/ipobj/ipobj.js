@@ -1227,6 +1227,8 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 
 // Middleware for veriy ipobj parameters.
 ipobjModel.checkIPObjParameters = (req, res, next) => {
+	if ((typeof req.fwcloud)=="string")
+		req.fwcloud = parseInt(req.fwcloud);
 	if (req.fwcloud===undefined || req.fwcloud===null || (typeof req.fwcloud)!="number" || req.fwcloud<1)
 		return api_resp.getJson({name: 'fwcloud'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
