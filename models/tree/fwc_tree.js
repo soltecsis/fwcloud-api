@@ -1796,7 +1796,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 			callback(error, null);
 		var sql = 'UPDATE ' + tableModel + ' SET' +
 				' name = ' + connection.escape(ipobjData.name) + ' , comment= ' + connection.escape(ipobjData.comment) +
-				' WHERE node_type NOT LIKE "F*" AND' +
+				' WHERE node_type NOT LIKE "F%" AND' +
 				' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud_tree=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, result) {
 			if (error) {
