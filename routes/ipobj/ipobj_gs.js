@@ -190,7 +190,7 @@ router.post("/ipobj-g/:node_parent/:node_order/:node_type", function (req, res)
         id: null,
         name: req.body.name,
         type: req.body.type,
-        fwcloud: req.body.fwcloud,
+        fwcloud: req.fwcloud,
         comment: req.body.comment
     };
 
@@ -239,7 +239,7 @@ router.put('/ipobj-g', function (req, res)
     var fwcloud = req.fwcloud;
 
     //Save data into object
-    var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
+    var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.fwcloud};
     Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
     {
         if (error)

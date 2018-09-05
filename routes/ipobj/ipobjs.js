@@ -517,7 +517,7 @@ IpobjModel.checkDuplicity,
 	//Create New objet with data ipobj
 	var ipobjData = {
 		id: null,
-		fwcloud: req.body.fwcloud,
+		fwcloud: req.fwcloud,
 		interface: req.body.interface,
 		name: req.body.name,
 		type: req.body.type,
@@ -665,7 +665,7 @@ IpobjModel.checkDuplicity,
 	//Save data into object
 	var ipobjData = {
 		id: req.body.id,
-		fwcloud: req.body.fwcloud, 
+		fwcloud: req.fwcloud, 
 		interface: req.body.interface, 
 		name: req.body.name, 
 		type: req.body.type, 

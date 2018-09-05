@@ -432,7 +432,9 @@ INSERT INTO `ipobj_g` VALUES
 -- IDs from 1 to 99999
 (1,'rfc1918-nets',20,NULL,NOW(),NOW(),0,0,NULL),
 (2,'ipv6 private',20,NULL,NOW(),NOW(),0,0,NULL),
-(3,'DHCP',21,NULL,NOW(),NOW(),0,0,NULL);
+(3,'DHCP',21,NULL,NOW(),NOW(),0,0,NULL),
+(4,'NETBIOS',21,NULL,NOW(),NOW(),0,0,NULL),
+(5,'Useful ICMP',21,NULL,NOW(),NOW(),0,0,NULL);
 
 
 -- mysql> describe ipobj__ipobjg;
@@ -455,4 +457,12 @@ INSERT INTO `ipobj__ipobjg` VALUES
 (NULL,2,70013,NOW(),NOW(),0,0),
 (NULL,2,70011,NOW(),NOW(),0,0),
 (NULL,3,40008,NOW(),NOW(),0,0),
-(NULL,3,40009,NOW(),NOW(),0,0);
+(NULL,3,40009,NOW(),NOW(),0,0),
+(NULL,4,40018,NOW(),NOW(),0,0),
+(NULL,4,40019,NOW(),NOW(),0,0),
+(NULL,4,40020,NOW(),NOW(),0,0),
+(NULL,4,20043,NOW(),NOW(),0,0),
+(NULL,5,30002,NOW(),NOW(),0,0),
+(NULL,5,30001,NOW(),NOW(),0,0),
+(NULL,5,30028,NOW(),NOW(),0,0),
+(NULL,5,30029,NOW(),NOW(),0,0);

@@ -579,9 +579,9 @@ router.post("/folder", (req, res) =>{
 		obj_type: null,
 		id_obj: null,
 		node_level: req.body.node_level,
-		fwcloud: req.body.fwcloud,
+		fwcloud: req.fwcloud,
 		comment: req.body.comment,
-		fwcloud_tree: req.body.fwcloud
+		fwcloud_tree: req.fwcloud
 	};
 
 	fwcTreemodel.createFolderNode(nodeData)
@@ -591,14 +591,14 @@ router.post("/folder", (req, res) =>{
 
 /* Delete folder */
 router.put("/folder", (req, res) =>{
-	fwcTreemodel.deleteFolderNode(req.body.fwcloud,req.body.id)
+	fwcTreemodel.deleteFolderNode(req.fwcloud,req.body.id)
 	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 });
 
 /* Delete folder */
 router.put("/folder-drop", (req, res) =>{
-	fwcTreemodel.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst)
+	fwcTreemodel.moveToFolder(req.fwcloud,req.body.src,req.body.dst)
 	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'MOVED INTO FOLDER OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving to folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 });

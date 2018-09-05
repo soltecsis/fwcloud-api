@@ -1190,7 +1190,7 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 		if (error) return next();
 
 		var sql = 'SELECT id,name FROM ' + tableModel +
-		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
+		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.fwcloud) + ")" + 
 		' AND type' + (req.body.type===null ? " IS NULL" : ("="+connection.escape(req.body.type))) +
 		' AND protocol' + (req.body.protocol===null ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
 		' AND address' + (req.body.address===null ? " IS NULL" : ("="+connection.escape(req.body.address))) +
@@ -1227,7 +1227,7 @@ ipobjModel.checkDuplicity = (req, res, next) => {
 
 // Middleware for veriy ipobj parameters.
 ipobjModel.checkIPObjParameters = (req, res, next) => {
-	if (req.body.fwcloud===undefined || req.body.fwcloud===null || (typeof req.body.fwcloud)!="number" || req.body.fwcloud<1)
+	if (req.fwcloud===undefined || req.fwcloud===null || (typeof req.fwcloud)!="number" || req.fwcloud<1)
 		return api_resp.getJson({name: 'fwcloud'}, api_resp.ACR_PARAM_ERROR, null, objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	if (req.body.interface===undefined) req.body.interface=null;
