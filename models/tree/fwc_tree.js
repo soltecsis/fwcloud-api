@@ -2067,7 +2067,7 @@ fwc_treeModel.deleteFolderNode = (fwcloud,id) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			// Verify that node exists. has no childs and the type of it is 'FD' (folder).
+			// Verify that node exists, has no childs and the type of it is 'FD' (folder).
 			let sql =  'SELECT node_type,(select count(*) from '+tableModel+' where id_parent=' +  connection.escape(id) + ') as childs' +
 				' FROM ' + tableModel + ' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(id); 
 			connection.query(sql, (error, result) => {
@@ -2077,6 +2077,31 @@ fwc_treeModel.deleteFolderNode = (fwcloud,id) => {
 				if (result[0].childs!==0) return reject(new Error('This folder node is not empty')); 
 
 				sql = 'DELETE FROM ' + tableModel +
+					' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(id);
+				connection.query(sql, (error, result) => {
+					if (error) return reject(error);
+					resolve();
+				});
+			});
+		});
+	});
+};
+
+//Rename folder node
+fwc_treeModel.renameFolderNode = (fwcloud,id,old_name,new_name) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			// Verify that node exists, the old name is correct and the type of it is 'FD' (folder).
+			let sql =  'SELECT node_type FROM ' + tableModel +
+				' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(id) + ' AND name=' + connection.escape(old_name); 
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				if (result.length!==1) return reject(new Error('Node tree not found'));
+				if (result[0].node_type!=='FD') return reject(new Error('This node is not a folder'));
+
+				sql = 'UPDATE ' + tableModel +
+					' SET name=' + connection.escape(new_name) +
 					' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(id);
 				connection.query(sql, (error, result) => {
 					if (error) return reject(error);
@@ -2101,7 +2126,7 @@ fwc_treeModel.moveToFolder = (fwcloud,src,dst) => {
 				if (error) return reject(error);
 				if (result.length!==1) return reject(new Error('Node not found'));
 				if (result[0].src_type!=='FD' && result[0].src_type!=='FW' && result[0].src_type!=='CL') return reject(new Error('Source node type is not valid'));
-				if (result[0].dst_type!=='FD') return reject(new Error('Destination node is not a folder'));
+				if (result[0].dst_type!=='FD' && result[0].dst_type!=='FDF') return reject(new Error('Destination folder is not valid'));
 
 				sql = 'UPDATE ' + tableModel +
 					' SET id_parent=' + connection.escape(dst) +

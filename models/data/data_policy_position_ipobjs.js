@@ -28,10 +28,20 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.options = data.options;
 		this.icmp_type = data.icmp_type;
 		this.icmp_code = data.icmp_code;
-
+		if (data.type===5) {// ADDRESS
+			this.firewall_id = data.firewall_id;
+			this.firewall_name = data.firewall_name;
+			this.cluster_id = data.cluster_id;
+			this.cluster_name = data.cluster_name;
+			this.host_id = data.host_id;
+			this.host_name = data.host_name;
+		}
 	} else if (type === 'I') {
 		this.type = data.interface_type;
 		this.labelName = data.labelName;
+
+		// Eliminar este fragmento de código cuando ya no sea necesario para Felip
+		/***********************************************************************/
 		if (data.interface_type == 10) {  //interface Firewall
 			if (data.cluster_id !== null) {
 				this.parent_id = data.cluster_id;
@@ -47,8 +57,15 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 			this.parent_name = data.host_name;
 			this.parent_type = 8;
 		}
-
-
+		/***********************************************************************/
+		if (data.interface_type===10 || data.interface_type===8) { // Interfac de firewall o interfaz de host
+			this.firewall_id = data.firewall_id;
+			this.firewall_name = data.firewall_name;
+			this.cluster_id = data.cluster_id;
+			this.cluster_name = data.cluster_name;
+			this.host_id = data.host_id;
+			this.host_name = data.host_name;
+		}
 	} else if (type === 'G') {
 		this.type = data.type;
 	}
