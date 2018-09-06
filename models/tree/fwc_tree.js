@@ -1691,7 +1691,7 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
 	getParentLevelChild(node_parent, function (level) {
 		var fwc_treeData = {
 			id: null,
-			name: node_Data.name,
+			name: node_Data.name + (((node_Data.type===10 ||node_Data.type===11) && node_Data.labelName) ? " ["+node_Data.labelName+"]": ""),
 			id_parent: node_parent,
 			node_order: node_order,
 			node_icon: null,
@@ -1792,12 +1792,12 @@ fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback
 //Update NODE from IPOBJ or INTERFACE UPDATE
 fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET' +
-				' name = ' + connection.escape(ipobjData.name) + ' , comment= ' + connection.escape(ipobjData.comment) +
-				' WHERE node_type NOT LIKE "F%" AND' +
-				' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud_tree=' + connection.escape(fwcloud);
+		if (error) return callback(error, null);
+		let sql = 'UPDATE ' + tableModel + ' SET' +
+			' name = ' + connection.escape(ipobjData.name+(((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) ? " ["+ipobjData.labelName+"]": "")) + 
+			' ,comment= ' + connection.escape(ipobjData.comment) +
+			' WHERE node_type NOT LIKE "F%" AND' +
+			' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud_tree=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, result) {
 			if (error) {
 				logger.debug(sql);

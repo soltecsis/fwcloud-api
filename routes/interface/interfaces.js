@@ -304,7 +304,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", async (req, 
 				interfaceData.id = id;
 				interfaceData.type = interfaceData.interface_type;
 				//INSERT IN TREE
-				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, interfaceData, function (error, data) {
+				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, interfaceData,(error, data) => {
 					if (data && data.insertId) {
 						var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
 						api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
