@@ -40,24 +40,6 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.type = data.interface_type;
 		this.labelName = data.labelName;
 
-		// Eliminar este fragmento de código cuando ya no sea necesario para Felip
-		/***********************************************************************/
-		if (data.interface_type == 10) {  //interface Firewall
-			if (data.cluster_id !== null) {
-				this.parent_id = data.cluster_id;
-				this.parent_name = data.cluster_name;
-				this.parent_type = 100;
-			} else {
-				this.parent_id = data.firewall_id;
-				this.parent_name = data.firewall_name;
-				this.parent_type = 0;
-			}
-		} else {   //interface Host
-			this.parent_id = data.host_id;
-			this.parent_name = data.host_name;
-			this.parent_type = 8;
-		}
-		/***********************************************************************/
 		if (data.interface_type===10 || data.interface_type===8) { // Interfac de firewall o interfaz de host
 			this.firewall_id = data.firewall_id;
 			this.firewall_name = data.firewall_name;
@@ -75,12 +57,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 	} catch (err) {
 		this.fwcloud_tree = data.fwcloud;
 	}
-
-
-}
-;
-
-
+};
 
 //Export the object
 module.exports = policy_position_ipobjs_data;
