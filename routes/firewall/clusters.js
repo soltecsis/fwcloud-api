@@ -307,7 +307,7 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
 					var idcluster = data.insertId;
 					//////////////////////////////////
 					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, "FDF", idcluster, idfirewall, function (error, dataTree) {
+					fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, idfirewall, function (error, dataTree) {
 						if (error)
 							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
 								res.status(200).json(jsonResp);
@@ -360,7 +360,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 
 			//////////////////////////////////
 			//UPDATE CLUSTER NODE STRUCTURE
-			fwcTreemodel.updateFwc_Tree_convert_cluster_firewall(fwcloud, "FDF", idCluster, firewallData.id, function (error, dataTree) {
+			fwcTreemodel.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, function (error, dataTree) {
 				logger.debug("DATATREE: ", dataTree);
 				if (error)
 					api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
@@ -432,7 +432,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 					var newidcluster = data.insertId;
 					//////////////////////////////////
 					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.clusterData.node_id, newidcluster, async (error, dataTree) => {
+					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster, async (error, dataTree) => {
 						if (error)
 							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 						else if (dataTree && dataTree.result) {

@@ -922,7 +922,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
 		connection.query(sql, (error, rows) => {
 			if (error) return AllDone(error, null);
 
-			if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
+			if (rows[0].node_type!='FDF' && rows[0].node_type!='FCF' && rows[0].node_type!='FD') 
 				return AllDone(new Error('Bad folder type'), null);
 
 			//For each node Select Objects by  type
@@ -1169,10 +1169,184 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, node_id, idcluster
 		//Select Parent Node by type   
 		sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.id=' + connection.escape(node_id) + ' and T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
 		logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error) {
-				AllDone(error, null);
-			} else {
+		connection.query(sql, (error, rows) => {
+			if (error) return AllDone(error, null);
+
+			if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
+				return AllDone(new Error('Bad folder type'), null);
+
+			//For each node Select Objects by  type
+			if (rows) {
+				asyncMod.forEachSeries(rows, function (row, callback) {
+					//logger.debug(row);
+					//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+					var tree_node = new fwc_tree_node(row);
+					//Añadimos nodos CLUSTER del CLOUD
+					sqlnodes = 'SELECT  C.id, C.name, C.comment, C.fwcloud FROM cluster C  WHERE C.id=' + connection.escape(idcluster);
+					//logger.debug(sqlnodes);
+					connection.query(sqlnodes, function (error, rowsnodes) {
+						if (error)
+							callback(error, null);
+						else {
+							var i = 0;
+							if (rowsnodes) {
+								asyncMod.forEachSeries(rowsnodes, function (rnode, callback2) {
+									var idfirewall = rnode.id;
+									i++;
+									//Insertamos nodos Cluster
+									sqlinsert = 'INSERT INTO ' + tableModel +
+											'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
+											' VALUES (' +
+											connection.escape(rnode.name) + ',' +
+											connection.escape(rnode.comment) + ',' + connection.escape(row.id) + ',' +
+											i + ',' + (row.node_level + 1) + ',"CL",' +
+											'0,0,' + connection.escape(rnode.id) + ',100,' +
+											connection.escape(fwcloud) + "," + connection.escape(fwcloud)  + ")";
+									//logger.debug(sqlinsert);
+									var parent_cluster;
+
+									connection.query(sqlinsert, function (error, result) {
+										if (error) {
+											logger.debug("ERROR CLUSTER INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
+										} else {
+											logger.debug("INSERT CLUSTER OK NODE: " + rnode.id + " - " + rnode.name + "  --> FWCTREE: " + result.insertId);
+											parent_cluster = result.insertId;
+
+											var parent_FP = 0;
+
+											//Insertamos nodo PADRE FILTER POLICIES
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree) ' +
+													' VALUES (' + '"FILTER POLICIES","",' + parent_cluster + ',1,' + (row.node_level + 2) + ',"FP",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+											logger.debug(sqlinsert);
+											connection.query(sqlinsert, function (error2, result2) {
+												if (error2) {
+													logger.debug("ERROR FP : " + error2);
+												} else {
+													parent_FP = result2.insertId;
+													logger.debug("INSERT FILTER POLICIES OK NODE: " + result2.insertId);
+													//Insertamos nodo POLICY IN
+													sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
+															' VALUES (' + '"INPUT","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"PI",0,0,' + connection.escape(idcluster) + ',1,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR PI : " + error);
+													});
+													//Insertamos nodo POLICY OUT
+													sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
+															' VALUES (' + '"OUTPUT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"PO",0,0,' + connection.escape(idcluster) + ',2,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR PO : " + error);
+													});
+													//Insertamos nodo POLICY FORWARD
+													sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
+															' VALUES (' + '"FORWARD","",' + parent_FP + ',3,' + (row.node_level + 3) + ',"PF",0,0,' + connection.escape(idcluster) + ',3,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR PF: " + error);
+													});
+
+												}
+											});
+
+											var parent_NAT;
+
+											//Insertamos nodo PADRE NAT
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
+													' VALUES (' + '"NAT","",' + parent_cluster + ',2,' + (row.node_level + 2) + ',"NT",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+											logger.debug(sqlinsert);
+											connection.query(sqlinsert, function (error, result) {
+												if (error)
+													logger.debug("ERROR FP : " + error);
+												else {
+													parent_NAT = result.insertId;
+													//Insertamos nodo SNAT
+													sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
+															' VALUES (' + '"SNAT","",' + parent_NAT + ',1,' + (row.node_level + 3) + ',"NTS",0,0,' + connection.escape(idcluster) + ',4,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR SNAT: " + error);
+													});
+													//Insertamos nodo DNAT
+													sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
+															' VALUES (' + '"DNAT","",' + parent_NAT + ',2,' + (row.node_level + 3) + ',"NTD",0,0,' + connection.escape(idcluster) + ',5,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR DNAT: " + error);
+													});
+												}
+											});
+
+											//Insertamos nodo ROUTING
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
+													' VALUES (' + '"Routing","",' + parent_cluster + ',3,' + (row.node_level + 2) + ',"RR",0,0,' + connection.escape(idcluster) + ',6,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+											connection.query(sqlinsert, function (error, result) {
+												if (error)
+													logger.debug("ERROR RR : " + error);
+											});
+
+											var nodeInterfaces;
+											//Insertamos nodo INTERFACES FIREWALL
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
+													' VALUES (' + '"Interfaces","",' + parent_cluster + ',4,' + (row.node_level + 2) + ',"FDI",0,0,' + connection.escape(idcluster) + ',10,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+											connection.query(sqlinsert, function (error, result) {
+												if (error)
+													logger.debug("ERROR FDI: " + error);
+												else
+													nodeInterfaces = result.insertId;
+											});
+
+											//Insertamos nodo NODE FIREWALLS
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
+													' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+											connection.query(sqlinsert, function (error, result) {
+												if (error)
+													logger.debug("ERROR RR : " + error);
+											});
+										}
+									});
+									callback2();
+								}
+								);
+							}
+						}
+					});
+					callback();
+				},
+						function (err) {
+							if (err)
+								AllDone(err, null);
+							else
+								AllDone(null, {"result": true});
+						});
+			} else
+				AllDone(null, {"result": true});
+		});
+	});
+};
+
+//CONVERT TREE FIREWALL TO  CLUSTER for a New CLuster
+fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
+	db.get(function (error, connection) {
+		if (error) return	callback(error, null);
+
+		getFirewallNodeId(idfirewall, function (datafw) {
+			var firewallNode = datafw;
+
+			//Select Parent Node by id   
+			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.id=' + connection.escape(node_id) + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
+			logger.debug(sql);
+			connection.query(sql, function (error, rows) {
+				if (error) return AllDone(error, null);
+
+				if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
+					return AllDone(new Error('Bad folder type'), null);
+
 				//For each node Select Objects by  type
 				if (rows) {
 					asyncMod.forEachSeries(rows, function (row, callback) {
@@ -1212,101 +1386,39 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, node_id, idcluster
 
 												var parent_FP = 0;
 
-												//Insertamos nodo PADRE FILTER POLICIES
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree) ' +
-														' VALUES (' + '"FILTER POLICIES","",' + parent_cluster + ',1,' + (row.node_level + 2) + ',"FP",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-												logger.debug(sqlinsert);
-												connection.query(sqlinsert, function (error2, result2) {
-													if (error2) {
-														logger.debug("ERROR FP : " + error2);
-													} else {
-														parent_FP = result2.insertId;
-														logger.debug("INSERT FILTER POLICIES OK NODE: " + result2.insertId);
-														//Insertamos nodo POLICY IN
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
-																' VALUES (' + '"INPUT","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"PI",0,0,' + connection.escape(idcluster) + ',1,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PI : " + error);
-														});
-														//Insertamos nodo POLICY OUT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"OUTPUT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"PO",0,0,' + connection.escape(idcluster) + ',2,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PO : " + error);
-														});
-														//Insertamos nodo POLICY FORWARD
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"FORWARD","",' + parent_FP + ',3,' + (row.node_level + 3) + ',"PF",0,0,' + connection.escape(idcluster) + ',3,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PF: " + error);
-														});
-
-													}
-												});
-
-												var parent_NAT;
-
-												//Insertamos nodo PADRE NAT
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"NAT","",' + parent_cluster + ',2,' + (row.node_level + 2) + ',"NT",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
+												//update ALL FIREWALL NODES
+												sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + parent_cluster +
+														' WHERE id_parent=' + firewallNode;
 												logger.debug(sqlinsert);
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
-														logger.debug("ERROR FP : " + error);
-													else {
-														parent_NAT = result.insertId;
-														//Insertamos nodo SNAT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
-																' VALUES (' + '"SNAT","",' + parent_NAT + ',1,' + (row.node_level + 3) + ',"NTS",0,0,' + connection.escape(idcluster) + ',4,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR SNAT: " + error);
-														});
-														//Insertamos nodo DNAT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"DNAT","",' + parent_NAT + ',2,' + (row.node_level + 3) + ',"NTD",0,0,' + connection.escape(idcluster) + ',5,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR DNAT: " + error);
-														});
-													}
+														logger.debug("ERROR ALL NODES : " + error);
 												});
 
-												//Insertamos nodo ROUTING
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-														' VALUES (' + '"Routing","",' + parent_cluster + ',3,' + (row.node_level + 2) + ',"RR",0,0,' + connection.escape(idcluster) + ',6,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR RR : " + error);
-												});
-
-												var nodeInterfaces;
-												//Insertamos nodo INTERFACES FIREWALL
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"Interfaces","",' + parent_cluster + ',4,' + (row.node_level + 2) + ',"FDI",0,0,' + connection.escape(idcluster) + ',10,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR FDI: " + error);
-													else
-														nodeInterfaces = result.insertId;
-												});
-
-												//Insertamos nodo NODE FIREWALLS
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree, show_action) ' +
-														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR RR : " + error);
-												});
 											}
+
+
+
+											//Insertamos nodo NODE FIREWALLS
+											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
+													' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+											connection.query(sqlinsert, function (error, result) {
+												if (error)
+													logger.debug("ERROR RR : " + error);
+												else {
+													var nodes_cluster = result.insertId;
+													//update  FIREWALL NODE
+													sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + nodes_cluster +
+															' WHERE id=' + firewallNode;
+													logger.debug(sqlinsert);
+													connection.query(sqlinsert, function (error, result) {
+														if (error)
+															logger.debug("ERROR FIREWALL NODE : " + error);
+													});
+												}
+											});
+
+
 										});
 										callback2();
 									}
@@ -1324,117 +1436,6 @@ fwc_treeModel.insertFwc_Tree_New_cluster = function (fwcloud, node_id, idcluster
 							});
 				} else
 					AllDone(null, {"result": true});
-			}
-		});
-	});
-};
-
-//CONVERT TREE FIREWALL TO  CLUSTER for a New CLuster
-fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = function (fwcloud, folder, idcluster, idfirewall, AllDone) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		getFirewallNodeId(idfirewall, function (datafw) {
-			var firewallNode = datafw;
-
-			//Select Parent Node by type   
-			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
-			logger.debug(sql);
-			connection.query(sql, function (error, rows) {
-				if (error) {
-					AllDone(error, null);
-				} else {
-					//For each node Select Objects by  type
-					if (rows) {
-						asyncMod.forEachSeries(rows, function (row, callback) {
-							//logger.debug(row);
-							//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
-							var tree_node = new fwc_tree_node(row);
-							//Añadimos nodos CLUSTER del CLOUD
-							sqlnodes = 'SELECT  C.id, C.name, C.comment, C.fwcloud FROM cluster C  WHERE C.id=' + connection.escape(idcluster);
-							//logger.debug(sqlnodes);
-							connection.query(sqlnodes, function (error, rowsnodes) {
-								if (error)
-									callback(error, null);
-								else {
-									var i = 0;
-									if (rowsnodes) {
-										asyncMod.forEachSeries(rowsnodes, function (rnode, callback2) {
-											var idfirewall = rnode.id;
-											i++;
-											//Insertamos nodos Cluster
-											sqlinsert = 'INSERT INTO ' + tableModel +
-													'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-													' VALUES (' +
-													connection.escape(rnode.name) + ',' +
-													connection.escape(rnode.comment) + ',' + connection.escape(row.id) + ',' +
-													i + ',' + (row.node_level + 1) + ',"CL",' +
-													'0,0,' + connection.escape(rnode.id) + ',100,' +
-													connection.escape(fwcloud) + "," + connection.escape(fwcloud)  + ")";
-											//logger.debug(sqlinsert);
-											var parent_cluster;
-
-											connection.query(sqlinsert, function (error, result) {
-												if (error) {
-													logger.debug("ERROR CLUSTER INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
-												} else {
-													logger.debug("INSERT CLUSTER OK NODE: " + rnode.id + " - " + rnode.name + "  --> FWCTREE: " + result.insertId);
-													parent_cluster = result.insertId;
-
-													var parent_FP = 0;
-
-													//update ALL FIREWALL NODES
-													sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + parent_cluster +
-															' WHERE id_parent=' + firewallNode;
-													logger.debug(sqlinsert);
-													connection.query(sqlinsert, function (error, result) {
-														if (error)
-															logger.debug("ERROR ALL NODES : " + error);
-													});
-
-												}
-
-
-
-												//Insertamos nodo NODE FIREWALLS
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-														' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR RR : " + error);
-													else {
-														var nodes_cluster = result.insertId;
-														//update  FIREWALL NODE
-														sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + nodes_cluster +
-																' WHERE id=' + firewallNode;
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR FIREWALL NODE : " + error);
-														});
-													}
-												});
-
-
-											});
-											callback2();
-										}
-										);
-									}
-								}
-							});
-							callback();
-						},
-								function (err) {
-									if (err)
-										AllDone(err, null);
-									else
-										AllDone(null, {"result": true});
-								});
-					} else
-						AllDone(null, {"result": true});
-				}
 			});
 
 		});
@@ -1443,97 +1444,95 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = function (fwcloud, folde
 };
 
 //CONVERT TREE CLUSTER TO FIREWALL for a New Firewall
-fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = function (fwcloud, folder, idcluster, idfirewall, AllDone) {
+fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
 	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		getFirewallNodeId(idfirewall, function (datafw) {
+		if (error) return callback(error, null);
+
+		getFirewallNodeId(idfirewall, datafw => {
 			var firewallNode = datafw;
 			//Select Parent Node CLUSTERS 
-			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
-			logger.debug(sql);
-			connection.query(sql, function (error, rows) {
-				if (error) {
-					AllDone(error, null);
-				} else {
-					//For each node Select Objects by  type
-					if (rows && rows.length > 0) {
-						var row = rows[0];
-						//logger.debug(row);
-						//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
+			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.id=' + connection.escape(node_id) + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
 
-						//SEARCH IDNODE for CLUSTER
-						sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="CL" and T1.id_parent=' + row.id + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' AND id_obj=' + idcluster;
-						connection.query(sql, function (error, rowsCL) {
-							if (error) {
-								AllDone(error, null);
-							} else if (rowsCL && rowsCL.length > 0) {
+			connection.query(sql, (error, rows) => {
+				if (error) return AllDone(error, null);
 
-								var clusterNode = rowsCL[0].id;
+				if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
+					return AllDone(new Error('Bad folder type'), null);
 
-								//update ALL NODES UNDER CLUSTER to FIREWALL
-								sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallNode +
-										' WHERE id_parent=' + clusterNode + ' AND node_type<>"FCF"';
-								logger.debug(sqlinsert);
-								connection.query(sqlinsert, function (error, result) {
-									if (error)
-										logger.debug("ERROR ALL NODES : " + error);
-								});
+				//For each node Select Objects by  type
+				if (rows && rows.length > 0) {
+					var row = rows[0];
+					//logger.debug(row);
+					//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
 
-								//SEARCH node NODES
-								sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FCF" and T1.id_parent=' + clusterNode + ' AND T1.fwcloud=' + connection.escape(fwcloud);
-								logger.debug(sql);
-								connection.query(sql, function (error, rowsN) {
-									if (error) {
-										AllDone(error, null);
-									} else if (rowsN && rowsN.length > 0) {
-										var idNodes = rowsN[0].id;
-										//Remove nodo NODES
-										sqldel = 'DELETE FROM  ' + tableModel + ' ' +
-												' WHERE node_type= "FCF" and id_parent=' + clusterNode;
-										logger.debug(sqldel);
-										connection.query(sqldel, function (error, result) {
+					//SEARCH IDNODE for CLUSTER
+					sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="CL" and T1.id_parent=' + row.id + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' AND id_obj=' + idcluster;
+					connection.query(sql, function (error, rowsCL) {
+						if (error) {
+							AllDone(error, null);
+						} else if (rowsCL && rowsCL.length > 0) {
+
+							var clusterNode = rowsCL[0].id;
+
+							//update ALL NODES UNDER CLUSTER to FIREWALL
+							sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallNode +
+									' WHERE id_parent=' + clusterNode + ' AND node_type<>"FCF"';
+							connection.query(sqlinsert, function (error, result) {
+								if (error)
+									logger.debug("ERROR ALL NODES : " + error);
+							});
+
+							//SEARCH node NODES
+							sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FCF" and T1.id_parent=' + clusterNode + ' AND T1.fwcloud=' + connection.escape(fwcloud);
+							logger.debug(sql);
+							connection.query(sql, function (error, rowsN) {
+								if (error) {
+									AllDone(error, null);
+								} else if (rowsN && rowsN.length > 0) {
+									var idNodes = rowsN[0].id;
+									//Remove nodo NODES
+									sqldel = 'DELETE FROM  ' + tableModel + ' ' +
+											' WHERE node_type= "FCF" and id_parent=' + clusterNode;
+									logger.debug(sqldel);
+									connection.query(sqldel, function (error, result) {
+										if (error)
+											logger.debug("ERROR FCF : " + error);
+									});
+									//SEARCH IDNODE for FIREWALLS NODE
+									sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud);
+									logger.debug(sql);
+									connection.query(sql, function (error, rowsF) {
+										var firewallsNode = rowsF[0].id;
+										//update  FIREWALL under NODES to FIREWALLS NODE
+										sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + node_id +
+												' WHERE id=' + firewallNode;
+										logger.debug(sqlinsert);
+										connection.query(sqlinsert, function (error, result) {
 											if (error)
-												logger.debug("ERROR FCF : " + error);
+												logger.debug("ERROR FIREWALL NODE : " + error);
+											else {
+												//Remove nodo Firewalls Slaves
+												sqldel = 'DELETE FROM  ' + tableModel + ' ' +
+														' WHERE node_type= "FW"  and id_parent=' + idNodes;
+												logger.debug(sqldel);
+												connection.query(sqldel, function (error, result) {
+													if (error)
+														logger.debug("ERROR FW - FCF : " + error);
+													else {
+														AllDone(null, {"result": true});
+													}
+												});
+											}
 										});
-										//SEARCH IDNODE for FIREWALLS NODE
-										sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud);
-										logger.debug(sql);
-										connection.query(sql, function (error, rowsF) {
-											var firewallsNode = rowsF[0].id;
-											//update  FIREWALL under NODES to FIREWALLS NODE
-											sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallsNode +
-													' WHERE id=' + firewallNode;
-											logger.debug(sqlinsert);
-											connection.query(sqlinsert, function (error, result) {
-												if (error)
-													logger.debug("ERROR FIREWALL NODE : " + error);
-												else {
-													//Remove nodo Firewalls Slaves
-													sqldel = 'DELETE FROM  ' + tableModel + ' ' +
-															' WHERE node_type= "FW"  and id_parent=' + idNodes;
-													logger.debug(sqldel);
-													connection.query(sqldel, function (error, result) {
-														if (error)
-															logger.debug("ERROR FW - FCF : " + error);
-														else {
-															AllDone(null, {"result": true});
-														}
-													});
-												}
-											});
-										});
+									});
 
-									}
-								});
-
-
-							} else
-								AllDone(error, null);
-						});
-					} else
-						AllDone(null, {"result": true});
-				}
+								}
+							});
+						} else
+							AllDone(error, null);
+					});
+				} else
+					AllDone(null, {"result": true});
 			});
 		});
 	});
