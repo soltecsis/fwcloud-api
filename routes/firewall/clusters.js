@@ -181,8 +181,7 @@ router.get('/:id', function (req, res)
 
 
 /* New cluster */
-router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
-{
+router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 
@@ -204,7 +203,7 @@ router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 
 			//////////////////////////////////
 			//INSERT CLUSTER NODE STRUCTURE
-			fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, "FDF", idcluster, function (error, dataTree) {
+			fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.clusterData.node_id, idcluster, (error, dataTree) => {
 				if (error)
 					api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
 						res.status(200).json(jsonResp);
@@ -246,7 +245,7 @@ router.post("/cluster", utilsModel.checkConfirmationToken, function (req, res)
 
 															FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
 																//INSERT FIREWALL NODE STRUCTURE
-																fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, idcluster, firewallData.fwmaster, function (error, dataTree) {
+																fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, idcluster, firewallData.fwmaster, null, function (error, dataTree) {
 																	if (dataTree && dataTree.result && firewallData.fwmaster == 1) {
 																		///CREATE CATCHING ALL RULES
 																		Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
@@ -433,7 +432,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 					var newidcluster = data.insertId;
 					//////////////////////////////////
 					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, "FDF", newidcluster, async (error, dataTree) => {
+					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.clusterData.node_id, newidcluster, async (error, dataTree) => {
 						if (error)
 							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 						else if (dataTree && dataTree.result) {
@@ -478,7 +477,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 								.then(() => {
 									//INSERT FIREWALL NODE STRUCTURE UNDER CLUSTER  NODES PARENT
 									return new Promise((resolve, reject) => { 
-										fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idNewFirewall,newidcluster,firewallData.fwmaster, (error, dataTree) => {
+										fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idNewFirewall,newidcluster,firewallData.fwmaster, null, (error, dataTree) => {
 											if (error) return reject(error);
 											resolve();
 										});	

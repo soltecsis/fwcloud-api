@@ -517,7 +517,7 @@ router.post("/firewall", function (req, res)
 											FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
 												//////////////////////////////////
 												//INSERT FIREWALL NODE STRUCTURE                                                
-												fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, firewallData.cluster, firewallData.fwmaster, function (error, dataTree) {
+												fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, firewallData.cluster, firewallData.fwmaster, req.body.node_id, function (error, dataTree) {
 													if (error) {
 														logger.debug("ERROR en insertFwc_Tree_New_firewall: ", error);
 														api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
@@ -735,7 +735,7 @@ router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsM
 			.then(dataI => Policy_rModel.cloneFirewallPolicy(req.iduser, req.fwcloud, idfirewall, idNewFirewall, dataI))	
 			.then(dataP => {
 				//INSERT FIREWALL NODE STRUCTURE                                                
-				fwcTreemodel.insertFwc_Tree_firewalls(req.fwcloud, "FDF", idNewFirewall, (error, dataTree) => {
+				fwcTreemodel.insertFwc_Tree_firewalls(req.fwcloud, req.body.node_id, idNewFirewall, (error, dataTree) => {
 					if (error)
 						api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 					else if (data && data.result)
