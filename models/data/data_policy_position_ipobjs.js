@@ -40,7 +40,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.type = data.interface_type;
 		this.labelName = data.labelName;
 
-		if (data.interface_type===10 || data.interface_type===8) { // Interfac de firewall o interfaz de host
+		if (data.interface_type===10 || data.interface_type===11) { // Interfac de firewall o interfaz de host
 			this.firewall_id = data.firewall_id;
 			this.firewall_name = data.firewall_name;
 			this.cluster_id = data.cluster_id;

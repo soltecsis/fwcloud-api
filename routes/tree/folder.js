@@ -45,7 +45,7 @@ router.put("/del", (req, res) =>{
 
 /* Drop to folder */
 router.put("/drop", (req, res) =>{
-	fwcTreeFoldermodel.moveToFolder(req.fwcloud,req.body.src,req.body.dst)
+	fwcTreeFoldermodel.moveToFolder(req.fwcloud,parseInt(req.body.src),parseInt(req.body.dst))
 	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'MOVED INTO FOLDER OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving to folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 });
