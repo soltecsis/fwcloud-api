@@ -422,36 +422,26 @@ interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_fir
 										if (error) {
 											reject(error);
 										} else {
-											//SEARCH HOST with INTERFACE UNDER IPOBJ HOST WITH HOST IN RULES
-											Policy_r__ipobjModel.searchHostInterfacesHostInRule(id, type, fwcloud, firewall, diff_firewall, function (error, data_host_interfaces) {
-												if (error) {
-													reject(error);
-												} else {
-													//logger.debug(data_ipobj);
-													if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_host_interfaces.found !== "" || data_ipobj_interfaces.found !== "") {
-														var resp = {"result": true, "msg": "INTERFACE FOUND", "search": {}};
-														if (data_rules_I.found !== "")
-															resp.search["InterfaceInRules_I"] = data_rules_I;
-														if (data_rules_O.found !== "")
-															resp.search["InterfaceInRules_O"] = data_rules_O;
-														if (data_host_interfaces.found !== "")
-															resp.search["HostInterfaceInRules"] = data_host_interfaces;
-														if (data_ipobj_interfaces.found !== "")
-															resp.search["IpobjInterfaceInrules"] = data_ipobj_interfaces;
+											if (data_rules_I.found !== "" || data_rules_O.found !== "" || data_ipobj_interfaces.found !== "") {
+												var resp = {"result": true, "msg": "INTERFACE FOUND", "search": {}};
+												if (data_rules_I.found !== "")
+													resp.search["InterfaceInRules_I"] = data_rules_I;
+												if (data_rules_O.found !== "")
+													resp.search["InterfaceInRules_O"] = data_rules_O;
+												if (data_ipobj_interfaces.found !== "")
+													resp.search["IpobjInterfaceInrules"] = data_ipobj_interfaces;
 
 
 
-														//var resp={"result": true, "msg": "INTERFACE FOUND", "search": {
-														//        "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
-														//        "IpobjInterfaceInrules": data_ipobj_interfaces}};
-														resolve(resp);
-													} else {
-														//resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
-														//        "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
-														resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}});
-													}
-												}
-											});
+												//var resp={"result": true, "msg": "INTERFACE FOUND", "search": {
+												//        "InterfaceInRules_I": data_rules_I, "InterfaceInRules_O": data_rules_O, "HostInterfaceInRules": data_host_interfaces,
+												//        "IpobjInterfaceInrules": data_ipobj_interfaces}};
+												resolve(resp);
+											} else {
+												//resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {
+												//        "InterfaceInRules_I": "", "InterfaceInRules_O": "", "HostInterfaceInRules": "", "IpobjInterfaceInrules": ""}});
+												resolve({"result": false, "msg": "INTERFACE NOT FOUND", "search": {}});
+											}
 										}
 									});
 								}

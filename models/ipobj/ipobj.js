@@ -1053,46 +1053,27 @@ ipobjModel.searchIpobjInRules = function (id, type, fwcloud) {
 											if (error) {
 												reject(error);
 											} else {
-												//SEARCH INTERFACES WITH IPOBJ UNDER  IN RULES  'I'  POSITIONS
-												Policy_r__interfaceModel.searchInterfacesInRule(id, fwcloud, function (error, data_interfaces_f) {
+												//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
+												Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
 													if (error) {
 														reject(error);
 													} else {
-														//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-														Policy_r__ipobjModel.searchIpobjInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_ipobj_host) {
-															if (error) {
-																reject(error);
-															} else {
-																//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-																Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
-																	if (error) {
-																		reject(error);
-																	} else {
-																		if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
-																				|| data_interfaces.found !== "" 
-																				/* CARLES - Ignoramos estos datos dado que cuando utilizamos un host en una posición, este resultado
-																				no permite borrar interfaces o direcciones IP de dicho host.
-																				Hay que revisar la consulta SQL de searchIpobjInterfacesIpobjHostInRule para corregir el error. */
-																				//|| data_ipobj_host.found !== "" 
-																				|| data_ipobj_ipobj.found !== ""
-																				|| data_interfaces_f.found !== "") {
-																			resolve({"result": true, "msg": "IPOBJ FOUND", "search":
-																						{"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
-																							"InterfacesIpobjInRules": data_interfaces, "InterfacesFIpobjInRules": data_interfaces_f,
-																							"InterfacesAboveIpobjInRules": data_interfaces_above,
-																							"HostIpobjInterfacesIpobjInRules": data_ipobj_host, "IpobjInterfacesIpobjInRules": data_ipobj_ipobj
-																						}});
-																		} else {
-																			resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
-																					"IpobjInRules": "", "GroupInRules": "",
-																					"IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
-																					"InterfacesAboveIpobjInRules": "",
-																					"HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
-																		}
-																	}
-																});
-															}
-														});
+														if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
+																|| data_interfaces.found !== "" 
+																|| data_ipobj_ipobj.found !== "") {
+															resolve({"result": true, "msg": "IPOBJ FOUND", "search":
+																		{"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
+																			"InterfacesIpobjInRules": data_interfaces,
+																			"InterfacesAboveIpobjInRules": data_interfaces_above,
+																			"IpobjInterfacesIpobjInRules": data_ipobj_ipobj
+																		}});
+														} else {
+															resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
+																	"IpobjInRules": "", "GroupInRules": "",
+																	"IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
+																	"InterfacesAboveIpobjInRules": "",
+																	"HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
+														}
 													}
 												});
 											}
@@ -1104,7 +1085,6 @@ ipobjModel.searchIpobjInRules = function (id, type, fwcloud) {
 					}
 				});
 			}
-
 		});
 	});
 };

@@ -100,7 +100,7 @@ fwc_treeFolderModel.getParentId = (connection,fwcloud,id) => {
 //Move node into folder
 fwc_treeFolderModel.moveToFolder = (fwcloud,src,dst) => {
 	return new Promise((resolve, reject) => {
-		if (src === dst) return reject(new Error('Source and destination nodes are the same'));		
+		if (src === dst) return reject(new Error('Source and destination nodes are the same'));
 		db.get((error, connection) => {
 			if (error) return reject(error);
 			// Verify that folder node exists and that the node that is being droped into can be moved.
