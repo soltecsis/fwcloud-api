@@ -101,5 +101,3 @@ WantedBy=multi-user.target
 EOL
 }
 
-policy_load() {
-  

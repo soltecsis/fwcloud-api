@@ -19,30 +19,40 @@ var Policy_cModel = require('../../models/policy/policy_c');
  */
 var RuleCompile = require('../../models/policy/rule_compile');
 
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- *
- */
-var api_resp = require('../../utils/api_response');
-
 var streamModel = require('../../models/stream/stream');
+
+var firewallModel = require('../../models/firewall/firewall');
 
 var config = require('../../config/config');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.append = (path) => {
+PolicyScript.append = path => {
 	return new Promise((resolve,reject) => {
 		var fs = require('fs');
 
 		try {
 			 var data= fs.readFileSync(path, 'utf8');
 			 resolve(data);
-		} catch(error) {
-			reject(error);
-		}
+		} catch(error) { reject(error); }
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
+	return new Promise((resolve,reject) => { 
+		firewallModel.getFirewallOptions(fwcloud,fw)
+		.then(options => {
+			data += "options_load {\n";			
+			if (options & 0b0000000000000010) // Enable IPv4 packet forwarding.
+				data += "echo 1 > /proc/sys/net/ipv4/ip_forward\n";
+			else
+				data += "echo 0 > /proc/sys/net/ipv4/ip_forward\n";
+			data += "}\n\n"
+
+			resolve(data);
+		})
+		.catch(error => reject(error));
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -51,8 +61,7 @@ PolicyScript.append = (path) => {
 PolicyScript.dump = (accessData,fw,type) => {
 	return new Promise((resolve,reject) => { 
   	Policy_cModel.getPolicy_cs_type(accessData.fwcloud, fw, type, async (error, data) => {
-			if (error)
-				return reject(error);
+			if (error) return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
 				streamModel.pushMessageCompile(accessData, "Rule "+(i+1)+" (ID: "+data[i].id+")\n");

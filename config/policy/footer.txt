@@ -1,4 +1,3 @@
-}
 
 status() {
   NL=`$IPTABLES -nL | wc -l`
@@ -22,7 +21,7 @@ case "$ACTION" in
     reset_all
     #prolog_commands
     policy_load
-    echo 1 > /proc/sys/net/ipv4/ip_forward
+    options_load
     #epilog_commands
     ;;
 

@@ -1127,3 +1127,19 @@ firewallModel.checkBodyFirewall = function (body, isNew) {
 	}
 };
 
+
+firewallModel.getFirewallOptions = function (fwcloud, fw) {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+
+			let sql = 'SELECT options FROM ' + tableModel +
+			' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(fw);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(new Error('Firewall not found'));
+				resolve(rows[0][0]);
+			});
+		});
+	});
+}
