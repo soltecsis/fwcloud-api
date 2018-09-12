@@ -105,6 +105,7 @@ CREATE TABLE `firewall` (
   `install_ipobj` int(11) DEFAULT NULL,
   `fwmaster` tinyint(1) NOT NULL DEFAULT '0',
   `install_port` int(11) NOT NULL DEFAULT '22',
+  `options` smallint(2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_48011B7EE5C56994` (`cluster`),
   KEY `fk_firewall_1_idx` (`fwcloud`),

@@ -462,8 +462,7 @@ router.get('/cluster/:idcluster', function (req, res)
  *         ]
  *       };
  */
-router.post("/firewall", function (req, res)
-{
+router.post("/firewall", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 
@@ -481,7 +480,8 @@ router.post("/firewall", function (req, res)
 		install_ipobj: req.body.install_ipobj,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
-		by_user: iduser
+		by_user: iduser,
+		options: req.body.options
 	};
 	logger.debug("NEW FIREWALL: ", firewallData);
 
@@ -613,9 +613,10 @@ router.post("/firewall", function (req, res)
  *         ]
  *       };
  */
-router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
-
+router.put('/firewall/:idfirewall',
+utilsModel.checkFirewallAccess,
+utilsModel.checkConfirmationToken,
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 
 	//Save firewall data into objet    
@@ -632,7 +633,8 @@ router.put('/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.c
 		install_ipobj: req.body.install_ipobj,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
-		by_user: req.iduser  //working user
+		by_user: req.iduser,  //working user
+		options: req.body.options
 	};
 
 	logger.debug(firewallData);
