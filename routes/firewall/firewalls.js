@@ -637,7 +637,7 @@ utilsModel.checkConfirmationToken,
 		options: req.body.options
 	};
 
-	logger.debug(firewallData);
+	//logger.debug(firewallData);
 
 	FirewallModel.checkBodyFirewall(firewallData, false)
 			.then(result => {
@@ -720,8 +720,6 @@ router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsM
 		fwcloud: req.fwcloud, //working cloud      
 		by_user: req.iduser  //working user
 	};
-
-	logger.debug(firewallData);
 
 	FirewallModel.cloneFirewall(req.iduser, firewallData)
 	.then(data =>

@@ -460,16 +460,17 @@ firewallModel.updateFirewall = function (iduser, firewallData, callback) {
 		logger.debug(sqlExists);
 		connection.query(sqlExists, function (error, row) {
 			if (row && row.length > 0) {
-				var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(firewallData.name) + ',' +
-						'comment = ' + connection.escape(firewallData.comment) + ', ' +
-						'install_user = ' + connection.escape(firewallData.install_user) + ', ' +
-						'install_pass = ' + connection.escape(firewallData.install_pass) + ', ' +
-						'save_user_pass = ' + connection.escape(firewallData.save_user_pass) + ', ' +
-						'install_interface = ' + connection.escape(firewallData.install_interface) + ', ' +
-						'install_ipobj = ' + connection.escape(firewallData.install_ipobj) + ', ' +
-						'install_port = ' + connection.escape(firewallData.install_port) + ', ' +
-						'by_user = ' + connection.escape(iduser) +
-						' WHERE id = ' + firewallData.id;
+				var sql = 'UPDATE ' + tableModel + ' SET name=' + connection.escape(firewallData.name) + ', ' +
+						'comment=' + connection.escape(firewallData.comment) + ', ' +
+						'install_user=' + connection.escape(firewallData.install_user) + ', ' +
+						'install_pass=' + connection.escape(firewallData.install_pass) + ', ' +
+						'save_user_pass=' + connection.escape(firewallData.save_user_pass) + ', ' +
+						'install_interface=' + connection.escape(firewallData.install_interface) + ', ' +
+						'install_ipobj=' + connection.escape(firewallData.install_ipobj) + ', ' +
+						'install_port=' + connection.escape(firewallData.install_port) + ', ' +
+						'by_user=' + connection.escape(iduser) + ', ' +
+						'options=' + connection.escape(firewallData.options) +
+						' WHERE id=' + firewallData.id;
 				logger.debug(sql);
 				connection.query(sql, function (error, result) {
 					if (error) {
@@ -587,14 +588,12 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
 			' AND U.id_user=' + connection.escape(iduser) +
 			' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-			logger.debug(sqlExists);
 			connection.query(sqlExists, function (error, row) {
 				//NEW FIREWALL
 				if (row && row.length > 0) {
-					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port) ' +
-					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port ' +
+					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port,options) ' +
+					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port, options ' +
 					' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
-					logger.debug(sql);
 					connection.query(sql, function (error, result) {
 						if (error) {
 							reject(error);
@@ -1138,7 +1137,7 @@ firewallModel.getFirewallOptions = function (fwcloud, fw) {
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				if (rows.length !== 1) return reject(new Error('Firewall not found'));
-				resolve(rows[0][0]);
+				resolve(rows[0].options);
 			});
 		});
 	});
