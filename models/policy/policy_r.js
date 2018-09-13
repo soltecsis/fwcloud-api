@@ -297,18 +297,10 @@ policy_rModel.getPolicy_rs_type = (fwcloud, idfirewall, type, rule, AllDone) => 
 //Get All policy_r by firewall and type
 policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule, AllDone) {
 	return new Promise((resolve, reject) => {
-
-		var policy = [];
-		var policy_cont = 0;
-		var position_cont = 0;
-		var ipobj_cont = 0;
-		var i, j, k;
 		var sqlRule = "";
 
-
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+		db.get((error, connection) => {
+			if (error) return reject(error);
 
 			if (rule !== "") {
 				sqlRule = " AND P.id=" + connection.escape(rule);
@@ -316,52 +308,44 @@ policy_rModel.getPolicy_rs_type_full = function (fwcloud, idfirewall, type, rule
 				//sqlRule = " AND (P.id=760 OR P.id=761) ";
 				//sqlRule = " AND (P.id=760) ";
 			}
-			Policy_typeModel.getPolicy_type(type, function (error, data_types) {
-				if (error)
-					reject(error);
-				else {
-					if (data_types.length > 0)
-						type = data_types[0].id;
-					else
-						type = 1;
+			Policy_typeModel.getPolicy_type(type, (error, data_types) => {
+				if (error) return reject(error);
 
-					var sql = 'SELECT ' + fwcloud + ' as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, ' +
-							' F.name as firewall_name, ' +
-							' C.updated_at as c_updated_at, ' +
-							' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
-							' FROM ' + tableModel + ' P ' +
-							' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
-							' LEFT JOIN policy_c C ON C.rule=P.id ' +
-							' LEFT JOIN firewall F ON F.id=P.fw_apply_to ' +
-							' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
-							sqlRule + ' ORDER BY P.rule_order';
-					//logger.debug(sql);
-					connection.query(sql, function (error, rows) {
-						if (error)
-							reject(error);
-						else {
-							if (rows.length > 0) {
-								//Bucle por REGLAS                            
-								//logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
-								Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
-										.then(data => {
-											logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
-											resolve(data);
-										})
-										.catch(e => {
-											reject(e);
-										});
+				if (data_types.length > 0)
+					type = data_types[0].id;
+				else
+					type = 1;
 
-
-							} else {
-								//NO existe regla
-								logger.debug("NO HAY REGLAS");
-								reject("");
-							}
-
-						}
-					});
-				}
+				var sql = 'SELECT ' + fwcloud + ' as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,' +
+					' F.name as firewall_name,' +
+					' F.options as firewall_options,' +
+					' C.updated_at as c_updated_at,' +
+					' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled' +
+					' FROM ' + tableModel + ' P ' +
+					' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
+					' LEFT JOIN policy_c C ON C.rule=P.id ' +
+					' LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),'+connection.escape(idfirewall)+',P.fw_apply_to)) ' +
+					' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
+					sqlRule + ' ORDER BY P.rule_order';
+				connection.query(sql, (error, rows) => {
+					if (error) return	reject(error);
+					if (rows.length > 0) {
+						//Bucle por REGLAS                            
+						//logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
+						Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
+						.then(data => {
+							logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
+							resolve(data);
+						})
+						.catch(e => {
+							reject(e);
+						});
+					} else {
+						//NO existe regla
+						logger.debug("NO HAY REGLAS");
+						reject("");
+					}
+				});
 			});
 		});
 	});

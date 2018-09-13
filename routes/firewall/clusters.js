@@ -496,7 +496,8 @@ utilsModel.checkConfirmationToken,
 		id: JsonData.clusterData.id,
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
-		fwcloud: fwcloud
+		fwcloud: fwcloud,
+		options: JsonData.clusterData.options
 	};
 	
 	ClusterModel.updateCluster(fwcloud, clusterData, (error, data) =>	{

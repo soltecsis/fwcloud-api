@@ -127,20 +127,22 @@ clusterModel.insertCluster = function (clusterData, callback) {
 };
 
 //Update cluster
-clusterModel.updateCluster = function (fwcloud, clusterData, callback) {
+clusterModel.updateCluster = (fwcloud, clusterData, callback) => {
 	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+		if (error) return callback(error, null);
+
 		var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ', ' +
 			' comment=' + connection.escape(clusterData.comment) +
-			' WHERE id = ' + clusterData.id + ' AND fwcloud=' + fwcloud;
-
+			' WHERE id = ' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {               
-					callback(null, {"result": true});                
-			}
+			if (error) return callback(error, null);
+
+			sql = 'UPDATE firewall SET options=' + connection.escape(clusterData.options)+
+			' WHERE cluster=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
+			connection.query(sql, function (error, result) {
+				if (error) return callback(error, null);
+				callback(null, {"result": true});                
+			});
 		});
 	});
 };

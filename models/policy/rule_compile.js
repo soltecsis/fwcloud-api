@@ -353,8 +353,10 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			}
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
 			action = ACTION[data[0].action];
-			if (action==="ACCEPT")
-				statefull ="-m state --state NEW ";
+			if (action==="ACCEPT") {
+				if (data[0].firewall_options & 0b0000000000000001) // Statefull firewall.
+					statefull ="-m state --state NEW ";
+			}
 			else if (action==="ACCOUNTING") {
 				action = "FWCRULE"+rule+".ACC";
 				cs = "$IPTABLES -N "+action+"\n" + "$IPTABLES -A "+action+" -j RETURN\n" + cs;
@@ -460,17 +462,14 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 RuleCompileModel.get = (cloud, fw, type, rule) => {
 	return new Promise((resolve,reject) => { 
 		Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
-			if (error)
-				reject(error);
-			else if (data && data.length > 0) {
+			if (error) return reject(error);
+			if (data && data.length > 0) {
 				if (data[0].c_status_recompile === 0)
 					resolve(data[0].c_compiled);
 				else {
 					RuleCompileModel.rule_compile(cloud, fw, type, rule, (error,data) => {
-						if (error)
-							reject(error)
-						else
-							resolve(data);
+						if (error) return reject(error)
+						resolve(data);
 					});
 				}
 			}

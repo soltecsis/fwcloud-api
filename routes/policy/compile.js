@@ -114,46 +114,52 @@ utilsModel.checkFirewallAccess,
 		await PolicyScript.append(config.get('policy').header_file)
 		.then(data => PolicyScript.dumpFirewallOptions(req.fwcloud,req.params.idfirewall,data))
 		.then(data => {
-			stream.write(data + "policy_load() {\n" +
-				"\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n" +
-				"# Statefull firewall.\n" +
-				"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-				"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-				"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-				"\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
+			stream.write(data.cs + "policy_load() {\n" +
+				"\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n");
+			
+			if (data.options & 0x0001) { // Statefull firewall
+				stream.write("# Statefull firewall.\n" +
+					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
+					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
+					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
+					"\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
+				streamModel.pushMessageCompile(accessData, "--- STATEFULL FIREWALL ---\n\n");
+			}
+			else
+				streamModel.pushMessageCompile(accessData, "--- STATELESS FIREWALL ---\n\n");
 			streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall,1)
 		})
-		.then(data => {
+		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nOUTPUT TABLE\n");
-			stream.write(data + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall,2)
 		})
-		.then(data => {
+		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nFORWARD TABLE\n");
-			stream.write(data + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall,3)
 		})
-		.then(data => {
+		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nSNAT TABLE\n");
-			stream.write(data + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall,4)
 		})
-		.then(data => {
+		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nDNAT TABLE\n");
-			stream.write(data + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall, 5)
 		})
-		.then(data => {
-			stream.write(data+"\n}\n\n");
+		.then(cs => {
+			stream.write(cs+"\n}\n\n");
 			return PolicyScript.append(config.get('policy').footer_file)
 		})
 		.then(data => {
-			stream.write(data);
+			stream.write(data.cs);
 			streamModel.pushMessageCompile(accessData,"END\n");
 			return FirewallModel.updateFirewallStatus(req.fwcloud,req.params.idfirewall,"&~1")
 		})
-		.then(data =>api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
+		.then(() =>api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
 		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 
 		/* Close stream. */

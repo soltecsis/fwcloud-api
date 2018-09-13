@@ -31,8 +31,9 @@ PolicyScript.append = path => {
 		var fs = require('fs');
 
 		try {
-			 var data= fs.readFileSync(path, 'utf8');
-			 resolve(data);
+			var data = {};
+			data.cs = fs.readFileSync(path, 'utf8');
+			resolve(data);
 		} catch(error) { reject(error); }
 	});
 }
@@ -43,12 +44,13 @@ PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 	return new Promise((resolve,reject) => { 
 		firewallModel.getFirewallOptions(fwcloud,fw)
 		.then(options => {
-			data += "options_load {\n";			
+			data.options = options;
+			data.cs += "options_load {\n";			
 			if (options & 0b0000000000000010) // Enable IPv4 packet forwarding.
-				data += "echo 1 > /proc/sys/net/ipv4/ip_forward\n";
+				data.cs += "echo 1 > /proc/sys/net/ipv4/ip_forward\n";
 			else
-				data += "echo 0 > /proc/sys/net/ipv4/ip_forward\n";
-			data += "}\n\n"
+				data.cs += "echo 0 > /proc/sys/net/ipv4/ip_forward\n";
+			data.cs += "}\n\n"
 
 			resolve(data);
 		})
