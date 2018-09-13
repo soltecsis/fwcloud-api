@@ -107,44 +107,28 @@ router.get('', function (req, res)
 
 
 /* Get FULL cluster by Id */
-router.get('/full/:id', function (req, res)
-{
+router.get('/full/:id', (req, res) => {
 	var id = req.params.id;
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 
-
 	if (!isNaN(id))
 	{
 		ClusterModel.getClusterFullPro(iduser, fwcloud, id)
-				.then(data =>
-				{
-					//cluster ok
-					if (data)
-					{
-						api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-
-					}
-					//Get error
-					else
-					{
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				})
-				.catch(e => {
-
-				});
+		.then(data =>
+		{
+			//cluster ok
+			if (data)
+				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			//Get error
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		})
+		.catch(error =>	api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 	} else
-	{
-		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	}
+		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
+
 
 /* Get cluster by Id */
 router.get('/:id', function (req, res)
@@ -500,8 +484,9 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 
 
 /* cluster update */
-router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put('/cluster', 
+utilsModel.checkConfirmationToken, 
+(req, res) => {
 	var fwcloud = req.fwcloud;
 	
 	var JsonData = req.body;
@@ -514,8 +499,7 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 		fwcloud: fwcloud
 	};
 	
-	ClusterModel.updateCluster(fwcloud, clusterData, function (error, data)
-	{
+	ClusterModel.updateCluster(fwcloud, clusterData, (error, data) =>	{
 		//cluster ok
 		if (data && data.result)
 		{
@@ -533,6 +517,7 @@ router.put('/cluster', utilsModel.checkConfirmationToken, function (req, res)
 		}
 	});
 });
+
 
 /* Remove cluster */
 router.put("/del/cluster/:id/:idfirewall", InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, (req, res) => {
