@@ -15,6 +15,7 @@ IP6TABLES=`which ip6tables`
 IP=`which ip`
 SYSTEMCTL=`which systemctl`
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
+SYSCTL=`which sysctl`
 
 log() {
   echo "$1"

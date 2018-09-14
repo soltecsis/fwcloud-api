@@ -44,13 +44,23 @@ PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 	return new Promise((resolve,reject) => { 
 		firewallModel.getFirewallOptions(fwcloud,fw)
 		.then(options => {
+			var action = '';
 			data.options = options;
-			data.cs += "options_load {\n";			
-			if (options & 0b0000000000000010) // Enable IPv4 packet forwarding.
-				data.cs += "echo 1 > /proc/sys/net/ipv4/ip_forward\n";
-			else
-				data.cs += "echo 0 > /proc/sys/net/ipv4/ip_forward\n";
-			data.cs += "}\n\n"
+			data.cs += "options_load {\n";
+			
+			// IPv4 packet forwarding
+			action = (options & 0x0002) ? '1' : '0';
+			data.cs += 'if [ -z "$SYSCTL" ]; then\n' +
+				'  echo '+action+' > /proc/sys/net/ipv4/ip_forward\n' +
+				'else\n' +
+				'  $SYSCTL -w net.ipv4.conf.all.forwarding='+action+'\n' +
+				'fi\n\n';
+
+			// IPv6 packet forwarding
+			action = (options & 0x0004) ? '1' : '0';
+			data.cs += '$SYSCTL -w net.ipv6.conf.all.forwarding='+action+'\n';
+			
+			data.cs += "}\n\n";
 
 			resolve(data);
 		})
