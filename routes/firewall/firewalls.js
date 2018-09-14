@@ -86,6 +86,7 @@ var fwcTreemodel = require('../../models/tree/fwc_tree');
 var InterfaceModel = require('../../models/interface/interface');
 
 var Policy_rModel = require('../../models/policy/policy_r');
+var Policy_cModel = require('../../models/policy/policy_c');
 
 
 router.param('cluster', function (req, res, next, param) {
@@ -638,74 +639,75 @@ utilsModel.checkConfirmationToken,
 	};
 
 	//logger.debug(firewallData);
-
-	FirewallModel.checkBodyFirewall(firewallData, false)
-			.then(result => {
-				firewallData = result;
-				//encript username and password
-				utilsModel.encrypt(firewallData.install_user)
+	Policy_cModel.deleteFullFirewallPolicy_c(req.params.idfirewall)
+	.then(() => FirewallModel.updateFirewallStatus(req.fwcloud,req.params.idfirewall,"|3"))
+	.then(() => FirewallModel.checkBodyFirewall(firewallData, false))
+	.then(result => {
+		firewallData = result;
+		//encript username and password
+		utilsModel.encrypt(firewallData.install_user)
+				.then(data => {
+					logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
+					firewallData.install_user = data;
+				})
+				.then(utilsModel.encrypt(firewallData.install_pass)
 						.then(data => {
-							logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
-							firewallData.install_user = data;
-						})
-						.then(utilsModel.encrypt(firewallData.install_pass)
-								.then(data => {
-									logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
-									firewallData.install_pass = data;
-								}))
-						.then(() => {
-							logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
-							if (!firewallData.save_user_pass) {
-								firewallData.install_user = '';
-								firewallData.install_pass = '';
-							}
+							logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
+							firewallData.install_pass = data;
+						}))
+				.then(() => {
+					logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
+					if (!firewallData.save_user_pass) {
+						firewallData.install_user = '';
+						firewallData.install_pass = '';
+					}
 
-							FirewallModel.updateFirewall(req.iduser, firewallData, function (error, data)
-							{
-								//Saved ok
-								if (data && data.result)
-								{
-									FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, data) {
-										//////////////////////////////////
-										//UPDATE FIREWALL NODE STRUCTURE                                    
-										fwcTreemodel.updateFwc_Tree_Firewall(req.iduser, req.fwcloud, firewallData, function (error, data) {
-											if (error)
-												api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-													res.status(200).json(jsonResp);
-												});
-											else if (data && data.result)
-												api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-													res.status(200).json(jsonResp);
-												});
-											else
-												api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-													res.status(200).json(jsonResp);
-												});
+					FirewallModel.updateFirewall(req.iduser, firewallData, function (error, data)
+					{
+						//Saved ok
+						if (data && data.result)
+						{
+							FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster, function (error, data) {
+								//////////////////////////////////
+								//UPDATE FIREWALL NODE STRUCTURE                                    
+								fwcTreemodel.updateFwc_Tree_Firewall(req.iduser, req.fwcloud, firewallData, function (error, data) {
+									if (error)
+										api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+											res.status(200).json(jsonResp);
 										});
-									});
-								} else
-								{
-									api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-										res.status(200).json(jsonResp);
-									});
-								}
+									else if (data && data.result)
+										api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+											res.status(200).json(jsonResp);
+										});
+									else
+										api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+											res.status(200).json(jsonResp);
+										});
+								});
 							});
-
-						})
-						.catch(e => {
-							logger.debug(e);
-							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
+						} else
+						{
+							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
 								res.status(200).json(jsonResp);
 							});
-						});
+						}
+					});
 
-			})
-			.catch(e => {
-				logger.error("ERROR UPDATING FIREWALL: ", e);
-				api_resp.getJson(null, api_resp.ACR_ERROR, e, objModel, e, function (jsonResp) {
-					res.status(200).json(jsonResp);
+				})
+				.catch(e => {
+					logger.debug(e);
+					api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
 				});
-			});
+
+	})
+	.catch(e => {
+		logger.error("ERROR UPDATING FIREWALL: ", e);
+		api_resp.getJson(null, api_resp.ACR_ERROR, e, objModel, e, function (jsonResp) {
+			res.status(200).json(jsonResp);
+		});
+	});
 });
 
 

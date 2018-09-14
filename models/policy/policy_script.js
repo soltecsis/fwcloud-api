@@ -77,7 +77,7 @@ PolicyScript.dump = (accessData,fw,type) => {
 					// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
 					await RuleCompile.get(accessData.fwcloud,fw,type,data[i].id)
 						.then(data => ps += data)
-						.catch (error => reject(error) )				
+						.catch(error => reject(error));			
 				}
 			}
 		

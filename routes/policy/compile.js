@@ -109,9 +109,9 @@ utilsModel.checkFirewallAccess,
 	path += "/" + config.get('policy').script_name;
 	var stream = fs.createWriteStream(path);
 
-	stream.on('open', async fd => {
+	stream.on('open', fd => {
 		/* Generate the policy script. */
-		await PolicyScript.append(config.get('policy').header_file)
+		PolicyScript.append(config.get('policy').header_file)
 		.then(data => PolicyScript.dumpFirewallOptions(req.fwcloud,req.params.idfirewall,data))
 		.then(data => {
 			stream.write(data.cs + "policy_load() {\n" +
@@ -128,43 +128,43 @@ utilsModel.checkFirewallAccess,
 			else
 				streamModel.pushMessageCompile(accessData, "--- STATELESS FIREWALL ---\n\n");
 			streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
-			return PolicyScript.dump(accessData,req.params.idfirewall,1)
+			return PolicyScript.dump(accessData,req.params.idfirewall,1);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nOUTPUT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-			return PolicyScript.dump(accessData,req.params.idfirewall,2)
+			return PolicyScript.dump(accessData,req.params.idfirewall,2);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nFORWARD TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-			return PolicyScript.dump(accessData,req.params.idfirewall,3)
+			return PolicyScript.dump(accessData,req.params.idfirewall,3);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nSNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.params.idfirewall,4)
+			return PolicyScript.dump(accessData,req.params.idfirewall,4);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nDNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.params.idfirewall, 5)
+			return PolicyScript.dump(accessData,req.params.idfirewall, 5);
 		})
 		.then(cs => {
 			stream.write(cs+"\n}\n\n");
-			return PolicyScript.append(config.get('policy').footer_file)
+			return PolicyScript.append(config.get('policy').footer_file);
 		})
 		.then(data => {
 			stream.write(data.cs);
 			streamModel.pushMessageCompile(accessData,"END\n");
-			return FirewallModel.updateFirewallStatus(req.fwcloud,req.params.idfirewall,"&~1")
+			return FirewallModel.updateFirewallStatus(req.fwcloud,req.params.idfirewall,"&~1");
 		})
-		.then(() =>api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
+		.then(() => {
+			/* Close stream. */
+			stream.end();
+			api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp))
+		})
 		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
-
-		/* Close stream. */
-		stream.end();
-
 	}).on('error', error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/

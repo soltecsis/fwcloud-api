@@ -64,6 +64,7 @@ var utilsModel = require("../../utils/utils.js");
 
 var fwcTreemodel = require('../../models/tree/fwc_tree');
 var Policy_rModel = require('../../models/policy/policy_r');
+var Policy_cModel = require('../../models/policy/policy_c');
 var FirewallModel = require('../../models/firewall/firewall');
 var InterfaceModel = require('../../models/interface/interface');
 
@@ -500,23 +501,15 @@ utilsModel.checkConfirmationToken,
 		options: JsonData.clusterData.options
 	};
 	
-	ClusterModel.updateCluster(fwcloud, clusterData, (error, data) =>	{
-		//cluster ok
-		if (data && data.result)
-		{
-			//UPDATE TREE
-			fwcTreemodel.updateFwc_Tree_Cluster(req.iduser, req.fwcloud, clusterData, function (error, dataT) {
-				api_resp.getJson(data,api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
+	FirewallModel.getMasterFirewallId(clusterData.fwcloud,clusterData.id)
+	.then(masterFirewallID => Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID))
+	.then(() => ClusterModel.updateCluster(fwcloud, clusterData))
+	.then(() => {
+		fwcTreemodel.updateFwc_Tree_Cluster(req.iduser, req.fwcloud, clusterData, (error, dataT) => {
+			api_resp.getJson(null,api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		});
+	})
+	.catch(error => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error,jsonResp => res.status(200).json(jsonResp)));
 });
 
 

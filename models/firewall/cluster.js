@@ -127,21 +127,23 @@ clusterModel.insertCluster = function (clusterData, callback) {
 };
 
 //Update cluster
-clusterModel.updateCluster = (fwcloud, clusterData, callback) => {
-	db.get(function (error, connection) {
-		if (error) return callback(error, null);
+clusterModel.updateCluster = (fwcloud, clusterData) => {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
 
-		var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(clusterData.name) + ', ' +
-			' comment=' + connection.escape(clusterData.comment) +
-			' WHERE id = ' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
-		connection.query(sql, function (error, result) {
-			if (error) return callback(error, null);
-
-			sql = 'UPDATE firewall SET options=' + connection.escape(clusterData.options)+
-			' WHERE cluster=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
+			let sql = 'UPDATE ' + tableModel + ' SET name=' + connection.escape(clusterData.name) + ', ' +
+				' comment=' + connection.escape(clusterData.comment) +
+				' WHERE id=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
 			connection.query(sql, function (error, result) {
-				if (error) return callback(error, null);
-				callback(null, {"result": true});                
+				if (error) return reject(error);
+
+				sql = 'UPDATE firewall SET status=status|3,options=' + connection.escape(clusterData.options)+
+				' WHERE cluster=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
+				connection.query(sql, function (error, result) {
+					if (error) return reject(error);
+					resolve();                
+				});
 			});
 		});
 	});

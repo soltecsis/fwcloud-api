@@ -1140,3 +1140,19 @@ firewallModel.getFirewallOptions = function (fwcloud, fw) {
 		});
 	});
 }
+
+firewallModel.getMasterFirewallId = function (fwcloud, cluster) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+
+			let sql = 'SELECT id FROM ' + tableModel +
+			' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND cluster=' + connection.escape(cluster) + ' AND fwmaster=1';
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(new Error('Firewall not found'));
+				resolve(rows[0].id);
+			});
+		});
+	});
+}
