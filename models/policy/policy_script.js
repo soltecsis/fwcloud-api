@@ -164,7 +164,7 @@ PolicyScript.run_ssh_command = (SSHconn,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (accessData,SSHconn,fw) => {
 	return new Promise((resolve,reject) => {
-		let bash_debug='';
+		let bash_debug;
 
 		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
 		PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
