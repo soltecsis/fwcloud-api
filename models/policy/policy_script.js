@@ -163,28 +163,34 @@ PolicyScript.run_ssh_command = (SSHconn,cmd) => {
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (accessData,SSHconn,fw) => {
-	return new Promise(async (resolve,reject) => { 
+	return new Promise((resolve,reject) => {
+		let bash_debug='';
+
 		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
-		await PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
-			.then(() => {
-				streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-				return PolicyScript.run_ssh_command(SSHconn,"sudo sh ./"+config.get('policy').script_name+" install")
-			})
-			.then(() => {
-				streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-				//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
-				return PolicyScript.run_ssh_command(SSHconn,"sudo bash -c 'if [ -d /etc/fwcloud ]; then "+
-					"/etc/fwcloud/"+config.get('policy').script_name+" start; "+
-					"else /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
-			})
-			.then(data => {
-				streamModel.pushMessageCompile(accessData, data+"\nEND\n");
-				resolve("DONE")
-			})
-			.catch(error => {
-				streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
-				reject(error)
-			});
+		PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
+		.then (() => firewallModel.getFirewallOptions(accessData.fwcloud,fw))
+		.then(options => {
+			// Enable bash depuration if it is selected in firewalls/cluster options.
+			bash_debug = (options & 0x0008) ? ' -x' : '';
+
+			streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
+			return PolicyScript.run_ssh_command(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install")
+		})
+		.then(() => {
+			streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
+			//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
+			return PolicyScript.run_ssh_command(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
+				"/etc/fwcloud/"+config.get('policy').script_name+" start; "+
+				"else /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
+		})
+		.then(data => {
+			streamModel.pushMessageCompile(accessData, data+"\nEND\n");
+			resolve("DONE")
+		})
+		.catch(error => {
+			streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
+			reject(error)
+		});
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
