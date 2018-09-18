@@ -115,20 +115,20 @@ utilsModel.checkFirewallAccess,
 		.then(data => PolicyScript.dumpFirewallOptions(req.fwcloud,req.params.idfirewall,data))
 		.then(data => {
 			stream.write(data.cs + "greeting_msg() {\n" +
-				"\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
+				"log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
 				"policy_load() {\n");
 			
 			if (data.options & 0x0001) { // Statefull firewall
 				stream.write("# Statefull firewall.\n" +
 					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
 					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-					"\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
+					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n");
 				streamModel.pushMessageCompile(accessData, "--- STATEFULL FIREWALL ---\n\n");
 			}
 			else
 				streamModel.pushMessageCompile(accessData, "--- STATELESS FIREWALL ---\n\n");
 			streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
+			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
 			return PolicyScript.dump(accessData,req.params.idfirewall,1);
 		})
 		.then(cs => {

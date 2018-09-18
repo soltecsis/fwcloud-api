@@ -4,6 +4,7 @@ var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var api_resp = require('../../utils/api_response');
 var Policy_rModel = require('../../models/policy/policy_r');
+var Policy_cModel = require('../../models/policy/policy_c');
 
 var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
@@ -290,10 +291,13 @@ utilsModel.disableFirewallCompileStatus,
 		position_order: req.params.new_order
 	};
 
-		/* Before inserting the new IP object into the rule, verify that there is no container in the 
+	// Invalidate compilation of the affected rules.
+	Policy_cModel.deletePolicy_c(req.params.idfirewall,req.params.rule)
+	.then(() => Policy_cModel.deletePolicy_c(req.params.idfirewall,req.params.new_rule))
+	/* Before inserting the new IP object into the rule, verify that there is no container in the 
 	destination position that already contains it. */
-	Policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData)
-	.then((found) => {
+	.then(() => Policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
+	.then(found => {
 		if (found) 
 			api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else {
@@ -306,8 +310,7 @@ utilsModel.disableFirewallCompileStatus,
 					content2 = data.content2;
 
 					if (content1 === content2) { //SAME POSITION
-						Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, function (error, data)
-						{
+						Policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, (error, data) => {
 							//If saved policy_r__ipobj saved ok, get data
 							if (data) {
 								if (data.result) {
@@ -402,7 +405,6 @@ utilsModel.disableFirewallCompileStatus,
 		}
 	})
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)));
-
 });
 
 

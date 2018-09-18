@@ -986,33 +986,22 @@ policy_rModel.deletePolicy_r = function (idfirewall, id) {
 									reject(error);
 								else {
 									//DELETE POLICY_C compilation
-									Policy_cModel.deletePolicy_c(idfirewall, id, function (error, data)
-									{
-										if (error)
-											reject(error);
-										else {
-											db.get(function (error, connection) {
-												var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-												connection.query(sql, function (error, result) {
-													if (error) {
-														logger.debug(error);
-														reject(error);
-													} else {
-														if (result.affectedRows > 0) {
-															OrderList(999999, idfirewall, rule_order, id);
-															resolve({"result": true, "msg": "deleted"});
-														} else {
-															resolve({"result": false, "msg": "notExist"});
-														}
-													}
-												});
-											});
-										}
-									});
+									Policy_cModel.deletePolicy_c(idfirewall, id)
+									.then(() => {
+										var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+										connection.query(sql, function (error, result) {
+											if (error) return reject(error);
+											if (result.affectedRows > 0) {
+												OrderList(999999, idfirewall, rule_order, id);
+												resolve({"result": true, "msg": "deleted"});
+											} else
+												resolve({"result": false, "msg": "notExist"});
+										});
+									})
+									.catch(error => reject(error));
 								}
 							});
 						}
-
 					});
 				} else {
 					resolve({"result": false, "msg": "notExist"});
@@ -1033,36 +1022,27 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
 		if (error)
 			callback(error, null);
 		if (data && data.length > 0) {
-			var strRule = " Rule: " + rule + " FWCloud: " + data[0].fwcloud + "  Firewall: " + data[0].firewall + "  Type: " + data[0].type + "\n";
-			logger.debug("---------- COMPILING RULE " + strRule + " -------");
-			streamModel.pushMessageCompile(accessData, "COMPILING RULE " + rule + " COMPILATION PROCESS\n");
+			//streamModel.pushMessageCompile(accessData, "COMPILING RULE " + rule + " COMPILATION PROCESS\n");
 
-			//RuleCompileModel.rule_compile(data[0].fwcloud, data[0].firewall, data[0].type, rule, (cs) => {
 			RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
-					.then(data => {
-						if (data && data.length > 0) {
-							logger.debug("---- RULE COMPILED --->  ");
-							logger.debug(data);
-							logger.debug("-----------------------");
-							streamModel.pushMessageCompile(accessData, "RULE " + rule + "  COMPILED\n");
-							streamModel.pushMessageCompile(accessData, "\n" + data + " \n");
-							streamModel.pushMessageCompile(accessData, "\nCOMPILATION COMPLETED\n\n");
-							callback(null, {"result": true, "msg": "Rule compiled"});
-						} else {
-							logger.debug("---- ERROR RULE NOT COMPILED --->  ");
-							streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
-							callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
-						}
-					})
-					.catch(error => {
-						streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
-						callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
-					});
-
+			.then(data => {
+				if (data && data.length > 0) {
+					//streamModel.pushMessageCompile(accessData, "RULE " + rule + "  COMPILED\n");
+					//streamModel.pushMessageCompile(accessData, "\n" + data + " \n");
+					//streamModel.pushMessageCompile(accessData, "\nCOMPILATION COMPLETED\n\n");
+					callback(null, {"result": true, "msg": "Rule compiled"});
+				} else {
+					//streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
+					callback(null, {"result": false, "msg": "CS Empty, rule NOT compiled"});
+				}
+			})
+			.catch(error => {
+				//streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
+				callback(null, {"result": false, "msg": "ERROR rule NOT compiled"});
+			});
 		} else
 			callback(null, {"result": false, "msg": "rule Not found, NOT compiled"});
 	});
-
 };
 
 

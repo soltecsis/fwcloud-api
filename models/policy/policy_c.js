@@ -64,10 +64,9 @@ policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback)
 
 //Get policy_c by  id and firewall
 policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		//var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
+	db.get((error, connection) => {
+		if (error) return callback(error, null);
+
 		var sql = 'SELECT R.id,R.rule_order,  ' + 
 				' ((R.updated_at>=C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
 				' R.comment, R.fw_apply_to, IFNULL(FC.name , F.name) as firewall_name ' +
@@ -77,11 +76,9 @@ policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
 				' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
 				' AND F.fwcloud=' +  connection.escape(fwcloud) ;
 		
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
+		connection.query(sql, (error, row) => {
+			if (error) return callback(error, null);
+			callback(null, row);
 		});
 	});
 };
@@ -147,27 +144,15 @@ policy_cModel.updatePolicy_c = function (policy_cData, callback) {
 };
 
 //Remove policy_c with id to remove
-policy_cModel.deletePolicy_c = function (idfirewall, rule, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE rule = ' + connection.escape(rule) + ' AND firewall=' + connection.escape(idfirewall);
-		connection.query(sqlExists, function (error, row) {
-			//If exists Id from policy_c to remove
-			if (row) {
-				db.get(function (error, connection) {
-					var sql = 'DELETE FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
-					connection.query(sql, function (error, result) {
-						if (error) {
-							callback(error, null);
-						} else {
-							callback(null, {"result": true, "msg": "deleted"});
-						}
-					});
-				});
-			} else {
-				callback(null, {"result": false});
-			}
+policy_cModel.deletePolicy_c = function (fw, rule) {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+			let sql = 'DELETE FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' AND firewall=' +connection.escape(fw);
+			connection.query(sql, function (error, result) {
+				if (error) return reject(error);
+				resolve();
+			});
 		});
 	});
 };

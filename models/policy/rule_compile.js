@@ -359,19 +359,20 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			}
 			else if (action==="ACCOUNTING") {
 				acc_chain = "FWCRULE"+rule+".ACC"; 
-				cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j RETURN\n" + cs;
 				action = acc_chain; 
 			}
+
+			// If log all rules option is enabled.
+			if (data[0].firewall_options & 0x0010) {
+				log_chain = "FWCRULE"+rule+".LOG";
+				if (!acc_chain) {
+					after_log_action = action;
+					action = log_chain;
+				} else
+					after_log_action = "RETURN";
+			}		
 		}
 
-		// If log all rules option is enabled.
-		if (data[0].firewall_options & 0x0010) {
-			log_chain = "FWCRULE"+rule+".LOG";
-			cs = "$IPTABLES -N "+log_chain+"\n"+cs;
-			after_log_action = (acc_chain==="") ? action : acc_chain;
-			action = log_chain;
-		}
-		
 		cs_trail = statefull+"-j "+action+"\n";
 		
 		const position_items = RuleCompileModel.pre_compile(data);
@@ -443,10 +444,17 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			}
 		}
 
-		// If log all rules option is enabled.
-		if (data[0].firewall_options & 0x0010)
-			cs += "$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
-				"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n";
+		// Accounting and logging is not allowed with SNAT and DNAT chains.
+		if (policy_type!==4 && policy_type!==5) {
+			if (acc_chain) {
+				cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
+			}
+			if (log_chain) {
+				cs = "$IPTABLES -N "+log_chain+"\n" +
+					"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
+					"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n" + cs;
+			}
+		}
 
 		// Apply rule only to the selected firewall.
 		if (data[0].fw_apply_to && data[0].firewall_name)
