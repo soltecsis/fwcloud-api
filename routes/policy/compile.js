@@ -114,8 +114,9 @@ utilsModel.checkFirewallAccess,
 		PolicyScript.append(config.get('policy').header_file)
 		.then(data => PolicyScript.dumpFirewallOptions(req.fwcloud,req.params.idfirewall,data))
 		.then(data => {
-			stream.write(data.cs + "policy_load() {\n" +
-				"\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n\n");
+			stream.write(data.cs + "greeting_msg() {\n" +
+				"\nlog \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
+				"policy_load() {\n");
 			
 			if (data.options & 0x0001) { // Statefull firewall
 				stream.write("# Statefull firewall.\n" +

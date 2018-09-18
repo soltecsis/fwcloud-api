@@ -46,11 +46,14 @@ PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 		.then(options => {
 			var action = '';
 			data.options = options;
-			data.cs += "options_load {\n";
+			data.cs += "options_load() {\n"+
+				"echo\n"+
+				"echo \"OPTIONS\"\n"+
+				"echo \"-------\"\n";
 			
 			// IPv4 packet forwarding
 			action = (options & 0x0002) ? '1' : '0';
-			data.cs += 'if [ -z "$SYSCTL" ]; then\n' +
+			data.cs += 'if [ -z "$SYSCTL" ]; then\n' +
 				'  echo '+action+' > /proc/sys/net/ipv4/ip_forward\n' +
 				'else\n' +
 				'  $SYSCTL -w net.ipv4.conf.all.forwarding='+action+'\n' +
@@ -180,8 +183,8 @@ PolicyScript.install = (accessData,SSHconn,fw) => {
 			streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
 			//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
 			return PolicyScript.run_ssh_command(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
-				"/etc/fwcloud/"+config.get('policy').script_name+" start; "+
-				"else /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
+				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
+				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
 		})
 		.then(data => {
 			streamModel.pushMessageCompile(accessData, data+"\nEND\n");

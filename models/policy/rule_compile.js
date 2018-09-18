@@ -330,7 +330,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		}
 
 		var cs = "$IPTABLES "; // Compile string.
-		var cs_trail = statefull = table = action = "";
+		var cs_trail = statefull = table = action = log_chain = "";
 
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
@@ -354,7 +354,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
 			action = ACTION[data[0].action];
 			if (action==="ACCEPT") {
-				if (data[0].firewall_options & 0b0000000000000001) // Statefull firewall.
+				if (data[0].firewall_options & 0x0001) // Statefull firewall.
 					statefull ="-m state --state NEW ";
 			}
 			else if (action==="ACCOUNTING") {
@@ -362,6 +362,15 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				cs = "$IPTABLES -N "+action+"\n" + "$IPTABLES -A "+action+" -j RETURN\n" + cs;
 			}
 		}
+
+		if (data[0].firewall_options & 0x0010) {// Log all rules
+			log_chain = "FWCRULE"+rule+".LOG";
+			cs = "$IPTABLES -N "+log_chain+"\n" +
+				"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+action+"] \"\n" +
+				"$IPTABLES -A "+log_chain+" -j "+action+"\n" + cs;
+			action = log_chain;
+		}
+		
 		cs_trail = statefull+"-j "+action+"\n";
 
 		const position_items = RuleCompileModel.pre_compile(data);

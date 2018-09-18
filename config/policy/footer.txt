@@ -17,11 +17,12 @@ test -z "$ACTION" && ACTION="start"
 
 case "$ACTION" in
   start)
+    greeting_msg
     load_modules
     reset_all
     #prolog_commands
-    policy_load
     options_load
+    policy_load
     #epilog_commands
     ;;
 
