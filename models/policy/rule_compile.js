@@ -330,7 +330,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		}
 
 		var cs = "$IPTABLES "; // Compile string.
-		var cs_trail = statefull = table = action = log_chain = "";
+		var after_log_action = log_chain = acc_chain = cs_trail = statefull = table = action = "";
 
 		if (policy_type === 4) { // SNAT
 			table = "-t nat";
@@ -358,21 +358,22 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 					statefull ="-m state --state NEW ";
 			}
 			else if (action==="ACCOUNTING") {
-				action = "FWCRULE"+rule+".ACC";
-				cs = "$IPTABLES -N "+action+"\n" + "$IPTABLES -A "+action+" -j RETURN\n" + cs;
+				acc_chain = "FWCRULE"+rule+".ACC"; 
+				cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j RETURN\n" + cs;
+				action = acc_chain; 
 			}
 		}
 
-		if (data[0].firewall_options & 0x0010) {// Log all rules
+		// If log all rules option is enabled.
+		if (data[0].firewall_options & 0x0010) {
 			log_chain = "FWCRULE"+rule+".LOG";
-			cs = "$IPTABLES -N "+log_chain+"\n" +
-				"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+action+"] \"\n" +
-				"$IPTABLES -A "+log_chain+" -j "+action+"\n" + cs;
+			cs = "$IPTABLES -N "+log_chain+"\n"+cs;
+			after_log_action = (acc_chain==="") ? action : acc_chain;
 			action = log_chain;
 		}
 		
 		cs_trail = statefull+"-j "+action+"\n";
-
+		
 		const position_items = RuleCompileModel.pre_compile(data);
 		
 		// Rule compilation process.
@@ -441,6 +442,11 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				  cs = cs.replace(/-A PREROUTING/g,"-A PREROUTING"+substr);
 			}
 		}
+
+		// If log all rules option is enabled.
+		if (data[0].firewall_options & 0x0010)
+			cs += "$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
+				"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n";
 
 		// Apply rule only to the selected firewall.
 		if (data[0].fw_apply_to && data[0].firewall_name)
