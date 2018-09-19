@@ -701,7 +701,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 																sqlinsert = 'INSERT INTO ' + tableModel +
 																		'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
 																		' VALUES (' +
-																		connection.escape(rnodeInt.name) + ',' +
+																		connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
 																		connection.escape(rnodeInt.comment) + ',' + connection.escape(nodeInterfaces) + ',' +
 																		j + ',' + (row.node_level + 3) + ',"IFF",' +
 																		'0,0,' + connection.escape(rnodeInt.id) + ',10,' +
@@ -839,7 +839,7 @@ function update_cluster_structure(fwcloud,cluster,firewall,connection) {
 							sqlinsert = 'INSERT INTO ' + tableModel +
 									'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
 									' VALUES (' +
-									connection.escape(rnodeInt.name) + ',' +
+									connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
 									connection.escape(rnodeInt.comment) + ',' + nodeInterfaces + ',' +
 									j + ',' + (node_level + 1) + ',"IFF",' +
 									'0,0,' + connection.escape(rnodeInt.id) + ',10,' +
@@ -1071,7 +1071,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = function (fwcloud, idfirewall, idclu
 																		sqlinsert = 'INSERT INTO ' + tableModel +
 																				'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
 																				' VALUES (' +
-																				connection.escape(rnodeInt.name) + ',' +
+																				connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
 																				connection.escape(rnodeInt.comment) + ',' + connection.escape(nodeInterfaces) + ',' +
 																				j + ',' + (row.node_level + 3) + ',"IFF",' +
 																				'0,0,' + connection.escape(rnodeInt.id) + ',10,' +

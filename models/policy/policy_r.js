@@ -558,11 +558,9 @@ policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNew
 policy_rModel.clonePolicy = function (rowData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
 
 			//CREATE NEW POLICY
-
 			var policy_rData = {
 				id: null,
 				idgroup: rowData.idgroup,
@@ -589,7 +587,6 @@ policy_rModel.clonePolicy = function (rowData) {
 						' from policy_r__ipobj O ' +
 						' where O.rule=' + connection.escape(rowData.id) +
 						' ORDER BY position_order';
-				logger.debug(sql);
 				connection.query(sql, (error, rows) => {
 					if (error) return reject(error);
 					if (clon_data) {
@@ -1057,5 +1054,48 @@ policy_rModel.cleanApplyTo = function (idfirewall, callback) {
 					else
 							callback(null, {"result": true});
 			});
+	});
+};
+
+//Update apply_to fields of a cloned cluster to point to the new cluster nodes.
+policy_rModel.updateApplyToRules = function (clusterNew, fwNewMaster) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return	reject(error);
+			let sql = 'select P.id,P.fw_apply_to,(select name from firewall where id=P.fw_apply_to) as name,' + clusterNew + ' as clusterNew FROM ' + tableModel + ' P' +
+				' INNER JOIN firewall F on F.id=P.firewall' +
+				' WHERE P.fw_apply_to is not NULL AND P.firewall=' + connection.escape(fwNewMaster) + ' AND F.cluster=' + connection.escape(clusterNew);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				//Bucle for rules with fw_apply_to defined.
+				Promise.all(rows.map(policy_rModel.repointApplyTo))
+				.then(data => resolve(data))
+				.catch(e => reject(e));
+			});
+		});
+	});
+};
+
+policy_rModel.repointApplyTo = function (rowData) {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return	reject(error);
+
+			let sql = 'select id FROM firewall' +
+				' WHERE cluster=' + connection.escape(rowData.clusterNew) + ' AND name=' + connection.escape(rowData.name);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+
+				if (rows.length === 1)
+					sql = 'UPDATE '+tableModel+' set fw_apply_to='+connection.escape(rows[0].id)+' WHERE id='+connection.escape(rowData.id);
+				else // We have not found the node in the new cluster.
+					sql = 'UPDATE '+tableModel+' set fw_apply_to=NULL WHERE id='+connection.escape(rowData.id);
+
+					connection.query(sql, (error, rows1) => {
+					if (error) return reject(error);
+					resolve(rows1);
+				});						
+			});
+		});
 	});
 };

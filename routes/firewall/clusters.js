@@ -394,7 +394,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var idCluster = req.params.idcluster;
-	var idNewFirewall, oldFirewall;
+	var idNewFirewall, oldFirewall, fwNewMaster;
 
 	//Save firewall data into objet    
 	var clusterData = {
@@ -446,6 +446,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 
 									// If we are cloning the master firewall, then clone interfaces, policy, etc.
 									if (firewallData.fwmaster) {
+										fwNewMaster = idNewFirewall;
 										await FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1, (err, data) => {});
 										//CLONE INTERFACES
 										return InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
@@ -472,8 +473,13 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 								.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
 							}
 
-							// If we arrive here all has gone fine.
-							api_resp.getJson(dataresp, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+							// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
+							Policy_rModel.updateApplyToRules(newidcluster, fwNewMaster)
+							.then(() => 
+								// If we arrive here all has gone fine.
+								api_resp.getJson(dataresp, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp))
+							)
+							.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
 						}
 					});
 				} else
