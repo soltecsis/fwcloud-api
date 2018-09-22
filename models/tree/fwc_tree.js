@@ -524,13 +524,6 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 						});
 					}
 				});
-				//INSERT NODE TIME
-				sqlinsert = "INSERT INTO " + tableModel + "( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree) " +
-						" VALUES (" + "'TIME','',0,4,1,'FDT',0,0,null,null," + connection.escape(fwcloud) + "," + connection.escape(fwcloud) + ")";
-				connection.query(sqlinsert, function (error, result) {
-					if (error)
-						logger.debug("ERROR FDT : " + error);
-				});
 				AllDone(null, {"result": true});
 			}
 		});
