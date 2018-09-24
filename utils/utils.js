@@ -16,6 +16,7 @@ var api_resp = require('./api_response');
 var UserModel = require('../models/user/user');
 var crypto = require('crypto');
 var randomString = require('random-string');
+const db = require('../db');
 
 
 utilsModel.checkParameters = function (obj, callback) {
@@ -253,6 +254,7 @@ utilsModel.decrypt = function (text) {
 		}
 	});
 };
+
 utilsModel.decryptDataUserPass = function (data) {
 
 	return new Promise((resolve, reject) => {
@@ -279,6 +281,7 @@ utilsModel.decryptDataUserPass = function (data) {
 		}
 	});
 };
+
 async function fetchRepoInfos() {
 	// load repository details for this array of repo URLs
 	const repos = [
@@ -307,6 +310,18 @@ async function fetchRepoInfos() {
 	// wait until all promises resolve
 	const results = await Promise.all(promises);
 	// use the results
-}
+};
+
+
+utilsModel.getDbConnection = () => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+      if (error) return reject(error);
+      resolve(connection);
+    });
+  });
+};
+
+
 
 
