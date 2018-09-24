@@ -60,6 +60,7 @@ fwc_treeRepairModel.getParentId = (connection,id) => {
 			' WHERE id=' + connection.escape(id); 
 		connection.query(sql, (error, nodes) => {
 			if (error) return reject(error);
+			if (nodes.lenght!==1) return reject(new Error('Node with id '+id+' not found'));
 			resolve(nodes[0].id_parent);
 		});
 	});
@@ -77,8 +78,8 @@ fwc_treeRepairModel.deleteNode = (connection,id) => {
 	});
 };
 
-//Ontain all root nodes.
-fwc_treeRepairModel.verifyTreeNodes = (accessData,connection,fwcloud) => {
+// Verify all not root nodes.
+fwc_treeRepairModel.verifyNotRootNodes = (accessData,connection,fwcloud,rootNodes) => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' + tableModel +
       ' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id_parent!=0';
@@ -86,9 +87,10 @@ fwc_treeRepairModel.verifyTreeNodes = (accessData,connection,fwcloud) => {
       if (error) return reject(error);
 
       try {
-        let id_ancestor = deep = 0;
+        let last_ancestor,id_ancestor,deep;
         for (let node of nodes) {
           id_ancestor = node.id_parent;
+          deep = 0;
           do {
             // We are in a tree and then we can not have loops.
             // For security we allo a maximum deep of 100.
@@ -96,17 +98,44 @@ fwc_treeRepairModel.verifyTreeNodes = (accessData,connection,fwcloud) => {
               if (id_ancestor===node.id)
                 streamModel.pushMessageCompile(accessData, "Deleting node in a loop: "+node+"\n");
               else if (deep>100)
-                streamModel.pushMessageCompile(accessData, "Deleting a too much deep: "+node+"\n");
+                streamModel.pushMessageCompile(accessData, "Deleting a too much deep node: "+node+"\n");
 
               await fwc_treeRepairModel.deleteNode(connection,node.id);
               break;
             }
 
+            last_ancestor = id_ancestor;
             id_ancestor = await fwc_treeRepairModel.getParentId(connection,id_ancestor);
           } while (id_ancestor!==0);
+
+          await fwc_treeRepairModel.verifyNode(accessData,connection,node,last_ancestor,rootNodes);
         }
       } catch (error) {reject(error)};
 
+      resolve();
+    });
+  });
+};
+
+// Verify node information.
+fwc_treeRepairModel.verifyNode = (accessData,connection,node,last_ancestor,rootNodes) => {
+	return new Promise((resolve, reject) => {
+    // Depending of the node type we will search for its referenced object in a different table.
+    let searchTable;
+    switch(node.node_type) {
+      case 'IFF': 
+        searchTable='interface';
+        break;
+      
+      default:
+        //reject(new Error('Bad node type'));
+        resolve();
+    }
+
+    let sql = 'SELECT * FROM ' + searchTable +
+      ' WHERE id=' + connection.escape(node.id_obj);
+    connection.query(sql, async (error, nodes) => {
+      if (error) return reject(error);
       resolve();
     });
   });

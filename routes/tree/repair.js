@@ -15,7 +15,7 @@ router.put("/", async (req, res) =>{
     const rootNodes = await fwcTreeRepairModel.getRootNodes(accessData,dbCon,req.fwcloud);
 
     // Verify that all tree nodes are part of a tree with root in one of the root nodes.
-    const nNodes = await fwcTreeRepairModel.verifyTreeNodes(accessData,dbCon,req.fwcloud);
+    const nNodes = await fwcTreeRepairModel.verifyNotRootNodes(accessData,dbCon,req.fwcloud,rootNodes);
 
 
     api_resp.getJson(rootNodes, api_resp.ACR_OK, 'REPAIR PROCESS COMPLETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
