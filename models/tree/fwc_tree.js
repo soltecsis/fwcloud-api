@@ -768,354 +768,6 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 
 };
 
-function update_cluster_structure(fwcloud,cluster,firewall,connection) {
-	var idfwcloud = connection.escape(fwcloud);
-	var idcluster = connection.escape(cluster);
-	var idfirewall = connection.escape(firewall);
-	
-	//Update Cluster policy folders with Master id firewall                                                    
-	var sql1 = 'UPDATE fwc_tree T ' +
-		'INNER JOIN fwc_tree P ON P.id = T.id_parent ' +
-		'AND P.node_type = "CL" AND P.id_obj=' + idcluster + ' ' +
-		'SET T.id_obj=' + idfirewall;
-	connection.query(sql1, (error, result) => {
-		if (error) logger.debug("ERROR: "+error+" ("+sql1+")");
-	});
-
-	sql1 = 'UPDATE fwc_tree T ' +
-		' inner join fwc_tree P1 on P1.id=T.id_parent ' +
-		' inner join fwc_tree P2 on P2.id=P1.id_parent and P2.node_type="CL" ' +
-		' AND P2.id_obj=' + idcluster +
-		' SET T.id_obj=' + idfirewall +
-		' WHERE T.node_type<>"FW"';
-	connection.query(sql1, (error, result) => {
-		if (error) {
-			logger.debug("ERROR: "+error+" ("+sql1+")");
-			return;
-		}
-
-		// Next we have to create the nodes into the interfaces node of the tree.
-		sql1 = 'select id,node_level from fwc_tree where id_obj='+idfirewall+' and node_type="FDI" and fwcloud='+idfwcloud;
-		connection.query(sql1, (error, result) => {
-			if (result.length != 1) return;
-
-			var nodeInterfaces = connection.escape(result[0].id);
-			var node_level = connection.escape(result[0].node_level);
-																
-			//Insertamos nodos hijos Interface
-			sqlInt = 'SELECT id,name,labelName FROM interface where interface_type=10 AND firewall='+idfirewall;
-			connection.query(sqlInt, function (error, rowsnodesInt) {
-				if (error) {
-					logger.debug("Error Select interface");
-					callback(error, null);
-				} else {
-					var j = 0;
-					if (rowsnodesInt) {
-						//logger.debug("INTERFACES: " + rowsnodesInt.length);
-						asyncMod.forEachSeries(rowsnodesInt, function (rnodeInt, callback3) {
-							j++;
-							//Insertamos nodos Interfaces
-							sqlinsert = 'INSERT INTO ' + tableModel +
-									'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-									' VALUES (' +
-									connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
-									connection.escape(rnodeInt.comment) + ',' + nodeInterfaces + ',' +
-									j + ',' + (node_level + 1) + ',"IFF",' +
-									'0,0,' + connection.escape(rnodeInt.id) + ',10,' +
-									idfwcloud + "," + idfwcloud + ")";
-
-							connection.query(sqlinsert, function (error, result) {
-								var idinterface;
-								if (error) {
-									logger.debug("ERROR INTERFACE INSERT : " + rnodeInt.id + " - " + rnodeInt.name + " -> " + error);
-								} else {
-									//logger.debug("INSERT INTERFACE OK NODE: " + rnodeInt.id + " - " + rnodeInt.name);
-									idinterface = result.insertId;
-								}
-								//Insertamos objetos IP de Interface
-								//Insertamos nodos Interface
-								sqlnodesIP = 'SELECT O.id,O.name,O.type,O.fwcloud,O.comment,T.node_type ' +
-									'FROM ipobj O inner join fwc_tree_node_types T on  T.obj_type=O.type ' +
-									'where O.interface=' + connection.escape(rnodeInt.id);
-								//logger.debug(sqlnodesIP);
-								connection.query(sqlnodesIP, function (error, rowsnodesIP) {
-									if (error) {
-										logger.debug(error);
-									} else {
-										var k = 0;
-										if (rowsnodesIP) {
-											//logger.debug("OBJS IP: " + rowsnodesIP.length);
-											asyncMod.forEachSeries(rowsnodesIP, function (rnodeIP, callback4) {
-												k++;
-												//Insertamos nodos IP
-												sqlinsert = 'INSERT INTO ' + tableModel +
-														'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' +
-														connection.escape(rnodeIP.name) + ',' +
-														connection.escape(rnodeIP.comment) + ',' + connection.escape(idinterface) + ',' +
-														k + ',' + (node_level + 2) + ',' + connection.escape(rnodeIP.node_type) + ',' +
-														'0,0,' + connection.escape(rnodeIP.id) + ',5,' +
-														idfwcloud + "," + idfwcloud + ")";
-												connection.query(sqlinsert, function (error, result) {
-													if (error) {
-														logger.debug("ERROR IP OBJECT INSERT : " + rnodeIP.id + " - " + rnodeIP.name + " -> " + error);
-													} else {
-														//logger.debug("INSERT IPOBJ OK NODE: " + rnodeIP.id + " - " + rnodeIP.name);
-													}
-												});
-												callback4();
-											}
-											);
-										}
-									}	
-								});
-							});
-							callback3();
-						});
-					}
-				}
-			});
-		});
-	});
-}
-
-
-//Add new TREE FIREWALL for a New Firewall
-fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, idfirewall, idcluster, fwmaster, node_id) => {
-/*	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-		if (error) return reject(error);
-
-		let sql = '';
-		if (idcluster !== null) {
-			//Select node NODES root for firewalls cluster
-			folder = "FCF";
-			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) +
-				' AND (T1.id_obj=(select id from firewall where cluster=' + connection.escape(idcluster) + ' and fwmaster=1 and fwcloud=' + connection.escape(fwcloud) + ') OR T1.id_obj=' + connection.escape(idcluster) + ')  ' +
-				' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
-		} else {
-			sql = 'SELECT T1.* FROM ' + tableModel + ' T1' +
-				' where T1.id=' + connection.escape(node_id) + ' AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
-		}
-
-		connection.query(sql, (error, nodes) => {
-			if (error) return reject(Error);
-			if (nodes.length!==1) return reject(new Error('Node with id '+nodeId+' not found'));
-			if (nodes[0].node_type!='FDF' && nodes[0].node_type!='FCF' && nodes[0].node_type!='FD') return reject(new Error('Bad folder type'));
-
-					var id_parent = row.id;
-					//Añadimos nodos FIREWALL del CLOUD
-					sqlnodes = 'SELECT  F.id,F.name,F.fwcloud, F.comment FROM firewall F inner join fwcloud C on C.id=F.fwcloud WHERE C.id=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(idfirewall);
-					logger.debug(sqlnodes);
-					connection.query(sqlnodes, function (error, rowsnodes) {
-						if (error)
-							callback(error, null);
-						else {
-							var i = 0;
-							if (rowsnodes) {
-								asyncMod.forEachSeries(rowsnodes, function (rnode, callback2) {
-									var idfirewall = rnode.id;
-									i++;
-									//Insertamos nodos Firewall
-									sqlinsert = 'INSERT INTO ' + tableModel +
-											'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-											' VALUES (' +
-											connection.escape(rnode.name) + ',' +
-											connection.escape(rnode.comment) + ',' + connection.escape(id_parent) + ',' +
-											i + ',' + (row.node_level + 1) + ',"FW",' +
-											'0,0,' + connection.escape(idfirewall) + ',0,' +
-											connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-									logger.debug(sqlinsert);
-									var parent_firewall;
-
-									connection.query(sqlinsert, function (error, result) {
-										if (error) {
-											logger.debug("ERROR FIREWALL INSERT : " + rnode.id + " - " + rnode.name + " -> " + error);
-										} else {
-											logger.debug("INSERT FIREWALL OK NODE: " + rnode.id + " - " + rnode.name + "  --> FWCTREE: " + result.insertId);
-											parent_firewall = result.insertId;
-
-											////////////////////////////////////////////////////////
-											//ONLY CREATE NODE STRUCTURE FOR FIREWALL not in cluster and 
-											if (idcluster===null)
-											{
-												logger.debug("CREATING FIREWALL STRUCTURE: " + rnode.id + " - " + rnode.name);
-												var parent_FP = 0;
-												//Insertamos nodo PADRE IPv4 POLICY
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"IPv4 POLICY","",' + parent_firewall + ',1,' + (row.node_level + 2) + ',"FP",0,0,' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-												logger.debug(sqlinsert);
-												connection.query(sqlinsert, function (error2, result2) {
-													if (error2) {
-														logger.debug("ERROR FP : " + error2);
-													} else {
-														parent_FP = result2.insertId;
-														logger.debug("INSERT IPv4 POLICY OK NODE: " + result2.insertId);
-														//Insertamos nodo POLICY IN
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"INPUT","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"PI",0,0,' + connection.escape(idfirewall) + ',1,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PI : " + error);
-														});
-														//Insertamos nodo POLICY OUT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"OUTPUT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"PO",0,0,' + connection.escape(idfirewall) + ',2,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PO : " + error);
-														});
-														//Insertamos nodo POLICY FORWARD
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"FORWARD","",' + parent_FP + ',3,' + (row.node_level + 3) + ',"PF",0,0,' + connection.escape(idfirewall) + ',3,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR PF: " + error);
-														});
-														//Insertamos nodo SNAT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"SNAT","",' + parent_FP + ',1,' + (row.node_level + 3) + ',"NTS",0,0,' + connection.escape(idfirewall) + ',4,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR SNAT: " + error);
-														});
-														//Insertamos nodo DNAT
-														sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-																' VALUES (' + '"DNAT","",' + parent_FP + ',2,' + (row.node_level + 3) + ',"NTD",0,0,' + connection.escape(idfirewall) + ',5,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",0)";
-														logger.debug(sqlinsert);
-														connection.query(sqlinsert, function (error, result) {
-															if (error)
-																logger.debug("ERROR DNAT: " + error);
-														});
-													}
-												});
-
-												//Insertamos nodo ROUTING
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-														' VALUES (' + '"Routing","",' + parent_firewall + ',3,' + (row.node_level + 2) + ',"RR",0,0,' + connection.escape(idfirewall) + ',6,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR RR : " + error);
-												});
-
-												var nodeInterfaces;
-												//Insertamos nodo INTERFACES FIREWALL
-												sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-														' VALUES (' + '"Interfaces","",' + parent_firewall + ',4,' + (row.node_level + 2) + ',"FDI",0,0,' + connection.escape(idfirewall) + ',10,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-												connection.query(sqlinsert, function (error, result) {
-													if (error)
-														logger.debug("ERROR FDI: " + error);
-													else {
-														nodeInterfaces = result.insertId;
-														
-														//Insertamos nodos hijos Interface
-														sqlInt = 'SELECT  id,name,labelName FROM interface where interface_type=10 AND  firewall=' + connection.escape(idfirewall);
-														connection.query(sqlInt, function (error, rowsnodesInt) {
-															if (error) {
-																logger.debug("Error Select interface");
-																callback(error, null);
-															} else {
-																var j = 0;
-																if (rowsnodesInt) {
-																	//logger.debug("INTERFACES: " + rowsnodesInt.length);
-																	asyncMod.forEachSeries(rowsnodesInt, function (rnodeInt, callback3) {
-																		j++;
-																		//Insertamos nodos Interfaces
-																		sqlinsert = 'INSERT INTO ' + tableModel +
-																				'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-																				' VALUES (' +
-																				connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
-																				connection.escape(rnodeInt.comment) + ',' + connection.escape(nodeInterfaces) + ',' +
-																				j + ',' + (row.node_level + 3) + ',"IFF",' +
-																				'0,0,' + connection.escape(rnodeInt.id) + ',10,' +
-																				connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-
-																		connection.query(sqlinsert, function (error, result) {
-																			var idinterface;
-																			if (error) {
-																				logger.debug("ERROR INTERFACE INSERT : " + rnodeInt.id + " - " + rnodeInt.name + " -> " + error);
-																			} else {
-																				//logger.debug("INSERT INTERFACE OK NODE: " + rnodeInt.id + " - " + rnodeInt.name);
-																				idinterface = result.insertId;
-																			}
-																			//Insertamos objetos IP de Interface
-																			//Insertamos nodos Interface
-																			sqlnodesIP = 'SELECT  O.id,O.name,O.type,O.fwcloud, O.comment, T.node_type FROM ipobj O inner join fwc_tree_node_types T on  T.obj_type=O.type where O.interface=' + connection.escape(rnodeInt.id);
-																			//logger.debug(sqlnodesIP);
-																			connection.query(sqlnodesIP, function (error, rowsnodesIP) {
-																				if (error) {
-																					logger.debug(error);
-																				} else {
-																					var k = 0;
-																					if (rowsnodesIP) {
-																						//logger.debug("OBJS IP: " + rowsnodesIP.length);
-																						asyncMod.forEachSeries(rowsnodesIP, function (rnodeIP, callback4) {
-																							k++;
-																							//Insertamos nodos IP
-																							sqlinsert = 'INSERT INTO ' + tableModel +
-																									'( name, comment, id_parent, node_order,node_level, node_type, expanded, `subfolders`, id_obj,obj_type,fwcloud, fwcloud_tree) ' +
-																									' VALUES (' +
-																									connection.escape(rnodeIP.name) + ',' +
-																									connection.escape(rnodeIP.comment) + ',' + connection.escape(idinterface) + ',' +
-																									k + ',' + (row.node_level + 4) + ',' + connection.escape(rnodeIP.node_type) + ',' +
-																									'0,0,' + connection.escape(rnodeIP.id) + ',5,' +
-																									connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ")";
-																							connection.query(sqlinsert, function (error, result) {
-																								if (error) {
-																									logger.debug("ERROR IP OBJECT INSERT : " + rnodeIP.id + " - " + rnodeIP.name + " -> " + error);
-																								} else {
-																									//logger.debug("INSERT IPOBJ OK NODE: " + rnodeIP.id + " - " + rnodeIP.name);
-																								}
-																							});
-																							callback4();
-																						}
-																						);
-																					}
-																				}	
-																			});
-																		});
-																		callback3();
-																	});
-																}
-															}
-														});
-													}
-												});
-											}
-											
-											//UPDATE CLUSTER STRUCTURE WITH FIREWALL MASTER
-											if (idcluster !== null && fwmaster == 1) {
-												logger.debug("UPDATING CLUSTER STRUCTURE: " + rnode.id + " - " + rnode.name + "  CLUSTER: ", idcluster, "  IDFIREWAL: ", idfirewall, "  FWMASTER: ", fwmaster);
-												update_cluster_structure(fwcloud,idcluster,idfirewall,connection);
-											}
-										}
-									});
-									callback2();
-								}
-								);
-							}
-						}
-					});
-					callback();
-				},
-						function (err) {
-							if (err)
-								AllDone(err, null);
-							else
-								AllDone(null, {"result": true});
-						});
-			} else
-				AllDone(null, {"result": true});
-		});
-
-	});
-
-*/
-};
 
 //Generate the IPs nodes for each interface.
 fwc_treeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
@@ -1154,6 +806,50 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, fwId) => {
 				}
 			} catch(error) { return reject(error )}
 			resolve();
+		});
+	});
+};
+
+//Add new TREE FIREWALL for a New Firewall
+fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+
+			// Get parent node type and veriy that it exists.  
+			let sql = 'SELECT node_type FROM ' + tableModel + 
+				' WHERE id=' + connection.escape(nodeId) + ' AND fwcloud=' + connection.escape(fwcloud);
+			connection.query(sql, (error, nodes) => {
+				if (error) return reject(error);
+				if (nodes.length!==1) return reject(new Error('Node with id '+nodeId+' not found'));
+				if (nodes[0].node_type!='FDF' && nodes[0].node_type!='FD') return reject(new Error('Bad folder type'));
+
+				// Obtain cluster data required for tree nodes creation.
+				sql = 'SELECT name FROM firewall' +
+					' WHERE id=' + connection.escape(firewallId) + ' AND fwcloud=' + connection.escape(fwcloud);
+				connection.query(sql, async (error, firewalls) => {
+					if (error) return reject(error);
+					if (nodes.length!==1) return reject(new Error('Firewall with id '+firewallId+' not found'));
+
+					try {
+						// Create root firewall node
+						let id1 = await fwc_treeModel.newNode(connection,fwcloud,firewalls[0].name,nodeId,'FW',firewallId,0);
+						
+						let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',firewallId,0);
+						await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',firewallId,1);
+						await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',firewallId,2);
+						await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',firewallId,3);
+						await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
+						await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
+						
+						await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);
+						
+						id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
+						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId);
+					} catch(error) { return reject(error)}
+					resolve();
+				});
+			});
 		});
 	});
 };

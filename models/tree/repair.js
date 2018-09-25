@@ -165,12 +165,9 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
 
         // Regenerate the tree.
         streamModel.pushMessageCompile(accessData, "Regenerating tree for firewall: "+JSON.stringify(firewall)+"\n");
-        fwcTreemodel.insertFwc_Tree_New_firewall(accessData.fwcloud, firewall.id, null, null, nodeId, (error, dataTree) => {
-          if (error) return reject(error);
-          resolve();
-        });
-
-       } catch(err) { reject(err) }
+        await insertFwc_Tree_New_firewall(accessData.fwcloud, nodeId,firewall.id);
+      } catch(err) { reject(err) }
+      resolve();
     });
   });
 };
@@ -222,7 +219,6 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
         streamModel.pushMessageCompile(accessData, "Regenerating tree for cluster: "+JSON.stringify(cluster)+"\n");
         await fwcTreemodel.insertFwc_Tree_New_cluster(accessData.fwcloud, nodeId, cluster.id);
       } catch(err) { reject(err) }
-
       resolve();
     });
   });
