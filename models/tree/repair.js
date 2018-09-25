@@ -47,6 +47,9 @@ fwc_treeRepairModel.checkRootNodes = fwcloud => {
           node.id_obj = node.obj_type = null;
           update_obj_to_null = 1;
         }
+
+        // If it is a firewall or cluster node, veify that the referenced firewall/cluster exists.
+
       }
       
       // Verify that we have found all nodes.
@@ -144,16 +147,15 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
       if (error) return reject(error);
       
       try {
-        let nodeId;
+        let nodeId = rootNode.id;
 
-        if (nodes.length===0) { // No node found for this firewall.
+        if (nodes.length===0) // No node found for this firewall.
           streamModel.pushMessageCompile(accessData, "No node found for firewall: "+JSON.stringify(firewall)+"\n");
-          nodeId = rootNode.id;
-        }
         else {
-          if (nodes.length===1) // The common case, firewall referenced by only one node three.
-            nodeId = (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD') ? nodes[0].id_parent : rootNode.id;
-          else if (nodes.length!==1)
+          if (nodes.length===1) { // The common case, firewall referenced by only one node three.
+            if (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD')
+              nodeId = nodes[0].id_parent;
+          } else if (nodes.length!==1)
             streamModel.pushMessageCompile(accessData, "Found several nodes for firewall: "+JSON.stringify(firewall)+"\n");
           
           // Remove nodes for this firewall.
@@ -194,21 +196,21 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
       ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
-      ' WHERE T1.fwcloud='+dbCon.escape(accessData.fwcloud)+' AND T1.id_obj='+dbCon.escape(cluster.id) + ' AND T1.node_type="FW"';
+      ' WHERE T1.fwcloud='+dbCon.escape(accessData.fwcloud)+' AND T1.id_obj='+dbCon.escape(cluster.id) +
+      ' AND T1.node_type="CL"';
     dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
       
       try {
-        let nodeId;
+        let nodeId = rootNode.id;
 
-        if (nodes.length===0) { // No node found for this cluster.
+        if (nodes.length===0) // No node found for this cluster.
           streamModel.pushMessageCompile(accessData, "No node found for cluster: "+JSON.stringify(cluster)+"\n");
-          nodeId = rootNode.id;
-        }
         else {
-          if (nodes.length===1) // The common case, cluster referenced by only one node three.
-            nodeId = (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD') ? nodes[0].id_parent : rootNode.id;
-          else if (nodes.length!==1)
+          if (nodes.length===1) { // The common case, cluster referenced by only one node three.
+            if (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD')
+              nodeId = nodes[0].id_parent;
+          } else if (nodes.length!==1)
             streamModel.pushMessageCompile(accessData, "Found several nodes for cluster: "+JSON.stringify(cluster)+"\n");
           
           // Remove nodes for this cluster.
@@ -218,16 +220,10 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
 
         // Regenerate the tree.
         streamModel.pushMessageCompile(accessData, "Regenerating tree for cluster: "+JSON.stringify(cluster)+"\n");
-        console.log("Regenerating tree for cluster: "+JSON.stringify(cluster));
-        fwcTreemodel.insertFwc_Tree_New_cluster(accessData.fwcloud, nodeId, cluster.id, (error, dataTree) => {
-          if (error) return reject(error);
-          fwcTreemodel.insertFwc_Tree_New_firewall(accessData.fwcloud, null, cluster.id, cluster.fwmaster_id, null, (error, dataTree) => {
-            if (error) return reject(error);
-            resolve();
-           });
-        });
+        await fwcTreemodel.insertFwc_Tree_New_cluster(accessData.fwcloud, nodeId, cluster.id);
+      } catch(err) { reject(err) }
 
-       } catch(err) { reject(err) }
+      resolve();
     });
   });
 };
