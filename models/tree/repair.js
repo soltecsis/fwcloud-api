@@ -1,21 +1,34 @@
 const db = require('../../db.js');
 const streamModel = require('../../models/stream/stream');
 const fwcTreemodel = require('../../models/tree/fwc_tree');
+var utils = require('../../utils/utils');
 
 //create object
 var fwc_treeRepairModel = {};
+
+var accessData;
+var dbCon;
 
 //Export the object
 module.exports = fwc_treeRepairModel;
 
 var tableModel = "fwc_tree";
 
+fwc_treeRepairModel.initData = req => {
+	return new Promise(async resolve => {
+    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    dbCon = await utils.getDbConnection();
+    resolve();
+  });
+};
+
+
 //Ontain all root nodes.
-fwc_treeRepairModel.getRootNodes = (accessData,connection,fwcloud) => {
+fwc_treeRepairModel.checkRootNodes = fwcloud => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id_parent=0';
-    connection.query(sql, (error, nodes) => {
+      ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';
+    dbCon.query(sql, (error, nodes) => {
       if (error) return reject(error);
 
       // Verify that we have three root nodes.
@@ -43,8 +56,8 @@ fwc_treeRepairModel.getRootNodes = (accessData,connection,fwcloud) => {
       if (update_obj_to_null) {
         streamModel.pushMessageCompile(accessData, "Repairing root nodes (setting id_obj and obj_type to null).\n");
         sql = 'update ' + tableModel + ' set id_obj=NULL,obj_type=NULL' +
-          ' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id_parent=0';        
-        connection.query(sql, (error, result) => {
+          ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';        
+        dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
           resolve(nodes);
         });
@@ -55,11 +68,11 @@ fwc_treeRepairModel.getRootNodes = (accessData,connection,fwcloud) => {
 };
 
 // Resolve with the parent id of a tree node.
-fwc_treeRepairModel.getParentId = (connection,id) => {
+fwc_treeRepairModel.getParentId = id => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT id_parent FROM ' + tableModel +
-			' WHERE id=' + connection.escape(id); 
-		connection.query(sql, (error, nodes) => {
+			' WHERE id=' + dbCon.escape(id); 
+		dbCon.query(sql, (error, nodes) => {
 			if (error) return reject(error);
 			if (nodes.length!==1) return resolve(-1);
 			resolve(nodes[0].id_parent);
@@ -67,24 +80,12 @@ fwc_treeRepairModel.getParentId = (connection,id) => {
 	});
 };
 
-// Delete tree node.
-fwc_treeRepairModel.deleteNode = (connection,id) => {
-	return new Promise((resolve, reject) => {
-		let sql = 'DELETE FROM ' + tableModel +
-			' WHERE id=' + connection.escape(id); 
-		connection.query(sql, (error, result) => {
-			if (error) return reject(error);
-			resolve();
-		});
-	});
-};
-
 // Verify all not root nodes.
-fwc_treeRepairModel.checkNotRootNodes = (accessData,connection,fwcloud,rootNodes) => {
+fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id_parent!=0';
-    connection.query(sql, async (error, nodes) => {
+      ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent!=0';
+    dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
 
       try {
@@ -94,19 +95,19 @@ fwc_treeRepairModel.checkNotRootNodes = (accessData,connection,fwcloud,rootNodes
           deep = 0;
           do {
             last_id_ancestor = id_ancestor;
-            id_ancestor = await fwc_treeRepairModel.getParentId(connection,id_ancestor);
+            id_ancestor = await fwc_treeRepairModel.getParentId(id_ancestor);
 
             // We are in a tree and then we can not have loops.
             // For security we allo a maximum deep of 100.
             if (id_ancestor===-1 || id_ancestor===node.id || (++deep)>100) {
               if (id_ancestor===-1)
-                streamModel.pushMessageCompile(accessData, "Ancestor not found, deleting node: "+node+"\n");
+                streamModel.pushMessageCompile(accessData, "Ancestor not found, deleting node: "+JSON.stringify(node)+"\n");
               else if (id_ancestor===node.id)
-                streamModel.pushMessageCompile(accessData, "Deleting node in a loop: "+node+"\n");
+                streamModel.pushMessageCompile(accessData, "Deleting node in a loop: "+JSON.stringify(node)+"\n");
               else if (deep>100)
-                streamModel.pushMessageCompile(accessData, "Deleting a too much deep node: "+node+"\n");
+                streamModel.pushMessageCompile(accessData, "Deleting a too much deep node: "+JSON.stringify(node)+"\n");
 
-              await fwc_treeRepairModel.deleteNode(connection,node.id);
+              await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
               break;
             }
           } while (id_ancestor!==0);
@@ -120,13 +121,10 @@ fwc_treeRepairModel.checkNotRootNodes = (accessData,connection,fwcloud,rootNodes
             }
           }
           if (!root_node_found) {
-            streamModel.pushMessageCompile(accessData, "Root node for this node is not correct. Deleting node: "+node+"\n");
-            await fwc_treeRepairModel.deleteNode(connection,node.id);
+            streamModel.pushMessageCompile(accessData, "Root node for this node is not correct. Deleting node: "+JSON.stringify(node)+"\n");
+            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
             continue;
           }
-
-          // Check that the information in the node is consistent.
-          if (node.id_obj) await fwc_treeRepairModel.checkNode(accessData,connection,node);
         }
       } catch (error) {reject(error)};
 
@@ -135,89 +133,119 @@ fwc_treeRepairModel.checkNotRootNodes = (accessData,connection,fwcloud,rootNodes
   });
 };
 
-// Verify node information.
-fwc_treeRepairModel.checkNode = (accessData,connection,node) => {
+
+// Regenerate firewalls tree.
+fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
 	return new Promise((resolve, reject) => {
-    // Depending of the node type we will search for its referenced object in a different table.
-    let searchTable;
-    switch(node.node_type) {
-      case 'IFF': 
-        searchTable='interface';
-        break;
-      
-      default:
-        //return reject(new Error('Bad node type'));
-        return resolve();
-    }
-
-    let sql = 'SELECT * FROM ' + searchTable + ' WHERE id=' + connection.escape(node.id_obj);
-    connection.query(sql, async (error, objs) => {
-      if (error) return reject(error);
-      if (objs.length!==1) {
-        streamModel.pushMessageCompile(accessData, "Oject referenced by node not found. Deleting node: "+node+"\n");
-        await fwc_treeRepairModel.deleteNode(connection,node.id);
-        return resolve();
-      }
-
-      if (node.name!==objs[0].name || node.obj_type!==objs[0].type)
-      {
-        streamModel.pushMessageCompile(accessData, "Bad data. Deleting node: "+node+"\n");
-        await fwc_treeRepairModel.deleteNode(connection,node.id);
-        return resolve();
-      }
-
-      resolve();
-    });
-  });
-};
-
-// Verify firewall/cluster nodes.
-fwc_treeRepairModel.checkFirewallNodes = (accessData,connection,node) => {
-	return new Promise((resolve, reject) => {
-    let sql = 'SELECT name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE id_parent=' + connection.escape(node.id);
-    connection.query(sql, async (error, nodes) => {
-      if (error) return reject(error);
-      for(let node of nodes) {
-
-      }
-      resolve();
-    });
-  });
-};
-
-// Check that all interfaces appear in the tree and in the correct position.
-fwc_treeRepairModel.findClustersNode = (accessData,connection,fwcloud,rootNode,cluster) => {
-	return new Promise((resolve, reject) => {
-    let sql = 'SELECT id,name,node_type,obj_type FROM fwc_tree' +
-      ' WHERE fwcloud='+connection.escape(fwcloud)+' AND id_obj='+connection.escape(cluster.id) + ' AND node_type="CL"';
-    connection.query(sql, async (error, nodes) => {
+    let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
+      ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
+      ' WHERE T1.fwcloud='+dbCon.escape(accessData.fwcloud)+' AND T1.id_obj='+dbCon.escape(firewall.id) + ' AND T1.node_type="FW"';
+    dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
       
-      if (nodes.length===0) {
-        fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, rootNode.id, cluster.id, (error, dataTree) => {
+      try {
+        let nodeId;
+
+        if (nodes.length===0) { // No node found for this firewall.
+          streamModel.pushMessageCompile(accessData, "No node found for firewall: "+JSON.stringify(firewall)+"\n");
+          nodeId = rootNode.id;
+        }
+        else {
+          if (nodes.length===1) // The common case, firewall referenced by only one node three.
+            nodeId = (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD') ? nodes[0].id_parent : rootNode.id;
+          else if (nodes.length!==1)
+            streamModel.pushMessageCompile(accessData, "Found several nodes for firewall: "+JSON.stringify(firewall)+"\n");
+          
+          // Remove nodes for this firewall.
+          for(let node of nodes)
+            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+        }
+
+        // Regenerate the tree.
+        streamModel.pushMessageCompile(accessData, "Regenerating tree for firewall: "+JSON.stringify(firewall)+"\n");
+        fwcTreemodel.insertFwc_Tree_New_firewall(accessData.fwcloud, firewall.id, null, null, nodeId, (error, dataTree) => {
           if (error) return reject(error);
           resolve();
         });
 
-      } else
-        resolve();
+       } catch(err) { reject(err) }
     });
   });
 };
 
-// Check that all interfaces appear in the tree and in the correct position.
-fwc_treeRepairModel.checkClustersInTree = (accessData,connection,fwcloud,rootNode) => {
+// Check that all firewalls appear in the tree.
+fwc_treeRepairModel.checkFirewallsInTree = rootNode => {
 	return new Promise((resolve, reject) => {
-    let sql = 'SELECT id,name FROM cluster WHERE fwcloud=' + connection.escape(fwcloud);
-    connection.query(sql, async (error, clusters) => {
+    let sql = 'SELECT id,name FROM firewall WHERE cluster is null AND fwcloud=' + dbCon.escape(accessData.fwcloud);
+    dbCon.query(sql, async (error, firewalls) => {
       if (error) return reject(error);
       try {
-        for(let cluster of clusters) {
-          await fwc_treeRepairModel.findClustersNode(accessData,connection,fwcloud,rootNode,cluster);
-        }
+        for(let firewall of firewalls)
+          await fwc_treeRepairModel.regenerateFirewallTree(rootNode,firewall);
       } catch(error) { return reject(error) };
       resolve();
     });
   });
 };
+
+
+// Regenerate cluster tree.
+fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
+	return new Promise((resolve, reject) => {
+    let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
+      ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
+      ' WHERE T1.fwcloud='+dbCon.escape(accessData.fwcloud)+' AND T1.id_obj='+dbCon.escape(cluster.id) + ' AND T1.node_type="FW"';
+    dbCon.query(sql, async (error, nodes) => {
+      if (error) return reject(error);
+      
+      try {
+        let nodeId;
+
+        if (nodes.length===0) { // No node found for this cluster.
+          streamModel.pushMessageCompile(accessData, "No node found for cluster: "+JSON.stringify(cluster)+"\n");
+          nodeId = rootNode.id;
+        }
+        else {
+          if (nodes.length===1) // The common case, cluster referenced by only one node three.
+            nodeId = (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD') ? nodes[0].id_parent : rootNode.id;
+          else if (nodes.length!==1)
+            streamModel.pushMessageCompile(accessData, "Found several nodes for cluster: "+JSON.stringify(cluster)+"\n");
+          
+          // Remove nodes for this cluster.
+          for(let node of nodes)
+            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+        }
+
+        // Regenerate the tree.
+        streamModel.pushMessageCompile(accessData, "Regenerating tree for cluster: "+JSON.stringify(cluster)+"\n");
+        console.log("Regenerating tree for cluster: "+JSON.stringify(cluster));
+        fwcTreemodel.insertFwc_Tree_New_cluster(accessData.fwcloud, nodeId, cluster.id, (error, dataTree) => {
+          if (error) return reject(error);
+          fwcTreemodel.insertFwc_Tree_New_firewall(accessData.fwcloud, null, cluster.id, cluster.fwmaster_id, null, (error, dataTree) => {
+            if (error) return reject(error);
+            resolve();
+           });
+        });
+
+       } catch(err) { reject(err) }
+    });
+  });
+};
+
+// Check that all clusters appear in the tree.
+fwc_treeRepairModel.checkClustersInTree = rootNode => {
+	return new Promise((resolve, reject) => {
+    let sql = 'SELECT C.id,C.name,F.id as fwmaster_id FROM cluster C ' +
+      ' INNER JOIN firewall F on F.cluster=C.id ' +
+      ' WHERE C.fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND F.fwmaster=1';
+    dbCon.query(sql, async (error, clusters) => {
+      if (error) return reject(error);
+      try {
+        for(let cluster of clusters)
+          await fwc_treeRepairModel.regenerateClusterTree(rootNode,cluster);
+      } catch(error) { return reject(error) };
+      resolve();
+    });
+  });
+};
+

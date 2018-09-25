@@ -316,7 +316,8 @@ async function fetchRepoInfos() {
 utilsModel.getDbConnection = () => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
-      if (error) return reject(error);
+			if (error) return reject(error);
+			
       resolve(connection);
     });
   });

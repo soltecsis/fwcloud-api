@@ -10,17 +10,16 @@ var objModel = 'FWC TREE REPAIR';
 /* Rpair tree */
 router.put("/", async (req, res) =>{
 	try {
-    const accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
-    const dbCon = await utils.getDbConnection();
-    const rootNodes = await fwcTreeRepairModel.getRootNodes(accessData,dbCon,req.fwcloud);
+    await fwcTreeRepairModel.initData(req);
+    const rootNodes = await fwcTreeRepairModel.checkRootNodes(req.fwcloud);
 
     // Verify that all tree not root nodes are part of a tree.
-    await fwcTreeRepairModel.checkNotRootNodes(accessData,dbCon,req.fwcloud,rootNodes);
+    await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
 
-    for (let node of rootNodes) {
-      if (node.node_type==='FDF') {
-        //await fwcTreeRepairModel.checkFirewallNodes(accessData,dbCon,node);
-        await fwcTreeRepairModel.checkClustersInTree(accessData,dbCon,req.fwcloud,node);
+    for (let rootNode of rootNodes) {
+      if (rootNode.node_type==='FDF') {
+        await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
+        await fwcTreeRepairModel.checkClustersInTree(rootNode);
       }
     }
 
