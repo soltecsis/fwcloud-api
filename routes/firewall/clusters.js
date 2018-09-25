@@ -167,9 +167,6 @@ router.get('/:id', function (req, res)
 
 /* New cluster */
 router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
 	logger.debug("JSON RECIBIDO: ", JsonData);
@@ -177,89 +174,41 @@ router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
 	var clusterData = {
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
-		fwcloud: fwcloud
+		fwcloud: req.fwcloud
 	};
-	ClusterModel.insertCluster(clusterData, (error, dataNewCluster) => {
+	ClusterModel.insertCluster(clusterData, async (error, dataNewCluster) => {
 		//get cluster info
 		if (dataNewCluster && dataNewCluster.insertId)
 		{
-			var dataresp = {"insertId": dataNewCluster.insertId};
 			var idcluster = dataNewCluster.insertId;
 
-			//////////////////////////////////
-			//INSERT CLUSTER NODE STRUCTURE
-			fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.clusterData.node_id, idcluster, (error, dataTree) => {
-				if (error)
-					api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				else if (dataTree && dataTree.result) {
-					logger.debug("FWNODES: ", fwnodes);
-					//BUCLE INSERT CLUSTERS FIREWALLS
-					//-------------------------------------------
-					for (let firewallData of fwnodes) {
-						firewallData.cluster = idcluster;
-						firewallData.fwcloud = fwcloud;
-						firewallData.by_user = iduser;
-						firewallData.status = 3;
-						firewallData.options = JsonData.clusterData.options;
-						FirewallModel.checkBodyFirewall(firewallData, true)
-								.then(result => {
-									firewallData = result;
-									logger.debug("NODE FIREWALL:  ", firewallData);
+			try {
+				for (let firewallData of fwnodes) {
+					firewallData.cluster = idcluster;
+					firewallData.fwcloud = req.fwcloud;
+					firewallData.by_user = req.iduser;
+					firewallData.status = 3;
+					firewallData.options = JsonData.clusterData.options;
+					
+					firewallData = await FirewallModel.checkBodyFirewall(firewallData, true);
 
-									utilsModel.encrypt(firewallData.install_user)
-											.then(data => {
-												logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
-												firewallData.install_user = data;
-											})
-											.then(utilsModel.encrypt(firewallData.install_pass)
-													.then(data => {
-														logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
-														firewallData.install_pass = data;
-													}))
-											.then(() => {
-												logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
-												if (!firewallData.save_user_pass) {
-													firewallData.install_user = '';
-													firewallData.install_pass = '';
-												}
-												FirewallModel.insertFirewall(iduser, firewallData)
-														.then(data => {
-															var idfirewall = data.insertId;
-															logger.debug("FIREWALL CLUSTER INSERTED OK: ", idfirewall);
+					firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
+					firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-															FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, firewallData.fwmaster, function (error, dataFM) {
-																//INSERT FIREWALL NODE STRUCTURE
-																fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idfirewall, idcluster, firewallData.fwmaster, null, function (error, dataTree) {
-																	if (dataTree && dataTree.result && firewallData.fwmaster == 1) {
-																		///CREATE CATCHING ALL RULES
-																		Policy_rModel.insertPolicy_r_CatchingAllRules(iduser, fwcloud, idfirewall)
-																				.then(() => {
-																					logger.debug("CATCHING RULES CREATED FOR FIREWALL: ", idfirewall, "  FWMASTER: ", firewallData.fwmaster);
-																					api_resp.getJson(dataNewCluster, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));																																
-																				});
-																	}
-																});
-															});
-														})
-														.catch(error => {
-															logger.debug("ERROR CREATING FIREWALL NODE: ", firewallData);
-															logger.debug("ERROR: ", error);
-														});
-											});
-								})
-								.catch(e => {
-									logger.error("ERROR CHECK PARAMS FIREWALL: ", e);
-								});
-					}
-					//----------------------------------------------
-				} else
-					api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-			});
+					let data = await FirewallModel.insertFirewall(req.iduser, firewallData);
+					if (data && data.insertId)
+					{
+						var idfirewall = data.insertId;
 
-		} else
-			api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+						await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
+						if (firewallData.fwmaster === 1) ///CREATE CATCHING ALL RULES							
+							await Policy_rModel.insertPolicy_r_CatchingAllRules(req.iduser, req.fwcloud, idfirewall);
+					}			
+				}
+				await fwcTreemodel.insertFwc_Tree_New_cluster(req.fwcloud, req.body.clusterData.node_id, idcluster);
+				api_resp.getJson(dataNewCluster, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			} catch(error) { api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		} else api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
@@ -307,11 +256,9 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
 							firewallData.by_user = iduser;
 
 							FirewallModel.updateFirewallCluster(firewallData)
-							.then(() => FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, 1, (error, data) => {}));
-							api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-
+							.then(() => FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, idfirewall, 1))
+							.then(() => api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+							.catch(error => api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 						} else
 						{
 							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
@@ -406,84 +353,54 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 	logger.debug(clusterData);
 
 	FirewallModel.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
-		if (error) 
-			return api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 		
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
-			ClusterModel.insertCluster(clusterData, (error, data) => {
+			ClusterModel.insertCluster(clusterData, async (error, data) => {
+				if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+
 				//get cluster info
 				if (data && data.insertId) {
-					var dataresp = {"insertId": data.insertId};
-					var newidcluster = data.insertId;
-					//////////////////////////////////
-					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster, async (error, dataTree) => {
-						if (error)
-							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-						else if (dataTree && dataTree.result) {
-							// Clone cluster nodes.
-							for (let firewallData of firewallDataArry) {
-								firewallData.cluster = newidcluster;
-								firewallData.fwcloud = fwcloud;
-								firewallData.by_user = iduser;
-
-								//logger.debug("firewallData: ", firewallData);
-								//CLONE FWMASTER
-								await FirewallModel.cloneFirewall(iduser, firewallData)
-								.then(async data => {
-									// Problems cloning the firewall.
-									if (!data || !data.result) 
-										return new Promise((resolve, reject) => reject({"error": "No data found."}));
-
-									logger.debug("NUEVO FIREWALL CREADO: " + data.insertId);
-									idNewFirewall = data.insertId;
-									oldFirewall = firewallData.id;
-
-									// This function will update the cluster id of the new firewall.
-									firewallData.id = idNewFirewall;
-									await FirewallModel.updateFirewallCluster(firewallData);
-
-									// If we are cloning the master firewall, then clone interfaces, policy, etc.
-									if (firewallData.fwmaster) {
-										fwNewMaster = idNewFirewall;
-										await FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1, (err, data) => {});
-										//CLONE INTERFACES
-										return InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
-									}
-									else
-										return new Promise((resolve, reject) => resolve());
-								})
-								.then(dataI => {
-									//CLONE RULES
-									if (firewallData.fwmaster)
-										return Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall,dataI);
-									else
-										return new Promise(resolve => resolve());
-								})
-								.then(() => {
-									//INSERT FIREWALL NODE STRUCTURE UNDER CLUSTER  NODES PARENT
-									return new Promise((resolve, reject) => { 
-										fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, idNewFirewall,newidcluster,firewallData.fwmaster, null, (error, dataTree) => {
-											if (error) return reject(error);
-											resolve();
-										});	
-									});
-								})
-								.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
+					try {
+						var dataresp = {"insertId": data.insertId};
+						var newidcluster = data.insertId;
+						// Clone cluster nodes.
+						for (let firewallData of firewallDataArry) {
+							firewallData.cluster = newidcluster;
+							firewallData.fwcloud = fwcloud;
+							firewallData.by_user = iduser;
+	
+							//CLONE FWMASTER
+							let data = await FirewallModel.cloneFirewall(iduser, firewallData);
+							if (!data || !data.result) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+						
+							idNewFirewall = data.insertId;
+							oldFirewall = firewallData.id;
+							// This function will update the cluster id of the new firewall.
+							firewallData.id = idNewFirewall;
+							await FirewallModel.updateFirewallCluster(firewallData);
+	
+							// If we are cloning the master firewall, then clone interfaces, policy, etc.
+							if (firewallData.fwmaster) {
+								fwNewMaster = idNewFirewall;
+								await FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1);
+								//CLONE INTERFACES
+								let dataI = await InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+								await Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall,dataI);
 							}
-
-							// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
-							Policy_rModel.updateApplyToRules(newidcluster, fwNewMaster)
-							.then(() => 
-								// If we arrive here all has gone fine.
-								api_resp.getJson(dataresp, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp))
-							)
-							.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
 						}
-					});
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	
+						//INSERT FIREWALL NODE STRUCTURE
+						await fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster);
+	
+						// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
+						await Policy_rModel.updateApplyToRules(newidcluster, fwNewMaster);
+	
+						// If we arrive here all has gone fine.
+						api_resp.getJson(dataresp, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp))	
+					} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+				}
 			});
 		}
 	});

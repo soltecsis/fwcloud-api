@@ -615,45 +615,39 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 	});
 };
 
-firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, fwmaster, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
+firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, fwmaster) {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
 				' AND U.id_user=' + connection.escape(iduser) +
 				' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-		connection.query(sqlExists, function (error, row) {
-			if (row && row.length > 0) {
-				var sql = 'UPDATE ' + tableModel + ' SET ' +
+			connection.query(sqlExists, (error, row) => {
+				if (error) return reject(error);
+				if (row && row.length > 0) {
+					var sql = 'UPDATE ' + tableModel + ' SET ' +
 						'fwmaster = ' + fwmaster + ', ' +
 						'by_user = ' + connection.escape(iduser) +
 						' WHERE id = ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
-				logger.debug(sql);
-				connection.query(sql, function (error, result) {
-					if (error) {
-						callback(error, null);
-					} else {
+					connection.query(sql, function (error, result) {
+						if (error) return reject(error);
 						if (fwmaster == 1) {
 							var sql = 'UPDATE ' + tableModel + ' SET ' +
-									'fwmaster = 0, ' +
-									'by_user = ' + connection.escape(iduser) +
-									' WHERE id <> ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
-							logger.debug(sql);
+								'fwmaster = 0, ' +
+								'by_user = ' + connection.escape(iduser) +
+								' WHERE id <> ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
 							connection.query(sql, function (error, result) {
-								if (error) {
-									callback(error, null);
-								}
+								if (error) return reject(error);
+								resolve({"result": true});
 							});
-						}
-						callback(null, {"result": true});
-					}
-				});
-			} else {
-				callback(null, {"result": false});
-			}
+						} else resolve({"result": true});
+					});
+				} else resolve({"result": false});
+			});
 		});
 	});
 };
+
 firewallModel.updateFirewallCluster = function (firewallData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {

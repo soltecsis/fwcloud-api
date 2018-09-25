@@ -165,7 +165,7 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
 
         // Regenerate the tree.
         streamModel.pushMessageCompile(accessData, "Regenerating tree for firewall: "+JSON.stringify(firewall)+"\n");
-        await insertFwc_Tree_New_firewall(accessData.fwcloud, nodeId,firewall.id);
+        await fwcTreemodel.insertFwc_Tree_New_firewall(accessData.fwcloud, nodeId,firewall.id);
       } catch(err) { reject(err) }
       resolve();
     });
