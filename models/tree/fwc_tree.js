@@ -854,6 +854,26 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 	});
 };
 
+// Create a new node for the new firewall into the NODES node of the cluster tree.
+fwc_treeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewallId, firewallName) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+
+			sql ='SELECT id FROM fwc_tree WHERE id_obj=' +
+				'(select id from firewall where cluster=' + connection.escape(clusterId) + ' and fwmaster=1)' +
+				' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="FCF"';
+			connection.query(sql, async (error, nodes) => {
+				if (error) return reject(error);
+				if (nodes.length!==1) return reject(new Error('Node NODES not found'));
+
+				await fwc_treeModel.newNode(connection,fwcloud,firewallName,nodes[0].id,'FW',firewallId,0);
+				resolve();
+			});
+		});
+	});
+};
+
 //Add new TREE CLUSTER for a New CLuster
 fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 	return new Promise((resolve, reject) => {

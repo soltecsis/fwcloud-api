@@ -496,9 +496,12 @@ router.post("/firewall", async (req, res) => {
 			var idfirewall = data.insertId;
 	
 			await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster);
-			//////////////////////////////////
-			//INSERT FIREWALL NODE STRUCTURE  
-			await fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, req.body.node_id, idfirewall);
+			
+			if (!firewallData.cluster) // Create firewall tree.
+				await fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, req.body.node_id, idfirewall);
+			else // Create the new firewall node in the NODES node of the cluster.
+				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.fwcloud, firewallData.cluster, idfirewall, firewallData.name);
+			
 			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null)
 				await Policy_rModel.insertPolicy_r_CatchingAllRules(req.iduser, req.fwcloud, idfirewall);
 
@@ -873,8 +876,12 @@ router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, Interfac
 });
 
 //DELETE FIREWALL FROM CLUSTER
-router.put("/delfromcluster/:idcluster/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, FirewallModel.checkRestrictionsFirewallApplyTo, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put("/delfromcluster/:idcluster/firewall/:idfirewall",
+utilsModel.checkFirewallAccess,
+InterfaceModel.checkRestrictionsOtherFirewall,
+FirewallModel.checkRestrictionsFirewallApplyTo,
+utilsModel.checkConfirmationToken,
+(req, res) => {
 
 	var id = req.params.idfirewall;
 	var idcluster = req.params.idcluster;

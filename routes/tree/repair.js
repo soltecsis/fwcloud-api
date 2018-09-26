@@ -18,6 +18,7 @@ router.put("/", async (req, res) =>{
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF') {
+        await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
       }

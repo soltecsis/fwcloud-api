@@ -886,18 +886,18 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
 	});
 }
 
-firewallModel.deleteFirewallFromCluster = function (iduser, fwcloud, idfirewall, cluster) {
+firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster) => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
 
 			var sqlExists = 'SELECT T.*, A.id as idnode FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-					' AND U.id_user=' + connection.escape(iduser) +
-					' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.node_type="FW" ' +
-					' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 AND T.cluster=' + connection.escape(cluster);
-			logger.debug(sqlExists);
-			connection.query(sqlExists, function (error, row) {
+				' AND U.id_user=' + connection.escape(iduser) +
+				' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.node_type="FW" ' +
+				' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 AND T.cluster=' + connection.escape(cluster);
+			connection.query(sqlExists, (error, row) => {
+				if (error) return reject(error);
+
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
 					var rowF = row[0];
@@ -1034,7 +1034,6 @@ firewallModel.deleteFirewallFromCluster = function (iduser, fwcloud, idfirewall,
 				}
 			});///
 		});
-
 	});
 };
 

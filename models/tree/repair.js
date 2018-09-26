@@ -241,3 +241,69 @@ fwc_treeRepairModel.checkClustersInTree = rootNode => {
   });
 };
 
+// Verify that the nodes into de folders are valid.
+fwc_treeRepairModel.checkNode = node => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let sql = '';
+      if (node.node_type==='FW') {
+        if (node.obj_type!==0) { // Verify that object type is correct.
+          streamModel.pushMessageCompile(accessData, "Deleting node with bad obj_type: "+JSON.stringify(node)+"\n");
+          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+          return resolve(false);
+        }
+        sql = 'SELECT id FROM firewall WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id=' + dbCon.escape(node.id_obj) + ' AND cluster is null';
+      }
+      else if (node.node_type==='CL') {
+        if (node.obj_type!==100) { // Verify that object type is correct.
+          streamModel.pushMessageCompile(accessData, "Deleting node with bad obj_type: "+JSON.stringify(node)+"\n");
+          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+          return resolve(false);
+        }
+        sql = 'SELECT id FROM cluster WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id=' + dbCon.escape(node.id_obj);
+      }
+      else return resolve(true);  
+
+      // Check that referenced object exists.
+      dbCon.query(sql, async (error, rows) => {
+        if (error) return reject(error);
+
+        if (rows.length!==1) {
+          streamModel.pushMessageCompile(accessData, "References object not found. Deleting node: "+JSON.stringify(node)+"\n");
+          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+          resolve(false);
+        } else resolve(true);
+      }); 
+    } catch(error) { reject(error) }
+  });
+};
+
+
+// Verify that the nodes into de folders are valid.
+fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
+	return new Promise((resolve, reject) => {
+    let sql = 'SELECT id,node_type,id_obj,obj_type FROM ' + tableModel +
+      ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=' + dbCon.escape(rootNode.id);
+    dbCon.query(sql, async (error, nodes) => {
+      if (error) return reject(error);
+
+      try {
+        for (let node of nodes) {
+          // Into a folder we can have only more folders, firewalls or clusters.
+          if (node.node_type!=='FD' && node.node_type!=='FW' && node.node_type!=='CL') {
+            streamModel.pushMessageCompile(accessData, "This node type can not be into a folder. Deleting node: "+JSON.stringify(node)+"\n");
+            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+          }
+
+          // Check that the firewall or cluster pointed by the node exists.
+          if (node.node_type==='FW' || node.node_type==='CL')
+            await fwc_treeRepairModel.checkNode(node);          
+          else // Recursively check the folders nodes.
+            await fwc_treeRepairModel.checkFirewallsFoldersContent(node);
+        }
+      } catch (error) { reject(error) }
+      resolve();
+    });
+  });
+};
+
