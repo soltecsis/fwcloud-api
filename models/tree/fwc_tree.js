@@ -271,46 +271,41 @@ fwc_treeModel.newNode = (connection,fwcloud,name,id_parent,node_type,id_obj,obj_
 fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
 
 			var sql = 'SELECT ' + connection.escape(data.OLDFW) +' as OLDFW, ' + connection.escape(data.NEWFW) + ' as NEWFW, T.* ' + 
-					' FROM ' + tableModel + ' T ' + 
-					' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id) + 
-					' AND id_obj=' + connection.escape(data.OLDFW);
+				' FROM ' + tableModel + ' T ' + 
+				' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id) + 
+				' AND id_obj=' + connection.escape(data.OLDFW);
 			logger.debug(sql);
 			connection.query(sql, function (error, rows) {
-				if (error)
-					reject(error);
-				else {
-					if (rows.length > 0) {
-						logger.debug("-----> UPDATING NODES UNDER PARENT: " + data.id);
-						//Bucle por interfaces
-						Promise.all(rows.map(fwc_treeModel.updateIDOBJFwc_TreeFullNode))
-								.then(resp => {
-									//logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
-									fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW )
-											.then(resp => {
-												//logger.debug("UPDATED NODE: ", data.id);
-												resolve();
-											})
-											.catch(e => reject(e));
-								})
-								.catch(e => {
-									reject(e);
-								});
-					} else {
-						logger.debug("NODE FINAL: TO UPDATE NODE: ", data.id);
-						resolve();
-						//Node whithout children, delete node
-						fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW)
-								.then(resp => {
-									logger.debug("UPDATED NODE: ", data.id);
-									resolve();
-								})
-								.catch(e => reject(e));
-					}
-
+				if (error) return reject(error);
+				if (rows.length > 0) {
+					logger.debug("-----> UPDATING NODES UNDER PARENT: " + data.id);
+					//Bucle por interfaces
+					Promise.all(rows.map(fwc_treeModel.updateIDOBJFwc_TreeFullNode))
+							.then(resp => {
+								//logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
+								fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW )
+										.then(resp => {
+											//logger.debug("UPDATED NODE: ", data.id);
+											resolve();
+										})
+										.catch(e => reject(e));
+							})
+							.catch(e => {
+								reject(e);
+							});
+				} else {
+					logger.debug("NODE FINAL: TO UPDATE NODE: ", data.id);
+					resolve();
+					//Node whithout children, delete node
+					fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW)
+							.then(resp => {
+								logger.debug("UPDATED NODE: ", data.id);
+								resolve();
+							})
+							.catch(e => reject(e));
 				}
 			});
 		});
@@ -900,7 +895,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 						// Create root cluster node
 						let id1 = await fwc_treeModel.newNode(connection,fwcloud,clusters[0].name,nodeId,'CL',clusters[0].id,100);
 						
-						let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].id,100);
+						let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].fwmaster_id,100);
 						await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',clusters[0].fwmaster_id,1);
 						await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',clusters[0].fwmaster_id,2);
 						await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',clusters[0].fwmaster_id,3);
