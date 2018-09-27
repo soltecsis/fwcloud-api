@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var fwcTreeRepairModel = require('../../models/tree/repair');
 var api_resp = require('../../utils/api_response');
-var utils = require('../../utils/utils');
+const streamModel = require('../../models/stream/stream');
 
 var objModel = 'FWC TREE REPAIR';
 
@@ -10,14 +10,19 @@ var objModel = 'FWC TREE REPAIR';
 /* Rpair tree */
 router.put("/", async (req, res) =>{
 	try {
-    await fwcTreeRepairModel.initData(req);
+    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    await fwcTreeRepairModel.initData(accessData);
+
+    streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREES FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
     const rootNodes = await fwcTreeRepairModel.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
+    streamModel.pushMessageCompile(accessData,'<font color="blue">Analyzing non root nodes.</font>\n');
     await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF') {
+        streamModel.pushMessageCompile(accessData,'<font color="blue">Analyzing firewalls and clusters tree.</font>\n');
         await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);

@@ -14,9 +14,9 @@ module.exports = fwc_treeRepairModel;
 
 var tableModel = "fwc_tree";
 
-fwc_treeRepairModel.initData = req => {
+fwc_treeRepairModel.initData = data => {
 	return new Promise(async resolve => {
-    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    accessData = data;
     dbCon = await utils.getDbConnection();
     resolve();
   });
@@ -31,18 +31,24 @@ fwc_treeRepairModel.checkRootNodes = () => {
     dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
 
-      // Verify that we have three root nodes.
-      if (nodes.length!==3) return reject(new Error('We must have 3 root nodes, but we found '+nodes.length)); 
-
       // The nodes must have the names: FIREWALLS, OBJECTS and SERVICES; with
       // the respective node types FDF, FDO, FDS.
       let update_obj_to_null = firewalls_found = objects_found = services_found = 0;
       for (let node of nodes) {
-        if (node.name==='FIREWALLS' && node.node_type==='FDF') firewalls_found=1;
-        else if (node.name==='OBJECTS' && node.node_type==='FDO') objects_found=1;
-        else if (node.name==='SERVICES' && node.node_type==='FDS') services_found=1;
+        if (node.name==='FIREWALLS' && node.node_type==='FDF') {
+          streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
+          firewalls_found=1;
+        }
+        else if (node.name==='OBJECTS' && node.node_type==='FDO') {
+          streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
+          objects_found=1;
+        }
+        else if (node.name==='SERVICES' && node.node_type==='FDS'){
+          streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
+          services_found=1;
+        }
         else {
-          streamModel.pushMessageCompile(accessData, "Deleting invalid root node: "+JSON.stringify(node)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">Deleting invalid root node: '+JSON.stringify(node)+'</font>\n');
           await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
         }
 
@@ -57,7 +63,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
 
       // The properties id_obj and obj_type must be null. If not we can repair it.
       if (update_obj_to_null) {
-        streamModel.pushMessageCompile(accessData, "Repairing root nodes (setting id_obj and obj_type to null).\n");
+        streamModel.pushMessageCompile(accessData,'<font color="red">Repairing root nodes (setting id_obj and obj_type to null).</font>\n');
         sql = 'update ' + tableModel + ' set id_obj=NULL,obj_type=NULL' +
           ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=0';        
         dbCon.query(sql, (error, result) => {
@@ -104,11 +110,11 @@ fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
             // For security we allo a maximum deep of 100.
             if (id_ancestor===-1 || id_ancestor===node.id || (++deep)>100) {
               if (id_ancestor===-1)
-                streamModel.pushMessageCompile(accessData, "Ancestor not found, deleting node: "+JSON.stringify(node)+"\n");
+                streamModel.pushMessageCompile(accessData,'<font color="red">Ancestor not found, deleting node: '+JSON.stringify(node)+'</font>\n');
               else if (id_ancestor===node.id)
-                streamModel.pushMessageCompile(accessData, "Deleting node in a loop: "+JSON.stringify(node)+"\n");
+                streamModel.pushMessageCompile(accessData,'<font color="red">Deleting node in a loop: '+JSON.stringify(node)+'</font>\n');
               else if (deep>100)
-                streamModel.pushMessageCompile(accessData, "Deleting a too much deep node: "+JSON.stringify(node)+"\n");
+                streamModel.pushMessageCompile(accessData,'<font color="red">Deleting a too much deep node: '+JSON.stringify(node)+'</font>\n');
 
               await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
               break;
@@ -124,7 +130,7 @@ fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
             }
           }
           if (!root_node_found) {
-            streamModel.pushMessageCompile(accessData, "Root node for this node is not correct. Deleting node: "+JSON.stringify(node)+"\n");
+            streamModel.pushMessageCompile(accessData,'<font color="red">Root node for this node is not correct. Deleting node: '+JSON.stringify(node)+'</font>\n');
             await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
             continue;
           }
@@ -150,13 +156,13 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
         let nodeId = rootNode.id;
 
         if (nodes.length===0) // No node found for this firewall.
-          streamModel.pushMessageCompile(accessData, "No node found for firewall: "+JSON.stringify(firewall)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">No node found for firewall: '+JSON.stringify(firewall)+'</font>\n');
         else {
           if (nodes.length===1) { // The common case, firewall referenced by only one node three.
             if (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD')
               nodeId = nodes[0].id_parent;
           } else if (nodes.length!==1)
-            streamModel.pushMessageCompile(accessData, "Found several nodes for firewall: "+JSON.stringify(firewall)+"\n");
+            streamModel.pushMessageCompile(accessData,'<font color="red">Found several nodes for firewall: '+JSON.stringify(firewall)+'>/font>\n');
           
           // Remove nodes for this firewall.
           for(let node of nodes)
@@ -202,13 +208,13 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
         let nodeId = rootNode.id;
 
         if (nodes.length===0) // No node found for this cluster.
-          streamModel.pushMessageCompile(accessData, "No node found for cluster: "+JSON.stringify(cluster)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">No node found for cluster: '+JSON.stringify(cluster)+'</font>\n');
         else {
           if (nodes.length===1) { // The common case, cluster referenced by only one node three.
             if (nodes[0].parent_node_type==='FDF' || nodes[0].parent_node_type==='FD')
               nodeId = nodes[0].id_parent;
           } else if (nodes.length!==1)
-            streamModel.pushMessageCompile(accessData, "Found several nodes for cluster: "+JSON.stringify(cluster)+"\n");
+            streamModel.pushMessageCompile(accessData,'<font color="red">Found several nodes for cluster: '+JSON.stringify(cluster)+'</font>\n');
           
           // Remove nodes for this cluster.
           for(let node of nodes)
@@ -248,7 +254,7 @@ fwc_treeRepairModel.checkNode = node => {
       let sql = '';
       if (node.node_type==='FW') {
         if (node.obj_type!==0) { // Verify that object type is correct.
-          streamModel.pushMessageCompile(accessData, "Deleting node with bad obj_type: "+JSON.stringify(node)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">Deleting node with bad obj_type: '+JSON.stringify(node)+'</font>\n');
           await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
           return resolve(false);
         }
@@ -256,7 +262,7 @@ fwc_treeRepairModel.checkNode = node => {
       }
       else if (node.node_type==='CL') {
         if (node.obj_type!==100) { // Verify that object type is correct.
-          streamModel.pushMessageCompile(accessData, "Deleting node with bad obj_type: "+JSON.stringify(node)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">Deleting node with bad obj_type: '+JSON.stringify(node)+'</font>\n');
           await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
           return resolve(false);
         }
@@ -269,7 +275,7 @@ fwc_treeRepairModel.checkNode = node => {
         if (error) return reject(error);
 
         if (rows.length!==1) {
-          streamModel.pushMessageCompile(accessData, "References object not found. Deleting node: "+JSON.stringify(node)+"\n");
+          streamModel.pushMessageCompile(accessData,'<font color="red">Referenced object not found. Deleting node: '+JSON.stringify(node)+'</font>\n');
           await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
           resolve(false);
         } else resolve(true);
@@ -291,7 +297,7 @@ fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
         for (let node of nodes) {
           // Into a folder we can have only more folders, firewalls or clusters.
           if (node.node_type!=='FD' && node.node_type!=='FW' && node.node_type!=='CL') {
-            streamModel.pushMessageCompile(accessData, "This node type can not be into a folder. Deleting node: "+JSON.stringify(node)+"\n");
+            streamModel.pushMessageCompile(accessData,'<font color="red">This node type can not be into a folder. Deleting node: '+JSON.stringify(node)+'</font>\n');
             await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
           }
 
