@@ -11,7 +11,7 @@ var objModel = 'FWC TREE REPAIR';
 router.put("/", async (req, res) =>{
 	try {
     await fwcTreeRepairModel.initData(req);
-    const rootNodes = await fwcTreeRepairModel.checkRootNodes(req.fwcloud);
+    const rootNodes = await fwcTreeRepairModel.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
     await fwcTreeRepairModel.checkNotRootNodes(rootNodes);

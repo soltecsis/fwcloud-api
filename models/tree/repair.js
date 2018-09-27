@@ -24,15 +24,15 @@ fwc_treeRepairModel.initData = req => {
 
 
 //Ontain all root nodes.
-fwc_treeRepairModel.checkRootNodes = fwcloud => {
+fwc_treeRepairModel.checkRootNodes = () => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';
-    dbCon.query(sql, (error, nodes) => {
+      ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=0';
+    dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
 
       // Verify that we have three root nodes.
-      if (nodes.length!==3) return reject(new Error('We must have 3 root nodes, but we found '+nodes.lenght)); 
+      if (nodes.length!==3) return reject(new Error('We must have 3 root nodes, but we found '+nodes.length)); 
 
       // The nodes must have the names: FIREWALLS, OBJECTS and SERVICES; with
       // the respective node types FDF, FDO, FDS.
@@ -41,15 +41,15 @@ fwc_treeRepairModel.checkRootNodes = fwcloud => {
         if (node.name==='FIREWALLS' && node.node_type==='FDF') firewalls_found=1;
         else if (node.name==='OBJECTS' && node.node_type==='FDO') objects_found=1;
         else if (node.name==='SERVICES' && node.node_type==='FDS') services_found=1;
-        else return reject(new Error('Root node with bad name or type (ID: '+node.name+')'));
+        else {
+          streamModel.pushMessageCompile(accessData, "Deleting invalid root node: "+JSON.stringify(node)+"\n");
+          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
+        }
 
         if (node.id_obj!=null || node.obj_type!=null) {
           node.id_obj = node.obj_type = null;
           update_obj_to_null = 1;
         }
-
-        // If it is a firewall or cluster node, veify that the referenced firewall/cluster exists.
-
       }
       
       // Verify that we have found all nodes.
@@ -59,7 +59,7 @@ fwc_treeRepairModel.checkRootNodes = fwcloud => {
       if (update_obj_to_null) {
         streamModel.pushMessageCompile(accessData, "Repairing root nodes (setting id_obj and obj_type to null).\n");
         sql = 'update ' + tableModel + ' set id_obj=NULL,obj_type=NULL' +
-          ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';        
+          ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=0';        
         dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
           resolve(nodes);
