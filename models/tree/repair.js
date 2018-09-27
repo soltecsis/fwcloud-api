@@ -297,18 +297,68 @@ fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
         for (let node of nodes) {
           // Into a folder we can have only more folders, firewalls or clusters.
           if (node.node_type!=='FD' && node.node_type!=='FW' && node.node_type!=='CL') {
-            streamModel.pushMessageCompile(accessData,'<font color="red">This node type can not be into a folder. Deleting node: '+JSON.stringify(node)+'</font>\n');
+            streamModel.pushMessageCompile(accessData,'<font color="red">This node type can not be into a folder. Deleting it: '+JSON.stringify(node)+'</font>\n');
             await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
           }
 
           // Check that the firewall or cluster pointed by the node exists.
           if (node.node_type==='FW' || node.node_type==='CL')
             await fwc_treeRepairModel.checkNode(node);          
-          else // Recursively check the folders nodes.
+          else { // Recursively check the folders nodes.
+            streamModel.pushMessageCompile(accessData,'Checking folder node: '+JSON.stringify(node)+'\n');
             await fwc_treeRepairModel.checkFirewallsFoldersContent(node);
+          }
         }
       } catch (error) { reject(error) }
       resolve();
+    });
+  });
+};
+
+// Regenerate host tree.
+fwc_treeRepairModel.regenerateHostTree = (hostsNode,host) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      await fwcTreemodel.newNode(dbCon,accessData.fwcloud,host.name,hostsNode.id,'OIH',host.id,8);
+      //await fwcTreemodel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id);
+    } catch(error) { reject(error) }
+    resolve();
+  });
+};
+
+// Verify that the host objects are correct.
+fwc_treeRepairModel.checkHostObjects = rootNode => {
+	return new Promise((resolve, reject) => {
+    // Verify that we have only one Hosts node.
+    let sql = 'SELECT id FROM ' + tableModel +
+      ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=' + dbCon.escape(rootNode.id) +
+      ' AND node_type="OIH" AND id_obj IS NULL and obj_type=8';
+    dbCon.query(sql, (error, nodes) => {
+      if (error) return reject(error);
+      if (nodes.length!==1) return reject(new Error('Hosts node not found'));
+
+      // Clear the hosts node removing all child nodes.
+      sql = 'SELECT id FROM ' + tableModel +
+        ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND id_parent=' + dbCon.escape(nodes[0].id);
+      dbCon.query(sql, async (error, childs) => {
+        if (error) return reject(error);
+        try {
+          for (let child of childs)
+              await fwcTreemodel.deleteFwc_TreeFullNode({id: child.id, fwcloud: accessData.fwcloud});
+        } catch (error) { return reject(error) }
+
+        // Search for all the hosts in the selected cloud.
+        sql = 'SELECT id,name FROM ipobj' +
+          ' WHERE fwcloud=' + dbCon.escape(accessData.fwcloud) + ' AND type=8';
+        dbCon.query(sql, async (error, hosts) => {
+          if (error) return reject(error);
+          try {
+            for (let host of hosts)
+                await fwc_treeRepairModel.regenerateHostTree(nodes[0],host);
+          } catch (error) { return reject(error) }
+          resolve();
+        });
+      });
     });
   });
 };

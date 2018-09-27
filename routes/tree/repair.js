@@ -17,15 +17,20 @@ router.put("/", async (req, res) =>{
     const rootNodes = await fwcTreeRepairModel.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
-    streamModel.pushMessageCompile(accessData,'<font color="blue">Analyzing non root nodes.</font>\n');
+    streamModel.pushMessageCompile(accessData,'<font color="blue">Checking tree struture.</font>\n');
     await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
 
     for (let rootNode of rootNodes) {
-      if (rootNode.node_type==='FDF') {
-        streamModel.pushMessageCompile(accessData,'<font color="blue">Analyzing firewalls and clusters tree.</font>\n');
+      if (rootNode.node_type==='FDF') { // Firewalls and clusters tree.
+        streamModel.pushMessageCompile(accessData,'<font color="blue">Checking folders.</font>\n');
         await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
+        streamModel.pushMessageCompile(accessData,'<font color="blue">Checking firewalls and clusters tree.</font>\n');
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
+      }
+      else if (rootNode.node_type==='FDO') { // Objects tree.
+        streamModel.pushMessageCompile(accessData,'<font color="blue">Checking host objects.</font>\n');
+        await fwcTreeRepairModel.checkHostObjects(rootNode);
       }
     }
 
