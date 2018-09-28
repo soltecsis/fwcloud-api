@@ -201,8 +201,13 @@ router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
 						var idfirewall = data.insertId;
 
 						await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
-						if (firewallData.fwmaster === 1) ///CREATE CATCHING ALL RULES							
-							await Policy_rModel.insertPolicy_r_CatchingAllRules(req.iduser, req.fwcloud, idfirewall);
+
+						if (firewallData.fwmaster === 1) {
+							// Create the loop backup interface.
+							await InterfaceModel.createLoInterface(idfirewall);
+							// Create the default policy rules.							
+							await Policy_rModel.insertDefaultPolicy(req.iduser, req.fwcloud, idfirewall);
+						}
 					}			
 				}
 				await fwcTreemodel.insertFwc_Tree_New_cluster(req.fwcloud, req.body.clusterData.node_id, idcluster);

@@ -142,9 +142,7 @@ ipobjModel.getIpobj = (fwcloud, id, callback) => {
 	db.get((error, connection) => {
 		if (error) return callback(error, null);
 
-		var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' I ' +
-			' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL)' +
-			' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+		var sql = 'SELECT I.* FROM ' + tableModel + ' I ' +
 			' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
 
 		connection.query(sql, (error, rows) => {

@@ -1,16 +1,25 @@
 var express = require('express');
 var router = express.Router();
-var fwcTreeRepairModel = require('../../models/tree/repair');
-var api_resp = require('../../utils/api_response');
+const lockFile = require('proper-lockfile');
+const fs = require('fs');
+
+const fwcTreeRepairModel = require('../../models/tree/repair');
+const api_resp = require('../../utils/api_response');
 const streamModel = require('../../models/stream/stream');
+const config = require('../../config/config');
 
 var objModel = 'FWC TREE REPAIR';
 
 
 /* Rpair tree */
 router.put("/:type", async (req, res) =>{
+  const lockFilePath = config.get('policy').data_dir+"/"+req.fwcloud+"/"+req.fwcloud;
+  const accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    
 	try {
-    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    if (!fs.existsSync(lockFilePath))
+      fs.closeSync(fs.openSync(lockFilePath,'w'));
+
     if (req.params.type==='FDF')
       streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
     else if (req.params.type==='FDO')
@@ -23,6 +32,9 @@ router.put("/:type", async (req, res) =>{
     await fwcTreeRepairModel.initData(accessData);
 
     streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+
+    // MUTUAL EXCLUSION ACCESS
+    const release = await lockFile.lock(lockFilePath);
     const rootNodes = await fwcTreeRepairModel.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
@@ -48,6 +60,9 @@ router.put("/:type", async (req, res) =>{
         break;
       }
     }
+
+    // EXIT MUTEX
+    await release();
 
     api_resp.getJson(null, api_resp.ACR_OK, 'REPAIR PROCESS COMPLETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error repairing tree', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

@@ -435,9 +435,8 @@ policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
 	});
 };
 
-policy_rModel.insertPolicy_r_CatchingAllRules = function (iduser, fwcloud, idfirewall) {
+policy_rModel.insertDefaultPolicy = (iduser, fwcloud, idfirewall) => {
 	return new Promise((resolve, reject) => {
-
 		var policy_rData = {
 			id: null,
 			idgroup: null,

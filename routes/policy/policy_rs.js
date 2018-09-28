@@ -40,7 +40,9 @@ router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, functi
 });
 
 /* Get all policy_rs by firewall and type */
-router.get('/:idfirewall/type/:type', utilsModel.checkFirewallAccess, (req, res) => {
+router.get('/:idfirewall/type/:type',
+utilsModel.checkFirewallAccess,
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var type = req.params.type;
 	var rule = "";
