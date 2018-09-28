@@ -10,10 +10,16 @@ var objModel = 'FWC TREE REPAIR';
 /* Rpair tree */
 router.put("/:type", async (req, res) =>{
 	try {
-    if (req.params.type!=='FDF' && req.params.type!=='FDO' && req.params.type!=='FDS')
+    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+    if (req.params.type==='FDF')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+    else if (req.params.type==='FDO')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+    else if (req.params.type==='FDS')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+    else
       return api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
     
-    accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
     await fwcTreeRepairModel.initData(accessData);
 
     streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');

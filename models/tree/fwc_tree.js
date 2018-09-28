@@ -789,15 +789,18 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 	return new Promise((resolve, reject) => {
 		// Get firewall interfaces.  
 		let sql = '';
+		let oby_type;
 		
 		if (ownerType==='FW') {
 			sql = 'SELECT id,name,labelName FROM interface' +
 				' WHERE firewall=' + connection.escape(ownerId) + ' AND interface_type=10';
+			obj_type=10;
 		}
 		else if (ownerType==='HOST') {
 			sql = 'SELECT I.id,I.name,I.labelName FROM interface I' +
 				' INNER JOIN interface__ipobj IO on IO.interface=I.id ' +
 				' WHERE IO.ipobj=' + connection.escape(ownerId) + ' AND I.interface_type=11';
+			obj_type=11;
 		}
 		else return reject(new Error('Invalid owner type'));
 
@@ -807,7 +810,7 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 
 			try {
 				for(let interface of interfaces) {
-					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,11);
+					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,obj_type);
 					await fwc_treeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
 				}
 			} catch(error) { return reject(error )}
