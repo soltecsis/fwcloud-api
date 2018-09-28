@@ -785,18 +785,29 @@ fwc_treeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 };
 
 //Generate the interfaces nodes.
-fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, fwId) => {
+fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType) => {
 	return new Promise((resolve, reject) => {
 		// Get firewall interfaces.  
-		let sql = 'SELECT id,name,labelName FROM interface' +
-			' WHERE firewall=' + connection.escape(fwId) + ' AND interface_type=10';
+		let sql = '';
+		
+		if (ownerType==='FW') {
+			sql = 'SELECT id,name,labelName FROM interface' +
+				' WHERE firewall=' + connection.escape(ownerId) + ' AND interface_type=10';
+		}
+		else if (ownerType==='HOST') {
+			sql = 'SELECT I.id,I.name,I.labelName FROM interface I' +
+				' INNER JOIN interface__ipobj IO on IO.interface=I.id ' +
+				' WHERE IO.ipobj=' + connection.escape(ownerId) + ' AND I.interface_type=11';
+		}
+		else return reject(new Error('Invalid owner type'));
+
 		connection.query(sql, async (error, interfaces) => {
 			if (error) return reject(error);
 			if (interfaces.length===0) resolve();
 
 			try {
 				for(let interface of interfaces) {
-					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,10);
+					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,11);
 					await fwc_treeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
 				}
 			} catch(error) { return reject(error )}
@@ -840,7 +851,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 						await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);
 						
 						id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
-						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId);
+						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
 					} catch(error) { return reject(error)}
 					resolve();
 				});
@@ -905,7 +916,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 						await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);
 						
 						id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
-						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id);
+						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
 
 						id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
 

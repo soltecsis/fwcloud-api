@@ -319,8 +319,8 @@ fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
 fwc_treeRepairModel.regenerateHostTree = (hostsNode,host) => {
 	return new Promise(async (resolve, reject) => {
     try {
-      await fwcTreemodel.newNode(dbCon,accessData.fwcloud,host.name,hostsNode.id,'OIH',host.id,8);
-      //await fwcTreemodel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id);
+      let newId = await fwcTreemodel.newNode(dbCon,accessData.fwcloud,host.name,hostsNode.id,'OIH',host.id,8);
+      await fwcTreemodel.interfacesTree(dbCon,accessData.fwcloud,newId,host.id,'HOST');
     } catch(error) { reject(error) }
     resolve();
   });
