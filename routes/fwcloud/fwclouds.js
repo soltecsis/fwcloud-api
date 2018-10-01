@@ -71,7 +71,6 @@ var utilsModel = require("../../utils/utils.js");
 
 var fwcTreemodel = require('../../models/tree/fwc_tree');
 
-
 var db = require('../../db.js');
 
 
@@ -268,17 +267,21 @@ router.post("/fwcloud", function (req, res)
 	};
 	var iduser = req.iduser;
 
-	FwcloudModel.insertFwcloud(iduser, fwcloudData, function (error, data)
-	{
-
+	FwcloudModel.insertFwcloud(iduser, fwcloudData, (error, data) => {
 		if (data && data.insertId)
 		{   
 			logger.debug("insertFwcloud: ", data);
 			var dataresp = {"insertId": data.insertId};
+
 			//CREATE INITIAL STRUCTURE 
 			logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
-			fwcTreemodel.createAllTreeCloud(iduser, data.insertId, function (error, dataT) {
+			fwcTreemodel.createAllTreeCloud(iduser, data.insertId, async (error, dataT) => {
 				if (dataT && dataT.result) {
+					// Create the new fwcloud data dir.
+					try {
+						await utilsModel.createFwcloudDataDir(data.insertId);
+					} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+
 					api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
 						res.status(200).json(jsonResp);
 					});
@@ -288,12 +291,7 @@ router.post("/fwcloud", function (req, res)
 					});
 				}
 			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
@@ -568,10 +566,18 @@ router.get('/locked/:fwcloud', function (req, res)
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del/fwcloud/:fwcloud", FwcloudModel.checkRestrictionsCloud, utilsModel.checkConfirmationToken, function (req, res)
-{
-        req.fwcloud = req.params.fwcloud;
+router.put("/del/fwcloud/:fwcloud",
+FwcloudModel.checkRestrictionsCloud,
+utilsModel.checkConfirmationToken, 
+async (req, res) => {
+  req.fwcloud = req.params.fwcloud;
 	var iduser = req.iduser;
+
+	// Remove the fwcloud data dir.
+	try {
+		await utilsModel.removeFwcloudDataDir(req.fwcloud);
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+	
 	FwcloudModel.deleteFwcloud(iduser, req.fwcloud,req.restricted, function (error, data)
 	{
 		if (data && data.result)

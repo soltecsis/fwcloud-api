@@ -326,6 +326,40 @@ utilsModel.getDbConnection = () => {
   });
 };
 
+utilsModel.createFwcloudDataDir = fwcloud => {
+	return new Promise((resolve, reject) => {
+		var path='';
+		try {
+			path = config.get('policy').data_dir;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+			path += "/" + fwcloud;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+			
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
+
+utilsModel.removeFwcloudDataDir = (fwcloud) => {
+	return new Promise((resolve, reject) => {
+		var dir_path=config.get('policy').data_dir+'/'+fwcloud;
+		try {
+			if (fs.existsSync(dir_path)) {
+        fs.readdirSync(dir_path).forEach(function(entry) {
+            var entry_path = path.join(dir_path, entry);
+            if (!fs.lstatSync(entry_path).isDirectory()) 
+              fs.unlinkSync(entry_path);
+        });
+        fs.rmdirSync(dir_path);
+   		}
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
+
+
 utilsModel.createFirewallDataDir = (fwcloud, fwId) => {
 	return new Promise((resolve, reject) => {
 		var path='';
@@ -362,5 +396,15 @@ utilsModel.removeFirewallDataDir = (fwcloud, fwId) => {
   });
 };
 
+utilsModel.renameFirewallDataDir = (fwcloud, fwIdOld, fwIdNew) => {
+	return new Promise((resolve, reject) => {
+		const dir_old=config.get('policy').data_dir+'/'+fwcloud+'/'+fwIdOld;
+		const dir_new=config.get('policy').data_dir+'/'+fwcloud+'/'+fwIdNew;
+		try {
+			fs.renameSync(dir_old,dir_new);
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
 
 

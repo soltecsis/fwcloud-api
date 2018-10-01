@@ -655,8 +655,9 @@ utilsModel.checkConfirmationToken,
 });
 
 
-router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put('/clone/firewall/:idfirewall',
+utilsModel.checkFirewallAccess, 
+utilsModel.checkConfirmationToken, (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	//Save firewall data into objet    
 	var firewallData = {
@@ -679,7 +680,8 @@ router.put('/clone/firewall/:idfirewall', utilsModel.checkFirewallAccess, utilsM
 			//CLONE INTERFACES
 			InterfaceModel.cloneFirewallInterfaces(req.iduser, req.fwcloud, idfirewall, idNewFirewall)
 			.then(dataI => Policy_rModel.cloneFirewallPolicy(req.iduser, req.fwcloud, idfirewall, idNewFirewall, dataI))	
-			.then(dataP => {
+			.then(dataP => utilsModel.createFirewallDataDir(req.fwcloud, idNewFirewall))
+			.then(dataD => {
 				//INSERT FIREWALL NODE STRUCTURE                                                
 				fwcTreemodel.insertFwc_Tree_firewalls(req.fwcloud, req.body.node_id, idNewFirewall, (error, dataTree) => {
 					if (error)

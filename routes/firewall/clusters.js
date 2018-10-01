@@ -395,6 +395,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 								//CLONE INTERFACES
 								let dataI = await InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
 								await Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall,dataI);
+								await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							}
 						}
 	

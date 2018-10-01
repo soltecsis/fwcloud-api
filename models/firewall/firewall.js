@@ -913,9 +913,15 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 								' WHERE fwmaster=0 AND  T.cluster=' + connection.escape(cluster) +
 								' ORDER by T.id limit 1';
 						logger.debug("SELECT NEXT FIREWALL SLAVE: ", sql);
-						connection.query(sql, function (error, rowS) {
+						connection.query(sql, async (error, rowS) => {
 							if (rowS && rowS.length > 0) {
 								var idNewFM = rowS[0].id;
+
+								// Rename datar directory with the new firewall master id.
+								try {
+									await utilsModel.renameFirewallDataDir(fwcloud,idfirewall,idNewFM);
+								} catch(error) { return reject(error) }
+
 								logger.debug("NEW FWMASTER: " + idNewFM);
 								//UPDATE POLICY_R
 								sql = "UPDATE policy_r SET firewall=" + connection.escape(idNewFM) + " WHERE firewall=" + connection.escape(idfirewall);
