@@ -435,68 +435,88 @@ policy_rModel.getPolicy_rName = function (idfirewall, idgroup, name, callback) {
 	});
 };
 
-policy_rModel.insertDefaultPolicy = (iduser, fwcloud, idfirewall) => {
+policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 	return new Promise((resolve, reject) => {
 		var policy_rData = {
 			id: null,
 			idgroup: null,
-			firewall: idfirewall,
+			firewall: fwId,
 			rule_order: 1,
 			action: 2,
 			time_start: null,
 			time_end: null,
 			active: 1,
 			options: '',
-			comment: 'Catching All Rule.',
+			comment: '',
 			type: 0,
 			style: null
 		};
 
-		//CREATE INPUT RULE
-		//Get Policy Type I
-		Policy_typeModel.getPolicy_typeL('I', function (error, dataPol) {
-			if (dataPol && dataPol.length > 0) {
-				policy_rData.type = dataPol[0].id;
-				//Insert Empty Rule
-				policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-					if (dataRule && dataRule.result) {
-						logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL INPUT RULE CREATED:  " + dataRule.insertId);
-					}
+		var policy_r__interfaceData = {
+			rule: null,
+			interface: loInterfaceId,
+			negate: 0,
+			position: 20,
+			position_order: 1
+		};
+
+		var policy_r__ipobjData = {
+			rule: null,
+			ipobj: -1,
+			ipobj_g: 5,
+			interface: -1,
+			position: 3,
+			position_order: 1
+		};
+
+		// Generate the default INPUT policy.
+		policy_rData.type = 1;
+		policy_rData.comment = 'Allow all incoming traffic from self host.';
+		policy_rData.action = 1;
+		policy_rModel.insertPolicy_r(policy_rData, (error, dataRule) => {  // Insert empty rule.
+			if (error) return reject(error);
+			policy_r__interfaceData.rule = dataRule.insertId;
+			Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData, (error, data) => {
+				if (error) return reject(error);
+				
+				// Allow useful ICMP traffic.
+				policy_rData.comment = 'Allow useful ICMP.';
+				policy_rData.rule_order = 2;
+				policy_rModel.insertPolicy_r(policy_rData, (error, dataRule) => {
+					if (error) return reject(error);
+
+					policy_r__ipobjData.rule = dataRule.insertId;
+					Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0, (error, data) => {
+						if (error) return reject(error);
+		
+						// Now create the catch all rule.
+						policy_rData.comment = 'Catch-all rule.';
+						policy_rData.action = 2;
+						policy_rData.rule_order = 3;
+						policy_rModel.insertPolicy_r(policy_rData, (error, dataRule) => {
+							if (error) return reject(error);
+
+							// Generate the default FORWARD policy. 
+							policy_rData.type = 3;
+							policy_rData.comment = 'Catch-all rule.';
+							policy_rModel.insertPolicy_r(policy_rData, (error, dataRule) => {
+								if (error) return reject(error);
+
+								// Generate the default OUTPUT policy. 
+								policy_rData.type = 2;
+								policy_rData.comment = 'Allow all outgoing traffic.';
+								policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
+								policy_rModel.insertPolicy_r(policy_rData, (error, dataRule) => { 
+									if (error) return reject(error);
+									resolve();
+								});
+							});
+						});
+					});
 				});
-			}
+			});
 		});
-
-		//Create Forward rule 
-		Policy_typeModel.getPolicy_typeL('F', function (error, dataPol) {
-			if (dataPol && dataPol.length > 0) {
-				policy_rData.type = dataPol[0].id;
-				//Insert Empty Rule
-				policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-					if (dataRule && dataRule.result) {
-						logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL FORWARD RULE CREATED:  " + dataRule.insertId);
-					}
-				});
-			}
-		});
-
-		//Create Output rule 
-		Policy_typeModel.getPolicy_typeL('O', function (error, dataPol) {
-			if (dataPol && dataPol.length > 0) {
-				policy_rData.type = dataPol[0].id;
-				//Insert Empty Rule
-				policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
-				policy_rModel.insertPolicy_r(policy_rData, function (error, dataRule) {
-					if (dataRule && dataRule.result) {
-						logger.debug("FIREWALL: " + idfirewall + " with CATCHING ALL OUTPUT RULE CREATED:  " + dataRule.insertId);
-					}
-				});
-			}
-		});
-
-		resolve();
-
 	});
-
 };
 
 

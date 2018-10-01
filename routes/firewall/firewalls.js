@@ -499,7 +499,7 @@ router.post("/firewall", async (req, res) => {
 			await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster);
 
 			// Create the loop backup interface.
-			await InterfaceModel.createLoInterface(idfirewall);
+			const loInterfaceId = await InterfaceModel.createLoInterface(idfirewall);
 			
 			if (!firewallData.cluster) // Create firewall tree.
 				await fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, req.body.node_id, idfirewall);
@@ -507,7 +507,7 @@ router.post("/firewall", async (req, res) => {
 				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.fwcloud, firewallData.cluster, idfirewall, firewallData.name);
 			
 			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null)
-				await Policy_rModel.insertDefaultPolicy(req.iduser, req.fwcloud, idfirewall);
+				await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
 
 			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, "", jsonResp => res.status(200).json(jsonResp));

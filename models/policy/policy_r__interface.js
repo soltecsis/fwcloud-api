@@ -61,9 +61,7 @@ policy_r__interfaceModel.getPolicy_r__interface = function (interface, rule, cal
 
 
 //Add new policy_r__interface
-policy_r__interfaceModel.insertPolicy_r__interface = function (idfirewall, policy_r__interfaceData, callback) {
-
-
+policy_r__interfaceModel.insertPolicy_r__interface = (idfirewall, policy_r__interfaceData, callback) => {
 	//Check if IPOBJ TYPE is ALLOWED in this Position
 	checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
 		if (error) {

@@ -581,7 +581,7 @@ interfaceModel.createLoInterface = fwId => {
 					
 			connection.query('INSERT INTO '+tableModel+' SET ?', interfaceData, (error, result) => {
 				if (error) return reject(error);
-				resolve();
+				resolve(result.insertId);
 			});
 		});
 	});
