@@ -13,7 +13,11 @@ var objModel = 'FWC TREE REPAIR';
 
 /* Rpair tree */
 router.put("/:type", async (req, res) =>{
-  const lockFilePath = config.get('policy').data_dir+"/"+req.fwcloud+"/"+req.fwcloud;
+  let lockFilePath = config.get('policy').data_dir+"/"+req.fwcloud;
+  if (!fs.existsSync(lockFilePath))
+    fs.mkdirSync(lockFilePath);
+  lockFilePath += "/"+req.fwcloud;
+
   const accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
     
 	try {

@@ -974,7 +974,6 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 								var i = 0;
 								if (rowsnodes) {
 									asyncMod.forEachSeries(rowsnodes, function (rnode, callback2) {
-										var idfirewall = rnode.id;
 										i++;
 										//Insertamos nodos Cluster
 										sqlinsert = 'INSERT INTO ' + tableModel +
@@ -1012,7 +1011,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 
 											//Insertamos nodo NODE FIREWALLS
 											sqlinsert = 'INSERT INTO ' + tableModel + '( name, comment, id_parent, node_order,node_level, node_type, expanded, subfolders, id_obj,obj_type,fwcloud,fwcloud_tree, show_action) ' +
-													' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idcluster) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
+													' VALUES (' + '"NODES","",' + parent_cluster + ',5,' + (row.node_level + 2) + ',"FCF",0,0,' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + "," + connection.escape(rnode.fwcloud)  + ",1)";
 											connection.query(sqlinsert, function (error, result) {
 												if (error)
 													logger.debug("ERROR RR : " + error);

@@ -868,7 +868,8 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
 						.then(resp1 => InterfaceModel.deleteInterfaceFirewall(fwcloud, idfirewall)) //DELETE INTEFACES
 						.then(resp2 => User__firewallModel.deleteAllUser__firewall(idfirewall))//DELETE USERS_FIREWALL
 						.then(resp3 => fwcTreemodel.deleteFwc_TreeFullNode({id: idnode, fwcloud: fwcloud, iduser: iduser})) //DELETE TREE NODES From firewall
-						.then(resp4 => { //DELETE FIREWALL
+						.then(resp4 => utilsModel.removeFirewallDataDir(fwcloud,idfirewall)) // DELETE DATA DIRECTORY FOR THIS FIREWALL
+						.then(resp5 => { //DELETE FIREWALL
 							var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
 							connection.query(sql, function (error, result) {
 								connection.query("SET FOREIGN_KEY_CHECKS = 1", (error, result) => {});
@@ -1012,7 +1013,7 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 									fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
 											.then(resp4 => {
 												//DELETE FIREWALL
-												var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
+												var sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + connection.escape(idfirewall);
 												connection.query(sql, function (error, result) {
 													if (error) {
 														resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});

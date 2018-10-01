@@ -87,6 +87,7 @@ var InterfaceModel = require('../../models/interface/interface');
 
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
+var fs = require('fs');
 
 
 router.param('cluster', function (req, res, next, param) {
@@ -498,16 +499,19 @@ router.post("/firewall", async (req, res) => {
 	
 			await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster);
 
-			// Create the loop backup interface.
-			const loInterfaceId = await InterfaceModel.createLoInterface(idfirewall);
+			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null) {
+				// Create the loop backup interface.
+				const loInterfaceId = await InterfaceModel.createLoInterface(req.fwcloud, idfirewall);
+				await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
+			}
 			
 			if (!firewallData.cluster) // Create firewall tree.
 				await fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, req.body.node_id, idfirewall);
 			else // Create the new firewall node in the NODES node of the cluster.
 				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.fwcloud, firewallData.cluster, idfirewall, firewallData.name);
-			
-			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null)
-				await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
+
+			// Create the directory used for store firewall data.
+			await utilsModel.createFirewallDataDir(req.fwcloud, idfirewall);
 
 			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, "", jsonResp => res.status(200).json(jsonResp));
@@ -849,34 +853,23 @@ router.get('/accesslock/:id', function (req, res)
  *         ]
  *       };
  */
-router.put("/del/firewall/:idfirewall", utilsModel.checkFirewallAccess, InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, function (req, res)
+router.put("/del/firewall/:idfirewall", 
+utilsModel.checkFirewallAccess, 
+InterfaceModel.checkRestrictionsOtherFirewall, 
+utilsModel.checkConfirmationToken, 
+async (req, res) => 
 {
-
 	var id = req.params.idfirewall;
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 
-	//CHECK FIREWALL DATA TO DELETE
-	FirewallModel.deleteFirewall(iduser, fwcloud, id)
-			.then(data =>
-			{
-				if (data && data.result)
-				{
-					api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-				{
-					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(error => {
-				api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
+	try {
+		data = await FirewallModel.deleteFirewall(iduser, fwcloud, id);
+		if (data && data.result)
+			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 //DELETE FIREWALL FROM CLUSTER

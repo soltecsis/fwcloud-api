@@ -12,11 +12,14 @@ module.exports = utilsModel;
 var logger = require('log4js').getLogger("app");
 var FirewallModel = require('../models/firewall/firewall');
 var FwcloudModel = require('../models/fwcloud/fwcloud');
+const config = require('../config/config');
 var api_resp = require('./api_response');
 var UserModel = require('../models/user/user');
 var crypto = require('crypto');
 var randomString = require('random-string');
 const db = require('../db');
+const fs = require('fs');
+var path = require('path');
 
 
 utilsModel.checkParameters = function (obj, callback) {
@@ -323,6 +326,41 @@ utilsModel.getDbConnection = () => {
   });
 };
 
+utilsModel.createFirewallDataDir = (fwcloud, fwId) => {
+	return new Promise((resolve, reject) => {
+		var path='';
+		try {
+			path = config.get('policy').data_dir;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+			path += "/" + fwcloud;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+			path += "/" + fwId;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+			
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
+
+utilsModel.removeFirewallDataDir = (fwcloud, fwId) => {
+	return new Promise((resolve, reject) => {
+		var dir_path=config.get('policy').data_dir+'/'+fwcloud+'/'+fwId;
+		try {
+			if (fs.existsSync(dir_path)) {
+        fs.readdirSync(dir_path).forEach(function(entry) {
+            var entry_path = path.join(dir_path, entry);
+            if (!fs.lstatSync(entry_path).isDirectory()) 
+              fs.unlinkSync(entry_path);
+        });
+        fs.rmdirSync(dir_path);
+   		}
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
 
 
 

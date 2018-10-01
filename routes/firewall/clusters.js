@@ -204,9 +204,11 @@ router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
 
 						if (firewallData.fwmaster === 1) {
 							// Create the loop backup interface.
-							const loInterfaceId = await InterfaceModel.createLoInterface(idfirewall);
+							const loInterfaceId = await InterfaceModel.createLoInterface(req.fwcloud, idfirewall);
 							// Create the default policy rules.							
 							await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
+							// Create the directory used for store firewall data.
+							await utilsModel.createFirewallDataDir(req.fwcloud, idfirewall);
 						}
 					}			
 				}

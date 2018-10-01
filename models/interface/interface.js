@@ -562,26 +562,57 @@ interfaceModel.insertInterface = function (interfaceData, callback) {
 	});
 };
 
-interfaceModel.createLoInterface = fwId => {
+interfaceModel.createLoInterface = (fwcloud, fwId) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
 			// Loopback interface.
-			var interfaceData = {
+			const interfaceData = {
 				id: null,
 				firewall: fwId,
 				name: 'lo',
 				labelName: '',
 				type: 10,
 				interface_type: 10,
-				comment: '',
+				comment: 'Loopback interface.',
 				mac: ''
 			};
-					
+
+			// Create the IPv4 loopbackup interface address.
 			connection.query('INSERT INTO '+tableModel+' SET ?', interfaceData, (error, result) => {
 				if (error) return reject(error);
-				resolve(result.insertId);
+
+				const interfaceId = result.insertId;
+				const ipobjData = {
+					id: null,
+					fwcloud: fwcloud,
+					interface: interfaceId,
+					name: 'lo',
+					type: 5,
+					protocol: null,
+					address: '127.0.0.1',
+					netmask: '255.0.0.0',
+					diff_serv: null,
+					ip_version: 4,
+					icmp_code: null,
+					icmp_type: null,
+					tcp_flags_mask: null,
+					tcp_flags_settings: null,
+					range_start: null,
+					range_end: null,
+					source_port_start: 0,
+					source_port_end: 0,
+					destination_port_start: 0,
+					destination_port_end: 0,
+					options: null,
+					comment: 'IPv4 loopback interface address.'
+				};
+	
+				connection.query('INSERT INTO ipobj SET ?', ipobjData, (error, result) => {
+					if (error) return reject(error);
+					resolve(interfaceId);
+				});
 			});
 		});
 	});
