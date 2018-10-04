@@ -1088,7 +1088,7 @@ CREATE TABLE `policy_r` (
   `time_start` datetime DEFAULT NULL,
   `time_end` datetime DEFAULT NULL,
   `comment` longtext COLLATE utf8_unicode_ci NOT NULL,
-  `options` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `options` smallint(2) NOT NULL DEFAULT '0',
   `active` tinyint(1) NOT NULL DEFAULT '1',
   `type` tinyint(1) DEFAULT NULL COMMENT 'rule type:  I, O, F, N',
   `style` varchar(50) CHARACTER SET utf8 DEFAULT NULL,
