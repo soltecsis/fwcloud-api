@@ -446,7 +446,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			time_start: null,
 			time_end: null,
 			active: 1,
-			options: '',
+			options: 0,
 			comment: '',
 			type: 0,
 			style: null
