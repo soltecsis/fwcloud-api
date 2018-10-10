@@ -354,7 +354,9 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 			cs += "-A " + POLICY_TYPE[policy_type] + " ";
 			action = ACTION[data[0].action];
 			if (action==="ACCEPT") {
-				if (data[0].firewall_options & 0x0001) // Statefull firewall.
+				if (data[0].options & 0x0001) // Statefull rule.
+					statefull ="-m state --state NEW ";
+				else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
 					statefull ="-m state --state NEW ";
 			}
 			else if (action==="ACCOUNTING") {
@@ -362,8 +364,8 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 				action = acc_chain; 
 			}
 
-			// If log all rules option is enabled.
-			if (data[0].firewall_options & 0x0010) {
+			// If log all rules option is enabled or log option for this rule is enabled.
+			if ((data[0].firewall_options & 0x0010) || (data[0].options & 0x0004)) {
 				log_chain = "FWCRULE"+rule+".LOG";
 				if (!acc_chain) {
 					after_log_action = action;

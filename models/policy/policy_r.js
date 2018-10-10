@@ -1034,9 +1034,8 @@ policy_rModel.compilePolicy_r = function (accessData, callback) {
 
 	var rule = accessData.rule;
 
-	policy_rModel.getPolicy_r_id(rule, function (error, data) {
-		if (error)
-			callback(error, null);
+	policy_rModel.getPolicy_r_id(rule, (error, data) => {
+		if (error) return callback(error, null);
 		if (data && data.length > 0) {
 			//streamModel.pushMessageCompile(accessData, "COMPILING RULE " + rule + " COMPILATION PROCESS\n");
 
