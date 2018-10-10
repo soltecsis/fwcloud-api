@@ -51,12 +51,6 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 	} else if (type === 'G') {
 		this.type = data.type;
 	}
-
-	try {
-		this.fwcloud_tree = data.fwcloud_tree;
-	} catch (err) {
-		this.fwcloud_tree = data.fwcloud;
-	}
 };
 
 //Export the object

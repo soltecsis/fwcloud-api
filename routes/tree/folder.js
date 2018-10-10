@@ -11,17 +11,10 @@ router.post("/", (req, res) =>{
 		id: null,
 		name: req.body.name,
 		id_parent: req.body.id_parent,
-		node_order: req.body.node_order,
-		node_icon: null,
-		expanded: 0,
 		node_type: 'FD',
-		api_call: null,
 		obj_type: null,
 		id_obj: null,
-		node_level: req.body.node_level,
-		fwcloud: req.fwcloud,
-		comment: req.body.comment,
-		fwcloud_tree: req.fwcloud
+		fwcloud: req.fwcloud
 	};
 
 	fwcTreeFoldermodel.createFolderNode(nodeData)

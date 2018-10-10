@@ -64,7 +64,7 @@ ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
 				if (id !== '')
 						sqlId = ' AND G.id = ' + connection.escape(id);
 				var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-								'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
+								'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
 								' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
 				logger.debug(sql);
 				connection.query(sql, function (error, rows) {
@@ -145,7 +145,7 @@ ipobj_gModel.getIpobj_g_Full_Pro = function (fwcloud, id) {
 						if (id !== '')
 								sqlId = ' AND G.id = ' + connection.escape(id);
 						var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-										'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud_tree=' + connection.escape(fwcloud) + ') ' +
+										'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
 										' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
 						//logger.debug(sql);
 						connection.query(sql, function (error, rows) {

@@ -64,20 +64,20 @@ var logger = require('log4js').getLogger("app");
  */
 fwcloudModel.getFwclouds = function (iduser, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-                ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ORDER BY C.name';
-        logger.debug(sql);
-        connection.query(sql, function (error, rows) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, rows);
-        });
-    });
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
+				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
+				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ORDER BY C.name';
+		logger.debug(sql);
+		connection.query(sql, function (error, rows) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, rows);
+		});
+	});
 };
 
 
@@ -107,20 +107,20 @@ fwcloudModel.getFwclouds = function (iduser, callback) {
  *           by_user	int(11)
  */
 fwcloudModel.getFwcloud = function (iduser, fwcloud, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
 
-        var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-                ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
+		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
+				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
+				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
+		connection.query(sql, function (error, row) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, row);
+		});
+	});
 };
 
 /**
@@ -138,39 +138,39 @@ fwcloudModel.getFwcloud = function (iduser, fwcloud, callback) {
  * 
  */
 fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
-    return new Promise((resolve, reject) => {
-        db.get(function (error, connection) {
-            if (error)
-                reject(false);
-            var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-                    ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                    ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
-            connection.query(sql, function (error, row) {
-                if (error)
-                    reject(false);
-                else if (row && row.length > 0) {
-                    //logger.debug(row[0]);
-                    logger.debug("IDUSER: " + iduser);
-                    if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser))
-                    {
-                        //Access OK, LOCKED by USER
-                        resolve({"access": true, "locked": true, "mylock": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
-                    } else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser))
-                    {
-                        //Access OK, LOCKED by OTHER USER
-                        resolve({"access": true, "locked": true, "mylock": false, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
-                    } else if (row[0].locked === 0)
-                    {
-                        //Access OK, NOT LOCKED
-                        resolve({"access": true, "locked": false, "mylock": false, "locked_at": "", "locked_by": ""});
-                    }
-                } else {
-                    //Access ERROR, NOT LOCKED
-                    resolve({"access": false, "locked": "", "mylock": false, "locked_at": "", "locked_by": ""});
-                }
-            });
-        });
-    });
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error)
+				reject(false);
+			var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
+					' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
+					' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
+			connection.query(sql, function (error, row) {
+				if (error)
+					reject(false);
+				else if (row && row.length > 0) {
+					//logger.debug(row[0]);
+					logger.debug("IDUSER: " + iduser);
+					if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser))
+					{
+						//Access OK, LOCKED by USER
+						resolve({"access": true, "locked": true, "mylock": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+					} else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser))
+					{
+						//Access OK, LOCKED by OTHER USER
+						resolve({"access": true, "locked": true, "mylock": false, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by});
+					} else if (row[0].locked === 0)
+					{
+						//Access OK, NOT LOCKED
+						resolve({"access": true, "locked": false, "mylock": false, "locked_at": "", "locked_by": ""});
+					}
+				} else {
+					//Access ERROR, NOT LOCKED
+					resolve({"access": false, "locked": "", "mylock": false, "locked_at": "", "locked_by": ""});
+				}
+			});
+		});
+	});
 };
 
 /**
@@ -186,31 +186,31 @@ fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
  * 
  */
 fwcloudModel.checkFwcloudLockTimeout = function (timeout, callback) {
-    return new Promise((resolve, reject) => {
-        db.get(function (error, connection) {
-            if (error)
-                reject(false);
-            var sql = 'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' + tableModel + ' C WHERE C.locked=1 HAVING dif>' + timeout;
-            connection.query(sql, function (error, rows) {
-                if (error)
-                    reject(false);
-                else if (rows && rows.length > 0) {
-                    //UNLOCK ALL
-                    for (var i = 0; i < rows.length; i++) {
-                        var row = rows[i];
-                        var sqlupdate = 'UPDATE ' + tableModel + ' SET locked = 0  WHERE id = ' + row.id;
-                        connection.query(sqlupdate, function (error, result) {
-                            logger.info("-----> UNLOCK FWCLOUD: " + row.id + " BY TIMEOT INACTIVITY of " + row.dif + "  Min LAST UPDATE: " + row.updated_at +
-                                    "  LAST LOCK: " + row.locked_at + "  BY: " + row.locked_by);
-                        });
-                    }
-                    resolve(true);
-                } else {
-                    reject(false);
-                }
-            });
-        });
-    });
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error)
+				reject(false);
+			var sql = 'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' + tableModel + ' C WHERE C.locked=1 HAVING dif>' + timeout;
+			connection.query(sql, function (error, rows) {
+				if (error)
+					reject(false);
+				else if (rows && rows.length > 0) {
+					//UNLOCK ALL
+					for (var i = 0; i < rows.length; i++) {
+						var row = rows[i];
+						var sqlupdate = 'UPDATE ' + tableModel + ' SET locked = 0  WHERE id = ' + row.id;
+						connection.query(sqlupdate, function (error, result) {
+							logger.info("-----> UNLOCK FWCLOUD: " + row.id + " BY TIMEOT INACTIVITY of " + row.dif + "  Min LAST UPDATE: " + row.updated_at +
+									"  LAST LOCK: " + row.locked_at + "  BY: " + row.locked_by);
+						});
+					}
+					resolve(true);
+				} else {
+					reject(false);
+				}
+			});
+		});
+	});
 };
 
 /**
@@ -232,22 +232,22 @@ fwcloudModel.checkFwcloudLockTimeout = function (timeout, callback) {
  *           name	varchar(255)
  */
 fwcloudModel.getFwcloudName = function (iduser, name, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var namesql = '%' + name + '%';
-        var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-                ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.name like ' + connection.escape(namesql);
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+		var namesql = '%' + name + '%';
+		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
+				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
+				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.name like ' + connection.escape(namesql);
 
 
-        connection.query(sql, function (error, row) {
-            if (error)
-                callback(error, null);
-            else
-                callback(null, row);
-        });
-    });
+		connection.query(sql, function (error, row) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, row);
+		});
+	});
 };
 
 
@@ -277,27 +277,27 @@ fwcloudModel.getFwcloudName = function (iduser, name, callback) {
  *       
  */
 fwcloudModel.insertFwcloud = function (iduser, fwcloudData, callback) {
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        connection.query('INSERT INTO ' + tableModel + ' SET ?', fwcloudData, function (error, result) {
-            if (error) {
-                logger.debug("FWCLOUD ERROR: ", error);
-                callback(error, null);
-            } else {
-                var fwid = result.insertId;
-                sqlinsert = 'INSERT INTO  user__cloud  SET fwcloud=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1';
-                connection.query(sqlinsert, function (error, result) {
-                    if (error) {
-                        logger.debug("SQL ERROR USER INSERT: ", error, "\n", sqlinsert);
-                        callback(error, null);
-                    } else {
-                        callback(null, {"insertId": fwid});
-                    }
-                });
-            }
-        });
-    });
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+		connection.query('INSERT INTO ' + tableModel + ' SET ?', fwcloudData, function (error, result) {
+			if (error) {
+				logger.debug("FWCLOUD ERROR: ", error);
+				callback(error, null);
+			} else {
+				var fwid = result.insertId;
+				sqlinsert = 'INSERT INTO  user__cloud  SET fwcloud=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1';
+				connection.query(sqlinsert, function (error, result) {
+					if (error) {
+						logger.debug("SQL ERROR USER INSERT: ", error, "\n", sqlinsert);
+						callback(error, null);
+					} else {
+						callback(null, {"insertId": fwid});
+					}
+				});
+			}
+		});
+	});
 };
 
 /**
@@ -327,22 +327,22 @@ fwcloudModel.insertFwcloud = function (iduser, fwcloudData, callback) {
  */
 fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
 
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +
-                ' ,image = ' + connection.escape(fwcloudData.image) +
-                ' ,comment = ' + connection.escape(fwcloudData.comment) +
-                ' WHERE id = ' + fwcloudData.id;
-        logger.debug(sql);
-        connection.query(sql, function (error, result) {
-            if (error) {
-                callback(error, null);
-            } else {
-                callback(null, {"result": true});
-            }
-        });
-    });
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+		var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +
+				' ,image = ' + connection.escape(fwcloudData.image) +
+				' ,comment = ' + connection.escape(fwcloudData.comment) +
+				' WHERE id = ' + fwcloudData.id;
+		logger.debug(sql);
+		connection.query(sql, function (error, result) {
+			if (error) {
+				callback(error, null);
+			} else {
+				callback(null, {"result": true});
+			}
+		});
+	});
 };
 
 /**
@@ -372,62 +372,62 @@ fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
  *       
  */
 fwcloudModel.updateFwcloudLock = function (fwcloudData) {
-    return new Promise((resolve, reject) => {
-        var locked = 1;
-        db.get(function (error, connection) {
-            db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.fwcloud, function () {
-                db.startTX(connection, function () {
-                    if (error)
-                        reject(error);
-                    //Check if FWCloud is unlocked or locked by the same user
-                    var sqlExists = 'SELECT id FROM ' + tableModel + '  ' +
-                            ' WHERE id = ' + connection.escape(fwcloudData.fwcloud) +
-                            ' AND (locked=0 OR (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ')) ';
+	return new Promise((resolve, reject) => {
+		var locked = 1;
+		db.get(function (error, connection) {
+			db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.fwcloud, function () {
+				db.startTX(connection, function () {
+					if (error)
+						reject(error);
+					//Check if FWCloud is unlocked or locked by the same user
+					var sqlExists = 'SELECT id FROM ' + tableModel + '  ' +
+							' WHERE id = ' + connection.escape(fwcloudData.fwcloud) +
+							' AND (locked=0 OR (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ')) ';
 
-                    connection.query(sqlExists, function (error, row) {
-                        if (row && row.length > 0) {
-                            //Check if there are Firewalls in FWCloud with Access and Edit permissions
-                            //var sqlExists = 'SELECT F.id FROM firewall F inner join ' + tableModel + ' C ON C.id=F.fwcloud ' +
-                            //        ' INNER JOIN user__firewall U on U.id_firewall=F.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
-                            //        ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
-                            //        ' AND U.allow_access=1 AND U.allow_edit=1 ';
-                            //        
-                            //Check if there are FWCloud with Access and Edit permissions
-                            var sqlExists = 'SELECT C.id FROM ' + tableModel + ' C ' +
-                                    ' INNER JOIN user__cloud U on U.fwcloud=C.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
-                                    ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
-                                    ' AND U.allow_access=1 AND U.allow_edit=1 ';
-                            logger.debug(sqlExists);
-                            connection.query(sqlExists, function (error, row) {
-                                if (row && row.length > 0) {
+					connection.query(sqlExists, function (error, row) {
+						if (row && row.length > 0) {
+							//Check if there are Firewalls in FWCloud with Access and Edit permissions
+							//var sqlExists = 'SELECT F.id FROM firewall F inner join ' + tableModel + ' C ON C.id=F.fwcloud ' +
+							//        ' INNER JOIN user__firewall U on U.id_firewall=F.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
+							//        ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
+							//        ' AND U.allow_access=1 AND U.allow_edit=1 ';
+							//        
+							//Check if there are FWCloud with Access and Edit permissions
+							var sqlExists = 'SELECT C.id FROM ' + tableModel + ' C ' +
+									' INNER JOIN user__cloud U on U.fwcloud=C.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
+									' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
+									' AND U.allow_access=1 AND U.allow_edit=1 ';
+							logger.debug(sqlExists);
+							connection.query(sqlExists, function (error, row) {
+								if (row && row.length > 0) {
 
-                                    var sql = 'UPDATE ' + tableModel + ' SET locked = ' + connection.escape(locked) + ',' +
-                                            'locked_at = CURRENT_TIMESTAMP ,' +
-                                            'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
-                                            ' WHERE id = ' + fwcloudData.fwcloud;
-                                    logger.debug(sql);
-                                    connection.query(sql, function (error, result) {
-                                        if (error) {
-                                            reject(error);
-                                        } else {
-                                            db.endTX(connection, function () {});
-                                            resolve({"result": true});
-                                        }
-                                    });
-                                } else {
-                                    db.endTX(connection, function () {});
-                                    resolve({"result": false});
-                                }
-                            });
-                        } else {
-                            db.endTX(connection, function () {});
-                            resolve({"result": false});
-                        }
-                    });
-                });
-            });
-        });
-    });
+									var sql = 'UPDATE ' + tableModel + ' SET locked = ' + connection.escape(locked) + ',' +
+											'locked_at = CURRENT_TIMESTAMP ,' +
+											'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
+											' WHERE id = ' + fwcloudData.fwcloud;
+									logger.debug(sql);
+									connection.query(sql, function (error, result) {
+										if (error) {
+											reject(error);
+										} else {
+											db.endTX(connection, function () {});
+											resolve({"result": true});
+										}
+									});
+								} else {
+									db.endTX(connection, function () {});
+									resolve({"result": false});
+								}
+							});
+						} else {
+							db.endTX(connection, function () {});
+							resolve({"result": false});
+						}
+					});
+				});
+			});
+		});
+	});
 };
 
 /**
@@ -457,35 +457,35 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
  *       
  */
 fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
-    return new Promise((resolve, reject) => {
-        var locked = 0;
-        db.get(function (error, connection) {
-            if (error)
-                reject(error);
-            var sqlExists = 'SELECT id FROM ' + tableModel + '  ' +
-                    ' WHERE id = ' + connection.escape(fwcloudData.id) +
-                    ' AND (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ') ';
-            connection.query(sqlExists, function (error, row) {
-                //If exists Id from fwcloud to remove
-                if (row && row.length > 0) {
-                    var sql = 'UPDATE ' + tableModel + ' SET locked = ' + connection.escape(locked) + ',' +
-                            'locked_at = CURRENT_TIMESTAMP ,' +
-                            'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
-                            ' WHERE id = ' + fwcloudData.id;
+	return new Promise((resolve, reject) => {
+		var locked = 0;
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			var sqlExists = 'SELECT id FROM ' + tableModel + '  ' +
+					' WHERE id = ' + connection.escape(fwcloudData.id) +
+					' AND (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ') ';
+			connection.query(sqlExists, function (error, row) {
+				//If exists Id from fwcloud to remove
+				if (row && row.length > 0) {
+					var sql = 'UPDATE ' + tableModel + ' SET locked = ' + connection.escape(locked) + ',' +
+							'locked_at = CURRENT_TIMESTAMP ,' +
+							'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
+							' WHERE id = ' + fwcloudData.id;
 
-                    connection.query(sql, function (error, result) {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve({"result": true});
-                        }
-                    });
-                } else {
-                    resolve({"result": false});
-                }
-            });
-        });
-    });
+					connection.query(sql, function (error, result) {
+						if (error) {
+							reject(error);
+						} else {
+							resolve({"result": true});
+						}
+					});
+				} else {
+					resolve({"result": false});
+				}
+			});
+		});
+	});
 };
 
 /**
@@ -512,146 +512,146 @@ fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
  *       
  */
 fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
-    //El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
-    db.get(function (error, connection) {
-        if (error)
-            callback(error, null);
-        var sqlExists = 'SELECT C.* FROM ' + tableModel + ' C ' +
-                ' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-                ' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.id= ' + connection.escape(id);
-        logger.debug(sqlExists);
-        connection.query(sqlExists, function (error, row) {
-            //If exists Id from fwcloud to remove
-            if (row && row.length > 0) {               
-                    logger.debug("DELFWCLOUD Restricted: ", restricted);
-                    if (!restricted.result) {
-                        callback(null, {"result": false, "msg": "Restricted", "restrictions": restricted});
-                    } else {
-                        //DELETE OBJECTS FROM CLOUD
-                        fwcloudModel.EmptyFwcloudStandard(id)
-                                .then(() => {
-                                    db.get(function (error, connection) {
-                                        var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
-                                        connection.query(sql, function (error, result) {
-                                            if (error) {
-                                                callback(error, null);
-                                            } else {
-                                                var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-                                                connection.query(sql, function (error, result) {
-                                                    if (error) {
-                                                        callback(error, null);
-                                                    } else {
-                                                        callback(null, {"result": true, "msg": "deleted"});
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    });
-                                })
-                                .catch(e => {
-                                    callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
-                                });
-                    }
-              
-            } else {
-                callback(null, {"result": false});
-            }
-        });
-    });
+	//El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+		var sqlExists = 'SELECT C.* FROM ' + tableModel + ' C ' +
+				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
+				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.id= ' + connection.escape(id);
+		logger.debug(sqlExists);
+		connection.query(sqlExists, function (error, row) {
+			//If exists Id from fwcloud to remove
+			if (row && row.length > 0) {               
+					logger.debug("DELFWCLOUD Restricted: ", restricted);
+					if (!restricted.result) {
+						callback(null, {"result": false, "msg": "Restricted", "restrictions": restricted});
+					} else {
+						//DELETE OBJECTS FROM CLOUD
+						fwcloudModel.EmptyFwcloudStandard(id)
+								.then(() => {
+									db.get(function (error, connection) {
+										var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
+										connection.query(sql, function (error, result) {
+											if (error) {
+												callback(error, null);
+											} else {
+												var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+												connection.query(sql, function (error, result) {
+													if (error) {
+														callback(error, null);
+													} else {
+														callback(null, {"result": true, "msg": "deleted"});
+													}
+												});
+											}
+										});
+									});
+								})
+								.catch(e => {
+									callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
+								});
+					}
+			  
+			} else {
+				callback(null, {"result": false});
+			}
+		});
+	});
 };
 
 fwcloudModel.checkRestrictionsCloud = function (req, res, next) {
-    req.restricted = {"result": true, "msg": "", "restrictions": ""};
-    db.get(function (error, connection) {
+	req.restricted = {"result": true, "msg": "", "restrictions": ""};
+	db.get(function (error, connection) {
 
-        var sqlR = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CF, ' +
-                ' (SELECT count(*) FROM fwcloud_db.cluster where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CC ';
-        logger.debug(sqlR);
-        connection.query(sqlR, function (error, row) {
-            if (row && row.length > 0) {
-                var cadRestricted = "";
-                if (row[0].CF > 0) {
-                    cadRestricted = " FIREWALLS";
-                    if (row[0].CC > 0)
-                        cadRestricted = cadRestricted + " AND CLUSTERS";
-                } else if (row[0].CC > 0)
-                    cadRestricted = "  CLUSTERS";
-                if (cadRestricted !== "") {
-                    logger.debug("RESTRICTED CLOUD: " + req.params.fwcloud);
-                    req.restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
-                }
-                next();
+		var sqlR = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CF, ' +
+				' (SELECT count(*) FROM fwcloud_db.cluster where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CC ';
+		logger.debug(sqlR);
+		connection.query(sqlR, function (error, row) {
+			if (row && row.length > 0) {
+				var cadRestricted = "";
+				if (row[0].CF > 0) {
+					cadRestricted = " FIREWALLS";
+					if (row[0].CC > 0)
+						cadRestricted = cadRestricted + " AND CLUSTERS";
+				} else if (row[0].CC > 0)
+					cadRestricted = "  CLUSTERS";
+				if (cadRestricted !== "") {
+					logger.debug("RESTRICTED CLOUD: " + req.params.fwcloud);
+					req.restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
+				}
+				next();
 
-            } else
-                next();
-        });
-    }
-    );
+			} else
+				next();
+		});
+	}
+	);
 };
 fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
-    return new Promise((resolve, reject) => {
-        var sqlcloud = "  is null";
-        if (fwcloud !== null)
-            sqlcloud = "= " + fwcloud;
-        db.get(function (error, connection) {
-            if (error)
-                reject(error);
-            connection.query("SET FOREIGN_KEY_CHECKS = 0", function (error, result) {
-                if (error) {
-                    reject(error);
-                } else {
-                    connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
-                                if (error) {
-                                    reject(error);
-                                } else {
-                                    connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
-                                        if (error) {
-                                            reject(error);
-                                        } else {
-                                            connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, function (error, result) {
-                                                if (error) {
-                                                    reject(error);
-                                                } else {
-                                                    connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
-                                                        if (error) {
-                                                            reject(error);
-                                                        } else {
-                                                            connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
-                                                                if (error) {
-                                                                    reject(error);
-                                                                } else {
-                                                                    connection.query("DELETE  FROM fwc_tree where fwcloud_tree" + sqlcloud, function (error, result) {
-                                                                        if (error) {
-                                                                            reject(error);
-                                                                        } else {
-                                                                            connection.query("SET FOREIGN_KEY_CHECKS = 1", function (error, result) {
-                                                                                if (error) {
-                                                                                    reject(error);
-                                                                                } else {
-                                                                                    resolve({"result": true});
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                }
-                                                            });
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        });
-    });
+	return new Promise((resolve, reject) => {
+		var sqlcloud = "  is null";
+		if (fwcloud !== null)
+			sqlcloud = "= " + fwcloud;
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			connection.query("SET FOREIGN_KEY_CHECKS = 0", function (error, result) {
+				if (error) {
+					reject(error);
+				} else {
+					connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
+						if (error) {
+							reject(error);
+						} else {
+							connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
+								if (error) {
+									reject(error);
+								} else {
+									connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function (error, result) {
+										if (error) {
+											reject(error);
+										} else {
+											connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, function (error, result) {
+												if (error) {
+													reject(error);
+												} else {
+													connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
+														if (error) {
+															reject(error);
+														} else {
+															connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function (error, result) {
+																if (error) {
+																	reject(error);
+																} else {
+																	connection.query("DELETE  FROM fwc_tree where fwcloud" + sqlcloud, function (error, result) {
+																		if (error) {
+																			reject(error);
+																		} else {
+																			connection.query("SET FOREIGN_KEY_CHECKS = 1", function (error, result) {
+																				if (error) {
+																					reject(error);
+																				} else {
+																					resolve({"result": true});
+																				}
+																			});
+																		}
+																	});
+																}
+															});
+														}
+													});
+												}
+											});
+										}
+									});
+								}
+							});
+						}
+					});
+				}
+			});
+		});
+	});
 };
 

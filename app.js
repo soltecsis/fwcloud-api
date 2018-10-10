@@ -273,8 +273,8 @@ var fwc_tree_folder = require('./routes/tree/folder');
 var fwc_tree_repair = require('./routes/tree/repair');
 var policy_compile = require('./routes/policy/compile');
 var policy_install = require('./routes/policy/install');
-
 var stream = require('./routes/stream/stream');
+var openvpn = require('./routes/vpn/openvpn');
 
 //app.use('/', routes);
 app.use('/users', users);
@@ -306,8 +306,8 @@ app.use('/interface__ipobjs', interface__ipobjs);
 app.use('/fwc-tree', fwc_tree);
 app.use('/fwc-tree/folder', fwc_tree_folder);
 app.use('/fwc-tree/repair', fwc_tree_repair);
-
 app.use('/stream', stream);
+app.use('/vpn/openvpn', openvpn);
 
 
 // Connect to MySQL on start
