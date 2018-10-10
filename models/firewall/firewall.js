@@ -863,7 +863,7 @@ firewallModel.deleteFirewall = function (iduser, fwcloud, idfirewall) {
 				if (row && row.length > 0) {
 					connection.query("SET FOREIGN_KEY_CHECKS = 0", function (error, result) {
 						var idnode = row[0].idnode;
-						Policy_rModel.deletePolicy_r_Firewall(idfirewall) 						//DELETE POLICY AND Objects in Positions
+						Policy_rModel.deletePolicy_r_Firewall(idfirewall) //DELETE POLICY, Objects in Positions and firewall rule groups.
 						.then(resp => InterfaceModel.deleteInterfacesIpobjFirewall(fwcloud, idfirewall)) // DELETE IPOBJS UNDER INTERFACES
 						.then(resp1 => InterfaceModel.deleteInterfaceFirewall(fwcloud, idfirewall)) //DELETE INTEFACES
 						.then(resp2 => User__firewallModel.deleteAllUser__firewall(idfirewall))//DELETE USERS_FIREWALL

@@ -87,7 +87,6 @@ var InterfaceModel = require('../../models/interface/interface');
 
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
-var fs = require('fs');
 
 
 router.param('cluster', function (req, res, next, param) {

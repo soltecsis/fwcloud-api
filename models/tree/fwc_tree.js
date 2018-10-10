@@ -567,9 +567,9 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 										i++;
 										//Insertamos nodos Firewall
 										sqlinsert = 'INSERT INTO ' + tableModel +
-												'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-												' VALUES (' + connection.escape(rnode.name) + ',' + connection.escape(row.id) + ',' +
-												',"FW",' + connection.escape(rnode.id) + ',0,' + connection.escape(rnode.fwcloud)  + ")";
+												' (name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
+												' VALUES (' + connection.escape(rnode.name) + ',' + connection.escape(row.id) + ',"FW",' +
+												connection.escape(rnode.id) + ',0,' + connection.escape(rnode.fwcloud)  + ")";
 										//logger.debug(sqlinsert);
 										var parent_firewall;
 
@@ -932,7 +932,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 	});
 };
 
-//CONVERT TREE FIREWALL TO  CLUSTER for a New CLuster
+//CONVERT TREE FIREWALL TO CLUSTER for a New CLuster
 fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
 	db.get(function (error, connection) {
 		if (error) return	callback(error, null);
@@ -956,7 +956,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 						//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
 						var tree_node = new fwc_tree_node(row);
 						//Añadimos nodos CLUSTER del CLOUD
-						sqlnodes = 'SELECT  C.id, C.name, C.fwcloud FROM cluster C  WHERE C.id=' + connection.escape(idcluster);
+						sqlnodes = 'SELECT id,name,fwcloud FROM cluster WHERE id=' + connection.escape(idcluster);
 						//logger.debug(sqlnodes);
 						connection.query(sqlnodes, function (error, rowsnodes) {
 							if (error)
@@ -968,9 +968,9 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 										i++;
 										//Insertamos nodos Cluster
 										sqlinsert = 'INSERT INTO ' + tableModel +
-												'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
+												' (name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
 												' VALUES (' + connection.escape(rnode.name) + ',' +
-												connection.escape(row.id) + ',' + ',"CL",' +
+												connection.escape(row.id) + ',"CL",' +
 												connection.escape(rnode.id) + ',100,' +
 												connection.escape(fwcloud)  + ")";
 										//logger.debug(sqlinsert);

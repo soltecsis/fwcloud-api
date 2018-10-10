@@ -25,8 +25,8 @@ var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
+var Policy_gModel = require('../../models/policy/policy_g');
 
-var utilsModel = require('../../utils/utils');
 var logger = require('log4js').getLogger("app");
 
 
@@ -546,29 +546,23 @@ policy_rModel.insertPolicy_r = function (policy_rData, callback) {
 var clon_data;
 
 //Clone policy and IPOBJ
-policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewfirewall, dataI) {
+policy_rModel.cloneFirewallPolicy = function (iduser, fwcloud, idfirewall, idNewFirewall, dataI) {
 	return new Promise((resolve, reject) => {
 		clon_data=dataI;
 		db.get((error, connection) => {
-			if (error)
-				reject(error);
-			sql = ' select ' + connection.escape(idNewfirewall) + ' as newfirewall, P.* ' +
+			if (error) return reject(error);
+
+			sql = ' select ' + connection.escape(idNewFirewall) + ' as newfirewall, P.* ' +
 					' from policy_r P ' +
 					' where P.firewall=' + connection.escape(idfirewall);
-			logger.debug(sql);
 			connection.query(sql, function (error, rows) {
-				if (error) {
-					logger.debug(error);
-					reject(error);
-				} else {
-					//Bucle por Policy
-					Promise.all(rows.map(policy_rModel.clonePolicy))
-					.then(data => {
-						logger.debug("-->>>>>>>> FINAL de POLICY para nuevo Firewall : " + idNewfirewall);
-						resolve(data);
-					})
-					.catch(e => reject(e));
-				}
+				if (error) return reject(error);
+
+				//Bucle por Policy
+				Promise.all(rows.map(policy_rModel.clonePolicy))
+				.then(() =>	Policy_gModel.clonePolicyGroups(idfirewall, idNewFirewall))
+				.then(() => resolve())
+				.catch(error => reject(error));
 			});
 		});
 	});
@@ -668,6 +662,7 @@ policy_rModel.clonePolicy = function (rowData) {
 		});
 	});
 };
+
 
 //Update policy_r from user
 policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
@@ -935,32 +930,23 @@ function OrderList(new_order, idfirewall, old_order, id) {
 //Remove All policy_r from firewall
 policy_rModel.deletePolicy_r_Firewall = function (idfirewall) {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'SELECT  I.*   FROM ' + tableModel + ' I ' +
-					' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+		db.get((error, connection) => {
+			if (error) return reject(error);
 
-			connection.query(sql, function (error, rows) {
-				if (error)
-					reject(error);
-				else {
-					logger.debug("-----> DELETING RULES FROM FIREWALL: " + idfirewall);
-					//Bucle por reglas
-					Promise.all(rows.map(policy_rModel.deletePolicy_rPro))
-							.then(data => {
-								resolve(data);
-							})
-							.catch(e => {
-								reject(e);
-							});
-				}
+			var sql = 'SELECT  I.*   FROM ' + tableModel + ' I ' +
+				' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				//Bucle por reglas
+				Promise.all(rows.map(policy_rModel.deletePolicy_rPro))
+				.then(data => Policy_gModel.deleteFirewallGroups(idfirewall))
+				.then(() =>	resolve())
+				.catch(error => reject(error));
 			});
 		});
 
 	});
 };
-
 
 policy_rModel.deletePolicy_rPro = function (data) {
 	return new Promise((resolve, reject) => {
