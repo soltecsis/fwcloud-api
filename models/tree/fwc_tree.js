@@ -637,7 +637,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 
 												//Insertamos nodo ROUTING
 												sqlinsert = 'INSERT INTO ' + tableModel + '(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-													' VALUES (' + '"Routing",' + parent_firewall ',"RR",' + connection.escape(idfirewall) + ',6,' + connection.escape(rnode.fwcloud)  + ")";
+													' VALUES (' + '"Routing",' + parent_firewall + ',"RR",' + connection.escape(idfirewall) + ',6,' + connection.escape(rnode.fwcloud)  + ")";
 												connection.query(sqlinsert, function (error, result) {
 													if (error)
 														logger.debug("ERROR RR : " + error);
@@ -956,7 +956,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 						//logger.debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
 						var tree_node = new fwc_tree_node(row);
 						//Añadimos nodos CLUSTER del CLOUD
-						sqlnodes = 'SELECT  C.id, C.name, C.comment, C.fwcloud FROM cluster C  WHERE C.id=' + connection.escape(idcluster);
+						sqlnodes = 'SELECT  C.id, C.name, C.fwcloud FROM cluster C  WHERE C.id=' + connection.escape(idcluster);
 						//logger.debug(sqlnodes);
 						connection.query(sqlnodes, function (error, rowsnodes) {
 							if (error)
