@@ -43,18 +43,9 @@ router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, functi
 router.get('/:idfirewall/type/:type',
 utilsModel.checkFirewallAccess,
 (req, res) => {
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var rule = "";
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + "  TYPE:" + type);
-	Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
-	{
-		if (data && data.length > 0) //If exists policy_r get data
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-		else //Get Error
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	Policy_rModel.getPolicy_rs_type(req.fwcloud, req.params.idfirewall, req.params.type, "", (error, data) => {
+		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
