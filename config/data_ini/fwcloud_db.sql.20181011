@@ -33,7 +33,7 @@ CREATE TABLE `cluster` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `fk_cluster_cloud` (`fwcloud`) USING BTREE,
-  CONSTRAINT `fk_cluster_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`)
+  CONSTRAINT `fk_cluster_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -109,8 +109,8 @@ CREATE TABLE `firewall` (
   PRIMARY KEY (`id`),
   KEY `IDX_48011B7EE5C56994` (`cluster`),
   KEY `fk_firewall_1_idx` (`fwcloud`),
-  CONSTRAINT `fk_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`)
+  CONSTRAINT `fk_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -203,9 +203,9 @@ CREATE TABLE `firewall_cluster` (
   KEY `fk_firewall_cluster_2_idx` (`interface`),
   KEY `fk_firewall_cluster_3_idx` (`ipobj`),
   KEY `index5` (`idcluster`,`firewall`,`firewall_name`),
-  CONSTRAINT `fk_firewall_cluster_1` FOREIGN KEY (`idcluster`) REFERENCES `cluster` (`id`),
-  CONSTRAINT `fk_firewall_cluster_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_firewall_cluster_3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
+  CONSTRAINT `fk_firewall_cluster_1` FOREIGN KEY (`idcluster`) REFERENCES `cluster` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_firewall_cluster_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_firewall_cluster_3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -440,8 +440,8 @@ CREATE TABLE `interface__ipobj` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`interface`,`ipobj`),
   KEY `fk_interface__ipobj_2_idx` (`ipobj`),
-  CONSTRAINT `fk_interface__ipobj_1` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_interface__ipobj_2` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
+  CONSTRAINT `fk_interface__ipobj_1` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_interface__ipobj_2` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -492,9 +492,9 @@ CREATE TABLE `ipobj` (
   KEY `IDX_IPOBJ_TYPE` (`type`) COMMENT '	',
   KEY `fk_ipobj_1_idx` (`fwcloud`),
   KEY `fk_ipobj_2_idx` (`interface`),
-  CONSTRAINT `fk_ipobj_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_ipobj_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_ipobj_3` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`)
+  CONSTRAINT `fk_ipobj_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ipobj_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_ipobj_3` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -584,8 +584,8 @@ CREATE TABLE `ipobj__ipobjg` (
   UNIQUE KEY `IDX_GROUP_IPOBJ` (`ipobj_g`,`ipobj`),
   KEY `IDX_964BE3EDA998FF0B` (`ipobj_g`),
   KEY `IDX_964BE3ED80184FC3` (`ipobj`),
-  CONSTRAINT `FK_964BE3ED80184FC3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`),
-  CONSTRAINT `FK_964BE3EDA998FF0B` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`)
+  CONSTRAINT `FK_964BE3ED80184FC3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_964BE3EDA998FF0B` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -783,8 +783,8 @@ CREATE TABLE `ipobj_type__policy_position` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`type`,`position`),
   KEY `fk_ipobj_type__policy_position_2_idx` (`position`),
-  CONSTRAINT `fk_ipobj_type__policy_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
-  CONSTRAINT `fk_ipobj_type__policy_position_2` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  CONSTRAINT `fk_ipobj_type__policy_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ipobj_type__policy_position_2` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -815,8 +815,8 @@ CREATE TABLE `ipobj_type__routing_position` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`type`,`position`),
   KEY `fk_ipobj_type__routing_position_2_idx` (`position`),
-  CONSTRAINT `fk_ipobj_type__routing_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
-  CONSTRAINT `fk_ipobj_type__routing_position_2` FOREIGN KEY (`position`) REFERENCES `routing_position` (`id`)
+  CONSTRAINT `fk_ipobj_type__routing_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ipobj_type__routing_position_2` FOREIGN KEY (`position`) REFERENCES `routing_position` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -876,7 +876,7 @@ CREATE TABLE `policy_c` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   `status_compiled` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`rule`),
-  CONSTRAINT `fk_policy_c_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`)
+  CONSTRAINT `fk_policy_c_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -961,8 +961,8 @@ CREATE TABLE `policy_g` (
   PRIMARY KEY (`id`),
   KEY `IDX_C3DE16BA48011B7E` (`firewall`),
   KEY `index3` (`idgroup`),
-  CONSTRAINT `FK_C3DE16BA48011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_policy_g_group` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`)
+  CONSTRAINT `FK_C3DE16BA48011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_policy_g_group` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1049,7 +1049,7 @@ CREATE TABLE `policy_position` (
   `single_object` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `index2` (`policy_type`,`position_order`),
-  CONSTRAINT `fk_policy_position_1` FOREIGN KEY (`policy_type`) REFERENCES `policy_type` (`id`)
+  CONSTRAINT `fk_policy_position_1` FOREIGN KEY (`policy_type`) REFERENCES `policy_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1095,9 +1095,9 @@ CREATE TABLE `policy_r` (
   KEY `IDX_AE03F2516DC044C5` (`idgroup`),
   KEY `IDX_AE03F25148011B7E` (`firewall`),
   KEY `fk_policy_r_type_idx` (`type`),
-  CONSTRAINT `FK_AE03F25148011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `FK_AE03F2516DC044C5` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`),
-  CONSTRAINT `fk_policy_r_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`)
+  CONSTRAINT `FK_AE03F25148011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_AE03F2516DC044C5` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_policy_r_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1182,9 +1182,9 @@ CREATE TABLE `policy_r__interface` (
   PRIMARY KEY (`rule`,`interface`,`position`),
   KEY `fk_policy_r__interface_2_idx` (`interface`),
   KEY `fk_policy_r__interface_3_idx` (`position`),
-  CONSTRAINT `fk_policy_r__interface_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`),
-  CONSTRAINT `fk_policy_r__interface_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_policy_r__interface_3` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  CONSTRAINT `fk_policy_r__interface_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_policy_r__interface_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_policy_r__interface_3` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1275,8 +1275,8 @@ CREATE TABLE `policy_r__ipobj` (
   UNIQUE KEY `fk_policy_r__ipobj_unq` (`rule`,`ipobj`,`ipobj_g`,`interface`,`position`),
   KEY `IDX_C4FF0A2B46D8ACCC` (`rule`),
   KEY `fk_policy_r__ipobj_position_idx` (`position`),
-  CONSTRAINT `FK_C4FF0A2B46D8ACCC` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`),
-  CONSTRAINT `fk_policy_r__ipobj_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  CONSTRAINT `FK_C4FF0A2B46D8ACCC` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_policy_r__ipobj_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1598,8 +1598,8 @@ CREATE TABLE `user__cloud` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   KEY `idx_uc` (`fwcloud`,`id_user`) USING BTREE,
   KEY `fk_user_cloud_idx` (`id_user`),
-  CONSTRAINT `fk_user__cloud_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_user_cloud` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
+  CONSTRAINT `fk_user__cloud_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_user_cloud` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1631,8 +1631,8 @@ CREATE TABLE `user__firewall` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   KEY `idx_uf` (`id_firewall`,`id_user`) USING BTREE,
   KEY `fk_user_idx` (`id_user`),
-  CONSTRAINT `fk_firewall` FOREIGN KEY (`id_firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
+  CONSTRAINT `fk_firewall` FOREIGN KEY (`id_firewall`) REFERENCES `firewall` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
