@@ -626,7 +626,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 														});
 														//Insertamos nodo DNAT
 														sqlinsert = 'INSERT INTO ' + tableModel + '(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-															' VALUES (' + '"DNAT",' + parent_FP + ',"NTD",0,0,' + connection.escape(idfirewall) + ',5,' + connection.escape(rnode.fwcloud)  + ")";
+															' VALUES (' + '"DNAT",' + parent_FP + ',"NTD",' + connection.escape(idfirewall) + ',5,' + connection.escape(rnode.fwcloud)  + ")";
 														logger.debug(sqlinsert);
 														connection.query(sqlinsert, function (error, result) {
 															if (error)
@@ -670,7 +670,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 																sqlinsert = 'INSERT INTO ' + tableModel +
 																		'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
 																		' VALUES (' +	connection.escape(rnodeInt.name+((rnodeInt.labelName) ? " ["+rnodeInt.labelName+"]": "")) + ',' +
-																		connection.escape(nodeInterfaces) + ',' + ',"IFF",' +
+																		connection.escape(nodeInterfaces) + ',"IFF",' +
 																		connection.escape(rnodeInt.id) + ',10,' + connection.escape(rnode.fwcloud) + ")";
 
 																connection.query(sqlinsert, function (error, result) {
@@ -1174,8 +1174,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																//Insertamos nodo
 																sqlinsert = 'INSERT INTO ' + tableModel +	'(name, id_parent, node_type, id_obj, obj_type,fwcloud) ' +
 																		' VALUES (' + connection.escape(rnode.name) + ',' +
-																		connection.escape(row.id) + ',' +
-																		+ connection.escape(row.node_type) + ',' +
+																		connection.escape(row.id) + ',' + connection.escape(row.node_type) + ',' +
 																		connection.escape(rnode.id) + ',' + connection.escape(rnode.type) + ',' +
 																		connection.escape(fwcloud)  + ")";
 																//logger.debug(sqlinsert);
