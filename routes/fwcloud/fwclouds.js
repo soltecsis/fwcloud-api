@@ -257,9 +257,7 @@ router.get('/name/:name', function (req, res)
  *         ]
  *       };
  */
-router.post("/fwcloud", function (req, res)
-{
-
+router.post("/fwcloud", (req, res) => {
 	var fwcloudData = {        
 		name: req.body.name,        
 		image: req.body.image,
