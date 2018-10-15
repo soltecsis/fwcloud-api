@@ -63,7 +63,7 @@ var utilsModel = require("../../utils/utils.js");
  *
  */
 router.post('/ca',(req, res) => {
-  var spawn = require('child-process-promise').spawn;
+  const spawn = require('child-process-promise').spawn;
 
 var promise = spawn('echo', ['hello']);
 
@@ -84,7 +84,7 @@ promise.then(function () {
         console.error('[spawn] ERROR: ', err);
     });
 
-  api_resp.getJson(null,api_resp.ACRD_OK, 'CERTIFICATE AUTORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE AUTORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 });
 
