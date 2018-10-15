@@ -62,7 +62,30 @@ var utilsModel = require("../../utils/utils.js");
  * ROUTE CALL:  /
  *
  */
-router.get('/CA',(req, res) => {
+router.post('/ca',(req, res) => {
+  var spawn = require('child-process-promise').spawn;
+
+var promise = spawn('echo', ['hello']);
+
+var childProcess = promise.childProcess;
+
+console.log('[spawn] childProcess.pid: ', childProcess.pid);
+childProcess.stdout.on('data', function (data) {
+    console.log('[spawn] stdout: ', data.toString());
+});
+childProcess.stderr.on('data', function (data) {
+    console.log('[spawn] stderr: ', data.toString());
+});
+
+promise.then(function () {
+        console.log('[spawn] done!');
+    })
+    .catch(function (err) {
+        console.error('[spawn] ERROR: ', err);
+    });
+
+  api_resp.getJson(null,api_resp.ACRD_OK, 'CERTIFICATE AUTORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 });
 
 module.exports = router;
