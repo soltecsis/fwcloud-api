@@ -166,7 +166,7 @@ const config = convict({
     data_dir: {
       doc: 'Directory for the policy compilation scripts.',
       format: String,
-      default: './DATA/',
+      default: './DATA/policy/',
       env: 'POLICY_DATA_DIR'
     },
     script_name: {
@@ -190,6 +190,21 @@ const config = convict({
       doc: 'Footer file for the compilation script.',
       format: String,
       default: './config/policy/footer.txt'
+    },
+  },
+
+  // PKI configuration.
+  pki: {
+    data_dir: {
+      doc: 'Directory for the PKI files.',
+      format: String,
+      default: './DATA/pki/',
+      env: 'PKI_DATA_DIR'
+    },
+    easy_rsa_cmd: {
+      doc: 'Path to the easy-rsa command.',
+      format: String,
+      default: './lib/easy-rsa/easyrsa3/easyrsa',
     },
   }
 });

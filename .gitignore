@@ -18,7 +18,8 @@ routes/xml
 *.fwb
 
 *.swp
-DATA/
+DATA/policy/
+DATA/pki/
 sessions/
 .env
 config/tls/
