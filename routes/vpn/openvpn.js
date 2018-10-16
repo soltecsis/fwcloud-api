@@ -54,6 +54,9 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
+var config = require('../../config/config');
+const spawn = require('child-process-promise').spawn;
+
 
 
 /**
@@ -63,29 +66,29 @@ var utilsModel = require("../../utils/utils.js");
  *
  */
 router.post('/ca',(req, res) => {
-  const spawn = require('child-process-promise').spawn;
+	var cmd = config.get('pki').easy_rsa_cmd;
+	var pki_dir = '--pki-dir="' + config.get('pki').data_dir + '/' + req.headers.x_fwc_fwcloud +'"';
 
-var promise = spawn('echo', ['hello']);
+	//var promise = spawn('echo', ['hello']);
+	var promise = spawn(cmd, ['--batch',pki_dir,'init-pki']);
+	var childProcess = promise.childProcess;
 
-var childProcess = promise.childProcess;
+	console.log('[spawn] childProcess.pid: ', childProcess.pid);
+	childProcess.stdout.on('data', function (data) {
+		console.log('[spawn] stdout: ', data.toString());
+	});
+	childProcess.stderr.on('data', function (data) {
+		console.log('[spawn] stderr: ', data.toString());
+	});
 
-console.log('[spawn] childProcess.pid: ', childProcess.pid);
-childProcess.stdout.on('data', function (data) {
-    console.log('[spawn] stdout: ', data.toString());
-});
-childProcess.stderr.on('data', function (data) {
-    console.log('[spawn] stderr: ', data.toString());
-});
-
-promise.then(function () {
-        console.log('[spawn] done!');
-    })
-    .catch(function (err) {
-        console.error('[spawn] ERROR: ', err);
-    });
+	promise.then(function () {
+		console.log('[spawn] done!');
+	})
+	.catch(function (err) {
+		console.error('[spawn] ERROR: ', err);
+	});
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE AUTORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-
 });
 
 module.exports = router;
