@@ -52,43 +52,35 @@ var openvpnModel = require('../../models/vpn/openvpn');
 
 var logger = require('log4js').getLogger("app");
 
-var utilsModel = require("../../utils/utils.js");
-
-var config = require('../../config/config');
-const spawn = require('child-process-promise').spawn;
-
 
 
 /**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
+ * Create a new CA (Certification Authority).
  */
-router.post('/ca',(req, res) => {
-	var cmd = config.get('pki').easy_rsa_cmd;
-	var pki_dir = '--pki-dir="' + config.get('pki').data_dir + '/' + req.headers.x_fwc_fwcloud +'"';
+router.post('/ca',async (req, res) => {
+	try {
+		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'init-pki'});
+		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'build-ca', days:req.body.days, cn:req.body.cn, nopass:true});
+		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'gen-crl'});
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
-	//var promise = spawn('echo', ['hello']);
-	var promise = spawn(cmd, ['--batch',pki_dir,'init-pki']);
-	var childProcess = promise.childProcess;
+  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
 
-	console.log('[spawn] childProcess.pid: ', childProcess.pid);
-	childProcess.stdout.on('data', function (data) {
-		console.log('[spawn] stdout: ', data.toString());
-	});
-	childProcess.stderr.on('data', function (data) {
-		console.log('[spawn] stderr: ', data.toString());
-	});
+/**
+ * Create a new certificate.
+ */
+router.post('/cert',async (req, res) => {
+	try {
+		var cmd = '';
+		if (req.body.type==='server')
+			cmd = 'build-server-full';
+		else
+			cmd = 'build-client-full';
+		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:cmd, days:req.body.days, cn:req.body.cn, nopass:true});
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
-	promise.then(function () {
-		console.log('[spawn] done!');
-	})
-	.catch(function (err) {
-		console.error('[spawn] ERROR: ', err);
-	});
-
-  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE AUTORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 module.exports = router;
