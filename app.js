@@ -6,8 +6,6 @@
  * 
  */
 
-var config = require('./config/config');
-
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -30,6 +28,11 @@ var FileStore = require('session-file-store')(session);
 var cors = require('cors');
 
 var methodOverride = require('method-override');
+
+const config = require('./config/config');
+const accessAuth = require('./middleware/authorization');
+const inputValidation = require('./middleware/input_validation');
+
 
 var app = express();
 
@@ -110,131 +113,98 @@ app.use(session({
   }
 }));
 
-
-app.use((req, res, next) => {
-  // Exclude the login route.
-	if (req.path==='/users/login') return next();
-
-  /////////////////////////////////////////////////////////////////////////////////
-  // WARNING!!!!: If you enable the next two code lines, then you disable
-  // the authorization mechanism for access the API and it will be accesible
-  // without autorization.
-  //req.session.destroy(err => {} );
-  //return next();
-  /////////////////////////////////////////////////////////////////////////////////
-  
-  if (req.session.cookie.maxAge < 1) { // See if the session has expired.
-		req.session.destroy(err => {} );
-		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Session expired.', '', null, jsonResp => { res.status(200).json(jsonResp) });
-		return;
-  }
-
-  if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
-		req.session.destroy(err => {} );
-		api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Invalid session.', '', null, jsonResp => res.status(200).json(jsonResp));
-		return;
-  }
-
-	UserModel.getUserName(req.session.customer_id, req.session.username)
-	.then(data => {
-		if (data.length===0) {
-			req.session.destroy(err => {} );
-			throw null;
-		}
-
-		// If we arrive here, then the session is correct.
-		logger.debug("USER AUTHORIZED (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");     
-		next(); 
-	})
-	.catch(error => api_resp.getJson(null, api_resp.ACR_SESSION_ERROR, 'Bad session data.', '', error, jsonResp => res.status(200).json(jsonResp)));
-});
+// Middleware for access authorization.
+app.use(accessAuth.chek);
 /*--------------------------------------------------------------------------------------*/
+
+// Middleware for input data validation.
+app.use(inputValidation.check);
 
 
 var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
 //CONTROL FWCLOUD ACCESS
-app.use(control_routes, function (request, response, next) {
+app.use(control_routes, (req, res, next) => {
 
-	var url_parts = url.parse(request.url);
+	var url_parts = url.parse(req.url);
 	var pathname = url_parts.pathname;
-	var originalURL = request.originalUrl;
+	var originalURL = req.originalUrl;
 
 
 	logger.debug("---------------- RECEIVED HEADERS-----------------");
-	logger.debug("\n", request.headers);
+	logger.debug("\n", req.headers);
 	logger.debug("--------------------------------------------------");
-	logger.debug("METHOD: " + request.method + "   PATHNAME: " + originalURL);
+	logger.debug("METHOD: " + req.method + "   PATHNAME: " + originalURL);
 
-	var iduser = request.session.user_id;
-	var fwcloud = request.headers.x_fwc_fwcloud;
-	var confirm_token = request.headers.x_fwc_confirm_token;
+	var iduser = req.session.user_id;
+	var fwcloud = req.headers.x_fwc_fwcloud;
+	var confirm_token = req.headers.x_fwc_confirm_token;
 
 	var update = true;
-	if (request.method === 'GET')
+	if (req.method === 'GET')
 		update = false;
 
 
 	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
-	if (originalURL === '/fwclouds/fwcloud' && request.method === 'POST') {
+	if (originalURL === '/fwclouds/fwcloud' && req.method === 'POST') {
 		logger.debug("FWCLOUD ACCESS TO CREATE");
-		logger.debug(request.body);
+		logger.debug(req.body);
 		//save access to user                
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
-		request.fwc_access = true;
-		request.iduser = iduser;
+		req.fwc_access = true;
+		req.iduser = iduser;
 		next();
 	} 
-	else if (originalURL === '/fwclouds/fwcloud' && request.method === 'PUT') {
+	else if (originalURL === '/fwclouds/fwcloud' && req.method === 'PUT') {
 		logger.debug("FWCLOUD ACCESS TO UPDATE");
-		logger.debug(request.body);
+		logger.debug(req.body);
 		//save access to user                
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
-		request.fwc_access = true;
-		request.confirm_token = confirm_token;
-		request.iduser = iduser;
-		request.fwcloud = request.body.id;
-		request.restricted = {};
+		req.fwc_access = true;
+		req.confirm_token = confirm_token;
+		req.iduser = iduser;
+		req.fwcloud = req.body.id;
+		req.restricted = {};
 		next();
 	}
-	else if (utilsModel.startsWith(originalURL,'/fwclouds') && request.method === 'GET' && fwcloud==='') {
+	else if (utilsModel.startsWith(originalURL,'/fwclouds') && req.method === 'GET' && fwcloud==='') {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
-		request.fwc_access = true;
-		request.iduser = iduser;
+		req.fwc_access = true;
+		req.iduser = iduser;
 		next();
 	}
-	 else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && request.method === 'PUT' && fwcloud==='') {
+	 else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && req.method === 'PUT' && fwcloud==='') {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD DELETE");
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
-		request.fwc_access = true;
-		request.confirm_token = confirm_token;
-		request.iduser = iduser;
+		req.fwc_access = true;
+		req.confirm_token = confirm_token;
+		req.iduser = iduser;
 		//request.fwcloud = request.params.fwcloud;
-		request.restricted = {};
+		req.restricted = {};
 		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
 		next();
 	}
 	else {
-		utilsModel.checkFwCloudAccess(iduser, fwcloud, update, request, response)
+		utilsModel.checkFwCloudAccess(iduser, fwcloud, update, req, res)
 				.then(resp => {
 					//save access to user                
 					var userData = {id: iduser};
 					UserModel.updateUserTS(userData, function (error, data) {});
-					request.confirm_token = confirm_token;
-					request.restricted = {};
+					req.confirm_token = confirm_token;
+					req.restricted = {};
 					next();
 				})
 				.catch(err => {
 					logger.error("ERROR ---> err: " + err);
 					api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
-						response.status(200).json(jsonResp);
+						res.status(200).json(jsonResp);
 					});
 				});
 	}
