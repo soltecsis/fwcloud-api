@@ -29,16 +29,15 @@ openvpnModel.runEasyRsaCmd = (fwcloud,easyrsaData) => {
       argv.push('--days='+easyrsaData.days);
       argv.push(easyrsaData.cmd);
       argv.push(easyrsaData.cn);
-      //if (easyrsaData.nopass)
-      //  argv.push('nopass');
+      if (easyrsaData.nopass)
+        argv.push('nopass');
       break;
     }
     const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
     const childProcess = promise.childProcess;
 
-   // if (!easyrsaData.nopass)
+   if (!easyrsaData.nopass)
       childProcess.stdin.push('mipass');
-      //stdin.push('mipass');
 
     childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
     childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
