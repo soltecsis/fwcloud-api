@@ -7,7 +7,7 @@ var api_resp = require('../utils/api_response');
 var UserModel = require('../models/user/user');
 var logger = require('log4js').getLogger("app");
 
-accessAuth.chek = function (req, res, next) {
+accessAuth.chek = (req, res, next) => {
   // Exclude the login route.
 	if (req.path==='/users/login') return next();
 

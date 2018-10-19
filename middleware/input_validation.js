@@ -3,24 +3,19 @@ var inputValidation = {};
 //Export the object
 module.exports = inputValidation;
 
-const Joi = require('joi');
+const api_resp = require('../utils/api_response');
  
-inputValidation.check = (req, res, next) => {
-  const schema = Joi.object().keys({
-    username: Joi.string().alphanum().min(3).max(30).required(),
-    password: Joi.string().regex(/^[a-zA-Z0-9]{3,30}$/),
-    access_token: [Joi.string(), Joi.number()],
-    birthyear: Joi.number().integer().min(1900).max(2013),
-    email: Joi.string().email({ minDomainAtoms: 2 })
-  }).with('username', 'birthyear').without('password', 'access_token');
- 
-  // Return result.
-  const result = Joi.validate({ username: 'abc', birthyear: 1994 }, schema);
-  // result.error === null -> valid
- 
-  // You can also pass a callback which will be called synchronously with the validation result.
-  Joi.validate({ username: 'abc', birthyear: 1994 }, schema, function (err, value) { });  // err === null -> valid
- 
-  next();
+inputValidation.check = async (req, res, next) => {
+  try {
+    const item1 = req.url.split('/')[1];
+    await require('./joi_schemas/'+item1).validate(req);
+
+    // If we arrive here then input data has been sucessfully validated.  
+    next();
+  } catch(error) { 
+    if (error instanceof Error && error.code === "MODULE_NOT_FOUND")
+      api_resp.getJson(null, api_resp.ACR_ERROR, 'Express route not controlled in input data validation process.', 'INPUT VALIDATION', error, jsonResp => res.status(400).json(jsonResp));
+    else
+      api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad input data', 'INPUT VALIDATION', error, jsonResp => res.status(400).json(jsonResp)) }
 };
 
