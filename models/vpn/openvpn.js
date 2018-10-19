@@ -1,8 +1,6 @@
 //create object
 var openvpnModel = {};
 
-var utilsModel = require("../../utils/utils.js");
-
 var config = require('../../config/config');
 const spawn = require('child-process-promise').spawn;
 
@@ -27,6 +25,7 @@ openvpnModel.runEasyRsaCmd = (fwcloud,easyrsaData) => {
       break;
 
       case 'build-server-full':
+      case 'build-client-full':
       argv.push('--days='+easyrsaData.days);
       argv.push(easyrsaData.cmd);
       argv.push(easyrsaData.cn);
@@ -37,10 +36,13 @@ openvpnModel.runEasyRsaCmd = (fwcloud,easyrsaData) => {
     const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
     const childProcess = promise.childProcess;
 
+    if (!easyrsaData.nopass)
+      childProcess.stdin.push('mipass');
+
     childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
     childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
 
-    promise.then(() => resolve())
+    promise.then(result => resolve(result))
     .catch(error => reject(error));
 	});
 };

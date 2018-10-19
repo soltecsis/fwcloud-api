@@ -59,9 +59,9 @@ var logger = require('log4js').getLogger("app");
  */
 router.post('/ca',async (req, res) => {
 	try {
-		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'init-pki'});
-		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'build-ca', days:req.body.days, cn:req.body.cn, nopass:true});
-		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:'gen-crl'});
+		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'init-pki'});
+		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'build-ca', days:req.body.days, cn:req.body.cn, nopass:true});
+		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'gen-crl'});
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -77,7 +77,7 @@ router.post('/cert',async (req, res) => {
 			cmd = 'build-server-full';
 		else
 			cmd = 'build-client-full';
-		await openvpnModel.runEasyRsaCmd(req.headers.x_fwc_fwcloud,{cmd:cmd, days:req.body.days, cn:req.body.cn, nopass:true});
+		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:cmd, days:req.body.days, cn:req.body.cn, nopass:true});
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
