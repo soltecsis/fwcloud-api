@@ -9,7 +9,7 @@ const sharedSchema = require('./shared');
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     const schema = Joi.object().keys({
-      customer: sharedSchema.customer,
+      customer: sharedSchema.id,
       username: sharedSchema.username,
       password: sharedSchema.password,
     });

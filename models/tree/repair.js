@@ -33,7 +33,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
 
       // The nodes must have the names: FIREWALLS, OBJECTS and SERVICES; with
       // the respective node types FDF, FDO, FDS.
-      let update_obj_to_null = firewalls_found = objects_found = services_found = 0;
+      let update_obj_to_null = firewalls_found = objects_found = services_found = ca_found = 0;
       for (let node of nodes) {
         if (node.name==='FIREWALLS' && node.node_type==='FDF') {
           streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
@@ -47,6 +47,10 @@ fwc_treeRepairModel.checkRootNodes = () => {
           streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
           services_found=1;
         }
+        else if (node.name==='CERTIFICATION AUTHORITIES' && node.node_type==='FDA'){
+          streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
+          ca_found=1;
+        }
         else {
           streamModel.pushMessageCompile(accessData,'<font color="red">Deleting invalid root node: '+JSON.stringify(node)+'</font>\n');
           await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: accessData.fwcloud});
@@ -59,7 +63,8 @@ fwc_treeRepairModel.checkRootNodes = () => {
       }
       
       // Verify that we have found all nodes.
-      if (!firewalls_found || !objects_found || !services_found) return reject(new Error('Not found all root nodes'));
+      if (!firewalls_found || !objects_found || !services_found || !ca_found)
+        return reject(new Error('Not found all root nodes'));
 
       // The properties id_obj and obj_type must be null. If not we can repair it.
       if (update_obj_to_null) {

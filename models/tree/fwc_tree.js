@@ -367,163 +367,138 @@ fwc_treeModel.getFwc_TreeName = function (fwcloud, name, callback) {
 	});
 };
 
-fwc_treeModel.createAllTreeCloud= function(iduser, fwcloud, AllDone){
-   logger.debug("------------- CREATING FWCTREE INIT");
-	fwc_treeModel.insertFwc_Tree_init(fwcloud, function (error, data)
-	{
-		//If saved fwc-tree Get data
-		if (data && data.result)
-		{
-			logger.debug("------------- CREATING FWCTREE FIREWALLS");
-			fwc_treeModel.insertFwc_Tree_firewalls(fwcloud, "FDF", '', function (error, data)
-			{
-				//If saved fwc-tree Get data
-				if (data && data.result)
-				{
-					logger.debug("------------- CREATING FWCTREE OBJECTS");
-					fwc_treeModel.insertFwc_Tree_objects(fwcloud, "FDO", function (error, data)
-					{
-						//If saved fwc-tree Get data
-						if (data && data.result)
-						{
-							logger.debug("------------- CREATING FWCTREE SERVICES");
-							fwc_treeModel.insertFwc_Tree_objects(fwcloud, "FDS", function (error, data)
-							{
-								//If saved fwc-tree Get data
-								if (data && data.result)
-								{
-								   
-									 AllDone(null, {"result": true});
-								} else
-								{
-									AllDone(null, {"result": false});
-								}
-							});
-						} else
-						{
-							AllDone(null, {"result": false});
-						}
-					});
-				} else
-				{
-					AllDone(null, {"result": false});
-				}
-			});
-		}
-		else{
-			AllDone(null, {"result": false});
-		}
+fwc_treeModel.createAllTreeCloud = req => {
+	return new Promise(async (resolve, reject) => {
+		logger.debug("------------- CREATING FWCTREE INIT");
+
+		// Creating root node for CA (Certification Authorities).
+		try {
+			await fwc_treeModel.newNode(req.dbCon,req.fwcloud,'CERTIFICATION AUTHORITIES',0,'FDA',null,null);
+		} catch(error) { return reject(error) }
+
+		fwc_treeModel.insertFwc_Tree_init(req.fwcloud, (error, data) => {
+			if (error) return reject(error);
+			//If saved fwc-tree Get data
+			if (data && data.result) {
+				logger.debug("------------- CREATING FWCTREE FIREWALLS");
+				fwc_treeModel.insertFwc_Tree_firewalls(req.fwcloud, "FDF", '', (error, data) => {
+					if (error) return reject(error);
+					//If saved fwc-tree Get data
+					if (data && data.result) {
+						logger.debug("------------- CREATING FWCTREE OBJECTS");
+						fwc_treeModel.insertFwc_Tree_objects(req.fwcloud, "FDO", (error, data)	=> {
+							if (error) return reject(error);
+							//If saved fwc-tree Get data
+							if (data && data.result) {
+								logger.debug("------------- CREATING FWCTREE SERVICES");
+								fwc_treeModel.insertFwc_Tree_objects(req.fwcloud, "FDS", (error, data) => {
+									if (error) return reject(error);
+									resolve();
+								});
+							}
+						});
+					}
+				});
+			}
+		});
 	});
-	
 };
 
 
 //Init TREE  from cloud
 fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+		if (error) return callback(error, null);
 
-		//QUITAR PARA MERMITIR VARIOS CLOUD
-		//DELETE PREVIUS DATA
-		sqldelete = "delete from fwc_tree where fwcloud=" +  connection.escape(fwcloud) ;
-		//sqldelete = "truncate table fwc_tree ";
-		connection.query(sqldelete, function (error, result) {
-			if (error) {
-				AllDone(error, null);
-			} else {
-				//INSERT NODE FIREWALLS
+		//INSERT NODE FIREWALLS
+		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+				" VALUES (" + "'FIREWALLS',0,'FDF',null,null," + connection.escape(fwcloud) + ")";
+		logger.debug(sqlinsert);
+		connection.query(sqlinsert, function (error, result) {
+			if (error)
+				logger.debug("ERROR FDF : " + error);
+		});
+		//INSERT NODE OBJECTS
+		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+				" VALUES (" + "'OBJECTS',0,'FDO',null,null," + connection.escape(fwcloud) + ")";
+		connection.query(sqlinsert, function (error, result) {
+			if (error)
+				logger.debug("ERROR FDO : " + error);
+			else {
+				var parent_id = result.insertId;
 				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-						" VALUES (" + "'FIREWALLS',0,'FDF',null,null," + connection.escape(fwcloud) + ")";
-				logger.debug(sqlinsert);
+						" VALUES (" + "'Addresses'," + parent_id + ",'OIA',null,5," + connection.escape(fwcloud) + ")";
 				connection.query(sqlinsert, function (error, result) {
 					if (error)
-						logger.debug("ERROR FDF : " + error);
+						logger.debug("ERROR OIA : " + error);
 				});
-				//INSERT NODE OBJECTS
 				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-						" VALUES (" + "'OBJECTS',0,'FDO',null,null," + connection.escape(fwcloud) + ")";
+						" VALUES (" + "'Address Ranges'," + parent_id + ",'OIR',null,6," + connection.escape(fwcloud) + ")";
 				connection.query(sqlinsert, function (error, result) {
 					if (error)
-						logger.debug("ERROR FDO : " + error);
-					else {
-						var parent_id = result.insertId;
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Addresses'," + parent_id + ",'OIA',null,5," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR OIA : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Address Ranges'," + parent_id + ",'OIR',null,6," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR OIR : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Networks'," + parent_id + ",'OIN',null,7," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR OIN : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Hosts'," + parent_id + ",'OIH',null,8," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR OIH : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Groups'," + parent_id + ",'OIG',null,20," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR OIG : " + error);
-						});
-					}
+						logger.debug("ERROR OIR : " + error);
 				});
-				//INSERT NODE SERVICES
 				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-						" VALUES (" + "'SERVICES',0,'FDS',null,null," + connection.escape(fwcloud) + ")";
+						" VALUES (" + "'Networks'," + parent_id + ",'OIN',null,7," + connection.escape(fwcloud) + ")";
 				connection.query(sqlinsert, function (error, result) {
 					if (error)
-						logger.debug("ERROR FDS : " + error);
-					else {
-						var parent_id = result.insertId;
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'IP'," + parent_id + ",'SOI',null,1," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR SOI : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'TCP'," + parent_id + ",'SOT',null,2," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR SOT : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'ICMP'," + parent_id + ",'SOM',null,3," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR SOM : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'UDP'," + parent_id + ",'SOU',null,4," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR SOU : " + error);
-						});
-						sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-								" VALUES (" + "'Groups'," + parent_id + ",'SOG',null,21," + connection.escape(fwcloud) + ")";
-						connection.query(sqlinsert, function (error, result) {
-							if (error)
-								logger.debug("ERROR SOG : " + error);
-						});
-					}
+						logger.debug("ERROR OIN : " + error);
 				});
-				AllDone(null, {"result": true});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'Hosts'," + parent_id + ",'OIH',null,8," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR OIH : " + error);
+				});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'Groups'," + parent_id + ",'OIG',null,20," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR OIG : " + error);
+				});
 			}
 		});
-
+		//INSERT NODE SERVICES
+		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+				" VALUES (" + "'SERVICES',0,'FDS',null,null," + connection.escape(fwcloud) + ")";
+		connection.query(sqlinsert, function (error, result) {
+			if (error)
+				logger.debug("ERROR FDS : " + error);
+			else {
+				var parent_id = result.insertId;
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'IP'," + parent_id + ",'SOI',null,1," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR SOI : " + error);
+				});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'TCP'," + parent_id + ",'SOT',null,2," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR SOT : " + error);
+				});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'ICMP'," + parent_id + ",'SOM',null,3," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR SOM : " + error);
+				});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'UDP'," + parent_id + ",'SOU',null,4," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR SOU : " + error);
+				});
+				sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
+						" VALUES (" + "'Groups'," + parent_id + ",'SOG',null,21," + connection.escape(fwcloud) + ")";
+				connection.query(sqlinsert, function (error, result) {
+					if (error)
+						logger.debug("ERROR SOG : " + error);
+				});
+			}
+		});
+		AllDone(null, {"result": true});
 	});
 };
 

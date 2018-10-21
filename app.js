@@ -56,7 +56,7 @@ app.use(helmet());
 app.use(compression());
 
 //configuramos methodOverride
-app.use(methodOverride(function (req, res) {
+app.use(methodOverride((req, res) => {
 	if (req.body && typeof req.body === 'object' && '_method' in req.body) {
 		// look in urlencoded POST bodies and delete it
 		var method = req.body._method;
@@ -120,9 +120,17 @@ app.use(accessAuth.chek);
 // Middleware for input data validation.
 app.use(inputValidation.check);
 
+// Store the databasse access object in the req object.
+app.use(async (req, res, next) => {
+	try {
+		req.dbCon = await utilsModel.getDbConnection();
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Cannot get database access object', null, error, jsonResp => res.status(400).json(jsonResp)) }
+});
 
-var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
+
 //CONTROL FWCLOUD ACCESS
+var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
 app.use(control_routes, (req, res, next) => {
 
 	var url_parts = url.parse(req.url);

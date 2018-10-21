@@ -8,16 +8,11 @@ const sharedSchema = require('./shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    var schema = Joi.object().keys({
-      fwcloud: sharedSchema.id,
-      days: sharedSchema.days,
-      cn: sharedSchema.cn,
+    const schema = Joi.object().keys({
+      name: sharedSchema.name,
+      image: Joi.string().allow('').optional(),
+      comment: sharedSchema.comment,
     });
-
-    if (req.url==='/vpn/openvpn/cert') {
-      schema = schema.append({ type: Joi. number().integer().valid([1,2]) });
-      schema = schema.append({ ca: sharedSchema.id });
-    }
 
     try {
       await Joi.validate(req.body, schema, sharedSchema.joiValidationOptions);

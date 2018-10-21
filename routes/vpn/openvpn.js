@@ -59,10 +59,13 @@ var logger = require('log4js').getLogger("app");
  */
 router.post('/ca',async (req, res) => {
 	try {
-		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'init-pki'});
-		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'build-ca', days:req.body.days, cn:req.body.cn, nopass:true});
-		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:'gen-crl'});
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		// Add the new CA to the database.
+		req.caId = await openvpnModel.createNewCA(req);
+		// Create the new CA directory structure.
+		await openvpnModel.runEasyRsaCmd(req,'init-pki');
+		await openvpnModel.runEasyRsaCmd(req,'build-ca');
+		await openvpnModel.runEasyRsaCmd(req,'gen-crl');
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
@@ -72,13 +75,17 @@ router.post('/ca',async (req, res) => {
  */
 router.post('/cert',async (req, res) => {
 	try {
+		// Add the new certificate to the database.
+		await openvpnModel.createNewCert(req);
+		// Create the new certificate in the CA directory.
 		var cmd = '';
-		if (req.body.type==='server')
-			cmd = 'build-server-full';
-		else
+		if (req.body.type===1) // Client
 			cmd = 'build-client-full';
-		await openvpnModel.runEasyRsaCmd(req.body.fwcloud,{cmd:cmd, days:req.body.days, cn:req.body.cn, nopass:true});
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		else // Server
+			cmd = 'build-server-full';
+		req.caId = req.body.ca;
+		await openvpnModel.runEasyRsaCmd(req,cmd);
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
