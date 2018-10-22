@@ -26,6 +26,14 @@ const config = convict({
     }
   },
 
+  // Confirmation token for all not GET requests.
+  confirmation_token: {
+    doc: 'Confirmation token for all modification API requests.',
+    format: Boolean,
+    default: true,
+    env: 'CONFIRMATION_TOKEN'
+  },
+
   // HTTPS settings for communicate with the API.
   https: {
     enable: {

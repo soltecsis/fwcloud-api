@@ -126,10 +126,12 @@ app.use(async (req, res, next) => {
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Cannot get database access object', null, error, jsonResp => res.status(400).json(jsonResp)) }
 });
 
-// Middleware for manage confirmation token. 
-// Only required for requests that will change the platform information.
-// Do this before the input data validation process.
-app.use(confirmToken.check);
+if (config.get('confirmation_token')) {
+	// Middleware for manage confirmation token. 
+	// Only required for requests that will change the platform information.
+	// Do this before the input data validation process.
+	app.use(confirmToken.check);
+}
 
 // Middleware for input data validation.
 app.use(inputValidation.check);
