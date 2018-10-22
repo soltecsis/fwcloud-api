@@ -213,43 +213,6 @@ fwcloudModel.checkFwcloudLockTimeout = function (timeout, callback) {
 	});
 };
 
-/**
- * Get Fwcloud by User and Name
- *  
- * @method getFwcloudName
- * 
- * @param {Integer} iduser User identifier
- * @param {String} Name Fwcloud Name
- * @param {Function} callback    Function callback response
- * 
- *       callback(error, Rows)
- * 
- * @return {ARRAY of Fwcloud objects} Returns `ARRAY OBJECT FWCLOUD DATA` 
- * 
- * Table: __fwcloud__
- * 
- *           fwcloud	int(11)
- *           name	varchar(255)
- */
-fwcloudModel.getFwcloudName = function (iduser, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.name like ' + connection.escape(namesql);
-
-
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
 
 /**
  * ADD New Fwcloud

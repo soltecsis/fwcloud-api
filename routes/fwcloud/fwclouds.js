@@ -155,56 +155,6 @@ router.get('/fwcloud', (req, res) => {
 });
 
 
-/* Get fwcloud by fwcloud name  */
-/**
- * Get Fwclouds by Name and User
- * 
- * <br>ROUTE CALL:  <b>/fwcloud/:iduser/name/:name</b>
- * <br>METHOD: <b>GET</b>
- *
- * @method getFwcloudByUser_and_Name_V2
- * 
- * @param {Integer} iduser User identifier
- * @param {String} name Fwcloud Name
- * 
- * @return {JSON} Returns Json Data from Fwcloud
- */
-router.get('/name/:name', function (req, res)
-{
-	var iduser = req.iduser;
-	var name = req.params.name;
-
-	if (name.length > 0)
-	{
-		FwcloudModel.getFwcloudName(iduser, name, function (error, data)
-		{
-			//get data
-			if (data && data.length > 0)
-			{
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-
-			}
-			//get error
-			else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	}
-	//id must be numeric
-	else
-	{
-		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	}
-});
-
-
 /**
  * CREATE New fwcloud
  * 
