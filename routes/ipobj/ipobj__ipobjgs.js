@@ -66,7 +66,7 @@ router.get('/:ipobjg/:ipobj',  function (req, res)
 
 
 /* Create New ipobj__ipobjg */
-router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.checkConfirmationToken, (req, res) => {
+router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var node_parent = req.params.node_parent;
@@ -138,8 +138,7 @@ router.post("/ipobj__ipobjg/:node_parent/:node_order/:node_type", utilsModel.che
 });
 
 /* Update ipobj__ipobjg that exist */
-router.put('/ipobj__ipobjg/:ipobjg/:ipobj', utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put('/ipobj__ipobjg/:ipobjg/:ipobj', (req, res) => {
 	var ipobjg = req.params.ipobjg;
 	var ipobj = req.params.ipobj;
 	//Save data into object
@@ -170,9 +169,7 @@ router.put('/ipobj__ipobjg/:ipobjg/:ipobj', utilsModel.checkConfirmationToken, f
 
 
 /* Remove ipobj__ipobjg */
-router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj", 
-utilsModel.checkConfirmationToken, 
-(req, res) => {
+router.put("/del/ipobj__ipobjg/:node_parent/:ipobjg/:ipobj", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var node_parent = req.params.node_parent;

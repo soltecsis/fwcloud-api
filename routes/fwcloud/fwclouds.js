@@ -100,22 +100,11 @@ var fwcTreemodel = require('../../models/tree/fwc_tree');
  * 
  */
 router.get('/', (req, res) => {
-	FwcloudModel.getFwclouds(req.iduser, function (error, data)
-	{
-		//Get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+	FwcloudModel.getFwclouds(req.iduser, (error, data) => {
+		if (data && data.length > 0) //Get data
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
+		else //Get error 
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
@@ -123,7 +112,7 @@ router.get('/', (req, res) => {
 /**
  * Get Fwclouds by ID and User
  * 
- * <br>ROUTE CALL:  <b>/fwclouds/fwcloud</b>
+ * <br>ROUTE CALL:  <b>/fwclouds/:fwcloud</b>
  * <br>METHOD: <b>GET</b>
  *
  * @method getFwcloudByUser_and_ID_V2
@@ -133,24 +122,12 @@ router.get('/', (req, res) => {
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/fwcloud', (req, res) => {
-	FwcloudModel.getFwcloud(req.iduser, req.body.fwcloud, function (error, data)
-	{
-		//get fwcloud data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-
-		}
-		//get error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+router.get('/:fwcloud', (req, res) => {
+	FwcloudModel.getFwcloud(req.iduser, req.body.fwcloud, (error, data) => {
+		if (data && data.length > 0) //get fwcloud data
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else //get error
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
@@ -198,8 +175,7 @@ router.post("/fwcloud", (req, res) => {
 	var iduser = req.iduser;
 
 	FwcloudModel.insertFwcloud(iduser, fwcloudData, async (error, data) => {
-		if (data && data.insertId)
-		{   
+		if (data && data.insertId) {   
 			logger.debug("insertFwcloud: ", data);
 			var dataresp = {"insertId": data.insertId};
 
@@ -211,9 +187,7 @@ router.post("/fwcloud", (req, res) => {
 				await utilsModel.createFwcloudDataDir(req.fwcloud);
 			} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating cloud', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 
-			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
+			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
@@ -254,9 +228,7 @@ router.post("/fwcloud", (req, res) => {
  *         ]
  *       };
  */
-router.put('/fwcloud', utilsModel.checkConfirmationToken, function (req, res)
-{
-
+router.put('/fwcloud', (req, res) => {
 	//Save fwcloud data into objet
 	var fwcloudData = {id: req.body.id, name: req.body.name,  image: req.body.image, comment: req.body.comment ,user: req.iduser};
 
@@ -311,9 +283,7 @@ router.put('/fwcloud', utilsModel.checkConfirmationToken, function (req, res)
  *         ]
  *       };
  */
-router.put('/fwcloud/lock/:fwcloud', function (req, res)
-{
-
+router.put('/fwcloud/lock/:fwcloud', (req, res) => {
 	//Save fwcloud data into objet
 	var fwcloudData = {fwcloud: req.params.fwcloud, iduser: req.iduser};
 
@@ -491,7 +461,6 @@ router.get('/locked/:fwcloud', function (req, res)
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.put("/del/fwcloud/:fwcloud",
 FwcloudModel.checkRestrictionsCloud,
-utilsModel.checkConfirmationToken, 
 async (req, res) => {
   req.fwcloud = req.params.fwcloud;
 	var iduser = req.iduser;

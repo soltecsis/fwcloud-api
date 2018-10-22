@@ -406,7 +406,6 @@ router.put('/interface/', function (req, res)
 router.put("/del/interface/:idfirewall/:id/:type", 
 utilsModel.checkFirewallAccess, 
 InterfaceModel.checkRestrictions, 
-utilsModel.checkConfirmationToken,
 (req, res) => {
 	//Id from interface to remove
 	var iduser = req.iduser;
@@ -471,7 +470,6 @@ utilsModel.checkConfirmationToken,
 /* Remove host interface */
 router.put("/del/interface_host/:idhost/:idinterface", 
 InterfaceModel.checkRestrictions, 
-utilsModel.checkConfirmationToken,
 (req, res) => {
 	Interface__ipobjModel.deleteInterface__ipobj(req.params.idinterface, req.params.idhost, (error,data) => {
 		if (data) {
@@ -499,8 +497,9 @@ utilsModel.checkConfirmationToken,
 
 /* Remove interface */
 //FALTA CONTROLAR RESTRICCIONES
-router.put("/del/interface/all/:idfirewall/", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put("/del/interface/all/:idfirewall/",
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	//Id from interface to remove
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;

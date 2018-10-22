@@ -557,7 +557,6 @@ router.post("/firewall", async (req, res) => {
  */
 router.put('/firewall/:idfirewall',
 utilsModel.checkFirewallAccess,
-utilsModel.checkConfirmationToken,
 (req, res) => {
 	var idfirewall = req.params.idfirewall;
 
@@ -656,7 +655,7 @@ utilsModel.checkConfirmationToken,
 
 router.put('/clone/firewall/:idfirewall',
 utilsModel.checkFirewallAccess, 
-utilsModel.checkConfirmationToken, (req, res) => {
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	//Save firewall data into objet    
 	var firewallData = {
@@ -700,8 +699,9 @@ utilsModel.checkConfirmationToken, (req, res) => {
 
 
 //UPDATE FIREWALL FWMASTER
-router.put('/firewall/:idfirewall/fwmaster/:fwmaster', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put('/firewall/:idfirewall/fwmaster/:fwmaster', 
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var fwmaster = req.params.fwmaster;
 
@@ -730,9 +730,9 @@ router.put('/firewall/:idfirewall/fwmaster/:fwmaster', utilsModel.checkFirewallA
 
 //UPDATE FIREWALL cluster
 //FALTA CAMBIAR de NODO a CLUSTER O FIREWALLS
-router.put('/firewall/:idfirewall/cluster/:cluster', utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
-
+router.put('/firewall/:idfirewall/cluster/:cluster',
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var cluster = req.params.cluster;
 
@@ -857,7 +857,6 @@ router.get('/accesslock/:id', function (req, res)
 router.put("/del/firewall/:idfirewall", 
 utilsModel.checkFirewallAccess, 
 InterfaceModel.checkRestrictionsOtherFirewall, 
-utilsModel.checkConfirmationToken, 
 async (req, res) => 
 {
 	var id = req.params.idfirewall;
@@ -878,7 +877,6 @@ router.put("/delfromcluster/:idcluster/firewall/:idfirewall",
 utilsModel.checkFirewallAccess,
 InterfaceModel.checkRestrictionsOtherFirewall,
 FirewallModel.checkRestrictionsFirewallApplyTo,
-utilsModel.checkConfirmationToken,
 (req, res) => {
 
 	var id = req.params.idfirewall;

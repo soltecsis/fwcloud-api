@@ -32,6 +32,7 @@ var methodOverride = require('method-override');
 const config = require('./config/config');
 const accessAuth = require('./middleware/authorization');
 const inputValidation = require('./middleware/input_validation');
+const confirmToken = require('./middleware/confirmation_token');
 
 
 var app = express();
@@ -114,11 +115,8 @@ app.use(session({
 }));
 
 // Middleware for access authorization.
-app.use(accessAuth.chek);
+app.use(accessAuth.check);
 /*--------------------------------------------------------------------------------------*/
-
-// Middleware for input data validation.
-app.use(inputValidation.check);
 
 // Store the databasse access object in the req object.
 app.use(async (req, res, next) => {
@@ -128,13 +126,20 @@ app.use(async (req, res, next) => {
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Cannot get database access object', null, error, jsonResp => res.status(400).json(jsonResp)) }
 });
 
+// Middleware for manage confirmation token. 
+// Only required for requests that will change the platform information.
+// Do this before the input data validation process.
+app.use(confirmToken.check);
+
+// Middleware for input data validation.
+app.use(inputValidation.check);
+
 
 //CONTROL FWCLOUD ACCESS
 var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
 app.use(control_routes, (req, res, next) => {
 
 	var url_parts = url.parse(req.url);
-	var pathname = url_parts.pathname;
 	var originalURL = req.originalUrl;
 
 
@@ -145,7 +150,6 @@ app.use(control_routes, (req, res, next) => {
 
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
-	var confirm_token = req.headers.x_fwc_confirm_token;
 
 	var update = true;
 	if (req.method === 'GET')
@@ -171,7 +175,6 @@ app.use(control_routes, (req, res, next) => {
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
 		req.fwc_access = true;
-		req.confirm_token = confirm_token;
 		req.iduser = iduser;
 		req.fwcloud = req.body.id;
 		req.restricted = {};
@@ -192,7 +195,6 @@ app.use(control_routes, (req, res, next) => {
 		var userData = {id: iduser};
 		UserModel.updateUserTS(userData, function (error, data) {});        
 		req.fwc_access = true;
-		req.confirm_token = confirm_token;
 		req.iduser = iduser;
 		//request.fwcloud = request.params.fwcloud;
 		req.restricted = {};
@@ -205,7 +207,6 @@ app.use(control_routes, (req, res, next) => {
 					//save access to user                
 					var userData = {id: iduser};
 					UserModel.updateUserTS(userData, function (error, data) {});
-					req.confirm_token = confirm_token;
 					req.restricted = {};
 					next();
 				})

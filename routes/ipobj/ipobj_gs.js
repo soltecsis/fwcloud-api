@@ -276,8 +276,9 @@ router.put('/ipobj-g', function (req, res)
 
 
 /* Remove ipobj_g */
-router.put("/del/ipobj-g/:id/:type", Ipobj_gModel.checkRestrictions, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.put("/del/ipobj-g/:id/:type", 
+Ipobj_gModel.checkRestrictions,
+(req, res) => {
     var iduser = req.iduser;
     var fwcloud = req.fwcloud;
     var id = req.params.id;

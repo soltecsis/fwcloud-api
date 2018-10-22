@@ -201,7 +201,6 @@ router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAcc
 /* Create New policy_r */
 router.post("/policy-r/:idfirewall", 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Create New objet with data policy_r
@@ -240,7 +239,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Update policy_r that exist */
 router.put('/policy-r/:idfirewall', 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	//Save data into object
@@ -297,7 +295,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Compile policy_r that exist */
 router.put('/policy-r/compile/:idfirewall/:rule', 
 utilsModel.checkFirewallAccess,
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule};
@@ -327,7 +324,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Update ORDER of the policy_r that exist */
 router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -362,7 +358,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Update APPLY_TO de policy_r that exist */
 router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -400,7 +395,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Update Style policy_r  */
 router.put('/policy-r/style/:idfirewall/:type', 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, type: req.params.type};
@@ -430,7 +424,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Update Active policy_r  */
 router.put('/policy-r/activate/:idfirewall/:type', 
 utilsModel.checkFirewallAccess, 
-//utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -464,7 +457,6 @@ utilsModel.disableFirewallCompileStatus,
 /* Copy or Move RULES */
 router.put('/policy-r/copy-rules/:idfirewall', 
 utilsModel.checkFirewallAccess,
-//utilsModel.checkConfirmationToken,
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	try {
@@ -696,7 +688,6 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 /* Remove policy_r */
 router.put("/del/policy-r/:idfirewall", 
 utilsModel.checkFirewallAccess, 
-utilsModel.checkConfirmationToken, 
 utilsModel.disableFirewallCompileStatus,  
 (req, res) => {
 	//Id from policy_r to remove

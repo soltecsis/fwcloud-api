@@ -778,8 +778,7 @@ IpobjModel.checkDuplicity,
  *      };
  */
 router.put("/del/ipobj/:id/:type", 
-IpobjModel.checkRestrictions, 
-utilsModel.checkConfirmationToken, 
+IpobjModel.checkRestrictions,  
 (req, res) => {
 	//Id from ipobj to remove
 	//var idfirewall = req.params.idfirewall;

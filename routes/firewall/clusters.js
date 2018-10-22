@@ -166,7 +166,7 @@ router.get('/:id', function (req, res)
 
 
 /* New cluster */
-router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
+router.post("/cluster", (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
 	logger.debug("JSON RECIBIDO: ", JsonData);
@@ -220,8 +220,7 @@ router.post("/cluster", utilsModel.checkConfirmationToken, (req, res) => {
 });
 
 /* New cluster FROM FIREWALL */
-router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess, utilsModel.checkConfirmationToken, function (req, res)
-{
+router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess, (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var idfirewall = req.params.idfirewall;
@@ -284,12 +283,10 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
 });
 
 /* New FIREWALL FROM CLUSTER */
-router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationToken, function (req, res)
-{
+router.post("/cluster/convertcluster/:idcluster", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var idCluster = req.params.idcluster;
-
 
 	FirewallModel.getFirewallClusterMaster(iduser, idCluster, function (error, firewallDataArry)
 	{
@@ -344,7 +341,7 @@ router.post("/cluster/convertcluster/:idcluster", utilsModel.checkConfirmationTo
 });
 
 /* CLONE CLUSTER */
-router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req, res) => {
+router.put("/clone/cluster/:idcluster", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var idCluster = req.params.idcluster;
@@ -416,9 +413,7 @@ router.put("/clone/cluster/:idcluster", utilsModel.checkConfirmationToken, (req,
 
 
 /* cluster update */
-router.put('/cluster', 
-utilsModel.checkConfirmationToken, 
-(req, res) => {
+router.put('/cluster', (req, res) => {
 	var fwcloud = req.fwcloud;
 	
 	var JsonData = req.body;
@@ -445,7 +440,9 @@ utilsModel.checkConfirmationToken,
 
 
 /* Remove cluster */
-router.put("/del/cluster/:id/:idfirewall", InterfaceModel.checkRestrictionsOtherFirewall, utilsModel.checkConfirmationToken, (req, res) => {
+router.put("/del/cluster/:id/:idfirewall", 
+InterfaceModel.checkRestrictionsOtherFirewall, 
+(req, res) => {
 	ClusterModel.deleteCluster(req.params.id, req.iduser, req.fwcloud, (error, data) => {
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));

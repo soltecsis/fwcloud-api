@@ -143,54 +143,6 @@ userModel.updateUserCT = function (iduser, token, callback) {
 	});
 };
 
-//Check User CONFIRMATION TOKEN
-userModel.checkConfirmationtoken = function (userData) {
-	return new Promise((resolve, reject) => {
-		try {
-			db.get(function (error, connection) {
-				if (error)
-					reject(error);
-
-				var sql = 'SELECT confirmation_token FROM user WHERE id=' + connection.escape(userData.iduser);
-
-				connection.query(sql, function (error, row) {
-					if (error)
-						reject(error);
-					else if (row) {                        
-						var CT = row[0].confirmation_token;
-						logger.debug("COMPARANDO TOKEN USER: ", CT);
-						logger.debug("CON TOKEN REQUEST: ", userData.confirm_token );
-						
-						if (userData.confirm_token === '' || userData.confirm_token === undefined || userData.confirm_token !== CT) {
-							//generate new token
-							var new_token = userData.sessionID + "_" + utilsModel.getRandomString(20);
-							logger.debug("----> GENERATED NEW CONFIRMATION TOKEN: ", new_token);
-							userModel.updateUserCT(userData.iduser, new_token)
-									.then(resp => {
-										resolve({"result": false, "token": new_token});
-									})
-									.catch(e => reject(e));
-
-						} else {
-							//token valid
-							//REMOVE token
-							userModel.updateUserCT(userData.iduser, "")
-									.then(resp => {
-										resolve({"result": true, "token": ""});
-									})
-									.catch(e => reject(e));
-							
-						}
-					}
-					else
-						reject(false);
-				});
-			});
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
 
 
 //Remove user with id to remove

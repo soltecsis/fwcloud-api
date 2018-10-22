@@ -24,7 +24,8 @@ schema.validate = req => {
     }
 
     try {
-      await Joi.validate(req.body, schema, sharedSchema.joiValidationOptions);
+      const data = (req.method==="GET" || req.method==="DELETE") ? req.params : req.body;
+      await Joi.validate(data, schema, sharedSchema.joiValidationOptions);
       resolve();
     } catch(error) { return reject(error) } 
   });

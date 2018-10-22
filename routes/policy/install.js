@@ -59,7 +59,6 @@ var FirewallModel = require('../../models/firewall/firewall');
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/:idfirewall', 
 utilsModel.checkFirewallAccess, 
-utilsModel.checkConfirmationToken, 
 (req, res) => {
   var idfirewall = req.params.idfirewall;
 
