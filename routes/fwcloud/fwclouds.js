@@ -1,6 +1,6 @@
 /**
  * Module to routing FWCloud requests
- * <br>BASE ROUTE CALL: <b>/fwcloud</b>
+ * <br>BASE ROUTE CALL: <b>/fwclouds</b>
  *
  * @module Fwcloud
  * 
@@ -71,8 +71,6 @@ var utilsModel = require("../../utils/utils.js");
 
 var fwcTreemodel = require('../../models/tree/fwc_tree');
 
-var db = require('../../db.js');
-
 
 /**
  * Get Fwclouds by User
@@ -101,10 +99,8 @@ var db = require('../../db.js');
  *       };
  * 
  */
-router.get('/', function (req, res)
-{
-	var iduser = req.iduser;
-	FwcloudModel.getFwclouds(iduser, function (error, data)
+router.get('/', (req, res) => {
+	FwcloudModel.getFwclouds(req.iduser, function (error, data)
 	{
 		//Get data
 		if (data && data.length > 0)
@@ -127,7 +123,7 @@ router.get('/', function (req, res)
 /**
  * Get Fwclouds by ID and User
  * 
- * <br>ROUTE CALL:  <b>/fwcloud/:iduser/fwcloud/:id</b>
+ * <br>ROUTE CALL:  <b>/fwclouds/fwcloud</b>
  * <br>METHOD: <b>GET</b>
  *
  * @method getFwcloudByUser_and_ID_V2
@@ -137,39 +133,25 @@ router.get('/', function (req, res)
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/:fwcloud', function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.params.fwcloud;
-
-	if (!isNaN(fwcloud))
+router.get('/fwcloud', (req, res) => {
+	FwcloudModel.getFwcloud(req.iduser, req.body.fwcloud, function (error, data)
 	{
-		FwcloudModel.getFwcloud(iduser, fwcloud, function (error, data)
+		//get fwcloud data
+		if (data && data.length > 0)
 		{
-			//get fwcloud data
-			if (data && data.length > 0)
-			{
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
 
-			}
-			//get error
-			else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	}
-	//id must be numeric
-	else
-	{
-		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	}
+		}
+		//get error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
 });
 
 
@@ -584,4 +566,5 @@ async (req, res) => {
 		}
 	});
 });
+
 module.exports = router;

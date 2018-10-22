@@ -144,7 +144,7 @@ app.use(control_routes, (req, res, next) => {
 	logger.debug("METHOD: " + req.method + "   PATHNAME: " + originalURL);
 
 	var iduser = req.session.user_id;
-	var fwcloud = req.headers.x_fwc_fwcloud;
+	var fwcloud = req.body.fwcloud;
 	var confirm_token = req.headers.x_fwc_confirm_token;
 
 	var update = true;
@@ -177,7 +177,7 @@ app.use(control_routes, (req, res, next) => {
 		req.restricted = {};
 		next();
 	}
-	else if (utilsModel.startsWith(originalURL,'/fwclouds') && req.method === 'GET' && fwcloud==='') {
+	else if (utilsModel.startsWith(originalURL,'/fwclouds') && req.method === 'GET' && fwcloud===undefined) {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
 		var userData = {id: iduser};

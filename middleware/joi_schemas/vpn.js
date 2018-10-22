@@ -14,7 +14,7 @@ schema.validate = req => {
       cn: sharedSchema.cn,
     });
 
-    if (req.url==='/vpn/openvpn/cert') {
+    if (req.method==="POST" && req.url==='/vpn/openvpn/cert') {
       schema = schema.append({ type: Joi. number().integer().valid([1,2]) });
       schema = schema.append({ ca: sharedSchema.id });
     }
