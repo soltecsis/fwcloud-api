@@ -11,11 +11,18 @@ schema.validate = req => {
     // We don't need input data validation here because we have no input data.
     if (req.method==="GET" && req.url==='/fwclouds') return resolve();
 
-    var schema = Joi.object().keys({ 
-      fwcloud: sharedSchema.id
+    var schema = Joi.object().keys({
+      fwcloud: sharedSchema.id,
+      name: sharedSchema.name,
+      image: Joi.string().allow('').optional(),
+      comment: sharedSchema.comment,
     });
+    
+    if (req.method==="POST") {
+      schema = schema.append({ type: Joi. number().integer().valid([1,2]) });
+    };
 
-    if (req.method==="POST" && req.url==='/fwclouds/fwcloud') {
+    if ((req.method==="POST" || req.method==="PUT") && req.url==='/fwclouds/fwcloud') {
       schema = Joi.object().keys({
         name: sharedSchema.name,
         image: Joi.string().allow('').optional(),
@@ -24,8 +31,7 @@ schema.validate = req => {
     }
 
     try {
-      const data = (req.method==="GET" || req.method==="DELETE") ? req.params : req.body;
-      await Joi.validate(data, schema, sharedSchema.joiValidationOptions);
+      await Joi.validate(req.body, schema, sharedSchema.joiValidationOptions);
       resolve();
     } catch(error) { return reject(error) } 
   });

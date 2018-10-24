@@ -122,7 +122,7 @@ router.get('/', (req, res) => {
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/:fwcloud', (req, res) => {
+router.put('/get/fwcloud', (req, res) => {
 	FwcloudModel.getFwcloud(req.iduser, req.body.fwcloud, (error, data) => {
 		if (data && data.length > 0) //get fwcloud data
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));

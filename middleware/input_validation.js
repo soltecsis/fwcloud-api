@@ -16,6 +16,6 @@ inputValidation.check = async (req, res, next) => {
     if (error instanceof Error && error.code === "MODULE_NOT_FOUND")
       api_resp.getJson(null, api_resp.ACR_ERROR, 'This Express route is not controlled in the input data validation process', 'INPUT VALIDATION', error, jsonResp => res.status(400).json(jsonResp));
     else
-      api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad input data', 'INPUT VALIDATION', error, jsonResp => res.status(400).json(jsonResp)) }
+      api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Bad input data', 'INPUT VALIDATION', error, jsonResp => res.status(400).json(jsonResp)) }
 };
 
