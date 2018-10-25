@@ -13,7 +13,7 @@ schema.validate = req => {
 
     var schema = Joi.object().keys({
       name: sharedSchema.name,
-      image: Joi.string().allow('').optional(),
+      image: sharedSchema.img,
       comment: sharedSchema.comment,
     });
     

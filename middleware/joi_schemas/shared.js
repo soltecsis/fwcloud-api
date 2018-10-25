@@ -20,3 +20,4 @@ sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 sharedSchema.name = Joi.string().min(1).max(64);
 sharedSchema.comment = Joi.string().allow('').min(0).max(255).optional();
 
+sharedSchema.img = Joi.string().allow('').alphanum().min(3).max(32).optional();

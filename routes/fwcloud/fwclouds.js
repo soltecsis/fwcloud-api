@@ -249,6 +249,69 @@ router.put('/', (req, res) => {
 	});
 });
 
+
+/**
+ * DELETE fwcloud
+ * 
+ * 
+ * > ROUTE CALL:  __/fwcloud/fwcloud__      
+ * > METHOD:  __DELETE__
+ * 
+ *
+ * @method DeleteFwcloud
+ * 
+ * @param {Integer} fwcloud Fwcloud identifier
+ * @optional
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : "success",   //result
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
+ */
+//FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
+router.put("/del",
+FwcloudModel.checkRestrictionsCloud,
+async (req, res) => {
+  req.fwcloud = req.body.fwcloud;
+	var iduser = req.iduser;
+
+	// Remove the fwcloud data dir.
+	try {
+		await utilsModel.removeFwcloudDataDir(req.fwcloud);
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+	
+	FwcloudModel.deleteFwcloud(iduser, req.fwcloud,req.restricted, function (error, data)
+	{
+		if (data && data.result)
+		{
+			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		} else
+		{
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
+
+
 /**
  * Lock fwcloud status
  * 
@@ -421,65 +484,6 @@ router.get('/lock/get', (req, res) => {
 		});
 	}
 });
-/**
- * DELETE fwcloud
- * 
- * 
- * > ROUTE CALL:  __/fwcloud/fwcloud__      
- * > METHOD:  __DELETE__
- * 
- *
- * @method DeleteFwcloud
- * 
- * @param {Integer} fwcloud Fwcloud identifier
- * @optional
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-//FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del",
-FwcloudModel.checkRestrictionsCloud,
-async (req, res) => {
-  req.fwcloud = req.body.fwcloud;
-	var iduser = req.iduser;
 
-	// Remove the fwcloud data dir.
-	try {
-		await utilsModel.removeFwcloudDataDir(req.fwcloud);
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
-	
-	FwcloudModel.deleteFwcloud(iduser, req.fwcloud,req.restricted, function (error, data)
-	{
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
 
 module.exports = router;
