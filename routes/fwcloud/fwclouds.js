@@ -112,8 +112,8 @@ router.get('/', (req, res) => {
 /**
  * Get Fwclouds by ID and User
  * 
- * <br>ROUTE CALL:  <b>/fwclouds/:fwcloud</b>
- * <br>METHOD: <b>GET</b>
+ * <br>ROUTE CALL:  <b>/get</b>
+ * <br>METHOD: <b>PUT</b>
  *
  * @method getFwcloudByUser_and_ID_V2
  * 
