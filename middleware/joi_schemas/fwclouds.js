@@ -8,9 +8,6 @@ const sharedSchema = require('./shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    // We don't need input data validation here because we have no input data.
-    if (req.method==='GET' && req.url==='/fwclouds') return resolve();
-
     var schema = Joi.object().keys({
       name: sharedSchema.name,
       image: sharedSchema.img,

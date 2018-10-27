@@ -12,12 +12,12 @@ sharedSchema.joiValidationOptions = {convert: false, presence: 'required'};
 sharedSchema.id = Joi.number().integer().min(1);
 
 sharedSchema.username = Joi.string().alphanum().min(3).max(32);
-sharedSchema.password = Joi.string().regex(/^[a-zA-Z0-9]{6,32}$/);
+sharedSchema.password = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
 
 sharedSchema.days = Joi.number().integer().min(1).max(9999999);
 sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 
-sharedSchema.name = Joi.string().min(1).max(64);
-sharedSchema.comment = Joi.string().allow('').min(0).max(255).optional();
+sharedSchema.name = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
+sharedSchema.comment = Joi.string().allow('').regex(/^[ -~\x80-\xFE]{1,254}$/).optional();
 
-sharedSchema.img = Joi.string().allow('').alphanum().min(3).max(32).optional();
+sharedSchema.img = Joi.string().allow('').dataUri().min(3).max(64).optional();
