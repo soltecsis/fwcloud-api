@@ -48,7 +48,7 @@ var IpobjModel = require('../../models/ipobj/ipobj');
  * @type ../../models/tree/fwc_tree
  * 
  */
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../../models/tree/tree');
 
 /**
  * Property Model to manage FWC_TREE_NODE Data
@@ -57,7 +57,7 @@ var fwcTreemodel = require('../../models/tree/fwc_tree');
  * @type ../../models/tree/fwc_tree_node
  * 
  */
-var fwc_tree_node = require("../../models/tree/fwc_tree_node.js");
+var fwc_tree_node = require("../../models/tree/node.js");
 
 /**
  * Property Model to manage UTIL functions

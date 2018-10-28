@@ -1,9 +1,9 @@
 var express = require('express');
 var router = express.Router();
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../../models/tree/tree');
 //var Node = require("tree-node");
 var Tree = require('easy-tree');
-var fwc_tree_node = require("../../models/tree/fwc_tree_node.js");
+var fwc_tree_node = require("../../models/tree/node.js");
 var utilsModel = require("../../utils/utils.js");
 var api_resp = require('../../utils/api_response');
 var FirewallModel = require('../../models/firewall/firewall');
@@ -12,9 +12,9 @@ var objModel = 'FWC TREE';
 var logger = require('log4js').getLogger("app");
 
 /* Get all fwc_tree NODE FIREWALL*/
-router.get('/firewalls', (req, res) => {
+router.put('/firewalls/get', (req, res) => {
 	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var fwcloud = req.body.fwcloud;
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, 'FDF', (error, rows) => {
 		utilsModel.checkEmptyRow(rows, notempty => {
 			if (notempty) {
@@ -41,11 +41,12 @@ router.get('/firewalls', (req, res) => {
 //FALTA HACER FILTRO POR NODO PADRE
 //FALTA CONTROL Por CLUSTER
 /* Get all fwc_tree NODE FIREWALL by IdFirewall*/
-router.get('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.put('/firewall/get', 
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var idfirewall = req.params.idfirewall;
+	var fwcloud = req.body.fwcloud;
+	var idfirewall = req.body.idfirewall;
 
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDF", function (error, rows)
 	{
@@ -80,21 +81,17 @@ router.get('/firewall/:idfirewall', utilsModel.checkFirewallAccess, function (re
 				});
 			}
 		});
-
-
 	});
 });
 
 /* Get all fwc_tree NODE OBJECTS by User*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/:objStandard/:objCloud/', function (req, res)
-{
+router.put('/objects/get', (req, res) => {
 	var iduser = req.iduser;
-	var objs = req.params.objStandard;
-	var objc = req.params.objCloud;
-	var fwcloud = req.fwcloud;
-
+	var objs = req.body.objStandard;
+	var objc = req.body.objCloud;
+	var fwcloud = req.body.fwcloud;
 
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDO", function (error, rows)
 	{
@@ -134,17 +131,16 @@ router.get('/objects/:objStandard/:objCloud/', function (req, res)
 		}
 	});
 });
+
 /* Get fwc_tree NODE OBJECTS by User and by ID*/
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
-router.get('/objects/:objStandard/:objCloud/:id', function (req, res)
-{
+router.put('/objects/node/get', (req, res) => {
 	var iduser = req.iduser;
-	var objs = req.params.objStandard;
-	var objc = req.params.objCloud;
-	var idNode = req.params.id;
-	var fwcloud = req.fwcloud;
-
+	var objs = req.body.objStandard;
+	var objc = req.body.objCloud;
+	var idNode = req.body.id;
+	var fwcloud = req.body.fwcloud;
 
 	fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
 	{
@@ -182,15 +178,16 @@ router.get('/objects/:objStandard/:objCloud/:id', function (req, res)
 		}
 	});
 });
+
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/:objStandard/:objCloud', function (req, res)
-{
+router.put('/services/get', (req, res) => {
 	var iduser = req.iduser;
-	var objs = req.params.objStandard;
-	var objc = req.params.objCloud;
-	var fwcloud = req.fwcloud;
+	var objs = req.body.objStandard;
+	var objc = req.body.objCloud;
+	var fwcloud = req.body.fwcloud;
+
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, "FDS", function (error, rows)
 	{
 		if (typeof rows !== 'undefined')
@@ -226,16 +223,17 @@ router.get('/services/:objStandard/:objCloud', function (req, res)
 		}
 	});
 });
+
 /* Get all fwc_tree NODE SERVICES by User and ID NODE*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
-router.get('/services/:objStandard/:objCloud/:id', function (req, res)
-{
+router.put('/services/node/get', (req, res) => {
 	var iduser = req.iduser;
-	var objs = req.params.objStandard;
-	var objc = req.params.objCloud;
-	var fwcloud = req.fwcloud;
-	var idNode = req.params.id;
+	var objs = req.body.objStandard;
+	var objc = req.body.objCloud;
+	var idNode = req.body.id;
+	var fwcloud = req.body.fwcloud;
+
 	fwcTreemodel.getFwc_TreeId(iduser, fwcloud, idNode, function (error, rows)
 	{
 		if (typeof rows !== 'undefined')
@@ -271,37 +269,14 @@ router.get('/services/:objStandard/:objCloud/:id', function (req, res)
 		}
 	});
 });
+
 /* Get  fwc_tree by id  */
-router.get('/:id', function (req, res)
-{
+router.put('/get', (req, res) => {
 	var iduser = req.iduser;
-	var id = req.params.id;
-	var fwcloud = req.fwcloud;
+	var id = req.body.id;
+	var fwcloud = req.body.fwcloud;
+
 	fwcTreemodel.getFwc_TreeId(iduser, fwcloud, id, function (error, data)
-	{
-		//If exists fwc_tree get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-/* Get all fwc_tree by name */
-router.get('/name/:name', function (req, res)
-{
-	var name = req.params.name;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	fwcTreemodel.getFwc_TreeName(fwcloud, name, function (error, data)
 	{
 		//If exists fwc_tree get data
 		if (data && data.length > 0)
@@ -321,11 +296,8 @@ router.get('/name/:name', function (req, res)
 });
 
 /* Create New fwc_tree Firewall node*/
-router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	fwcTreemodel.insertFwc_Tree_firewalls(fwcloud, "FDF",'', function (error, data)
+router.post("/firewall", (req, res) => {
+	fwcTreemodel.insertFwc_Tree_firewalls(req.body.fwcloud, "FDF",'', function (error, data)
 	{
 		//If saved fwc-tree Get data
 		if (data && data.result)
@@ -343,7 +315,7 @@ router.put("/create-firewalls/user/:iduser/fwc/:fwcloud", function (req, res)
 });
 
 /* Create New fwc_tree Objects*/
-router.put("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
+router.post("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
 {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
@@ -363,6 +335,7 @@ router.put("/create-objects/user/:iduser/fwc/:fwcloud", function (req, res)
 		}
 	});
 });
+
 /* Create New fwc_tree Services*/
 router.put("/create-services/user", function (req, res)
 {
@@ -384,6 +357,7 @@ router.put("/create-services/user", function (req, res)
 		}
 	});
 });
+
 //FALTA AÑADIR CONTROL ACCESO ADMIN
 /* Create ALL nodes*/
 router.put("/create-ALL/user", function (req, res)
@@ -444,7 +418,6 @@ router.put("/create-ALL/user", function (req, res)
 	});
 });
 
-
 router.put("/order/ipobj/:id_obj", function (req, res)
 {
 	var iduser = req.iduser;
@@ -466,9 +439,8 @@ router.put("/order/ipobj/:id_obj", function (req, res)
 			});
 		}
 	});
-
-
 });
+
 router.put("/order/parent/:id_parent", function (req, res)
 {
 	var iduser = req.iduser;
@@ -490,8 +462,6 @@ router.put("/order/parent/:id_parent", function (req, res)
 			});
 		}
 	});
-
-
 });
 
 
@@ -517,6 +487,7 @@ router.put('/fwc-tree/', function (req, res)
 		}
 	});
 });
+
 //FALTA ACABAR
 /* Remove fwc_tree */
 router.put("/del/fwc-tree/", function (req, res)
@@ -564,6 +535,5 @@ router.put("/del/fwc-tree/:idnode", function (req, res)
 				}
 			});
 });
-
 
 module.exports = router;

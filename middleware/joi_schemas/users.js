@@ -1,21 +1,19 @@
-//create object
 var schema = {};
-//Export the object
 module.exports = schema;
 
 const Joi = require('joi');
-const sharedSchema = require('./shared');
+const sharedSc = require('./shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     const schema = Joi.object().keys({
-      customer: sharedSchema.id,
-      username: sharedSchema.username,
-      password: sharedSchema.password,
+      customer: sharedSc.id,
+      username: sharedSc.username,
+      password: sharedSc.password,
     });
 
     try {
-      await Joi.validate(req.body, schema, sharedSchema.joiValidationOptions);
+      await Joi.validate(req.body, schema, sharedSc.joiValidationOptions);
       resolve();
     } catch(error) { return reject(error) } 
   });

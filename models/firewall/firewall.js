@@ -33,7 +33,7 @@ var utilsModel = require("../../utils/utils.js");
 var InterfaceModel = require('../../models/interface/interface');
 var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../tree/tree');
 
 var firewall_Data = require('../../models/data/data_firewall');
 

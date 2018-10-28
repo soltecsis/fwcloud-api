@@ -81,7 +81,7 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../../models/tree/tree');
 
 var InterfaceModel = require('../../models/interface/interface');
 

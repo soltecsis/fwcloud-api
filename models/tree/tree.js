@@ -15,7 +15,7 @@ var logger = require('log4js').getLogger("app");
 var tableModel = "fwc_tree";
 //var Node = require("tree-node");
 var Tree = require('easy-tree');
-var fwc_tree_node = require("./fwc_tree_node.js");
+var fwc_tree_node = require("./node.js");
 var utilsModel = require("../../utils/utils.js");
 
 
@@ -340,24 +340,6 @@ fwc_treeModel.getFwc_TreeUserParent = function (fwcloud, idparent, callback) {
 			callback(error, null);
 
 		var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent=' + connection.escape(idparent);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-//Get NODES by name 
-fwc_treeModel.getFwc_TreeName = function (fwcloud, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + " AND name like " + connection.escape(namesql);
-
 		connection.query(sql, function (error, row) {
 			if (error)
 				callback(error, null);

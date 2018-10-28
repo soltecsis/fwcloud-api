@@ -8,7 +8,7 @@ module.exports = clusterModel;
 var tableModel = "cluster";
 
 var FirewallModel = require('../../models/firewall/firewall');
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../tree/tree');
 var InterfaceModel = require('../../models/interface/interface');
 
 var logger = require('log4js').getLogger("app");

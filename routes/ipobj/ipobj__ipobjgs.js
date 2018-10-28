@@ -2,7 +2,7 @@
 var express = require('express');
 var router = express.Router();
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../../models/tree/tree');
 var IpobjModel = require('../../models/ipobj/ipobj');
 var api_resp = require('../../utils/api_response');
 var objModel = 'IPOBJ GROUP';

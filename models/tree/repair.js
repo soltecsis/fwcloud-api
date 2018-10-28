@@ -1,6 +1,6 @@
 const db = require('../../db.js');
 const streamModel = require('../../models/stream/stream');
-const fwcTreemodel = require('../../models/tree/fwc_tree');
+const fwcTreemodel = require('./tree');
 var utils = require('../../utils/utils');
 
 //create object

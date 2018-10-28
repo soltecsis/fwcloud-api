@@ -62,7 +62,7 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
-var fwcTreemodel = require('../../models/tree/fwc_tree');
+var fwcTreemodel = require('../../models/tree/tree');
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
 var FirewallModel = require('../../models/firewall/firewall');
