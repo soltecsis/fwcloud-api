@@ -12,30 +12,30 @@ var objModel = 'FWC TREE REPAIR';
 
 
 /* Rpair tree */
-router.put("/:type", async (req, res) =>{
-  let lockFilePath = config.get('policy').data_dir+"/"+req.fwcloud;
+router.put('/', async (req, res) =>{
+  let lockFilePath = config.get('policy').data_dir+"/"+req.body.fwcloud;
   if (!fs.existsSync(lockFilePath))
     fs.mkdirSync(lockFilePath);
-  lockFilePath += "/"+req.fwcloud;
+  lockFilePath += "/"+req.body.fwcloud;
 
-  const accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud};
+  const accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.body.fwcloud};
     
 	try {
     if (!fs.existsSync(lockFilePath))
       fs.closeSync(fs.openSync(lockFilePath,'w'));
 
-    if (req.params.type==='FDF')
-      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
-    else if (req.params.type==='FDO')
-      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
-    else if (req.params.type==='FDS')
-      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+    if (req.body.type==='FDF')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+    else if (req.body.type==='FDO')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+    else if (req.body.type==='FDS')
+      streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
     else
       return api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
     
     await fwcTreeRepairModel.initData(accessData);
 
-    streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.fwcloud+'</font>\n');
+    streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
 
     // MUTUAL EXCLUSION ACCESS
     const release = await lockFile.lock(lockFilePath);
@@ -54,12 +54,12 @@ router.put("/:type", async (req, res) =>{
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
         break;
       }
-      else if (rootNode.node_type==='FDO' && req.params.type==='FDO') { // Objects tree.
+      else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.
         streamModel.pushMessageCompile(accessData,'<font color="blue">Checking host objects.</font>\n');
         await fwcTreeRepairModel.checkHostObjects(rootNode);
         break;
       }
-      else if (rootNode.node_type==='FDS' && req.params.type==='FDS') { // Services tree.
+      else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
         streamModel.pushMessageCompile(accessData,'<font color="blue">Checking services tree.</font>\n');
         break;
       }
