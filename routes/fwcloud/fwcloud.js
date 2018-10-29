@@ -99,7 +99,7 @@ var fwcTreemodel = require('../../models/tree/tree');
  *       };
  * 
  */
-router.get('/', (req, res) => {
+router.get('/all', (req, res) => {
 	FwcloudModel.getFwclouds(req.iduser, (error, data) => {
 		if (data && data.length > 0) //Get data
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));

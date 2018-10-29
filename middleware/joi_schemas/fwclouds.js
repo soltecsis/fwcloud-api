@@ -13,11 +13,12 @@ schema.validate = req => {
     });
     
     if (req.method==='PUT') {
-      if (req.url==='/fwclouds/get' || req.url==='/fwclouds/del')
+      if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del')
         schema = Joi.object().keys({ fwcloud: sharedSch.id });
       else
         schema = schema.append({ fwcloud: sharedSch.id });
-    }
+    } else if (req.method!=='POST') return reject(new Error('Request method not accepted'));
+
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);

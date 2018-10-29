@@ -178,56 +178,7 @@ firewallModel.getFirewallAccess = function (accessData) {
 		});
 	});
 };
-/**
- * Get Firewalls by User and Name
- *  
- * @method getFirewallName
- * 
- * @param {Integer} iduser User identifier
- * @param {String} Name Firewall Name
- * @param {Function} callback    Function callback response
- * 
- *       callback(error, Rows)
- * 
- * @return {ARRAY of Firewall objects} Returns `ARRAY OBJECT FIREWALL DATA` 
- * 
- * Table: __firewall__
- * 
- *           id	int(11) AI PK
- *           cluster	int(11)
- *           fwcloud	int(11)
- *           name	varchar(255)
- *           comment	longtext
- *           created_at	datetime
- *           updated_at	datetime
- *           by_user	int(11)
- */
-firewallModel.getFirewallName = function (iduser, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-		var sql = 'SELECT T.* ' +
-				' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-				' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-				' LEFT join interface I on I.id=T.install_interface ' +
-				' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-				' WHERE name like  ' + connection.escape(namesql) + ' AND U.allow_access=1 ';
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				Promise.all(rows.map(utilsModel.decryptDataUserPass))
-						.then(data => {
-							callback(null, data);
-						})
-						.catch(e => {
-							callback(e, null);
-						});
-			}
-		});
-	});
-};
+
 /**
  * Get Firewalls by User and Cluster
  *  

@@ -7,7 +7,8 @@ const api_resp = require('../utils/api_response');
 
 inputValidation.check = async (req, res, next) => {
   // URLs excluded of the input data validation process because don't have any data to be validated.
-  if ((req.method==='GET' && req.url==='/fwclouds') 
+  if ((req.method==='GET' && req.url==='/fwcloud/all') 
+      || (req.method==='GET' && req.url==='/firewall/all')
       || (req.method==='GET' && req.url==='/ipobj-types')
       || (req.method==='GET' && req.url==='/policy-types'))
     return next();

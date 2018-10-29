@@ -16,13 +16,13 @@ schema.validate = req => {
     var schema = Joi.object().keys({ fwcloud: sharedSch.id });
     
     if (req.method==='PUT') {
-      if (req.url==='/objects/get' || req.url==='/services/get')
+      if (req.url==='/tree/objects/get' || req.url==='/tree/services/get')
         schema = schema.append({ iobjStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
-      else if (req.url==='/firewall/get')
+      else if (req.url==='/tree/firewalls/get')
         schema = schema.append({ idfirewall: sharedSch.id });
-      else if (req.url==='/objects/node/get' || req.url==='/services/node/get')
+      else if (req.url==='/tree/objects/node/get' || req.url==='/tree/services/node/get')
         schema = schema.append({ id: sharedSch.id, objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
-      else if (req.url==='/get')
+      else if (req.url==='/tree/get')
         schema = schema.append({ id: sharedSch.id });
     } else if (req.method==='POST') {
 

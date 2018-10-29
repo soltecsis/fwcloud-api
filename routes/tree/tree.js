@@ -62,27 +62,15 @@ router.put('/objects/get', (req, res) => {
 			{
 				//If exists fwc_tree get data
 				if (!error)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				//Get Error
 				else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			});
 		}
 		//Get Error
 		else
-		{
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
@@ -107,27 +95,15 @@ router.put('/services/get', (req, res) => {
 			{
 				//If exists fwc_tree get data
 				if (!error)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				//Get Error
 				else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			});
 		}
 		//Get Error
 		else
-		{
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
