@@ -69,8 +69,6 @@ var FirewallModel = require('../../models/firewall/firewall');
 var InterfaceModel = require('../../models/interface/interface');
 
 
-
-
 /**
  * My method description.  Like other pieces of your comment blocks, 
  * this can span multiple lines.
@@ -85,7 +83,7 @@ var InterfaceModel = require('../../models/interface/interface');
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('', function (req, res)
+router.get('/all', function (req, res)
 {
 	ClusterModel.getClusters(function (error, data)
 	{
@@ -108,65 +106,27 @@ router.get('', function (req, res)
 
 
 /* Get FULL cluster by Id */
-router.get('/full/:id', (req, res) => {
-	var id = req.params.id;
+router.put('/get', (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
+	var id = req.body.id;
 
-	if (!isNaN(id))
+	ClusterModel.getClusterFullPro(iduser, fwcloud, id)
+	.then(data =>
 	{
-		ClusterModel.getClusterFullPro(iduser, fwcloud, id)
-		.then(data =>
-		{
-			//cluster ok
-			if (data)
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			//Get error
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		})
-		.catch(error =>	api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
-	} else
-		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-});
-
-
-/* Get cluster by Id */
-router.get('/:id', function (req, res)
-{
-	var id = req.params.id;
-
-	if (!isNaN(id))
-	{
-		ClusterModel.getCluster(id, function (error, data)
-		{
-			//cluster ok
-			if (data && data.length > 0)
-			{
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-
-			}
-			//Get error
-			else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	} else
-	{
-		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	}
+		//cluster ok
+		if (data)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		//Get error
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	})
+	.catch(error =>	api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 });
 
 
 /* New cluster */
-router.post("/cluster", (req, res) => {
+router.post("/", (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
 	logger.debug("JSON RECIBIDO: ", JsonData);
@@ -220,11 +180,12 @@ router.post("/cluster", (req, res) => {
 });
 
 /* New cluster FROM FIREWALL */
-router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAccess, (req, res) => {
+router.post("/fwtocluster", 
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
-	var idfirewall = req.params.idfirewall;
-
+	var idfirewall = req.body.idfirewall;
 
 	FirewallModel.getFirewall(iduser, fwcloud, idfirewall, function (error, firewallDataArry)
 	{
@@ -283,10 +244,10 @@ router.post("/cluster/convertfirewall/:idfirewall", utilsModel.checkFirewallAcce
 });
 
 /* New FIREWALL FROM CLUSTER */
-router.post("/cluster/convertcluster/:idcluster", (req, res) => {
+router.post("/clustertofw", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
-	var idCluster = req.params.idcluster;
+	var idCluster = req.body.idcluster;
 
 	FirewallModel.getFirewallClusterMaster(iduser, idCluster, function (error, firewallDataArry)
 	{
@@ -341,10 +302,10 @@ router.post("/cluster/convertcluster/:idcluster", (req, res) => {
 });
 
 /* CLONE CLUSTER */
-router.put("/clone/cluster/:idcluster", (req, res) => {
+router.put("/clone", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
-	var idCluster = req.params.idcluster;
+	var idCluster = req.body.idcluster;
 	var idNewFirewall, oldFirewall, fwNewMaster;
 
 	//Save firewall data into objet    
@@ -413,8 +374,8 @@ router.put("/clone/cluster/:idcluster", (req, res) => {
 
 
 /* cluster update */
-router.put('/cluster', (req, res) => {
-	var fwcloud = req.fwcloud;
+router.put('/', (req, res) => {
+	var fwcloud = req.body.fwcloud;
 	
 	var JsonData = req.body;
 	logger.debug("JSON RECIBIDO: ", JsonData);
@@ -440,10 +401,10 @@ router.put('/cluster', (req, res) => {
 
 
 /* Remove cluster */
-router.put("/del/cluster/:id/:idfirewall", 
+router.put("/del", 
 InterfaceModel.checkRestrictionsOtherFirewall, 
 (req, res) => {
-	ClusterModel.deleteCluster(req.params.id, req.iduser, req.fwcloud, (error, data) => {
+	ClusterModel.deleteCluster(req.body.id, req.iduser, req.body.fwcloud, (error, data) => {
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
 		else
