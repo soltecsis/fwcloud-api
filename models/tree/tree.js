@@ -64,24 +64,6 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
 	});
 };
 
-//Get firewall node ID
-fwc_treeModel.getFwc_TreeId = function (iduser, fwcloud, id, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE  fwcloud=' + connection.escape(fwcloud) + '  AND id=' + connection.escape(id);
-		logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
-		});
-	});
-};
-
 
 //Get COMPLETE TREE by user
 fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, objStandard, objCloud, node_type,order_mode, filter_idfirewall, AllDone) {
