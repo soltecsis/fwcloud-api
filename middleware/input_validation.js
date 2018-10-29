@@ -6,6 +6,9 @@ module.exports = inputValidation;
 const api_resp = require('../utils/api_response');
 
 inputValidation.check = async (req, res, next) => {
+  if (req.method==='GET' && Object.keys(req.body).length!==0)
+    return api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Request body must be empty for GET method', 'INPUT VALIDATION', null, jsonResp => res.status(200).json(jsonResp));
+
   // URLs excluded of the input data validation process because don't have any data to be validated.
   if ((req.method==='GET' && req.url==='/fwcloud/all') 
       || (req.method==='GET' && req.url==='/firewall/all')

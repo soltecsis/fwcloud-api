@@ -9,7 +9,7 @@ var logger = require('log4js').getLogger("app");
 
 accessAuth.check = (req, res, next) => {
   // Exclude the login route.
-	if (req.method==='POST' && req.path==='/users/login') return next();
+	if (req.method==='POST' && req.path==='/user/login') return next();
 
   /////////////////////////////////////////////////////////////////////////////////
   // WARNING!!!!: If you enable the next two code lines, then you disable

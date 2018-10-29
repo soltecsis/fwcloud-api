@@ -23,3 +23,6 @@ sharedSchema.comment = Joi.string().allow('').regex(/^[ -~\x80-\xFE]{1,254}$/);
 sharedSchema.img = Joi.string().allow('').dataUri().min(3).max(64);
 
 sharedSchema._0_1 = Joi.number().integer().valid([0,1]);
+
+sharedSchema.linux_user = Joi.string().regex(/^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$/);
+sharedSchema.linux_pass = Joi.string().regex(/^[ -~\x80-\xFE]{2,64}$/);

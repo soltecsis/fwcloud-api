@@ -120,7 +120,7 @@ var Policy_cModel = require('../../models/policy/policy_c');
  *       };
  * 
  */
-router.get('/', (req, res) => {
+router.get('/all', (req, res) => {
 	var iduser = req.iduser;
 	FirewallModel.getFirewalls(iduser, function (error, data)
 	{
@@ -538,7 +538,7 @@ utilsModel.checkFirewallAccess,
 router.put('/clone',
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-	var idfirewall = req.body.idfirewall;
+	var idfirewall = req.body.id;
 	//Save firewall data into objet    
 	var firewallData = {
 		id: idfirewall,
@@ -663,7 +663,7 @@ InterfaceModel.checkRestrictionsOtherFirewall,
 async (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.body.fwcloud;
-	var id = req.body.idfirewall;
+	var id = req.body.id;
 
 	try {
 		data = await FirewallModel.deleteFirewall(iduser, fwcloud, id);
