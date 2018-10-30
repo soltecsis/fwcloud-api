@@ -100,7 +100,7 @@ var fwcTreemodel = require('../../models/tree/tree');
  * 
  */
 router.get('/all', (req, res) => {
-	FwcloudModel.getFwclouds(req.iduser, (error, data) => {
+	FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
 		if (data && data.length > 0) //Get data
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
 		else //Get error 
@@ -123,7 +123,7 @@ router.get('/all', (req, res) => {
  * @return {JSON} Returns Json Data from Fwcloud
  */
 router.put('/get', (req, res) => {
-	FwcloudModel.getFwcloud(req.iduser, req.body.fwcloud, (error, data) => {
+	FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.length > 0) //get fwcloud data
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else //get error
@@ -172,9 +172,8 @@ router.post('/', (req, res) => {
 		image: req.body.image,
 		comment: req.body.comment
 	};
-	var iduser = req.iduser;
 
-	FwcloudModel.insertFwcloud(iduser, fwcloudData, async (error, data) => {
+	FwcloudModel.insertFwcloud(req.session.user_id, fwcloudData, async (error, data) => {
 		if (data && data.insertId) {   
 			logger.debug("insertFwcloud: ", data);
 			var dataresp = {"insertId": data.insertId};
@@ -230,7 +229,7 @@ router.post('/', (req, res) => {
  */
 router.put('/', (req, res) => {
 	//Save fwcloud data into objet
-	var fwcloudData = {id: req.body.id, name: req.body.name,  image: req.body.image, comment: req.body.comment ,user: req.iduser};
+	var fwcloudData = {id: req.body.id, name: req.body.name,  image: req.body.image, comment: req.body.comment ,user: req.session.user_id};
 
 	FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
 	{
@@ -288,14 +287,13 @@ router.put("/del",
 FwcloudModel.checkRestrictionsCloud,
 async (req, res) => {
   req.fwcloud = req.body.fwcloud;
-	var iduser = req.iduser;
 
 	// Remove the fwcloud data dir.
 	try {
 		await utilsModel.removeFwcloudDataDir(req.fwcloud);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 	
-	FwcloudModel.deleteFwcloud(iduser, req.fwcloud,req.restricted, function (error, data)
+	FwcloudModel.deleteFwcloud(req.session.user_id, req.fwcloud,req.restricted, function (error, data)
 	{
 		if (data && data.result)
 		{
@@ -348,7 +346,7 @@ async (req, res) => {
  */
 router.put('/lock', (req, res) => {
 	//Save fwcloud data into objet
-	var fwcloudData = {fwcloud: req.body.fwcloud, iduser: req.iduser};
+	var fwcloudData = {fwcloud: req.body.fwcloud, iduser: req.session.user_id};
 
 	FwcloudModel.updateFwcloudLock(fwcloudData)
 			.then(data => {
@@ -410,7 +408,7 @@ router.put('/lock', (req, res) => {
  */
 router.put('/unlock', (req, res) => {
 	//Save fwcloud data into objet
-	var fwcloudData = {id: req.params.fwcloud, iduser: req.iduser};
+	var fwcloudData = {id: req.body.fwcloud, iduser: req.session.user_id};
 	FwcloudModel.updateFwcloudUnlock(fwcloudData)
 			.then(data => {
 				if (data.result) {
@@ -448,7 +446,7 @@ router.put('/unlock', (req, res) => {
  * @return {JSON} Returns Json Data from Fwcloud
  */
 router.get('/lock/get', (req, res) => {
-	var iduser = req.iduser;
+	var iduser = req.session.user_id;
 	var fwcloud = req.params.fwcloud;
 	if (!isNaN(fwcloud))
 	{

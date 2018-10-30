@@ -138,7 +138,7 @@ app.use(inputValidation.check);
 
 
 //CONTROL FWCLOUD ACCESS
-var control_routes = ['/firewalls', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/clusters*', "/fwclouds*"];
+var control_routes = ['/firewall', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/cluster*', "/fwcloud*"];
 app.use(control_routes, (req, res, next) => {
 
 	var url_parts = url.parse(req.url);
@@ -160,7 +160,7 @@ app.use(control_routes, (req, res, next) => {
 
 	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
-	if (originalURL === '/fwclouds/fwcloud' && req.method === 'POST') {
+	if (originalURL === '/fwcloud' && req.method === 'POST') {
 		logger.debug("FWCLOUD ACCESS TO CREATE");
 		logger.debug(req.body);
 		//save access to user                
@@ -170,7 +170,7 @@ app.use(control_routes, (req, res, next) => {
 		req.iduser = iduser;
 		next();
 	} 
-	else if (originalURL === '/fwclouds/fwcloud' && req.method === 'PUT') {
+	else if (originalURL === '/fwcloud' && req.method === 'PUT') {
 		logger.debug("FWCLOUD ACCESS TO UPDATE");
 		logger.debug(req.body);
 		//save access to user                
@@ -182,7 +182,7 @@ app.use(control_routes, (req, res, next) => {
 		req.restricted = {};
 		next();
 	}
-	else if (utilsModel.startsWith(originalURL,'/fwclouds') && req.method === 'GET' && fwcloud===undefined) {
+	else if (utilsModel.startsWith(originalURL,'/fwcloud') && req.method === 'GET' && fwcloud===undefined) {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
 		var userData = {id: iduser};
@@ -191,7 +191,7 @@ app.use(control_routes, (req, res, next) => {
 		req.iduser = iduser;
 		next();
 	}
-	 else if (utilsModel.startsWith(originalURL,'/fwclouds/del/fwcloud/') && req.method === 'PUT' && fwcloud==='') {
+	 else if (utilsModel.startsWith(originalURL,'/fwcloud/del') && req.method === 'PUT' && fwcloud==='') {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD DELETE");
 		var userData = {id: iduser};
