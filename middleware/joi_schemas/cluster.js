@@ -9,7 +9,7 @@ schema.validate = req => {
     var schema = {};
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/cluster')) {
-      schema = Joi.object().keys({ 
+      const schemaItem = Joi.object().keys({ 
         cluster: sharedSch.id,
         name: sharedSchema.name,
         comment: sharedSch.comment.optional(),
@@ -23,19 +23,25 @@ schema.validate = req => {
         install_port: Joi.number().port().optional(),
         options: Joi.number().port()
       });
-      if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
+
+      const schemaClusterData = Joi.object().keys({ 
+        name: sharedSchema.name,
+        comment: sharedSch.comment.optional(),
+        fwnodes: Joi.array().items(schemaItem)
+      });
+
+      if (req.method==='PUT') schema = schemaItem.append({ id: sharedSch.id });
+      
+      schema = Joi.object().keys({ fwcloud: sharedSch.id, clusterData: schemaClusterData });
     } 
     else if (req.method==='PUT') {
       schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
-      if (req.url==='/firewall/get' || req.url==='/firewall/del')
+      if (req.url==='/cluster/get' || req.url==='/cluster/del' || req.url==='/cluster/clone' 
+          || req.url==='/cluster/clustertofw')
         schema = schema.append({ id: sharedSch.id });
-      else if (req.url==='/firewall/cluster/get')
-        schema = schema.append({ idcluster: sharedSch.id });
-      else if (req.url==='/firewall/clone')
-        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment.optional() });
-      else if (req.url==='/firewall/delfromcluster')
-        schema = schema.append({ id: sharedSch.id, idcluster: sharedSch.id });
+      else if (req.url==='/cluster/fwtocluster')
+        schema = schema.append({ idfirewall: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
     try {

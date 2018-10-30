@@ -107,8 +107,8 @@ router.get('/all', function (req, res)
 
 /* Get FULL cluster by Id */
 router.put('/get', (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
 	var id = req.body.id;
 
 	ClusterModel.getClusterFullPro(iduser, fwcloud, id)
@@ -134,7 +134,7 @@ router.post("/", (req, res) => {
 	var clusterData = {
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
-		fwcloud: req.fwcloud
+		fwcloud: req.body.fwcloud
 	};
 	ClusterModel.insertCluster(clusterData, async (error, dataNewCluster) => {
 		//get cluster info
@@ -145,8 +145,8 @@ router.post("/", (req, res) => {
 			try {
 				for (let firewallData of fwnodes) {
 					firewallData.cluster = idcluster;
-					firewallData.fwcloud = req.fwcloud;
-					firewallData.by_user = req.iduser;
+					firewallData.fwcloud = req.body.fwcloud;
+					firewallData.by_user = req.session.user_id;
 					firewallData.status = 3;
 					firewallData.options = JsonData.clusterData.options;
 					
@@ -180,11 +180,11 @@ router.post("/", (req, res) => {
 });
 
 /* New cluster FROM FIREWALL */
-router.post("/fwtocluster", 
+router.put("/fwtocluster", 
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
 	var idfirewall = req.body.idfirewall;
 
 	FirewallModel.getFirewall(iduser, fwcloud, idfirewall, function (error, firewallDataArry)
@@ -244,10 +244,10 @@ utilsModel.checkFirewallAccess,
 });
 
 /* New FIREWALL FROM CLUSTER */
-router.post("/clustertofw", (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var idCluster = req.body.idcluster;
+router.put("/clustertofw", (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var idCluster = req.body.id;
 
 	FirewallModel.getFirewallClusterMaster(iduser, idCluster, function (error, firewallDataArry)
 	{
@@ -303,9 +303,9 @@ router.post("/clustertofw", (req, res) => {
 
 /* CLONE CLUSTER */
 router.put("/clone", (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var idCluster = req.body.idcluster;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var idCluster = req.body.id;
 	var idNewFirewall, oldFirewall, fwNewMaster;
 
 	//Save firewall data into objet    
@@ -404,7 +404,7 @@ router.put('/', (req, res) => {
 router.put("/del", 
 InterfaceModel.checkRestrictionsOtherFirewall, 
 (req, res) => {
-	ClusterModel.deleteCluster(req.body.id, req.iduser, req.body.fwcloud, (error, data) => {
+	ClusterModel.deleteCluster(req.body.id, req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
 		else
