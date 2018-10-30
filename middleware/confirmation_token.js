@@ -8,7 +8,7 @@ var utilsModel = require('../utils/utils');
 var userModel = require('../models/user/user');
 
 confirmToken.check = async (req, res, next) => {
-  if (req.url.split('/').pop()==='get' || req.method==='GET' || (req.method==='POST' && req.path==='/users/login'))
+  if (req.url.split('/').pop()==='get' || req.method==='GET' || (req.method==='POST' && req.path==='/user/login'))
     return next();
 
   try {
