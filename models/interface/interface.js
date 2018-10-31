@@ -348,28 +348,6 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewa
 	});
 };
 
-interfaceModel.checkRestrictions = function (req, res, next) {
-	req.restricted = {"result": true, "msg": "", "restrictions": ""};
-	//Check interface in RULE O POSITIONS
-	if (req.params.idhost && req.params.idinterface) {
-		id=req.params.idinterface;
-		type=11; // Host interface
-	} else {
-		id=req.params.id;
-		type=req.params.type;
-	}
-	interfaceModel.searchInterfaceInrulesPro(id, type, req.fwcloud, '')
-	.then(data => {
-		//CHECK RESULTS
-		if (data.result) {
-			logger.debug("RESTRICTED INTERFACE: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
-			req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
-		}
-		next();
-	})
-	.catch(e => next());
-};
-
 
 /* Search where is in RULES interface in OTHER FIREWALLS  */
 interfaceModel.searchInterfaceInrulesPro = function (id, type, fwcloud, diff_firewall) {

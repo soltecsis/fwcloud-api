@@ -105,6 +105,7 @@ var logger = require('log4js').getLogger("app");
 
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
+const duplicityCheck = require('../../middleware/duplicity');
 
 
 /**
@@ -201,8 +202,7 @@ var FirewallModel = require('../../models/firewall/firewall');
  }
  * 
  */
-router.get('/group/:idgroup', function (req, res)
-{
+router.get('/group/:idgroup', (req, res) => {
 	var idgroup = req.params.idgroup;
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
@@ -242,8 +242,7 @@ router.get('/group/:idgroup', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/group/:idgroup/:id', function (req, res)
-{
+router.get('/group/:idgroup/:id', (req, res) => {
 	var idgroup = req.params.idgroup;
 	var id = req.params.id;
 	var iduser = req.iduser;
@@ -311,8 +310,7 @@ router.get('/:id', (req, res) => {
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.get('/group/:idgroup/name/:name', function (req, res)
-{
+router.get('/group/:idgroup/name/:name', (req, res) => {
 	var name = req.params.name;
 	var idgroup = req.params.idgroup;
 	var iduser = req.iduser;
@@ -353,8 +351,7 @@ router.get('/group/:idgroup/name/:name', function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_rules/:id/:type", function (req, res)
-{
+router.get("/ipobj_search_rules/:id/:type", (req, res) => {
 	//Id from ipobj to remove
 	//var idfirewall = req.params.idfirewall;
 	var iduser = req.iduser;
@@ -403,8 +400,7 @@ router.get("/ipobj_search_rules/:id/:type", function (req, res)
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.get("/ipobj_search_used/:id/:type", function (req, res)
-{
+router.get("/ipobj_search_used/:id/:type", (req, res) => {
 	//Id from ipobj to remove
 	//var idfirewall = req.params.idfirewall;
 	var iduser = req.iduser;
@@ -505,8 +501,7 @@ router.get("/ipobj_search_used/:id/:type", function (req, res)
  *      };
  * */
 router.post("/ipobj/:node_parent/:node_order/:node_type",
-IpobjModel.checkIPObjParameters,
-IpobjModel.checkDuplicity,
+duplicityCheck.ipobj,
 (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
@@ -656,8 +651,7 @@ IpobjModel.checkDuplicity,
  *      };
  * */
 router.put('/ipobj', 
-IpobjModel.checkIPObjParameters,
-IpobjModel.checkDuplicity,
+duplicityCheck.ipobj,
 (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;

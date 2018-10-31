@@ -80,7 +80,9 @@ const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall rule. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.put('/:idfirewall/:type/:rule',utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/:idfirewall/:type/:rule',
+utilsModel.checkFirewallAccess, 
+(req, res) => {
   /* The get method of the RuleCompile model returns a promise. */
   RuleCompile.get(req.fwcloud, req.params.idfirewall, req.params.type, req.params.rule)
 	.then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))

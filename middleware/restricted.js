@@ -5,6 +5,8 @@ module.exports = restrictedCheck;
 
 var api_resp = require('../utils/api_response');
 var interfaceModel = require('../models/interface/interface');
+var ipobj_gModel = require('../models/ipobj/ipobj_g');
+
 
 restrictedCheck.fwcloud = (req, res, next) => {
   var sql = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + req.body.fwcloud + ') as CF, ' +
@@ -43,7 +45,7 @@ restrictedCheck.otherFirewall = (req, res, next) => {
 
 
 restrictedCheck.firewallApplyTo = (req, res, next) => {
-  var sql = 'SELECT count(*) as cont FROM fwcloud_db.policy_r  R inner join firewall F on R.firewall=F.id ' +
+  var sql = 'SELECT count(*) as cont FROM fwcloud_db.policy_r R inner join firewall F on R.firewall=F.id ' +
     ' where fw_apply_to=' + req.body.id +
     ' AND F.cluster=' + req.body.idcluster +
     ' AND F.fwcloud=' + req.body.fwcloud;
@@ -58,6 +60,40 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
     } else next();
   });
 };
+
+
+restrictedCheck.interface = (req, res, next) => {
+	//Check interface in RULE O POSITIONS
+	if (req.body.idhost && req.body.idinterface) {
+		id=req.body.idinterface;
+		type=11; // Host interface
+	} else {
+		id=req.body.id;
+		type=req.body.type;
+	}
+	interfaceModel.searchInterfaceInrulesPro(id, type, req.body.fwcloud, '')
+	.then(data => {
+		//CHECK RESULTS
+		if (data.result) {
+			const restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+      api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	})
+  .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+};
+
+
+restrictedCheck.ipobj_g = (req, res, next) => {
+  ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud)
+  .then(data => {
+    if (data.result) {
+      const restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+      api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+  })
+  .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+};
+
 
 
 

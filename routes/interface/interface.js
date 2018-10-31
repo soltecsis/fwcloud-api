@@ -7,6 +7,7 @@ var utilsModel = require("../../utils/utils.js");
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
 var api_resp = require('../../utils/api_response');
+const restrictedCheck = require('../../middleware/restricted');
 var objModel = 'INTERFACE';
 
 
@@ -14,8 +15,9 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all interfaces by firewall*/
-router.get('/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.get('/:idfirewall/', 
+utilsModel.checkFirewallAccess, 
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var fwcloud = req.fwcloud;
 	InterfaceModel.getInterfaces(idfirewall, fwcloud, function (error, data)
@@ -38,8 +40,8 @@ router.get('/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
 });
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
-router.get('/full/:idfirewall/', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.get('/full/:idfirewall/', 
+utilsModel.checkFirewallAccess, (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var fwcloud = req.fwcloud;
 	InterfaceModel.getInterfacesFull(idfirewall, fwcloud, function (error, data)
@@ -62,8 +64,7 @@ router.get('/full/:idfirewall/', utilsModel.checkFirewallAccess, function (req, 
 });
 
 /* Get all interfaces by HOST*/
-router.get('/host/:idhost', function (req, res)
-{
+router.get('/host/:idhost', (req, res) => {
 	var idhost = req.params.idhost;
 	var fwcloud = req.fwcloud;
 	InterfaceModel.getInterfacesHost(idhost, fwcloud, function (error, data)
@@ -112,8 +113,8 @@ router.get('/host/:idhost/interface/:id', function (req, res)
 });
 
 /* Get  interface by id and  by firewall*/
-router.get('/:idfirewall/interface/:id', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.get('/:idfirewall/interface/:id', 
+utilsModel.checkFirewallAccess, (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var fwcloud = req.fwcloud;
 	var id = req.params.id;
@@ -137,8 +138,9 @@ router.get('/:idfirewall/interface/:id', utilsModel.checkFirewallAccess, functio
 });
 
 /* Get all interfaces by name and by firewall*/
-router.get('/:idfirewall/name/:name', utilsModel.checkFirewallAccess, function (req, res)
-{
+router.get('/:idfirewall/name/:name', 
+utilsModel.checkFirewallAccess,
+(req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var fwcloud = req.fwcloud;
 	var name = req.params.name;
@@ -162,9 +164,7 @@ router.get('/:idfirewall/name/:name', utilsModel.checkFirewallAccess, function (
 });
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface in RULES  */
-router.get("/interface_search_rules/:id/:type", function (req, res)
-{
-
+router.get("/interface_search_rules/:id/:type", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var id = req.params.id;
@@ -195,9 +195,7 @@ router.get("/interface_search_rules/:id/:type", function (req, res)
 
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface  */
-router.get("/interface_search_used/:id/:type", function (req, res)
-{
-
+router.get("/interface_search_used/:id/:type", (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	var id = req.params.id;
@@ -329,8 +327,7 @@ router.post("/interface/:node_parent/:node_order/:node_type/:host", async (req, 
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Update interface that exist */
-router.put('/interface/', function (req, res)
-{
+router.put('/interface/', (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.fwcloud;
 	//Save data into object
@@ -405,7 +402,7 @@ router.put('/interface/', function (req, res)
 //FALTA BORRADO en CASCADA Y RESTRICCIONES
 router.put("/del/interface/:idfirewall/:id/:type", 
 utilsModel.checkFirewallAccess, 
-InterfaceModel.checkRestrictions, 
+restrictedCheck.interface, 
 (req, res) => {
 	//Id from interface to remove
 	var iduser = req.iduser;
@@ -469,7 +466,7 @@ InterfaceModel.checkRestrictions,
 
 /* Remove host interface */
 router.put("/del/interface_host/:idhost/:idinterface", 
-InterfaceModel.checkRestrictions, 
+restrictedCheck.interface, 
 (req, res) => {
 	Interface__ipobjModel.deleteInterface__ipobj(req.params.idinterface, req.params.idhost, (error,data) => {
 		if (data) {

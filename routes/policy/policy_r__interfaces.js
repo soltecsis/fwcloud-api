@@ -11,66 +11,6 @@ var utilsModel = require("../../utils/utils.js");
 var objModel = "Interface in Rule";
 
 
-router.param('rule', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	else
-		next();
-});
-
-router.param('interface', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	else
-		next();
-});
-router.param('position', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param)) {
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	} else
-		next();
-});
-router.param('position_order', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param)) {
-		req.params.position = 1;
-	}
-	next();
-});
-router.param('new_rule', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param))
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	else
-		next();
-});
-router.param('new_position', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param)) {
-		api_resp.getJson(null, api_resp.ACR_PARAM_ERROR, ' not found', param, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	} else
-		next();
-});
-router.param('new_order', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param)) {
-		req.params.new_order = 1;
-	}
-	next();
-});
-router.param('negate', function (req, res, next, param) {
-	if (param === undefined || param === '' || isNaN(param)) {
-		req.params.negate = 0;
-	}
-	next();
-});
-
 function checkPostParameters(obj) {
 	logger.debug(obj);
 	for (var propt in obj) {

@@ -266,20 +266,6 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 };
 
 
-ipobj_gModel.checkRestrictions = function (req, res, next) {
-		req.restricted = {"result": true, "msg": "", "restrictions": ""};
-
-		ipobj_gModel.searchGroupInRules(req.params.id, req.fwcloud)
-						.then(data => {
-								if (data.result) {
-										logger.debug("RESTRICTED GROUP: " + req.params.id + "  Fwcloud: " + req.fwcloud);
-										req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
-								}
-								next();
-						})
-						.catch(e => next());
-};
-
 /* Search where is used GROUP IN RULES AND MEMBERS */
 ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
 		return new Promise((resolve, reject) => {
