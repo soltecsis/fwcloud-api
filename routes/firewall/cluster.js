@@ -67,6 +67,7 @@ var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
 var FirewallModel = require('../../models/firewall/firewall');
 var InterfaceModel = require('../../models/interface/interface');
+const restrictedCheck = require('../../middleware/restricted');
 
 
 /**
@@ -402,7 +403,7 @@ router.put('/', (req, res) => {
 
 /* Remove cluster */
 router.put("/del", 
-InterfaceModel.checkRestrictionsOtherFirewall, 
+restrictedCheck.otherFirewall,
 (req, res) => {
 	ClusterModel.deleteCluster(req.body.id, req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.result)

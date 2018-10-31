@@ -13,7 +13,7 @@ schema.validate = req => {
     });
     
     if (req.method==='PUT') {
-      if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del')
+      if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del' || req.url==='/fwcloud/restricted')
         schema = Joi.object().keys({ fwcloud: sharedSch.id });
       else
         schema = schema.append({ fwcloud: sharedSch.id });

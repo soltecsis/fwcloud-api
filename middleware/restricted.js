@@ -4,6 +4,7 @@ var restrictedCheck = {};
 module.exports = restrictedCheck;
 
 var api_resp = require('../utils/api_response');
+var interfaceModel = require('../models/interface/interface');
 
 restrictedCheck.fwcloud = (req, res, next) => {
   var sql = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + req.body.fwcloud + ') as CF, ' +
@@ -21,9 +22,43 @@ restrictedCheck.fwcloud = (req, res, next) => {
         cadRestricted = "  CLUSTERS";
 
       if (cadRestricted !== "") {
-        restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
+        const restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
         api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
       } else next();
     } else next();
   });
 };
+
+
+restrictedCheck.otherFirewall = (req, res, next) => {
+	interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.id)
+  .then(found_resp => {
+    if (found_resp.found) {
+      const restricted = {"result": false, "msg": "Restricted", "restrictions": found_resp};
+      api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+    } else next();
+  })
+  .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+};
+
+
+restrictedCheck.firewallApplyTo = (req, res, next) => {
+  var sql = 'SELECT count(*) as cont FROM fwcloud_db.policy_r  R inner join firewall F on R.firewall=F.id ' +
+    ' where fw_apply_to=' + req.body.id +
+    ' AND F.cluster=' + req.body.idcluster +
+    ' AND F.fwcloud=' + req.body.fwcloud;
+  req.dbCon.query(sql, function (error, row) {
+    if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+
+    if (row && row.length > 0) {
+      if (row[0].cont > 0) {
+        const restricted = {"result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES"};
+        api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+      } else next();
+    } else next();
+  });
+};
+
+
+
+

@@ -988,29 +988,6 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 	});
 };
 
-firewallModel.checkRestrictionsFirewallApplyTo = function (req, res, next) {
-	req.restricted = {"result": true, "msg": "", "restrictions": ""};
-	db.get(function (error, connection) {
-
-		var sqlR = 'SELECT count(*) as cont FROM fwcloud_db.policy_r  R inner join firewall F on R.firewall=F.id ' +
-				' where fw_apply_to=' + connection.escape(req.params.idfirewall) +
-				' AND F.cluster=' + connection.escape(req.params.idcluster) +
-				' AND F.fwcloud=' + connection.escape(req.fwcloud);
-		logger.debug(sqlR);
-		connection.query(sqlR, function (error, row) {
-			if (row && row.length > 0) {
-				if (row[0].cont > 0) {
-					logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall + " CLUSTER:" + req.params.idcluster + "  Fwcloud: " + req.fwcloud);
-					req.restricted = {"result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES"};
-					next();
-				} else
-					next();
-			} else
-				next();
-		});
-	});
-};
-
 firewallModel.checkBodyFirewall = function (body, isNew) {
 	try {
 		return new Promise((resolve, reject) => {

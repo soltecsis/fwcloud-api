@@ -10,8 +10,8 @@ schema.validate = req => {
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/firewall')) {
       schema = Joi.object().keys({ 
-        cluster: sharedSch.id,
-        name: sharedSchema.name,
+        cluster: sharedSch.id.optional(),
+        name: sharedSch.name,
         comment: sharedSch.comment.optional(),
         fwcloud: sharedSch.id,
         install_user: sharedSch.linux_user.optional(),

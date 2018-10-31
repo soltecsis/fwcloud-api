@@ -308,22 +308,6 @@ interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback)
 };
 
 
-interfaceModel.checkRestrictionsOtherFirewall = function (req, res, next) {
-	req.restricted = {"result": true, "msg": "", "restrictions": ""};
-
-	interfaceModel.searchInterfaceInrulesOtherFirewall(req.fwcloud, req.params.idfirewall)
-			.then(found_resp => {
-				if (found_resp.found) {
-					logger.debug("RESTRICTED FIREWALL: " + req.params.idfirewall + "  Fwcloud: " + req.fwcloud);
-					//callback(null, {"result": false, "msg": "restricted", "search": found_resp});
-					req.restricted = {"result": false, "msg": "Restricted", "restrictions": found_resp};
-				}
-				next();
-			})
-			.catch(e => next());
-};
-
-
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
 interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewall) {
 	return new Promise((resolve, reject) => {

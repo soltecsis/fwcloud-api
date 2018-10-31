@@ -88,6 +88,8 @@ var InterfaceModel = require('../../models/interface/interface');
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
 
+const restrictedCheck = require('../../middleware/restricted');
+
 
 /**
  * Get Firewalls by User
@@ -659,7 +661,7 @@ router.put('/accesslock/get', function (req, res)
  */
 router.put("/del", 
 utilsModel.checkFirewallAccess, 
-InterfaceModel.checkRestrictionsOtherFirewall, 
+restrictedCheck.otherFirewall,
 async (req, res) => {
 	var iduser = req.iduser;
 	var fwcloud = req.body.fwcloud;
@@ -677,8 +679,8 @@ async (req, res) => {
 //DELETE FIREWALL FROM CLUSTER
 router.put("/delfromcluster",
 utilsModel.checkFirewallAccess,
-InterfaceModel.checkRestrictionsOtherFirewall,
-FirewallModel.checkRestrictionsFirewallApplyTo,
+restrictedCheck.otherFirewall,
+restrictedCheck.firewallApplyTo,
 (req, res) => {
 
 	var iduser = req.iduser;
