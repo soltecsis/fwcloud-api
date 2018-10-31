@@ -17,7 +17,7 @@ schema.validate = req => {
     
     if (req.method==='PUT') {
       if (req.url==='/tree/objects/get' || req.url==='/tree/services/get')
-        schema = schema.append({ iobjStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
+        schema = schema.append({ objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
       else if (req.url==='/tree/firewalls/get')
         schema = schema.append({ idfirewall: sharedSch.id });
       else if (req.url==='/tree/objects/node/get' || req.url==='/tree/services/node/get')

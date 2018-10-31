@@ -191,7 +191,7 @@ app.use(control_routes, (req, res, next) => {
 		req.iduser = iduser;
 		next();
 	}
-	 else if (utilsModel.startsWith(originalURL,'/fwcloud/del') && req.method === 'PUT' && fwcloud==='') {
+	else if (utilsModel.startsWith(originalURL,'/fwcloud/del') && req.method === 'PUT' && fwcloud==='') {
 		//Acces to GET ALL clouds
 		logger.debug("FWCLOUD DELETE");
 		var userData = {id: iduser};
@@ -203,7 +203,10 @@ app.use(control_routes, (req, res, next) => {
 		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
 		next();
 	}
-	else {
+	else if ((req.method==='GET' && originalURL==='/ipobj-types') || (req.method==='GET' && originalURL==='/policy-types'))
+		next();
+	else
+	{
 		utilsModel.checkFwCloudAccess(iduser, fwcloud, update, req, res)
 				.then(resp => {
 					//save access to user                

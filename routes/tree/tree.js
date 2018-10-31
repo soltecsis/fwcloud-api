@@ -12,7 +12,7 @@ var objModel = 'FWC TREE';
 
 /* Get all fwc_tree NODE FIREWALL*/
 router.put('/firewalls/get', (req, res) => {
-	var iduser = req.iduser;
+	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, 'FDF', (error, rows) => {
@@ -42,7 +42,7 @@ router.put('/firewalls/get', (req, res) => {
 //objs -> Standar objects (without fwcloud)
 //objc -> fwcloud objects
 router.put('/objects/get', (req, res) => {
-	var iduser = req.iduser;
+	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var objs = req.body.objStandard;
 	var objc = req.body.objCloud;
@@ -78,7 +78,7 @@ router.put('/objects/get', (req, res) => {
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
 router.put('/services/get', (req, res) => {
-	var iduser = req.iduser;
+	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var objs = req.body.objStandard;
 	var objc = req.body.objCloud;

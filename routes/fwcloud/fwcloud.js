@@ -71,6 +71,8 @@ var utilsModel = require("../../utils/utils.js");
 
 var fwcTreemodel = require('../../models/tree/tree');
 
+const restrictedCheck = require('../../middleware/restricted');
+
 
 /**
  * Get Fwclouds by User
@@ -283,29 +285,23 @@ router.put('/', (req, res) => {
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/del",
-FwcloudModel.checkRestrictionsCloud,
-async (req, res) => {
-  req.fwcloud = req.body.fwcloud;
+router.put("/restricted",
+restrictedCheck.fwcloud,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
+router.put("/del",
+restrictedCheck.fwcloud,
+async (req, res) => {
 	// Remove the fwcloud data dir.
 	try {
-		await utilsModel.removeFwcloudDataDir(req.fwcloud);
+		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 	
-	FwcloudModel.deleteFwcloud(req.session.user_id, req.fwcloud,req.restricted, function (error, data)
-	{
+	FwcloudModel.deleteFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 

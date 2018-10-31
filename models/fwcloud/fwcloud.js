@@ -474,7 +474,7 @@ fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
+fwcloudModel.deleteFwcloud = (iduser, id, callback) => {
 	//El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
 	db.get(function (error, connection) {
 		if (error)
@@ -486,36 +486,30 @@ fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
 		connection.query(sqlExists, function (error, row) {
 			//If exists Id from fwcloud to remove
 			if (row && row.length > 0) {               
-					logger.debug("DELFWCLOUD Restricted: ", restricted);
-					if (!restricted.result) {
-						callback(null, {"result": false, "msg": "Restricted", "restrictions": restricted});
-					} else {
-						//DELETE OBJECTS FROM CLOUD
-						fwcloudModel.EmptyFwcloudStandard(id)
-								.then(() => {
-									db.get(function (error, connection) {
-										var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
+				//DELETE OBJECTS FROM CLOUD
+				fwcloudModel.EmptyFwcloudStandard(id)
+						.then(() => {
+							db.get(function (error, connection) {
+								var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
+								connection.query(sql, function (error, result) {
+									if (error) {
+										callback(error, null);
+									} else {
+										var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
 										connection.query(sql, function (error, result) {
 											if (error) {
 												callback(error, null);
 											} else {
-												var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-												connection.query(sql, function (error, result) {
-													if (error) {
-														callback(error, null);
-													} else {
-														callback(null, {"result": true, "msg": "deleted"});
-													}
-												});
+												callback(null, {"result": true, "msg": "deleted"});
 											}
 										});
-									});
-								})
-								.catch(e => {
-									callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
+									}
 								});
-					}
-			  
+							});
+						})
+						.catch(e => {
+							callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
+						});
 			} else {
 				callback(null, {"result": false});
 			}
@@ -523,34 +517,6 @@ fwcloudModel.deleteFwcloud = function (iduser, id, restricted, callback) {
 	});
 };
 
-fwcloudModel.checkRestrictionsCloud = function (req, res, next) {
-	req.restricted = {"result": true, "msg": "", "restrictions": ""};
-	db.get(function (error, connection) {
-
-		var sqlR = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CF, ' +
-				' (SELECT count(*) FROM fwcloud_db.cluster where fwcloud=' + connection.escape(req.params.fwcloud) + ') as CC ';
-		logger.debug(sqlR);
-		connection.query(sqlR, function (error, row) {
-			if (row && row.length > 0) {
-				var cadRestricted = "";
-				if (row[0].CF > 0) {
-					cadRestricted = " FIREWALLS";
-					if (row[0].CC > 0)
-						cadRestricted = cadRestricted + " AND CLUSTERS";
-				} else if (row[0].CC > 0)
-					cadRestricted = "  CLUSTERS";
-				if (cadRestricted !== "") {
-					logger.debug("RESTRICTED CLOUD: " + req.params.fwcloud);
-					req.restricted = {"result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted};
-				}
-				next();
-
-			} else
-				next();
-		});
-	}
-	);
-};
 fwcloudModel.EmptyFwcloudStandard = function (fwcloud) {
 	return new Promise((resolve, reject) => {
 		var sqlcloud = "  is null";

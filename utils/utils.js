@@ -79,9 +79,9 @@ utilsModel.mergeObj = function () {
 	});
 	return destination;
 };
+
 //CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
 utilsModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, response) {
-
 	return new Promise((resolve, reject) => {
 		if (iduser && fwcloud) {
 			var fwcloudData = {fwcloud: fwcloud, iduser: iduser};
