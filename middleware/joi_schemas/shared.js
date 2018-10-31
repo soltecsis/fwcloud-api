@@ -18,9 +18,9 @@ sharedSchema.days = Joi.number().integer().min(1).max(9999999);
 sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 
 sharedSchema.name = Joi.string().regex(/^[ -~\x80-\xFE]{1,64}$/);
-sharedSchema.comment = Joi.string().allow('').regex(/^[ -~\x80-\xFE]{1,254}$/);
+sharedSchema.comment = Joi.string().allow('').allow(null).regex(/^[ -~\x80-\xFE]{1,254}$/);
 
-sharedSchema.img = Joi.string().allow('').dataUri().min(3).max(64);
+sharedSchema.img = Joi.string().allow('').allow(null).dataUri().min(3).max(64);
 
 sharedSchema._0_1 = Joi.number().integer().valid([0,1]);
 

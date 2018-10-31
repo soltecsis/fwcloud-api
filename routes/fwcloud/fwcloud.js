@@ -229,7 +229,7 @@ router.post('/', (req, res) => {
  */
 router.put('/', (req, res) => {
 	//Save fwcloud data into objet
-	var fwcloudData = {id: req.body.id, name: req.body.name,  image: req.body.image, comment: req.body.comment ,user: req.session.user_id};
+	var fwcloudData = {id: req.body.fwcloud, name: req.body.name,  image: req.body.image, comment: req.body.comment ,user: req.session.user_id};
 
 	FwcloudModel.updateFwcloud(fwcloudData, function (error, data)
 	{
