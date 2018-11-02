@@ -284,29 +284,6 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 	});
 };
 
-//Get interface by name and interface
-interfaceModel.getInterfaceName = function (idfirewall, fwcloud, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-		//var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL)';
-
-		var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' + tableModel + ' I ' +
-				' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
-				' left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj ' +
-				' WHERE I.name like ' + connection.escape(namesql);
-		//' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
 
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
 interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewall) {

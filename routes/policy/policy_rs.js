@@ -219,9 +219,6 @@ utilsModel.disableFirewallCompileStatus,
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to
 	};
-	utilsModel.checkParameters(policy_rData, function (obj) {
-		policy_rData = obj;
-	});
 	Policy_rModel.insertPolicy_r(policy_rData, function (error, data)
 	{
 		if (error)
@@ -259,37 +256,33 @@ utilsModel.disableFirewallCompileStatus,
 		options: req.body.options
 	};
 	
-	utilsModel.checkParameters(policy_rData, obj => {
-		policy_rData = obj;
-		
-		var old_order = req.body.old_order;
-		Policy_rModel.updatePolicy_r(old_order, policy_rData, function (error, data)
-		{
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-			else {
-				logger.debug("POLICY UPDATED: ", data);
-				//If saved policy_r saved ok, get data
-				if (data && data.result) {
-					// Recompile rule.
-					var accessData = {
-						sessionID: req.sessionID, 
-						iduser: req.iduser, 
-						fwcloud: req.fwcloud, 
-						idfirewall: req.params.idfirewall, 
-						rule: policy_rData.id
-					};
-					Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
-						if (error) 
-							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error compiling rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-						else
-							api_resp.getJson(datac, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-					});
-				} else
-					api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-			}
-		});	
-	});
+	var old_order = req.body.old_order;
+	Policy_rModel.updatePolicy_r(old_order, policy_rData, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+		else {
+			logger.debug("POLICY UPDATED: ", data);
+			//If saved policy_r saved ok, get data
+			if (data && data.result) {
+				// Recompile rule.
+				var accessData = {
+					sessionID: req.sessionID, 
+					iduser: req.iduser, 
+					fwcloud: req.fwcloud, 
+					idfirewall: req.params.idfirewall, 
+					rule: policy_rData.id
+				};
+				Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
+					if (error) 
+						api_resp.getJson(null, api_resp.ACR_ERROR, 'Error compiling rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+					else
+						api_resp.getJson(datac, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+				});
+			} else
+				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+		}
+	});	
 });
 
 /* Compile policy_r that exist */

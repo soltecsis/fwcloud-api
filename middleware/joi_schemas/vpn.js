@@ -1,6 +1,4 @@
-//create object
 var schema = {};
-//Export the object
 module.exports = schema;
 
 const Joi = require('joi');

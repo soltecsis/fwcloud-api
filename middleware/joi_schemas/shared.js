@@ -26,3 +26,7 @@ sharedSchema._0_1 = Joi.number().integer().valid([0,1]);
 
 sharedSchema.linux_user = Joi.string().regex(/^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$/);
 sharedSchema.linux_pass = Joi.string().regex(/^[ -~\x80-\xFE]{2,64}$/);
+
+sharedSchema.mac_addr = Joi.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/);
+
+sharedSchema.interface_type = Joi.number().integer().valid([10,11]);

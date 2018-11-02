@@ -250,6 +250,10 @@ router.put('/', (req, res) => {
 	});
 });
 
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.fwcloud,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
 /**
  * DELETE fwcloud
@@ -285,10 +289,6 @@ router.put('/', (req, res) => {
  *       };
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
-router.put("/restricted",
-restrictedCheck.fwcloud,
-(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
-
 router.put("/del",
 restrictedCheck.fwcloud,
 async (req, res) => {

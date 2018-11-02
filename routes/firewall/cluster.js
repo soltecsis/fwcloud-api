@@ -399,6 +399,10 @@ router.put('/', (req, res) => {
 	.catch(error => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error,jsonResp => res.status(200).json(jsonResp)));
 });
 
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.otherFirewall,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
 /* Remove cluster */
 router.put("/del", 

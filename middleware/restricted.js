@@ -64,14 +64,8 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 
 restrictedCheck.interface = (req, res, next) => {
 	//Check interface in RULE O POSITIONS
-	if (req.body.idhost && req.body.idinterface) {
-		id=req.body.idinterface;
-		type=11; // Host interface
-	} else {
-		id=req.body.id;
-		type=req.body.type;
-	}
-	interfaceModel.searchInterfaceInrulesPro(id, type, req.body.fwcloud, '')
+	const type = (req.body.idhost) ? 11 /* Host interface */ : 10 /* Firewall interface */;
+	interfaceModel.searchInterfaceInrulesPro(req.body.id, type, req.body.fwcloud, '')
 	.then(data => {
 		//CHECK RESULTS
 		if (data.result) {

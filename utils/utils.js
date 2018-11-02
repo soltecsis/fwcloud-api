@@ -22,16 +22,6 @@ const fs = require('fs');
 var path = require('path');
 
 
-utilsModel.checkParameters = function (obj, callback) {
-	for (var propt in obj) {
-		logger.debug(propt + ': ' + obj[propt]);
-		if (obj[propt] === undefined) {
-			//logger.debug("PARAMETRO UNDEFINED: " + propt);
-			obj[propt] = null;
-		}        
-	}
-	callback(obj);
-};
 utilsModel.checkEmptyRow = function (obj, callback) {
 	var resp = true;
 	logger.debug(obj);

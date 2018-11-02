@@ -624,6 +624,11 @@ router.put('/accesslock/get', function (req, res)
 });
 
 
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.otherFirewall,
+restrictedCheck.firewallApplyTo,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
 
 /**

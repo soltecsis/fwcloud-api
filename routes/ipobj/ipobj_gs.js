@@ -275,6 +275,12 @@ router.put('/ipobj-g', function (req, res)
 });
 
 
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.ipobj_g,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
+
+
 /* Remove ipobj_g */
 router.put("/del/ipobj-g/:id/:type", 
 restrictedCheck.ipobj_g,
