@@ -106,328 +106,7 @@ var logger = require('log4js').getLogger("app");
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
 const duplicityCheck = require('../../middleware/duplicity');
-
-
-/**
- * Get all ipobjs by  group
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/group/:idgroup__      
- * > METHOD:  __GET__
- * 
- * @method getAllIpobjByGroup
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} idgroup Group identifier
- * 
- * @return {JSON} Returns `JSON` Data from Ipobj
- * @example #### JSON RESPONSE
- *    
- *     "response": {
- *        "respStatus":         //Response status  TRUE | FALSE
- *        "respCode":           //Response Code 
- *        "respCodeMsg":        //Response message
- *        "respMsg":            //Response custom message
- *        "errorCode":          //Error code
- *        "errorMsg":           //Error message
- *          },
- *     "data": [                //Data node with de IPOBJ DATA
- *        { "id": 1488,
- *            "name": "PC-AALMODOVAR",
- *            "type": 8,
- *            "fwcloud": 1,
- "interface": null,
- "protocol": null,
- "address": null,
- "netmask": null,
- "diff_serv": null,
- "ip_version": null,
- "code": null,
- "tcp_flags_mask": null,
- "tcp_flags_settings": null,
- "range_start": null,
- "range_end": null,
- "source_port_start": null,
- "source_port_end": null,
- "destination_port_start": null,
- "destination_port_end": null,
- "options": null,
- "comment": "",
- "id_node": 102,
- "id_parent_node": 8,
- "interfaces": [         //Interface Node with Interfaces 
- {
- "id": 73,
- "firewall": null,
- "name": "eth0",
- "labelname": "eth0",
- "type": "11",
- "securityLevel": "0",
- "interface_type": 11,
- "comment": null,
- "id_node": 318,
- "id_parent_node": 102,
- "ipobjs": [     //Ipobj Node with ipobjs into Interface
- {
- "id": 1525,
- "name": "PC-AALMODOVAR:eth0",
- "type": 5,
- "fwcloud": 1,
- "interface": 73,
- "protocol": null,
- "address": "10.98.1.16",
- "netmask": "255.255.255.0",
- "diff_serv": null,
- "ip_version": "IPv4",
- "code": null,
- "tcp_flags_mask": null,
- "tcp_flags_settings": null,
- "range_start": null,
- "range_end": null,
- "source_port_start": null,
- "source_port_end": null,
- "destination_port_start": null,
- "destination_port_end": null,
- "options": null,
- "comment": "",
- "id_node": 339,
- "id_parent_node": 318
- },
- ]
- },
- ]
- }
- ]
- }
- * 
- */
-router.get('/group/:idgroup', (req, res) => {
-	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
-	IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data)
-	{
-		//If exists ipobj get data
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/**
- * Get ipobj by  group and Ipobj id
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/group/:idgroup/:id__      
- * > METHOD:  __GET__
- * 
- * @method getIpobjByGroup
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} idgroup Group identifier
- * @param {Integer} id Ipobj identifier
- * 
- * @return {JSON} Returns `JSON` Data from Ipobj
- * */
-router.get('/group/:idgroup/:id', (req, res) => {
-	var idgroup = req.params.idgroup;
-	var id = req.params.id;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
-	IpobjModel.getIpobjGroup(fwcloud, idgroup, id, function (error, data)
-	{
-		//If exists ipobj get data
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-/**
- * Get ipobj by Ipobj id
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/:id__      
- * > METHOD:  __GET__
- * 
- * @method getIpobjById
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} id Ipobj identifier
- * 
- * @return {JSON} Returns `JSON` Data from Ipobj
- * */
-router.get('/:id', (req, res) => {
-	IpobjModel.getIpobj(req.fwcloud, req.params.id, (error, data) =>	{
-		//If exists ipobj get data
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		//Get Error
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	});
-});
-
-/**
- * Get all ipobjs by name and by group
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/group/:idgroup/name/:name__      
- * > METHOD:  __GET__
- * 
- * @method getAllIpobjByGroupName
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} idgroup Group identifier
- * @param {String} name Ipobj name
- * 
- * @return {JSON} Returns `JSON` Data from Ipobj
- * */
-router.get('/group/:idgroup/name/:name', (req, res) => {
-	var name = req.params.name;
-	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
-	IpobjModel.getIpobjName(fwcloud, idgroup, name, function (error, data)
-	{
-		//If exists ipobj get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', null, objModel, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/**
- * Search where ipobj (GROUPS, HOSTS (INTEFACES and IPOBJS)) in Rules
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/ipobj_search_rules/:id/:type__      
- * > METHOD:  __GET__
- * 
- * @method SearchIpobjInRules
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} id Ipobj identifier
- * @param {Integer} type Ipobj type
- * 
- * @return {JSON} Returns `JSON` Data from Search
- * */
-router.get("/ipobj_search_rules/:id/:type", (req, res) => {
-	//Id from ipobj to remove
-	//var idfirewall = req.params.idfirewall;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var id = req.params.id;
-	var type = req.params.type;
-
-
-	IpobjModel.searchIpobjInRules(id, type, fwcloud)
-			.then(data =>
-			{
-				if (data && data.result)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(error => {
-
-				api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-
-			});
-});
-
-/**
- * Search where ipobj is Used
- * 
- * 
- * > ROUTE CALL:  __/ipobjs/ipobj_search_used/:id/:type__      
- * > METHOD:  __GET__
- * 
- * @method SearchIpobjWhereUsed
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} id Ipobj identifier
- * @param {Integer} type Ipobj type
- * 
- * @return {JSON} Returns `JSON` Data from Search
- * */
-router.get("/ipobj_search_used/:id/:type", (req, res) => {
-	//Id from ipobj to remove
-	//var idfirewall = req.params.idfirewall;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var id = req.params.id;
-	var type = req.params.type;
-
-	IpobjModel.searchIpobj(id, type, fwcloud, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
+const restrictedCheck = require('../../middleware/restricted');
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
@@ -500,14 +179,14 @@ router.get("/ipobj_search_used/:id/:type", (req, res) => {
  *      "data": {}
  *      };
  * */
-router.post("/ipobj/:node_parent/:node_order/:node_type",
+router.post("/",
 duplicityCheck.ipobj,
 (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var node_parent = req.params.node_parent;
-	var node_order = req.params.node_order;
-	var node_type = req.params.node_type;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var node_parent = req.body.node_parent;
+	var node_order = req.body.node_order;
+	var node_type = req.body.node_type;
 
 	//Create New objet with data ipobj
 	var ipobjData = {
@@ -653,8 +332,8 @@ duplicityCheck.ipobj,
 router.put('/ipobj', 
 duplicityCheck.ipobj,
 (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
 
 	//Save data into object
 	var ipobjData = {
@@ -728,6 +407,33 @@ duplicityCheck.ipobj,
 
 
 /**
+ * Get ipobj by Ipobj id
+ * 
+ * 
+ * > ROUTE CALL:  __/ipobjs/:id__      
+ * > METHOD:  __GET__
+ * 
+ * @method getIpobjById
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {JSON} Returns `JSON` Data from Ipobj
+ * */
+router.put('/get', (req, res) => {
+	IpobjModel.getIpobj(req.body.fwcloud, req.body.id, (error, data) =>	{
+		//If exists ipobj get data
+		if (data && data.length > 0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		//Get Error
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	});
+});
+
+
+/**
  * DELETE IPOBJ
  * 
  * 
@@ -771,15 +477,13 @@ duplicityCheck.ipobj,
  *      "data": {}
  *      };
  */
-router.put("/del/ipobj/:id/:type", 
-IpobjModel.checkRestrictions,  
+router.put("/del", 
+restrictedCheck.ipobj,  
 (req, res) => {
-	//Id from ipobj to remove
-	//var idfirewall = req.params.idfirewall;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var id = req.params.id;
-	var type = req.params.type;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var id = req.body.id;
+	var type = req.body.type;
 
 	FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,type,"|3")
 	.then(() => IpobjModel.UpdateHOST(id))
@@ -815,5 +519,47 @@ IpobjModel.checkRestrictions,
 	)
 	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
 });
+
+
+/**
+ * Search where ipobj is Used
+ * 
+ * 
+ * > ROUTE CALL:  __/ipobjs/ipobj_search_used/:id/:type__      
+ * > METHOD:  __GET__
+ * 
+ * @method SearchIpobjWhereUsed
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * @param {Integer} type Ipobj type
+ * 
+ * @return {JSON} Returns `JSON` Data from Search
+ * */
+router.put("/where", (req, res) => {
+	//Id from ipobj to remove
+	//var idfirewall = req.params.idfirewall;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var id = req.body.id;
+	var type = req.body.type;
+
+	IpobjModel.searchIpobj(id, type, fwcloud, (error, data) => {
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		else {
+			if (data && data.result)
+				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		}
+	});
+});
+
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.ipobj,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
 module.exports = router;

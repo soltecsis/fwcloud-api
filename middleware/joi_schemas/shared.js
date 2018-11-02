@@ -30,3 +30,8 @@ sharedSchema.linux_pass = Joi.string().regex(/^[ -~\x80-\xFE]{2,64}$/);
 sharedSchema.mac_addr = Joi.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/);
 
 sharedSchema.interface_type = Joi.number().integer().valid([10,11]);
+
+sharedSchema.ipv4 = Joi.string().ip({ version: ['ipv4'], cidr: 'forbidden'});
+sharedSchema.ipv6 = Joi.string().ip({ version: ['ipv6'], cidr: 'forbidden'});
+
+sharedSchema.unsigned_byte = Joi.number.integer().min(0).max(255);

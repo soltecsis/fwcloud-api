@@ -623,39 +623,6 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
 	});
 };
 
-/**
- * Get ipobj by name
- * 
- * @method getIpobjName
- * 
- * @param {Integer} fwcloud FwCloud identifier
- * @param {String} name name ipobj identifier
- * 
- * @return {ROW} Returns ROW Data from Ipobj
- * */
-ipobjModel.getIpobjName = function (fwcloud, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-
-		var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
-				' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' )' +
-				' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
-				' WHERE I.name like  = ' + connection.escape(namesql) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
-
-		//var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
-
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-
 
 /**
  * Add ipobj
@@ -966,20 +933,6 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
 		});
 	});
 
-};
-
-ipobjModel.checkRestrictions = function (req, res, next) {
-	req.restricted = {"result": true, "msg": "", "restrictions": ""};
-
-	ipobjModel.searchIpobjInRules(req.params.id, req.params.type, req.fwcloud)
-			.then(data => {
-				if (data.result) {
-					logger.debug("RESTRICTED IPOBJ: " + req.params.id + "  Type: " + req.params.type + "  Fwcloud: " + req.fwcloud);
-					req.restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
-				}
-				next();
-			})
-			.catch(e => next());
 };
 
 /**

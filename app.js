@@ -179,7 +179,6 @@ app.use(control_routes, (req, res, next) => {
 		req.fwc_access = true;
 		req.iduser = iduser;
 		req.fwcloud = req.body.id;
-		req.restricted = {};
 		next();
 	}
 	else if (utilsModel.startsWith(originalURL,'/fwcloud') && req.method === 'GET' && fwcloud===undefined) {
@@ -199,7 +198,6 @@ app.use(control_routes, (req, res, next) => {
 		req.fwc_access = true;
 		req.iduser = iduser;
 		//request.fwcloud = request.params.fwcloud;
-		req.restricted = {};
 		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
 		next();
 	}
@@ -212,7 +210,6 @@ app.use(control_routes, (req, res, next) => {
 					//save access to user                
 					var userData = {id: iduser};
 					UserModel.updateUserTS(userData, function (error, data) {});
-					req.restricted = {};
 					next();
 				})
 				.catch(err => {
@@ -241,7 +238,7 @@ var policy_gs = require('./routes/policy/policy_gs');
 var policy_rs = require('./routes/policy/policy_rs');
 var policy_types = require('./routes/policy/policy_types');
 var ipobj_gs = require('./routes/ipobj/ipobj_gs');
-var ipobjs = require('./routes/ipobj/ipobjs');
+var ipobj = require('./routes/ipobj/ipobj');
 var ipobj__ipobjgs = require('./routes/ipobj/ipobj__ipobjgs');
 var ipobj_types = require('./routes/ipobj/ipobj_types');
 var policy_r__ipobjs = require('./routes/policy/policy_r__ipobjs');
@@ -281,7 +278,7 @@ app.use('/routing-r__ipobjs', routing_r__ipobjs);
 app.use('/routing-r__interfaces', routing_r__interfaces);
 app.use('/ipobj-gs', ipobj_gs);
 app.use('/ipobj__ipobjgs', ipobj__ipobjgs);
-app.use('/ipobjs', ipobjs);
+app.use('/ipobj', ipobj);
 app.use('/ipobj-types', ipobj_types);
 app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
 app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);

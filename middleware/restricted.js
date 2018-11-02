@@ -5,6 +5,7 @@ module.exports = restrictedCheck;
 
 var api_resp = require('../utils/api_response');
 var interfaceModel = require('../models/interface/interface');
+var ipobjModel = require('../models/ipobj/ipobj');
 var ipobj_gModel = require('../models/ipobj/ipobj_g');
 
 
@@ -75,6 +76,20 @@ restrictedCheck.interface = (req, res, next) => {
 	})
   .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
 };
+
+
+restrictedCheck.ipobj = (req, res, next) => {
+	ipobjModel.searchIpobjInRules(req.body.id, req.body.type, req.body.fwcloud)
+  .then(data => {
+    if (data.result) {
+      const restricted = {"result": false, "msg": "Restricted", "restrictions": data.search};
+      api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+    }
+    next();
+  })
+  .catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+};
+
 
 
 restrictedCheck.ipobj_g = (req, res, next) => {
