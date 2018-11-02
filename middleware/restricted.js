@@ -92,7 +92,7 @@ restrictedCheck.ipobj = (req, res, next) => {
 
 
 
-restrictedCheck.ipobj_g = (req, res, next) => {
+restrictedCheck.ipobj_group = (req, res, next) => {
   ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud)
   .then(data => {
     if (data.result) {

@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
+var Ipobj_gModel = require('../../models/ipobj/group');
 var fwcTreemodel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var api_resp = require('../../utils/api_response');
@@ -100,187 +100,28 @@ router.put('/', (req, res) => {
 });
 
 
-/* Get all ipobj_gs*/
-router.get('', function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	Ipobj_gModel.getIpobj_g_Full(fwcloud, '', function (error, data)
-	{
-		//If exists ipobj_g get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-
 /* Get  ipobj_g by id */
-router.get('/:id', function (req, res)
-{
-	var id = req.params.id;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	Ipobj_gModel.getIpobj_g_Full(fwcloud, id, function (error, data)
-	{
+router.put('/get', (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var id = req.body.id;
+	Ipobj_gModel.getIpobj_g_Full(fwcloud, id, (error, data) => {
 		//If exists ipobj_g get data
 		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
-
-
-/* Get all ipobj_gs by nombre */
-router.get('/name/:name', function (req, res)
-{
-	var iduser = req.iduser;
-	var name = req.params.name;
-	var fwcloud = req.fwcloud;
-	Ipobj_gModel.getIpobj_gName(fwcloud, name, function (error, data)
-	{
-		//If exists ipobj_g get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/* Get all ipobj_gs by tipo */
-router.get('/type/:type', function (req, res)
-{
-	var iduser = req.iduser;
-	var type = req.params.type;
-	var fwcloud = req.fwcloud;
-	Ipobj_gModel.getIpobj_gtype(fwcloud, type, function (error, data)
-	{
-		//If exists ipobj_g get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-/* Search GROUPS AND members in Rules */
-router.get("/ipobj_g_search_rules/:idg", function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var idg = req.params.idg;
-
-
-	Ipobj_gModel.searchGroupInRules(idg, fwcloud)
-			.then(data =>
-			{
-				if (data && data.length > 0)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(error => {
-				api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-});
-
-/* Search where is used Group  */
-router.get("/ipobj_g_search_used/:idg", function (req, res)
-{
-
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var idg = req.params.idg;
-
-
-	Ipobj_gModel.searchGroup(idg, fwcloud, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-
-
-
-// API call for check deleting restrictions.
-router.put("/restricted",
-restrictedCheck.ipobj_g,
-(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
-
 
 /* Remove ipobj_g */
-router.put("/del/ipobj-g/:id/:type", 
-restrictedCheck.ipobj_g,
+router.put("/del", 
+restrictedCheck.ipobj_group,
 (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var id = req.params.id;
-	var type = req.params.type;
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var id = req.body.id;
+	var type = req.body.type;
 
 	Ipobj_gModel.deleteIpobj_g(fwcloud, id, type, function (error, data)
 	{
@@ -319,5 +160,140 @@ restrictedCheck.ipobj_g,
 		}
 	});
 });
+
+/* Search where is used Group  */
+router.put("/where", (req, res) => {
+	Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud, (error, data) => {
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		else {
+			if (data && data.length > 0)
+				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		}
+	});
+});
+
+// API call for check deleting restrictions.
+router.put("/restricted",
+restrictedCheck.ipobj_group,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
+
+
+/* Create New ipobj__ipobjg */
+router.put("/addto", (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var node_parent = req.body.node_parent;
+	var node_order = req.body.node_order;
+	var node_type = req.body.node_type;
+
+	//Create New object with data ipobj__ipobjg
+	var ipobj__ipobjgData = {
+		ipobj_g: req.body.ipobj_g,
+		ipobj: req.body.ipobj
+	};
+
+	// ATENCION: 
+	// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
+	// interfaz a un grupo de objetos IP, por el momento.
+	if (req.params.node_type==="IFF" || req.params.node_type==="IFH") {
+		api_resp.getJson(null, api_resp.ACR_ERROR, 'It is not possible to add network interfaces to IP objects groups.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return;
+	}
+
+	Ipobj__ipobjgModel.insertIpobj__ipobjg(ipobj__ipobjgData, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved ipobj__ipobjg Get data
+			if (data && data.insertId > 0)
+			{
+				logger.debug("NEW IPOBJ IN GROUP: " + ipobj__ipobjgData.ipobj_g + "  IPOBJ:" + ipobj__ipobjgData.ipobj);
+				//Search IPOBJ Data
+				IpobjModel.getIpobjGroup(fwcloud, ipobj__ipobjgData.ipobj_g, ipobj__ipobjgData.ipobj, function (error, dataIpobj)
+				{
+					//If exists ipobj get data
+					if (typeof dataIpobj !== 'undefined')
+					{
+
+						var NodeData = {
+							id: ipobj__ipobjgData.ipobj,
+							name: dataIpobj.name,
+							type: dataIpobj.type,
+							comment: dataIpobj.comment
+						};
+
+						//INSERT IN TREE
+						fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, NodeData, (error, data2) => {
+							if (data2 && data2.insertId) {
+								// Update affected firewalls status.
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.body.ipobj_g,-1,-1,"|3")
+								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,null)})
+								.then(not_zero_status_fws => api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp=> res.status(200).json(jsonResp)))
+								.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+							} else {
+								logger.debug(error);
+								api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+							}
+						});
+					}
+					//Get Error
+					else
+						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				});
+
+			} else
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		}
+	});
+});
+
+/* Remove ipobj__ipobjg */
+router.put("/delfrom", (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var node_parent = req.body.node_parent;
+
+	//Id from ipobj__ipobjg to remove
+	var ipobjg = req.body.ipobjg;
+	var ipobj = req.body.ipobj;
+
+	Ipobj__ipobjgModel.deleteIpobj__ipobjg(fwcloud, ipobjg, ipobj, (error, data) => {
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		else {
+			if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted")
+			{
+				if (data.msg === "deleted") {
+					//DELETE FROM TREE
+					fwcTreemodel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function (error, data) {
+						if (data && data.result) {
+							logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
+							fwcTreemodel.orderTreeNode(fwcloud, node_parent, (error, data) => {
+								// Update affected firewalls status.
+								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,-1,req.params.ipobjg,-1,-1,"|3")
+								.then(()=>{return FirewallModel.getFirewallStatusNotZero(fwcloud,null)})
+								.then(not_zero_status_fws => 
+									api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK '+data.alert, objModel, null, jsonResp=> res.status(200).json(jsonResp)))
+								.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+							});
+						} else
+							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					});
+				} else if (data.msg === "Restricted") 
+					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				else 
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			} else
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		}
+	});
+});
+
 
 module.exports = router;

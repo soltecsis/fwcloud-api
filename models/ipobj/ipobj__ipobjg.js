@@ -12,37 +12,6 @@ var tableModel = "ipobj__ipobjg";
 
 var logger = require('log4js').getLogger("app");
 
-//Get All ipobj__ipobjg by group
-ipobj__ipobjgModel.getIpobj__ipobjgs = function (ipobjg, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('SELECT * FROM ' + tableModel + ' WHERE ipobj_g=' + connection.escape(ipobjg) + ' ORDER BY ipobj', function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
-		});
-	});
-};
-
-
-
-//Get ipobj__ipobjg by  id
-ipobj__ipobjgModel.getIpobj__ipobjg = function (ipobjg, ipobj, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobjg) + ' AND ipobj = ' + connection.escape(ipobj);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
 
 
 
@@ -61,26 +30,6 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) 
 					callback(null, {"insertId": result.insertId});
 				} else
 					callback(error, null);
-			}
-		});
-	});
-};
-
-//Update ipobj__ipobjg
-ipobj__ipobjgModel.updateIpobj__ipobjg = function (ipobj_g, ipobj, ipobj__ipobjgData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET ipobj_g = ' + connection.escape(ipobj__ipobjgData.ipobj_g) + ' ' +
-				' ,ipobj = ' + connection.escape(ipobj__ipobjgData.ipobj) + ' ' +
-				' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
-
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, {"result": true});
 			}
 		});
 	});

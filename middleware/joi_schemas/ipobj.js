@@ -17,6 +17,7 @@ schema.validate = req => {
 
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/ipobj')) {
       schema = Joi.object().keys({ 
+        id: sharedSch.id,
         interface: sharedSch.id.allow(null),
         name: sharedSch.name,
         type: sharedSch.unsigned_byte,
@@ -38,7 +39,8 @@ schema.validate = req => {
         options: Joi.number().integer(),
         comment: sharedSch.comment.optional(),
       });
-      if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });
+      if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
+      else if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });
     } 
     else if (req.method==='PUT') {
       if (req.url==='/ipobj/get')

@@ -213,37 +213,6 @@ ipobj_gModel.getIpobj_g_Full_Pro = function (fwcloud, id) {
 		});
 };
 
-//Get ipobj_g by name
-ipobj_gModel.getIpobj_gName = function (fwcloud, name, callback) {
-		db.get(function (error, connection) {
-				if (error)
-						callback(error, null);
-				var namesql = '%' + name + '%';
-				var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  fwcloud= ' + connection.escape(fwcloud);
-				connection.query(sql, function (error, row) {
-						if (error)
-								callback(error, null);
-						else
-								callback(null, row);
-				});
-		});
-};
-//Get ipobj_g by  tipo
-ipobj_gModel.getIpobj_gType = function (fwcloud, type, callback) {
-		db.get(function (error, connection) {
-				if (error)
-						callback(error, null);
-				var sql = 'SELECT * FROM ' + tableModel + ' WHERE type =  ' + connection.escape(type) + ' AND  fwcloud= ' + connection.escape(fwcloud);
-				connection.query(sql, function (error, row) {
-						if (error)
-								callback(error, null);
-						else
-								callback(null, row);
-				});
-		});
-};
-
-
 /* Search where is used GROUP  */
 ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 		//SEARCH IPOBJ GROUP IN RULES
