@@ -18,7 +18,7 @@ var Policy_positionModel = require('../../models/policy/policy_position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 
 var IpobjModel = require('../../models/ipobj/ipobj');
-var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
+var Ipobj_gModel = require('../ipobj/group');
 var InterfaceModel = require('../../models/interface/interface');
 var data_policy_r = require('../../models/data/data_policy_r');
 var data_policy_positions = require('../../models/data/data_policy_positions');

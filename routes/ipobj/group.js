@@ -7,8 +7,98 @@ var api_resp = require('../../utils/api_response');
 const restrictedCheck = require('../../middleware/restricted');
 var objModel = 'GROUP';
 
+/* Create New ipobj_g */
+router.post("/", (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+	var node_parent = req.body.node_parent;
+	var node_order = req.body.node_order;
+	var node_type = req.body.node_type;
 
-var logger = require('log4js').getLogger("app");
+	//Create New objet with data ipobj_g
+	var ipobj_gData = {
+		id: null,
+		name: req.body.name,
+		type: req.body.type,
+		fwcloud: req.fwcloud,
+		comment: req.body.comment
+	};
+
+	Ipobj_gModel.insertIpobj_g(ipobj_gData, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved ipobj_g Get data
+			if (data && data.insertId > 0)
+			{
+				var id = data.insertId;
+				ipobj_gData.id = id;
+				//INSERT IN TREE
+				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobj_gData, function (error, data) {
+					if (data && data.insertId) {
+						var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
+						api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
+							res.status(200).json(jsonResp);
+						});
+					} else {
+						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
+							res.status(200).json(jsonResp);
+						});
+					}
+				});
+
+			} else
+			{
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		}
+	});
+});
+
+/* Update ipobj_g that exist */
+router.put('/', (req, res) => {
+	var iduser = req.session.user_id;
+	var fwcloud = req.body.fwcloud;
+
+	//Save data into object
+	var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.fwcloud};
+	Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved ipobj_g saved ok, get data
+			if (data && data.result)
+			{
+				//UPDATE TREE            
+				fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function (error, data) {
+					if (data && data.result) {
+						api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+							res.status(200).json(jsonResp);
+						});
+					} else {
+						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function (jsonResp) {
+							res.status(200).json(jsonResp);
+						});
+					}
+				});
+			} else
+			{
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		}
+	});
+});
+
 
 /* Get all ipobj_gs*/
 router.get('', function (req, res)
@@ -175,104 +265,6 @@ router.get("/ipobj_g_search_used/:idg", function (req, res)
 
 
 
-
-/* Create New ipobj_g */
-router.post("/ipobj-g/:node_parent/:node_order/:node_type", function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	var node_parent = req.params.node_parent;
-	var node_order = req.params.node_order;
-	var node_type = req.params.node_type;
-
-	//Create New objet with data ipobj_g
-	var ipobj_gData = {
-		id: null,
-		name: req.body.name,
-		type: req.body.type,
-		fwcloud: req.fwcloud,
-		comment: req.body.comment
-	};
-
-	Ipobj_gModel.insertIpobj_g(ipobj_gData, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved ipobj_g Get data
-			if (data && data.insertId > 0)
-			{
-				var id = data.insertId;
-				logger.debug("NEW IPOBJ GROUP id:" + id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
-				ipobj_gData.id = id;
-				//INSERT IN TREE
-				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobj_gData, function (error, data) {
-					if (data && data.insertId) {
-						var dataresp = {"insertId": id, "TreeinsertId": data.insertId};
-						api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					} else {
-						logger.debug(error);
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-
-			} else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});
-
-/* Update ipobj_g that exist */
-router.put('/ipobj-g', function (req, res)
-{
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-
-	//Save data into object
-	var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.fwcloud};
-	Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved ipobj_g saved ok, get data
-			if (data && data.result)
-			{
-				logger.debug("UPDATE IPOBJ GROUP id:" + ipobj_gData.id + "  Type:" + ipobj_gData.type + "  Name:" + ipobj_gData.name);
-				//UPDATE TREE            
-				fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function (error, data) {
-					if (data && data.result) {
-						api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					} else {
-						logger.debug(error);
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else
-			{
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});
 
 
 // API call for check deleting restrictions.

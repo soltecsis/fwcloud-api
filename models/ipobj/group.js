@@ -1,11 +1,11 @@
 var db = require('../../db.js');
 //var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
-var IpobjModel = require('../../models/ipobj/ipobj');
+var IpobjModel = require('./ipobj');
 var asyncMod = require('async');
-var ipobj_g_Data = require('../../models/data/data_ipobj_g');
-var ipobj_Data = require('../../models/data/data_ipobj');
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
+var ipobj_g_Data = require('../data/data_ipobj_g');
+var ipobj_Data = require('../data/data_ipobj');
+var Policy_r__ipobjModel = require('../policy/policy_r__ipobj');
+var Ipobj__ipobjgModel = require('./ipobj__ipobjg');
 
 //create object
 var ipobj_gModel = {};

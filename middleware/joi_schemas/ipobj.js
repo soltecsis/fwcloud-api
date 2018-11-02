@@ -6,6 +6,13 @@ const sharedSch = require('./shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
+    const item2 = req.url.split('/')[2];
+    if (item2==='group')
+    try {
+      const item1 = req.url.split('/')[1];
+      resolve (await require('./'+item1+'/'+item2).validate(req));
+    } catch(error) { return reject(error) }
+
     var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/ipobj')) {

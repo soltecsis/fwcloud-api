@@ -99,7 +99,7 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  */
 var api_resp = require('../../utils/api_response');
 
-var Ipobj_gModel = require('../../models/ipobj/ipobj_g');
+var Ipobj_gModel = require('./group');
 
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 

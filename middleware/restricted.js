@@ -6,7 +6,7 @@ module.exports = restrictedCheck;
 var api_resp = require('../utils/api_response');
 var interfaceModel = require('../models/interface/interface');
 var ipobjModel = require('../models/ipobj/ipobj');
-var ipobj_gModel = require('../models/ipobj/ipobj_g');
+var ipobj_gModel = require('../models/ipobj/group');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
