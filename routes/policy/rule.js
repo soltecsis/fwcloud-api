@@ -5,201 +5,14 @@ var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var db = require('../../db.js');
 var utilsModel = require("../../utils/utils.js");
-var FirewallModel = require('../../models/firewall/firewall');
 var api_resp = require('../../utils/api_response');
 //var FirewallModel = require('../../models/firewall/firewall');
 //var asyncMod = require('async');
 var objModel = 'POLICY';
 var logger = require('log4js').getLogger("app");
 
-
-/* Get all policy_rs by firewall and group*/
-router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/* Get all policy_rs by firewall and type */
-router.get('/:idfirewall/type/:type',
-utilsModel.checkFirewallAccess,
-(req, res) => {
-	Policy_rModel.getPolicy_rs_type(req.fwcloud, req.params.idfirewall, req.params.type, "", (error, data) => {
-		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	});
-});
-
-/* Get all policy_rs by firewall and type */
-router.get('/full/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var rule = "";
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + "  TYPE:" + type);
-	Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
-			.then(data =>
-			{
-				//If exists policy_r get data
-				if (data && data.length > 0)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-				//Get Error
-				else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(e => {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-});
-
-/* Get all policy_rs by firewall and type and Rule */
-router.get('/:idfirewall/type/:type/rule/:rule', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var rule = req.params.rule;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	logger.debug("MOSTRANDO POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type);
-	Policy_rModel.getPolicy_rs_type(fwcloud, idfirewall, type, rule, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/* Get all policy_rs by firewall and type and Rule */
-router.get('/full/:idfirewall/type/:type/rule/:rule', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var rule = req.params.rule;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + " REGLA: " + rule + "  TYPE:" + type);
-	Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
-			.then(data =>
-			{
-				//If exists policy_r get data
-				if (data && data.length > 0)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-				//Get Error
-				else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(e => {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-});
-
-/* Get  policy_r by id and  by Id */
-router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var id = req.params.id;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-/* Get all policy_rs by nombre and by firewall*/
-router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAccess, function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var name = req.params.name;
-	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
-	Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
 /* Create New policy_r */
-router.post("/policy-r/:idfirewall", 
+router.post("/", 
 utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
@@ -234,7 +47,7 @@ utilsModel.disableFirewallCompileStatus,
 });
 
 /* Update policy_r that exist */
-router.put('/policy-r/:idfirewall', 
+router.put('/', 
 utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
@@ -285,146 +98,92 @@ utilsModel.disableFirewallCompileStatus,
 	});	
 });
 
-/* Compile policy_r that exist */
-router.put('/policy-r/compile/:idfirewall/:rule', 
+
+/* Get all policy_rs by firewall and type */
+router.put('/type/get',
 utilsModel.checkFirewallAccess,
-utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
-	var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: req.params.rule};
-	Policy_rModel.compilePolicy_r(accessData, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r saved ok, get data
-			if (data && data.result)
-			{
-				api_resp.getJson(null, api_resp.ACR_COMPILED_OK, 'COMPILED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else
-			{
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error compiling', 'POLICY', error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+	Policy_rModel.getPolicy_rs_type(req.bodyfwcloud, req.body.firewall, req.body.type, "", (error, data) => {
+		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
-/* Update ORDER of the policy_r that exist */
-router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
+
+/* Get all policy_rs by firewall and type and Rule */
+router.put('/get', 
 utilsModel.checkFirewallAccess, 
-utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
-	//Save data into object
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var id = req.params.id;
-	var new_order = req.params.new_order;
-	var old_order = req.params.old_order;
-	Policy_rModel.updatePolicy_r_order(idfirewall, type, id, new_order, old_order, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY ORDER', error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r saved ok, get data
-			if (data && data.result)
-			{
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ORDER UPDATED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else
-			{
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, (error, data) => {
+		//If exists policy_r get data
+		if (data && data.length > 0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
-/* Update APPLY_TO de policy_r that exist */
-router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
+
+/* Get all policy_rs by firewall and type and Rule */
+router.put('/full/get', 
+utilsModel.checkFirewallAccess, (req, res) => {
+	Policy_rModel.getPolicy_rs_type_full(req.body, req.body.firewall, req.body.type, req.body.rule)
+	.then(data => {
+		//If exists policy_r get data
+		if (data && data.length > 0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	})
+	.catch(error => {
+		api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+	});
+});
+
+
+/* Remove policy_r */
+router.put("/del", 
 utilsModel.checkFirewallAccess, 
-utilsModel.disableFirewallCompileStatus, 
+utilsModel.disableFirewallCompileStatus,  
 (req, res) => {
-	//Save data into object
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var id = req.params.id;
-	var idcluster = req.params.idcluster;
-	var fwapplyto = req.params.fwapplyto;
+	//Id from policy_r to remove
+	removeRules(req.body.firewall, req.body.rulesIds)
+	.then(r => api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp)))
+	.catch(error => api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
+});
+async function removeRules(idfirewall, rulesIds)
+{
+	for (let rule of rulesIds) {
+		await ruleRemove(idfirewall, rule)
+		.then(r => logger.debug("OK RESULT DELETE: " + r))
+		.catch(err => logger.debug("ERROR Result: " + err));
+	}
+}
 
-	Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r saved ok, get data
+function ruleRemove(idfirewall, rule) {
+	return new Promise((resolve, reject) => {
+		Policy_rModel.deletePolicy_r(idfirewall, rule)
+		.then(data => {
 			if (data && data.result)
-			{
-				var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: id};
-				Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else
-			{
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating APPLYTO', 'POLICY', error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+				resolve(api_resp.ACR_DELETED_OK);
+			else
+				resolve(api_resp.ACR_NOTEXIST);
+		})
+		.catch(error => reject(error));
 	});
-});
+}
 
-/* Update Style policy_r  */
-router.put('/policy-r/style/:idfirewall/:type', 
-utilsModel.checkFirewallAccess, 
-utilsModel.disableFirewallCompileStatus, 
-(req, res) => {
-	var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, type: req.params.type};
-	var JsonData = req.body.Data;
-	var style = JsonData.style;
-	var rulesIds = JsonData.rulesIds;
-	db.lockTableCon("policy_r", " WHERE firewall=" + accessData.idfirewall + " AND type=" + accessData.type, function () {
-		db.startTXcon(function () {
-			for (var rule of rulesIds) {
-				Policy_rModel.updatePolicy_r_Style(accessData.idfirewall, rule, accessData.type, style, function (error, data) {
-					if (error)
-						logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
-					if (data && data.result) {
-						logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-					} else
-						logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-				});
-			}
-			db.endTXcon(function () {});
-		});
-	});
-	api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
-		res.status(200).json(jsonResp);
-	});
-});
 
 /* Update Active policy_r  */
-router.put('/policy-r/activate/:idfirewall/:type', 
+router.put('/active', 
 utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var JsonData = req.body.Data;
-	var active = JsonData.active;
-	var rulesIds = JsonData.rulesIds;
+	var idfirewall = req.body.firewall;
+	var type = req.body.type;
+	var active = req.body.active;
+	var rulesIds = req.body.rulesIds;
 	if (active !== 1)
 		active = 0;
 	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function () {
@@ -447,8 +206,37 @@ utilsModel.disableFirewallCompileStatus,
 	});
 });
 
+
+/* Update Style policy_r  */
+router.put('/style', 
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus, 
+(req, res) => {
+	var style = req.body.style;
+	var rulesIds = req.body.rulesIds;
+	db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
+		db.startTXcon(function () {
+			for (var rule of rulesIds) {
+				Policy_rModel.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
+					if (error)
+						logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
+					if (data && data.result) {
+						logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+					} else
+						logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+				});
+			}
+			db.endTXcon(function () {});
+		});
+	});
+	api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function (jsonResp) {
+		res.status(200).json(jsonResp);
+	});
+});
+
+
 /* Copy or Move RULES */
-router.put('/policy-r/copy-rules/:idfirewall', 
+router.put('/copy', 
 utilsModel.checkFirewallAccess,
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
@@ -458,12 +246,10 @@ utilsModel.disableFirewallCompileStatus,
 		var JsonCopyData = req.body;
 		var copyData = JsonCopyData.rulesData;
 		var idfirewall = copyData.firewall;
-		var fwcloud = copyData.fwcloud;
 		var pasteOnRuleId = copyData.pasteOnRuleId;
 		var pasteOffset = copyData.pasteOffset;
 		var action = copyData.action; // 1--> Copy rules , 2--> Move rules
 		//Buscamos datos de regla Destino
-
 
 		mainCopyMove(idfirewall, copyData.rulesIds, pasteOnRuleId, pasteOffset, action)
 				.then(v => {
@@ -484,9 +270,8 @@ utilsModel.disableFirewallCompileStatus,
 		});
 	}
 });
+
 async function mainCopyMove(idfirewall, rulesIds, pasteOnRuleId, pasteOffset, action) {
-
-
 	if (action === 1) {  // action=1 --> Copy/duplicate  RULE
 		var inc = 1;
 		for (let rule of rulesIds) {
@@ -678,56 +463,201 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 }
 
 
-/* Remove policy_r */
-router.put("/del/policy-r/:idfirewall", 
-utilsModel.checkFirewallAccess, 
-utilsModel.disableFirewallCompileStatus,  
-(req, res) => {
-	//Id from policy_r to remove
-	var iduser = req.iduser;
+
+
+
+
+
+/* Get all policy_rs by firewall and group*/
+router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, function (req, res)
+{
 	var idfirewall = req.params.idfirewall;
-	var JsonData = req.body;
-	var rulesIds = JsonData.rulesIds;
-	removeRules(idfirewall, rulesIds)
-			.then(r => {
-				api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
+	var idgroup = req.params.idgroup;
+	var iduser = req.iduser;
+	var fwcloud = req.fwcloud;
+	Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
+	{
+		//If exists policy_r get data
+		if (data && data.length > 0)
+		{
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+		//Get Error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
+
+
+/* Get all policy_rs by firewall and type */
+router.get('/full/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (req, res)
+{
+	var idfirewall = req.params.idfirewall;
+	var type = req.params.type;
+	var rule = "";
+	var iduser = req.iduser;
+	var fwcloud = req.fwcloud;
+	logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + "  TYPE:" + type);
+	Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
+			.then(data =>
+			{
+				//If exists policy_r get data
+				if (data && data.length > 0)
+				{
+					api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+				}
+				//Get Error
+				else
+				{
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+				}
 			})
-			.catch(err => {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', err, function (jsonResp) {
+			.catch(e => {
+				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			});
 });
-async function removeRules(idfirewall, rulesIds)
+
+
+
+/* Get  policy_r by id and  by Id */
+router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, res)
 {
-	for (let rule of rulesIds) {
-		await ruleRemove(idfirewall, rule)
-				.then(r => logger.debug("OK RESULT DELETE: " + r))
-				.catch(err => logger.debug("ERROR Result: " + err));
-	}
-}
-
-function ruleRemove(idfirewall, rule) {
-	return new Promise((resolve, reject) => {
-		Policy_rModel.deletePolicy_r(idfirewall, rule)
-				.then(data =>
-				{
-					if (data && data.result)
-					{
-						resolve(api_resp.ACR_DELETED_OK);
-					} else
-					{
-						resolve(api_resp.ACR_NOTEXIST);
-					}
-
-				})
-				.catch(e => {
-					reject(e);
-				});
-
+	var idfirewall = req.params.idfirewall;
+	var id = req.params.id;
+	var iduser = req.iduser;
+	var fwcloud = req.fwcloud;
+	Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
+	{
+		//If exists policy_r get data
+		if (data && data.length > 0)
+		{
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+		//Get Error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
 	});
-}
+});
+
+/* Get all policy_rs by nombre and by firewall*/
+router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAccess, function (req, res)
+{
+	var idfirewall = req.params.idfirewall;
+	var name = req.params.name;
+	var idgroup = req.params.idgroup;
+	var iduser = req.iduser;
+	var fwcloud = req.fwcloud;
+	Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
+	{
+		//If exists policy_r get data
+		if (data && data.length > 0)
+		{
+			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+		//Get Error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
+
+
+
+/* Update ORDER of the policy_r that exist */
+router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus, 
+(req, res) => {
+	//Save data into object
+	var idfirewall = req.params.idfirewall;
+	var type = req.params.type;
+	var id = req.params.id;
+	var new_order = req.params.new_order;
+	var old_order = req.params.old_order;
+	Policy_rModel.updatePolicy_r_order(idfirewall, type, id, new_order, old_order, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY ORDER', error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved policy_r saved ok, get data
+			if (data && data.result)
+			{
+				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ORDER UPDATED OK', 'POLICY', null, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else
+			{
+				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		}
+	});
+});
+
+/* Update APPLY_TO de policy_r that exist */
+router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
+utilsModel.checkFirewallAccess, 
+utilsModel.disableFirewallCompileStatus, 
+(req, res) => {
+	//Save data into object
+	var idfirewall = req.params.idfirewall;
+	var type = req.params.type;
+	var id = req.params.id;
+	var idcluster = req.params.idcluster;
+	var fwapplyto = req.params.fwapplyto;
+
+	Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved policy_r saved ok, get data
+			if (data && data.result)
+			{
+				var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: id};
+				Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
+				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else
+			{
+				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating APPLYTO', 'POLICY', error, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		}
+	});
+});
+
+
+
 
 module.exports = router;
