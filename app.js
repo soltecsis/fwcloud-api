@@ -201,7 +201,7 @@ app.use(control_routes, (req, res, next) => {
 		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
 		next();
 	}
-	else if ((req.method==='GET' && originalURL==='/ipobj-types') || (req.method==='GET' && originalURL==='/policy-types'))
+	else if ((req.method==='GET' && originalURL==='/ipobj/types') || (req.method==='GET' && originalURL==='/policy/types'))
 		next();
 	else
 	{
@@ -231,8 +231,6 @@ var customer = require('./routes/user/customer');
 var cluster = require('./routes/firewall/cluster');
 var firewall = require('./routes/firewall/firewall');
 var fwcloud = require('./routes/fwcloud/fwcloud');
-var routing_gs = require('./routes/routing/routing_gs');
-var routing_rs = require('./routes/routing/routing_rs');
 var interface = require('./routes/interface/interface');
 var policy_rule = require('./routes/policy/rule');
 var policy_compile = require('./routes/policy/compile');
@@ -245,16 +243,18 @@ var policy_positions = require('./routes/policy/positions');
 var ipobj = require('./routes/ipobj/ipobj');
 var ipobj_group = require('./routes/ipobj/group');
 var ipobj_types = require('./routes/ipobj/types');
-var routing_r__ipobjs = require('./routes/routing/routing_r__ipobjs');
-var routing_r__interfaces = require('./routes/routing/routing_r__interfaces');
 var interface__ipobj = require('./routes/interface/interface__ipobj');
-var ipobj_type__policy_positions = require('./routes/ipobj/ipobj_type__policy_positions');
-var ipobj_type__routing_positions = require('./routes/ipobj/ipobj_type__routing_positions');
+var ipobj_positions = require('./routes/ipobj/positions');
 var tree = require('./routes/tree/tree');
 var tree_folder = require('./routes/tree/folder');
 var tree_repair = require('./routes/tree/repair');
 var stream = require('./routes/stream/stream');
 var openvpn = require('./routes/vpn/openvpn');
+//var routing_gs = require('./routes/routing/routing_gs');
+//var routing_rs = require('./routes/routing/routing_rs');
+//var routing_r__ipobjs = require('./routes/routing/routing_r__ipobjs');
+//var routing_r__interfaces = require('./routes/routing/routing_r__interfaces');
+//var ipobj_type__routing_positions = require('./routes/ipobj/ipobj_type__routing_positions');
 
 //app.use('/', routes);
 app.use('/user', user);
@@ -271,15 +271,10 @@ app.use('/policy/interface', policy_interface);
 app.use('/policy/group', policy_group);
 app.use('/policy/types', policy_types);
 app.use('/policy/positions', policy_positions);
-app.use('/routing-gs', routing_gs);
-app.use('/routing-rs', routing_rs);
-app.use('/routing-r__ipobjs', routing_r__ipobjs);
-app.use('/routing-r__interfaces', routing_r__interfaces);
 app.use('/ipobj', ipobj);
 app.use('/ipobj/group', ipobj_group);
 app.use('/ipobj/types', ipobj_types);
-app.use('/ipobj-types__policy_positions', ipobj_type__policy_positions);
-app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
+app.use('/ipobj/positions', ipobj_positions);
 app.use('/interface', interface);
 app.use('/interface__ipobj', interface__ipobj);
 app.use('/tree', tree);
@@ -287,6 +282,11 @@ app.use('/tree/folder', tree_folder);
 app.use('/tree/repair', tree_repair);
 app.use('/stream', stream);
 app.use('/vpn/openvpn', openvpn);
+//app.use('/routing-gs', routing_gs);
+//app.use('/routing-rs', routing_rs);
+//app.use('/routing-r__ipobjs', routing_r__ipobjs);
+//app.use('/routing-r__interfaces', routing_r__interfaces);
+//app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
 
 
 // Connect to MySQL on start

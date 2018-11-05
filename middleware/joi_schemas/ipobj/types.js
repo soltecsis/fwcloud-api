@@ -8,7 +8,7 @@ schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     var schema = {};
     
-    if (req.method==='PUT' && req.url==='/ipobj-types/get') {
+    if (req.method==='PUT' && req.url==='/ipobj/types/get') {
       schema = Joi.object().keys({ id: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
