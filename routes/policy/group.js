@@ -169,49 +169,34 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 /* Remove rules from Group */
 router.put("/rulesdel",
-utilsModel.checkFirewallAccess, (req, res) => {
-	//Id from policy_g to remove
-	var idfirewall = req.body.firewall;
-	var idgroup = req.body.id;
-	var rulesIds = req.body.rulesIds;
-
-	removeRules(idfirewall, idgroup, rulesIds)
-			.then(r => {
-				api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY GROUP', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			})
-			.catch(err => {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY GROUP', err, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
+utilsModel.checkFirewallAccess, async (req, res) => {
+	try {
+		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
+		// If after removing the rules the group is empty, remove the rules group from the data base.
+		await Policy_gModel.deleteIfEmptyPolicy_g(req.dbCon, req.body.firewall, req.body.id);
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY GROUP', null, jsonResp => res.status(200).json(jsonResp))
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY GROUP', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 async function removeRules(idfirewall, idgroup, rulesIds)
 {
-	for (let rule of rulesIds) {
-		await ruleRemove(idfirewall, idgroup, rule)
-				.then(r => logger.debug("OK RESULT DELETE: " + r))
-				.catch(err => logger.debug("ERROR Result: " + err));
-	}
+	return new Promise(async (resolve, reject) => {
+		for (let rule of rulesIds) {
+			await ruleRemove(idfirewall, idgroup, rule)
+			.then(() => resolve())
+			.catch(error => reject(error));
+		}
+	});
 }
 
 function ruleRemove(idfirewall, idgroup, rule) {
 	return new Promise((resolve, reject) => {
-		Policy_rModel.updatePolicy_r_Group(idfirewall, idgroup, null, rule, function (error, data)
-		{
-			if (error)
-				reject(error);
-			else
+		Policy_rModel.updatePolicy_r_Group(idfirewall, idgroup, null, rule, (error, data) => {
+			if (error) return	reject(error);
 			if (data && data.result)
-			{
 				resolve(api_resp.ACR_DELETED_OK);
-			} else
-			{
+			else
 				resolve(api_resp.ACR_NOTEXIST);
-			}
-
 		});
 	});
 }

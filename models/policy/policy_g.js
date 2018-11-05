@@ -152,7 +152,7 @@ policy_gModel.updatePolicy_g_Style = function (firewall, id, style, callback) {
 
 //Remove policy_g with id to remove
 //FALTA BORRADO EN CASCADA 
-policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
+policy_gModel.deletePolicy_g = (idfirewall, id, callback) => {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -173,6 +173,25 @@ policy_gModel.deletePolicy_g = function (idfirewall, id, callback) {
 			} else {
 				callback(null, {"result": false});
 			}
+		});
+	});
+};
+
+//Delete policy group if it is empty.
+policy_gModel.deleteIfEmptyPolicy_g = (dbCon,firewall,group) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'SELECT count(*) FROM policy_r WHERE idgroup=' + group + ' AND firewall=' + firewall;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return	reject(error);
+
+			// Only delete if the group is empty.
+			if (rows[0].n>0) return resolve();
+
+			sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + group;
+			dbCon.query(sql, (error, rows) => {
+				if (error) return	reject(error);
+				resolve();
+			});
 		});
 	});
 };
