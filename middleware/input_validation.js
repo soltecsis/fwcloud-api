@@ -13,8 +13,8 @@ inputValidation.check = async (req, res, next) => {
   if ((req.method==='GET' && req.url==='/fwcloud/all') 
       || (req.method==='GET' && req.url==='/firewall/all')
       || (req.method==='GET' && req.url==='/cluster/all')
-      || (req.method==='GET' && req.url==='/ipobj-types')
-      || (req.method==='GET' && req.url==='/policy-types'))
+      || (req.method==='GET' && req.url==='/ipobj/types')
+      || (req.method==='GET' && req.url==='/policy/types'))
     return next();
 
   try {

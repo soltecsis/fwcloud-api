@@ -14,7 +14,7 @@ var Policy_typeModel = require('../../models/policy/policy_type');
 
 
 var tableModel = "policy_r";
-var Policy_positionModel = require('../../models/policy/policy_position');
+var Policy_positionModel = require('./position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 
 var IpobjModel = require('../../models/ipobj/ipobj');

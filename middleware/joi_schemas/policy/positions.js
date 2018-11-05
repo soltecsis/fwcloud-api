@@ -6,14 +6,11 @@ const sharedSch = require('../shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    var schema = Joi.object().keys({ 
-      fwcloud: sharedSch.id,
-      idfirewall: sharedSch.id
-     });
+    var schema = {};
     
     if (req.method==='PUT') {
-      if (req.url==='/policy/compile/rule')
-        schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
+      if (req.url==='/policy/positions/get')
+        schema = Joi.object().keys({ type: sharedSch.policy_type });
     } else return reject(new Error('Request method not accepted'));
 
     try {
