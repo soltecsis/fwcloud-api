@@ -21,7 +21,8 @@ schema.validate = req => {
         install_ipobj: sharedSch.id.optional(),
         fwmaster: sharedSch._0_1,
         install_port: Joi.number().port().optional(),
-        options: Joi.number().port()
+        options: Joi.number().port(),
+        node_id: sharedSch.id
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
     } 
