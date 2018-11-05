@@ -348,7 +348,7 @@ router.put('/cluster/get', (req, res) => {
  *         ]
  *       };
  */
-router.post("/firewall", async (req, res) => {
+router.post('/', async (req, res) => {
 	var firewallData = {
 		id: null,
 		cluster: req.body.cluster,
@@ -439,7 +439,7 @@ router.post("/firewall", async (req, res) => {
  *         ]
  *       };
  */
-router.put('/firewall',
+router.put('/',
 utilsModel.checkFirewallAccess,
 (req, res) => {
 	var idfirewall = req.body.idfirewall;
