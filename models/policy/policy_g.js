@@ -57,24 +57,6 @@ policy_gModel.getPolicy_g = function (idfirewall, id, callback) {
 	});
 };
 
-//Get routing by name and firewall
-policy_gModel.getPolicy_gName = function (idfirewall, name, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var namesql = '%' + name + '%';
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  ' + connection.escape(namesql) + ' AND  firewall=' + connection.escape(idfirewall);
-		
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-
 
 //Add new policy_g from user
 policy_gModel.insertPolicy_g = function (policy_gData, callback) {

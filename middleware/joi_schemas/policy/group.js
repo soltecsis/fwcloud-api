@@ -23,6 +23,12 @@ schema.validate = req => {
     else if (req.method==='PUT') {
       if (req.url==='/policy/group/style')
         schema = schema.append({ style: sharedSch.unsigned_byte, groupIds: Joi.array().items(sharedSch.id) });
+      else if (req.url==='/policy/group/id')
+        schema = schema.append({ id: sharedSch.id, name: sharedSch.name });
+      else if (req.url==='/policy/group/del')
+        schema = schema.append({ id: sharedSch.id });
+      else if (req.url==='/policy/group/rules/del')
+        schema = schema.append({ id: sharedSch.id, rulesIds: Joi.array().items(sharedSch.id) });
     } else return reject(new Error('Request method not accepted'));
 
     try {

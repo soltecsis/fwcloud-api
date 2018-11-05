@@ -135,11 +135,11 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 
 /* Remove policy_g */
-router.put("/del/policy-g/:idfirewall/:id",
+router.put("/del",
 utilsModel.checkFirewallAccess, (req, res) => {
 	//Id from policy_g to remove
-	var idfirewall = req.params.idfirewall;
-	var id = req.params.id;
+	var idfirewall = req.body.firewall;
+	var id = req.body.id;
 
 	//Remove group from Rules
 	Policy_rModel.updatePolicy_r_GroupAll(idfirewall, id, function (error, data) {
@@ -168,15 +168,12 @@ utilsModel.checkFirewallAccess, (req, res) => {
 });
 
 /* Remove rules from Group */
-router.put("/del/policy-g/:idfirewall/rules/:id",
+router.put("/rulesdel",
 utilsModel.checkFirewallAccess, (req, res) => {
 	//Id from policy_g to remove
-	var idfirewall = req.params.idfirewall;
-	var idgroup = req.params.id;
-
-	var JsonData = req.body;
-	var rulesIds = JsonData.rulesIds;
-
+	var idfirewall = req.body.firewall;
+	var idgroup = req.body.id;
+	var rulesIds = req.body.rulesIds;
 
 	removeRules(idfirewall, idgroup, rulesIds)
 			.then(r => {
@@ -226,7 +223,7 @@ function ruleRemove(idfirewall, idgroup, rule) {
 
 
 /* Get all policy_gs by firewall*/
-router.get('/:idfirewall',
+/* router.get('/:idfirewall',
 utilsModel.checkFirewallAccess,  
 (req, res) => {
 	var idfirewall = req.params.idfirewall;
@@ -247,10 +244,10 @@ utilsModel.checkFirewallAccess,
 			});
 		}
 	});
-});
+}); */
 
 /* Get all policy_gs by firewall and group father*/
-router.get('/:idfirewall/group/:idgroup',
+/* router.get('/:idfirewall/group/:idgroup',
 utilsModel.checkFirewallAccess, (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var idgroup = req.params.idgroup;
@@ -271,10 +268,10 @@ utilsModel.checkFirewallAccess, (req, res) => {
 			});
 		}
 	});
-});
+}); */
 
 /* Get  policy_g by id and  by firewall*/
-router.get('/:idfirewall/:id',
+/* router.get('/:idfirewall/:id',
 utilsModel.checkFirewallAccess, (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var id = req.params.id;
@@ -295,37 +292,6 @@ utilsModel.checkFirewallAccess, (req, res) => {
 			});
 		}
 	});
-});
-
-/* Get all policy_gs by nombre and by firewall*/
-router.get('/:idfirewall/name/:name',
-utilsModel.checkFirewallAccess,
-(req, res) => {
-	var idfirewall = req.params.idfirewall;
-	var name = req.params.name;
-	Policy_gModel.getPolicy_gName(idfirewall, name, function (error, data)
-	{
-		//If exists policy_g get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-
-
-
-
+}); */
 
 module.exports = router;
