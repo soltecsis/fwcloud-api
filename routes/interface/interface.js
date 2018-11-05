@@ -55,7 +55,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 /* Get all interfaces by HOST*/
 router.put('/host/all/get', (req, res) => {
-	InterfaceModel.getInterfacesHost(req.body.idhost, req.body.fwcloud, (error, data) => {
+	InterfaceModel.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -66,7 +66,7 @@ router.put('/host/all/get', (req, res) => {
 
 /* Get interface by id and HOST*/
 router.put('/host/get', (req, res) => {
-	InterfaceModel.getInterfaceHost(req.body.idhost, req.body.fwcloud, req.body.id, (error, data) => {
+	InterfaceModel.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -246,7 +246,7 @@ restrictedCheck.interface,
 	//Id from interface to remove
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
-	var idfirewall = req.body.idfirewall;
+	var idfirewall = req.body.firewall;
 	var idInterface = req.body.id;
 	var type = req.body.type;
 
@@ -307,13 +307,13 @@ restrictedCheck.interface,
 router.put("/host/del", 
 restrictedCheck.interface, 
 (req, res) => {
-	Interface__ipobjModel.deleteInterface__ipobj(req.body.idinterface, req.body.idhost, (error,data) => {
+	Interface__ipobjModel.deleteInterface__ipobj(req.body.id, req.body.host, (error,data) => {
 		if (data) {
 			if (data.msg === "deleted") {
-				IpobjModel.deleteIpobjInterface({"id": req.body.idinterface})
-				.then(() => InterfaceModel.deleteInterfaceHOST(req.body.idinterface))
+				IpobjModel.deleteIpobjInterface({"id": req.body.id})
+				.then(() => InterfaceModel.deleteInterfaceHOST(req.body.id))
 				.then(() => {
-					fwcTreemodel.deleteFwc_Tree(req.session.user_id, req.body.fwcloud, req.body.idinterface, 11, (error, data) => {	
+					fwcTreemodel.deleteFwc_Tree(req.session.user_id, req.body.fwcloud, req.body.id, 11, (error, data) => {	
 						if (data && data.result)
 							api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 						else
