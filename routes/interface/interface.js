@@ -18,7 +18,7 @@ var logger = require('log4js').getLogger("app");
 router.put('/fw/all/get', 
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-	InterfaceModel.getInterfaces(req.body.idfirewall, req.body.fwcloud, (error, data) => {
+	InterfaceModel.getInterfaces(req.body.firewall, req.body.fwcloud, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));		
@@ -31,7 +31,7 @@ utilsModel.checkFirewallAccess,
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', 
 utilsModel.checkFirewallAccess, (req, res) => {
-	InterfaceModel.getInterfacesFull(req.body.idfirewall, req.body.fwcloud, (error, data) => {
+	InterfaceModel.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -43,7 +43,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 /* Get  interface by id and  by firewall*/
 router.put('/fw/get', 
 utilsModel.checkFirewallAccess, (req, res) => {
-	InterfaceModel.getInterface(req.body.idfirewall, req.body.fwcloud, req.body.id, (error, data) => {
+	InterfaceModel.getInterface(req.body.firewall, req.body.fwcloud, req.body.id, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
