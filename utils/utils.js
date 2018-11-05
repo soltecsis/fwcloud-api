@@ -156,7 +156,7 @@ utilsModel.checkFwCloudAccess = function (iduser, fwcloud, update, request, resp
 };
 
 utilsModel.checkFirewallAccess =  (req, res, next) => {
-	var accessData = {iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall};
+	var accessData = {iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall};
 	//logger.debug(accessData);
 	FirewallModel.getFirewallAccess(accessData)
 	.then(resp => next())
@@ -168,11 +168,11 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 	var firewall=0;
 	if (req.body.firewall)
 		firewall=req.body.firewall;
-	else if (req.params.idfirewall)
-		firewall=req.params.idfirewall;
+	else if (req.body.idfirewall)
+		firewall=req.body.idfirewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
-	FirewallModel.updateFirewallStatus(req.fwcloud,firewall,"|3")
+	FirewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
 	.then(data => next())
 	.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
 };

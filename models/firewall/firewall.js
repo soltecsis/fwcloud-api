@@ -156,16 +156,16 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
  * @return {Boolean} Returns `LOCKED STATUS` 
  * 
  */
-firewallModel.getFirewallAccess = function (accessData) {
+firewallModel.getFirewallAccess = accessData => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error)
 				reject(false);
 			//CHECK FIREWALL PERIMSSIONS
 			var sql = 'SELECT T.* FROM ' + tableModel + ' T ' +
-					' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(accessData.iduser) +
-					' WHERE T.id = ' + connection.escape(accessData.idfirewall) +
-					' AND T.fwcloud=' + connection.escape(accessData.fwcloud) + '  AND U.allow_access=1 AND U.allow_edit=1 ';
+					' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + accessData.iduser +
+					' WHERE T.id = ' + accessData.idfirewall +
+					' AND T.fwcloud=' + accessData.fwcloud + '  AND U.allow_access=1 AND U.allow_edit=1 ';
 			connection.query(sql, function (error, row) {
 				if (error)
 					reject(false);

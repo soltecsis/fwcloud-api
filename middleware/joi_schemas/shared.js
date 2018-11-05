@@ -39,5 +39,6 @@ sharedSchema.ipv6 = Joi.string().ip({ version: ['ipv6'], cidr: 'forbidden'});
 sharedSchema.unsigned_byte = Joi.number().integer().min(0).max(255);
 
 sharedSchema.rule_action = Joi.number().integer().min(1).max(5);
+sharedSchema.rule_position = Joi.number().integer().min(1).max(36);
 
 sharedSchema.date = Joi.date().min(1).max(5);

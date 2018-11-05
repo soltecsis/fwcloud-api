@@ -11,17 +11,54 @@ var utilsModel = require("../../utils/utils.js");
 var objModel = "Interface in Rule";
 
 
-function checkPostParameters(obj) {
-	logger.debug(obj);
-	for (var propt in obj) {
-		logger.debug(propt + ': ' + obj[propt]);
-		if (obj[propt] === undefined) {
-			logger.debug("PARAMETRO UNDEFINED: " + propt);
-			obj[propt] = 0;
+/* Create New policy_r__interface */
+router.post("/",
+utilsModel.checkFirewallAccess,  
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
+	var idfirewall= req.body.firewall;
+	
+	//Create New objet with data policy_r__interface
+	var policy_r__interfaceData = {
+		rule: req.body.rule,
+		interface: req.body.interface,
+		negate: req.body.negate,
+		position: req.body.position,
+		position_order: req.body.position_order
+	};
+
+	Policy_r__interfaceModel.insertPolicy_r__interface(idfirewall, policy_r__interfaceData, function (error, data)
+	{
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved policy_r__interface Get data
+			if (data && data.result) {
+				if (data.result){
+					Policy_rModel.compilePolicy_r(policy_r__interfaceData.rule, function (error, datac) {});
+					api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+				}
+				else if (!data.allowed) {
+					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+				} else
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
+						res.status(200).json(jsonResp);
+					});
+			} else
+			{
+				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, ' INTERFACE not allowed in this position', objModel, null, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
 		}
-	}
-	return obj;
-}
+	});
+});
 
 
 /* Get all INTERFACE de una interface*/
@@ -101,56 +138,6 @@ router.get('/:idfirewall/:rule/:interface',utilsModel.checkFirewallAccess,  func
 
 
 
-/* Create New policy_r__interface */
-router.post("/policy-r__interface/:idfirewall",
-utilsModel.checkFirewallAccess,  
-utilsModel.disableFirewallCompileStatus,
-(req, res) => {
-	var idfirewall= req.params.idfirewall;
-	
-	//Create New objet with data policy_r__interface
-	var policy_r__interfaceData = {
-		rule: req.body.rule,
-		interface: req.body.interface,
-		negate: req.body.negate,
-		position: req.body.position,
-		position_order: req.body.position_order
-	};
-
-	policy_r__interfaceData = checkPostParameters(policy_r__interfaceData);
-
-	Policy_r__interfaceModel.insertPolicy_r__interface(idfirewall, policy_r__interfaceData, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r__interface Get data
-			if (data && data.result) {
-				if (data.result){
-					Policy_rModel.compilePolicy_r(policy_r__interfaceData.rule, function (error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-				else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-			} else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, ' INTERFACE not allowed in this position', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});
 
 /* Update policy_r__interface that exist */
 router.put('/policy-r__interface/:idfirewall', 
@@ -171,8 +158,7 @@ utilsModel.disableFirewallCompileStatus,
 		position: req.body.position,
 		position_order: req.body.position_order
 	};
-	policy_r__interfaceData = checkPostParameters(policy_r__interfaceData);
-
+	
 	Policy_r__interfaceModel.updatePolicy_r__interface(idfirewall, rule, interface, position, position_order, policy_r__interfaceData, function (error, data)
 	{
 		if (error)
@@ -273,8 +259,6 @@ async (req, res) => {
 							position: new_position,
 							position_order: new_order
 						};
-
-						policy_r__interfaceData = checkPostParameters(policy_r__interfaceData);
 
 						Policy_r__interfaceModel.insertPolicy_r__interface(idfirewall,policy_r__interfaceData, function (error, data)
 						{
