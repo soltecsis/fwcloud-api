@@ -329,7 +329,7 @@ duplicityCheck.ipobj,
  *      "data": {}
  *      };
  * */
-router.put('/ipobj', 
+router.put('/', 
 duplicityCheck.ipobj,
 (req, res) => {
 	var iduser = req.session.user_id;

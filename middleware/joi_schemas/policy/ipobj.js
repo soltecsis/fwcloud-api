@@ -32,11 +32,13 @@ schema.validate = req => {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
 
       // Semantic validation.
-      if ((req.body.ipobj===-1 && req.body.ipobj_g===-1 && req.body.interface===-1)
-          || (req.body.ipobj!==-1 && (req.body.ipobj_g!==-1 || req.body.interface!==-1))
-          || (req.body.ipobj_g!==-1 && (req.body.ipobj!==-1 || req.body.interface!==-1))
-          || (req.body.interface!==-1 && (req.body.ipobj!==-1 || req.body.ipobj_g!==-1)))
-        throw(new Error('Only one of ipob, ipobj_g and interface must different from -1'));
+      if (req.method==='POST' || (req.method==='PUT' && req.url!=='/policy/ipobj/negate')) {
+        if ((req.body.ipobj===-1 && req.body.ipobj_g===-1 && req.body.interface===-1)
+            || (req.body.ipobj!==-1 && (req.body.ipobj_g!==-1 || req.body.interface!==-1))
+            || (req.body.ipobj_g!==-1 && (req.body.ipobj!==-1 || req.body.interface!==-1))
+            || (req.body.interface!==-1 && (req.body.ipobj!==-1 || req.body.ipobj_g!==-1)))
+          throw(new Error('Only one of ipob, ipobj_g and interface must different from -1'));
+      }
     
       resolve();
     } catch(error) { return reject(error) } 
