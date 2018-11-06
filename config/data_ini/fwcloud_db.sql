@@ -30,8 +30,9 @@ CREATE TABLE `ca` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `fwcloud_cn` (`fwcloud`,`cn`),
-  CONSTRAINT `fk_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  UNIQUE KEY `idx_id_cn` (`id`,`cn`),
+  KEY `idx_fwcloud` (`fwcloud`),
+  CONSTRAINT `fk_ca_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -61,8 +62,8 @@ CREATE TABLE `cluster` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `fk_cluster_cloud` (`fwcloud`) USING BTREE,
-  CONSTRAINT `fk_cluster_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`)
+  KEY `idx_fwcloud` (`fwcloud`) USING BTREE,
+  CONSTRAINT `fk_cluster_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -91,9 +92,9 @@ CREATE TABLE `crt` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `ca_cn` (`ca`,`cn`),
-  KEY `fk_ca_idx` (`ca`),
-  CONSTRAINT `fk_ca` FOREIGN KEY (`ca`) REFERENCES `ca` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  UNIQUE KEY `idx_ca_cn` (`ca`,`cn`),
+  KEY `idx_ca` (`ca`),
+  CONSTRAINT `fk_crt_ca` FOREIGN KEY (`ca`) REFERENCES `ca` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -167,10 +168,10 @@ CREATE TABLE `firewall` (
   `install_port` int(11) NOT NULL DEFAULT '22',
   `options` smallint(2) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `IDX_48011B7EE5C56994` (`cluster`),
-  KEY `fk_firewall_1_idx` (`fwcloud`),
-  CONSTRAINT `fk_cloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`)
+  KEY `idx_fwcloud` (`fwcloud`),
+  KEY `idx_cluster` (`cluster`),
+  CONSTRAINT `fk_firewall_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_firewall_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -239,46 +240,6 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
--- Table structure for table `firewall_cluster`
---
-
-DROP TABLE IF EXISTS `firewall_cluster`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `firewall_cluster` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `idcluster` int(11) NOT NULL,
-  `firewall` int(11) DEFAULT NULL,
-  `firewall_name` varchar(45) DEFAULT NULL,
-  `sshuser` varchar(250) DEFAULT NULL,
-  `sshpass` varchar(250) DEFAULT NULL,
-  `save_user_pass` varchar(45) NOT NULL DEFAULT '1',
-  `interface` int(11) DEFAULT NULL,
-  `ipobj` int(11) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `updated_by` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `fk_firewall_cluster_1_idx` (`idcluster`),
-  KEY `fk_firewall_cluster_2_idx` (`interface`),
-  KEY `fk_firewall_cluster_3_idx` (`ipobj`),
-  KEY `index5` (`idcluster`,`firewall`,`firewall_name`),
-  CONSTRAINT `fk_firewall_cluster_1` FOREIGN KEY (`idcluster`) REFERENCES `cluster` (`id`),
-  CONSTRAINT `fk_firewall_cluster_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_firewall_cluster_3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `firewall_cluster`
---
-
-LOCK TABLES `firewall_cluster` WRITE;
-/*!40000 ALTER TABLE `firewall_cluster` DISABLE KEYS */;
-/*!40000 ALTER TABLE `firewall_cluster` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `fwc_tree`
 --
 
@@ -307,29 +268,6 @@ CREATE TABLE `fwc_tree` (
 LOCK TABLES `fwc_tree` WRITE;
 /*!40000 ALTER TABLE `fwc_tree` DISABLE KEYS */;
 /*!40000 ALTER TABLE `fwc_tree` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `fwc_tree_childtypes`
---
-
-DROP TABLE IF EXISTS `fwc_tree_childtypes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `fwc_tree_childtypes` (
-  `id_node` int(11) NOT NULL,
-  `node_type` char(2) NOT NULL,
-  PRIMARY KEY (`id_node`,`node_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `fwc_tree_childtypes`
---
-
-LOCK TABLES `fwc_tree_childtypes` WRITE;
-/*!40000 ALTER TABLE `fwc_tree_childtypes` DISABLE KEYS */;
-/*!40000 ALTER TABLE `fwc_tree_childtypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -412,8 +350,8 @@ CREATE TABLE `interface` (
   `comment` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `mac` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `IDX_34F4ECDD48011B7E` (`firewall`),
-  CONSTRAINT `FK_34F4ECDD48011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
+  KEY `idx_firewall` (`firewall`),
+  CONSTRAINT `fk_interface_firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -499,9 +437,9 @@ CREATE TABLE `interface__ipobj` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`interface`,`ipobj`),
-  KEY `fk_interface__ipobj_2_idx` (`ipobj`),
-  CONSTRAINT `fk_interface__ipobj_1` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_interface__ipobj_2` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
+  KEY `idx_ipobj` (`ipobj`),
+  CONSTRAINT `fk_interface__ipobj_interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_interface__ipobj_ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -549,12 +487,12 @@ CREATE TABLE `ipobj` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `IDX_IPOBJ_TYPE` (`type`) COMMENT '	',
-  KEY `fk_ipobj_1_idx` (`fwcloud`),
-  KEY `fk_ipobj_2_idx` (`interface`),
-  CONSTRAINT `fk_ipobj_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_ipobj_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_ipobj_3` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`)
+  KEY `idx_type` (`type`) COMMENT '	',
+  KEY `idx_fwcloud` (`fwcloud`),
+  KEY `idx_interface` (`interface`),
+  CONSTRAINT `fk_ipobj_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
+  CONSTRAINT `fk_ipobj_interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_ipobj_ipobj_type` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -887,36 +825,6 @@ CREATE TABLE `ipobj_type__routing_position` (
 LOCK TABLES `ipobj_type__routing_position` WRITE;
 /*!40000 ALTER TABLE `ipobj_type__routing_position` DISABLE KEYS */;
 /*!40000 ALTER TABLE `ipobj_type__routing_position` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `mac`
---
-
-DROP TABLE IF EXISTS `mac`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `mac` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `interface` int(11) DEFAULT NULL,
-  `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `address` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `comment` longtext COLLATE utf8_unicode_ci NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_by` int(11) NOT NULL DEFAULT '0',
-  `updated_by` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `mac`
---
-
-LOCK TABLES `mac` WRITE;
-/*!40000 ALTER TABLE `mac` DISABLE KEYS */;
-/*!40000 ALTER TABLE `mac` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1742,4 +1650,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-06 14:17:50
+-- Dump completed on 2018-11-06 18:49:20
