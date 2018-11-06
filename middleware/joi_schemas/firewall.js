@@ -23,20 +23,20 @@ schema.validate = req => {
         install_port: Joi.number().port(),
         options: sharedSch.u16bits
       });
-      if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
+      if (req.method==='PUT') schema = schema.append({ firewall: sharedSch.id });
       else if (req.method==='POST') schema = schema.append({ node_id: sharedSch.id });
     } 
     else if (req.method==='PUT') {
       schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
       if (req.url==='/firewall/get' || req.url==='/firewall/del')
-        schema = schema.append({ id: sharedSch.id });
+        schema = schema.append({ firewall: sharedSch.id });
       else if (req.url==='/firewall/cluster/get')
-        schema = schema.append({ idcluster: sharedSch.id });
+        schema = schema.append({ cluster: sharedSch.id });
       else if (req.url==='/firewall/clone')
-        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment });
+        schema = schema.append({ firewall: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment });
       else if (req.url==='/firewall/delfromcluster')
-        schema = schema.append({ id: sharedSch.id, idcluster: sharedSch.id });
+        schema = schema.append({ firewall: sharedSch.id, cluster: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
     try {

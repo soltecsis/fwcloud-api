@@ -363,7 +363,7 @@ router.post('/', async (req, res) => {
 		install_ipobj: req.body.install_ipobj,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
-		by_user: req.iduser,
+		by_user: req.session.user_id,
 		options: req.body.options
 	};
 
@@ -374,27 +374,27 @@ router.post('/', async (req, res) => {
 		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-		let data = await FirewallModel.insertFirewall(req.iduser, firewallData);
+		let data = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
 		if (data && data.insertId)
 		{
 			var dataresp = {"insertId": data.insertId};
 			var idfirewall = data.insertId;
 	
-			await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster);
+			await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
 
 			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null) {
 				// Create the loop backup interface.
-				const loInterfaceId = await InterfaceModel.createLoInterface(req.fwcloud, idfirewall);
+				const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, req.body.firewall);
 				await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
 			}
 			
 			if (!firewallData.cluster) // Create firewall tree.
-				await fwcTreemodel.insertFwc_Tree_New_firewall(req.fwcloud, req.body.node_id, idfirewall);
+				await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, req.body.firewall);
 			else // Create the new firewall node in the NODES node of the cluster.
-				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.fwcloud, firewallData.cluster, idfirewall, firewallData.name);
+				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.name);
 
 			// Create the directory used for store firewall data.
-			await utilsModel.createFirewallDataDir(req.fwcloud, idfirewall);
+			await utilsModel.createFirewallDataDir(req.body.fwcloud, req.body.firewall);
 
 			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, "", jsonResp => res.status(200).json(jsonResp));
@@ -442,11 +442,9 @@ router.post('/', async (req, res) => {
 router.put('/',
 utilsModel.checkFirewallAccess,
 (req, res) => {
-	var idfirewall = req.body.idfirewall;
-
 	//Save firewall data into objet    
 	var firewallData = {
-		id: idfirewall,
+		id: req.body.firewall,
 		cluster: req.body.cluster,
 		name: req.body.name,
 		comment: req.body.comment,
@@ -463,8 +461,8 @@ utilsModel.checkFirewallAccess,
 	};
 
 	//logger.debug(firewallData);
-	Policy_cModel.deleteFullFirewallPolicy_c(req.params.idfirewall)
-	.then(() => FirewallModel.updateFirewallStatus(req.fwcloud,req.params.idfirewall,"|3"))
+	Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall)
+	.then(() => FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3"))
 	.then(() => FirewallModel.checkBodyFirewall(firewallData, false))
 	.then(result => {
 		firewallData = result;
@@ -486,16 +484,16 @@ utilsModel.checkFirewallAccess,
 						firewallData.install_pass = '';
 					}
 
-					FirewallModel.updateFirewall(req.iduser, firewallData, function (error, data)
+					FirewallModel.updateFirewall(req.session.user_id, firewallData, function (error, data)
 					{
 						//Saved ok
 						if (data && data.result)
 						{
-							FirewallModel.updateFWMaster(req.iduser, req.fwcloud, firewallData.cluster, idfirewall, firewallData.fwmaster)
+							FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster)
 							.then(() => {
 								//////////////////////////////////
 								//UPDATE FIREWALL NODE STRUCTURE                                    
-								fwcTreemodel.updateFwc_Tree_Firewall(req.iduser, req.fwcloud, firewallData, function (error, data) {
+								fwcTreemodel.updateFwc_Tree_Firewall(req.session.user_id, req.body.fwcloud, firewallData, function (error, data) {
 									if (error)
 										api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
 											res.status(200).json(jsonResp);
@@ -540,17 +538,16 @@ utilsModel.checkFirewallAccess,
 router.put('/clone',
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-	var idfirewall = req.body.id;
 	//Save firewall data into objet    
 	var firewallData = {
-		id: idfirewall,
+		id: req.body.firewall,
 		name: req.body.name,
 		comment: req.body.comment,
 		fwcloud: req.body.fwcloud, //working cloud      
-		by_user: req.iduser  //working user
+		by_user: req.session.user_id  //working user
 	};
 
-	FirewallModel.cloneFirewall(req.iduser, firewallData)
+	FirewallModel.cloneFirewall(req.session.user_id, firewallData)
 	.then(data =>
 	{
 		//Saved ok
@@ -560,12 +557,12 @@ utilsModel.checkFirewallAccess,
 			var idNewFirewall = data.insertId;
 
 			//CLONE INTERFACES
-			InterfaceModel.cloneFirewallInterfaces(req.iduser, req.fwcloud, idfirewall, idNewFirewall)
-			.then(dataI => Policy_rModel.cloneFirewallPolicy(req.iduser, req.fwcloud, idfirewall, idNewFirewall, dataI))	
-			.then(dataP => utilsModel.createFirewallDataDir(req.fwcloud, idNewFirewall))
+			InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall)
+			.then(dataI => Policy_rModel.cloneFirewallPolicy(req.session.user_idr, req.body.fwcloud, req.body.firewall, idNewFirewall, dataI))	
+			.then(dataP => utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall))
 			.then(dataD => {
 				//INSERT FIREWALL NODE STRUCTURE                                                
-				fwcTreemodel.insertFwc_Tree_firewalls(req.fwcloud, req.body.node_id, idNewFirewall, (error, dataTree) => {
+				fwcTreemodel.insertFwc_Tree_firewalls(req.body.fwcloud, req.body.node_id, idNewFirewall, (error, dataTree) => {
 					if (error)
 						api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 					else if (data && data.result)
@@ -599,16 +596,12 @@ utilsModel.checkFirewallAccess,
  */
 router.put('/accesslock/get', function (req, res)
 {
-	var id = req.body.id;
-	var iduser = req.iduser;
-	var fwcloud = req.body.fwcloud;
-
-	FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
+	FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, function (error, data)
 	{
 		//get firewall data
 		if (data && data.length > 0)
 		{
-			FwcloudModel.getFwcloudAccess(iduser, fwcloud)
+			FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud)
 					.then(resp => {
 						api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function (jsonResp) {
 							res.status(200).json(jsonResp);
@@ -668,12 +661,8 @@ router.put("/del",
 utilsModel.checkFirewallAccess, 
 restrictedCheck.otherFirewall,
 async (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-
 	try {
-		data = await FirewallModel.deleteFirewall(iduser, fwcloud, id);
+		data = await FirewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
@@ -687,14 +676,8 @@ utilsModel.checkFirewallAccess,
 restrictedCheck.otherFirewall,
 restrictedCheck.firewallApplyTo,
 (req, res) => {
-
-	var iduser = req.iduser;
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.idfirewall;
-	var idcluster = req.body.idcluster;
-
 	//CHECK FIREWALL DATA TO DELETE
-	FirewallModel.deleteFirewallFromCluster(iduser, fwcloud, id, idcluster)
+	FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
 			.then(data =>
 			{
 				if (data && data.result)
@@ -721,7 +704,7 @@ restrictedCheck.firewallApplyTo,
  * 
  */
 router.put('/export/get', (req, res) => {	
-	FirewallExport.exportFirewall(req.body.idfirewall)
+	FirewallExport.exportFirewall(req.body.firewall)
 	.then(data => {
 		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	})
