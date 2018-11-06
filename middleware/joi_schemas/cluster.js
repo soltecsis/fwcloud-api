@@ -12,10 +12,10 @@ schema.validate = req => {
       const schemaItem = Joi.object().keys({ 
         cluster: sharedSch.id,
         name: sharedSchema.name,
-        comment: sharedSch.comment.allow(null).optional(),
+        comment: sharedSch.comment,
         fwcloud: sharedSch.id,
-        install_user: sharedSch.linux_user.allow(null).optional(),
-        install_pass: sharedSch.linux_pass.allow(null).optional(),
+        install_user: sharedSch.linux_user.allow(null).allow('').optional(),
+        install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
         save_user_pass: sharedSch._0_1,
         install_interface: sharedSch.id.allow(null).optional(),
         install_ipobj: sharedSch.id.allow(null).optional(),
@@ -26,7 +26,7 @@ schema.validate = req => {
 
       const schemaClusterData = Joi.object().keys({ 
         name: sharedSchema.name,
-        comment: sharedSch.comment.allow(null).optional(),
+        comment: sharedSch.comment,
         fwnodes: Joi.array().items(schemaItem)
       });
 

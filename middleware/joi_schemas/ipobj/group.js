@@ -12,7 +12,7 @@ schema.validate = req => {
       schema = Joi.object().keys({ 
         name: sharedSch.name,
         type: sharedSch.group_type,
-        comment: sharedSch.comment.optional()
+        comment: sharedSch.comment
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
       else if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });

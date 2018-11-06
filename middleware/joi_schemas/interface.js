@@ -17,8 +17,8 @@ schema.validate = req => {
         labelName: sharedSch.name.allow(null).optional(),
         type: sharedSch.interface_type,
         interface_type: sharedSch.interface_type,
-        comment: sharedSch.comment.allow(null).optional(),
-        mac: sharedSch.mac_addr.allow(null).optional(),
+        comment: sharedSch.comment,
+        mac: sharedSch.mac_addr.allow(null).allow('').optional(),
       });
       if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });
     }

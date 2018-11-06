@@ -14,7 +14,7 @@ schema.validate = req => {
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/policy/group')) {
       schema = schema.append({
         name: sharedSch.name, 
-        comment: sharedSch.comment.allow(null).optional(),
+        comment: sharedSch.comment,
         groupStyle: sharedSch.u16bits 
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });

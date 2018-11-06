@@ -38,7 +38,7 @@ schema.validate = req => {
         destination_port_start: Joi.number().port(),
         destination_port_end: Joi.number().port(),
         options: Joi.number().integer(),
-        comment: sharedSch.comment.allow(null).optional(),
+        comment: sharedSch.comment,
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
       else if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });

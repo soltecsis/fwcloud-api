@@ -12,10 +12,10 @@ schema.validate = req => {
       schema = Joi.object().keys({ 
         cluster: sharedSch.id.allow(null).optional(),
         name: sharedSch.name,
-        comment: sharedSch.comment.allow(null).optional(),
+        comment: sharedSch.comment,
         fwcloud: sharedSch.id,
-        install_user: sharedSch.linux_user.allow(null).optional(),
-        install_pass: sharedSch.linux_pass.allow(null).optional(),
+        install_user: sharedSch.linux_user.allow(null).allow('').optional(),
+        install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
         save_user_pass: sharedSch._0_1,
         install_interface: sharedSch.id.allow(null).optional(),
         install_ipobj: sharedSch.id.allow(null).optional(),
@@ -34,7 +34,7 @@ schema.validate = req => {
       else if (req.url==='/firewall/cluster/get')
         schema = schema.append({ idcluster: sharedSch.id });
       else if (req.url==='/firewall/clone')
-        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment.allow(null).optional() });
+        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment });
       else if (req.url==='/firewall/delfromcluster')
         schema = schema.append({ id: sharedSch.id, idcluster: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
