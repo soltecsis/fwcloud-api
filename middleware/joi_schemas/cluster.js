@@ -10,7 +10,6 @@ schema.validate = req => {
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/cluster')) {
       const schemaItem = Joi.object().keys({ 
-        cluster: sharedSch.id,
         name: sharedSchema.name,
         comment: sharedSch.comment,
         fwcloud: sharedSch.id,
@@ -30,7 +29,7 @@ schema.validate = req => {
         fwnodes: Joi.array().items(schemaItem)
       });
 
-      if (req.method==='PUT') schema = schemaItem.append({ id: sharedSch.id });
+      if (req.method==='PUT') schema = schemaItem.append({ cluster: sharedSch.id });
       
       schema = Joi.object().keys({ fwcloud: sharedSch.id, clusterData: schemaClusterData });
     } 
@@ -39,9 +38,9 @@ schema.validate = req => {
 
       if (req.url==='/cluster/get' || req.url==='/cluster/del' || req.url==='/cluster/clone' 
           || req.url==='/cluster/clustertofw')
-        schema = schema.append({ id: sharedSch.id });
+        schema = schema.append({ cluster: sharedSch.id });
       else if (req.url==='/cluster/fwtocluster')
-        schema = schema.append({ idfirewall: sharedSch.id });
+        schema = schema.append({ firewall: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
     try {
