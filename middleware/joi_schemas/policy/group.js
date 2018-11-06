@@ -14,15 +14,15 @@ schema.validate = req => {
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/policy/group')) {
       schema = schema.append({
         name: sharedSch.name, 
-        comment: sharedSch.comment.optional(),
-        groupStyle: sharedSch.unsigned_byte 
+        comment: sharedSch.comment.allow(null).optional(),
+        groupStyle: sharedSch.u16bits 
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
       else schema = schema.append({ groupIds: Joi.array().items(sharedSch.id) });
     }
     else if (req.method==='PUT') {
       if (req.url==='/policy/group/style')
-        schema = schema.append({ style: sharedSch.unsigned_byte, groupIds: Joi.array().items(sharedSch.id) });
+        schema = schema.append({ style: sharedSch.u16bits, groupIds: Joi.array().items(sharedSch.id) });
       else if (req.url==='/policy/group/id')
         schema = schema.append({ id: sharedSch.id, name: sharedSch.name });
       else if (req.url==='/policy/group/del')

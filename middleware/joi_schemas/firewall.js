@@ -21,7 +21,7 @@ schema.validate = req => {
         install_ipobj: sharedSch.id.allow(null).optional(),
         fwmaster: sharedSch._0_1,
         install_port: Joi.number().port(),
-        options: Joi.number().port(),
+        options: sharedSch.u16bits,
         node_id: sharedSch.id
       });
       if (req.method==='PUT') schema = schema.append({ id: sharedSch.id });
@@ -34,7 +34,7 @@ schema.validate = req => {
       else if (req.url==='/firewall/cluster/get')
         schema = schema.append({ idcluster: sharedSch.id });
       else if (req.url==='/firewall/clone')
-        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment.optional() });
+        schema = schema.append({ id: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment.allow(null).optional() });
       else if (req.url==='/firewall/delfromcluster')
         schema = schema.append({ id: sharedSch.id, idcluster: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));

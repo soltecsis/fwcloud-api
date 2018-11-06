@@ -12,13 +12,13 @@ schema.validate = req => {
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/interface')) {
       schema = Joi.object().keys({ 
         firewall: sharedSch.id,
-        host: sharedSch.id.allow(null),
+        host: sharedSch.id.allow(null).optional(),
         name: sharedSch.name,
-        labelName: sharedSch.name.optional(),
+        labelName: sharedSch.name.allow(null).optional(),
         type: sharedSch.interface_type,
         interface_type: sharedSch.interface_type,
-        comment: sharedSch.comment.optional(),
-        mac: sharedSch.mac_addr.optional(),
+        comment: sharedSch.comment.allow(null).optional(),
+        mac: sharedSch.mac_addr.allow(null).optional(),
       });
       if (req.method==='POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.id });
     }

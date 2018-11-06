@@ -36,7 +36,8 @@ sharedSchema.policy_type = Joi.number().integer().min(1).max(6);
 sharedSchema.ipv4 = Joi.string().ip({ version: ['ipv4'], cidr: 'forbidden'});
 sharedSchema.ipv6 = Joi.string().ip({ version: ['ipv6'], cidr: 'forbidden'});
 
-sharedSchema.unsigned_byte = Joi.number().integer().min(0).max(255);
+sharedSchema.u8bits = Joi.number().integer().min(0).max(255);
+sharedSchema.u16bits = Joi.number().integer().min(0).max(65535);
 
 sharedSchema.rule_action = Joi.number().integer().min(1).max(5);
 sharedSchema.rule_position = Joi.number().integer().min(1).max(36);

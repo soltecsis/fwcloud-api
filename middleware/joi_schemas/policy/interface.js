@@ -18,14 +18,14 @@ schema.validate = req => {
     else if (req.method==='POST' || req.method==='PUT') {
       schema = schema.append({
         position: sharedSch.rule_position,
-        position_order: sharedSch.unsigned_byte
+        position_order: sharedSch.u16bits
       });
       if (req.method==='POST')
         schema = schema.append({ negate: sharedSch._0_1 });
       else if (req.method==='PUT' && req.url==='/policy/interface/move') 
-        schema = schema.append({ new_rule: sharedSch.id, new_position: sharedSch.rule_position, new_order: sharedSch.unsigned_byte });
+        schema = schema.append({ new_rule: sharedSch.id, new_position: sharedSch.rule_position, new_order: sharedSch.u16bits });
       else if (req.method==='PUT' && req.url==='/policy/interface/order') 
-        schema = schema.append({ new_order: sharedSch.unsigned_byte });
+        schema = schema.append({ new_order: sharedSch.u16bits });
     } else return reject(new Error('Request method not accepted'));
 
     try {
