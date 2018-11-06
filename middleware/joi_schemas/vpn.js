@@ -13,9 +13,8 @@ schema.validate = req => {
     });
 
     if (req.method==="POST" && req.url==='/vpn/openvpn/cert') {
-      schema = schema.append({ type: Joi. number().integer().valid([1,2]) });
-      schema = schema.append({ ca: sharedSch.id });
-    }
+      schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
+    }  else if (req.method!=='POST') return reject(new Error('Request method not accepted'));
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
