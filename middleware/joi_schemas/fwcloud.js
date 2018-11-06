@@ -8,8 +8,8 @@ schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     var schema = Joi.object().keys({
       name: sharedSch.name,
-      image: sharedSch.img.optional(),
-      comment: sharedSch.comment.optional(),
+      image: sharedSch.img.allow(null),
+      comment: sharedSch.comment.allow(null),
     });
     
     if (req.method==='PUT') {

@@ -458,7 +458,7 @@ utilsModel.checkFirewallAccess,
 		install_ipobj: req.body.install_ipobj,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
-		by_user: req.iduser,  //working user
+		by_user: req.session.user_id,  //working user
 		options: req.body.options
 	};
 
