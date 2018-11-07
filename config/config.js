@@ -117,7 +117,7 @@ const config = convict({
     name: {
       doc: 'Database name.',
       format: String,
-      default: 'fwcloud',
+      default: 'fwcloud_db',
       env: 'DB_NAME'
     },
     user: {

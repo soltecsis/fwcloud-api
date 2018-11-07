@@ -103,7 +103,7 @@ utilsModel.disableFirewallCompileStatus,
 router.put('/type/get',
 utilsModel.checkFirewallAccess,
 (req, res) => {
-	Policy_rModel.getPolicy_rs_type(req.bodyfwcloud, req.body.firewall, req.body.type, "", (error, data) => {
+	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, "", (error, data) => {
 		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
 		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
