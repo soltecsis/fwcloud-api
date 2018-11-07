@@ -1275,9 +1275,8 @@ fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callb
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET ' +
-				' name = ' + connection.escape(FwData.name) + ' , comment= ' + connection.escape(FwData.comment) +
-				' WHERE id_obj = ' + connection.escape(FwData.id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="FW"';
+		var sql = 'UPDATE ' + tableModel + ' SET name =' + connection.escape(FwData.name) +
+			' WHERE id_obj=' + FwData.id + ' AND fwcloud=' + fwcloud + ' AND node_type="FW"';
 		connection.query(sql, function (error, result) {
 			if (error) {
 				logger.debug(sql);

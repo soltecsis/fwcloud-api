@@ -123,8 +123,7 @@ const restrictedCheck = require('../../middleware/restricted');
  * 
  */
 router.get('/all', (req, res) => {
-	var iduser = req.iduser;
-	FirewallModel.getFirewalls(iduser, function (error, data)
+	FirewallModel.getFirewalls(req.session.user_id, function (error, data)
 	{
 		//Get data
 		if (data && data.length > 0)
@@ -176,11 +175,7 @@ router.get('/all', (req, res) => {
  * 
  */
 router.put('/cloud/get', (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.body.fwcloud;
-
-	FirewallModel.getFirewallCloud(iduser, fwcloud, function (error, data)
-	{
+	FirewallModel.getFirewallCloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		//get data
 		if (data && data.length > 0)
 		{
@@ -232,11 +227,7 @@ router.put('/cloud/get', (req, res) => {
  * 
  */
 router.put('/get', (req, res) => {
-	var iduser = req.iduser;
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-
-	FirewallModel.getFirewall(iduser, fwcloud, id, function (error, data)
+	FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, function (error, data)
 	{
 		//Get Data
 		if (data && data.length > 0)
@@ -290,9 +281,7 @@ router.put('/get', (req, res) => {
  * 
  */
 router.put('/cluster/get', (req, res) => {
-	var iduser = req.iduser;
-	var idcluster = req.body.idcluster;
-	FirewallModel.getFirewallCluster(iduser, idcluster, function (error, data)
+	FirewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, function (error, data)
 	{
 		//get data
 		if (data && data.length > 0)
