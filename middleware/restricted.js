@@ -10,8 +10,8 @@ var ipobj_gModel = require('../models/ipobj/group');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
-  var sql = 'Select (SELECT count(*) FROM fwcloud_db.firewall where fwcloud=' + req.body.fwcloud + ') as CF, ' +
-    ' (SELECT count(*) FROM fwcloud_db.cluster where fwcloud=' + req.body.fwcloud + ') as CC ';
+  var sql = 'Select (SELECT count(*) FROM firewall where fwcloud=' + req.body.fwcloud + ') as CF, ' +
+    ' (SELECT count(*) FROM cluster where fwcloud=' + req.body.fwcloud + ') as CC ';
   req.dbCon.query(sql, (error, row) => {
     if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
 
@@ -46,7 +46,7 @@ restrictedCheck.otherFirewall = (req, res, next) => {
 
 
 restrictedCheck.firewallApplyTo = (req, res, next) => {
-  var sql = 'SELECT count(*) as cont FROM fwcloud_db.policy_r R inner join firewall F on R.firewall=F.id ' +
+  var sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
     ' where fw_apply_to=' + req.body.id +
     ' AND F.cluster=' + req.body.idcluster +
     ' AND F.fwcloud=' + req.body.fwcloud;

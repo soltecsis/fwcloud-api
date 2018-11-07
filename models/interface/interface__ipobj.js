@@ -66,7 +66,7 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
 			callback(error, null);
 		var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
 				'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
-				'FROM fwcloud_db.interface__ipobj O ' +
+				'FROM interface__ipobj O ' +
 				'inner join  interface I on I.id=O.interface ' +
 				'inner join ipobj_type T on T.id=I.interface_type ' +
 				'inner join ipobj H on H.id=O.ipobj ' +

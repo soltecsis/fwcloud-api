@@ -302,7 +302,7 @@ utilsModel.createFwcloudDataDir = fwcloud => {
   });
 };
 
-utilsModel.removeFwcloudDataDir = (fwcloud) => {
+utilsModel.removeFwcloudDataDir = fwcloud => {
 	return new Promise((resolve, reject) => {
 		var dir_path=config.get('policy').data_dir+'/'+fwcloud;
 		try {

@@ -1129,7 +1129,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																					'( name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
 																					' SELECT O.name,' + connection.escape(NodeId) + ',' +
 																					' T.node_type,O.id, O.type, O.fwcloud ' +
-																					' FROM fwcloud_db.ipobj O ' +
+																					' FROM ipobj O ' +
 																					' INNER JOIN ipobj__ipobjg G on O.id=G.ipobj ' +
 																					' inner join fwc_tree_node_types T on T.obj_type=O.type ' +
 																					' WHERE G.ipobj_g=' + rnode.id +
@@ -1161,7 +1161,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																										'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
 																										' SELECT O.name,' + connection.escape(NodeId) + ',' +
 																										' T.node_type,O.id, O.interface_type, ' + rnode.fwcloud +
-																										' FROM fwcloud_db.interface O ' +
+																										' FROM interface O ' +
 																										' inner join interface__ipobj F on F.interface=O.id ' +
 																										' inner join fwc_tree_node_types T on T.obj_type=O.interface_type ' +
 																										' WHERE F.ipobj=' + rnode.id + ' AND O.id=' + rnodeObj.id;
@@ -1176,7 +1176,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																												'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
 																												' SELECT O.name,' + connection.escape(idNodeinterface) + ',' +
 																												' T.node_type,O.id,O.type,O.fwcloud ' +
-																												' FROM fwcloud_db.ipobj O ' +
+																												' FROM ipobj O ' +
 																												' inner join fwc_tree_node_types T on T.obj_type=O.type ' +
 																												' WHERE  O.interface=' + rnodeObj.id;
 																										//logger.debug(sqlinsertObj);
