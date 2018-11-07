@@ -60,8 +60,7 @@ var firewall_Data = require('../../models/data/data_firewall');
  *           updated_at	datetime
  *           by_user	int(11)
  */
-firewallModel.getFirewalls = function (iduser, callback) {
-
+firewallModel.getFirewalls = (iduser, callback) => {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);

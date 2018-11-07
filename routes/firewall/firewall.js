@@ -122,7 +122,7 @@ const restrictedCheck = require('../../middleware/restricted');
  *       };
  * 
  */
-router.get('/all', (req, res) => {
+router.put('/all', (req, res) => {
 	FirewallModel.getFirewalls(req.session.user_id, function (error, data)
 	{
 		//Get data
