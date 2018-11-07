@@ -84,7 +84,7 @@ const restrictedCheck = require('../../middleware/restricted');
  * @param {Boolean} [extra=false] Do extra, optional work
  * @return {Boolean} Returns true on success
  */
-router.get('/all', (req, res) => {
+router.put('/all', (req, res) => {
 	ClusterModel.getClusters(function (error, data)
 	{
 		//Get data
