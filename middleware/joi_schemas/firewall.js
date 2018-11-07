@@ -34,7 +34,7 @@ schema.validate = req => {
       else if (req.url==='/firewall/cluster/get')
         schema = schema.append({ cluster: sharedSch.id });
       else if (req.url==='/firewall/clone')
-        schema = schema.append({ firewall: sharedSch.id, name: sharedSchema.name, comment: sharedSch.comment, node_id: sharedSch.id });
+        schema = schema.append({ firewall: sharedSch.id, name: sharedSch.name, comment: sharedSch.comment, node_id: sharedSch.id });
       else if (req.url==='/firewall/delfromcluster')
         schema = schema.append({ firewall: sharedSch.id, cluster: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));

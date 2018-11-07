@@ -10,7 +10,7 @@ schema.validate = req => {
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/cluster')) {
       const schemaItem = Joi.object().keys({ 
-        name: sharedSchema.name,
+        name: sharedSch.name,
         comment: sharedSch.comment,
         fwcloud: sharedSch.id,
         install_user: sharedSch.linux_user.allow(null).allow('').optional(),
@@ -24,7 +24,7 @@ schema.validate = req => {
       });
 
       const schemaClusterData = Joi.object().keys({ 
-        name: sharedSchema.name,
+        name: sharedSch.name,
         comment: sharedSch.comment,
         fwnodes: Joi.array().items(schemaItem)
       });
