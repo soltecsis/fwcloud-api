@@ -1,7 +1,7 @@
 # Logs
-logs/
-app_fwcloud.log
-http_fwcloud.log
+logs/*
+logs/app_fwcloud.log
+logs/http_fwcloud.log
 
 # Dependency directories
 node_modules/

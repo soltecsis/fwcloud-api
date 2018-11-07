@@ -5,9 +5,6 @@ var api_resp = require('../../utils/api_response');
 var objModel = 'IPOBJ TYPE - POSITION';
 
 
-var logger = require('log4js').getLogger("app");
-
-
 /* Get all ipobj_type__policy_positions*/
 router.get('/policy', (req, res) => {
 	Ipobj_type__policy_positionModel.getIpobj_type__policy_positions((error, data) => {

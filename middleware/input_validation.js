@@ -14,6 +14,7 @@ inputValidation.check = async (req, res, next) => {
       || (req.method==='GET' && req.url==='/firewall/all')
       || (req.method==='GET' && req.url==='/cluster/all')
       || (req.method==='GET' && req.url==='/ipobj/types')
+      || (req.method==='GET' && req.url==='/ipobj/positions/policy')
       || (req.method==='GET' && req.url==='/policy/types'))
     return next();
 
