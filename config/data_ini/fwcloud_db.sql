@@ -30,9 +30,9 @@ CREATE TABLE `ca` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_id_cn` (`id`,`cn`),
+  UNIQUE KEY `idx_id-cn` (`id`,`cn`),
   KEY `idx_fwcloud` (`fwcloud`),
-  CONSTRAINT `fk_ca_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_ca-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -63,7 +63,7 @@ CREATE TABLE `cluster` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `idx_fwcloud` (`fwcloud`) USING BTREE,
-  CONSTRAINT `fk_cluster_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_cluster-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -87,14 +87,14 @@ CREATE TABLE `crt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `ca` int(11) NOT NULL,
   `cn` varchar(255) NOT NULL,
-  `days` int(10) unsigned NOT NULL,
-  `type` int(10) unsigned NOT NULL,
+  `days` int(11) unsigned NOT NULL,
+  `type` tinyint(1) unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_ca_cn` (`ca`,`cn`),
+  UNIQUE KEY `idx_ca-cn` (`ca`,`cn`),
   KEY `idx_ca` (`ca`),
-  CONSTRAINT `fk_crt_ca` FOREIGN KEY (`ca`) REFERENCES `ca` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_crt-ca` FOREIGN KEY (`ca`) REFERENCES `ca` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -105,6 +105,33 @@ CREATE TABLE `crt` (
 LOCK TABLES `crt` WRITE;
 /*!40000 ALTER TABLE `crt` DISABLE KEYS */;
 /*!40000 ALTER TABLE `crt` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `crt__ipobj`
+--
+
+DROP TABLE IF EXISTS `crt__ipobj`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `crt__ipobj` (
+  `crt` int(11) NOT NULL,
+  `ipobj` int(11) NOT NULL,
+  `role` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`crt`,`ipobj`),
+  KEY `fk_crt__ipobj-ipobj_idx` (`ipobj`),
+  CONSTRAINT `fk_crt__ipobj-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_crt__ipobj-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `crt__ipobj`
+--
+
+LOCK TABLES `crt__ipobj` WRITE;
+/*!40000 ALTER TABLE `crt__ipobj` DISABLE KEYS */;
+/*!40000 ALTER TABLE `crt__ipobj` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -170,8 +197,8 @@ CREATE TABLE `firewall` (
   PRIMARY KEY (`id`),
   KEY `idx_fwcloud` (`fwcloud`),
   KEY `idx_cluster` (`cluster`),
-  CONSTRAINT `fk_firewall_cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_firewall_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_firewall-cluster` FOREIGN KEY (`cluster`) REFERENCES `cluster` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_firewall-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -194,7 +221,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`firewall_AFTER_INSERT` AFTER INSERT ON `firewall` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;    
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.fwcloud;    
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -212,8 +239,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`firewall_AFTER_UPDATE` AFTER UPDATE ON `firewall` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
-    
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -231,7 +257,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`firewall_AFTER_DELETE` AFTER DELETE ON `firewall` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=OLD.fwcloud;
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -351,7 +377,7 @@ CREATE TABLE `interface` (
   `mac` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_firewall` (`firewall`),
-  CONSTRAINT `fk_interface_firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
+  CONSTRAINT `fk_interface-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -374,7 +400,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`interface_AFTER_INSERT` AFTER INSERT ON `interface` FOR EACH ROW
 BEGIN
-	UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=NEW.firewall;
+	UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -392,10 +418,10 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`interface_AFTER_UPDATE` AFTER UPDATE ON `interface` FOR EACH ROW
 BEGIN
-	UPDATE policy_r__ipobj set updated_at= CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
-    UPDATE policy_r__interface set updated_at= CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
-    UPDATE interface__ipobj set updated_at= CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
-    UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=NEW.firewall;
+	UPDATE policy_r__ipobj set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
+    UPDATE policy_r__interface set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
+    UPDATE interface__ipobj set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
+    UPDATE firewall set updated_at= URRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -413,7 +439,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`interface_AFTER_DELETE` AFTER DELETE ON `interface` FOR EACH ROW
 BEGIN
-	UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=OLD.firewall;
+	UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -438,8 +464,8 @@ CREATE TABLE `interface__ipobj` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`interface`,`ipobj`),
   KEY `idx_ipobj` (`ipobj`),
-  CONSTRAINT `fk_interface__ipobj_interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_interface__ipobj_ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
+  CONSTRAINT `fk_interface__ipobj-interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_interface__ipobj-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -490,9 +516,9 @@ CREATE TABLE `ipobj` (
   KEY `idx_type` (`type`) COMMENT '	',
   KEY `idx_fwcloud` (`fwcloud`),
   KEY `idx_interface` (`interface`),
-  CONSTRAINT `fk_ipobj_fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_ipobj_interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_ipobj_ipobj_type` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`)
+  CONSTRAINT `fk_ipobj-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
+  CONSTRAINT `fk_ipobj-interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_ipobj-ipobj_type` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -515,8 +541,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_AFTER_INSERT` AFTER INSERT ON `ipobj` FOR EACH ROW
 BEGIN
-	
-    UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
+    UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -534,10 +559,9 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_AFTER_UPDATE` AFTER UPDATE ON `ipobj` FOR EACH ROW
 BEGIN
-	UPDATE policy_r__ipobj set updated_at= CURRENT_TIMESTAMP  WHERE ipobj=NEW.id ;
-    UPDATE ipobj__ipobjg  set updated_at= CURRENT_TIMESTAMP  WHERE ipobj=NEW.id ;
-    
-    UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
+	UPDATE policy_r__ipobj set updated_at=CURRENT_TIMESTAMP WHERE ipobj=NEW.id ;
+    UPDATE ipobj__ipobjg  set updated_at=CURRENT_TIMESTAMP WHERE ipobj=NEW.id ;
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -555,7 +579,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_AFTER_DELETE` AFTER DELETE ON `ipobj` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=OLD.fwcloud;
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -579,11 +603,11 @@ CREATE TABLE `ipobj__ipobjg` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_gi`),
-  UNIQUE KEY `IDX_GROUP_IPOBJ` (`ipobj_g`,`ipobj`),
-  KEY `IDX_964BE3EDA998FF0B` (`ipobj_g`),
-  KEY `IDX_964BE3ED80184FC3` (`ipobj`),
-  CONSTRAINT `FK_964BE3ED80184FC3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`),
-  CONSTRAINT `FK_964BE3EDA998FF0B` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`)
+  UNIQUE KEY `idx_ipobj_g-ipobj` (`ipobj_g`,`ipobj`),
+  KEY `idx_ipobj_g` (`ipobj_g`),
+  KEY `idx_ipobj` (`ipobj`),
+  CONSTRAINT `fk_ipobj__ipobjg-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`),
+  CONSTRAINT `fk_ipobj__ipobjg-ipobj_g` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -606,7 +630,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj__ipobjg_AFTER_INSERT` AFTER INSERT ON `ipobj__ipobjg` FOR EACH ROW
 BEGIN
-	UPDATE ipobj_g set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.ipobj_g ;
+	UPDATE ipobj_g set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.ipobj_g ;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -624,7 +648,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj__ipobjg_AFTER_UPDATE` AFTER UPDATE ON `ipobj__ipobjg` FOR EACH ROW
 BEGIN
-	UPDATE ipobj_g set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.ipobj_g ;
+	UPDATE ipobj_g set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.ipobj_g ;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -642,7 +666,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj__ipobjg_AFTER_DELETE` AFTER DELETE ON `ipobj__ipobjg` FOR EACH ROW
 BEGIN
-	UPDATE ipobj_g set updated_at= CURRENT_TIMESTAMP  WHERE id=OLD.ipobj_g ;
+	UPDATE ipobj_g set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.ipobj_g ;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -690,7 +714,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_g_AFTER_INSERT` AFTER INSERT ON `ipobj_g` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -708,8 +732,8 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_g_AFTER_UPDATE` AFTER UPDATE ON `ipobj_g` FOR EACH ROW
 BEGIN
-	UPDATE policy_r__ipobj set updated_at= CURRENT_TIMESTAMP  WHERE ipobj_g=NEW.id ;
-    UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=NEW.fwcloud;
+	UPDATE policy_r__ipobj set updated_at=CURRENT_TIMESTAMP WHERE ipobj_g=NEW.id ;
+    UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -727,7 +751,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`ipobj_g_AFTER_DELETE` AFTER DELETE ON `ipobj_g` FOR EACH ROW
 BEGIN
-	UPDATE fwcloud set updated_at= CURRENT_TIMESTAMP  WHERE id=OLD.fwcloud;
+	UPDATE fwcloud set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.fwcloud;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -780,9 +804,9 @@ CREATE TABLE `ipobj_type__policy_position` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`type`,`position`),
-  KEY `fk_ipobj_type__policy_position_2_idx` (`position`),
-  CONSTRAINT `fk_ipobj_type__policy_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
-  CONSTRAINT `fk_ipobj_type__policy_position_2` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  KEY `idx_position` (`position`),
+  CONSTRAINT `fk_ipobj_type__policy_position-ipobj_type` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
+  CONSTRAINT `fk_ipobj_type__policy_position-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -812,9 +836,9 @@ CREATE TABLE `ipobj_type__routing_position` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`type`,`position`),
-  KEY `fk_ipobj_type__routing_position_2_idx` (`position`),
-  CONSTRAINT `fk_ipobj_type__routing_position_1` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
-  CONSTRAINT `fk_ipobj_type__routing_position_2` FOREIGN KEY (`position`) REFERENCES `routing_position` (`id`)
+  KEY `idx_position` (`position`),
+  CONSTRAINT `fk_ipobj_type__routing_position-ipobj_type` FOREIGN KEY (`type`) REFERENCES `ipobj_type` (`id`),
+  CONSTRAINT `fk_ipobj_type__routing_position-routing_position` FOREIGN KEY (`position`) REFERENCES `routing_position` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -844,7 +868,7 @@ CREATE TABLE `policy_c` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   `status_compiled` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`rule`),
-  CONSTRAINT `fk_policy_c_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`)
+  CONSTRAINT `fk_policy_c-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -876,14 +900,14 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET character_set_client  = utf8 */ ;
+/*!50003 SET character_set_results = utf8 */ ;
+/*!50003 SET collation_connection  = utf8_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `policy_c_AFTER_UPDATE` AFTER UPDATE ON `policy_c` FOR EACH ROW BEGIN
-  UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=NEW.firewall;
+  UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -927,10 +951,10 @@ CREATE TABLE `policy_g` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   `groupstyle` varchar(50) CHARACTER SET utf8 DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `IDX_C3DE16BA48011B7E` (`firewall`),
-  KEY `index3` (`idgroup`),
-  CONSTRAINT `FK_C3DE16BA48011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_policy_g_group` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`)
+  KEY `idx_firewall` (`firewall`),
+  KEY `idx_idgroup` (`idgroup`),
+  CONSTRAINT `fk_policy_g-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
+  CONSTRAINT `fk_policy_g-policy_g` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -953,7 +977,7 @@ UNLOCK TABLES;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`policy_g_AFTER_INSERT` AFTER INSERT ON `policy_g` FOR EACH ROW
 BEGIN
-	UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=NEW.firewall;
+	UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -971,7 +995,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`policy_g_AFTER_UPDATE` AFTER UPDATE ON `policy_g` FOR EACH ROW
 BEGIN
-	UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=NEW.firewall;
+	UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -989,7 +1013,7 @@ DELIMITER ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud_db`.`policy_g_AFTER_DELETE` AFTER DELETE ON `policy_g` FOR EACH ROW
 BEGIN
-	UPDATE firewall set updated_at= CURRENT_TIMESTAMP WHERE id=OLD.firewall;
+	UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1016,8 +1040,8 @@ CREATE TABLE `policy_position` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   `single_object` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `index2` (`policy_type`,`position_order`),
-  CONSTRAINT `fk_policy_position_1` FOREIGN KEY (`policy_type`) REFERENCES `policy_type` (`id`)
+  KEY `idx_policy_type-position_order` (`policy_type`,`position_order`),
+  CONSTRAINT `fk_policy_position-policy_type` FOREIGN KEY (`policy_type`) REFERENCES `policy_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1060,12 +1084,12 @@ CREATE TABLE `policy_r` (
   `interface_negate` tinyint(1) NOT NULL DEFAULT '0',
   `fw_ref` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `IDX_AE03F2516DC044C5` (`idgroup`),
-  KEY `IDX_AE03F25148011B7E` (`firewall`),
   KEY `fk_policy_r_type_idx` (`type`),
-  CONSTRAINT `FK_AE03F25148011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `FK_AE03F2516DC044C5` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`),
-  CONSTRAINT `fk_policy_r_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`)
+  KEY `idx_idgroup` (`idgroup`),
+  KEY `idx_firewall` (`firewall`),
+  CONSTRAINT `fk_policy_r-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
+  CONSTRAINT `fk_policy_r-policy_g` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`),
+  CONSTRAINT `fk_policy_r-policy_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1097,14 +1121,14 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET character_set_client  = utf8 */ ;
+/*!50003 SET character_set_results = utf8 */ ;
+/*!50003 SET collation_connection  = utf8_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `policy_r_AFTER_UPDATE` AFTER UPDATE ON `policy_r` FOR EACH ROW BEGIN
-    UPDATE policy_c set status_compiled=0  WHERE rule=NEW.id;
+    UPDATE policy_c set status_compiled=0 WHERE rule=NEW.id;
     UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
@@ -1148,11 +1172,11 @@ CREATE TABLE `policy_r__interface` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`rule`,`interface`,`position`),
-  KEY `fk_policy_r__interface_2_idx` (`interface`),
-  KEY `fk_policy_r__interface_3_idx` (`position`),
-  CONSTRAINT `fk_policy_r__interface_1` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`),
-  CONSTRAINT `fk_policy_r__interface_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
-  CONSTRAINT `fk_policy_r__interface_3` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  KEY `idx_interface` (`interface`),
+  KEY `idx_position` (`position`),
+  CONSTRAINT `fk_policy_r__interface-interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_policy_r__interface-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`),
+  CONSTRAINT `fk_policy_r__interface-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1240,11 +1264,11 @@ CREATE TABLE `policy_r__ipobj` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_pi`),
-  UNIQUE KEY `fk_policy_r__ipobj_unq` (`rule`,`ipobj`,`ipobj_g`,`interface`,`position`),
-  KEY `IDX_C4FF0A2B46D8ACCC` (`rule`),
-  KEY `fk_policy_r__ipobj_position_idx` (`position`),
-  CONSTRAINT `FK_C4FF0A2B46D8ACCC` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`),
-  CONSTRAINT `fk_policy_r__ipobj_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`)
+  UNIQUE KEY `idx_rule-ipobj-ipobj_g-interface-position` (`rule`,`ipobj`,`ipobj_g`,`interface`,`position`),
+  KEY `idx_rule` (`rule`),
+  KEY `idx_position` (`position`),
+  CONSTRAINT `fk_policy_r__ipobj-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`),
+  CONSTRAINT `fk_policy_r__ipobj-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1325,7 +1349,7 @@ CREATE TABLE `policy_type` (
   `type_order` tinyint(2) NOT NULL DEFAULT '1',
   `show_action` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `index2` (`type`)
+  UNIQUE KEY `idx_type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1357,8 +1381,8 @@ CREATE TABLE `routing_g` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `IDX_F3C2007848011B7E` (`firewall`),
-  CONSTRAINT `FK_F3C2007848011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
+  KEY `idx_firewall` (`firewall`),
+  CONSTRAINT `fk_routing_g-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1421,10 +1445,10 @@ CREATE TABLE `routing_r` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `IDX_9E1FE4936DC044C5` (`idgroup`),
-  KEY `IDX_9E1FE49348011B7E` (`firewall`),
-  CONSTRAINT `FK_9E1FE49348011B7E` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `FK_9E1FE4936DC044C5` FOREIGN KEY (`idgroup`) REFERENCES `routing_g` (`id`)
+  KEY `idx_idgroup` (`idgroup`),
+  KEY `idx_firewall` (`firewall`),
+  CONSTRAINT `fk_routing_r-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
+  CONSTRAINT `fk_routing_r-routing_g` FOREIGN KEY (`idgroup`) REFERENCES `routing_g` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1453,9 +1477,9 @@ CREATE TABLE `routing_r__interface` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`rule`,`interface`),
-  KEY `fk_routing_r__interface_2_idx` (`interface`),
-  CONSTRAINT `fk_routing_r__interface_1` FOREIGN KEY (`rule`) REFERENCES `routing_r` (`id`),
-  CONSTRAINT `fk_routing_r__interface_2` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`)
+  KEY `idx_interface` (`interface`),
+  CONSTRAINT `fk_routing_r__interface-interface` FOREIGN KEY (`interface`) REFERENCES `interface` (`id`),
+  CONSTRAINT `fk_routing_r__interface-routing_r` FOREIGN KEY (`rule`) REFERENCES `routing_r` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1486,11 +1510,11 @@ CREATE TABLE `routing_r__ipobj` (
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`rule`,`ipobj`,`ipobj_g`,`position`),
-  KEY `IDX_1FC9E72DA998FF0B` (`ipobj_g`),
-  KEY `IDX_1FC9E72D80184FC3` (`ipobj`),
-  CONSTRAINT `FK_1FC9E72D46D8ACCC` FOREIGN KEY (`rule`) REFERENCES `routing_r` (`id`),
-  CONSTRAINT `FK_1FC9E72D80184FC3` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`),
-  CONSTRAINT `FK_1FC9E72DA998FF0B` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`)
+  KEY `idx_ipobj_g` (`ipobj_g`),
+  KEY `idx_ipobj` (`ipobj`),
+  CONSTRAINT `fk_routing_r__ipobj-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`),
+  CONSTRAINT `fk_routing_r__ipobj-ipobj_g` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`),
+  CONSTRAINT `fk_routing_r__ipobj-routing_r` FOREIGN KEY (`rule`) REFERENCES `routing_r` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1532,8 +1556,8 @@ CREATE TABLE `user` (
   `updated_by` int(11) NOT NULL DEFAULT '0',
   `last_access` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `IDX_8D93D6497D33FA72` (`customer`),
-  CONSTRAINT `FK_8D93D6497D33FA72` FOREIGN KEY (`customer`) REFERENCES `customer` (`id`)
+  KEY `idx_customer` (`customer`),
+  CONSTRAINT `fk_user-customer` FOREIGN KEY (`customer`) REFERENCES `customer` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1543,7 +1567,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,1,'fwcadmin','info@soltecsis.com',1,'$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',NULL,0,0,NULL,'xfcfpXzo7pMKfwvftsaSD7fOYYTUTvVh_3Ssia0qyXyRzUfaBJ4Mr',NULL,'','1',NULL,'0000-00-00 00:00:00','0000-00-00 00:00:00',0,0,'');
+INSERT INTO `user` VALUES (1,1,'fwcadmin','info@soltecsis.com',1,'$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',NULL,0,0,NULL,'xfcfpXzo7pMKfwvftsaSD7fOYYTUTvVh_3Ssia0qyXyRzUfaBJ4Mr',NULL,'','1',NULL,'2018-12-31 00:00:00','2018-12-31 00:00:00',0,0,'');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1564,10 +1588,10 @@ CREATE TABLE `user__cloud` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  KEY `idx_uc` (`fwcloud`,`id_user`) USING BTREE,
-  KEY `fk_user_cloud_idx` (`id_user`),
-  CONSTRAINT `fk_user__cloud_1` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_user_cloud` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
+  KEY `idx_fwcloud-id_user` (`fwcloud`,`id_user`) USING BTREE,
+  KEY `idx_id_user` (`id_user`),
+  CONSTRAINT `fk_user__cloud-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
+  CONSTRAINT `fk_user_cloud-user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1597,10 +1621,10 @@ CREATE TABLE `user__firewall` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  KEY `idx_uf` (`id_firewall`,`id_user`) USING BTREE,
-  KEY `fk_user_idx` (`id_user`),
-  CONSTRAINT `fk_firewall` FOREIGN KEY (`id_firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
+  KEY `idx_id_firewall-id_user` (`id_firewall`,`id_user`) USING BTREE,
+  KEY `idx_id_user` (`id_user`),
+  CONSTRAINT `fk_user__firewall-firewall` FOREIGN KEY (`id_firewall`) REFERENCES `firewall` (`id`),
+  CONSTRAINT `fk_user__firewall-user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1650,4 +1674,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-06 18:49:20
+-- Dump completed on 2018-11-07 13:29:46
