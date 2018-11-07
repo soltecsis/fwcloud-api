@@ -367,23 +367,23 @@ router.post('/', async (req, res) => {
 		if (data && data.insertId)
 		{
 			var dataresp = {"insertId": data.insertId};
-			var idfirewall = data.insertId;
+			var newFirewallId = data.insertId;
 	
-			await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
+			await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
 
 			if ((firewallData.cluster>0 && firewallData.fwmaster===1) || firewallData.cluster===null) {
 				// Create the loop backup interface.
-				const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, req.body.firewall);
-				await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
+				const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
+				await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId);
 			}
 			
 			if (!firewallData.cluster) // Create firewall tree.
-				await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, req.body.firewall);
+				await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
 			else // Create the new firewall node in the NODES node of the cluster.
-				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.name);
+				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
 
 			// Create the directory used for store firewall data.
-			await utilsModel.createFirewallDataDir(req.body.fwcloud, req.body.firewall);
+			await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
 
 			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, "", jsonResp => res.status(200).json(jsonResp));
