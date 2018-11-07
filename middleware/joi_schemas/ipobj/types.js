@@ -2,7 +2,7 @@ var schema = {};
 module.exports = schema;
 
 const Joi = require('joi');
-const sharedSch = require('./shared');
+const sharedSch = require('../shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {

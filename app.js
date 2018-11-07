@@ -201,7 +201,9 @@ app.use(control_routes, (req, res, next) => {
 		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
 		next();
 	}
-	else if ((req.method==='GET' && originalURL==='/ipobj/types') || (req.method==='GET' && originalURL==='/policy/types'))
+	else if ((req.method==='GET' && originalURL==='/ipobj/types') 
+						|| (req.method==='GET' && originalURL==='/policy/types')
+						|| (req.method==='GET' && originalURL==='/ipobj/positions/policy'))
 		next();
 	else
 	{
