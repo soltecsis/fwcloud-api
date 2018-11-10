@@ -50,44 +50,15 @@ var objModel = 'OpenVPN';
  */
 var openvpnModel = require('../../models/vpn/openvpn');
 
-var logger = require('log4js').getLogger("app");
-
-
 
 /**
- * Create a new CA (Certification Authority).
+ * Create a new OpenVPN configuration in firewall.
  */
-router.post('/ca',async (req, res) => {
+router.post('/config', async (req, res) => {
 	try {
-		// Add the new CA to the database.
-		req.caId = await openvpnModel.createNewCA(req);
-		// Create the new CA directory structure.
-		await openvpnModel.runEasyRsaCmd(req,'init-pki');
-		await openvpnModel.runEasyRsaCmd(req,'build-ca');
-		await openvpnModel.runEasyRsaCmd(req,'gen-crl');
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-});
-
-/**
- * Create a new certificate.
- */
-router.post('/cert',async (req, res) => {
-	try {
-		// Add the new certificate to the database.
-		await openvpnModel.createNewCert(req);
-		// Create the new certificate in the CA directory.
-		var cmd = '';
-		if (req.body.type===1) // Client
-			cmd = 'build-client-full';
-		else // Server
-			cmd = 'build-server-full';
-		req.caId = req.body.ca;
-		await openvpnModel.runEasyRsaCmd(req,cmd);
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-
-  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 module.exports = router;

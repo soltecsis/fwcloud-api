@@ -6,19 +6,13 @@ const sharedSch = require('./shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    var schema = Joi.object().keys({
-      fwcloud: sharedSch.id,
-      days: sharedSch.days,
-      cn: sharedSch.cn,
-    });
-
-    if (req.method==="POST" && req.url==='/vpn/openvpn/cert') {
-      schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
-    }  else if (req.method!=='POST') return reject(new Error('Request method not accepted'));
-
+    const item2 = req.url.split('/')[2];
+    if (item2==='cert' || item2==='openvpn')
     try {
-      await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
-      resolve();
-    } catch(error) { return reject(error) } 
+      const item1 = req.url.split('/')[1];
+      return resolve (await require('./'+item1+'/'+item2).validate(req));
+    } catch(error) { return reject(error) }
+  
+    return reject(new Error('Request method not accepted'));
   });
 };
