@@ -16,36 +16,75 @@ schema.validate = req => {
 
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
-		/*
-		  The only common fields of all the IP object types are:
-			- id (ONLY for updating requests -PUT-)
-			- name
-			- comment
-		  All the rest must be optional.
-		*/
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
 			schema = Joi.object().keys({
-				interface: sharedSch.id.allow(null).optional(),
 				name: sharedSch.name,
-				type: sharedSch.u8bits,
-				protocol: sharedSch.u8bits.optional(),
-				ip_version: Joi.number().integer().valid([4, 6]).optional(),
-				address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-				netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+				type: sharedSch.u8bits.valid([1,2,3,4,5,6,7]),
+				interface: sharedSch.id.allow(null).optional(),
 				diff_serv: Joi.number().port().optional(),
-				icmp_code: sharedSch.u8bits.optional(),
-				icmp_type: sharedSch.u8bits.optional(),
-				tcp_flags_mask: sharedSch.u8bits.optional(),
-				tcp_flags_settings: sharedSch.u8bits.optional(),
-				range_start: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-				range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-				source_port_start: Joi.number().port().optional(),
-				source_port_end: Joi.number().port().optional(),
-				destination_port_start: Joi.number().port().optional(),
-				destination_port_end: Joi.number().port().optional(),
 				options: Joi.number().integer().optional(),
-				comment: sharedSch.comment.optional(),
+				comment: sharedSch.comment
 			});
+
+			// We will have different schemas depending upon the req.body.type parameter.
+			// Verify that this parameters, exists, is number and has the accepted values.
+			if (req.body.type===undefined || req.body.type===null 
+					|| (typeof req.body.type)!==number || !req.body.type.isInteger()
+					|| (req.body.type<1 || req.body.type>7))
+				return reject(new Error('Bad value in req.body.type'));
+
+			switch(req.body.type) {
+				case 1: // IP
+					schema = schema.append({ 
+						protocol: sharedSch.u8bits.optional()
+					});
+					break;
+
+				case 2:  // TCP
+					schema = schema.append({ 
+						source_port_start: Joi.number().port(),
+						source_port_end: Joi.number().port(),
+						destination_port_start: Joi.number().port(),
+						destination_port_end: Joi.number().port(),
+						tcp_flags_mask: sharedSch.u8bits,
+						tcp_flags_settings: sharedSch.u8bits
+					});
+					break;
+
+				case 3: // ICMP
+					schema = schema.append({ 
+						icmp_code: sharedSch.u8bits,
+						icmp_type: sharedSch.u8bits
+					});
+					break;
+
+				case 4: // UDP
+					schema = schema.append({ 
+						source_port_start: Joi.number().port(),
+						source_port_end: Joi.number().port(),
+						destination_port_start: Joi.number().port(),
+						destination_port_end: Joi.number().port()
+					});
+					break;
+
+				case 5: // ADDRESS
+					schema = schema.append({ 
+						ip_version: Joi.number().integer().valid([4, 6]),
+						address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
+						netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
+					});
+					break;
+
+				case 6: // ADDRESS RANGE
+				case 7: // NETWORK
+					schema = schema.append({ 
+						ip_version: Joi.number().integer().valid([4, 6]),
+						range_start: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+						range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+					});
+					break;
+			}
+
 			if (req.method === 'PUT') schema = schema.append({ id: sharedSch.id });
 			else if (req.method === 'POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.name }); // node_type is an string
 		} else if (req.method === 'PUT') {

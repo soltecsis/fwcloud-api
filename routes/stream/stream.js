@@ -18,10 +18,10 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 
-router.get('/update-stream/compile/:iduser/:fwcloud', function (req, res) {
+router.put('/get', (req, res) => {
 	try {
-		var iduser = req.params.iduser;
-		var fwcloud = req.params.fwcloud;
+		var iduser = req.session.user_id;
+		var fwcloud = req.body.fwcloud;
 		var update = false;
 
 		logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
