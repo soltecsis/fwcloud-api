@@ -28,8 +28,8 @@ schema.validate = req => {
         fwnodes: Joi.array().items(schemaItem)
       });
 
-      if (req.method==='PUT') schema = schemaItem.append({ id: sharedSch.id, cluster: sharedSch.id });
-      else if (req.method==='POST') schema = schemaClusterData.append({ node_id: sharedSch.id });
+      if (req.method==='PUT') schemaItem = schemaItem.append({ id: sharedSch.id, cluster: sharedSch.id });
+      else if (req.method==='POST') schemaClusterData = schemaClusterData.append({ node_id: sharedSch.id });
       
       schema = Joi.object().keys({ fwcloud: sharedSch.id, clusterData: schemaClusterData });
     } 
