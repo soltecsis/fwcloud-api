@@ -33,7 +33,7 @@ router.put('/', async (req, res) =>{
     else
       return api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
     
-    await fwcTreeRepairModel.initData(accessData);
+    await fwcTreeRepairModel.initData(req);
 
     streamModel.pushMessageCompile(accessData,'<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
 
@@ -46,7 +46,7 @@ router.put('/', async (req, res) =>{
     await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
 
     for (let rootNode of rootNodes) {
-      if (rootNode.node_type==='FDF' && req.params.type==='FDF') { // Firewalls and clusters tree.
+      if (rootNode.node_type==='FDF' && req.body.type==='FDF') { // Firewalls and clusters tree.
         streamModel.pushMessageCompile(accessData,'<font color="blue">Checking folders.</font>\n');
         await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
         streamModel.pushMessageCompile(accessData,'<font color="blue">Checking firewalls and clusters tree.</font>\n');
