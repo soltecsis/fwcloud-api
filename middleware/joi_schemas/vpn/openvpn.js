@@ -26,12 +26,13 @@ schema.validate = req => {
         'socks-proxy-retry','socks-proxy','status','status-version','syslog','tap-sleep','tcp-queue-limit','test-crypto','tls-auth',
         'tls-cipher','tls-client','tls-exit','tls-remote','tls-server','tls-timeout','tls-verify','tmp-dir','tran-window ','tun-ipv6',
         'tun-mtu-extra','tun-mtu','txqueuelen','up-delay','up-restart','up cmd','user','username-as-common-name ','verb','writepid']),
-      arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/),
-      ipobj: sharedSch.id.allow(null),
-      scope: sharedSchema._0_1
+      arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/).allow(null).allow('').optional(),
+      ipobj: sharedSch.id.allow(null).optional(),
+      scope: sharedSch._0_1
     });
 
     var schema = Joi.object().keys({
+      fwcloud: sharedSch.id,
       firewall: sharedSch.id,
       crt: sharedSch.id,
       options: Joi.array().items(schemaPar)

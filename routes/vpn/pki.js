@@ -56,6 +56,9 @@ var crtModel = require('../../models/vpn/pki');
  * Create a new CA (Certification Authority).
  */
 router.post('/ca',async (req, res) => {
+
+	// Verificar que el usuario tiene acceso a la fwcloud y al firewall al cual se quiere asignar la configuración.
+
 	try {
 		// Add the new CA to the database.
 		req.caId = await crtModel.createNewCA(req);
@@ -72,6 +75,9 @@ router.post('/ca',async (req, res) => {
  * Create a new certificate.
  */
 router.post('/crt',async (req, res) => {
+
+	// Verificar que el usuario tiene acceso a la fwcloud y al firewall al cual se quiere asignar la configuración.
+
 	try {
 		// Add the new certificate to the database.
 		await crtModel.createNewCert(req);
