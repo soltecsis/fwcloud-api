@@ -54,7 +54,7 @@ var openvpnModel = require('../../models/vpn/openvpn');
 /**
  * Create a new OpenVPN configuration in firewall.
  */
-router.post('/config', async (req, res) => {
+router.post('/cfg', async (req, res) => {
 	try {
 		await openvpnModel.createNewConfig(req);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

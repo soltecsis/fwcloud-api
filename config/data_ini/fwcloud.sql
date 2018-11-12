@@ -108,33 +108,6 @@ LOCK TABLES `crt` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `crt__ipobj`
---
-
-DROP TABLE IF EXISTS `crt__ipobj`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `crt__ipobj` (
-  `crt` int(11) NOT NULL,
-  `ipobj` int(11) NOT NULL,
-  `role` tinyint(1) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`crt`,`ipobj`),
-  KEY `fk_crt__ipobj-ipobj_idx` (`ipobj`),
-  CONSTRAINT `fk_crt__ipobj-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_crt__ipobj-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `crt__ipobj`
---
-
-LOCK TABLES `crt__ipobj` WRITE;
-/*!40000 ALTER TABLE `crt__ipobj` DISABLE KEYS */;
-/*!40000 ALTER TABLE `crt__ipobj` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `customer`
 --
 
@@ -849,6 +822,67 @@ CREATE TABLE `ipobj_type__routing_position` (
 LOCK TABLES `ipobj_type__routing_position` WRITE;
 /*!40000 ALTER TABLE `ipobj_type__routing_position` DISABLE KEYS */;
 /*!40000 ALTER TABLE `ipobj_type__routing_position` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `openvpn_cfg`
+--
+
+DROP TABLE IF EXISTS `openvpn_cfg`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `openvpn_cfg` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `firewall` int(11) NOT NULL,
+  `crt` int(11) NOT NULL,
+  `ccd` text,
+  `cfg` text,
+  PRIMARY KEY (`id`),
+  KEY `idx_firewall` (`firewall`),
+  KEY `idx_crt` (`crt`),
+  CONSTRAINT `fk_openvpn_cfg-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_openvpn_cfg-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `openvpn_cfg`
+--
+
+LOCK TABLES `openvpn_cfg` WRITE;
+/*!40000 ALTER TABLE `openvpn_cfg` DISABLE KEYS */;
+/*!40000 ALTER TABLE `openvpn_cfg` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `openvpn_par`
+--
+
+DROP TABLE IF EXISTS `openvpn_par`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `openvpn_par` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `openvpn_cfg` int(11) NOT NULL,
+  `ipobj` int(11) DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
+  `arg` varchar(255) DEFAULT NULL,
+  `scope` tinyint(1) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_openvpn_cfg` (`openvpn_cfg`),
+  KEY `idx_ipobj` (`ipobj`),
+  CONSTRAINT `fk_openvpn_par-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_openvpn_par-openvpn_cfg` FOREIGN KEY (`openvpn_cfg`) REFERENCES `openvpn_cfg` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `openvpn_par`
+--
+
+LOCK TABLES `openvpn_par` WRITE;
+/*!40000 ALTER TABLE `openvpn_par` DISABLE KEYS */;
+/*!40000 ALTER TABLE `openvpn_par` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1674,4 +1708,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-07 13:29:46
+-- Dump completed on 2018-11-12 17:58:24
