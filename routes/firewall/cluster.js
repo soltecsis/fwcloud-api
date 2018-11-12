@@ -107,11 +107,7 @@ router.put('/all', (req, res) => {
 
 /* Get FULL cluster by Id */
 router.put('/get', (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-
-	ClusterModel.getClusterFullPro(iduser, fwcloud, id)
+	ClusterModel.getClusterFullPro(req.session.user_id, req.body.fwcloud, req.body.cluster)
 	.then(data =>
 	{
 		//cluster ok
@@ -126,7 +122,7 @@ router.put('/get', (req, res) => {
 
 
 /* New cluster */
-router.post("/", (req, res) => {
+router.post('/', (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
 	logger.debug("JSON RECIBIDO: ", JsonData);
@@ -155,24 +151,24 @@ router.post("/", (req, res) => {
 					firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 					firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-					let data = await FirewallModel.insertFirewall(req.iduser, firewallData);
+					let data = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
 					if (data && data.insertId)
 					{
 						var idfirewall = data.insertId;
 
-						await FirewallModel.updateFWMaster(req.iduser, req.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
+						await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
 
 						if (firewallData.fwmaster === 1) {
 							// Create the loop backup interface.
-							const loInterfaceId = await InterfaceModel.createLoInterface(req.fwcloud, idfirewall);
+							const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, idfirewall);
 							// Create the default policy rules.							
 							await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
 							// Create the directory used for store firewall data.
-							await utilsModel.createFirewallDataDir(req.fwcloud, idfirewall);
+							await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 						}
 					}			
 				}
-				await fwcTreemodel.insertFwc_Tree_New_cluster(req.fwcloud, req.body.clusterData.node_id, idcluster);
+				await fwcTreemodel.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.clusterData.node_id, idcluster);
 				api_resp.getJson(dataNewCluster, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			} catch(error) { api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 		} else api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp));
@@ -185,9 +181,9 @@ utilsModel.checkFirewallAccess,
 (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
-	var idfirewall = req.body.idfirewall;
+	var firewall = req.body.firewall;
 
-	FirewallModel.getFirewall(iduser, fwcloud, idfirewall, function (error, firewallDataArry)
+	FirewallModel.getFirewall(iduser, fwcloud, firewall, function (error, firewallDataArry)
 	{
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0)
@@ -209,7 +205,7 @@ utilsModel.checkFirewallAccess,
 					var idcluster = data.insertId;
 					//////////////////////////////////
 					//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-					fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, idfirewall, function (error, dataTree) {
+					fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, function (error, dataTree) {
 						if (error)
 							api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
 								res.status(200).json(jsonResp);
@@ -305,7 +301,7 @@ router.put("/clustertofw", (req, res) => {
 router.put("/clone", (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
-	var idCluster = req.body.id;
+	var idCluster = req.body.cluster;
 	var idNewFirewall, oldFirewall, fwNewMaster;
 
 	//Save firewall data into objet    
@@ -392,7 +388,7 @@ router.put('/', (req, res) => {
 	.then(masterFirewallID => Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID))
 	.then(() => ClusterModel.updateCluster(fwcloud, clusterData))
 	.then(() => {
-		fwcTreemodel.updateFwc_Tree_Cluster(req.iduser, req.fwcloud, clusterData, (error, dataT) => {
+		fwcTreemodel.updateFwc_Tree_Cluster(req.session.user_id, req.body.fwcloud, clusterData, (error, dataT) => {
 			api_resp.getJson(null,api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		});
 	})
@@ -408,7 +404,7 @@ restrictedCheck.otherFirewall,
 router.put("/del", 
 restrictedCheck.otherFirewall,
 (req, res) => {
-	ClusterModel.deleteCluster(req.body.id, req.session.user_id, req.body.fwcloud, (error, data) => {
+	ClusterModel.deleteCluster(req.body.cluster, req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
 		else
