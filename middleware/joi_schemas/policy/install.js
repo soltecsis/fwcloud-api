@@ -8,7 +8,7 @@ schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     var schema = Joi.object().keys({ 
       fwcloud: sharedSch.id,
-      idfirewall: sharedSch.id,
+      firewall: sharedSch.id,
       sshuser: sharedSch.linux_user,
       sshpass: sharedSch.linux_pass
      });

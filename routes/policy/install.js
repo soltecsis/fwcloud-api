@@ -60,7 +60,7 @@ var FirewallModel = require('../../models/firewall/firewall');
 router.post('/', 
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-  FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.idfirewall, async (error, data) => {
+  FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, async (error, data) => {
     if (error) {
       api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));
       return;
@@ -90,7 +90,7 @@ utilsModel.checkFirewallAccess,
 
     /* The get method of the RuleCompile model returns a promise. */
     await PolicyScript.install(accessData,SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
-      .then(data => {return FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.idfirewall,"&~2")})
+      .then(data => {return FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2")})
       .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
       .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
   });

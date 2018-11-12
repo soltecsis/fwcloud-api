@@ -84,7 +84,7 @@ router.put('/rule',
 utilsModel.checkFirewallAccess, 
 (req, res) => {
   /* The get method of the RuleCompile model returns a promise. */
-  RuleCompile.get(req.body.fwcloud, req.body.idfirewall, req.body.type, req.body.rule)
+  RuleCompile.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule)
 	.then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
 	.catch(error => api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)));
 });
@@ -105,7 +105,7 @@ utilsModel.checkFirewallAccess,
 	path += "/" + req.body.fwcloud;
 	if (!fs.existsSync(path))
 		fs.mkdirSync(path);
-	path += "/" + req.body.idfirewall;
+	path += "/" + req.body.firewall;
 	if (!fs.existsSync(path))
 		fs.mkdirSync(path);
 	path += "/" + config.get('policy').script_name;
@@ -114,7 +114,7 @@ utilsModel.checkFirewallAccess,
 	stream.on('open', fd => {
 		/* Generate the policy script. */
 		PolicyScript.append(config.get('policy').header_file)
-		.then(data => PolicyScript.dumpFirewallOptions(req.body.fwcloud,req.body.idfirewall,data))
+		.then(data => PolicyScript.dumpFirewallOptions(req.body.fwcloud,req.body.firewall,data))
 		.then(data => {
 			stream.write(data.cs + "greeting_msg() {\n" +
 				"log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
@@ -131,27 +131,27 @@ utilsModel.checkFirewallAccess,
 				streamModel.pushMessageCompile(accessData, "--- STATELESS FIREWALL ---\n\n");
 			streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
 			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
-			return PolicyScript.dump(accessData,req.body.idfirewall,1);
+			return PolicyScript.dump(accessData,req.body.firewall,1);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nOUTPUT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-			return PolicyScript.dump(accessData,req.body.idfirewall,2);
+			return PolicyScript.dump(accessData,req.body.firewall,2);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nFORWARD TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-			return PolicyScript.dump(accessData,req.body.idfirewall,3);
+			return PolicyScript.dump(accessData,req.body.firewall,3);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nSNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.body.idfirewall,4);
+			return PolicyScript.dump(accessData,req.body.firewall,4);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nDNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.body.idfirewall, 5);
+			return PolicyScript.dump(accessData,req.body.firewall, 5);
 		})
 		.then(cs => {
 			stream.write(cs+"\n}\n\n");
@@ -160,7 +160,7 @@ utilsModel.checkFirewallAccess,
 		.then(data => {
 			stream.write(data.cs);
 			streamModel.pushMessageCompile(accessData,"END\n");
-			return FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.idfirewall,"&~1");
+			return FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~1");
 		})
 		.then(() => {
 			/* Close stream. */
