@@ -18,7 +18,7 @@ router.put('/', async (req, res) =>{
     fs.mkdirSync(lockFilePath);
   lockFilePath += "/"+req.body.fwcloud;
 
-  const accessData = {sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud};
+  const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
     
 	try {
     if (!fs.existsSync(lockFilePath))

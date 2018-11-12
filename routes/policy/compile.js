@@ -96,7 +96,7 @@ utilsModel.checkFirewallAccess,
 router.put('/',
 utilsModel.checkFirewallAccess, 
 (req, res) => {
-	var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.body.fwcloud};
+	var accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
 	var fs = require('fs');
 	var path = config.get('policy').data_dir;

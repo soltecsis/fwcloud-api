@@ -80,7 +80,7 @@ utilsModel.checkFirewallAccess,
       SSHconn.password = req.body.sshpass;
     }  
     
-    var accessData = {sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud};
+    var accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
     // If we have no user or password for the ssh connection, then error.
     if (!SSHconn.username || !SSHconn.password) {
