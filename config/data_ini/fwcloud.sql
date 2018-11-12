@@ -835,8 +835,6 @@ CREATE TABLE `openvpn_cfg` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
-  `ccd` text,
-  `cfg` text,
   PRIMARY KEY (`id`),
   KEY `idx_firewall` (`firewall`),
   KEY `idx_crt` (`crt`),
@@ -855,34 +853,34 @@ LOCK TABLES `openvpn_cfg` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `openvpn_par`
+-- Table structure for table `openvpn_opt`
 --
 
-DROP TABLE IF EXISTS `openvpn_par`;
+DROP TABLE IF EXISTS `openvpn_opt`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `openvpn_par` (
+CREATE TABLE `openvpn_opt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `openvpn_cfg` int(11) NOT NULL,
+  `cfg` int(11) NOT NULL,
   `ipobj` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `arg` varchar(255) DEFAULT NULL,
   `scope` tinyint(1) unsigned NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_openvpn_cfg` (`openvpn_cfg`),
+  KEY `idx_openvpn_cfg` (`cfg`),
   KEY `idx_ipobj` (`ipobj`),
-  CONSTRAINT `fk_openvpn_par-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_openvpn_par-openvpn_cfg` FOREIGN KEY (`openvpn_cfg`) REFERENCES `openvpn_cfg` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_openvpn_opt-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_openvpn_opt-openvpn_cfg` FOREIGN KEY (`cfg`) REFERENCES `openvpn_cfg` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `openvpn_par`
+-- Dumping data for table `openvpn_opt`
 --
 
-LOCK TABLES `openvpn_par` WRITE;
-/*!40000 ALTER TABLE `openvpn_par` DISABLE KEYS */;
-/*!40000 ALTER TABLE `openvpn_par` ENABLE KEYS */;
+LOCK TABLES `openvpn_opt` WRITE;
+/*!40000 ALTER TABLE `openvpn_opt` DISABLE KEYS */;
+/*!40000 ALTER TABLE `openvpn_opt` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1708,4 +1706,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-12 17:58:24
+-- Dump completed on 2018-11-12 18:40:28
