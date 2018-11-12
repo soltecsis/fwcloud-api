@@ -18,18 +18,17 @@ schema.validate = req => {
         install_interface: sharedSch.id.allow(null).optional(),
         install_ipobj: sharedSch.id.allow(null).optional(),
         fwmaster: sharedSch._0_1,
-        install_port: Joi.number().port(),
+        install_port: Joi.number().port()
       });
 
       var schemaClusterData = Joi.object().keys({ 
         name: sharedSch.name,
         comment: sharedSch.comment,
-        options: sharedSch.u16bits,
-        fwnodes: Joi.array().items(schemaItem)
+        options: sharedSch.u16bits
       });
 
-      if (req.method==='PUT') schemaItem = schemaItem.append({ id: sharedSch.id, cluster: sharedSch.id });
-      else if (req.method==='POST') schemaClusterData = schemaClusterData.append({ node_id: sharedSch.id });
+      if (req.method==='PUT') schemaClusterData = schemaClusterData.append({ cluster: sharedSch.id });
+      else if (req.method==='POST') schemaClusterData = schemaClusterData.append({ node_id: sharedSch.id, fwnodes: Joi.array().items(schemaItem) });
       
       schema = Joi.object().keys({ fwcloud: sharedSch.id, clusterData: schemaClusterData });
     } 

@@ -1298,8 +1298,8 @@ fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback
 		if (error)
 			callback(error, null);
 		var sql = 'UPDATE ' + tableModel + ' SET ' +
-				' name = ' + connection.escape(Data.name) + ' , comment= ' + connection.escape(Data.comment) +
-				' WHERE id_obj = ' + connection.escape(Data.id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="CL"';
+				' name=' + connection.escape(Data.name) +
+				' WHERE id_obj=' + Data.id + ' AND fwcloud=' + fwcloud + ' AND node_type="CL"';
 		connection.query(sql, function (error, result) {
 			if (error) {
 				logger.debug(sql);
@@ -1320,8 +1320,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 	db.get(function (error, connection) {
 		if (error) return callback(error, null);
 		let sql = 'UPDATE ' + tableModel + ' SET' +
-			' name = ' + connection.escape(ipobjData.name+(((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) ? " ["+ipobjData.labelName+"]": "")) + 
-			' ,comment= ' + connection.escape(ipobjData.comment) +
+			' name=' + connection.escape(ipobjData.name+(((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) ? " ["+ipobjData.labelName+"]": "")) + 
 			' WHERE node_type NOT LIKE "F%" AND' +
 			' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, result) {
