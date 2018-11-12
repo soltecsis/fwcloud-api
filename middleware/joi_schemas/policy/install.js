@@ -13,7 +13,7 @@ schema.validate = req => {
       sshpass: sharedSch.linux_pass
      });
     
-    if (req.method!=='PUT' && req.url!=='/policy/install') return reject(new Error('Request method not accepted'));
+    if (req.method!=='POST' && req.url!=='/policy/install') return reject(new Error('Request method not accepted'));
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);

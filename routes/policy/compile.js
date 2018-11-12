@@ -131,27 +131,27 @@ utilsModel.checkFirewallAccess,
 				streamModel.pushMessageCompile(accessData, "--- STATELESS FIREWALL ---\n\n");
 			streamModel.pushMessageCompile(accessData, "INPUT TABLE:\n");
 			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
-			return PolicyScript.dump(accessData,req.body.firewall,1);
+			return PolicyScript.dump(accessData,req.body.fwcloud,req.body.firewall,1);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nOUTPUT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-			return PolicyScript.dump(accessData,req.body.firewall,2);
+			return PolicyScript.dump(accessData,req.body.fwcloud,req.body.firewall,2);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nFORWARD TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-			return PolicyScript.dump(accessData,req.body.firewall,3);
+			return PolicyScript.dump(accessData,req.body.fwcloud,req.body.firewall,3);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nSNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.body.firewall,4);
+			return PolicyScript.dump(accessData,req.body.fwcloud,req.body.firewall,4);
 		})
 		.then(cs => {
 			streamModel.pushMessageCompile(accessData, "\nDNAT TABLE\n");
 			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-			return PolicyScript.dump(accessData,req.body.firewall, 5);
+			return PolicyScript.dump(accessData,req.body.fwcloud,req.body.firewall, 5);
 		})
 		.then(cs => {
 			stream.write(cs+"\n}\n\n");

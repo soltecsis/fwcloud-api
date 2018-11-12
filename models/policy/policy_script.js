@@ -73,9 +73,9 @@ PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dump = (accessData,fw,type) => {
+PolicyScript.dump = (accessData,fwcloud,fw,type) => {
 	return new Promise((resolve,reject) => { 
-  	Policy_cModel.getPolicy_cs_type(accessData.fwcloud, fw, type, async (error, data) => {
+  	Policy_cModel.getPolicy_cs_type(fwcloud, fw, type, async (error, data) => {
 			if (error) return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
@@ -88,7 +88,7 @@ PolicyScript.dump = (accessData,fw,type) => {
 				else { // We must compile the rule.
 					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
 					// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-					await RuleCompile.get(accessData.fwcloud,fw,type,data[i].id)
+					await RuleCompile.get(fwcloud,fw,type,data[i].id)
 						.then(data => ps += data)
 						.catch(error => reject(error));			
 				}
