@@ -9,7 +9,7 @@ schema.validate = req => {
     var schema = {};
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/cluster')) {
-      const schemaItem = Joi.object().keys({ 
+      var schemaItem = Joi.object().keys({ 
         name: sharedSch.name,
         comment: sharedSch.comment,
         install_user: sharedSch.linux_user.allow(null).allow('').optional(),
@@ -21,7 +21,7 @@ schema.validate = req => {
         install_port: Joi.number().port(),
       });
 
-      const schemaClusterData = Joi.object().keys({ 
+      var schemaClusterData = Joi.object().keys({ 
         name: sharedSch.name,
         comment: sharedSch.comment,
         options: sharedSch.u16bits,
