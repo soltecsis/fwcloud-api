@@ -28,7 +28,7 @@ crtModel.createNewCert = req => {
       days: req.body.days,
       type: req.body.type
     }
-    req.dbCon.query('insert into cert SET ?', cert, (error, result) => {
+    req.dbCon.query('insert into crt SET ?', cert, (error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
     });

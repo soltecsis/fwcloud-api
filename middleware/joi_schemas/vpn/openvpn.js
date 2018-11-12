@@ -32,12 +32,12 @@ schema.validate = req => {
     });
 
     var schema = Joi.object().keys({
-      openvpn_cfg: sharedSch.id,
+      firewall: sharedSch.id,
+      crt: sharedSch.id,
       options: Joi.array().items(schemaPar)
     });
 
     if (req.method==="POST" && req.url==='/vpn/openvpn/cfg') {
-      schema = schema.append({ firewall: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
     try {

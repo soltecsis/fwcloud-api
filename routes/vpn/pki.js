@@ -48,7 +48,7 @@ var objModel = 'CRT';
  * @property ClusterModel
  * @type ../../models/vpn/openvpn
  */
-var crtModel = require('../../models/vpn/crt');
+var crtModel = require('../../models/vpn/pki');
 
 
 

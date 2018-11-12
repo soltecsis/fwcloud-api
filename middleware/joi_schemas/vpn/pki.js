@@ -8,12 +8,13 @@ schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     var schema = Joi.object().keys({
       fwcloud: sharedSch.id,
-      days: sharedSch.days,
       cn: sharedSch.cn,
+      days: sharedSch.days,
     });
 
-    if (req.method==="POST" && req.url==='/vpn/cert') {
-      schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
+    if (req.method==="POST") {
+      if (req.url==='/vpn/pki/crt')
+        schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 
     try {

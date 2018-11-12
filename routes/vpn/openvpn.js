@@ -56,7 +56,13 @@ var openvpnModel = require('../../models/vpn/openvpn');
  */
 router.post('/cfg', async (req, res) => {
 	try {
-		await openvpnModel.createNewConfig(req);
+		const cfg = await openvpnModel.addCfg(req);
+
+		// Now create all the options for the OpenVPN configuration.
+		for (let opt of req.body.options) {
+			opt.cfg = cfg;
+			await openvpnModel.addCfgOpt(req,opt);
+		}
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
