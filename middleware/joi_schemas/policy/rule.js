@@ -30,6 +30,8 @@ schema.validate = req => {
     else if (req.method==='PUT') {
       if (req.url==='/policy/rule/type/get')
         schema = schema.append({ type: sharedSch.u8bits });
+      else if (req.url==='/policy/rule/get')
+        schema = schema.append({ type: sharedSch.u8bits, rule: sharedSch.id });
       else if (req.url==='/policy/rule/del')
         schema = schema.append({ rulesIds: Joi.array().items(sharedSch.id) });
       else if (req.url==='/policy/rule/active')
