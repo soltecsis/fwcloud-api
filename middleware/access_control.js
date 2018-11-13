@@ -36,7 +36,7 @@ accessCtrl.check = async (req, res, next) => {
     await checkFwCloudAccess(iduser, fwcloud, update, req, res);
     
     if (req.body.firewall) {
-      const accessData = {iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall};
+      const accessData = {iduser: req.session.user_id, fwcloud: req.body.fwcloud, firewall: req.body.firewall};
       if (! (await FirewallModel.getFirewallAccess(accessData)))
         return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, jsonResp => res.status(200).json(jsonResp));
     }

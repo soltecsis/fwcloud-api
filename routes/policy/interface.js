@@ -15,8 +15,6 @@ var objModel = "Interface in Rule";
 router.post("/",
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
-	var idfirewall= req.body.firewall;
-	
 	//Create New objet with data policy_r__interface
 	var policy_r__interfaceData = {
 		rule: req.body.rule,
@@ -26,7 +24,7 @@ utilsModel.disableFirewallCompileStatus,
 		position_order: req.body.position_order
 	};
 
-	Policy_r__interfaceModel.insertPolicy_r__interface(idfirewall, policy_r__interfaceData, function (error, data)
+	Policy_r__interfaceModel.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData, function (error, data)
 	{
 		if (error)
 			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
@@ -71,7 +69,7 @@ async (req, res) => {
 	var new_rule = req.body.new_rule;
 	var new_position = req.body.new_position;
 	var new_order = req.body.new_order;
-	var firewall= req.body.idfirewall;
+	var firewall= req.body.firewall;
 
 	var content1 = 'O', content2 = 'O';
 

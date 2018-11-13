@@ -74,18 +74,16 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 	var firewall=0;
 	if (req.body.firewall)
 		firewall=req.body.firewall;
-	else if (req.body.idfirewall)
-		firewall=req.body.idfirewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
 	FirewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
-	.then(data => next())
+	.then(() => next())
 	.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
 };
 
-utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, idfirewall) {
+utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {
 	return new Promise((resolve, reject) => {
-		var accessData = {iduser: iduser, fwcloud: fwcloud, idfirewall: idfirewall};
+		var accessData = {iduser: iduser, fwcloud: fwcloud, firewall: firewall};
 		//logger.debug(accessData);
 		FirewallModel.getFirewallAccess(accessData)
 				.then(resp => {

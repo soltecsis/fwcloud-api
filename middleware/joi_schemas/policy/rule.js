@@ -13,7 +13,7 @@ schema.validate = req => {
     
     if (req.method==='POST' || (req.method==='PUT' && req.url==='/policy/rule')) {
       schema = schema.append({
-        idgroup: sharedSch.id,
+        idgroup: sharedSch.id.allow(null).optional(),
         rule_order: sharedSch.id,
         action: sharedSch.rule_action,
         time_start: Joi.date().allow(null).allow('').optional(),

@@ -163,7 +163,7 @@ firewallModel.getFirewallAccess = accessData => {
 			//CHECK FIREWALL PERIMSSIONS
 			var sql = 'SELECT T.* FROM ' + tableModel + ' T ' +
 				' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + accessData.iduser +
-				' WHERE T.id=' + accessData.idfirewall +
+				' WHERE T.id=' + accessData.firewall +
 				' AND T.fwcloud=' + accessData.fwcloud + ' AND U.allow_access=1 AND U.allow_edit=1';
 			connection.query(sql, function (error, row) {
 				if (error) return reject(error);
