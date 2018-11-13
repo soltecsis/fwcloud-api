@@ -21,7 +21,7 @@ schema.validate = req => {
         active: sharedSch._0_1,
         options: sharedSch.u16bits,
         comment: sharedSch.comment,
-        type: sharedSch.u8bits,
+        type: sharedSch.policy_type,
         style: sharedSch.u16bits,
         fw_apply_to: sharedSch.id
       });
@@ -29,17 +29,17 @@ schema.validate = req => {
     }
     else if (req.method==='PUT') {
       if (req.url==='/policy/rule/type/get')
-        schema = schema.append({ type: sharedSch.u8bits });
+        schema = schema.append({ type: sharedSch.policy_type });
       else if (req.url==='/policy/rule/get')
-        schema = schema.append({ type: sharedSch.u8bits, rule: sharedSch.id });
+        schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
       else if (req.url==='/policy/rule/del')
         schema = schema.append({ rulesIds: Joi.array().items(sharedSch.id) });
       else if (req.url==='/policy/rule/active')
-        schema = schema.append({ type: sharedSch.u8bits, active: sharedSch._0_1, rulesIds: Joi.array().items(sharedSch.id) });
+        schema = schema.append({ type: sharedSch.policy_type, active: sharedSch._0_1, rulesIds: Joi.array().items(sharedSch.id) });
       else if (req.url==='/policy/rule/style')
-        schema = schema.append({ type: sharedSch.u8bits, style: sharedSch.u16bits, rulesIds: Joi.array().items(sharedSch.id) });
+        schema = schema.append({ type: sharedSch.policy_type, style: sharedSch.u16bits, rulesIds: Joi.array().items(sharedSch.id) });
       else if (req.url==='/policy/rule/copy')
-        schema = schema.append({ type: sharedSch.u8bits, style: sharedSch.u16bits, rulesIds: Joi.array().items(sharedSch.id) });
+        schema = schema.append({ type: sharedSch.policy_type, style: sharedSch.u16bits, rulesIds: Joi.array().items(sharedSch.id) });
     } else return reject(new Error('Request method not accepted'));
 
     try {
