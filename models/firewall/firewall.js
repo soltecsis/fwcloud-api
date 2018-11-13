@@ -158,21 +158,17 @@ firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
 firewallModel.getFirewallAccess = accessData => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(false);
+			if (error) return reject(error);
+			
 			//CHECK FIREWALL PERIMSSIONS
 			var sql = 'SELECT T.* FROM ' + tableModel + ' T ' +
-					' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + accessData.iduser +
-					' WHERE T.id = ' + accessData.idfirewall +
-					' AND T.fwcloud=' + accessData.fwcloud + '  AND U.allow_access=1 AND U.allow_edit=1 ';
+				' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + accessData.iduser +
+				' WHERE T.id=' + accessData.idfirewall +
+				' AND T.fwcloud=' + accessData.fwcloud + ' AND U.allow_access=1 AND U.allow_edit=1';
 			connection.query(sql, function (error, row) {
-				if (error)
-					reject(false);
-				else if (row && row.length > 0) {
-					resolve(true);
-				} else {
-					reject(false);
-				}
+				if (error) return reject(error);
+				
+				resolve((row && row.length>0) ? true : false);
 			});
 		});
 	});

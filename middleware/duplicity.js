@@ -20,7 +20,7 @@ duplicityCheck.ipobj = (req, res, next) => {
 		if (error) return next();
 
 		var sql = 'SELECT id,name FROM ' + tableModel +
-		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.fwcloud) + ")" + 
+		' WHERE (fwcloud IS NULL OR fwcloud=' + connection.escape(req.body.fwcloud) + ")" + 
 		' AND type' + (req.body.type===null ? " IS NULL" : ("="+connection.escape(req.body.type))) +
 		' AND protocol' + (req.body.protocol===null ? " IS NULL" : ("="+connection.escape(req.body.protocol))) +
 		' AND address' + (req.body.address===null ? " IS NULL" : ("="+connection.escape(req.body.address))) +

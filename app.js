@@ -31,6 +31,7 @@ var methodOverride = require('method-override');
 
 const config = require('./config/config');
 const accessAuth = require('./middleware/authorization');
+const accessCtrl = require('./middleware/access_control');
 const inputValidation = require('./middleware/input_validation');
 const confirmToken = require('./middleware/confirmation_token');
 
@@ -92,8 +93,6 @@ logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 var FwcloudModel = require('./models/fwcloud/fwcloud');
 var utilsModel = require("./utils/utils.js");
 var api_resp = require('./utils/api_response');
-var UserModel = require('./models/user/user');
-var url = require('url');
 
 
 /*--------------------------------------------------------------------------------------*/
@@ -136,94 +135,8 @@ if (config.get('confirmation_token')) {
 // Middleware for input data validation.
 app.use(inputValidation.check);
 
-
-//CONTROL FWCLOUD ACCESS
-var control_routes = ['/firewall', '/interface*', '/ipobj*', '/policy*', '/routing*', '/fwc-tree*', '/firewallscloud*', '/cluster*', "/fwcloud*"];
-app.use(control_routes, (req, res, next) => {
-
-	var url_parts = url.parse(req.url);
-	var originalURL = req.originalUrl;
-
-
-	logger.debug("---------------- RECEIVED HEADERS-----------------");
-	logger.debug("\n", req.headers);
-	logger.debug("--------------------------------------------------");
-	logger.debug("METHOD: " + req.method + "   PATHNAME: " + originalURL);
-
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-
-	var update = true;
-	if (req.method === 'GET')
-		update = false;
-
-
-	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
-
-	if (originalURL === '/fwcloud' && req.method === 'POST') {
-		logger.debug("FWCLOUD ACCESS TO CREATE");
-		logger.debug(req.body);
-		//save access to user                
-		var userData = {id: iduser};
-		UserModel.updateUserTS(userData, function (error, data) {});        
-		req.fwc_access = true;
-		req.iduser = iduser;
-		next();
-	} 
-	else if (originalURL === '/fwcloud' && req.method === 'PUT') {
-		logger.debug("FWCLOUD ACCESS TO UPDATE");
-		logger.debug(req.body);
-		//save access to user                
-		var userData = {id: iduser};
-		UserModel.updateUserTS(userData, function (error, data) {});        
-		req.fwc_access = true;
-		req.iduser = iduser;
-		req.fwcloud = req.body.id;
-		next();
-	}
-	else if (utilsModel.startsWith(originalURL,'/fwcloud') && req.method === 'GET' && fwcloud===undefined) {
-		//Acces to GET ALL clouds
-		logger.debug("FWCLOUD ACCESS INITIAL CLOUDS");
-		var userData = {id: iduser};
-		UserModel.updateUserTS(userData, function (error, data) {});        
-		req.fwc_access = true;
-		req.iduser = iduser;
-		next();
-	}
-	else if (utilsModel.startsWith(originalURL,'/fwcloud/del') && req.method === 'PUT' && fwcloud==='') {
-		//Acces to GET ALL clouds
-		logger.debug("FWCLOUD DELETE");
-		var userData = {id: iduser};
-		UserModel.updateUserTS(userData, function (error, data) {});        
-		req.fwc_access = true;
-		req.iduser = iduser;
-		//request.fwcloud = request.params.fwcloud;
-		//logger.debug("DELETING FWCLOUD: " + request.fwcloud );
-		next();
-	}
-	else if ((req.method==='GET' && originalURL==='/ipobj/types') 
-						|| (req.method==='GET' && originalURL==='/policy/types')
-						|| (req.method==='GET' && originalURL==='/ipobj/positions/policy'))
-		next();
-	else
-	{
-		utilsModel.checkFwCloudAccess(iduser, fwcloud, update, req, res)
-				.then(resp => {
-					//save access to user                
-					var userData = {id: iduser};
-					UserModel.updateUserTS(userData, function (error, data) {});
-					next();
-				})
-				.catch(err => {
-					logger.error("ERROR ---> err: " + err);
-					api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'PARAM ERROR. FWCLOUD ACCESS NOT ALLOWED ', '', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				});
-	}
-
-});
-
+// Middleware for access control.
+app.use(accessCtrl.check);
 
 var db = require('./db');
 

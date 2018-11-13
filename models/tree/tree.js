@@ -337,25 +337,25 @@ fwc_treeModel.createAllTreeCloud = req => {
 
 		// Creating root node for CA (Certification Authorities).
 		try {
-			await fwc_treeModel.newNode(req.dbCon,req.fwcloud,'CERTIFICATION AUTHORITIES',0,'FDA',null,null);
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CERTIFICATION AUTHORITIES',0,'FDA',null,null);
 		} catch(error) { return reject(error) }
 
-		fwc_treeModel.insertFwc_Tree_init(req.fwcloud, (error, data) => {
+		fwc_treeModel.insertFwc_Tree_init(req.body.fwcloud, (error, data) => {
 			if (error) return reject(error);
 			//If saved fwc-tree Get data
 			if (data && data.result) {
 				logger.debug("------------- CREATING FWCTREE FIREWALLS");
-				fwc_treeModel.insertFwc_Tree_firewalls(req.fwcloud, "FDF", '', (error, data) => {
+				fwc_treeModel.insertFwc_Tree_firewalls(req.body.fwcloud, "FDF", '', (error, data) => {
 					if (error) return reject(error);
 					//If saved fwc-tree Get data
 					if (data && data.result) {
 						logger.debug("------------- CREATING FWCTREE OBJECTS");
-						fwc_treeModel.insertFwc_Tree_objects(req.fwcloud, "FDO", (error, data)	=> {
+						fwc_treeModel.insertFwc_Tree_objects(req.body.fwcloud, "FDO", (error, data)	=> {
 							if (error) return reject(error);
 							//If saved fwc-tree Get data
 							if (data && data.result) {
 								logger.debug("------------- CREATING FWCTREE SERVICES");
-								fwc_treeModel.insertFwc_Tree_objects(req.fwcloud, "FDS", (error, data) => {
+								fwc_treeModel.insertFwc_Tree_objects(req.body.fwcloud, "FDS", (error, data) => {
 									if (error) return reject(error);
 									resolve();
 								});

@@ -183,9 +183,9 @@ router.post('/', (req, res) => {
 			//CREATE INITIAL STRUCTURE 
 			logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
 			try {
-				req.fwcloud = data.insertId;
+				req.body.fwcloud = data.insertId;
 				await fwcTreemodel.createAllTreeCloud(req);
-				await utilsModel.createFwcloudDataDir(req.fwcloud);
+				await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 			} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating cloud', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 
 			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));

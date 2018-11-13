@@ -10,7 +10,7 @@ var utilsModel = require("../../utils/utils.js");
 
 
 /* Get all routing_rs by firewall and group*/
-router.get('/:idfirewall/group/:idgroup',utilsModel.checkFirewallAccess,  function (req, res)
+router.get('/:idfirewall/group/:idgroup', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var idgroup = req.params.idgroup;
@@ -33,7 +33,7 @@ router.get('/:idfirewall/group/:idgroup',utilsModel.checkFirewallAccess,  functi
     });
 });
 /* Get all routing_rs by firewall */
-router.get('/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall', function (req, res)
 {
     var idfirewall = req.params.idfirewall;    
     Routing_rModel.getRouting_rs(idfirewall,'',function (error, data)
@@ -56,7 +56,7 @@ router.get('/:idfirewall', utilsModel.checkFirewallAccess, function (req, res)
 });
 
 /* Get  routing_r by id and  by firewall and group */
-router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, res)
+router.get('/:idfirewall/:id', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var id = req.params.id;
@@ -80,7 +80,7 @@ router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, re
 });
 
 /* Get all routing_rs by nombre and by firewall*/
-router.get('/:idfirewall/:idgroup/name/:name',utilsModel.checkFirewallAccess,  function (req, res)
+router.get('/:idfirewall/:idgroup/name/:name', function (req, res)
 {
     var idfirewall = req.params.idfirewall;
     var name = req.params.name;
@@ -109,7 +109,7 @@ router.get('/:idfirewall/:idgroup/name/:name',utilsModel.checkFirewallAccess,  f
 
 
 /* Create New routing_r */
-router.post("/routing-r/:idfirewall", utilsModel.checkFirewallAccess, function (req, res)
+router.post("/routing-r/:idfirewall", function (req, res)
 {
     //Create New objet with data routing_r
     var routing_rData = {
@@ -142,7 +142,7 @@ router.post("/routing-r/:idfirewall", utilsModel.checkFirewallAccess, function (
 });
 
 /* Update routing_r that exist */
-router.put('/routing-r/:idfirewall',utilsModel.checkFirewallAccess,  function (req, res)
+router.put('/routing-r/:idfirewall', function (req, res)
 {
     //Save data into object
     var routing_rData = {id: req.param('id'), idgroup: req.param('idgroup'), firewall: req.param('firewall'), rule_order: req.param('rule_order'),  options: req.param('options'), metric: req.param('metric'), comment: req.param('comment')};
@@ -167,7 +167,7 @@ router.put('/routing-r/:idfirewall',utilsModel.checkFirewallAccess,  function (r
 
 
 /* Remove routing_r */
-router.put("/del/routing-r/:idfirewall", utilsModel.checkFirewallAccess, function (req, res)
+router.put("/del/routing-r/:idfirewall", function (req, res)
 {
     //Id from routing_r to remove
     var idfirewall = req.param('idfirewall');

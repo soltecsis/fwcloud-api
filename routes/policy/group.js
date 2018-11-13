@@ -11,8 +11,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 /* Create New policy_g */
-router.post('/',
-utilsModel.checkFirewallAccess, (req, res) => {
+router.post('/', (req, res) => {
 	var JsonCopyData = req.body;
 	var policy_gData = JsonCopyData.groupData;
 
@@ -51,8 +50,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 
 /* Update policy_g that exist */
-router.put('/',
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/', (req, res) => {
 	//Save data into object
 	var policy_gData = {
 		id: req.body.id, 
@@ -76,9 +74,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 });
 
 /* Update Style policy_g  */
-router.put('/style',
-utilsModel.checkFirewallAccess, 
-(req, res) => {    
+router.put('/style', (req, res) => {    
 	var accessData = { iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall };
 	 
 	var style = req.body.groupStyle;
@@ -106,8 +102,7 @@ utilsModel.checkFirewallAccess,
 
 
 /* Update policy_g NAMe  */
-router.put('/name',
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/name', (req, res) => {
 	//Save data into object
 	var policy_gData = { id: req.body.id, name: req.body.name };
 	Policy_gModel.updatePolicy_g_name(policy_gData, function (error, data)
@@ -135,8 +130,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 
 /* Remove policy_g */
-router.put("/del",
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put("/del", (req, res) => {
 	//Id from policy_g to remove
 	var idfirewall = req.body.firewall;
 	var id = req.body.id;
@@ -168,8 +162,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 });
 
 /* Remove rules from Group */
-router.put("/rulesdel",
-utilsModel.checkFirewallAccess, async (req, res) => {
+router.put("/rulesdel", async (req, res) => {
 	try {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
@@ -208,9 +201,7 @@ function ruleRemove(idfirewall, idgroup, rule) {
 
 
 /* Get all policy_gs by firewall*/
-/* router.get('/:idfirewall',
-utilsModel.checkFirewallAccess,  
-(req, res) => {
+/* router.get('/:idfirewall', (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	Policy_gModel.getPolicy_gs(idfirewall, function (error, data)
 	{
@@ -232,8 +223,7 @@ utilsModel.checkFirewallAccess,
 }); */
 
 /* Get all policy_gs by firewall and group father*/
-/* router.get('/:idfirewall/group/:idgroup',
-utilsModel.checkFirewallAccess, (req, res) => {
+/* router.get('/:idfirewall/group/:idgroup', (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var idgroup = req.params.idgroup;
 	Policy_gModel.getPolicy_gs_group(idfirewall, idgroup, function (error, data)
@@ -256,8 +246,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 }); */
 
 /* Get  policy_g by id and  by firewall*/
-/* router.get('/:idfirewall/:id',
-utilsModel.checkFirewallAccess, (req, res) => {
+/* router.get('/:idfirewall/:id', (req, res) => {
 	var idfirewall = req.params.idfirewall;
 	var id = req.params.id;
 	Policy_gModel.getPolicy_g(idfirewall, id, function (error, data)

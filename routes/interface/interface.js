@@ -16,7 +16,6 @@ var logger = require('log4js').getLogger("app");
 
 /* Get all interfaces by firewall*/
 router.put('/fw/all/get', 
-utilsModel.checkFirewallAccess, 
 (req, res) => {
 	InterfaceModel.getInterfaces(req.body.firewall, req.body.fwcloud, (error, data) => {
 		//If exists interface get data
@@ -29,8 +28,7 @@ utilsModel.checkFirewallAccess,
 
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
-router.put('/fw/full/get', 
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/fw/full/get', (req, res) => {
 	InterfaceModel.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
@@ -41,8 +39,7 @@ utilsModel.checkFirewallAccess, (req, res) => {
 });
 
 /* Get  interface by id and  by firewall*/
-router.put('/fw/get', 
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/fw/get', (req, res) => {
 	InterfaceModel.getInterface(req.body.firewall, req.body.fwcloud, req.body.id, (error, data) => {
 		//If exists interface get data
 		if (data && data.length > 0)
@@ -239,8 +236,7 @@ router.put('/', (req, res) => {
 
 /* Remove firewall interface */
 //FALTA BORRADO en CASCADA Y RESTRICCIONES
-router.put("/fw/del", 
-utilsModel.checkFirewallAccess, 
+router.put('/fw/del', 
 restrictedCheck.interface, 
 (req, res) => {
 	//Id from interface to remove

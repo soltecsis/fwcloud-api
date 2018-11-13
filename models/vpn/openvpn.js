@@ -17,7 +17,7 @@ openvpnModel.addCfg = req => {
   });
 };
 
-openvpnModel.addCfgOpt = (req,opt) => {
+openvpnModel.addCfgOpt = (req, opt) => {
 	return new Promise((resolve, reject) => {
     req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
       if (error) return reject(error);

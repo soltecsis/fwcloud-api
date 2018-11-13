@@ -104,24 +104,6 @@ userModel.updateUser = function (userData, callback) {
 	});
 };
 
-//Update user TimeStamp
-userModel.updateUserTS = function (userData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE user SET ' +
-				'last_access = NOW() ' +
-				'WHERE id = ' + userData.id;
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, {"result": true});
-			}
-		});
-	});
-};
 
 //Update user confirmation_token
 userModel.updateUserCT = function (iduser, token, callback) {

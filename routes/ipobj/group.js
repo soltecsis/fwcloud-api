@@ -20,7 +20,7 @@ router.post("/", (req, res) => {
 		id: null,
 		name: req.body.name,
 		type: req.body.type,
-		fwcloud: req.fwcloud,
+		fwcloud: req.body.fwcloud,
 		comment: req.body.comment
 	};
 
@@ -66,7 +66,7 @@ router.put('/', (req, res) => {
 	var fwcloud = req.body.fwcloud;
 
 	//Save data into object
-	var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.fwcloud};
+	var ipobj_gData = {id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud};
 	Ipobj_gModel.updateIpobj_g(ipobj_gData, function (error, data)
 	{
 		if (error)

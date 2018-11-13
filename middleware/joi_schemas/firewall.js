@@ -24,7 +24,7 @@ schema.validate = req => {
         options: sharedSch.u16bits
       });
       if (req.method==='PUT') schema = schema.append({ firewall: sharedSch.id });
-      else if (req.method==='POST') schema = schema.append({ node_id: sharedSch.id });
+      else if (req.method==='POST') schema = schema.append({ node_id: sharedSch.id.optional() });
     } 
     else if (req.method==='PUT') {
       schema = Joi.object().keys({ fwcloud: sharedSch.id });

@@ -176,9 +176,7 @@ router.post('/', (req, res) => {
 });
 
 /* New cluster FROM FIREWALL */
-router.put("/fwtocluster", 
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.put('/fwtocluster', (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var firewall = req.body.firewall;
@@ -240,7 +238,7 @@ utilsModel.checkFirewallAccess,
 });
 
 /* New FIREWALL FROM CLUSTER */
-router.put("/clustertofw", (req, res) => {
+router.put('/clustertofw', (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var idCluster = req.body.id;
@@ -298,7 +296,7 @@ router.put("/clustertofw", (req, res) => {
 });
 
 /* CLONE CLUSTER */
-router.put("/clone", (req, res) => {
+router.put('/clone', (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var idCluster = req.body.cluster;

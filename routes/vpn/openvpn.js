@@ -56,9 +56,6 @@ var openvpnModel = require('../../models/vpn/openvpn');
  */
 router.post('/cfg', async (req, res) => {
 	try {
-
-		// Verificar que el usuario tiene acceso a la fwcloud y al firewall al cual se quiere asignar la configuración.
-		
 		const cfg = await openvpnModel.addCfg(req);
 
 		// Now create all the options for the OpenVPN configuration.

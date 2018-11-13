@@ -13,7 +13,6 @@ var logger = require('log4js').getLogger("app");
 
 /* Create New policy_r */
 router.post("/", 
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Create New objet with data policy_r
@@ -48,7 +47,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update policy_r that exist */
 router.put('/', 
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	//Save data into object
@@ -81,9 +79,9 @@ utilsModel.disableFirewallCompileStatus,
 				// Recompile rule.
 				var accessData = {
 					sessionID: req.sessionID, 
-					iduser: req.iduser, 
-					fwcloud: req.fwcloud, 
-					idfirewall: req.params.idfirewall, 
+					iduser: req.session.user_id, 
+					fwcloud: req.body.fwcloud, 
+					idfirewall: req.body.firewall, 
 					rule: policy_rData.id
 				};
 				Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
@@ -100,9 +98,7 @@ utilsModel.disableFirewallCompileStatus,
 
 
 /* Get all policy_rs by firewall and type */
-router.put('/type/get',
-utilsModel.checkFirewallAccess,
-(req, res) => {
+router.put('/type/get', (req, res) => {
 	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, "", (error, data) => {
 		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
 		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
@@ -111,9 +107,7 @@ utilsModel.checkFirewallAccess,
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/get', 
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.put('/get', (req, res) => {
 	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, (error, data) => {
 		//If exists policy_r get data
 		if (data && data.length > 0)
@@ -125,8 +119,7 @@ utilsModel.checkFirewallAccess,
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/full/get', 
-utilsModel.checkFirewallAccess, (req, res) => {
+router.put('/full/get', (req, res) => {
 	Policy_rModel.getPolicy_rs_type_full(req.body, req.body.firewall, req.body.type, req.body.rule)
 	.then(data => {
 		//If exists policy_r get data
@@ -143,7 +136,6 @@ utilsModel.checkFirewallAccess, (req, res) => {
 
 /* Remove policy_r */
 router.put("/del", 
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,  
 (req, res) => {
 	//Id from policy_r to remove
@@ -176,7 +168,6 @@ function ruleRemove(idfirewall, rule) {
 
 /* Update Active policy_r  */
 router.put('/active', 
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -209,7 +200,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update Style policy_r  */
 router.put('/style', 
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	var style = req.body.style;
@@ -236,8 +226,7 @@ utilsModel.disableFirewallCompileStatus,
 
 
 /* Copy or Move RULES */
-router.put('/copy', 
-utilsModel.checkFirewallAccess,
+router.put('/copy',
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	try {
@@ -469,12 +458,10 @@ function ruleCopy(idfirewall, id, pasteOnRuleId, pasteOffset, inc) {
 
 
 /* Get all policy_rs by firewall and group*/
-router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, function (req, res)
+/*router.get('/:idfirewall/group/:idgroup', function (req, res)
 {
 	var idfirewall = req.params.idfirewall;
 	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
 	Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
 	{
 		//If exists policy_r get data
@@ -492,17 +479,16 @@ router.get('/:idfirewall/group/:idgroup', utilsModel.checkFirewallAccess, functi
 			});
 		}
 	});
-});
+});*/
 
 
 /* Get all policy_rs by firewall and type */
-router.get('/full/:idfirewall/type/:type', utilsModel.checkFirewallAccess, function (req, res)
+/*router.get('/full/:idfirewall/type/:type', function (req, res)
 {
 	var idfirewall = req.params.idfirewall;
 	var type = req.params.type;
 	var rule = "";
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
+	var fwcloud = req.body.fwcloud;
 	logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + "  TYPE:" + type);
 	Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
 			.then(data =>
@@ -527,17 +513,15 @@ router.get('/full/:idfirewall/type/:type', utilsModel.checkFirewallAccess, funct
 					res.status(200).json(jsonResp);
 				});
 			});
-});
+});*/
 
 
 
 /* Get  policy_r by id and  by Id */
-router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, res)
+/*router.get('/:idfirewall/:id', function (req, res)
 {
 	var idfirewall = req.params.idfirewall;
 	var id = req.params.id;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
 	Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
 	{
 		//If exists policy_r get data
@@ -555,16 +539,14 @@ router.get('/:idfirewall/:id', utilsModel.checkFirewallAccess, function (req, re
 			});
 		}
 	});
-});
+});*/
 
 /* Get all policy_rs by nombre and by firewall*/
-router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAccess, function (req, res)
+/*router.get('/:idfirewall/group/:idgroup/name/:name', function (req, res)
 {
 	var idfirewall = req.params.idfirewall;
 	var name = req.params.name;
 	var idgroup = req.params.idgroup;
-	var iduser = req.iduser;
-	var fwcloud = req.fwcloud;
 	Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
 	{
 		//If exists policy_r get data
@@ -582,13 +564,12 @@ router.get('/:idfirewall/group/:idgroup/name/:name', utilsModel.checkFirewallAcc
 			});
 		}
 	});
-});
+});*/
 
 
 
 /* Update ORDER of the policy_r that exist */
-router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
-utilsModel.checkFirewallAccess, 
+/*router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -618,11 +599,10 @@ utilsModel.disableFirewallCompileStatus,
 			}
 		}
 	});
-});
+});*/
 
 /* Update APPLY_TO de policy_r that exist */
-router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
-utilsModel.checkFirewallAccess, 
+/*router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
 utilsModel.disableFirewallCompileStatus, 
 (req, res) => {
 	//Save data into object
@@ -632,7 +612,7 @@ utilsModel.disableFirewallCompileStatus,
 	var idcluster = req.params.idcluster;
 	var fwapplyto = req.params.fwapplyto;
 
-	Policy_rModel.updatePolicy_r_applyto(req.iduser, req.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
+	Policy_rModel.updatePolicy_r_applyto(req.session.user_id, req.body.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
 	{
 		if (error)
 			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
@@ -642,7 +622,7 @@ utilsModel.disableFirewallCompileStatus,
 			//If saved policy_r saved ok, get data
 			if (data && data.result)
 			{
-				var accessData = {sessionID: req.sessionID, iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: id};
+				var accessData = {sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.params.idfirewall, rule: id};
 				Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
 				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
 					res.status(200).json(jsonResp);
@@ -655,9 +635,6 @@ utilsModel.disableFirewallCompileStatus,
 			}
 		}
 	});
-});
-
-
-
+});*/
 
 module.exports = router;

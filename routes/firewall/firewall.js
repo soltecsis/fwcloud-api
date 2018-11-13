@@ -428,9 +428,7 @@ router.post('/', async (req, res) => {
  *         ]
  *       };
  */
-router.put('/',
-utilsModel.checkFirewallAccess,
-(req, res) => {
+router.put('/', (req, res) => {
 	//Save firewall data into objet    
 	var firewallData = {
 		id: req.body.firewall,
@@ -524,9 +522,7 @@ utilsModel.checkFirewallAccess,
 });
 
 
-router.put('/clone',
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.put('/clone', (req, res) => {
 	//Save firewall data into objet    
 	var firewallData = {
 		id: req.body.firewall,
@@ -646,8 +642,7 @@ restrictedCheck.firewallApplyTo,
  *         ]
  *       };
  */
-router.put("/del", 
-utilsModel.checkFirewallAccess, 
+router.put('/del', 
 restrictedCheck.otherFirewall,
 async (req, res) => {
 	try {
@@ -660,8 +655,7 @@ async (req, res) => {
 });
 
 //DELETE FIREWALL FROM CLUSTER
-router.put("/delfromcluster",
-utilsModel.checkFirewallAccess,
+router.put('/delfromcluster',
 restrictedCheck.otherFirewall,
 restrictedCheck.firewallApplyTo,
 (req, res) => {

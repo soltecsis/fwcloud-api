@@ -48,18 +48,10 @@ var api_resp = require('../../utils/api_response');
  * @type ../../models/compile/
  */
 var PolicyScript = require('../../models/policy/policy_script');
-
-var streamModel = require('../../models/stream/stream');
-
-var utilsModel = require("../../utils/utils.js");
-
 var FirewallModel = require('../../models/firewall/firewall');
 
-
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.post('/', 
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.post('/', (req, res) => {
   FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, async (error, data) => {
     if (error) {
       api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));

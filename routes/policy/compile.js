@@ -80,9 +80,7 @@ const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'SNAT', 'DNAT'];
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall rule. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.put('/rule',
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.put('/rule', (req, res) => {
   /* The get method of the RuleCompile model returns a promise. */
   RuleCompile.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule)
 	.then(data => api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp)))
@@ -93,9 +91,7 @@ utilsModel.checkFirewallAccess,
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.put('/',
-utilsModel.checkFirewallAccess, 
-(req, res) => {
+router.put('/', (req, res) => {
 	var accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
 	var fs = require('fs');

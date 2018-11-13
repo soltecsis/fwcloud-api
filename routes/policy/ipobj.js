@@ -28,7 +28,6 @@ function checkPostParameters(obj) {
 
 /* Create New policy_r__ipobj */
 router.post("/",
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,  
 (req, res) => {
 	//Create New objet with data policy_r__ipobj
@@ -76,7 +75,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update POSITION policy_r__ipobj that exist */
 router.put('/move',
-utilsModel.checkFirewallAccess,
 utilsModel.disableFirewallCompileStatus,
 (req, res)  => {
 	var firewall = req.body.firewall;
@@ -228,7 +226,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update ORDER policy_r__ipobj that exist */
 router.put('/order',
-utilsModel.checkFirewallAccess,  
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	var rule = req.body.rule;
@@ -266,9 +263,7 @@ utilsModel.disableFirewallCompileStatus,
 
 
 /* Get all policy_r__ipobjs by rule*/
-router.put('/get',
-utilsModel.checkFirewallAccess,  
-(req, res) => {
+router.put('/get', (req, res) => {
 	Policy_r__ipobjModel.getPolicy_r__ipobjs(req.body.rule, (error, data) => {
 		//If exists policy_r__ipobj get data
 		if (data && data.length > 0)
@@ -281,8 +276,7 @@ utilsModel.checkFirewallAccess,
 
 /* Update NEGATE policy_r__ipobj that exist */
 /* Update ALL IPOBJ/POLICY_R TO new NEGATE satus*/
-router.put('/negate',
-utilsModel.checkFirewallAccess,  
+router.put('/negate', 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	var rule = req.body.rule;
@@ -317,7 +311,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Remove policy_r__ipobj */
 router.put("/del",
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	//Id from policy_r__ipobj to remove
@@ -355,7 +348,7 @@ utilsModel.disableFirewallCompileStatus,
 
 
 /* Get all policy_r__ipobjs by rule and posicion*/
-/* router.get('/:idfirewall/:rule/:position', utilsModel.checkFirewallAccess, function (req, res)
+/* router.get('/:idfirewall/:rule/:position', function (req, res)
 {
 	var rule = req.params.rule;
 	var position = req.params.position;
@@ -381,7 +374,7 @@ utilsModel.disableFirewallCompileStatus,
 }); */
 
 /* Get all policy_r__ipobjs by rule and posicion with IPOBJ DATA*/
-/* router.get('/data/:idfirewall/:rule/:position',utilsModel.checkFirewallAccess,  function (req, res)
+/* router.get('/data/:idfirewall/:rule/:position', function (req, res)
 {
 	var rule = req.params.rule;
 	var position = req.params.position;
@@ -407,7 +400,7 @@ utilsModel.disableFirewallCompileStatus,
 
 
 /* Get  policy_r__ipobj by id  */
-/* router.get('/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position', utilsModel.checkFirewallAccess, function (req, res)
+/* router.get('/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (req, res)
 {
 	var rule = req.params.rule;
 	var ipobj = req.params.ipobj;
@@ -438,7 +431,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update policy_r__ipobj that exist */
 /* router.put('/policy-r__ipobj/:idfirewall',
-utilsModel.checkFirewallAccess,  
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	var rule = req.body.get_rule;
@@ -462,7 +454,7 @@ utilsModel.disableFirewallCompileStatus,
 
 	policy_r__ipobjData = checkPostParameters(policy_r__ipobjData);
 	
-	var accessData = {sessionID: req.sessionID , iduser: req.iduser, fwcloud: req.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
+	var accessData = {sessionID: req.sessionID , iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
 
 	Policy_r__ipobjModel.updatePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, policy_r__ipobjData, function (error, data)
 	{
@@ -498,7 +490,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Reorder ALL rule positions  */
 /* router.put("/policy-r__ipobj/order/:idfirewall",
-utilsModel.checkFirewallAccess, 
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	Policy_r__ipobjModel.orderAllPolicy(function (error, data)
@@ -519,7 +510,6 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Reorder ALL rule positions  */
 /* router.put("/policy-r__ipobj/order/:idfirewall/:rule",
-utilsModel.checkFirewallAccess,  
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	var rule = req.params.rule;
