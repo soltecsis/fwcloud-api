@@ -49,7 +49,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
           streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
           services_found=1;
         }
-        else if (node.name==='CERTIFICATION AUTHORITIES' && node.node_type==='FDA'){
+        else if (node.name==='CA' && node.node_type==='FCA'){
           streamModel.pushMessageCompile(accessData,"Root node found: "+JSON.stringify(node)+"\n");
           ca_found=1;
         }

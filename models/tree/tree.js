@@ -336,7 +336,7 @@ fwc_treeModel.createAllTreeCloud = req => {
 
 		// Creating root node for CA (Certification Authorities).
 		try {
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',0,'FDA',null,null);
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',0,'FCA',null,null);
 		} catch(error) { return reject(error) }
 
 		fwc_treeModel.insertFwc_Tree_init(req.body.fwcloud, (error, data) => {
