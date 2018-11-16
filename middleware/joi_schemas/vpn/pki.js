@@ -10,6 +10,7 @@ schema.validate = req => {
       fwcloud: sharedSch.id,
       cn: sharedSch.cn,
       days: sharedSch.days,
+      node_id: sharedSch.id
     });
 
     if (req.method==="POST") {

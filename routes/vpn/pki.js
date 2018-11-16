@@ -50,6 +50,7 @@ var objModel = 'CRT';
  */
 var crtModel = require('../../models/vpn/pki');
 
+var fwcTreemodel = require('../../models/tree/tree');
 
 
 /**
@@ -66,6 +67,10 @@ router.post('/ca',async (req, res) => {
 		await crtModel.runEasyRsaCmd(req,'init-pki');
 		await crtModel.runEasyRsaCmd(req,'build-ca');
 		await crtModel.runEasyRsaCmd(req,'gen-crl');
+
+		// Create new node under the CA tree.
+		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',null,null);
+
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
