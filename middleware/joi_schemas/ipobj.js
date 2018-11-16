@@ -16,11 +16,13 @@ schema.validate = req => {
 
         var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
+        var valid_types = [1, 2, 3, 4, 5, 6, 7, 8, 20, 21];
+
         if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
-            schema = Joi.object().keys({
+            schema = schema.append({
                 fwcloud: sharedSch.id,
                 name: sharedSch.name,
-                type: sharedSch.u8bits.valid([1, 2, 3, 4, 5, 6, 7]),
+                type: sharedSch.u8bits.valid(valid_types),
                 interface: sharedSch.id.allow(null).optional(),
                 diff_serv: Joi.number().port().optional(),
                 options: Joi.number().integer().optional(),
@@ -30,8 +32,10 @@ schema.validate = req => {
             // We will have different schemas depending upon the req.body.type parameter.
             // Verify that this parameters, exists, is number and has the accepted values.
             if (req.body.type === undefined || req.body.type === null ||
-                (typeof req.body.type) !== "number" ||
-                (req.body.type < 1 || req.body.type > 7))
+                typeof req.body.type !== "number" ||
+                valid_types.findIndex(function(type) {
+                    return type == req.body.type;
+                }) == -1)
                 return reject(new Error('Bad value in req.body.type'));
 
             switch (req.body.type) {
@@ -47,8 +51,8 @@ schema.validate = req => {
                         source_port_end: Joi.number().port(),
                         destination_port_start: Joi.number().port(),
                         destination_port_end: Joi.number().port(),
-                        tcp_flags_mask: sharedSch.u8bits,
-                        tcp_flags_settings: sharedSch.u8bits
+                        tcp_flags_mask: sharedSch.u8bits.optional(),
+                        tcp_flags_settings: sharedSch.u8bits.optional()
                     });
                     break;
 
@@ -72,18 +76,31 @@ schema.validate = req => {
                     schema = schema.append({
                         ip_version: Joi.number().integer().valid([4, 6]),
                         address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
-                        netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
+                        netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional()
                     });
                     break;
 
                 case 6: // ADDRESS RANGE
+                    schema = schema.append({
+                        ip_version: Joi.number().integer().valid([4, 6]),
+                        range_start: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
+                        range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
+                    });
+                    break;
                 case 7: // NETWORK
                     schema = schema.append({
                         ip_version: Joi.number().integer().valid([4, 6]),
-                        range_start: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-                        range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+                        address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+                        netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
                     });
                     break;
+                case 8: // HOST
+                    break;
+                case 20: // GROUP
+                    break;
+                case 21: // SERVICE GROUP
+                    break;
+
             }
 
             if (req.method === 'PUT') schema = schema.append({ id: sharedSch.id });
