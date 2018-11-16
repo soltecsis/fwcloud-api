@@ -1115,7 +1115,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																		' VALUES (' + connection.escape(rnode.name) + ',' +
 																		connection.escape(row.id) + ',' + connection.escape(row.node_type) + ',' +
 																		connection.escape(rnode.id) + ',' + connection.escape(rnode.type) + ',' +
-																		connection.escape(fwcloud)  + ")";
+																		connection.escape(rnode.fwcloud)  + ")";
 																//logger.debug(sqlinsert);
 																connection.query(sqlinsert, function (error, result) {
 																	if (error) {
