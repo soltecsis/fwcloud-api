@@ -66,8 +66,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
 
 
 //Get COMPLETE TREE by user
-fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, objStandard, objCloud, node_type,order_mode, filter_idfirewall, AllDone) {
-
+fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, objStandard, objCloud, order_mode, filter_idfirewall, AllDone) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -132,7 +131,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 														if (add_node) {
 															var treeP = new Tree(tree_node);
 															tree.append([], treeP);
-															fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type,row.order_mode, filter_idfirewall, callback);
+															fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
 														} else {
 															logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id);
 															callback();
@@ -145,7 +144,7 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 
 											var treeP = new Tree(tree_node);
 											tree.append([], treeP);
-											fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.node_type,row.order_mode, filter_idfirewall, callback);
+											fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
 										}
 									}
 								});
@@ -337,7 +336,7 @@ fwc_treeModel.createAllTreeCloud = req => {
 
 		// Creating root node for CA (Certification Authorities).
 		try {
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CERTIFICATION AUTHORITIES',0,'FDA',null,null);
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',0,'FCA',null,null);
 		} catch(error) { return reject(error) }
 
 		fwc_treeModel.insertFwc_Tree_init(req.body.fwcloud, (error, data) => {
@@ -1115,7 +1114,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 																		' VALUES (' + connection.escape(rnode.name) + ',' +
 																		connection.escape(row.id) + ',' + connection.escape(row.node_type) + ',' +
 																		connection.escape(rnode.id) + ',' + connection.escape(rnode.type) + ',' +
-																		connection.escape(fwcloud)  + ")";
+																		connection.escape(rnode.fwcloud)  + ")";
 																//logger.debug(sqlinsert);
 																connection.query(sqlinsert, function (error, result) {
 																	if (error) {
