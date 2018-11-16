@@ -102,12 +102,12 @@ const restrictedCheck = require('../../middleware/restricted');
  * 
  */
 router.get('/all/get', (req, res) => {
-    FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
-        if (data && data.length > 0) //Get data
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-        else //Get error 
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-    });
+	FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
+		if (data && data.length > 0) //Get data
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else //Get error 
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	});
 });
 
 /* Get fwcloud by Id */
@@ -125,12 +125,12 @@ router.get('/all/get', (req, res) => {
  * @return {JSON} Returns Json Data from Fwcloud
  */
 router.put('/get', (req, res) => {
-    FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-        if (data && data.length > 0) //get fwcloud data
-            api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-        else //get error
-            api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-    });
+	FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+		if (data && data.length > 0) //get fwcloud data
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else //get error
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	});
 });
 
 
@@ -169,28 +169,28 @@ router.put('/get', (req, res) => {
  *       };
  */
 router.post('/', (req, res) => {
-    var fwcloudData = {
-        name: req.body.name,
-        image: req.body.image,
-        comment: req.body.comment
-    };
+	var fwcloudData = {
+		name: req.body.name,
+		image: req.body.image,
+		comment: req.body.comment
+	};
 
-    FwcloudModel.insertFwcloud(req.session.user_id, fwcloudData, async(error, data) => {
-        if (data && data.insertId) {
-            logger.debug("insertFwcloud: ", data);
-            var dataresp = { "insertId": data.insertId };
+	FwcloudModel.insertFwcloud(req.session.user_id, fwcloudData, async(error, data) => {
+		if (data && data.insertId) {
+			logger.debug("insertFwcloud: ", data);
+			var dataresp = { "insertId": data.insertId };
 
-            //CREATE INITIAL STRUCTURE 
-            logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
-            try {
-                req.body.fwcloud = data.insertId;
-                await fwcTreemodel.createAllTreeCloud(req);
-                await utilsModel.createFwcloudDataDir(req.body.fwcloud);
-            } catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating cloud', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+			//CREATE INITIAL STRUCTURE 
+			logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
+			try {
+				req.body.fwcloud = data.insertId;
+				await fwcTreemodel.createAllTreeCloud(req);
+				await utilsModel.createFwcloudDataDir(req.body.fwcloud);
+			} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating cloud', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 
-            api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-        } else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-    });
+			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	});
 });
 
 
@@ -230,27 +230,27 @@ router.post('/', (req, res) => {
  *       };
  */
 router.put('/', (req, res) => {
-    //Save fwcloud data into objet
-    var fwcloudData = { id: req.body.fwcloud, name: req.body.name, image: req.body.image, comment: req.body.comment, user: req.session.user_id };
+	//Save fwcloud data into objet
+	var fwcloudData = { id: req.body.fwcloud, name: req.body.name, image: req.body.image, comment: req.body.comment, user: req.session.user_id };
 
-    FwcloudModel.updateFwcloud(fwcloudData, function(error, data) {
-        //Saved ok
-        if (data && data.result) {
-            api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        } else {
-            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        }
-    });
+	FwcloudModel.updateFwcloud(fwcloudData, function(error, data) {
+		//Saved ok
+		if (data && data.result) {
+			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		} else {
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
 });
 
 // API call for check deleting restrictions.
 router.put("/restricted",
-    restrictedCheck.fwcloud,
-    (req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+	restrictedCheck.fwcloud,
+	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 /**
  * DELETE fwcloud
@@ -287,20 +287,20 @@ router.put("/restricted",
  */
 //FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.put("/del",
-    restrictedCheck.fwcloud,
-    async(req, res) => {
-        // Remove the fwcloud data dir.
-        try {
-            await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-        } catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+	restrictedCheck.fwcloud,
+	async(req, res) => {
+		// Remove the fwcloud data dir.
+		try {
+			await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
+		} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 
-        FwcloudModel.deleteFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-            if (data && data.result)
-                api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-            else
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-        });
-    });
+		FwcloudModel.deleteFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+			if (data && data.result)
+				api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		});
+	});
 
 
 /**
@@ -338,29 +338,29 @@ router.put("/del",
  *       };
  */
 router.put('/lock', (req, res) => {
-    //Save fwcloud data into objet
-    var fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id };
+	//Save fwcloud data into objet
+	var fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id };
 
-    FwcloudModel.updateFwcloudLock(fwcloudData)
-        .then(data => {
-            if (data.result) {
-                logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
-                api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else {
-                logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        })
-        .catch(r => {
-            logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function(jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        });
+	FwcloudModel.updateFwcloudLock(fwcloudData)
+		.then(data => {
+			if (data.result) {
+				logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
+				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else {
+				logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		})
+		.catch(r => {
+			logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function(jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		});
 
 
 });
@@ -400,28 +400,28 @@ router.put('/lock', (req, res) => {
  *       };
  */
 router.put('/unlock', (req, res) => {
-    //Save fwcloud data into objet
-    var fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id };
-    FwcloudModel.updateFwcloudUnlock(fwcloudData)
-        .then(data => {
-            if (data.result) {
-                logger.info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
-                api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            } else {
-                logger.info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-                api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        })
-        .catch(error => {
-            logger.info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
-            api_resp.getJson(null, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function(jsonResp) {
-                res.status(200).json(jsonResp);
-            });
-        });
+	//Save fwcloud data into objet
+	var fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id };
+	FwcloudModel.updateFwcloudUnlock(fwcloudData)
+		.then(data => {
+			if (data.result) {
+				logger.info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else {
+				logger.info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		})
+		.catch(error => {
+			logger.info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function(jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		});
 
 });
 /* Get locked Status of fwcloud by Id */
@@ -438,36 +438,36 @@ router.put('/unlock', (req, res) => {
  * @return {JSON} Returns Json Data from Fwcloud
  */
 router.get('/lock/get', (req, res) => {
-    var iduser = req.session.user_id;
-    var fwcloud = req.params.fwcloud;
-    if (!isNaN(fwcloud)) {
-        FwcloudModel.getFwcloud(iduser, fwcloud, function(error, data) {
-            //get fwcloud data
-            if (data && data.length > 0) {
+	var iduser = req.session.user_id;
+	var fwcloud = req.params.fwcloud;
+	if (!isNaN(fwcloud)) {
+		FwcloudModel.getFwcloud(iduser, fwcloud, function(error, data) {
+			//get fwcloud data
+			if (data && data.length > 0) {
 
-                var resp = { "locked": false, "at": "", "by": "" };
-                if (data[0].locked === 1) {
-                    resp = { "locked": true, "at": data[0].locked_at, "by": data[0].locked_by };
-                }
+				var resp = { "locked": false, "at": "", "by": "" };
+				if (data[0].locked === 1) {
+					resp = { "locked": true, "at": data[0].locked_at, "by": data[0].locked_by };
+				}
 
-                api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-            //get error
-            else {
-                api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-                    res.status(200).json(jsonResp);
-                });
-            }
-        });
-    }
-    //id must be numeric
-    else {
-        api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-            res.status(200).json(jsonResp);
-        });
-    }
+				api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+			//get error
+			else {
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		});
+	}
+	//id must be numeric
+	else {
+		api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
+			res.status(200).json(jsonResp);
+		});
+	}
 });
 
 

@@ -29,7 +29,7 @@ fwc_treeRepairModel.initData = req => {
 fwc_treeRepairModel.checkRootNodes = () => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';
+      ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent is null';
     dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
 
@@ -72,7 +72,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
       if (update_obj_to_null) {
         streamModel.pushMessageCompile(accessData,'<font color="red">Repairing root nodes (setting id_obj and obj_type to null).</font>\n');
         sql = 'update ' + tableModel + ' set id_obj=NULL,obj_type=NULL' +
-          ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=0';        
+          ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent is null';        
         dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
           resolve(nodes);

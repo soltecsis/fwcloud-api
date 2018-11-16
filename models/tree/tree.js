@@ -49,7 +49,7 @@ fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, cal
 				' inner join fwcloud C on C.id=T.fwcloud ' +
 				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +   
 				' LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type' +
-				' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent=0 ' +
+				' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent is null ' +
 				' AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
 				' ORDER BY T.id limit 1';
 		logger.debug(sql);
@@ -232,13 +232,8 @@ fwc_treeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 fwc_treeModel.newNode = (connection,fwcloud,name,id_parent,node_type,id_obj,obj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'INSERT INTO ' + tableModel +
-			'(name,id_parent,node_type,id_obj,obj_type,fwcloud)' +
-			' VALUES (' + connection.escape(name) + ',' + 
-			connection.escape(id_parent) + ',' + 
-			connection.escape(node_type) + ',' + 
-			connection.escape(id_obj) + ',' + 
-			connection.escape(obj_type) + ',' + 
-			connection.escape(fwcloud) + ')'; 
+			' (name,id_parent,node_type,id_obj,obj_type,fwcloud)' +
+			' VALUES ('+connection.escape(name)+','+id_parent+','+connection.escape(node_type)+','+id_obj+','+obj_type+','+fwcloud+')'; 
 		connection.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result.insertId);
@@ -336,7 +331,7 @@ fwc_treeModel.createAllTreeCloud = req => {
 
 		// Creating root node for CA (Certification Authorities).
 		try {
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',0,'FCA',null,null);
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);
 		} catch(error) { return reject(error) }
 
 		fwc_treeModel.insertFwc_Tree_init(req.body.fwcloud, (error, data) => {
@@ -375,7 +370,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 
 		//INSERT NODE FIREWALLS
 		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-				" VALUES (" + "'FIREWALLS',0,'FDF',null,null," + connection.escape(fwcloud) + ")";
+				" VALUES (" + "'FIREWALLS',null,'FDF',null,null," + connection.escape(fwcloud) + ")";
 		logger.debug(sqlinsert);
 		connection.query(sqlinsert, function (error, result) {
 			if (error)
@@ -383,7 +378,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 		});
 		//INSERT NODE OBJECTS
 		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-				" VALUES (" + "'OBJECTS',0,'FDO',null,null," + connection.escape(fwcloud) + ")";
+				" VALUES (" + "'OBJECTS',null,'FDO',null,null," + connection.escape(fwcloud) + ")";
 		connection.query(sqlinsert, function (error, result) {
 			if (error)
 				logger.debug("ERROR FDO : " + error);
@@ -423,7 +418,7 @@ fwc_treeModel.insertFwc_Tree_init = function (fwcloud, AllDone) {
 		});
 		//INSERT NODE SERVICES
 		sqlinsert = "INSERT INTO " + tableModel + "(name, id_parent, node_type, id_obj, obj_type, fwcloud) " +
-				" VALUES (" + "'SERVICES',0,'FDS',null,null," + connection.escape(fwcloud) + ")";
+				" VALUES (" + "'SERVICES',null,'FDS',null,null," + connection.escape(fwcloud) + ")";
 		connection.query(sqlinsert, function (error, result) {
 			if (error)
 				logger.debug("ERROR FDS : " + error);
@@ -474,7 +469,7 @@ fwc_treeModel.insertFwc_Tree_firewalls = function (fwcloud, folder, idfirewall,A
 		let sql = "";
 
 		if ((typeof folder) == "string") //Select Parent Node by type
-			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
+			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type=' + connection.escape(folder) + ' and T1.id_parent is null AND T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
 		else // Select parent node by id
 			sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.id=' + connection.escape(folder) + ' and T1.fwcloud=' + connection.escape(fwcloud) + ' order by T1.node_order';
 
@@ -1036,7 +1031,7 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 											logger.debug("ERROR FCF : " + error);
 									});
 									//SEARCH IDNODE for FIREWALLS NODE
-									sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent=0 AND T1.fwcloud=' + connection.escape(fwcloud);
+									sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent is null AND T1.fwcloud=' + connection.escape(fwcloud);
 									logger.debug(sql);
 									connection.query(sql, function (error, rowsF) {
 										var firewallsNode = rowsF[0].id;
@@ -1080,7 +1075,7 @@ fwc_treeModel.insertFwc_Tree_objects = function (fwcloud, folder, AllDone) {
 		if (error)
 			callback(error, null);
 		//Select Parent Node by type   
-		sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent=0 AND (T1.fwcloud=' + connection.escape(fwcloud) + ' OR T1.fwcloud is null) order by T1.node_order';
+		sql = 'SELECT T1.* FROM ' + tableModel + ' T1 inner join fwc_tree T2 on T1.id_parent=T2.id where T2.node_type=' + connection.escape(folder) + ' and T2.id_parent is null AND (T1.fwcloud=' + connection.escape(fwcloud) + ' OR T1.fwcloud is null) order by T1.node_order';
 		logger.debug(sql);
 		connection.query(sql,
 				function (error, rows) {

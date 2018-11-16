@@ -57,9 +57,6 @@ var fwcTreemodel = require('../../models/tree/tree');
  * Create a new CA (Certification Authority).
  */
 router.post('/ca',async (req, res) => {
-
-	// Verificar que el usuario tiene acceso a la fwcloud y al firewall al cual se quiere asignar la configuración.
-
 	try {
 		// Add the new CA to the database.
 		req.caId = await crtModel.createNewCA(req);
@@ -68,9 +65,8 @@ router.post('/ca',async (req, res) => {
 		await crtModel.runEasyRsaCmd(req,'build-ca');
 		await crtModel.runEasyRsaCmd(req,'gen-crl');
 
-		// Create new node under the CA tree.
+		// Create new CA tree node.
 		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',null,null);
-
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -80,9 +76,6 @@ router.post('/ca',async (req, res) => {
  * Create a new certificate.
  */
 router.post('/crt',async (req, res) => {
-
-	// Verificar que el usuario tiene acceso a la fwcloud y al firewall al cual se quiere asignar la configuración.
-
 	try {
 		// Add the new certificate to the database.
 		await crtModel.createNewCert(req);
@@ -94,6 +87,9 @@ router.post('/crt',async (req, res) => {
 			cmd = 'build-server-full';
 		req.caId = req.body.ca;
 		await crtModel.runEasyRsaCmd(req,cmd);
+
+		// Create new CRT tree node.
+		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',null,null);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
