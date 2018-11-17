@@ -86,8 +86,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
 // Resolve with the parent id of a tree node.
 fwc_treeRepairModel.getParentId = id => {
 	return new Promise((resolve, reject) => {
-		let sql = 'SELECT id_parent FROM ' + tableModel +
-			' WHERE id=' + dbCon.escape(id); 
+		let sql = 'SELECT id_parent FROM ' + tableModel + ' WHERE id=' + id; 
 		dbCon.query(sql, (error, nodes) => {
 			if (error) return reject(error);
 			if (nodes.length!==1) return resolve(-1);
@@ -100,7 +99,7 @@ fwc_treeRepairModel.getParentId = id => {
 fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' + tableModel +
-      ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent!=0';
+      ' WHERE fwcloud=' + fwcloud + ' AND id_parent is not null';
     dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
 
@@ -126,7 +125,7 @@ fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
               await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
               break;
             }
-          } while (id_ancestor!==0);
+          } while (id_ancestor);
 
           // Verify that the last ancestor id is the one of one of the root nodes.
           root_node_found = 0;

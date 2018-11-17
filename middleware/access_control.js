@@ -17,7 +17,8 @@ accessCtrl.check = async(req, res, next) => {
 		(req.method === 'GET' && req.url === '/policy/types') ||
 		(req.method === 'GET' && req.url === '/ipobj/positions/policy') ||
 		(req.method === 'POST' && req.url === '/fwcloud') ||
-		(req.method === 'GET' && req.url === '/fwcloud/all/get'))
+		(req.method === 'GET' && req.url === '/fwcloud/all/get') ||
+		(req.method === 'GET' && req.url === '/stream'))
 		return next();
 
 	logger.debug("---------------- RECEIVED HEADERS-----------------");
