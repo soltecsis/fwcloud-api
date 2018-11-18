@@ -58,6 +58,9 @@ var fwcTreemodel = require('../../models/tree/tree');
  */
 router.post('/ca',async (req, res) => {
 	try {
+		// Check that the tree node in which we will create a new node for the CA is a valid node for it.
+		if (req.tree_node.node_type!=='FCA' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
+
 		// Add the new CA to the database.
 		req.caId = await crtModel.createNewCA(req);
 		// Create the new CA directory structure.
@@ -77,6 +80,9 @@ router.post('/ca',async (req, res) => {
  */
 router.post('/crt',async (req, res) => {
 	try {
+		// Check that the tree node in which we will create a new node for the CA is a valid node for it.
+		if (req.tree_node.node_type!=='CA' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
+
 		// Add the new certificate to the database.
 		await crtModel.createNewCert(req);
 		// Create the new certificate in the CA directory.

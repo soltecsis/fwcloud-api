@@ -36,14 +36,41 @@ accessCtrl.check = async(req, res, next) => {
 	try {
 		await checkFwCloudAccess(iduser, fwcloud, update, req, res);
 
+		// Check firewall access for the user.
 		if (req.body.firewall) {
 			const accessData = { iduser: req.session.user_id, fwcloud: req.body.fwcloud, firewall: req.body.firewall };
 			if (!(await FirewallModel.getFirewallAccess(accessData)))
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
+		// Check access to the tree node indicated in req.body.node_id.
+		if (req.body.node_id) {
+			if (!(await checkTreeNodeAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'TREE NODE ACCESS NOT ALLOWED', 'TREE', null, jsonResp => res.status(200).json(jsonResp));
+		}
+
 		next()
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FWCLOUD ACCESS NOT ALLOWED', 'FWCLOUD', error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+
+// Check access to the tree node.
+function checkTreeNodeAccess(req) {
+	return new Promise((resolve, reject) => {
+		var sql = 'select * FROM fwc_tree WHERE id='+req.body.node_id;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the node is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the node information for use in the API call processing.
+			req.tree_node = result[0];
+
+			resolve(true);
+		});
+	});
 };
 
 //CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
