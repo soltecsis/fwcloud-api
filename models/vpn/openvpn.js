@@ -26,16 +26,32 @@ openvpnModel.addCfgOpt = (req, opt) => {
   });
 };
 
-openvpnModel.dumpCfg = (req,cfg,scope) => {
+openvpnModel.removeCfgOptAll = req => {
 	return new Promise((resolve, reject) => {
-    var fs = require('fs');
-    var path = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/openvpn';
+    let sql = 'delete OPT.* from openvpn_opt OPT' +
+      ' INNER JOIN openvpn_cfg CFG ON OPT.cfg=CFG.id' +
+			' WHERE CFG.firewall=' + req.body.firewall + ' AND CFG.crt=' + req.body.crt;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
 
-    if (!fs.existsSync(path))
-      fs.mkdirSync(path);
-    path += "/" + req.crt.cn;
-    var stream = fs.createWriteStream(path);
-  
+openvpnModel.getCfgId = req => {
+	return new Promise((resolve, reject) => {
+    let sql = 'select id from openvpn_cfg where firewall='+req.body.firewall+' and crt='+req.body.crt;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result[0].id);
+    });
+  });
+};
+
+openvpnModel.installCfg = (req,cfg,scope) => {
+	return new Promise((resolve, reject) => {
+    var crt_path = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/';
+
     req.dbCon.query('select * from openvpn_opt where cfg='+cfg+' and scope='+scope+' order by openvpn_opt.order asc', (error, result) => {
       if (error) return reject(error);
       resolve();

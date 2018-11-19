@@ -62,7 +62,9 @@ accessCtrl.check = async(req, res, next) => {
 // Check access to certificate.
 function checkCrtAccess(req) {
 	return new Promise((resolve, reject) => {
-		var sql = 'select crt.*,ca.fwcloud FROM crt WHERE ca.id=crt.ca and crt.id='+req.body.crt;
+	 let sql = 'select R.*,A.fwcloud FROM crt R' +
+		 ' INNER JOIN ca A ON R.ca=A.id' +
+		 ' WHERE R.id='+req.body.crt;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 

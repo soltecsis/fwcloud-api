@@ -28,18 +28,19 @@ schema.validate = req => {
         'tun-mtu-extra','tun-mtu','txqueuelen','up-delay','up-restart','up cmd','user','username-as-common-name ','verb','writepid']),
       arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/).allow(null).allow('').optional(),
       ipobj: sharedSch.id.allow(null).optional(),
-      scope: sharedSch._0_1, // 0=ccd, 1=config file
-      order: sharedSch.id // Order of the configuration option.
+      scope: sharedSch._0_1 // 0=ccd, 1=config file
     });
 
     var schema = Joi.object().keys({
       fwcloud: sharedSch.id,
       firewall: sharedSch.id,
-      crt: sharedSch.id,
-      options: Joi.array().items(schemaPar)
+      crt: sharedSch.id
     });
 
-    if (req.method==="POST" && req.url==='/vpn/openvpn/cfg') {
+    if (req.method==="POST") {
+      if (req.url==='/vpn/openvpn/cfg') schema = schema.append({ options: Joi.array().items(schemaPar) });
+    } else if (req.method==="PUT") {
+      schema = schema.append({ options: Joi.array().items(schemaPar) });
     } else return reject(new Error('Request method not accepted'));
 
     try {

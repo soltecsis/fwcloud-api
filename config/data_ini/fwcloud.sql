@@ -843,6 +843,7 @@ CREATE TABLE `openvpn_cfg` (
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_firewall-crt` (`firewall`,`crt`),
   KEY `idx_firewall` (`firewall`),
   KEY `idx_crt` (`crt`),
   CONSTRAINT `fk_openvpn_cfg-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -867,13 +868,12 @@ DROP TABLE IF EXISTS `openvpn_opt`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `openvpn_opt` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
   `cfg` int(11) NOT NULL,
   `ipobj` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `arg` varchar(255) DEFAULT NULL,
+  `order` int(11) unsigned NOT NULL,
   `scope` tinyint(1) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
   KEY `idx_openvpn_cfg` (`cfg`),
   KEY `idx_ipobj` (`ipobj`),
   CONSTRAINT `fk_openvpn_opt-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -1713,4 +1713,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-16 17:57:05
+-- Dump completed on 2018-11-19 19:00:26

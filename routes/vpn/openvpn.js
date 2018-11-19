@@ -59,17 +59,52 @@ router.post('/cfg', async (req, res) => {
 		const cfg = await openvpnModel.addCfg(req);
 
 		// Now create all the options for the OpenVPN configuration.
+		var order = 1;
 		for (let opt of req.body.options) {
 			opt.cfg = cfg;
+			opt.order = order++;
 			await openvpnModel.addCfgOpt(req,opt);
 		}
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
-		// Dump configuration files.
-		openvpnModel.dumpCfg(req,cfg,1); // 1=Config file
-		if (req.crt.type===1) // Client certificate
-			openvpnModel.dumpCfg(req,cfg,0); // 0=ccd file
+  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
+
+
+/**
+ * Update configuration options.
+ */
+router.put('/cfg', async (req, res) => {
+	try {
+		// First remove all the current configuration options.
+		await openvpnModel.removeCfgOptAll(req);
+
+		// Now create all the new options for the OpenVPN configuration.
+		const cfg = await openvpnModel.getCfgId(req);
+		var order = 1;
+		for (let opt of req.body.options) {
+			opt.cfg = cfg;
+			opt.order = order++;
+			await openvpnModel.addCfgOpt(req,opt);
+		}
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
+
+
+/**
+ * Install OpenVPN configuration in firewall.
+ */
+router.post('/install', async (req, res) => {
+	try {
+		const data = await FirewallModel.getFirewallSSH(req);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
+		if (req.crt.type===1) // Client certificate
+			openvpnModel.installCfg(req,cfg,0); // 0=ccd file
+		else // Server certificate
+			openvpnModel.installCfg(req,cfg,1); // 1=Config file
 
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
