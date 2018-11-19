@@ -28,7 +28,8 @@ schema.validate = req => {
         'tun-mtu-extra','tun-mtu','txqueuelen','up-delay','up-restart','up cmd','user','username-as-common-name ','verb','writepid']),
       arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/).allow(null).allow('').optional(),
       ipobj: sharedSch.id.allow(null).optional(),
-      scope: sharedSch._0_1 // 0=ccd, 1=config file
+      scope: sharedSch._0_1, // 0=ccd, 1=config file
+      order: sharedSch.id // Order of the configuration option.
     });
 
     var schema = Joi.object().keys({

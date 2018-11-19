@@ -112,34 +112,80 @@ firewallModel.getFirewalls = (iduser, callback) => {
  *           updated_at	datetime
  *           by_user	int(11)
  */
-firewallModel.getFirewall = function (iduser, fwcloud, id, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+firewallModel.getFirewall = function (req) {
+	return new Promise((resolve, reject) => {
 		var sql = 'SELECT T.* ' +
 				' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
 				' , M.id as id_fwmaster ' +
-				' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
+				' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + req.session.user_id +
 				' LEFT join interface I on I.id=T.install_interface ' +
 				' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
 				' LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1 ' +
-				' WHERE T.id = ' + connection.escape(id) + ' AND T.fwcloud=' + connection.escape(fwcloud) + '  AND U.allow_access=1';
+				' WHERE T.id = ' + req.body.firewall + ' AND T.fwcloud=' + req.body.fwcloud + '  AND U.allow_access=1';
 		//logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				Promise.all(rows.map(utilsModel.decryptDataUserPass))
-						.then(data => {
-							callback(null, data);
-						})
-						.catch(e => {
-							callback(e, null);
-						});
-			}
+		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+
+			Promise.all(rows.map(utilsModel.decryptDataUserPass))
+			.then(data => resolve(data))
+			.catch(error => reject(error));
 		});
 	});
 };
+
+/**
+ * Get Firewall SSH connection data
+ *  
+ * @method getFirewallSSH
+ * 
+ * @param {Integer} iduser User identifier
+ * @param {Integer} id firewall identifier
+ * @param {Function} callback    Function callback response
+ * 
+ *       callback(error, Rows)
+ * 
+ * @return {Firewall object} Returns `OBJECT FIREWALL DATA` 
+ * 
+ * Table: __firewall__
+ * 
+ *           id	int(11) AI PK
+ *           cluster	int(11)
+ *           fwcloud	int(11)
+ *           name	varchar(255)
+ *           comment	longtext
+ *           created_at	datetime
+ *           updated_at	datetime
+ *           by_user	int(11)
+ */
+firewallModel.getFirewallSSH = function (req) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			var data = await firewallModel.getFirewall(req);
+
+			// Obtain SSH connSettings for the firewall to which we want install the policy.
+			var SSHconn = {
+				host: data.ip,
+				port: data.install_port,
+				username: data.install_user,
+				password: data.install_pass
+			}
+
+			// If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
+			if (req.body.sshuser && req.body.sshpass) {
+				SSHconn.username = req.body.sshuser;
+				SSHconn.password = req.body.sshpass;
+			}  
+
+			// If we have no user or password for the ssh connection, then error.
+			if (!SSHconn.username || !SSHconn.password)
+				throw(new Error('User or password for the SSH connection not found'));
+
+			data.SSHconn = SSHconn;
+			resolve(data);
+		} catch(error) { reject(error) }
+	});
+};
+
 /**
  * Get Firewall Access by Locked 
  *  

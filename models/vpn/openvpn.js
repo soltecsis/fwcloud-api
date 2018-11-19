@@ -26,5 +26,14 @@ openvpnModel.addCfgOpt = (req, opt) => {
   });
 };
 
+openvpnModel.dumpCfg = (id, scope) => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
+
 //Export the object
 module.exports = openvpnModel;

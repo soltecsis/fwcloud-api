@@ -25,14 +25,6 @@ var express = require('express');
 var router = express.Router();
 
 /**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- *
- */
-var logger = require('log4js').getLogger("compiler");
-/**
  * Property Model to manage API RESPONSE data
  *
  * @property api_resp
@@ -51,41 +43,16 @@ var PolicyScript = require('../../models/policy/policy_script');
 var FirewallModel = require('../../models/firewall/firewall');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.post('/', (req, res) => {
-  FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, async (error, data) => {
-    if (error) {
-      api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));
-      return;
-    }
+router.post('/', async (req, res) => {
+  try {
+    const data = await FirewallModel.getFirewallSSH(req);
 
-    // Obtain SSH connSettings for the firewall to which we want install the policy.
-    var SSHconn = {
-		  host: data[0].ip,
-		  port: data[0].install_port,
-		  username: data[0].install_user,
-		  password: data[0].install_pass
-    }
-
-    // If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
-    if (req.body.sshuser && req.body.sshpass) {
-      SSHconn.username = req.body.sshuser;
-      SSHconn.password = req.body.sshpass;
-    }  
+    const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
+    await PolicyScript.install(accessData,data[0].SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
+    await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     
-    var accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
-
-    // If we have no user or password for the ssh connection, then error.
-    if (!SSHconn.username || !SSHconn.password) {
-      api_resp.getJson({"Msg": "User or password for the SSH connection not found."},api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp));
-      return;
-    }
-
-    /* The get method of the RuleCompile model returns a promise. */
-    await PolicyScript.install(accessData,SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
-      .then(data => {return FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2")})
-      .then(data => api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp)))
-      .catch(error => api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)))
-  });
+    api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)) }
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 

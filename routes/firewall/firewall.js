@@ -221,21 +221,14 @@ router.put('/cloud/get', (req, res) => {
  *       };
  * 
  */
-router.put('/get', (req, res) => {
-	FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, function(error, data) {
-		//Get Data
-		if (data && data.length > 0) {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//get Error
-		else {
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
+router.put('/get', async (req, res) => {
+	try {
+		const data = await FirewallModel.getFirewall(req);
+		if (data && data.length > 0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -569,23 +562,14 @@ router.put('/clone', (req, res) => {
  * 
  * @return {JSON} Returns Json Data from Firewall
  */
-router.put('/accesslock/get', function(req, res) {
-	FirewallModel.getFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall, function(error, data) {
-		//get firewall data
+router.put('/accesslock/get', async (req, res) => {
+	try {
+		const data = await FirewallModel.getFirewall(req);
 		if (data && data.length > 0) {
-			FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud)
-				.then(resp => {
-					api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				})
-				.catch(err => {
-					api_resp.getJson(err, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				});
+			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
+			api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, jsonResp => res.status(200).json(jsonResp));
 		}
-	});
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

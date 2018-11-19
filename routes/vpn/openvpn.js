@@ -63,6 +63,12 @@ router.post('/cfg', async (req, res) => {
 			opt.cfg = cfg;
 			await openvpnModel.addCfgOpt(req,opt);
 		}
+
+		// Dump configuration files.
+		openvpnModel.dumpCfg(req,cfg);
+
+		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
+
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));

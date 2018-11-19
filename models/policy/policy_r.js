@@ -748,57 +748,6 @@ policy_rModel.updatePolicy_r_order = function (idfirewall, type, id, new_order, 
 	});
 };
 
-//var FirewallsClusterModel = require('../firewall/firewalls_cluster');
-var FirewallModel = require('../../models/firewall/firewall');
-
-//Update APPLYTO de policy_r 
-policy_rModel.updatePolicy_r_applyto = function (iduser, fwcloud, idfirewall, type, id, idcluster, fwapplyto, callback) {
-	Policy_typeModel.getPolicy_type(type, function (error, data_types) {
-		if (error)
-			callback(error, null);
-		else {
-			if (data_types.length > 0)
-				type = data_types[0].id;
-			else
-				type = 1;
-
-			FirewallModel.getFirewall(iduser, fwcloud, fwapplyto, function (error, data_fc) {
-				if (error)
-					callback(error, null);
-				else {
-					if (data_fc.length > 0) {
-						db.get(function (error, connection) {
-							if (error)
-								callback(error, null);
-							if (fwapplyto === undefined || fwapplyto === '' || isNaN(fwapplyto)) {
-								fwapplyto = null;
-							}
-							var sql = 'UPDATE ' + tableModel + ' SET ' +
-									'fw_apply_to = ' + connection.escape(fwapplyto) + ' ' +
-									' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type);
-							connection.query(sql, function (error, result) {
-								if (error) {
-									callback(error, null);
-								} else {
-									if (result.affectedRows > 0) {
-										callback(null, {"result": true});
-									} else
-										callback(null, {"result": false});
-								}
-							});
-						});
-					} else {
-						callback(null, {"result": false});
-					}
-				}
-			});
-
-
-		}
-	});
-};
-
-
 //Update policy_r from user
 policy_rModel.updatePolicy_r_Group = function (firewall, oldgroup, newgroup, id, callback) {
 
