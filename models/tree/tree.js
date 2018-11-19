@@ -749,39 +749,30 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
-			// Get parent node type and veriy that it exists.  
-			let sql = 'SELECT node_type FROM ' + tableModel + 
-				' WHERE id=' + connection.escape(nodeId) + ' AND fwcloud=' + connection.escape(fwcloud);
-			connection.query(sql, (error, nodes) => {
+			// Obtain cluster data required for tree nodes creation.
+			let sql = 'SELECT name FROM firewall' +
+				' WHERE id=' + firewallId + ' AND fwcloud=' + fwcloud;
+			connection.query(sql, async (error, firewalls) => {
 				if (error) return reject(error);
-				if (nodes.length!==1) return reject(new Error('Node with id '+nodeId+' not found'));
-				if (nodes[0].node_type!='FDF' && nodes[0].node_type!='FD') return reject(new Error('Bad folder type'));
+				if (firewalls.length!==1) return reject(new Error('Firewall with id '+firewallId+' not found'));
 
-				// Obtain cluster data required for tree nodes creation.
-				sql = 'SELECT name FROM firewall' +
-					' WHERE id=' + connection.escape(firewallId) + ' AND fwcloud=' + connection.escape(fwcloud);
-				connection.query(sql, async (error, firewalls) => {
-					if (error) return reject(error);
-					if (nodes.length!==1) return reject(new Error('Firewall with id '+firewallId+' not found'));
-
-					try {
-						// Create root firewall node
-						let id1 = await fwc_treeModel.newNode(connection,fwcloud,firewalls[0].name,nodeId,'FW',firewallId,0);
-						
-						let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',firewallId,0);
-						await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',firewallId,1);
-						await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',firewallId,2);
-						await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',firewallId,3);
-						await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
-						await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
-						
-						await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);
-						
-						id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
-						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
-					} catch(error) { return reject(error)}
-					resolve();
-				});
+				try {
+					// Create root firewall node
+					let id1 = await fwc_treeModel.newNode(connection,fwcloud,firewalls[0].name,nodeId,'FW',firewallId,0);
+					
+					let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',firewallId,0);
+					await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',firewallId,1);
+					await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',firewallId,2);
+					await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',firewallId,3);
+					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
+					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
+					
+					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);
+					
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
+					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
+				} catch(error) { return reject(error) }
+				resolve();
 			});
 		});
 	});
@@ -813,53 +804,44 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
-			// Get parent node type and veriy that it exists.  
-			let sql = 'SELECT node_type FROM ' + tableModel + 
-				' WHERE id=' + connection.escape(nodeId) + ' AND fwcloud=' + connection.escape(fwcloud);
-			connection.query(sql, (error, nodes) => {
+			// Obtain cluster data required for tree nodes creation.
+			let sql = 'SELECT C.id,C.name,F.id as fwmaster_id FROM cluster C' +
+				' INNER JOIN firewall F on F.cluster=C.id ' +
+				' WHERE C.id=' + clusterId + ' AND C.fwcloud=' + fwcloud + ' AND F.fwmaster=1';
+			connection.query(sql, async (error, clusters) => {
 				if (error) return reject(error);
-				if (nodes.length!==1) return reject(new Error('Node with id '+nodeId+' not found'));
-				if (nodes[0].node_type!='FDF' && nodes[0].node_type!='FD') return reject(new Error('Bad folder type'));
+				if (clusters.length!==1) return reject(new Error('Cluster with id '+clusterId+' not found'));
 
-				// Obtain cluster data required for tree nodes creation.
-				sql = 'SELECT C.id,C.name,F.id as fwmaster_id FROM cluster C' +
-					' INNER JOIN firewall F on F.cluster=C.id ' +
-					' WHERE C.id=' + connection.escape(clusterId) + ' AND C.fwcloud=' + connection.escape(fwcloud) + ' AND F.fwmaster=1';
-				connection.query(sql, async (error, clusters) => {
-					if (error) return reject(error);
-					if (nodes.length!==1) return reject(new Error('Cluster with id '+clusterId+' not found'));
+				try {
+					// Create root cluster node
+					let id1 = await fwc_treeModel.newNode(connection,fwcloud,clusters[0].name,nodeId,'CL',clusters[0].id,100);
+					
+					let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].fwmaster_id,100);
+					await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',clusters[0].fwmaster_id,1);
+					await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',clusters[0].fwmaster_id,2);
+					await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',clusters[0].fwmaster_id,3);
+					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',clusters[0].fwmaster_id,4);
+					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',clusters[0].fwmaster_id,5);
+					
+					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);
+					
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
+					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
 
-					try {
-						// Create root cluster node
-						let id1 = await fwc_treeModel.newNode(connection,fwcloud,clusters[0].name,nodeId,'CL',clusters[0].id,100);
-						
-						let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].fwmaster_id,100);
-						await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',clusters[0].fwmaster_id,1);
-						await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',clusters[0].fwmaster_id,2);
-						await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',clusters[0].fwmaster_id,3);
-						await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',clusters[0].fwmaster_id,4);
-						await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',clusters[0].fwmaster_id,5);
-						
-						await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);
-						
-						id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
-						await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
 
-						id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
+					// Create the nodes for the cluster firewalls.
+					sql ='SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
+					connection.query(sql, async (error, firewalls) => {
+						if (error) return reject(error);
+						if (firewalls.length===0) return reject(new Error('No firewalls found for cluster with id '+clusters[0].id));
 
-						// Create the nodes for the cluster firewalls.
-						sql ='SELECT id,name FROM firewall WHERE cluster=' + connection.escape(clusterId) + ' AND fwcloud=' + connection.escape(fwcloud)
-						connection.query(sql, async (error, firewalls) => {
-							if (error) return reject(error);
-							if (nodes.length===0) return reject(new Error('No firewalls found for cluster with id '+clusters[0].id));
+						for(let firewall of firewalls) 
+							await fwc_treeModel.newNode(connection,fwcloud,firewall.name,id2,'FW',firewall.id,0);
 
-							for(let firewall of firewalls) 
-								await fwc_treeModel.newNode(connection,fwcloud,firewall.name,id2,'FW',firewall.id,0);
-
-							resolve();
-						});
-					} catch(error) { return reject(error)}
-				});
+						resolve();
+					});
+				} catch(error) { return reject(error)}
 			});
 		});
 	});

@@ -27,10 +27,14 @@ schema.validate = req => {
         options: sharedSch.u16bits
       });
 
-      if (req.method==='PUT') schemaClusterData = schemaClusterData.append({ cluster: sharedSch.id });
-      else if (req.method==='POST') schemaClusterData = schemaClusterData.append({ node_id: sharedSch.id, fwnodes: Joi.array().items(schemaItem) });
-      
       schema = Joi.object().keys({ fwcloud: sharedSch.id, clusterData: schemaClusterData });
+
+      if (req.method==='PUT') 
+        schemaClusterData = schemaClusterData.append({ cluster: sharedSch.id });
+      else if (req.method==='POST') {
+        schemaClusterData = schemaClusterData.append({ node_id: sharedSch.id, fwnodes: Joi.array().items(schemaItem) });
+        schema = schema.append({ node_id: sharedSch.id });
+      }
     } 
     else if (req.method==='PUT') {
       schema = Joi.object().keys({ fwcloud: sharedSch.id });
