@@ -19,12 +19,12 @@ schema.validate = req => {
         } else if (req.method === 'PUT') {
             if (req.url === '/ipobj/group/get')
                 schema = schema.append({ id: sharedSch.id });
-            else if (req.url === '/ipobj/group/del')
+            else if (req.url === '/ipobj/group/del' || req.url === '/ipobj/group/restricted')
                 schema = schema.append({ id: sharedSch.id, type: sharedSch.group_type });
             else if (req.url === '/ipobj/group/addto')
                 schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.name, ipobj_g: sharedSch.id, ipobj: sharedSch.id });
             else if (req.url === '/ipobj/group/delfrom')
-                schema = schema.append({ node_parent: sharedSch.id, ipobjg: sharedSch.id, ipobj: sharedSch.id });
+                schema = schema.append({ node_parent: sharedSch.id.optional(), ipobj_g: sharedSch.id, ipobj: sharedSch.id });
         } else return reject(new Error('Request method not accepted'));
 
 
