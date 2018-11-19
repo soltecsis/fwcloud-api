@@ -786,7 +786,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewal
 
 			sql ='SELECT id FROM fwc_tree WHERE id_obj=' +
 				'(select id from firewall where cluster=' + connection.escape(clusterId) + ' and fwmaster=1)' +
-				' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="FDF"';
+				' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="FCF"';
 			connection.query(sql, async (error, nodes) => {
 				if (error) return reject(error);
 				if (nodes.length!==1) return reject(new Error('Node NODES not found'));
@@ -828,7 +828,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
 					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
 
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FDF',clusters[0].fwmaster_id,null);
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
 
 					// Create the nodes for the cluster firewalls.
 					sql ='SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
@@ -915,7 +915,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 
 											//Insertamos nodo NODE FIREWALLS
 											sqlinsert = 'INSERT INTO ' + tableModel + '(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-												' VALUES (' + '"NODES",' + parent_cluster + ',"FDF",' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + ")";
+												' VALUES (' + '"NODES",' + parent_cluster + ',"FCF",' + connection.escape(idfirewall) + ',null,' + connection.escape(rnode.fwcloud) + ")";
 											connection.query(sqlinsert, function (error, result) {
 												if (error)
 													logger.debug("ERROR RR : " + error);
@@ -990,14 +990,14 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 
 							//update ALL NODES UNDER CLUSTER to FIREWALL
 							sqlinsert = 'UPDATE ' + tableModel + ' SET id_parent=' + firewallNode +
-									' WHERE id_parent=' + clusterNode + ' AND node_type<>"FDF"';
+									' WHERE id_parent=' + clusterNode + ' AND node_type<>"FCF"';
 							connection.query(sqlinsert, function (error, result) {
 								if (error)
 									logger.debug("ERROR ALL NODES : " + error);
 							});
 
 							//SEARCH node NODES
-							sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent=' + clusterNode + ' AND T1.fwcloud=' + connection.escape(fwcloud);
+							sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FCF" and T1.id_parent=' + clusterNode + ' AND T1.fwcloud=' + connection.escape(fwcloud);
 							logger.debug(sql);
 							connection.query(sql, function (error, rowsN) {
 								if (error) {
@@ -1006,11 +1006,11 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 									var idNodes = rowsN[0].id;
 									//Remove nodo NODES
 									sqldel = 'DELETE FROM  ' + tableModel + ' ' +
-											' WHERE node_type= "FDF" and id_parent=' + clusterNode;
+											' WHERE node_type= "FCF" and id_parent=' + clusterNode;
 									logger.debug(sqldel);
 									connection.query(sqldel, function (error, result) {
 										if (error)
-											logger.debug("ERROR FDF : " + error);
+											logger.debug("ERROR FCF : " + error);
 									});
 									//SEARCH IDNODE for FIREWALLS NODE
 									sql = 'SELECT T1.* FROM ' + tableModel + ' T1  where T1.node_type="FDF" and T1.id_parent is null AND T1.fwcloud=' + connection.escape(fwcloud);
@@ -1031,7 +1031,7 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 												logger.debug(sqldel);
 												connection.query(sqldel, function (error, result) {
 													if (error)
-														logger.debug("ERROR FW - FDF : " + error);
+														logger.debug("ERROR FW - FCF : " + error);
 													else {
 														AllDone(null, {"result": true});
 													}
