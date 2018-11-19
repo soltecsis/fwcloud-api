@@ -340,7 +340,7 @@ router.post('/', async(req, res) => {
 
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (req.tree_node.node_type!=='FCF' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
+		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
 
 		firewallData = await FirewallModel.checkBodyFirewall(firewallData, true);
 
@@ -514,7 +514,7 @@ router.put('/clone', (req, res) => {
 	};
 
 	// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-	if (req.tree_node.node_type!=='FCF' && req.tree_node.node_type!=='FD')
+	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	FirewallModel.cloneFirewall(req.session.user_id, firewallData)

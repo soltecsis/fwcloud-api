@@ -130,7 +130,7 @@ router.post('/', (req, res) => {
 	};
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
-	if (req.tree_node.node_type!=='FCF' && req.tree_node.node_type!=='FD') 
+	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	ClusterModel.insertCluster(clusterData, async(error, dataNewCluster) => {
@@ -301,7 +301,7 @@ router.put('/clone', (req, res) => {
 	};
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
-	if (req.tree_node.node_type!=='FCF' && req.tree_node.node_type!=='FD') 
+	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	FirewallModel.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
