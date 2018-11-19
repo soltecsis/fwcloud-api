@@ -87,9 +87,9 @@ router.post('/crt',async (req, res) => {
 		await crtModel.createNewCert(req);
 		// Create the new certificate in the CA directory.
 		var cmd = '';
-		if (req.body.type===1) // Client
+		if (req.body.type===1) // Client certificate
 			cmd = 'build-client-full';
-		else // Server
+		else // Server certificate
 			cmd = 'build-server-full';
 		req.caId = req.body.ca;
 		await crtModel.runEasyRsaCmd(req,cmd);

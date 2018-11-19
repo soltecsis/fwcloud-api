@@ -65,7 +65,9 @@ router.post('/cfg', async (req, res) => {
 		}
 
 		// Dump configuration files.
-		openvpnModel.dumpCfg(req,cfg);
+		openvpnModel.dumpCfg(req,cfg,1); // 1=Config file
+		if (req.crt.type===1) // Client certificate
+			openvpnModel.dumpCfg(req,cfg,0); // 0=ccd file
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 

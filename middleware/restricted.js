@@ -46,19 +46,27 @@ restrictedCheck.otherFirewall = (req, res, next) => {
 
 
 restrictedCheck.firewallApplyTo = (req, res, next) => {
-	var sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
-		' where fw_apply_to=' + req.body.firewall +
-		' AND F.cluster=' + req.body.cluster +
-		' AND F.fwcloud=' + req.body.fwcloud;
-	req.dbCon.query(sql, function(error, row) {
+	// Is this firewall part of a cluster?
+	let sql = 'SELECT cluster from firewall where id=' + req.body.fwcloud + ' AND fwcloud=' + req.body.fwcloud;
+	req.dbCon.query(sql, function(error, result) {
 		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+		if (result && result.length === 0) return next(); // No, it is not part of a cluster.
 
-		if (row && row.length > 0) {
-			if (row[0].cont > 0) {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		// If it is part of a cluster then look if it appears in the apply to column of a rule of the cluster.
+		sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
+			' where fw_apply_to=' + req.body.firewall +
+			' AND F.cluster=' + result[0].cluster +
+			' AND F.fwcloud=' + req.body.fwcloud;
+		req.dbCon.query(sql, function(error, row) {
+			if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+
+			if (row && row.length > 0) {
+				if (row[0].cont > 0) {
+					const restricted = { "result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
+					api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+				} else next();
 			} else next();
-		} else next();
+		});
 	});
 };
 

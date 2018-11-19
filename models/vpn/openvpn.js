@@ -26,9 +26,17 @@ openvpnModel.addCfgOpt = (req, opt) => {
   });
 };
 
-openvpnModel.dumpCfg = (id, scope) => {
+openvpnModel.dumpCfg = (req,cfg,scope) => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
+    var fs = require('fs');
+    var path = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/openvpn';
+
+    if (!fs.existsSync(path))
+      fs.mkdirSync(path);
+    path += "/" + req.crt.cn;
+    var stream = fs.createWriteStream(path);
+  
+    req.dbCon.query('select * from openvpn_opt where cfg='+cfg+' and scope='+scope+' order by openvpn_opt.order asc', (error, result) => {
       if (error) return reject(error);
       resolve();
     });

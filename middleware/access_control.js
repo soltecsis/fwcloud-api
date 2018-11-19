@@ -49,10 +49,34 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'TREE NODE ACCESS NOT ALLOWED', 'TREE', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
+		// Check access to the tree node indicated in req.body.node_id.
+		if (req.body.crt) {
+			if (!(await checkCrtAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+		}
+
 		next()
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
+// Check access to certificate.
+function checkCrtAccess(req) {
+	return new Promise((resolve, reject) => {
+		var sql = 'select crt.*,ca.fwcloud FROM crt WHERE ca.id=crt.ca and crt.id='+req.body.crt;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA of the CRT is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the crt info for use in the API call processing.
+			req.crt = result[0];
+
+			resolve(true);
+		});
+	});
+};
 
 // Check access to the tree node.
 function checkTreeNodeAccess(req) {
