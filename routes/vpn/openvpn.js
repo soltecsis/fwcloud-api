@@ -94,7 +94,7 @@ router.put('/cfg', async (req, res) => {
 
 
 /**
- * Install OpenVPN configuration in firewall.
+ * Install OpenVPN configuration in the destination firewall.
  */
 router.post('/install', async (req, res) => {
 	try {
