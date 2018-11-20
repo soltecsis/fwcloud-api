@@ -28,13 +28,13 @@ schema.validate = req => {
         } else if (req.method === 'PUT') {
             schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
-            if (req.url === '/firewall/get' || req.url === '/firewall/del')
+            if (req.url === '/firewall/get' || req.url === '/firewall/del' || req.url === '/firewall/restricted')
                 schema = schema.append({ firewall: sharedSch.id });
             else if (req.url === '/firewall/cluster/get')
                 schema = schema.append({ cluster: sharedSch.id });
             else if (req.url === '/firewall/clone')
                 schema = schema.append({ firewall: sharedSch.id, name: sharedSch.name, comment: sharedSch.comment, node_id: sharedSch.id });
-            else if (req.url === '/firewall/delfromcluster' || req.url === '/firewall/restricted')
+            else if (req.url === '/firewall/delfromcluster')
                 schema = schema.append({ firewall: sharedSch.id, cluster: sharedSch.id });
         } else return reject(new Error('Request method not accepted'));
 
