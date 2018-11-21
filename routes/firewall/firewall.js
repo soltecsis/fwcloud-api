@@ -627,28 +627,19 @@ router.put('/del',
 
 //DELETE FIREWALL FROM CLUSTER
 router.put('/delfromcluster',
-	restrictedCheck.otherFirewall,
-	restrictedCheck.firewallApplyTo,
-	(req, res) => {
-		//CHECK FIREWALL DATA TO DELETE
-		FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
-			.then(data => {
-				if (data && data.result) {
-					api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else {
-					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(error => {
-				api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-	});
+//restrictedCheck.otherFirewall,
+restrictedCheck.firewallApplyTo,
+(req, res) => {
+	//CHECK FIREWALL DATA TO DELETE
+	FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
+	.then(data => {
+		if (data && data.result)
+			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	 	else
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+});
 
 /**
  * Get firewall export

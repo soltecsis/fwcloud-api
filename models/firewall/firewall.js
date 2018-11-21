@@ -909,7 +909,7 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 							if (rowS && rowS.length > 0) {
 								var idNewFM = rowS[0].id;
 
-								// Rename datar directory with the new firewall master id.
+								// Rename data directory with the new firewall master id.
 								try {
 									await utilsModel.renameFirewallDataDir(fwcloud,idfirewall,idNewFM);
 								} catch(error) { return reject(error) }

@@ -401,7 +401,7 @@ BEGIN
 	UPDATE policy_r__ipobj set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
     UPDATE policy_r__interface set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
     UPDATE interface__ipobj set updated_at=CURRENT_TIMESTAMP  WHERE interface=NEW.id ;
-    UPDATE firewall set updated_at= URRENT_TIMESTAMP WHERE id=NEW.firewall;
+    UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1713,4 +1713,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-11-19 19:00:26
+-- Dump completed on 2018-11-21 14:13:05
