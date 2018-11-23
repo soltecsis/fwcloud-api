@@ -180,7 +180,7 @@ policy_gModel.deletePolicy_g = (idfirewall, id, callback) => {
 //Delete policy group if it is empty.
 policy_gModel.deleteIfEmptyPolicy_g = (dbCon,firewall,group) => {
 	return new Promise((resolve, reject) => {
-		let sql = 'SELECT count(*) FROM policy_r WHERE idgroup=' + group + ' AND firewall=' + firewall;
+		let sql = 'SELECT count(*) AS n FROM policy_r WHERE idgroup=' + group + ' AND firewall=' + firewall;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return	reject(error);
 
