@@ -680,20 +680,18 @@ policy_rModel.updatePolicy_r = function (old_order, policy_rData, callback) {
 				logger.debug("UPDATE RULE:");
 				logger.debug(policy_rData);
 
-				var sql = 'UPDATE ' + tableModel + ' SET ' +
-						'idgroup = ' + connection.escape(policy_rData.idgroup) + ',' +
-						'firewall = ' + connection.escape(policy_rData.firewall) + ',' +
-						'rule_order = ' + connection.escape(policy_rData.rule_order) + ',' +
-						'action = ' + connection.escape(policy_rData.action) + ',' +
-						'time_start = ' + connection.escape(policy_rData.time_start) + ',' +
-						'time_end = ' + connection.escape(policy_rData.time_end) + ',' +
-						'options = ' + connection.escape(policy_rData.options) + ',' +
-						'active = ' + connection.escape(policy_rData.active) + ',' +
-						'comment = ' + connection.escape(policy_rData.comment) + ', ' +
-						'type = ' + connection.escape(type) + ', ' +
-						'style = ' + connection.escape(policy_rData.style) + ', ' +
-						'fw_apply_to = ' + connection.escape(policy_rData.fw_apply_to) + ' ' +
-						' WHERE id = ' + policy_rData.id;
+				let sql = 'UPDATE ' + tableModel + ' SET ';
+				if (policy_rData.idgroup) sql+='idgroup=' + policy_rData.idgroup + ',';
+				if (policy_rData.rule_order) sql+='rule_order=' + policy_rData.rule_order + ',';
+				if (policy_rData.action) sql+='action=' + policy_rData.action + ',';
+				if (policy_rData.time_start) sql+='time_start=' + policy_rData.time_start + ',';
+				if (policy_rData.time_end) sql+='time_end=' + policy_rData.time_end + ',';
+				if (policy_rData.options) sql+='options=' + policy_rData.options + ',';
+				if (policy_rData.active) sql+='active=' + policy_rData.active + ',';
+				if (policy_rData.comment) sql+='comment=' + connection.escape(policy_rData.comment) + ',';
+				if (policy_rData.style) sql+='style=' + policy_rData.style + ',';
+				if (policy_rData.fw_apply_to) sql+='fw_apply_to=' + policy_rData.fw_apply_to + ',';
+				sql = sql.slice(0,-1) + ' WHERE id=' + policy_rData.id;
 
 				connection.query(sql, function (error, result) {
 					if (error) {
