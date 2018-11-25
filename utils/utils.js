@@ -19,25 +19,8 @@ const db = require('../db');
 const fs = require('fs');
 var path = require('path');
 
-
-utilsModel.checkEmptyRow = function (obj, callback) {
-	var resp = true;
-	logger.debug(obj);
-	if (obj === null)
-		resp = false;
-	else if (obj === undefined)
-		resp = false;
-	else if (obj.length === 0)
-		resp = false;
-	//logger.debug(resp);
-	callback(resp);
-};
 utilsModel.isEmptyObject = function (obj) {
 	return !Object.keys(obj).length;
-};
-utilsModel.getRandomString = function (size) {
-	var x = randomString({length: size});
-	return x;
 };
 
 utilsModel.startsWith = function(str, word) {
@@ -149,36 +132,6 @@ utilsModel.decryptDataUserPass = function (data) {
 	});
 };
 
-async function fetchRepoInfos() {
-	// load repository details for this array of repo URLs
-	const repos = [
-		{
-			url: 'https://api.github.com/repos/fs-opensource/futureflix-starter-kit'
-		},
-		{
-			url: 'https://api.github.com/repos/fs-opensource/android-tutorials-glide'
-		}
-	];
-	// map through the repo list
-	const promises = repos.map(async repo => {
-		// request details from GitHub’s API with Axios
-		const response = await Axios({
-			method: 'GET',
-			url: repo.url,
-			headers: {
-				Accept: 'application/vnd.github.v3+json'
-			}
-		});
-		return {
-			name: response.data.full_name,
-			description: response.data.description
-		};
-	});
-	// wait until all promises resolve
-	const results = await Promise.all(promises);
-	// use the results
-};
-
 
 utilsModel.getDbConnection = () => {
 	return new Promise((resolve, reject) => {
@@ -191,41 +144,40 @@ utilsModel.getDbConnection = () => {
 };
 
 utilsModel.createFwcloudDataDir = fwcloud => {
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		var path='';
 		try {
 			path = config.get('policy').data_dir;
 			if (!fs.existsSync(path))
 				fs.mkdirSync(path);
 			path += "/" + fwcloud;
+			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
+			fs.mkdirSync(path);
+
+			path = config.get('pki').data_dir;
 			if (!fs.existsSync(path))
 				fs.mkdirSync(path);
-			
+			path += "/" + fwcloud;
+			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
+			fs.mkdirSync(path);
+
 			resolve();
 		} catch(error) { reject(error) }
   });
 };
 
 utilsModel.removeFwcloudDataDir = fwcloud => {
-	return new Promise((resolve, reject) => {
-		var dir_path=config.get('policy').data_dir+'/'+fwcloud;
+	return new Promise(async (resolve, reject) => {
 		try {
-			if (fs.existsSync(dir_path)) {
-        fs.readdirSync(dir_path).forEach(function(entry) {
-            var entry_path = path.join(dir_path, entry);
-            if (!fs.lstatSync(entry_path).isDirectory()) 
-              fs.unlinkSync(entry_path);
-        });
-        fs.rmdirSync(dir_path);
-   		}
+			await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud);
+			await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+fwcloud);
 			resolve();
 		} catch(error) { reject(error) }
   });
 };
 
-
 utilsModel.createFirewallDataDir = (fwcloud, fwId) => {
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		var path='';
 		try {
 			path = config.get('policy').data_dir;
@@ -235,26 +187,9 @@ utilsModel.createFirewallDataDir = (fwcloud, fwId) => {
 			if (!fs.existsSync(path))
 				fs.mkdirSync(path);
 			path += "/" + fwId;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
-			
-			resolve();
-		} catch(error) { reject(error) }
-  });
-};
+			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
+			fs.mkdirSync(path);
 
-utilsModel.removeFirewallDataDir = (fwcloud, fwId) => {
-	return new Promise((resolve, reject) => {
-		var dir_path=config.get('policy').data_dir+'/'+fwcloud+'/'+fwId;
-		try {
-			if (fs.existsSync(dir_path)) {
-        fs.readdirSync(dir_path).forEach(function(entry) {
-            var entry_path = path.join(dir_path, entry);
-            if (!fs.lstatSync(entry_path).isDirectory()) 
-              fs.unlinkSync(entry_path);
-        });
-        fs.rmdirSync(dir_path);
-   		}
 			resolve();
 		} catch(error) { reject(error) }
   });
@@ -271,4 +206,46 @@ utilsModel.renameFirewallDataDir = (fwcloud, fwIdOld, fwIdNew) => {
   });
 };
 
+
+utilsModel.deleteFile = (dir, file) => {
+	return new Promise((resolve, reject) => {
+		var filePath = path.join(dir, file);
+		fs.lstat(filePath, (err, stats) => {
+			if (err) {
+				if (err.code==="ENOENT") return resolve();
+				return reject(err);
+			}
+			if (stats.isDirectory())
+				resolve(utilsModel.deleteFolder(filePath));
+			else {
+				fs.unlink(filePath, err => {
+					if (err) return reject(err);
+					resolve();
+				});
+			}
+		});
+	});
+};
+
+utilsModel.deleteFolder = dir => {
+	return new Promise((resolve, reject) => {
+		fs.access(dir, err => {
+			if (err) {
+				if (err.code==="ENOENT") return resolve();
+				return reject(err);
+			}
+			fs.readdir(dir, (err, files) => {
+				if (err) return reject(err);
+				Promise.all(files.map(file => { return utilsModel.deleteFile(dir, file) }))
+				.then(() => {
+					fs.rmdir(dir, err => {
+						if (err) return reject(err);
+						resolve();
+					});
+				})
+				.catch(err => reject(err));
+			});
+		});
+	});
+};
 

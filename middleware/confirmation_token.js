@@ -3,9 +3,9 @@ var confirmToken = {};
 //Export the object
 module.exports = confirmToken;
 
-var api_resp = require('../utils/api_response');
-var utilsModel = require('../utils/utils');
-var userModel = require('../models/user/user');
+const randomString = require('random-string');
+const api_resp = require('../utils/api_response');
+const userModel = require('../models/user/user');
 
 confirmToken.check = async (req, res, next) => {
   if (req.url.split('/').pop()==='get' || req.url.split('/').pop()==='restricted' || req.url.split('/').pop()==='where' 
@@ -35,7 +35,7 @@ confirmToken.validate = req => {
           
           if (reqCT===undefined || reqCT!==dbCT) {
             //generate new token
-            const new_token = req.sessionID + "_" + utilsModel.getRandomString(20);
+            const new_token = req.sessionID + "_" + randomString({length: 20});
             await userModel.updateUserCT(req.session.user_id, new_token)
             resolve({"result": false, "token": new_token});
           } else {

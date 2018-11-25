@@ -89,6 +89,7 @@ var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
 
 const restrictedCheck = require('../../middleware/restricted');
+const config = require('../../config/config');
 
 
 /**

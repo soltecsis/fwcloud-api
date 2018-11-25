@@ -16,25 +16,23 @@ router.put('/firewalls/get', (req, res) => {
 	var fwcloud = req.body.fwcloud;
 
 	fwcTreemodel.getFwc_TreeUserFolder(iduser, fwcloud, 'FDF', (error, rows) => {
-		utilsModel.checkEmptyRow(rows, notempty => {
-			if (notempty) {
-				var row = rows[0];
-				//create object
-				var root_node = new fwc_tree_node(row);
-				//console.log(root_node);
-				var tree = new Tree(root_node);
-				fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, row.order_mode ,'',(error, data) =>	{                    
-					if (!error) {
-						// Obtain the firewalls with status!=0 and add them to the data structure.
-						FirewallModel.getFirewallStatusNotZero(fwcloud,data)
-						.then(data => api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-						.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
-					 } else //Get Error)
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				});
-			} else
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		});
+		if (rows.length!=0) {
+			var row = rows[0];
+			//create object
+			var root_node = new fwc_tree_node(row);
+			//console.log(root_node);
+			var tree = new Tree(root_node);
+			fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, 1, 1, row.order_mode ,'',(error, data) =>	{                    
+				if (!error) {
+					// Obtain the firewalls with status!=0 and add them to the data structure.
+					FirewallModel.getFirewallStatusNotZero(fwcloud,data)
+					.then(data => api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)))
+					.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+					} else //Get Error)
+					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			});
+		} else
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
 
