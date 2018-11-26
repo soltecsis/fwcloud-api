@@ -49,7 +49,7 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'TREE NODE ACCESS NOT ALLOWED', 'TREE', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
-		// Check access to the tree node indicated in req.body.node_id.
+		// Check access to the crt indicated in req.body.crt.
 		if (req.body.crt) {
 			if (!(await checkCrtAccess(req)))
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));

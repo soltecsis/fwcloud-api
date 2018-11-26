@@ -75,6 +75,7 @@ router.post('/ca',async (req, res) => {
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
+
 /**
  * Create a new certificate.
  */
@@ -99,6 +100,20 @@ router.post('/crt',async (req, res) => {
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
+
+
+/**
+ * Delete certificate.
+ */
+router.put('/crt/del',async (req, res) => {
+	try {
+		// Check that the certificate can be deleted.
+		// Delete the certificate in the database and the files that make it.
+		// Delete the certificate node into the tree.
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 module.exports = router;
