@@ -663,7 +663,6 @@ policy_rModel.updatePolicy_r = function(old_order, policy_rData, callback) {
 						callback(error, null);
 					} else {
 						if (result.affectedRows > 0) {
-							//OrderList(policy_rData.rule_order, policy_rData.firewall, old_order, policy_rData.id);
 							callback(null, { "result": true });
 						} else
 							callback(null, { "result": false });
@@ -698,8 +697,6 @@ policy_rModel.updatePolicy_r_order = function(idfirewall, type, id, new_order, o
 						callback(error, null);
 					} else {
 						if (result.affectedRows > 0) {
-							//OrderList(new_order, idfirewall, old_order, id);
-							logger.debug("---> ORDENADA POLICY " + id + "  OLD ORDER: " + old_order + "  NEW ORDER: " + new_order);
 							callback(null, { "result": true });
 						} else
 							callback(null, { "result": false });
@@ -867,30 +864,17 @@ policy_rModel.makeAfterRuleOrderGap = (firewall, type, rule) => {
 	});
 }
 
-
-/*function OrderList(new_order, idfirewall, old_order, id) {
-	var increment = '+1';
-	var order1 = new_order;
-	var order2 = old_order;
-	if (new_order > old_order) {
-		increment = '-1';
-		order1 = old_order;
-		order2 = new_order;
-	}
-
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET ' +
-			'rule_order = rule_order' + increment +
-			' WHERE firewall = ' + connection.escape(idfirewall) +
-			' AND rule_order>=' + order1 + ' AND rule_order<=' + order2 +
-			' AND id<>' + connection.escape(id);
-		connection.query(sql);
-
+policy_rModel.reorderAfterRuleOrder = (dbCon, firewall, type, rule_order) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'UPDATE ' + tableModel + ' SET rule_order=rule_order+1' +
+			' WHERE firewall=' + firewall + ' AND type=' + type +
+			' AND rule_order>=' + rule_order;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
 	});
-
-};*/
+}
 
 
 //Remove All policy_r from firewall
@@ -958,7 +942,6 @@ policy_rModel.deletePolicy_r = function(idfirewall, id) {
 											connection.query(sql, function(error, result) {
 												if (error) return reject(error);
 												if (result.affectedRows > 0) {
-													//OrderList(999999, idfirewall, rule_order, id);
 													resolve({ "result": true, "msg": "deleted" });
 												} else
 													resolve({ "result": false, "msg": "notExist" });

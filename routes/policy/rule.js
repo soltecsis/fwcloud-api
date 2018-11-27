@@ -33,8 +33,8 @@ async (req, res) => {
 	};
 
 	try {
+		await Policy_rModel.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
 		const insertId = await Policy_rModel.insertPolicy_r(policy_rData);
-		await Policy_rModel.makeAfterRuleOrderGap(req.body.firewall, req.body.type, insertId);
 		api_resp.getJson(insertId, api_resp.ACR_INSERTED_OK, 'ISERT OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -253,46 +253,46 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 				Policy_rModel.getPolicy_r(firewall, rule, async (error, copyRule) => {
 					if (error) return reject(error);
 
+					let new_order, data;
+
 					//If exists policy_r get data
 					if (copyRule && copyRule.length > 0) {
-						let new_order;
 						try {
 							if (pasteOffset===1)
 								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
 							else
 								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+
+							//Create New objet with data policy_r
+							var policy_rData = {
+								id: null,
+								idgroup: pasteOnRule[0].idgroup,
+								firewall: copyRule[0].firewall,
+								rule_order: new_order,
+								action: copyRule[0].action,
+								time_start: copyRule[0].time_start,
+								time_end: copyRule[0].time_end,
+								active: copyRule[0].active,
+								options: copyRule[0].options,
+								comment: copyRule[0].comment,
+								type: copyRule[0].type
+							};
+							data = await Policy_rModel.insertPolicy_r(policy_rData);
 						} catch(error) { return reject(error) }
 
-						//Create New objet with data policy_r
-						var policy_rData = {
-							id: null,
-							idgroup: pasteOnRule[0].idgroup,
-							firewall: copyRule[0].firewall,
-							rule_order: new_order,
-							action: copyRule[0].action,
-							time_start: copyRule[0].time_start,
-							time_end: copyRule[0].time_end,
-							active: copyRule[0].active,
-							options: copyRule[0].options,
-							comment: copyRule[0].comment,
-							type: copyRule[0].type
-						};
-						Policy_rModel.insertPolicy_r(policy_rData, (error, data) => {
-							if (error) return reject(new Error("Error Creating POLICY from Id: " + rule));
-							if (data && data.result) {
-								//DUPLICATE RULE POSITONS O (OBJECTS)
-								Policy_r__ipobjModel.duplicatePolicy_r__ipobj(rule, data.insertId, (error, data_dup) => {
-									if (error) return reject(new Error("Error Creating POLICY O POSITIONS from Id: " + rule));
-									if (data_dup && data_dup.result) {
-										//DUPLICATE RULE POSITONS I (INTERFACES)
-										Policy_r__interfaceModel.duplicatePolicy_r__interface(rule, data.insertId, (error, data_dup) => {
-											if (error) return reject(new Error("Error Creating POLICY I POSITIONS from Id: " + rule));
-											resolve(data.insertId);
-										});
-									} else return reject(new Error("Error duplicating objects from Id: " + rule));
-								});
-							} else return reject(new Error('Inserting new rule'));
-						});
+						if (data && data.result) {
+							//DUPLICATE RULE POSITONS O (OBJECTS)
+							Policy_r__ipobjModel.duplicatePolicy_r__ipobj(rule, data.insertId, (error, data_dup) => {
+								if (error) return reject(new Error("Error Creating POLICY O POSITIONS from Id: " + rule));
+								if (data_dup && data_dup.result) {
+									//DUPLICATE RULE POSITONS I (INTERFACES)
+									Policy_r__interfaceModel.duplicatePolicy_r__interface(rule, data.insertId, (error, data_dup) => {
+										if (error) return reject(new Error("Error Creating POLICY I POSITIONS from Id: " + rule));
+										resolve(data.insertId);
+									});
+								} else return reject(new Error("Error duplicating objects from Id: " + rule));
+							});
+						} else return reject(new Error('Inserting new rule'));
 					} else return reject(new Error('Rule not found'));
 				});
 			} else return reject(new Error('Rule not found'));

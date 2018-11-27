@@ -286,47 +286,39 @@ policy_r__ipobjModel.checkExistsInPosition = function (policy_r__ipobjData) {
 }
 
 //Add new policy_r__ipobj 
-policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate, callback) {
-	//Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
-	checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
-		if (error) {
-			callback(error, null);
-		} else {
+policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate) {
+	return new Promise((resolve, reject) => {
+		//Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
+		checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, function (error, data) {
+			if (error) return reject(error);
 			allowed = data;
 			if (allowed) {
 				//Check if the IPOBJ in this position are negated
 				getNegateRulePosition(policy_r__ipobjData.rule, policy_r__ipobjData.position, function (error, data) {
-					if (error) {
-						callback(error, null);
-					} else {
-						negate = data;
-						if (set_negate)
-							negate = 1;
+					if (error) return reject(error);
 
-						db.get(function (error, connection) {
-							if (error)
-								callback(error, null);
+					negate = data;
+					if (set_negate)
+						negate = 1;
 
-							connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
-								if (error) {
-									logger.debug(error);
-									callback(error, {"result": false, "allowed": 1});
-								} else {
-									if (result.affectedRows > 0) {
-										OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
-										callback(null, {"result": true, "allowed": 1});
-									} else {
-										callback(null, {"result": false, "allowed": 1});
-									}
-								}
-							});
+					db.get(function (error, connection) {
+						if (error) return reject(error);
+
+						connection.query('INSERT INTO ' + tableModel + ' SET negate=' + negate + ', ?', policy_r__ipobjData, function (error, result) {
+							if (error) return reject(error);
+							if (result.affectedRows > 0) {
+								OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
+								resolve({"result": true, "allowed": 1});
+							} else {
+								resolve({"result": false, "allowed": 1});
+							}
 						});
-					}
+					});
 				});
 			} else {
-				callback(null, {"result": true, "allowed": 0});
+				resolve({"result": true, "allowed": 0});
 			}
-		}
+		});
 	});
 };
 
