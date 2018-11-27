@@ -629,7 +629,7 @@ policy_rModel.clonePolicy = function(rowData) {
 
 
 //Update policy_r from user
-policy_rModel.updatePolicy_r = function(old_order, policy_rData, callback) {
+policy_rModel.updatePolicy_r = function(policy_rData, callback) {
 	Policy_typeModel.getPolicy_type(policy_rData.type, function(error, data_types) {
 		if (error)
 			callback(error, null);

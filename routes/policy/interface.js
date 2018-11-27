@@ -25,7 +25,7 @@ async (req, res) => {
 	};
 
 	try {
-		await Policy_r__interfaceModel.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
+		const data = await Policy_r__interfaceModel.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
 			//If saved policy_r__interface Get data
 			if (data && data.result) {
 				if (data.result) {
@@ -37,7 +37,7 @@ async (req, res) => {
 					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
 			} else
 				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, ' INTERFACE not allowed in this position', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

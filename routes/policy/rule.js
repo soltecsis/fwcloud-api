@@ -61,8 +61,7 @@ router.put('/',
 			options: req.body.options
 		};
 
-		var old_order = req.body.old_order;
-		Policy_rModel.updatePolicy_r(old_order, policy_rData, function(error, data) {
+		Policy_rModel.updatePolicy_r(policy_rData, function(error, data) {
 			if (error)
 				api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
 			else {
@@ -222,19 +221,13 @@ router.put('/copy',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		let pasteOnRuleId = req.body.pasteOnRuleId;
 		if (req.body.action === 1) { // action=1 --> Copy/duplicate  RULE
-			let pasteOnRuleId = req.body.pasteOnRuleId;
 			for (let rule of req.body.rulesIds)
 				pasteOnRuleId = await ruleCopy(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		} else { ///  action=2 --> Move Rule
-			var inc = 1;
-			for (let rule of req.body.rulesIds) {
-				if (req.body.pasteOffset > 0)
-					await ruleOrder(req.body.firewall, rule, req.body.pasteOnRuleId, req.body.pasteOffset, inc);
-				else
-					await ruleOrder(req.body.firewall, rule, rule, req.body.pasteOffset, 1);
-				inc++;
-			}
+			for (let rule of req.body.rulesIds)
+				pasteOnRuleId = await ruleMove(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		}
 
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED/MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
@@ -253,9 +246,8 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 				Policy_rModel.getPolicy_r(firewall, rule, async (error, copyRule) => {
 					if (error) return reject(error);
 
-					let new_order, data;
-
 					//If exists policy_r get data
+					let new_order, newRuleId;
 					if (copyRule && copyRule.length > 0) {
 						try {
 							if (pasteOffset===1)
@@ -277,18 +269,18 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 								comment: copyRule[0].comment,
 								type: copyRule[0].type
 							};
-							data = await Policy_rModel.insertPolicy_r(policy_rData);
+							newRuleId = await Policy_rModel.insertPolicy_r(policy_rData);
 						} catch(error) { return reject(error) }
 
-						if (data && data.result) {
+						if (newRuleId) {
 							//DUPLICATE RULE POSITONS O (OBJECTS)
-							Policy_r__ipobjModel.duplicatePolicy_r__ipobj(rule, data.insertId, (error, data_dup) => {
+							Policy_r__ipobjModel.duplicatePolicy_r__ipobj(rule, newRuleId, (error, data_dup) => {
 								if (error) return reject(new Error("Error Creating POLICY O POSITIONS from Id: " + rule));
 								if (data_dup && data_dup.result) {
 									//DUPLICATE RULE POSITONS I (INTERFACES)
-									Policy_r__interfaceModel.duplicatePolicy_r__interface(rule, data.insertId, (error, data_dup) => {
+									Policy_r__interfaceModel.duplicatePolicy_r__interface(rule, newRuleId, (error, data_dup) => {
 										if (error) return reject(new Error("Error Creating POLICY I POSITIONS from Id: " + rule));
-										resolve(data.insertId);
+										resolve(newRuleId);
 									});
 								} else return reject(new Error("Error duplicating objects from Id: " + rule));
 							});
@@ -300,49 +292,93 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 	});
 }
 
-function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
+function ruleMove(firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise((resolve, reject) => {
-		Policy_rModel.getPolicy_r(idfirewall, pasteOnRuleId, function(error, data_dest) {
-			if (data_dest && data_dest.length > 0) {
-				logger.debug("---->POLICY DESTINO Id: " + pasteOnRuleId + " GROUP:" + data_dest[0].idgroup + "  ORDER: " + data_dest[0].rule_order + "  MAX ORDER: " + data_dest[0].max_order + "  MIN ORDER: " + data_dest[0].min_order + "  OFFSET: " + pasteOffset);
-				if ((data_dest[0].rule_order === data_dest[0].max_order && pasteOffset > 0 && pasteOnRuleId === ruletoMoveid)) {
+		// Get rule data of rule over which we are running the move action (up or down of this rule).
+		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
+			if (error) return reject(error);
 
-					reject("MAX ORDER " + data_dest[0].max_order + " REACHED POLICY Id: " + ruletoMoveid);
-				} else if ((data_dest[0].rule_order === data_dest[0].min_order && pasteOffset < 0 && pasteOnRuleId === ruletoMoveid)) {
+			if (pasteOnRule && pasteOnRule.length > 0) {
+				// Get rule data for the rule we are moving.
+				Policy_rModel.getPolicy_r(firewall, rule, async (error, copyRule) => {
+					if (error) return reject(error);
 
-					reject("MIN ORDER " + data_dest[0].min_order + "  REACHED POLICY Id: " + ruletoMoveid);
+					//If exists policy_r get data
+					let new_order;
+					if (copyRule && copyRule.length > 0) {
+						try {
+							if (pasteOffset===1)
+								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+							else
+								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+
+							//Create New objet with data policy_r
+							var policy_rData = {
+								id: null,
+								idgroup: pasteOnRule[0].idgroup,
+								firewall: copyRule[0].firewall,
+								rule_order: new_order,
+								action: copyRule[0].action,
+								time_start: copyRule[0].time_start,
+								time_end: copyRule[0].time_end,
+								active: copyRule[0].active,
+								options: copyRule[0].options,
+								comment: copyRule[0].comment,
+								type: copyRule[0].type
+							};
+						} catch(error) { return reject(error) }
+					} else return reject(new Error('Rule not found'));
+				});
+			} else return reject(new Error('Rule not found'));
+		});
+	});
+}
+
+/*function ruleMove(firewall, rule, pasteOnRuleId, pasteOffset, inc) {
+	return new Promise((resolve, reject) => {
+		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
+			if (error) return reject(error);
+
+			if (pasteOnRule && pasteOnRule.length > 0) {
+				logger.debug("---->POLICY DESTINO Id: " + pasteOnRuleId + " GROUP:" + pasteOnRule[0].idgroup + "  ORDER: " + pasteOnRule[0].rule_order + "  MAX ORDER: " + pasteOnRule[0].max_order + "  MIN ORDER: " + pasteOnRule[0].min_order + "  OFFSET: " + pasteOffset);
+				if ((pasteOnRule[0].rule_order === pasteOnRule[0].max_order && pasteOffset > 0 && pasteOnRuleId === rule)) {
+
+					reject("MAX ORDER " + pasteOnRule[0].max_order + " REACHED POLICY Id: " + rule);
+				} else if ((pasteOnRule[0].rule_order === pasteOnRule[0].min_order && pasteOffset < 0 && pasteOnRuleId === rule)) {
+
+					reject("MIN ORDER " + pasteOnRule[0].min_order + "  REACHED POLICY Id: " + rule);
 				} else {
 					//Get Group Next Rule                    
-					Policy_rModel.getPolicy_r_DestGroup(idfirewall, pasteOffset, data_dest[0].rule_order, data_dest[0].type, function(error, dataG) {
+					Policy_rModel.getPolicy_r_DestGroup(firewall, pasteOffset, pasteOnRule[0].rule_order, pasteOnRule[0].type, (error, dataG) => {
+						if (error) return reject(error);
 
-						Policy_rModel.getPolicy_r(idfirewall, ruletoMoveid, function(error, data) {
+						Policy_rModel.getPolicy_r(firewall, rule, (error, data) => {
+							if (error) return reject(error);							
+
 							//If exists policy_r get data
 							if (data && data.length > 0) {
 								let old_order = data[0].rule_order;
-								let new_order = data_dest[0].rule_order + (inc * pasteOffset);
+								let new_order = pasteOnRule[0].rule_order + (inc * pasteOffset);
 								var idgroupDest = data[0].idgroup;
 								//If exists policy_r get data
 								if (dataG && dataG.length > 0) {
 									idgroupDest = dataG[0].idgroup;
 								}
 
-								logger.debug("ENCONTRADA POLICY Id: " + ruletoMoveid + "  ORDER: " + old_order + " --> NEW ORDER:" + new_order + " NEW Group:" + idgroupDest);
+								logger.debug("ENCONTRADA POLICY Id: " + rule + "  ORDER: " + old_order + " --> NEW ORDER:" + new_order + " NEW Group:" + idgroupDest);
 								logger.debug("IDGROUP DEST: " + idgroupDest + "  IDGROUP RULE:" + data[0].idgroup);
 								if (idgroupDest === data[0].idgroup) {
-									Policy_rModel.updatePolicy_r_order(idfirewall, data[0].type, ruletoMoveid, new_order, old_order, idgroupDest, function(error, data) {
-										if (error)
-											reject("Error Orderning");
-										else {
-											//If saved policy_r saved ok, get data
-											if (data && data.result) {
-												resolve(data);
-											} else {
-												reject("ERROR updating order");
-											}
+									Policy_rModel.updatePolicy_r_order(firewall, data[0].type, rule, new_order, old_order, idgroupDest, (error, data) => {
+										if (error) return reject(error);
+										//If saved policy_r saved ok, get data
+										if (data && data.result) {
+											resolve(data);
+										} else {
+											reject("ERROR updating order");
 										}
 									});
 								} else {
-									Policy_rModel.updatePolicy_r_Group(idfirewall, null, idgroupDest, ruletoMoveid, function(error, data) {
+									Policy_rModel.updatePolicy_r_Group(firewall, null, idgroupDest, rule, function(error, data) {
 										if (error)
 											reject("Error Orderning");
 										else {
@@ -356,17 +392,17 @@ function ruleOrder(idfirewall, ruletoMoveid, pasteOnRuleId, pasteOffset, inc) {
 									});
 								}
 							} else {
-								reject("NOT FOUND POLICY Id: " + ruletoMoveid);
+								reject("NOT FOUND POLICY Id: " + rule);
 							}
 						});
 					});
 				}
 			} else {
-				reject("NOT FOUND POLICY Id: " + ruletoMoveid);
+				reject("NOT FOUND POLICY Id: " + rule);
 			}
 		});
 	});
-}
+}*/
 
 
 
