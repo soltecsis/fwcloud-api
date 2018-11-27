@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Policy_rModel = require('../../models/policy/policy_r');
+var Policy_gModel = require('../../models/policy/policy_g');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var db = require('../../db.js');
@@ -41,52 +42,45 @@ async (req, res) => {
 
 /* Update policy_r that exist */
 router.put('/',
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		//Save data into object
-		var policy_rData = {
-			id: req.body.id,
-			idgroup: req.body.idgroup,
-			firewall: req.body.firewall,
-			rule_order: req.body.rule_order,
-			options: req.body.options,
-			action: req.body.action,
-			time_start: req.body.time_start,
-			time_end: req.body.time_end,
-			comment: req.body.comment,
-			active: req.body.active,
-			type: req.body.type,
-			style: req.body.style,
-			fw_apply_to: req.body.fw_apply_to,
-			options: req.body.options
-		};
+utilsModel.disableFirewallCompileStatus,
+async (req, res) => {
+	//Save data into object
+	var policy_rData = {
+		id: req.body.id,
+		idgroup: req.body.idgroup,
+		firewall: req.body.firewall,
+		rule_order: req.body.rule_order,
+		options: req.body.options,
+		action: req.body.action,
+		time_start: req.body.time_start,
+		time_end: req.body.time_end,
+		comment: req.body.comment,
+		active: req.body.active,
+		type: req.body.type,
+		style: req.body.style,
+		fw_apply_to: req.body.fw_apply_to,
+		options: req.body.options
+	};
 
-		Policy_rModel.updatePolicy_r(policy_rData, function(error, data) {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-			else {
-				logger.debug("POLICY UPDATED: ", data);
-				//If saved policy_r saved ok, get data
-				if (data && data.result) {
-					// Recompile rule.
-					var accessData = {
-						sessionID: req.sessionID,
-						iduser: req.session.user_id,
-						fwcloud: req.body.fwcloud,
-						idfirewall: req.body.firewall,
-						rule: policy_rData.id
-					};
-					Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
-						if (error)
-							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error compiling rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-						else
-							api_resp.getJson(datac, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-					});
-				} else
-					api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-			}
-		});
+	try {
+		await Policy_rModel.updatePolicy_r(req.dbCon, policy_rData);
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+
+	// Recompile rule.
+	var accessData = {
+		sessionID: req.sessionID,
+		iduser: req.session.user_id,
+		fwcloud: req.body.fwcloud,
+		idfirewall: req.body.firewall,
+		rule: policy_rData.id
+	};
+	Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
+		if (error)
+			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error compiling rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(datac, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	});
+});
 
 
 /* Get all policy_rs by firewall and type */
@@ -227,7 +221,7 @@ async (req, res) => {
 				pasteOnRuleId = await ruleCopy(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		} else { ///  action=2 --> Move Rule
 			for (let rule of req.body.rulesIds)
-				pasteOnRuleId = await ruleMove(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+				pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		}
 
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED/MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
@@ -292,7 +286,7 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 	});
 }
 
-function ruleMove(firewall, rule, pasteOnRuleId, pasteOffset) {
+function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise((resolve, reject) => {
 		// Get rule data of rule over which we are running the move action (up or down of this rule).
 		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
@@ -300,32 +294,30 @@ function ruleMove(firewall, rule, pasteOnRuleId, pasteOffset) {
 
 			if (pasteOnRule && pasteOnRule.length > 0) {
 				// Get rule data for the rule we are moving.
-				Policy_rModel.getPolicy_r(firewall, rule, async (error, copyRule) => {
+				Policy_rModel.getPolicy_r(firewall, rule, async (error, moveRule) => {
 					if (error) return reject(error);
 
-					//If exists policy_r get data
 					let new_order;
-					if (copyRule && copyRule.length > 0) {
+					if (moveRule && moveRule.length > 0) {
 						try {
 							if (pasteOffset===1)
-								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
 							else
-								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
 
-							//Create New objet with data policy_r
+							//Update the moved rule data
 							var policy_rData = {
-								id: null,
+								id: rule,
 								idgroup: pasteOnRule[0].idgroup,
-								firewall: copyRule[0].firewall,
-								rule_order: new_order,
-								action: copyRule[0].action,
-								time_start: copyRule[0].time_start,
-								time_end: copyRule[0].time_end,
-								active: copyRule[0].active,
-								options: copyRule[0].options,
-								comment: copyRule[0].comment,
-								type: copyRule[0].type
+								rule_order: new_order
 							};
+							await Policy_rModel.updatePolicy_r(dbCon, policy_rData);
+							
+							// If we have moved rule from a group, if the group is empty remove de rules group from the database.
+							if (moveRule[0].idgroup)
+								await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule[0].idgroup);
+
+							resolve(rule);
 						} catch(error) { return reject(error) }
 					} else return reject(new Error('Rule not found'));
 				});

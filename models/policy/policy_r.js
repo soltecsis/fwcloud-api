@@ -629,47 +629,25 @@ policy_rModel.clonePolicy = function(rowData) {
 
 
 //Update policy_r from user
-policy_rModel.updatePolicy_r = function(policy_rData, callback) {
-	Policy_typeModel.getPolicy_type(policy_rData.type, function(error, data_types) {
-		if (error)
-			callback(error, null);
-		else {
-			if (data_types.length > 0)
-				type = data_types[0].id;
-			else
-				type = 1;
-			db.get(function(error, connection) {
-				if (error)
-					callback(error, null);
-				logger.debug("UPDATE RULE:");
-				logger.debug(policy_rData);
+policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'UPDATE ' + tableModel + ' SET ';
+		if (typeof policy_rData.idgroup !== 'undefined') sql += 'idgroup=' + policy_rData.idgroup + ',';
+		if (policy_rData.rule_order) sql += 'rule_order=' + policy_rData.rule_order + ',';
+		if (policy_rData.action) sql += 'action=' + policy_rData.action + ',';
+		if (policy_rData.time_start) sql += 'time_start=' + policy_rData.time_start + ',';
+		if (policy_rData.time_end) sql += 'time_end=' + policy_rData.time_end + ',';
+		if (policy_rData.options) sql += 'options=' + policy_rData.options + ',';
+		if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
+		if (policy_rData.comment) sql += 'comment=' + connection.escape(policy_rData.comment) + ',';
+		if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
+		if (policy_rData.fw_apply_to) sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
+		sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
-				let sql = 'UPDATE ' + tableModel + ' SET ';
-				if (policy_rData.idgroup) sql += 'idgroup=' + policy_rData.idgroup + ',';
-				if (policy_rData.rule_order) sql += 'rule_order=' + policy_rData.rule_order + ',';
-				if (policy_rData.action) sql += 'action=' + policy_rData.action + ',';
-				if (policy_rData.time_start) sql += 'time_start=' + policy_rData.time_start + ',';
-				if (policy_rData.time_end) sql += 'time_end=' + policy_rData.time_end + ',';
-				if (policy_rData.options) sql += 'options=' + policy_rData.options + ',';
-				if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
-				if (policy_rData.comment) sql += 'comment=' + connection.escape(policy_rData.comment) + ',';
-				if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
-				if (policy_rData.fw_apply_to) sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
-				sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
-
-				connection.query(sql, function(error, result) {
-					if (error) {
-						logger.error(error);
-						callback(error, null);
-					} else {
-						if (result.affectedRows > 0) {
-							callback(null, { "result": true });
-						} else
-							callback(null, { "result": false });
-					}
-				});
-			});
-		}
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
 	});
 };
 
