@@ -210,23 +210,30 @@ router.put('/style',
 	});
 
 
-/* Copy or Move RULES */
+/* Copy RULES */
 router.put('/copy',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		let pasteOnRuleId = req.body.pasteOnRuleId;
-		if (req.body.action === 1) { // action=1 --> Copy/duplicate  RULE
-			for (let rule of req.body.rulesIds)
-				pasteOnRuleId = await ruleCopy(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
-		} else { ///  action=2 --> Move Rule
-			for (let rule of req.body.rulesIds)
-				pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
-		}
+		for (let rule of req.body.rulesIds)
+			pasteOnRuleId = await ruleCopy(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error copying rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED/MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+/* Move RULES */
+router.put('/move',
+utilsModel.disableFirewallCompileStatus,
+async (req, res) => {
+	try {
+		let pasteOnRuleId = req.body.pasteOnRuleId;
+		for (let rule of req.body.rulesIds)
+			pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error coping/moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+			api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+
+		} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {

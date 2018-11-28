@@ -45,11 +45,10 @@ schema.validate = req => {
 					style: sharedSch.u16bits, 
 					rulesIds: Joi.array().items(sharedSch.id)
 				});
-			else if (req.url === '/policy/rule/copy')
+			else if (req.url==='/policy/rule/copy' || req.url==='/policy/rule/move')
 				schema = schema.append({ 
 					pasteOnRuleId: sharedSch.id, 
 					pasteOffset: Joi.number().integer().valid([-1, 1]), 
-					action: sharedSch.rule_clipboard_action, 
 					rulesIds: Joi.array().items(sharedSch.id) 
 				});
 		} else return reject(new Error('Request method not accepted'));
