@@ -309,8 +309,10 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 						try {
 							if (pasteOffset===1)
 								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
-							else
+							else if (pasteOffset===-1)
 								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
+							else // Move rule into group.
+								new_order = moveRule[0].rule_order;
 
 							//Update the moved rule data
 							var policy_rData = {
@@ -321,7 +323,7 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 							await Policy_rModel.updatePolicy_r(dbCon, policy_rData);
 							
 							// If we have moved rule from a group, if the group is empty remove de rules group from the database.
-							if (moveRule[0].idgroup)
+							if (pasteOffset!=0 && moveRule[0].idgroup)
 								await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule[0].idgroup);
 
 							resolve(rule);
