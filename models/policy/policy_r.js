@@ -639,7 +639,7 @@ policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
 		if (policy_rData.time_end) sql += 'time_end=' + policy_rData.time_end + ',';
 		if (policy_rData.options) sql += 'options=' + policy_rData.options + ',';
 		if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
-		if (policy_rData.comment) sql += 'comment=' + connection.escape(policy_rData.comment) + ',';
+		if (policy_rData.comment) sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
 		if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
 		if (policy_rData.fw_apply_to) sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
 		sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
