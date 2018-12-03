@@ -76,6 +76,32 @@ router.post('/ca',async (req, res) => {
 });
 
 
+/* Get CA information */
+router.put('/ca/get', (req, res) => {
+	// We have already obtained the CA information in the access control middleware.
+	api_resp.getJson(req.ca, api_resp.ACR_OK, '', 'CA', null, jsonResp => res.status(200).json(jsonResp));
+});
+
+
+/**
+ * Delete ca.
+ */
+router.put('/ca/del',async (req, res) => {
+	try {
+		// Check that the ca can be deleted.
+		// Delete the ca in the database and the files that make it.
+		await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+req.body.fwcloud+'/'+req.body.ca);
+		// Delete the ca node into the tree.
+		await fwc_treeModel.deleteObjFromTree(req.body.fwcloud, req.body.ca);
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
+
+
+
+
+
 /**
  * Create a new certificate.
  */
@@ -102,6 +128,12 @@ router.post('/crt',async (req, res) => {
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
+/* Get certificate information */
+router.put('/crt/get', (req, res) => {
+	// We have already obtained the CA information in the access control middleware.
+	api_resp.getJson(req.crt, api_resp.ACR_OK, '', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+});
+
 
 /**
  * Delete certificate.
@@ -111,6 +143,7 @@ router.put('/crt/del',async (req, res) => {
 		// Check that the certificate can be deleted.
 		// Delete the certificate in the database and the files that make it.
 		// Delete the certificate node into the tree.
+		await fwc_treeModel.deleteObjFromTree(req.body.fwcloud, req.body.crt);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));

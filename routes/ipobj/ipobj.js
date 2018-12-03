@@ -501,12 +501,14 @@ restrictedCheck.ipobj,
 					//    {});
 					//REORDER TREE
 
-					fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, function (error, data) {
+					fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, async (error, data) => {
 						//DELETE FROM TREE
-						fwcTreemodel.deleteFwc_Tree(iduser, fwcloud, id, type, function (error, data) {
-							FirewallModel.getFirewallStatusNotZero(fwcloud,null)
-							.then((not_zero_status_fws) => api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)));
-						});
+						try {
+							await fwcTreemodel.deleteObjFromTree(fwcloud, id);
+							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
+							api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+						} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					}
 					});
 				} else if (data.msg === "Restricted")
 					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));

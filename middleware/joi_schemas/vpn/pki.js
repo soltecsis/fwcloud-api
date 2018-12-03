@@ -19,9 +19,9 @@ schema.validate = req => {
         schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
     }
     else if (req.method==="PUT") {
-      if (req.url==='/vpn/pki/crt/del')
+      if (req.url==='/vpn/pki/crt/get' || req.url==='/vpn/pki/crt/del')
         schema = schema.append({ crt: sharedSch.id });
-      else if (req.url==='/vpn/pki/ca/del')
+      else if (req.url==='/vpn/pki/ca/get' || req.url==='/vpn/pki/ca/del')
         schema = schema.append({ ca: sharedSch.id });
     } else return reject(new Error('Request method not accepted'));
 

@@ -20,6 +20,22 @@ crtModel.createNewCA = req => {
   });
 };
 
+// Get CA data
+crtModel.getCAdata = req => {
+	return new Promise((resolve, reject) => {
+    const ca = {
+      fwcloud: req.body.fwcloud,
+      cn: req.body.cn,
+      days: req.body.days,
+      comment: req.body.comment
+    }
+    req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
 // Insert new certificate in the database.
 crtModel.createNewCert = req => {
 	return new Promise((resolve, reject) => {

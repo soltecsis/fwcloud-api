@@ -49,7 +49,13 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'TREE NODE ACCESS NOT ALLOWED', 'TREE', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
-		// Check access to the crt indicated in req.body.crt.
+		// Check access to the CA indicated in req.body.ca.
+		if (req.body.ca) {
+			if (!(await checkCAAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CA ACCESS NOT ALLOWED', 'CA', null, jsonResp => res.status(200).json(jsonResp));
+		}
+
+				// Check access to the crt indicated in req.body.crt.
 		if (req.body.crt) {
 			if (!(await checkCrtAccess(req)))
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
@@ -57,6 +63,25 @@ accessCtrl.check = async(req, res, next) => {
 
 		next()
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+// Check access to CA.
+function checkCAAccess(req) {
+	return new Promise((resolve, reject) => {
+	 let sql = 'select * FROM ca WHERE id='+req.body.ca;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the ca info for use in the API call processing.
+			req.ca = result[0];
+
+			resolve(true);
+		});
+	});
 };
 
 // Check access to certificate.

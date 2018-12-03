@@ -163,6 +163,26 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 	});
 };
 
+// Remove all tree nodes with the indicated id_obj.
+fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+
+			//let sqlExists = 'SELECT fwcloud,id FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud=' + fwcloud + ' AND id_obj=' + id_obj;        
+			let sql = 'SELECT fwcloud,id FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id_obj=' + id_obj;        
+			connection.query(sql, async (error, rows) => {
+				if (error) return reject(error);
+
+				try {
+					for (let node of rows)
+						await fwc_treeModel.deleteFwc_TreeFullNode(node);
+					resolve();
+				}	catch(error) { reject(error) }
+			});
+		});
+	});
+};
 
 //REMOVE FULL TREE FROM PARENT NODE
 fwc_treeModel.deleteFwc_TreeFullNode = data => {
@@ -1308,48 +1328,8 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 	});
 };
 
-//Remove ALL NODES with id_obj to remove
-fwc_treeModel.deleteFwc_Tree = function (iduser, fwcloud, id_obj, type, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE node_type not like "F%" AND  fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);        
-		connection.query(sqlExists, function (error, row) {
-			//If exists Id from ipobj to remove
-			if (row) {
-				var id_parent = row[0].id;
-				db.get(function (error, connection) {
-					var sql = 'DELETE FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud = ' + connection.escape(fwcloud) + ' AND id_obj = ' + connection.escape(id_obj) + ' AND obj_type=' + connection.escape(type);
-					logger.debug("DELETE PARENT: ", sql);
-					connection.query(sql, function (error, result) {
-						if (error) {
-							logger.debug(sql);
-							callback(error, null);
-						} else {
-							if (result.affectedRows > 0) {
-								//CASCADE DELETE
-								var sql = 'DELETE FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent = ' + connection.escape(id_parent);
-								logger.debug(" DELETE FROM PARENT: ",sql);
-								connection.query(sql, function (error, result) {
-									if (error) {
-										logger.debug(sql);
-										logger.debug(error);
-										callback(error, null);
-									} else {
-										callback(null, {"result": true, "msg": "deleted"});
-									}
-								});
-							} else
-								callback(null, {"result": false});
-						}
-					});
-				});
-			} else {
-				callback(null, {"result": false});
-			}
-		});
-	});
-};
+
+
 //Remove NODE FROM GROUP with id_obj to remove
 fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_group, id_obj, callback) {
 	db.get(function (error, connection) {
