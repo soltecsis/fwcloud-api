@@ -228,12 +228,17 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		let pasteOnRuleId = req.body.pasteOnRuleId;
+
+		// The rule over wich we move cuted rules can not be part of the moved rules.
+		for (let rule of req.body.rulesIds)
+			if (rule.id === pasteOnRuleId) throw(new Error('Paste on rule can not be part of the set of pasted rules.'));
+
 		for (let rule of req.body.rulesIds)
 			pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 
-			api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-
-		} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		
+	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {

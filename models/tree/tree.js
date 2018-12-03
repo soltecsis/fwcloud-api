@@ -167,25 +167,24 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 //REMOVE FULL TREE FROM PARENT NODE
 fwc_treeModel.deleteFwc_TreeFullNode = data => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error) return reject(error);
 
-			var sql = 'SELECT * FROM ' + tableModel +
-				' WHERE fwcloud = ' + connection.escape(data.fwcloud) + ' AND id_parent=' + connection.escape(data.id);
+			let sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud=' + data.fwcloud + ' AND id_parent=' + data.id;
 			connection.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 
 				try {
 					if (rows.length > 0) {
-						logger.debug("-----> DELETING NODES UNDER PARENT: " + data.id);
+						//logger.debug("-----> DELETING NODES UNDER PARENT: " + data.id);
 						//Bucle por interfaces
 						await Promise.all(rows.map(fwc_treeModel.deleteFwc_TreeFullNode));
 						await fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id);
 					} else {
-						logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
+						//logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
 						await fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id);
 					}
-				}	catch(err) {reject(err)}
+				}	catch(err) { reject(err) }
 
 				resolve();
 			});
@@ -194,20 +193,15 @@ fwc_treeModel.deleteFwc_TreeFullNode = data => {
 };
 
 //DELETE NODE
-fwc_treeModel.deleteFwc_Tree_node = function (fwcloud, id) {
+fwc_treeModel.deleteFwc_Tree_node = (fwcloud, id) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id = ' + connection.escape(id);
-			connection.query(sql, function (error, result) {
-				if (error) {
-					logger.debug(sql);
-					logger.debug(error);
-					reject(error);
-				} else {
-					resolve({"result": true, "msg": "deleted"});
-				}
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			
+			let sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve({"result": true, "msg": "deleted"});
 			});
 		});
 	});

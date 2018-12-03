@@ -10,7 +10,8 @@ crtModel.createNewCA = req => {
     const ca = {
       fwcloud: req.body.fwcloud,
       cn: req.body.cn,
-      days: req.body.days
+      days: req.body.days,
+      comment: req.body.comment
     }
     req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
       if (error) return reject(error);
@@ -26,7 +27,8 @@ crtModel.createNewCert = req => {
       ca: req.body.ca,
       cn: req.body.cn,
       days: req.body.days,
-      type: req.body.type
+      type: req.body.type,
+      comment: req.body.comment
     }
     req.dbCon.query('insert into crt SET ?', cert, (error, result) => {
       if (error) return reject(error);

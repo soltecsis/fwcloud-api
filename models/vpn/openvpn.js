@@ -8,7 +8,8 @@ openvpnModel.addCfg = req => {
 	return new Promise((resolve, reject) => {
     const cfg = {
       firewall: req.body.firewall,
-      crt: req.body.crt
+      crt: req.body.crt,
+      comment: req.body.comment
     }
     req.dbCon.query('insert into openvpn_cfg SET ?', cfg, (error, result) => {
       if (error) return reject(error);
