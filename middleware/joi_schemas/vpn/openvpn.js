@@ -32,7 +32,8 @@ schema.validate = req => {
       }),
       arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/).allow(null).allow('').optional(),
       ipobj: sharedSch.id.allow(null).optional(),
-      scope: sharedSch._0_1 // 0=ccd, 1=config file
+      scope: sharedSch._0_1, // 0=ccd, 1=config file
+      comment: sharedSch.comment
     });
 
     var schema = Joi.object().keys({

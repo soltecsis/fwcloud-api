@@ -12,7 +12,8 @@ schema.validate = req => {
       schema = schema.append({ 
         cn: sharedSch.cn,
         days: sharedSch.days,
-        node_id: sharedSch.id 
+        node_id: sharedSch.id,
+        comment: sharedSch.comment
       });
       if (req.url==='/vpn/pki/crt')
         schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
