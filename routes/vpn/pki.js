@@ -69,7 +69,7 @@ router.post('/ca',async (req, res) => {
 		await crtModel.runEasyRsaCmd(req,'gen-crl');
 
 		// Create new CA tree node.
-		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',null,null);
+		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',req.caId,null);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -85,7 +85,7 @@ router.post('/crt',async (req, res) => {
 		if (req.tree_node.node_type!=='CA' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
 
 		// Add the new certificate to the database.
-		await crtModel.createNewCert(req);
+		const crtId = await crtModel.createNewCert(req);
 		// Create the new certificate in the CA directory.
 		var cmd = '';
 		if (req.body.type===1) // Client certificate
@@ -96,7 +96,7 @@ router.post('/crt',async (req, res) => {
 		await crtModel.runEasyRsaCmd(req,cmd);
 
 		// Create new CRT tree node.
-		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',null,null);
+		await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',crtId,null);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
