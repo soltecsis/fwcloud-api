@@ -43,112 +43,79 @@ async (req, res) => {
 
 /* Update POSITION policy_r__interface that exist */
 router.put('/move',
-	utilsModel.disableFirewallCompileStatus,
-	async(req, res) => {
-		var rule = req.body.rule;
-		var interface = req.body.interface;
-		var position = req.body.position;
-		var position_order = req.body.position_order;
-		var new_rule = req.body.new_rule;
-		var new_position = req.body.new_position;
-		var new_order = req.body.new_order;
-		var firewall = req.body.firewall;
+utilsModel.disableFirewallCompileStatus,
+async(req, res) => {
+	var rule = req.body.rule;
+	var interface = req.body.interface;
+	var position = req.body.position;
+	var position_order = req.body.position_order;
+	var new_rule = req.body.new_rule;
+	var new_position = req.body.new_position;
+	var new_order = req.body.new_order;
+	var firewall = req.body.firewall;
 
-		var content1 = 'O',
-			content2 = 'O';
+	var content1 = 'O', content2 = 'O';
 
-		logger.debug("POLICY_R-INTERFACES  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+	//logger.debug("POLICY_R-INTERFACES  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
-		// Invalidate compilation of the affected rules.
-		Policy_cModel.deletePolicy_c(firewall, rule)
-			.then(() => Policy_cModel.deletePolicy_c(firewall, new_rule))
-			.then(() => {
-				//Get position type
-				Policy_r__ipobjModel.getTypePositions(position, new_position, async (error, data) => {
-					logger.debug(data);
+	// Invalidate compilation of the affected rules.
+	await Policy_cModel.deletePolicy_c(firewall, rule);
+	await Policy_cModel.deletePolicy_c(firewall, new_rule);
+	//Get position type
+	Policy_r__ipobjModel.getTypePositions(position, new_position, async (error, data) => {
+		if (data) {
+			content1 = data.content1;
+			content2 = data.content2;
+
+			if (content1 === content2) { //SAME POSITION
+				Policy_r__interfaceModel.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, (error, data) => {
+					//If saved policy_r__ipobj saved ok, get data
 					if (data) {
-						content1 = data.content1;
-						content2 = data.content2;
+						if (data.result) {
+							Policy_rModel.compilePolicy_r(rule, function(error, datac) {});
+							Policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
+							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+						} else if (!data.allowed) {
+							api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
+						} else api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				});
+			} else { //DIFFERENTS POSITIONS
+				if (content1 === 'O' && content2 === 'I') {
+					//Create New Position 'I'
+					//Create New objet with data policy_r__interface
+					var policy_r__interfaceData = {
+						rule: new_rule,
+						interface: interface,
+						negate: 0,
+						position: new_position,
+						position_order: new_order
+					};
 
-						if (content1 === content2) { //SAME POSITION
-							Policy_r__interfaceModel.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, (error, data) => {
-								//If saved policy_r__ipobj saved ok, get data
-								if (data) {
-									if (data.result) {
-										Policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-										Policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
-										api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									} else if (!data.allowed) {
-										api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									} else
-										api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-								} else {
-									api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-										res.status(200).json(jsonResp);
-									});
-								}
+					var data;
+					try {
+						data = await Policy_r__interfaceModel.insertPolicy_r__interface(firewall, policy_r__interfaceData);
+					} catch(error) { return api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+					//If saved policy_r__interface Get data
+					if (data) {
+						if (data.result) {
+							//delete Position 'O'
+							Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, function(error, data) {
+								if (data && data.result) {
+									Policy_rModel.compilePolicy_r(rule, function(error, datac) {});
+									Policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
+									api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+								} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
 							});
-
-						} else { //DIFFERENTS POSITIONS
-							if (content1 === 'O' && content2 === 'I') {
-								//Create New Position 'I'
-								//Create New objet with data policy_r__interface
-								var policy_r__interfaceData = {
-									rule: new_rule,
-									interface: interface,
-									negate: 0,
-									position: new_position,
-									position_order: new_order
-								};
-
-								try {
-									await Policy_r__interfaceModel.insertPolicy_r__interface(firewall, policy_r__interfaceData);
-								} catch(error) { return api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-								//If saved policy_r__interface Get data
-								if (data) {
-									if (data.result) {
-										//delete Position 'O'
-										Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, function(error, data) {
-											if (data && data.result) {
-												Policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-												Policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
-												api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-													res.status(200).json(jsonResp);
-												});
-											} else {
-												api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-													res.status(200).json(jsonResp);
-												});
-											}
-										});
-									} else if (!data.allowed) {
-										api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									} else
-										api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-								} else {
-									api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-										res.status(200).json(jsonResp);
-									});
-								}
-						}
-					}
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-			});
-		});
+						} else if (!data.allowed) {
+							api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
+						} else api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				}
+			}
+		} else api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
+});
 
 
 /* Update ORDER de policy_r__interface that exist */
