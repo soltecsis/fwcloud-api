@@ -40,17 +40,12 @@ var api_resp = require('../../utils/api_response');
  * @property objModel
  * @type text
  */
-var objModel = 'CRT';
+const objModel = 'PKI';
 
-/**
- * Property Model to manage OpenVPN Data
- *
- * @property ClusterModel
- * @type ../../models/vpn/openvpn
- */
-var crtModel = require('../../models/vpn/pki');
-
-var fwcTreemodel = require('../../models/tree/tree');
+const pkiModel = require('../../models/vpn/pki');
+const fwcTreemodel = require('../../models/tree/tree');
+const config = require('../../config/config');
+const utilsModel = require('../../utils/utils');
 
 
 /**
@@ -62,11 +57,11 @@ router.post('/ca',async (req, res) => {
 		if (req.tree_node.node_type!=='FCA' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
 
 		// Add the new CA to the database.
-		req.caId = await crtModel.createNewCA(req);
+		req.caId = await pkiModel.createCA(req);
 		// Create the new CA directory structure.
-		await crtModel.runEasyRsaCmd(req,'init-pki');
-		await crtModel.runEasyRsaCmd(req,'build-ca');
-		await crtModel.runEasyRsaCmd(req,'gen-crl');
+		await pkiModel.runEasyRsaCmd(req,'init-pki');
+		await pkiModel.runEasyRsaCmd(req,'build-ca');
+		await pkiModel.runEasyRsaCmd(req,'gen-crl');
 
 		// Create new CA tree node.
 		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',req.caId,300);
@@ -88,14 +83,18 @@ router.put('/ca/get', (req, res) => {
  */
 router.put('/ca/del',async (req, res) => {
 	try {
-		// Check that the ca can be deleted.
-		// Delete the ca in the database and the files that make it.
-		await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+req.body.fwcloud+'/'+req.body.ca);
-		// Delete the ca node into the tree.
-		await fwc_treeModel.deleteObjFromTree(req.body.fwcloud, req.body.ca);
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		// Check that the ca can be deleted and delete it from the database.
+		await pkiModel.deleteCA(req);
 
-  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		// Delete the ca directory structure.
+		await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+req.body.fwcloud+'/'+req.body.ca);
+
+		// Delete the ca node into the tree.
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.ca);
+
+		// Answer to the API request.
+		api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -111,7 +110,7 @@ router.post('/crt',async (req, res) => {
 		if (req.tree_node.node_type!=='CA' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
 
 		// Add the new certificate to the database.
-		const crtId = await crtModel.createNewCert(req);
+		const crtId = await pkiModel.createCRT(req);
 		// Create the new certificate in the CA directory.
 		var cmd = '';
 		if (req.body.type===1) // Client certificate
@@ -119,7 +118,7 @@ router.post('/crt',async (req, res) => {
 		else // Server certificate
 			cmd = 'build-server-full';
 		req.caId = req.body.ca;
-		await crtModel.runEasyRsaCmd(req,cmd);
+		await pkiModel.runEasyRsaCmd(req,cmd);
 
 		// Create new CRT tree node.
 		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',crtId,301);
@@ -134,19 +133,26 @@ router.put('/crt/get', (req, res) => {
 	api_resp.getJson(req.crt, api_resp.ACR_OK, '', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
 });
 
-
 /**
  * Delete certificate.
  */
 router.put('/crt/del',async (req, res) => {
 	try {
-		// Check that the certificate can be deleted.
-		// Delete the certificate in the database and the files that make it.
-		// Delete the certificate node into the tree.
-		await fwc_treeModel.deleteObjFromTree(req.body.fwcloud, req.body.crt);
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		// Check that the certificate can be deleted and remove it from the database.
+		await pkiModel.deleteCRT(req);	
 
-  api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		// Delete the files that make the certificate.
+		const base_dir = config.get('pki').data_dir+'/'+req.body.fwcloud+'/'+req.crt.ca;
+		await utilsModel.deleteFile(base_dir+'/reqs',req.crt.cn+'.req');
+		await utilsModel.deleteFile(base_dir+'/issued',req.crt.cn+'.crt');
+		await utilsModel.deleteFile(base_dir+'/private',req.crt.cn+'.key');
+
+		// Delete the certificate node into the tree.
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt);
+
+		// Answer to the API request.
+		api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 module.exports = router;

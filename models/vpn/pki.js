@@ -1,11 +1,11 @@
 //create object
-var crtModel = {};
+var pkiModel = {};
 
 var config = require('../../config/config');
 const spawn = require('child-process-promise').spawn;
 
 // Insert new CA in the database.
-crtModel.createNewCA = req => {
+pkiModel.createCA = req => {
 	return new Promise((resolve, reject) => {
     const ca = {
       fwcloud: req.body.fwcloud,
@@ -16,12 +16,28 @@ crtModel.createNewCA = req => {
     req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
+    });
+  });
+};
+
+// Delete CA.
+pkiModel.deleteCA = req => {
+	return new Promise((resolve, reject) => {
+    // Verify that the CA can be deleted.
+    req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca='+req.body.ca, (error, result) => {
+      if (error) return reject(error);
+      if (result[0].n > 0) return reject(new Error('This CA can not be removed because it still has certificates'));
+
+      req.dbCon.query('DELETE FROM ca WHERE id='+req.body.ca, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   });
 };
 
 // Get CA data
-crtModel.getCAdata = req => {
+pkiModel.getCAdata = req => {
 	return new Promise((resolve, reject) => {
     const ca = {
       fwcloud: req.body.fwcloud,
@@ -36,8 +52,10 @@ crtModel.getCAdata = req => {
   });
 };
 
+
+
 // Insert new certificate in the database.
-crtModel.createNewCert = req => {
+pkiModel.createCRT = req => {
 	return new Promise((resolve, reject) => {
     const cert = {
       ca: req.body.ca,
@@ -53,8 +71,24 @@ crtModel.createNewCert = req => {
   });
 };
 
+// Delete CRT.
+pkiModel.deleteCRT = req => {
+	return new Promise((resolve, reject) => {
+    // Verify that the CA can be deleted.
+    req.dbCon.query('SELECT count(*) AS n FROM openvpn_cfg WHERE crt='+req.body.crt, (error, result) => {
+      if (error) return reject(error);
+      if (result[0].n > 0) return reject(new Error('This certificate can not be removed because it is used in a OpenVPN setup'));
+
+      req.dbCon.query('DELETE FROM crt WHERE id='+req.body.crt, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
+};
+
 // Execute EASY-RSA command.
-crtModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
+pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
 	return new Promise((resolve, reject) => {
     const pki_dir = '--pki-dir=' + config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.caId;
     var argv = ['--batch',pki_dir];
@@ -98,4 +132,4 @@ crtModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
 };
 
 //Export the object
-module.exports = crtModel;
+module.exports = pkiModel;
