@@ -101,7 +101,6 @@ router.put('/', (req, res) => {
 
 /* Get  ipobj_g by id */
 router.put('/get', (req, res) => {
-	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var id = req.body.id;
 	Ipobj_gModel.getIpobj_g_Full(fwcloud, id, (error, data) => {
@@ -128,7 +127,7 @@ router.put("/del",
 					fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, async (error, data) => {
 						//DELETE FROM TREE
 						try {
-							await fwcTreemodel.deleteObjFromTree(fwcloud, id);
+							await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
 							api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 						} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) } 
 					});

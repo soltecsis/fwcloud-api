@@ -491,15 +491,16 @@ ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
 		if (error)
 			callback(error, null);
 
-		var innergroup = ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ';
-		//var sql = 'SELECT * FROM ' + tableModel + ' I ' + innergroup + ' WHERE  G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
-
-		var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' + innergroup +
-				' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' )' +
-				' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
-				' WHERE G.ipobj_g=' + connection.escape(idgroup) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
-				' ORDER BY G.id_gi';
-		logger.debug(sql);
+		var sql = 'SELECT * FROM ' + tableModel + ' I ' +
+			' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
+			' WHERE  G.ipobj_g=' + idgroup +
+			' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
+		//var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
+		//	' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
+		//	' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + fwcloud + ' OR T.fwcloud IS NULL)' +
+		//	' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+		//	' WHERE G.ipobj_g=' + idgroup + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)' +
+		//	' ORDER BY G.id_gi';
 
 		connection.query(sql, function (error, rows) {
 			if (error)

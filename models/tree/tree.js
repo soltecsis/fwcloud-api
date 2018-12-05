@@ -164,13 +164,14 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 };
 
 // Remove all tree nodes with the indicated id_obj.
-fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj) => {
+fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
 			//let sqlExists = 'SELECT fwcloud,id FROM ' + tableModel + ' WHERE node_type not like "F%" AND fwcloud=' + fwcloud + ' AND id_obj=' + id_obj;        
-			let sql = 'SELECT fwcloud,id FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id_obj=' + id_obj;        
+			let sql = 'SELECT fwcloud,id FROM ' + tableModel +
+				' WHERE fwcloud=' + fwcloud + ' AND id_obj=' + id_obj + ' AND obj_type=' + obj_type;
 			connection.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 

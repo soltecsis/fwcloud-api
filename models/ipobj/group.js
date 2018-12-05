@@ -51,83 +51,80 @@ ipobj_gModel.getIpobj_g = function (fwcloud, id, callback) {
 
 //Get ipobj_g by  id AND ALL IPOBjs
 ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
+	var groups = [];
+	var group_cont = 0;
+	var ipobjs_cont = 0;
 
-		var groups = [];
-		var group_cont = 0;
-		var ipobjs_cont = 0;
+	db.get(function (error, connection) {
+			if (error) return callback(error, null);
 
-		db.get(function (error, connection) {
-				if (error)
-						callback(error, null);
+			var sqlId = '';
+			if (id !== '')
+					sqlId = ' AND G.id = ' + connection.escape(id);
+			var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
+				'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + fwcloud + ' OR T.fwcloud IS NULL) ' +
+				' WHERE  (G.fwcloud= ' + fwcloud + ' OR G.fwcloud is null) ' + sqlId;
+			connection.query(sql, function (error, rows) {
+					if (error)
+							callback(error, null);
+					else if (rows.length > 0) {
+							group_cont = rows.length;
+							var row = rows[0];
+							asyncMod.map(rows, function (row, callback1) {
 
-				var sqlId = '';
-				if (id !== '')
-						sqlId = ' AND G.id = ' + connection.escape(id);
-				var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-								'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
-								' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
-				logger.debug(sql);
-				connection.query(sql, function (error, rows) {
-						if (error)
-								callback(error, null);
-						else if (rows.length > 0) {
-								group_cont = rows.length;
-								var row = rows[0];
-								asyncMod.map(rows, function (row, callback1) {
+									var group_node = new ipobj_g_Data(row);
 
-										var group_node = new ipobj_g_Data(row);
+									logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
+									var idgroup = row.id;
+									group_node.ipobjs = new Array();
+									//GET ALL GROUP OBJECTs
+									IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+											if (data_ipobjs.length > 0) {
+													ipobjs_cont = data_ipobjs.length;
 
-										logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
-										var idgroup = row.id;
-										group_node.ipobjs = new Array();
-										//GET ALL GROUP OBJECTs
-										IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
-												if (data_ipobjs.length > 0) {
-														ipobjs_cont = data_ipobjs.length;
+													asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+															//GET OBJECTS
+															logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
-														asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
-																//GET OBJECTS
-																logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
+															var ipobj_node = new ipobj_Data(data_ipobj);
+															//Añadimos ipobj a array Grupo
+															group_node.ipobjs.push(ipobj_node);
+															callback2();
+													}, //Fin de bucle de IPOBJS
+																	function (err) {
 
-																var ipobj_node = new ipobj_Data(data_ipobj);
-																//Añadimos ipobj a array Grupo
-																group_node.ipobjs.push(ipobj_node);
-																callback2();
-														}, //Fin de bucle de IPOBJS
-																		function (err) {
-
-																				if (group_node.ipobjs.length >= ipobjs_cont) {
-																						groups.push(group_node);
-																						if (groups.length >= group_cont) {
-																								AllDone(null, groups);
-																						}
+																			if (group_node.ipobjs.length >= ipobjs_cont) {
+																					groups.push(group_node);
+																					if (groups.length >= group_cont) {
+																							AllDone(null, groups);
+																					}
 
 
-																				}
-																		}
-														);
-												} else {
-														groups.push(group_node);
-														if (groups.length >= group_cont) {
-																AllDone(null, groups);
-														}
-												}
-										}
-										);
-										callback1();
-								}, //Fin de bucle de GROUPS
-												function (err) {
-														if (groups.length >= group_cont) {
+																			}
+																	}
+													);
+											} else {
+													groups.push(group_node);
+													if (groups.length >= group_cont) {
+															AllDone(null, groups);
+													}
+											}
+									}
+									);
+									callback1();
+							}, //Fin de bucle de GROUPS
+											function (err) {
+													if (groups.length >= group_cont) {
 
-																AllDone(null, groups);
-														}
-												}
-								);
-						} else {
-								AllDone("", null);
-						}
-				});
-		});
+															AllDone(null, groups);
+													}
+											}
+							);
+					} else {
+							AllDone("", null);
+					}
+			});
+	});
 };
 
 //Get ipobj_g by  id AND ALL IPOBjs

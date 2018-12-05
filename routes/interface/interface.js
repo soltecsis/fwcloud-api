@@ -247,7 +247,7 @@ restrictedCheck.interface,
 					await Interface__ipobjModel.UpdateHOST(idInterface);
 					Interface__ipobjModel.deleteInterface__ipobj(idInterface, null, (error, data) => {});
 					//DELETE FROM TREE
-					await fwcTreemodel.deleteObjFromTree(fwcloud, idInterface);
+					await fwcTreemodel.deleteObjFromTree(fwcloud, idInterface, 10);
 					api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 			} else if (data.msg === "Restricted")
@@ -270,7 +270,7 @@ router.put("/host/del",
 					try {
 						await IpobjModel.deleteIpobjInterface({ "id": req.body.id });
 						await InterfaceModel.deleteInterfaceHOST(req.body.id);
-						await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id);
+						await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
 						api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 					} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 				} else if (data.msg === "notExist")

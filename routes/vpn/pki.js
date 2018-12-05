@@ -90,7 +90,7 @@ router.put('/ca/del',async (req, res) => {
 		await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+req.body.fwcloud+'/'+req.body.ca);
 
 		// Delete the ca node into the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.ca);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
 
 		// Answer to the API request.
 		api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -150,7 +150,7 @@ router.put('/crt/del',async (req, res) => {
 		await utilsModel.deleteFile(base_dir+'/certs_by_serial',serial+'.pem');
 		
 		// Delete the certificate node into the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt, 301);
 
 		// Answer to the API request.
 		api_resp.getJson(null,api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
