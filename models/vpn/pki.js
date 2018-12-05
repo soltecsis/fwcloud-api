@@ -3,6 +3,9 @@ var pkiModel = {};
 
 var config = require('../../config/config');
 const spawn = require('child-process-promise').spawn;
+const readline = require('readline');
+const fs = require('fs');
+ 
 
 // Insert new CA in the database.
 pkiModel.createCA = req => {
@@ -129,6 +132,44 @@ pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
     promise.then(result => resolve(result))
     .catch(error => reject(error));
 	});
+};
+
+// Get certificate serial number.
+pkiModel.delFromIndex = (dir,cn) => {
+	return new Promise((resolve, reject) => {
+    var serial = '';
+    const substr = 'CN='+cn+'\n';
+    const src_path = dir+'/index.txt';
+    const dst_path = dir+'/index.txt.TMP';
+    var rs = fs.createReadStream(src_path);
+    var ws = fs.createWriteStream(dst_path);
+
+    rs.on('error',error => reject(error));
+    ws.on('error',error => reject(error));
+
+    const rl = readline.createInterface({
+      input: rs,
+      crlfDelay: Infinity
+    });
+
+    rl.on('line', line => {
+      const line2 = line + '\n';
+      if(line2.indexOf(substr) > -1) {
+        serial = line.split('\t')[3];
+      } else ws.write(line2);
+    });
+
+    rl.on('close', () => {
+      ws.close();
+      fs.unlink(src_path, error => {
+        if (error) return reject(error);
+        fs.rename(dst_path,src_path, error => {
+          if (error) return reject(error);
+          resolve(serial);
+        });
+      });
+    });
+  });
 };
 
 //Export the object

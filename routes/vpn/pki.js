@@ -146,7 +146,9 @@ router.put('/crt/del',async (req, res) => {
 		await utilsModel.deleteFile(base_dir+'/reqs',req.crt.cn+'.req');
 		await utilsModel.deleteFile(base_dir+'/issued',req.crt.cn+'.crt');
 		await utilsModel.deleteFile(base_dir+'/private',req.crt.cn+'.key');
-
+		const serial = await pkiModel.delFromIndex(base_dir,req.crt.cn);
+		await utilsModel.deleteFile(base_dir+'/certs_by_serial',serial+'.pem');
+		
 		// Delete the certificate node into the tree.
 		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt);
 

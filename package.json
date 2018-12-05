@@ -41,6 +41,7 @@
     "proper-lockfile": "^3.2.0",
     "random-string": "^0.2.0",
     "redis": "^2.8.0",
+    "replace-in-file": "^3.4.2",
     "serve-favicon": "~2.5.0",
     "session-file-store": "^1.2.0",
     "sse-channel": "^3.1.1",
