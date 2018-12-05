@@ -165,13 +165,14 @@ PolicyScript.run_ssh_command = (SSHconn,cmd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (accessData,SSHconn,fw) => {
+PolicyScript.install = (req,SSHconn,fw) => {
 	return new Promise((resolve,reject) => {
 		let bash_debug;
+		const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
 		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
-		PolicyScript.upload(accessData.fwcloud,fw,SSHconn)
-		.then (() => firewallModel.getFirewallOptions(accessData.fwcloud,fw))
+		PolicyScript.upload(req.body.fwcloud,fw,SSHconn)
+		.then (() => firewallModel.getFirewallOptions(req.body.fwcloud,fw))
 		.then(options => {
 			// Enable bash depuration if it is selected in firewalls/cluster options.
 			bash_debug = (options & 0x0008) ? ' -x' : '';
