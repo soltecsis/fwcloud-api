@@ -163,10 +163,10 @@ firewallModel.getFirewallSSH = function (req) {
 
 			// Obtain SSH connSettings for the firewall to which we want install the policy.
 			var SSHconn = {
-				host: data.ip,
-				port: data.install_port,
-				username: data.install_user,
-				password: data.install_pass
+				host: data[0].ip,
+				port: data[0].install_port,
+				username: data[0].install_user,
+				password: data[0].install_pass
 			}
 
 			// If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.
