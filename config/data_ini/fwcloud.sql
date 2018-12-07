@@ -885,6 +885,7 @@ CREATE TABLE `openvpn_opt` (
   `arg` varchar(255) DEFAULT NULL,
   `order` int(11) unsigned NOT NULL,
   `scope` tinyint(1) unsigned NOT NULL,
+  `comment` varchar(255) DEFAULT NULL,
   KEY `idx_openvpn_cfg` (`cfg`),
   KEY `idx_ipobj` (`ipobj`),
   CONSTRAINT `fk_openvpn_opt-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
