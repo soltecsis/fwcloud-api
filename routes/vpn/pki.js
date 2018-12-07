@@ -111,17 +111,19 @@ router.post('/crt',async (req, res) => {
 
 		// Add the new certificate to the database.
 		const crtId = await pkiModel.createCRT(req);
+		
 		// Create the new certificate in the CA directory.
-		var cmd = '';
-		if (req.body.type===1) // Client certificate
-			cmd = 'build-client-full';
-		else // Server certificate
+		var cmd = 'build-client-full'; // Client certificate
+		var obj_type = 301;
+		if (req.body.type===2) { // Server certificate
 			cmd = 'build-server-full';
+			obj_type = 302;
+		}
 		req.caId = req.body.ca;
 		await pkiModel.runEasyRsaCmd(req,cmd);
 
 		// Create new CRT tree node.
-		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',crtId,301);
+		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CRT',crtId,obj_type);
 
 		api_resp.getJson({insertId: crtId, TreeinsertId: nodeId}, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
