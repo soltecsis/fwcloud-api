@@ -782,10 +782,11 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
 					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
 					
-					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);
-					
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
 					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
+
+					await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',firewallId,0);					
+					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);					
 				} catch(error) { return reject(error) }
 				resolve();
 			});
@@ -838,10 +839,11 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',clusters[0].fwmaster_id,4);
 					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',clusters[0].fwmaster_id,5);
 					
-					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);
-					
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
 					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
+
+					await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',clusters[0].fwmaster_id,0);					
+					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);					
 
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
 
@@ -1496,4 +1498,3 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 		});
 	});
 };
-

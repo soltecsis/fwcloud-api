@@ -39,13 +39,13 @@ schema.validate = req => {
     var schema = Joi.object().keys({
       fwcloud: sharedSch.id,
       firewall: sharedSch.id,
-      crt: sharedSch.id
+      crt: sharedSch.id,
+      options: Joi.array().items(schemaPar)
     });
 
     if (req.method==="POST") {
-      if (req.url==='/vpn/openvpn/cfg') schema = schema.append({ options: Joi.array().items(schemaPar) });
+      if (req.url==='/vpn/openvpn/cfg') schema = schema.append({ node_id: sharedSch.id });
     } else if (req.method==="PUT") {
-      schema = schema.append({ options: Joi.array().items(schemaPar) });
     } else return reject(new Error('Request method not accepted'));
 
     try {

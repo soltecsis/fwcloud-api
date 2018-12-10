@@ -56,6 +56,10 @@ var openvpnModel = require('../../models/vpn/openvpn');
  */
 router.post('/cfg', async (req, res) => {
 	try {
+		// Verify that the node tree type is correct.
+		if (req.tree_node.node_type!=='OPN' && req.tree_node.node_type!=='VSR')
+			throw(new Error('Bad node tree type'));
+
 		const cfg = await openvpnModel.addCfg(req);
 
 		// Now create all the options for the OpenVPN configuration.
@@ -65,6 +69,12 @@ router.post('/cfg', async (req, res) => {
 			opt.order = order++;
 			await openvpnModel.addCfgOpt(req,opt);
 		}
+
+		// Create the OpenVPN configuration node in the tree.
+		if (req.tree_node.node_type==='OPN') // This will be an OpenVPN server configuration.
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,req.crt.cn,req.body.node_id,'VSR',cfg,312);					
+		else if (req.tree_node.node_type==='VSR') // This will be an OpenVPN client configuration.
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,req.crt.cn,req.body.node_id,'VCL',cfg,311);					
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
