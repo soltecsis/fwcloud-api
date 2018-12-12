@@ -6,6 +6,8 @@ const sharedSch = require('../shared');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
+    var schema = Joi.object().keys({ fwcloud: sharedSch.id });
+
     var schemaPar = Joi.object().keys({
       name: Joi.alternatives().when('scope', {  
         is: 1, then: Joi.string().valid(['askpass','auth-nocache','auth-retry','auth-user-pass-verify','auth-user-pass',
@@ -36,16 +38,25 @@ schema.validate = req => {
       comment: sharedSch.comment
     });
 
-    var schema = Joi.object().keys({
-      fwcloud: sharedSch.id,
-      firewall: sharedSch.id,
-      crt: sharedSch.id,
-      options: Joi.array().items(schemaPar)
-    });
-
-    if (req.method==="POST") {
-      if (req.url==='/vpn/openvpn/cfg') schema = schema.append({ node_id: sharedSch.id });
+    if (req.method==="POST" && req.url==='/vpn/openvpn') {
+      schema = schema.append({ 
+        firewall: sharedSch.id,
+        crt: sharedSch.id,
+        options: Joi.array().items(schemaPar),
+         node_id: sharedSch.id 
+      });
     } else if (req.method==="PUT") {
+      if (req.url==='/vpn/openvpn') {
+        schema = schema.append({ 
+          firewall: sharedSch.id,
+          crt: sharedSch.id,
+          options: Joi.array().items(schemaPar),
+          node_id: sharedSch.id 
+        });
+      }
+      if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/install') {
+        schema = schema.append({ openvpn: sharedSch.id });
+       }
     } else return reject(new Error('Request method not accepted'));
 
     try {

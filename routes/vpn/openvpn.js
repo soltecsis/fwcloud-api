@@ -54,7 +54,7 @@ var openvpnModel = require('../../models/vpn/openvpn');
 /**
  * Create a new OpenVPN configuration in firewall.
  */
-router.post('/cfg', async (req, res) => {
+router.post('/', async (req, res) => {
 	try {
 		// Verify that the node tree type is correct.
 		if (req.tree_node.node_type!=='OPN' && req.tree_node.node_type!=='VSR')
@@ -84,7 +84,7 @@ router.post('/cfg', async (req, res) => {
 /**
  * Update configuration options.
  */
-router.put('/cfg', async (req, res) => {
+router.put('/', async (req, res) => {
 	try {
 		// First remove all the current configuration options.
 		await openvpnModel.removeCfgOptAll(req);
@@ -106,12 +106,13 @@ router.put('/cfg', async (req, res) => {
 /**
  * Get OpenVPN configuration data.
  */
-router.put('/cfg/get', async (req, res) => {
+router.put('/get', async (req, res) => {
 	try {
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
   api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
+
 
 /**
  * Install OpenVPN configuration in the destination firewall.
