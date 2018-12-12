@@ -51,7 +51,8 @@ openvpnModel.getCfgId = req => {
 
 openvpnModel.installCfg = (req,cfg,scope) => {
 	return new Promise((resolve, reject) => {
-    var crt_path = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/';
+    const ca_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/';
+    const ca_crt_path = ca_dir;
 
     req.dbCon.query('select * from openvpn_opt where cfg='+cfg+' and scope='+scope+' order by openvpn_opt.order asc', (error, result) => {
       if (error) return reject(error);

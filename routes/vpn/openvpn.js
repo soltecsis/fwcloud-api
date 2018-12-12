@@ -104,6 +104,16 @@ router.put('/cfg', async (req, res) => {
 
 
 /**
+ * Get OpenVPN configuration data.
+ */
+router.put('/cfg/get', async (req, res) => {
+	try {
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+});
+
+/**
  * Install OpenVPN configuration in the destination firewall.
  */
 router.post('/install', async (req, res) => {

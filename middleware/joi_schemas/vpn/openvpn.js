@@ -30,7 +30,7 @@ schema.validate = req => {
         otherwise: Joi.string().valid(['push','push-reset','iroute','iroute-ipv6','ifconfig-push',
           'ifconfig-ipv6-push','disable','config']) 
       }),
-      arg: Joi.string().regex(/^[a-zA-Z0-9\-_ ]{2,128}$/).allow(null).allow('').optional(),
+      arg: Joi.string().regex(/^[ -~\x80-\xFE]{2,128}$/);.allow(null).allow('').optional(),
       ipobj: sharedSch.id.allow(null).optional(),
       scope: sharedSch._0_1, // 0=ccd, 1=config file
       comment: sharedSch.comment
