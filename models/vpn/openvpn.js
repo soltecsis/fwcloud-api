@@ -77,17 +77,21 @@ openvpnModel.getCfg = req => {
   });
 };
 
-openvpnModel.installCfg = (req,cfg,scope) => {
+openvpnModel.installCfg = req => {
 	return new Promise((resolve, reject) => {
-    const ca_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/';
-    const ca_crt_path = ca_dir + '/ca.crt';
-    const crt_path = ca_dir + '/ca.crt';
-    const key_path = ca_dir + '/ca.crt';
+    // First obtain the CN of the certificate.
+    let sql = 'select CRT.cn from crt CRT' +
+      ' INNER JOIN openvpn_cfg CFG ON CRT.id=CFG.crt' +
+			' WHERE CFG.id=' + req.body.openvpn;
 
-    //let sql = 'select * from openvpn_opt where cfg='+cfg+' and scope='+scope+' order by openvpn_opt.order asc
-
-    req.dbCon.query('select * from openvpn_opt where cfg='+cfg+' and scope='+scope+' order by openvpn_opt.order asc', (error, result) => {
+    req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
+
+      const ca_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca + '/';
+      const ca_crt_path = ca_dir + 'ca.crt';
+      const crt_path = ca_dir + 'issued/' + result[0] + '.crt';
+      const key_path = ca_dir + 'private/' + result[0] + '.key';
+  
       resolve();
     });
   });
