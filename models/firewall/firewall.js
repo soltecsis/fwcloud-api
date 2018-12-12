@@ -843,22 +843,19 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sqlExists = 'SELECT T.id, A.id as idnode FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + user +
-				' INNER JOIN fwc_tree A ON A.id_obj = T.id ' +
-				' WHERE T.id = ' + firewall + ' AND U.allow_access=1 AND U.allow_edit=1' +
-				' order by idnode asc limit 1';
-			connection.query(sqlExists, async (error, row) => {
+
+			var sql = 'select id from fwc_tree where node_type="FW" and id_obj='+firewall+' and fwcloud='+fwcloud;
+			connection.query(sql, async (error, row) => {
 				if (error) return reject(error);
+
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
-					if (error) return reject(error);
 					try {
 						await Policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 						await InterfaceModel.deleteInterfacesIpobjFirewall(fwcloud, firewall); // DELETE IPOBJS UNDER INTERFACES
 						await InterfaceModel.deleteInterfaceFirewall(fwcloud, firewall); //DELETE INTEFACES
 						await User__firewallModel.deleteAllUser__firewall(firewall);//DELETE USERS_FIREWALL
-						await fwcTreemodel.deleteFwc_TreeFullNode({id: row[0].idnode, fwcloud: fwcloud, iduser: user}); //DELETE TREE NODES From firewall
+						await fwcTreemodel.deleteFwc_TreeFullNode({id: row[0].id, fwcloud: fwcloud, iduser: user}); //DELETE TREE NODES From firewall
 						await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud+'/'+firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
 
 						//DELETE FIREWALL from the database.
