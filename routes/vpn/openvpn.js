@@ -75,9 +75,9 @@ router.post('/', async (req, res) => {
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,req.crt.cn,req.body.node_id,'VSR',cfg,312);					
 		else if (req.tree_node.node_type==='VSR') // This will be an OpenVPN client configuration.
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,req.crt.cn,req.body.node_id,'VCL',cfg,311);					
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
-  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -97,9 +97,9 @@ router.put('/', async (req, res) => {
 			opt.order = order++;
 			await openvpnModel.addCfgOpt(req,opt);
 		}
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
-  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -108,9 +108,9 @@ router.put('/', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
+		const data = await openvpnModel.getCfg(req);
+		api_resp.getJson(data,api_resp.ACR_OK, 'OpenVPN configuration sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-
-  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 
@@ -119,9 +119,9 @@ router.put('/get', async (req, res) => {
  */
 router.put('/del', async (req, res) => {
 	try {
+		await openvpnModel.removeCfg(req);
+		api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-
-  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 
@@ -139,9 +139,8 @@ router.post('/install', async (req, res) => {
 		else // Server certificate
 			openvpnModel.installCfg(req,cfg,1); // 1=Config file
 
+		api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-
-  api_resp.getJson(null,api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 module.exports = router;

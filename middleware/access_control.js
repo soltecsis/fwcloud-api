@@ -64,7 +64,7 @@ accessCtrl.check = async(req, res, next) => {
 		// Check access to the openvpn indicated in req.body.openvpn.
 		if (req.body.openvpn) {
 			if (!(await checkOpenVPNAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'OpenVPN ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'OpenVPN ACCESS NOT ALLOWED', 'OpenVPN', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
 		next()

@@ -39,12 +39,40 @@ openvpnModel.removeCfgOptAll = req => {
   });
 };
 
+openvpnModel.removeCfg = req => {
+	return new Promise((resolve, reject) => {
+    let sql = 'delete from openvpn_cfg where id=' + req.body.openvpn;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
+
 openvpnModel.getCfgId = req => {
 	return new Promise((resolve, reject) => {
     let sql = 'select id from openvpn_cfg where firewall='+req.body.firewall+' and crt='+req.body.crt;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve(result[0].id);
+    });
+  });
+};
+
+openvpnModel.getCfg = req => {
+	return new Promise((resolve, reject) => {
+    let sql = 'select * from openvpn_cfg where id='+req.body.openvpn;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+
+      let data = result[0];
+      sql = 'select * from openvpn_opt where cfg='+req.body.openvpn;
+      req.dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+
+        data.options = result;
+        resolve(data);
+      });
     });
   });
 };
