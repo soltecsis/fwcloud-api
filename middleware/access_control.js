@@ -55,10 +55,16 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CA ACCESS NOT ALLOWED', 'CA', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
-				// Check access to the crt indicated in req.body.crt.
+		// Check access to the crt indicated in req.body.crt.
 		if (req.body.crt) {
 			if (!(await checkCrtAccess(req)))
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+		}
+
+		// Check access to the openvpn indicated in req.body.openvpn.
+		if (req.body.openvpn) {
+			if (!(await checkOpenVPNAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'OpenVPN ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
 		next()
@@ -104,6 +110,28 @@ function checkCrtAccess(req) {
 		});
 	});
 };
+
+// Check access to openvpn configuration.
+function checkOpenVPNAccess(req) {
+	return new Promise((resolve, reject) => {
+	 let sql = 'select F.fwcloud FROM openvpn_cfg O' +
+		 ' INNER JOIN firewall F ON O.firewall=F.id' +
+		 ' WHERE O.id='+req.body.openvpn;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA of the CRT is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the crt info for use in the API call processing.
+			req.crt = result[0];
+
+			resolve(true);
+		});
+	});
+};
+
 
 // Check access to the tree node.
 function checkTreeNodeAccess(req) {

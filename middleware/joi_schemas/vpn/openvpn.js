@@ -20,7 +20,7 @@ schema.validate = req => {
           'ifconfig-push','ifconfig','inactive','inetd','ip-win32 method','ipchange','iroute','keepalive','key-method','key','keysizen',
           'learn-address','link-mtu','local','log-append','log','suppress-timestamps','lport','management-hold','management-log-cache',
           'management-query-passwords','management','max-clients','max-routes-per-client','mktun','mlock','mode','mssfix','mtu-disc',
-          'mtu-test','mute-replay-warnings','mute','nice','no-iv','no-replay','nobind','ns-cert-type','passtos','pause-exit','persist-key',
+          'mtu-test','multihome','mute-replay-warnings','mute','nice','no-iv','no-replay','nobind','ns-cert-type','passtos','pause-exit','persist-key',
           'persist-local-ip','persist-remote-ip','persist-tun','ping-exit','ping-restart','ping-timer-rem','ping','pkcs12','plugin','port',
           'proto','pull','push-reset','push','rcvbuf size','redirect-gateway','remap-usr1','remote-random','remote','reneg-bytes',
           'reneg-pkts','reneg-sec','replay-persist','replay-window','resolv-retry','rmtun','route-delay','route-gateway','route-method',
@@ -43,7 +43,7 @@ schema.validate = req => {
         firewall: sharedSch.id,
         crt: sharedSch.id,
         options: Joi.array().items(schemaPar),
-         node_id: sharedSch.id 
+        node_id: sharedSch.id 
       });
     } else if (req.method==="PUT") {
       if (req.url==='/vpn/openvpn') {
@@ -54,7 +54,7 @@ schema.validate = req => {
           node_id: sharedSch.id 
         });
       }
-      if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/install') {
+      if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' || req.url==='/vpn/openvpn/install') {
         schema = schema.append({ openvpn: sharedSch.id });
        }
     } else return reject(new Error('Request method not accepted'));
