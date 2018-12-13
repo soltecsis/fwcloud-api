@@ -4,6 +4,7 @@ var openvpnModel = {};
 const config = require('../../config/config');
 const readline = require('readline');
 const fs = require('fs');
+const ip = require('ip');
 
 // Insert new OpenVPN configuration register in the database.
 openvpnModel.addCfg = req => {
@@ -173,18 +174,28 @@ openvpnModel.installCfg = (req,cfg) => {
 openvpnModel.freeVpnIP = req => {
 	return new Promise((resolve, reject) => {
     // Search for the VPN LAN and mask.
-    let sql = 'select OBJ.address,OBJ.netmask from openvpn_opt OPT' +
-      ' inner join ipobj OBJ on OPT.ipobj=OBJ.id'+
+    let sql = 'select OBJ.address,OBJ.netmask from openvpn_opt OPT'+
+      ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
       ' where OPT.openvpn='+req.body.openvpn+' and OPT.ipobj is not null';
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
 
-      // If we have no VPN LAN we can not give a free IP.
+      // If we have no VPN LAN we can not give any free IP.
       if (result.length===0) return resolve(null);
+
+      // net will contain information about the VPN network.
+      const net = ip.subnet(result[0].address, result[0].netmask);
       
       // Obtain the VPN LAN used IPs.
-  
-      resolve(result);
+      sql = 'select OBJ.address from openvpn VPN'+
+        ' inner join openvpn_opt OPT on OPT.openvpn=VPN.id'+
+        ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
+        ' where VPN.openvpn='+req.body.openvpn+' and OPT.ipobj is not null and OBJ.type=5'; // 5=ADDRESS
+      req.dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+      
+        resolve(result);
+      });
     });
   });
 };

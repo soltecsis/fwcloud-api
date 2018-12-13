@@ -78,7 +78,7 @@ pkiModel.createCRT = req => {
 pkiModel.deleteCRT = req => {
 	return new Promise((resolve, reject) => {
     // Verify that the CA can be deleted.
-    req.dbCon.query('SELECT count(*) AS n FROM openvpn_cfg WHERE crt='+req.body.crt, (error, result) => {
+    req.dbCon.query('SELECT count(*) AS n FROM openvpn WHERE crt='+req.body.crt, (error, result) => {
       if (error) return reject(error);
       if (result[0].n > 0) return reject(new Error('This certificate can not be removed because it is used in a OpenVPN setup'));
 

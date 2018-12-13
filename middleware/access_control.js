@@ -114,7 +114,7 @@ function checkCrtAccess(req) {
 // Check access to openvpn configuration.
 function checkOpenVPNAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = 'select F.fwcloud FROM openvpn_cfg O' +
+	 let sql = 'select F.fwcloud FROM openvpn O' +
 		 ' INNER JOIN firewall F ON O.firewall=F.id' +
 		 ' WHERE O.id='+req.body.openvpn;
 		req.dbCon.query(sql, (error, result) => {
