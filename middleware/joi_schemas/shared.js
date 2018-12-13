@@ -44,6 +44,6 @@ sharedSchema.rule_position = Joi.number().integer().min(1).max(36);
 
 sharedSchema.date = Joi.date().min(1).max(5);
 
-sharedSchema.crt_type = Joi.number().integer().valid([1, 2]);
+sharedSchema.crt_type = Joi.number().integer().valid([1, 2]); // 1=Client certificate, 2=Server certificate.
 
-sharedSchema.rule_clipboard_action = Joi.number().integer().valid([1, 2]); // 1=Client certificate, 2=Server certificate.
+sharedSchema.rule_clipboard_action = Joi.number().integer().valid([1, 2]); 

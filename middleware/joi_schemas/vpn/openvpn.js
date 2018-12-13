@@ -41,15 +41,16 @@ schema.validate = req => {
 			comment: sharedSch.comment
 		});
 
-		if (req.method === "POST" && req.url === '/vpn/openvpn') {
+		if (req.method==="POST" && req.url==='/vpn/openvpn') {
 			schema = schema.append({
+				openvpn: sharedSch.id.optional(),
 				firewall: sharedSch.id,
 				crt: sharedSch.id,
 				options: Joi.array().items(schemaPar),
 				node_id: sharedSch.id
 			});
-		} else if (req.method === "PUT") {
-			if (req.url === '/vpn/openvpn') {
+		} else if (req.method==="PUT") {
+			if (req.url==='/vpn/openvpn') {
 				schema = schema.append({
 					firewall: sharedSch.id,
 					crt: sharedSch.id,
@@ -57,7 +58,9 @@ schema.validate = req => {
 					node_id: sharedSch.id
 				});
 			}
-			if (req.url === '/vpn/openvpn/get' || req.url === '/vpn/openvpn/del' || req.url === '/vpn/openvpn/install') {
+			if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 
+					|| req.url==='/vpn/openvpn/install' || req.url==='/vpn/openvpn/file/get'
+					|| req.url==='/vpn/openvpn/ip/get') {
 				schema = schema.append({ openvpn: sharedSch.id });
 			}
 		} else return reject(new Error('Request method not accepted'));

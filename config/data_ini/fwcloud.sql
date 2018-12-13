@@ -305,7 +305,7 @@ CREATE TABLE `fwc_tree_node_types` (
 
 LOCK TABLES `fwc_tree_node_types` WRITE;
 /*!40000 ALTER TABLE `fwc_tree_node_types` DISABLE KEYS */;
-INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OCL',311,'OpenVPN Config CLI',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2);
+INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2);
 /*!40000 ALTER TABLE `fwc_tree_node_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -838,14 +838,15 @@ LOCK TABLES `ipobj_type__routing_position` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `openvpn_cfg`
+-- Table structure for table `openvpn`
 --
 
-DROP TABLE IF EXISTS `openvpn_cfg`;
+DROP TABLE IF EXISTS `openvpn`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `openvpn_cfg` (
+CREATE TABLE `openvpn` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `openvpn` int(11) DEFAULT NULL,
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
   `comment` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
@@ -857,18 +858,20 @@ CREATE TABLE `openvpn_cfg` (
   UNIQUE KEY `idx_firewall-crt` (`firewall`,`crt`),
   KEY `idx_firewall` (`firewall`),
   KEY `idx_crt` (`crt`),
-  CONSTRAINT `fk_openvpn_cfg-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_openvpn_cfg-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `idx_openvpn` (`openvpn`),
+  CONSTRAINT `fk_openvpn-crt` FOREIGN KEY (`crt`) REFERENCES `crt` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_openvpn-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_openvpn-openvpn` FOREIGN KEY (`openvpn`) REFERENCES `openvpn` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `openvpn_cfg`
+-- Dumping data for table `openvpn`
 --
 
-LOCK TABLES `openvpn_cfg` WRITE;
-/*!40000 ALTER TABLE `openvpn_cfg` DISABLE KEYS */;
-/*!40000 ALTER TABLE `openvpn_cfg` ENABLE KEYS */;
+LOCK TABLES `openvpn` WRITE;
+/*!40000 ALTER TABLE `openvpn` DISABLE KEYS */;
+/*!40000 ALTER TABLE `openvpn` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -879,17 +882,17 @@ DROP TABLE IF EXISTS `openvpn_opt`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `openvpn_opt` (
-  `cfg` int(11) NOT NULL,
+  `openvpn` int(11) NOT NULL,
   `ipobj` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `arg` varchar(255) DEFAULT NULL,
   `order` int(11) unsigned NOT NULL,
   `scope` tinyint(1) unsigned NOT NULL,
   `comment` varchar(255) DEFAULT NULL,
-  KEY `idx_openvpn_cfg` (`cfg`),
+  KEY `idx_openvpn` (`openvpn`),
   KEY `idx_ipobj` (`ipobj`),
   CONSTRAINT `fk_openvpn_opt-ipobj` FOREIGN KEY (`ipobj`) REFERENCES `ipobj` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_openvpn_opt-openvpn_cfg` FOREIGN KEY (`cfg`) REFERENCES `openvpn_cfg` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_openvpn_opt-openvpn` FOREIGN KEY (`openvpn`) REFERENCES `openvpn` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1725,4 +1728,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-12-03 12:57:24
+-- Dump completed on 2018-12-13 12:46:41

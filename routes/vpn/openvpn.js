@@ -62,12 +62,23 @@ router.post('/', async(req, res) => {
 		if (req.tree_node.node_type !== 'OPN' && req.tree_node.node_type !== 'VSR')
 			throw (new Error('Bad node tree type'));
 
+		// Verify that the OpenVPN configuration is the same indicated in the tree node.
+		if (req.body.openvpn && req.body.openvpn!=req.tree_node.id_obj)
+			throw (new Error('Information in node tree and in API request don\'t match'));
+
+		// Verify that we are using the correct type of certificate.
+		// 1=Client certificate, 2=Server certificate.
+		if (!req.body.openvpn && req.crt.type!=2)
+			throw (new Error('You can not use client certificates for OpenVPN server configuration'));
+		if (req.body.openvpn && req.crt.type!=1)
+			throw (new Error('You can not use server certificates for OpenVPN client configuration'));
+
 		const cfg = await openvpnModel.addCfg(req);
 
 		// Now create all the options for the OpenVPN configuration.
 		var order = 1;
 		for (let opt of req.body.options) {
-			opt.cfg = cfg;
+			opt.openvpn = cfg;
 			opt.order = order++;
 			await openvpnModel.addCfgOpt(req, opt);
 		}
@@ -118,6 +129,28 @@ router.put('/get', async(req, res) => {
 
 
 /**
+ * Get OpenVPN configuration files.
+ */
+router.put('/file/get', async(req, res) => {
+	try {
+		const cfgDump = await openvpnModel.dumpCfg(req);
+		api_resp.getJson(cfgDump, api_resp.ACR_OK, 'OpenVPN configuration file sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN file configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
+ * Get next VPN LAN free IP.
+ */
+router.put('/ip/get', async(req, res) => {
+	try {
+		const freeIP = await openvpnModel.freeVpnIP(req);
+		api_resp.getJson(freeIP, api_resp.ACR_OK, 'OpenVPN free IP sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting free OpenVPN IP', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
  * Delete OpenVPN configuration.
  */
 router.put('/del', async(req, res) => {
@@ -149,8 +182,8 @@ router.put('/install', async(req, res) => {
 		else // Server certificate
 			openvpnModel.installCfg(req, cfgDump.cfg);
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 module.exports = router;
