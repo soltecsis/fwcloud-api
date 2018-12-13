@@ -164,6 +164,7 @@ openvpnModel.dumpCfg = req => {
   });
 };
 
+
 openvpnModel.installCfg = (req,cfg) => {
 	return new Promise((resolve, reject) => {
     resolve();
@@ -185,6 +186,8 @@ openvpnModel.freeVpnIP = req => {
 
       // net will contain information about the VPN network.
       const net = ip.subnet(result[0].address, result[0].netmask);
+      net.firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
+      net.lastLong = ip.toLong(net.lastAddress);
       
       // Obtain the VPN LAN used IPs.
       sql = 'select OBJ.address from openvpn VPN'+
@@ -194,7 +197,22 @@ openvpnModel.freeVpnIP = req => {
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
       
-        resolve(result);
+        let freeIPLong;
+        let found;
+        for(freeIPLong=net.firstLong; freeIPLong<=net.lastLong; freeIPLong++) {
+          found=0;
+          for (let ipCli of result) {
+            if (ip.toLong(ipCli) === freeIPLong) {
+              found=1;
+              break;
+            }
+          }
+          if (!found) break;
+        }
+
+        if (freeIPLong > net.lastLong)
+          return reject('There are no free IPs')
+        resolve(ip.fromLong(freeIPLong));
       });
     });
   });
