@@ -7,6 +7,7 @@ var api_resp = require('../utils/api_response');
 var interfaceModel = require('../models/interface/interface');
 var ipobjModel = require('../models/ipobj/ipobj');
 var ipobj_gModel = require('../models/ipobj/group');
+const openvpnModel = require('../models/vpn/openvpn');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
@@ -75,37 +76,46 @@ restrictedCheck.interface = (req, res, next) => {
 	//Check interface in RULE O POSITIONS
 	const type = (req.body.firewallhost) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
 	interfaceModel.searchInterfaceInrulesPro(req.body.id, type, req.body.fwcloud, '')
-		.then(data => {
-			//CHECK RESULTS
-			if (data.result) {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-			} else next();
-		})
-		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+	.then(data => {
+		//CHECK RESULTS
+		if (data.result) {
+			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
+			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
 };
 
 
 restrictedCheck.ipobj = (req, res, next) => {
 	ipobjModel.searchIpobjInRules(req.body.id, req.body.type, req.body.fwcloud)
-		.then(data => {
-			if (data.result) {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-			} else next();
-		})
-		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+	.then(data => {
+		if (data.result) {
+			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
+			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
 };
-
 
 
 restrictedCheck.ipobj_group = (req, res, next) => {
 	ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud)
-		.then(data => {
-			if (data.result) {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-			} else next();
-		})
-		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+	.then(data => {
+		if (data.result) {
+			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
+			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+};
+
+restrictedCheck.openvpn = async (req, res, next) => {
+	try {
+		const data = await openvpnModel.searchOpenvpnInRules(req.body.id, req.body.fwcloud);
+		if (data.result) {
+			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
+			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };

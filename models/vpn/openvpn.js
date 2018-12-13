@@ -2,6 +2,7 @@
 var openvpnModel = {};
 
 const config = require('../../config/config');
+const firewallModel = require('../firewall/firewall');
 const readline = require('readline');
 const fs = require('fs');
 const ip = require('ip');
@@ -166,7 +167,9 @@ openvpnModel.dumpCfg = req => {
 
 
 openvpnModel.installCfg = (req,cfg) => {
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
+    const dataSSH = await firewallModel.getFirewallSSH(req);
+
     resolve();
   });
 };
@@ -216,6 +219,69 @@ openvpnModel.freeVpnIP = req => {
       });
     });
   });
+};
+
+openvpnModel.searchOpenvpnInRules = function (id, type, fwcloud) {
+	return new Promise((resolve, reject) => {
+		//SEARCH IPOBJ IN RULES
+		Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
+			if (error) {
+				reject(error);
+			} else {
+				//SEARCH IPOBJ GROUP IN RULES
+				Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
+					if (error) {
+						reject(error);
+					} else {
+						//SEARCH IPOBJ IN GROUPS
+						Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
+							if (error) {
+								reject(error);
+							} else {
+								//SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
+								Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
+									if (error) {
+										reject(error);
+									} else {
+										//SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
+										Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud, function (error, data_interfaces_above) {
+											if (error) {
+												reject(error);
+											} else {
+												//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
+												Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
+													if (error) {
+														reject(error);
+													} else {
+														if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
+																|| data_interfaces.found !== "" 
+																|| data_ipobj_ipobj.found !== "") {
+															resolve({"result": true, "msg": "IPOBJ FOUND", "search":
+																		{"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
+																			"InterfacesIpobjInRules": data_interfaces,
+																			"InterfacesAboveIpobjInRules": data_interfaces_above,
+																			"IpobjInterfacesIpobjInRules": data_ipobj_ipobj
+																		}});
+														} else {
+															resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
+																	"IpobjInRules": "", "GroupInRules": "",
+																	"IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
+																	"InterfacesAboveIpobjInRules": "",
+																	"HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
+														}
+													}
+												});
+											}
+										});
+									}
+								});
+							}
+						});
+					}
+				});
+			}
+		});
+	});
 };
 
 //Export the object

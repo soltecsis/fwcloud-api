@@ -172,8 +172,6 @@ router.put('/del', async(req, res) => {
  */
 router.put('/install', async(req, res) => {
 	try {
-		//const data = await FirewallModel.getFirewallSSH(req);
-
 		const cfgDump = await openvpnModel.dumpCfg(req);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
