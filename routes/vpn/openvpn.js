@@ -51,6 +51,7 @@ var objModel = 'OpenVPN';
 const openvpnModel = require('../../models/vpn/openvpn');
 
 const fwc_treeModel = require('../../models/tree/tree');
+const restrictedCheck = require('../../middleware/restricted');
 
 
 /**
@@ -153,7 +154,9 @@ router.put('/ip/get', async(req, res) => {
 /**
  * Delete OpenVPN configuration.
  */
-router.put('/del', async(req, res) => {
+router.put('/del', 
+restrictedCheck.openvpn,  
+async (req, res) => {
 	try {
 		// Delete the configuration from de database.
 		await openvpnModel.removeCfg(req);
@@ -165,6 +168,10 @@ router.put('/del', async(req, res) => {
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
+// API call for check deleting restrictions.
+router.put('/restricted',
+restrictedCheck.openvpn,
+(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
 
 
 /**
