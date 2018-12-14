@@ -99,34 +99,22 @@ ipobj__ipobjgModel.deleteIpobj__ipobjgAll = function (ipobj_g, callback) {
 };
 
 //check if IPOBJ Exists in GROUP 
-ipobj__ipobjgModel.searchIpobjGroup = function (ipobj, type, fwcloud, callback) {
-
-	logger.debug("SEARCH GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+ipobj__ipobjgModel.searchIpobjGroup = (ipobj, type, fwcloud) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
 				'C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type ' +
 				'FROM ' + tableModel + ' G  ' +
 				'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
 				'INNER JOIN  ipobj I on I.id=G.ipobj ' +
 				'inner join ipobj_type T on T.id=I.type ' +
 				'left join fwcloud C on C.id=I.fwcloud ' +
-				' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
-
-		logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (!error) {
-				if (rows.length > 0) {
-					logger.debug("FOUND ipobj IN  GROUP :" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " GROUPS");
-					//logger.debug(rows);
-					callback(null, {"found": rows});
-
-				} else
-					callback(null, {"found": ""});
-			} else
-				callback(error, null);
+				' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)';
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows);
+			});
 		});
 	});
 };

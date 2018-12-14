@@ -233,32 +233,24 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 
 
 /* Search where is used GROUP IN RULES AND MEMBERS */
-ipobj_gModel.searchGroupInRules = function (id, fwcloud, callback) {
-		return new Promise((resolve, reject) => {
-				//SEARCH IPOBJ GROUP IN RULES
-				Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
-						if (error) {
-								reject(error);
-						} else {
-								//SEARCH IPOBJ GROUP IN RULES
-								Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud, function (error, data_ipobjrule) {
-										if (error) {
-												reject(error);
-										} else {
+ipobj_gModel.searchGroupInRules = (id, fwcloud) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions ={};
+			search.restrictions.groupInRules = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.ipobjInGroupInRules = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
-												if (data_grouprule.found !== "" || data_ipobjrule.found !== "") {
-														resolve({"result": true, "msg": "GROUP FOUND", "search": {
-																				"groupInRules": data_grouprule, "ipobjInGroupInRules": data_ipobjrule}});
-												} else {
-														resolve({"result": false, "msg": "GROUP NOT FOUND", "search": {
-																				"groupInRules": "", "ipobjInGroupInRules": ""}});
-												}
-										}
-								});
-						}
-				});
-		});
-
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length > 0) {
+					search.result = true;
+					break;
+				}
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
+	});
 };
 
 //Add new ipobj_g

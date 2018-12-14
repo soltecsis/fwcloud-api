@@ -221,67 +221,22 @@ openvpnModel.freeVpnIP = req => {
   });
 };
 
-openvpnModel.searchOpenvpnInRules = function (id, type, fwcloud) {
+openvpnModel.searchOpenvpnInRules = req => {
 	return new Promise((resolve, reject) => {
-		//SEARCH IPOBJ IN RULES
-		Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
-			if (error) {
-				reject(error);
-			} else {
-				//SEARCH IPOBJ GROUP IN RULES
-				Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
-					if (error) {
-						reject(error);
-					} else {
-						//SEARCH IPOBJ IN GROUPS
-						Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
-							if (error) {
-								reject(error);
-							} else {
-								//SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
-								Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
-									if (error) {
-										reject(error);
-									} else {
-										//SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
-										Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud, function (error, data_interfaces_above) {
-											if (error) {
-												reject(error);
-											} else {
-												//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-												Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
-													if (error) {
-														reject(error);
-													} else {
-														if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
-																|| data_interfaces.found !== "" 
-																|| data_ipobj_ipobj.found !== "") {
-															resolve({"result": true, "msg": "IPOBJ FOUND", "search":
-																		{"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
-																			"InterfacesIpobjInRules": data_interfaces,
-																			"InterfacesAboveIpobjInRules": data_interfaces_above,
-																			"IpobjInterfacesIpobjInRules": data_ipobj_ipobj
-																		}});
-														} else {
-															resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
-																	"IpobjInRules": "", "GroupInRules": "",
-																	"IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
-																	"InterfacesAboveIpobjInRules": "",
-																	"HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
-														}
-													}
-												});
-											}
-										});
-									}
-								});
-							}
-						});
-					}
-				});
-			}
-		});
-	});
+    // For each ipobj referenced by the OpenVPN configuration options, verify that it is not being used in any firewall rule.
+    let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
+    ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
+    ' where OPT.openvpn='+req.body.openvpn;
+    req.dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      for (let ipobj of result) {
+        const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, req.body.fwcloud);
+        if (data.result) return resolve(data);
+      }
+      resolve({result: false});
+    });
+  });
 };
 
 //Export the object

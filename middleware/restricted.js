@@ -87,35 +87,27 @@ restrictedCheck.interface = (req, res, next) => {
 };
 
 
-restrictedCheck.ipobj = (req, res, next) => {
-	ipobjModel.searchIpobjInRules(req.body.id, req.body.type, req.body.fwcloud)
-	.then(data => {
-		if (data.result) {
-			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		} else next();
-	})
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+restrictedCheck.ipobj = async (req, res, next) => {
+	try {
+		const data = await ipobjModel.searchIpobjInRules(req.body.id, req.body.type, req.body.fwcloud);
+		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		else next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
 
-restrictedCheck.ipobj_group = (req, res, next) => {
-	ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud)
-	.then(data => {
-		if (data.result) {
-			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		} else next();
-	})
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+restrictedCheck.ipobj_group = async (req, res, next) => {
+	try {
+		const data = await ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud);
+		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		else next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
 restrictedCheck.openvpn = async (req, res, next) => {
 	try {
-		const data = await openvpnModel.searchOpenvpnInRules(req.body.id, req.body.fwcloud);
-		if (data.result) {
-			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		} else next();
+		const data = await openvpnModel.searchOpenvpnInRules(req);
+		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };

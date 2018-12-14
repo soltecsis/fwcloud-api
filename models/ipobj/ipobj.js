@@ -978,66 +978,27 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
  }
  *      
  * */
-ipobjModel.searchIpobjInRules = function (id, type, fwcloud) {
-	return new Promise((resolve, reject) => {
-		//SEARCH IPOBJ IN RULES
-		Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
-			if (error) {
-				reject(error);
-			} else {
-				//SEARCH IPOBJ GROUP IN RULES
-				Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud, function (error, data_grouprule) {
-					if (error) {
-						reject(error);
-					} else {
-						//SEARCH IPOBJ IN GROUPS
-						Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
-							if (error) {
-								reject(error);
-							} else {
-								//SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
-								Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud, function (error, data_interfaces) {
-									if (error) {
-										reject(error);
-									} else {
-										//SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
-										Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud, function (error, data_interfaces_above) {
-											if (error) {
-												reject(error);
-											} else {
-												//SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS                                            
-												Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud, function (error, data_ipobj_ipobj) {
-													if (error) {
-														reject(error);
-													} else {
-														if (data_ipobj.found !== "" || data_grouprule.found !== "" || data_group.found !== ""
-																|| data_interfaces.found !== "" 
-																|| data_ipobj_ipobj.found !== "") {
-															resolve({"result": true, "msg": "IPOBJ FOUND", "search":
-																		{"IpobjInRules": data_ipobj, "GroupInRules": data_grouprule, "IpobjInGroup": data_group,
-																			"InterfacesIpobjInRules": data_interfaces,
-																			"InterfacesAboveIpobjInRules": data_interfaces_above,
-																			"IpobjInterfacesIpobjInRules": data_ipobj_ipobj
-																		}});
-														} else {
-															resolve({"result": false, "msg": "IPOBJ NOT FOUND", "search": {
-																	"IpobjInRules": "", "GroupInRules": "",
-																	"IpobjInGroup": "", "InterfacesIpobjInRules": "", "InterfacesFIpobjInRules": "",
-																	"InterfacesAboveIpobjInRules": "",
-																	"HostIpobjInterfacesIpobjInRules": "", "IpobjInterfacesIpobjInRules": ""}});
-														}
-													}
-												});
-											}
-										});
-									}
-								});
-							}
-						});
-					}
-				});
+ipobjModel.searchIpobjInRules = (id, type, fwcloud) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions ={};
+			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.GroupInRules = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
+			search.restrictions.InterfacesAboveIpobjInRules = await Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud); //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
+			search.restrictions.IpobjInterfacesIpobjInRules = await Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud); //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS
+
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length > 0) {
+					search.result = true;
+					break;
+				}
 			}
-		});
+			resolve(search);
+		} catch(error) { reject(error) }
 	});
 };
 
