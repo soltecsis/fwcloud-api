@@ -1034,36 +1034,23 @@ ipobjModel.searchIpobjInRules = (id, type, fwcloud) => {
  *      }
  *      
  * */
-ipobjModel.searchIpobj = function (id, type, fwcloud, callback) {
-	//SEARCH IPOBJ IN RULES
-	Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud, function (error, data_ipobj) {
-		if (error) {
-			callback(error, null);
-		} else {
-			//SEARCH IPOBJ IN GROUPS
-			Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud, function (error, data_group) {
-				if (error) {
-					callback(error, null);
-				} else {
-					//SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
-					Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud, function (error, data_ipobj_interfaces) {
-						if (error) {
-							callback(error, null);
-						} else {
+ipobjModel.searchIpobj = (id, type, fwcloud) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions = {};
+			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInterfaces = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
 
-							//logger.debug(data_ipobj);
-							if (data_ipobj.found !== "" || data_group.found !== "" || data_ipobj_interfaces.found !== "") {
-								callback(null, {"result": true, "msg": "IPOBJ FOUND", "search": {
-										"IpobjInRules": data_ipobj, "IpobjInGroup": data_group, "IpobjInterfaces": data_ipobj_interfaces}});
-							} else {
-								callback(null, {"result": false, "msg": "IPOBJ NOT FOUND", "search": {
-										"IpobjInRules": "", "IpobjInGroup": "", "IpobjInterfaces": ""}});
-							}
-
-						}
-					});
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length > 0) {
+					search.result = true;
+					break;
 				}
-			});
-		}
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
 	});
 };

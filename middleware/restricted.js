@@ -26,7 +26,7 @@ restrictedCheck.fwcloud = (req, res, next) => {
 				cadRestricted = "  CLUSTERS";
 
 			if (cadRestricted !== "") {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted };
+				const restricted = { "result": false, "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted };
 				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 			} else next();
 		} else next();
@@ -36,13 +36,13 @@ restrictedCheck.fwcloud = (req, res, next) => {
 
 restrictedCheck.otherFirewall = (req, res, next) => {
 	interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall)
-		.then(found_resp => {
-			if (found_resp.found) {
-				const restricted = { "result": false, "msg": "Restricted", "restrictions": found_resp };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-			} else next();
-		})
-		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+	.then(found_resp => {
+		if (found_resp.found) {
+			const restricted = { "result": false, "restrictions": found_resp };
+			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		} else next();
+	})
+	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
 };
 
 
@@ -63,7 +63,7 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 
 			if (row && row.length > 0) {
 				if (row[0].cont > 0) {
-					const restricted = { "result": false, "msg": "Restricted", "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
+					const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
 					api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 				} else next();
 			} else next();
@@ -72,18 +72,14 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 };
 
 
-restrictedCheck.interface = (req, res, next) => {
+restrictedCheck.interface = async (req, res, next) => {
 	//Check interface in RULE O POSITIONS
 	const type = (req.body.firewallhost) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
-	interfaceModel.searchInterfaceInrulesPro(req.body.id, type, req.body.fwcloud, '')
-	.then(data => {
-		//CHECK RESULTS
-		if (data.result) {
-			const restricted = { "result": false, "msg": "Restricted", "restrictions": data.search };
-			api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		} else next();
-	})
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)));
+	try {
+		const data = await interfaceModel.searchInterfaceInrulesPro(req.body.id, type, req.body.fwcloud, '');
+		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		else next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
 

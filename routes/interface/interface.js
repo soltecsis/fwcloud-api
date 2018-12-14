@@ -283,22 +283,14 @@ router.put("/host/del",
 
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface  */
-router.put("/where", (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-	var type = req.body.type;
-
-	InterfaceModel.searchInterface(id, type, fwcloud, (error, data) => {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		else {
-			if (data && data.result)
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		}
-	});
+router.put('/where', async (req, res) => {
+	try {
+		const data = await InterfaceModel.searchInterface(req.body.id, req.body.type, req.body.fwcloud);
+		if (data && data.result)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -306,8 +298,7 @@ router.put("/where", (req, res) => {
 
 //FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface in RULES  */
-router.put("/where/rules", (req, res) => {
-	var iduser = req.session.user_id;
+router.put('/where/rules', (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var id = req.body.id;
 	var type = req.body.type;

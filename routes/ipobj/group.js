@@ -149,21 +149,18 @@ router.put("/del",
 	});
 
 /* Search where is used Group  */
-router.put("/where", (req, res) => {
-	Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud, (error, data) => {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		else {
-			if (data && data.length > 0)
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		}
-	});
+router.put('/where', async (req, res) => {
+	try {
+		const data = await Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
+		if (data && data.result)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 // API call for check deleting restrictions.
-router.put("/restricted",
+router.put('/restricted',
 	restrictedCheck.ipobj_group,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 

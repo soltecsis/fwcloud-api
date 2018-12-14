@@ -59,12 +59,11 @@ interface__ipobjModel.getInterface__ipobj = function (interface, ipobj, callback
 };
 
 //Search Interface in hosts
-interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+interface__ipobjModel.getInterface__ipobj_hosts = (interface, fwcloud) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
 				'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
 				'FROM interface__ipobj O ' +
 				'inner join  interface I on I.id=O.interface ' +
@@ -72,18 +71,11 @@ interface__ipobjModel.getInterface__ipobj_hosts = function (interface, fwcloud, 
 				'inner join ipobj H on H.id=O.ipobj ' +
 				'inner join ipobj_type TH on TH.id=H.type ' +
 				'left join fwcloud C on C.id=H.fwcloud ' +
-				' WHERE O.interface=' + connection.escape(interface) + ' AND (H.fwcloud=' + connection.escape(fwcloud) + ' OR H.fwcloud is NULL)  ORDER BY interface_order';
-		logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(null, {"found": ""});
-			else {
-				if (rows.length > 0) {                    
-					callback(null, {"found": rows});                    
-				}
-				else
-					callback(null, {"found": ""});
-			}
+				' WHERE O.interface=' + interface+ ' AND (H.fwcloud=' + fwcloud + ' OR H.fwcloud is NULL) ORDER BY interface_order';
+			connection.query(sql, (error, rows) => {
+					if (error) return reject(error);
+					resolve(rows);
+			});
 		});
 	});
 };

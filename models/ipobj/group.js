@@ -212,23 +212,22 @@ ipobj_gModel.getIpobj_g_Full_Pro = function (fwcloud, id) {
 
 /* Search where is used GROUP  */
 ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
-		//SEARCH IPOBJ GROUP IN RULES
-		Policy_r__ipobjModel.searchGroupInRule(id, fwcloud, function (error, data_grouprule) {
-				if (error) {
-						callback(error, null);
-				} else {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions = {};
+			search.restrictions.groupInRules = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
-						if (data_grouprule.found !== "") {
-								callback(null, {"result": true, "msg": "GROUP FOUND", "search": {
-												"groupInRules": data_grouprule}});
-						} else {
-								callback(null, {"result": false, "msg": "GROUP NOT FOUND", "search": {
-												"groupInRules": ""}});
-						}
-
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length > 0) {
+					search.result = true;
+					break;
 				}
-		});
-
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
+	});
 };
 
 

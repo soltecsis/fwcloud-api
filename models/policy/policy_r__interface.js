@@ -675,63 +675,50 @@ policy_r__interfaceModel.searchInterfacesInRule = function(ipobj, fwcloud, callb
 };
 
 //search if INTERFACE Exists in any rule I POSITIONS
-policy_r__interfaceModel.SearchInterfaceInRules = function(interface, type, fwcloud, firewall, diff_firewall, callback) {
-
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = "";
-		if (firewall === null) {
-			//Search interfaces in all Firewalls from Cloud
-			logger.debug("SEARCH interface I POSITIONS IN ALL CLOUD's Firewalls:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Different FW: " + diff_firewall);
-			sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
-				'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__interface O ' +
-				'INNER JOIN policy_r R on R.id=O.rule   ' +
-				'INNER JOIN firewall F on F.id=R.firewall   ' +
-				'INNEr JOIN interface I on I.id=O.interface ' +
-				'inner join ipobj_type T on T.id=I.interface_type ' +
-				'inner join policy_position P on P.id=O.position ' +
-				'inner join policy_type PT on PT.id=R.type ' +
-				'inner join fwcloud C on C.id=F.fwcloud ' +
-				' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
-				' AND C.id=' + connection.escape(fwcloud);
-			if (diff_firewall !== '')
-				sql += ' AND F.id<>' + connection.escape(diff_firewall);
-		} else {
-			//Search interfaces only in Firewall interface
-			logger.debug("SEARCH interface I POSITIONS IN INTERFACE's FIREWALL:" + interface + " Type:" + type + "  fwcloud:" + fwcloud + "  Firewall: " + firewall + "  Different FW: " + diff_firewall);
-			sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
-				'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__interface O ' +
-				'INNER JOIN policy_r R on R.id=O.rule   ' +
-				'INNER JOIN firewall F on F.id=R.firewall   ' +
-				'INNEr JOIN interface I on I.id=O.interface ' +
-				'inner join ipobj_type T on T.id=I.interface_type ' +
-				'inner join policy_position P on P.id=O.position ' +
-				'inner join policy_type PT on PT.id=R.type ' +
-				'inner join fwcloud C on C.id=F.fwcloud ' +
-				' WHERE I.id=' + connection.escape(interface) + ' AND I.interface_type=' + connection.escape(type) +
-				' AND C.id=' + connection.escape(fwcloud);
-			if (diff_firewall !== '')
-				sql += ' AND F.id<>' + connection.escape(diff_firewall);
-			else
-				sql += ' AND F.id=' + connection.escape(firewall);
-		}
-		//logger.debug(sql);
-		connection.query(sql, function(error, rows) {
-			if (!error) {
-				if (rows.length > 0) {
-					logger.debug(">>>>>>>>> FOUND interface IN RULES:" + interface + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows.length + " RULES");
-					callback(null, { "found": rows });
-
-				} else {
-					callback(null, { "found": "" });
-				}
-			} else
-				callback(null, { "found": "" });
+policy_r__interfaceModel.SearchInterfaceInRules = (interface, type, fwcloud, firewall, diff_firewall) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			let sql = "";
+			if (firewall === null) {
+				//Search interfaces in all Firewalls from Cloud
+				sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+					'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
+					'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+					'FROM policy_r__interface O ' +
+					'INNER JOIN policy_r R on R.id=O.rule   ' +
+					'INNER JOIN firewall F on F.id=R.firewall   ' +
+					'INNEr JOIN interface I on I.id=O.interface ' +
+					'inner join ipobj_type T on T.id=I.interface_type ' +
+					'inner join policy_position P on P.id=O.position ' +
+					'inner join policy_type PT on PT.id=R.type ' +
+					'inner join fwcloud C on C.id=F.fwcloud ' +
+					' WHERE I.id=' + interface+ ' AND I.interface_type=' + type + ' AND C.id=' + fwcloud;
+				if (diff_firewall !== '')
+					sql += ' AND F.id<>' + connection.escape(diff_firewall);
+			} else {
+				//Search interfaces only in Firewall interface
+				sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+					'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type, ' +
+					'PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
+					'FROM policy_r__interface O ' +
+					'INNER JOIN policy_r R on R.id=O.rule   ' +
+					'INNER JOIN firewall F on F.id=R.firewall   ' +
+					'INNEr JOIN interface I on I.id=O.interface ' +
+					'inner join ipobj_type T on T.id=I.interface_type ' +
+					'inner join policy_position P on P.id=O.position ' +
+					'inner join policy_type PT on PT.id=R.type ' +
+					'inner join fwcloud C on C.id=F.fwcloud ' +
+					' WHERE I.id=' + interface+ ' AND I.interface_type=' + type + ' AND C.id=' + fwcloud;
+				if (diff_firewall !== '')
+					sql += ' AND F.id<>' + connection.escape(diff_firewall);
+				else
+					sql += ' AND F.id=' + connection.escape(firewall);
+			}
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows);
+			});
 		});
 	});
 };
