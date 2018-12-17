@@ -798,7 +798,7 @@ firewallModel.deleteFirewallPro = function (fwdata) {
 	return new Promise((resolve, reject) => {
 		interfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id)
 				.then(data => {
-					if (data) {
+					if (data.result) {
 						logger.debug("RESTRICTED FIREWALL: " + fwdata.id + "  Fwcloud: " + fwdata.fwcloud);
 						resolve({"result": false, "msg": "Restricted", "restrictions": data});
 					} else {
@@ -1119,10 +1119,13 @@ firewallModel.searchFirewallRestrictions = req => {
 		try {
 			let search = {};
 			search.result = false;
-			search.restrictions ={};
-			search.restrictions.InterfacesInOtherFirewalls = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
+			search.restrictions = {};
+
+			const r1 = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
 		  // For each OpenVPN configuration of the firewall, check that its ipobjs are not being used in other firewalls.
-			search.restrictions.OpenVPNInOtherFirewalls = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
+			const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
+
+			search.restrictions = utilsModel.mergeObj(r1.restrictions, r2.restrictions);
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {

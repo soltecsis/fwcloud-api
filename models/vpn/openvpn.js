@@ -244,7 +244,7 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
     // First get all firewalls OpenVPN configurations.
     let sql = 'select VPN.id from openvpn VPN'+
       ' inner join crt CRT on CRT.id=VPN.crt'+
-      ' where firewall='+req.body.firewall+' and CRT.type=1 order by CRT.type asc'; // First the client OpenVPN configurations.
+      ' where firewall!='+req.body.firewall+' order by CRT.type asc'; // First the client OpenVPN configurations.
 
     req.dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);

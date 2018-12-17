@@ -309,7 +309,7 @@ interfaceModel.searchInterfaceInrulesOtherFirewall = (fwcloud, idfirewall) => {
 						found_resp = obj;
 					}
 				}
-				resolve(found_resp);				
+				resolve(found_resp.resp);				
 			} catch(error) { reject(error) }
 		});
 	});
