@@ -1498,3 +1498,17 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 		});
 	});
 };
+
+
+//Get ipobjects node info.
+fwc_treeModel.getNodeInfo = req => {
+	return new Promise((resolve, reject) => {
+		let sql = 'SELECT * FROM ' + tableModel + 
+			' WHERE fwcloud=' + req.body.fwcloud + ' AND node_type=' + req.dbCon.escape(req.body.node_type) +
+			' AND id_obj' + (!req.body.id_obj ? " IS NULL" : ("="+req.body.id_obj));
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
+		});
+	});
+};

@@ -10,7 +10,7 @@ schema.validate = req => {
     if (item2==='folder' || item2==='repair')
     try {
       const item1 = req.url.split('/')[1];
-      resolve (await require('./'+item1+'/'+item2).validate(req));
+      return resolve (await require('./'+item1+'/'+item2).validate(req));
     } catch(error) { return reject(error) }
   
     var schema = Joi.object().keys({ fwcloud: sharedSch.id });
@@ -18,10 +18,8 @@ schema.validate = req => {
     if (req.method==='PUT') {
       if (req.url==='/tree/objects/get' || req.url==='/tree/services/get')
         schema = schema.append({ objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
-      else if (req.url==='/tree/objects/node/get' || req.url==='/tree/services/node/get')
-        schema = schema.append({ id: sharedSch.id, objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
-      else if (req.url==='/tree/get')
-        schema = schema.append({ id: sharedSch.id });
+      else if (req.url==='/tree/node/get')
+        schema = schema.append({ node_type: sharedSch.name, id_obj: sharedSch.id.allow(null) });
     } else if (req.method==='POST') {
 
     } else return reject(new Error('Request method not accepted'));

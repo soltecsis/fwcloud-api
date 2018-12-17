@@ -72,6 +72,7 @@ router.put('/objects/get', (req, res) => {
 	});
 });
 
+
 /* Get all fwc_tree NODE SERVICES by User*/
 //objs -> Standar services (without fwcloud)
 //objc -> fwcloud services
@@ -136,5 +137,18 @@ router.put('/ca/get', (req, res) => {
 			api_resp.getJson(null, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	});
 });
+
+
+// Get objects node information.
+router.put('/node/get', async (req, res) => {
+	try {
+		const data = await fwcTreemodel.getNodeInfo(req);
+		if (data.length>0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
 
 module.exports = router;

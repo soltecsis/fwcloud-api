@@ -100,6 +100,7 @@ restrictedCheck.ipobj_group = async (req, res, next) => {
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
+
 restrictedCheck.openvpn = async (req, res, next) => {
 	try {
 		const data = await openvpnModel.searchOpenvpnInRules(req);
