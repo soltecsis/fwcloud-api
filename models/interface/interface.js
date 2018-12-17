@@ -285,42 +285,33 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 
 
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
-interfaceModel.searchInterfaceInrulesOtherFirewall = function (fwcloud, idfirewall) {
+interfaceModel.searchInterfaceInrulesOtherFirewall = (fwcloud, idfirewall) => {
 	return new Promise((resolve, reject) => {
-		var found = false;
 		var found_resp = "";
 
 		interfaceModel.getInterfaces(idfirewall, fwcloud, async (error, data) => {
-			if (error)
-				return reject(error);
-			for (i = 0; i < data.length; i++) {
-				await interfaceModel.searchInterfaceInrulesPro(data[i].id, data[i].interface_type, fwcloud, idfirewall)
-						.then(resp => {
-							if (resp.result) {
-								var respI = {resp};
-								found = true;
-								var obj = "";
-								if (!utilsModel.isEmptyObject(found_resp)) {
-									if (!utilsModel.isEmptyObject(respI))
-										obj = utilsModel.mergeObj(found_resp, respI);
-									else
-										obj = found_resp;
-								} else {
-									obj = respI;
-								}
-								found_resp = obj;
-							}
-						})
-						.catch();
-			}
-			if (!found)
-				found_resp = "";
-			else
-				found_resp = {"found": true, "search": found_resp};
-			//logger.debug("FINAL RESP: " + JSON.stringify(found_resp));
-			resolve(found_resp);
-		});
+			if (error) return reject(error);
 
+			try {
+				for (i = 0; i < data.length; i++) {
+					const resp = await interfaceModel.searchInterfaceInrulesPro(data[i].id, data[i].interface_type, fwcloud, idfirewall);
+					if (resp.result) {
+						var respI = {resp};
+						var obj = "";
+						if (!utilsModel.isEmptyObject(found_resp)) {
+							if (!utilsModel.isEmptyObject(respI))
+								obj = utilsModel.mergeObj(found_resp, respI);
+							else
+								obj = found_resp;
+						} else {
+							obj = respI;
+						}
+						found_resp = obj;
+					}
+				}
+				resolve(found_resp);				
+			} catch(error) { reject(error) }
+		});
 	});
 };
 

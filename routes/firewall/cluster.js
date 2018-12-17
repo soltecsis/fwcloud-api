@@ -388,12 +388,12 @@ router.put('/', (req, res) => {
 
 // API call for check deleting restrictions.
 router.put("/restricted",
-	restrictedCheck.otherFirewall,
+	restrictedCheck.firewall,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 /* Remove cluster */
 router.put("/del",
-	restrictedCheck.otherFirewall,
+	restrictedCheck.firewall,
 	(req, res) => {
 		ClusterModel.deleteCluster(req.body.cluster, req.session.user_id, req.body.fwcloud, (error, data) => {
 			if (data && data.result)

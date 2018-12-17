@@ -221,17 +221,36 @@ openvpnModel.freeVpnIP = req => {
   });
 };
 
-openvpnModel.searchOpenvpnInRules = req => {
+openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     // For each ipobj referenced by the OpenVPN configuration options, verify that it is not being used in any firewall rule.
     let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
-    ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
-    ' where OPT.openvpn='+req.body.openvpn;
-    req.dbCon.query(sql, async (error, result) => {
+      ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
+      ' where OPT.openvpn='+openvpn;
+    dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
       for (let ipobj of result) {
-        const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, req.body.fwcloud);
+        const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, fwcloud);
+        if (data.result) return resolve(data);
+      }
+      resolve({result: false});
+    });
+  });
+};
+
+openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
+	return new Promise((resolve, reject) => {
+    // First get all firewalls OpenVPN configurations.
+    let sql = 'select VPN.id from openvpn VPN'+
+      ' inner join crt CRT on CRT.id=VPN.crt'+
+      ' where firewall='+req.body.firewall+' and CRT.type=1 order by CRT.type asc'; // First the client OpenVPN configurations.
+
+    req.dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      for (let openvpn of result) {
+        const data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,openvpn);
         if (data.result) return resolve(data);
       }
       resolve({result: false});

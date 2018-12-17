@@ -576,7 +576,7 @@ router.put('/accesslock/get', async (req, res) => {
 
 // API call for check deleting restrictions.
 router.put("/restricted",
-	restrictedCheck.otherFirewall,
+	restrictedCheck.firewall,
 	restrictedCheck.firewallApplyTo,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
@@ -615,7 +615,7 @@ router.put("/restricted",
  *       };
  */
 router.put('/del',
-	restrictedCheck.otherFirewall,
+	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
 			data = await FirewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
@@ -628,7 +628,7 @@ router.put('/del',
 
 //DELETE FIREWALL FROM CLUSTER
 router.put('/delfromcluster',
-restrictedCheck.otherFirewall,
+restrictedCheck.firewall,
 restrictedCheck.firewallApplyTo,
 (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE

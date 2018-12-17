@@ -29,7 +29,8 @@ module.exports = firewallModel;
 var tableModel = "firewall";
 var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
-var InterfaceModel = require('../../models/interface/interface');
+var interfaceModel = require('../../models/interface/interface');
+const openvpnModel = require('../../models/vpn/openvpn');
 var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
@@ -795,11 +796,11 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
 
 firewallModel.deleteFirewallPro = function (fwdata) {
 	return new Promise((resolve, reject) => {
-		InterfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id)
-				.then(found_resp => {
-					if (found_resp.found) {
+		interfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id)
+				.then(data => {
+					if (data) {
 						logger.debug("RESTRICTED FIREWALL: " + fwdata.id + "  Fwcloud: " + fwdata.fwcloud);
-						resolve({"result": false, "msg": "Restricted", "restrictions": found_resp});
+						resolve({"result": false, "msg": "Restricted", "restrictions": data});
 					} else {
 						firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
 								.then(data => {
@@ -852,8 +853,8 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 				if (row && row.length > 0) {
 					try {
 						await Policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
-						await InterfaceModel.deleteInterfacesIpobjFirewall(fwcloud, firewall); // DELETE IPOBJS UNDER INTERFACES
-						await InterfaceModel.deleteInterfaceFirewall(fwcloud, firewall); //DELETE INTEFACES
+						await interfaceModel.deleteInterfacesIpobjFirewall(fwcloud, firewall); // DELETE IPOBJS UNDER INTERFACES
+						await interfaceModel.deleteInterfaceFirewall(fwcloud, firewall); //DELETE INTEFACES
 						await User__firewallModel.deleteAllUser__firewall(firewall);//DELETE USERS_FIREWALL
 						await fwcTreemodel.deleteFwc_TreeFullNode({id: row[0].id, fwcloud: fwcloud, iduser: user}); //DELETE TREE NODES From firewall
 						await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud+'/'+firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
@@ -1112,3 +1113,25 @@ firewallModel.getMasterFirewallId = function (fwcloud, cluster) {
 		});
 	});
 }
+
+firewallModel.searchFirewallRestrictions = req => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions ={};
+			search.restrictions.InterfacesInOtherFirewalls = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
+		  // For each OpenVPN configuration of the firewall, check that its ipobjs are not being used in other firewalls.
+			search.restrictions.OpenVPNInOtherFirewalls = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
+
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length > 0) {
+					search.result = true;
+					break;
+				}
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
+	});
+};
+
