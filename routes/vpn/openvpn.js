@@ -60,7 +60,7 @@ const restrictedCheck = require('../../middleware/restricted');
 router.post('/', async(req, res) => {
 	try {
 		// Verify that the node tree type is correct.
-		if (req.tree_node.node_type !== 'OPN' && req.tree_node.node_type !== 'VSR')
+		if (req.tree_node.node_type !== 'OPN' && req.tree_node.node_type !== 'OSR')
 			throw (new Error('Bad node tree type'));
 
 		// Verify that the OpenVPN configuration is the same indicated in the tree node.
@@ -87,9 +87,9 @@ router.post('/', async(req, res) => {
 		// Create the OpenVPN configuration node in the tree.
 		let nodeId;
 		if (req.tree_node.node_type === 'OPN') // This will be an OpenVPN server configuration.
-			nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'VSR', cfg, 312);
-		else if (req.tree_node.node_type === 'VSR') // This will be an OpenVPN client configuration.
-			nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'VCL', cfg, 311);
+			nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
+		else if (req.tree_node.node_type === 'OSR') // This will be an OpenVPN client configuration.
+			nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
 
 		api_resp.getJson({insertId: cfg, TreeinsertId: nodeId}, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
