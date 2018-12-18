@@ -185,7 +185,7 @@ openvpnModel.freeVpnIP = req => {
       if (error) return reject(error);
 
       // If we have no VPN LAN we can not give any free IP.
-      if (result.length===0) return resolve(null);
+      if (result.length===0) return reject(new Error('OpenVPN LAN not found'));
 
       // net will contain information about the VPN network.
       const net = ip.subnet(result[0].address, result[0].netmask);
@@ -201,21 +201,18 @@ openvpnModel.freeVpnIP = req => {
         if (error) return reject(error);
       
         let freeIPLong;
-        let found;
+        let found = 0;
         for(freeIPLong=net.firstLong; freeIPLong<=net.lastLong; freeIPLong++) {
-          found=0;
           for (let ipCli of result) {
-            if (ip.toLong(ipCli) === freeIPLong) {
+            if (freeIPLong != ip.toLong(ipCli)) {
               found=1;
               break;
             }
           }
-          if (!found) break;
+          if (found) 
+            return resolve(ip.fromLong(freeIPLong));
         }
-
-        if (freeIPLong > net.lastLong)
-          return reject('There are no free IPs')
-        resolve(ip.fromLong(freeIPLong));
+        reject(new Error('There are no free VPN IPs'));
       });
     });
   });
