@@ -201,15 +201,16 @@ openvpnModel.freeVpnIP = req => {
         if (error) return reject(error);
       
         let freeIPLong;
-        let found = 0;
+        let found;
         for(freeIPLong=net.firstLong; freeIPLong<=net.lastLong; freeIPLong++) {
+          found = 0;
           for (let ipCli of result) {
             if (freeIPLong != ip.toLong(ipCli)) {
               found=1;
               break;
             }
           }
-          if (found) 
+          if (!found) 
             return resolve(ip.fromLong(freeIPLong));
         }
         reject(new Error('There are no free VPN IPs'));
