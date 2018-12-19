@@ -1123,9 +1123,10 @@ firewallModel.searchFirewallRestrictions = req => {
 
 			const r1 = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
 		  // For each OpenVPN configuration of the firewall, check that its ipobjs are not being used in other firewalls.
-			const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
+			//const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
 
-			search.restrictions = utilsModel.mergeObj(r1.restrictions, r2.restrictions);
+			if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
+			//if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
