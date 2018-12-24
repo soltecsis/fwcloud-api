@@ -69,10 +69,10 @@ router.post('/', async(req, res) => {
 
 		// Verify that we are using the correct type of certificate.
 		// 1=Client certificate, 2=Server certificate.
-		if (!req.body.openvpn && req.crt.type!=2)
-			throw (new Error('You can not use client certificates for OpenVPN server configuration'));
-		if (req.body.openvpn && req.crt.type!=1)
-			throw (new Error('You can not use server certificates for OpenVPN client configuration'));
+		if (req.crt.type===1 && !req.body.openvp)
+			throw (new Error('When using client certificates you must indicate the OpenVPN server configuration'));
+		if (req.crt.type===2 && req.body.openvpn)
+			throw (new Error('When using server certificates you must not indicate the OpenVPN server configuration'));
 
 		const cfg = await openvpnModel.addCfg(req);
 
