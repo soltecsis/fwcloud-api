@@ -103,7 +103,7 @@ router.post('/', async(req, res) => {
 router.put('/', async(req, res) => {
 	try {
 		// First remove all the current configuration options.
-		await openvpnModel.removeCfgOptAll(req);
+		await openvpnModel.delCfgOptAll(req);
 
 		// Now create all the new options for the OpenVPN configuration.
 		const cfg = await openvpnModel.getCfgId(req);
@@ -160,7 +160,7 @@ restrictedCheck.openvpn,
 async (req, res) => {
 	try {
 		// Delete the configuration from de database.
-		await openvpnModel.removeCfg(req);
+		await openvpnModel.delCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		
 		// Delete the openvpn node from the tree.
 		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type===1 ? 311 : 312));

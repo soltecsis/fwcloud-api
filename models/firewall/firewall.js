@@ -794,27 +794,15 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
 	});
 };
 
-firewallModel.deleteFirewallPro = function (fwdata) {
-	return new Promise((resolve, reject) => {
-		interfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id)
-				.then(data => {
-					if (data.result) {
-						logger.debug("RESTRICTED FIREWALL: " + fwdata.id + "  Fwcloud: " + fwdata.fwcloud);
-						resolve({"result": false, "msg": "Restricted", "restrictions": data});
-					} else {
-						firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
-								.then(data => {
-									logger.debug("DELETED FIREWALL: " + fwdata.id + " - " + fwdata.name);
-									resolve({"result": true, "msg": "Deleted", "restrictions": ""});
-								})
-								.catch(e => {
-									resolve({"result": false, "msg": "Error", "restrictions": ""});
-								});
-					}
-				})
-				.catch(e => {
-					resolve({"result": false, "msg": "Error", "restrictions": ""});
-				});
+firewallModel.deleteFirewallPro = fwdata => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const data = await interfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id);
+			if (data.result) return resolve({"result": false, "msg": "Restricted", "restrictions": data});
+
+			await firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
+			resolve({"result": true, "msg": "Deleted", "restrictions": ""});
+		} catch(error) { return reject(error) }
 	});
 };
 /**
@@ -842,16 +830,17 @@ firewallModel.deleteFirewallPro = function (fwdata) {
  */
 firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
+		db.get((error, dbCon) => {
 			if (error) return reject(error);
 
 			var sql = 'select id from fwc_tree where node_type="FW" and id_obj='+firewall+' and fwcloud='+fwcloud;
-			connection.query(sql, async (error, row) => {
+			dbCon.query(sql, async (error, row) => {
 				if (error) return reject(error);
 
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
 					try {
+						await openvpnModel.delCfgAll(dbCon,fwcloud,firewall); // Remove all OpenVPN configurations for this firewall.
 						await Policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 						await interfaceModel.deleteInterfacesIpobjFirewall(fwcloud, firewall); // DELETE IPOBJS UNDER INTERFACES
 						await interfaceModel.deleteInterfaceFirewall(fwcloud, firewall); //DELETE INTEFACES
@@ -861,7 +850,7 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 
 						//DELETE FIREWALL from the database.
 						var sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + firewall;
-						connection.query(sql, (error, result) => {
+						dbCon.query(sql, (error, result) => {
 							if (error) 
 								resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
 							else 
