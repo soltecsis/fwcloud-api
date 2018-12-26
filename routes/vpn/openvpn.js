@@ -52,6 +52,7 @@ const openvpnModel = require('../../models/vpn/openvpn');
 
 const fwc_treeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
+const fwcTreemodel = require('../../models/tree/tree');
 
 
 /**
@@ -108,7 +109,7 @@ router.put('/', async(req, res) => {
 		const cfg = await openvpnModel.getCfgId(req);
 		var order = 1;
 		for (let opt of req.body.options) {
-			opt.cfg = cfg;
+			opt.openvpn = cfg;
 			opt.order = order++;
 			await openvpnModel.addCfgOpt(req, opt);
 		}
@@ -162,7 +163,7 @@ async (req, res) => {
 		await openvpnModel.removeCfg(req);
 		
 		// Delete the openvpn node from the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, req.tree_node.obj_type);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type===1 ? 311 : 312));
 		
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

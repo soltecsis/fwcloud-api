@@ -3,7 +3,9 @@ var openvpnModel = {};
 
 const config = require('../../config/config');
 const firewallModel = require('../firewall/firewall');
+const ipobjModel = require('../ipobj/ipobj');
 const readline = require('readline');
+const fwcTreemodel = require('../../models/tree/tree');
 const fs = require('fs');
 const ip = require('ip');
 
@@ -46,15 +48,31 @@ openvpnModel.removeCfgOptAll = req => {
 
 openvpnModel.removeCfg = req => {
 	return new Promise((resolve, reject) => {
-    let sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
-    req.dbCon.query(sql, (error, result) => {
+    // Remove all the ipobj referenced by this OpenVPN configuration.
+    // In the restrictions check we have already checked that it is possible to remove them.
+    let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
+    ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
+    ' where OPT.openvpn='+req.body.openvpn;
+    req.dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
-      sql = 'delete from openvpn where id=' + req.body.openvpn;
+      try {
+        for (let ipobj of result) {
+          await ipobjModel.deleteIpobj(req.dbCon,req.body.fwcloud,ipobj.id);
+          await fwcTreemodel.deleteObjFromTree(req.body.fwcloud,ipobj.id,ipobj.type);
+        }
+      } catch(error) { return reject(error) }
+
+      sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
-        resolve();
+        sql = 'delete from openvpn where id=' + req.body.openvpn;
+        req.dbCon.query(sql, (error, result) => {
+          if (error) return reject(error);
+
+          resolve();
+        });
       });
     });
   });
@@ -228,10 +246,13 @@ openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
-      for (let ipobj of result) {
-        const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, fwcloud);
-        if (data.result) return resolve(data);
-      }
+      try {
+        for (let ipobj of result) {
+          const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, fwcloud);
+          if (data.result) return resolve(data);
+        }         
+      } catch(error) { reject(error) }
+
       resolve({result: false});
     });
   });
@@ -240,17 +261,23 @@ openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
 openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
 	return new Promise((resolve, reject) => {
     // First get all firewalls OpenVPN configurations.
-    let sql = 'select VPN.id from openvpn VPN'+
-      ' inner join crt CRT on CRT.id=VPN.crt'+
-      ' where firewall!='+req.body.firewall+' order by CRT.type asc'; // First the client OpenVPN configurations.
+    let sql = 'select id from openvpn where firewall='+req.body.firewall;
 
     req.dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
-      for (let openvpn of result) {
-        const data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,openvpn);
-        if (data.result) return resolve(data);
-      }
+      try {
+        for (let openvpn of result) {
+          const data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,openvpn.id);
+          if (data.result && data.restrictions.IpobjInRules.length>0) {
+            for (let rule of data.restrictions.IpobjInRules) {
+              if (rule.firewall_id != req.body.firewall)
+                return resolve(data);
+            }
+          }
+        }
+      } catch(error) { reject(error) }
+
       resolve({result: false});
     });
   });

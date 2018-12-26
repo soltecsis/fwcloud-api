@@ -127,7 +127,7 @@ schema.validate = req => {
 					node_id: sharedSch.id
 				});
 			}
-			if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 
+			else if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 
 					|| req.url==='/vpn/openvpn/install' || req.url==='/vpn/openvpn/file/get'
 					|| req.url==='/vpn/openvpn/ip/get' || req.url==='/vpn/openvpn/restricted') {
 				schema = schema.append({ openvpn: sharedSch.id });

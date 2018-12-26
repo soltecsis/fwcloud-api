@@ -780,25 +780,16 @@ ipobjModel.updateIpobj = function (ipobjData, callback) {
  * 
  *      {"result": false, "msg": "Restricted", "restrictions": data.search}
  * */
-ipobjModel.deleteIpobj = function (id, type, fwcloud, callback) {
+ipobjModel.deleteIpobj = (dbCon,fwcloud,id) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + id + ' AND fwcloud=' + fwcloud;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
 
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-		logger.debug(sql);
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					logger.debug("OK DELETED IPOBJ: " + id + "  Type: " + type + "  Fwcloud: " + fwcloud);
-					callback(null, {"result": true, "msg": "deleted"});
-				} else {
-					callback(null, {"result": false, "msg": "notExist"});
-				}
-			}
+			if (result.affectedRows > 0)
+				resolve({"result": true, "msg": "deleted"});
+			else 
+				resolve({"result": false, "msg": "notExist"});
 		});
 	});
 };
@@ -990,6 +981,7 @@ ipobjModel.searchIpobjInRules = (id, type, fwcloud) => {
 			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
 			search.restrictions.InterfacesAboveIpobjInRules = await Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud); //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
 			search.restrictions.IpobjInterfacesIpobjInRules = await Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud); //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS
+			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -1043,6 +1035,7 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
 			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.IpobjInterfaces = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
+			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -1054,3 +1047,22 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 		} catch(error) { reject(error) }
 	});
 };
+
+
+//check if IPOBJ exists in and OpenVPN configuration 
+ipobjModel.searchIpobjInOpenvpn= (ipobj, type, fwcloud) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			let sql='SELECT VPN.* FROM openvpn AS VPN' +
+				' INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id' +
+				' INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj' +
+				' WHERE OBJ.id=' + ipobj + ' AND OBJ.type=' + type + ' AND (OBJ.fwcloud=' + fwcloud + ' OR OBJ.fwcloud IS NULL)';
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows);
+			});
+		});
+	});
+};
+

@@ -114,18 +114,19 @@ function checkCrtAccess(req) {
 // Check access to openvpn configuration.
 function checkOpenVPNAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = 'select F.fwcloud FROM openvpn O' +
+	 let sql = 'select F.fwcloud,O.*,CRT.* FROM openvpn O' +
 		 ' INNER JOIN firewall F ON O.firewall=F.id' +
+		 ' INNER JOIN crt CRT ON CRT.id=O.crt' +
 		 ' WHERE O.id='+req.body.openvpn;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
-			// Check that fwcloud of the CA of the CRT is the same fwcloud indicated in the req.body.fwcloud.
+			// Check that fwcloud of the CA of the OpenVPN config is the same fwcloud indicated in the req.body.fwcloud.
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
 			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
 
 			// Store the crt info for use in the API call processing.
-			req.crt = result[0];
+			req.openvpn = result[0];
 
 			resolve(true);
 		});

@@ -468,46 +468,31 @@ router.put('/get', (req, res) => {
  */
 router.put("/del", 
 restrictedCheck.ipobj,  
-(req, res) => {
+async (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var id = req.body.id;
 	var type = req.body.type;
 
-	FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,type,"|3")
-	.then(() => IpobjModel.UpdateHOST(id))
-	.then(() => IpobjModel.UpdateINTERFACE(id))
-	.then(() => IpobjModel.deleteIpobj(id, type, fwcloud, (error, data) => {
-		if (error)
+	try {
+		await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,type,"|3");
+		await IpobjModel.UpdateHOST(id);
+		await IpobjModel.UpdateINTERFACE(id);
+		const data = await IpobjModel.deleteIpobj(req.dbCon,req.body.fwcloud,req.body.id);
+		if (data && (data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted"))
+		{
+			if (data.msg === "deleted") {
+				await fwcTreemodel.orderTreeNodeDeleted(req.dbCon,fwcloud, id);
+				//DELETE FROM TREE
+				await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
+				const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
+				api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			} else if (data.msg === "Restricted")
+				api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		} else
 			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		else {
-			if (data && (data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted"))
-			{
-				if (data.msg === "deleted") {
-					//DELETE ALL FROM interface_ipobj (INTEFACES UNDER HOST)
-					//IF HOST -> DELETE ALL INTERFACE UNDER HOST and ALL IPOBJ UNDER INTERFACES
-					// Interface__ipobjModel.deleteInterface(fwcloud, iduser,idinterface , function (error, data)
-					//    {});
-					//REORDER TREE
-
-					fwcTreemodel.orderTreeNodeDeleted(fwcloud, id, async (error, data) => {
-						//DELETE FROM TREE
-						try {
-							await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
-							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
-							api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-						} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-					}
-					});
-				} else if (data.msg === "Restricted")
-					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'IPOBJ restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			} else
-				api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		}
-	})
-	)
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

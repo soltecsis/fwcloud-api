@@ -1420,27 +1420,29 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
 //Busca todos los padres donde aparece el IPOBJ a borrar
 //Ordena todos los nodos padres sin contar el nodo del IPOBJ
 //Order Tree Node by IPOBJ
-fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlParent = 'SELECT DISTINCT id_parent FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_obj=' + connection.escape(id_obj_deleted) + ' order by id_parent';
-		logger.debug(sqlParent);
-		connection.query(sqlParent, function (error, rows) {
+fwc_treeModel.orderTreeNodeDeleted = (dbCon, fwcloud, id_obj_deleted) => {
+	return new Promise((resolve, reject) => {
+		let sqlParent = 'SELECT DISTINCT id_parent FROM ' + tableModel +
+			' WHERE (fwcloud=' + fwcloud + ' OR fwcloud is null) AND id_obj=' + id_obj_deleted + ' order by id_parent';
+		dbCon.query(sqlParent, (error, rows) => {
+			if (error) return reject(error);
+
 			if (rows.length > 0) {
-				var order = 0;
-				asyncMod.map(rows, function (row, callback1) {
+				asyncMod.map(rows, (row, callback1) => {
 					var id_parent = row.id_parent;
-					var sqlNodes = 'SELECT * FROM ' + tableModel + ' WHERE (fwcloud=' + connection.escape(fwcloud) + ' OR fwcloud is null) AND id_parent=' + connection.escape(id_parent) + ' AND id_obj<>' + connection.escape(id_obj_deleted) + ' order by id_parent, node_order';
-					logger.debug(sqlNodes);
-					connection.query(sqlNodes, function (error, rowsnodes) {
+					var sqlNodes = 'SELECT * FROM ' + tableModel +
+						' WHERE (fwcloud=' + fwcloud + ' OR fwcloud is null) AND id_parent=' + id_parent +
+						' AND id_obj<>' + id_obj_deleted + ' order by id_parent, node_order';
+					dbCon.query(sqlNodes, (error, rowsnodes) => {
+						if (error) return reject(error);
+						
 						if (rowsnodes.length > 0) {
 							var order = 0;
-							asyncMod.map(rowsnodes, function (rowNode, callback2) {
+							asyncMod.map(rowsnodes, (rowNode, callback2) => {
 								order++;
 								sql = 'UPDATE ' + tableModel + ' SET node_order=' + order +
-										' WHERE id_parent = ' + connection.escape(id_parent) + ' AND id=' + connection.escape(rowNode.id);
-								connection.query(sql, function (error, result) {
+										' WHERE id_parent = ' + id_parent + ' AND id=' + rowNode.id;
+								dbCon.query(sql, (error, result) => {
 									if (error) {
 										callback2();
 									} else {
@@ -1449,20 +1451,18 @@ fwc_treeModel.orderTreeNodeDeleted = function (fwcloud, id_obj_deleted, callback
 								});
 							}, //Fin de bucle
 									function (err) {
-										callback(null, {"result": true});
+										return resolve({"result": true});
 									}
 							);
 						} else callback1();
 					});
 				}, //Fin de bucle
 						function (err) {
-							callback(null, {"result": true});
+							return resolve({"result": true});
 						}
 
 				);
-			} else {
-				callback(null, {"result": false});
-			}
+			} else return resolve({"result": false});
 		});
 	});
 };
