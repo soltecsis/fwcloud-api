@@ -625,6 +625,19 @@ ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
 };
 
 
+ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) => {
+	return new Promise((resolve, reject) => {
+		const sql = 'SELECT * FROM ipobj WHERE fwcloud='+fwcloud+' AND id='+ipobj;
+		dbCon.query(sql, function (error, result) {
+			if (error) return	reject(error);
+			if (result.length < 1) return reject(new Error('IP object not found'))
+
+			resolve(result[0]);
+		});
+	});
+};
+
+
 /**
  * Add ipobj
  * 

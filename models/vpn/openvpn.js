@@ -182,6 +182,11 @@ openvpnModel.dumpCfg = req => {
           let cfg_line = ((opt.comment) ? '# '+opt.comment.replace('\n','\n# ')+'\n' : '') + opt.name;
           if (opt.ipobj) {
             // Get the ipobj data.
+            const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
+            if (ipobj.type===7) // Network
+              cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
+            else if (ipobj.type===5) // Address
+              cfg_line += ' '+ipobj.address;
           }
           else if (opt.arg)
             cfg_line += ' '+opt.arg;
@@ -297,13 +302,9 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
                   return resolve(data);
               }
             }
-            // OpenVPN config IP object found in group and this group used in rules of other firewall.
-            else if (data.restrictions.IpobjInGroup.length>0 && data.restrictions.GroupInRules.length>0) {
-              for (let rule of data.restrictions.GroupInRules) {
-                if (rule.firewall_id != req.body.firewall)
-                  return resolve(data);
-              }
-            }
+            // OpenVPN config IP object found in a group.
+            else if (data.restrictions.IpobjInGroup.length>0)
+              return resolve(data);
           }
         }
       } catch(error) { reject(error) }

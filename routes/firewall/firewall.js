@@ -504,7 +504,11 @@ router.put('/', (req, res) => {
 });
 
 
-router.put('/clone', (req, res) => {
+router.put('/clone', async (req, res) => {
+	// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
+	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
+		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 	//Save firewall data into objet    
 	var firewallData = {
 		id: req.body.firewall,
@@ -514,37 +518,18 @@ router.put('/clone', (req, res) => {
 		by_user: req.session.user_id //working user
 	};
 
-	// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	try {
+		const data = await FirewallModel.cloneFirewall(req.session.user_id, firewallData);
+		if (data && data.result) {
+			const idNewFirewall = data.insertId;
 
-	FirewallModel.cloneFirewall(req.session.user_id, firewallData)
-		.then(data => {
-			//Saved ok
-			if (data && data.result) {
-				logger.debug("NUEVO FIREWALL CREADO: " + data.insertId);
-				var idNewFirewall = data.insertId;
-
-				//CLONE INTERFACES
-				InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall)
-					.then(dataI => Policy_rModel.cloneFirewallPolicy(req.session.user_idr, req.body.fwcloud, req.body.firewall, idNewFirewall, dataI))
-					.then(dataP => utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall))
-					.then(dataD => {
-						//INSERT FIREWALL NODE STRUCTURE                                                
-						fwcTreemodel.insertFwc_Tree_firewalls(req.body.fwcloud, req.body.node_id, idNewFirewall, (error, dataTree) => {
-							if (error)
-								api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-							else if (data && data.result)
-								api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-							else
-								api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-						});
-					})
-					.catch(err => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, err, jsonResp => res.status(200).json(jsonResp)));
-			} else
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		})
-		.catch(e => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)));
+			const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
+			await Policy_rModel.cloneFirewallPolicy(req.session.user_idr, req.body.fwcloud, req.body.firewall, idNewFirewall, dataI);
+			await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
+			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
+			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
