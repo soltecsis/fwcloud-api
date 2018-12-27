@@ -48,29 +48,30 @@ openvpnModel.delCfgOptAll = req => {
 
 openvpnModel.delCfg = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-    // Remove all the ipobj referenced by this OpenVPN configuration.
-    // In the restrictions check we have already checked that it is possible to remove them.
+    // Get all the ipobj referenced by this OpenVPN configuration.
     let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
     ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
     ' where OPT.openvpn='+openvpn;
-    dbCon.query(sql, async (error, result) => {
+    dbCon.query(sql, (error, ipobj_list) => {
       if (error) return reject(error);
-
-      try {
-        for (let ipobj of result) {
-          await ipobjModel.deleteIpobj(dbCon,fwcloud,ipobj.id);
-          await fwcTreemodel.deleteObjFromTree(fwcloud,ipobj.id,ipobj.type);
-        }
-      } catch(error) { return reject(error) }
 
       sql = 'delete from openvpn_opt where openvpn='+openvpn;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
 
         sql = 'delete from openvpn where id='+openvpn;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, async (error, result) => {
           if (error) return reject(error);
 
+          // Remove all the ipobj referenced by this OpenVPN configuration.
+          // In the restrictions check we have already checked that it is possible to remove them.
+          try {
+            for (let ipobj of ipobj_list) {
+              await ipobjModel.deleteIpobj(dbCon,fwcloud,ipobj.id);
+              await fwcTreemodel.deleteObjFromTree(fwcloud,ipobj.id,ipobj.type);
+            }
+          } catch(error) { return reject(error) }
+    
           resolve();
         });
       });
@@ -88,7 +89,7 @@ openvpnModel.delCfgAll = (dbCon,fwcloud,firewall) => {
 
       try {
         for (let openvpn of result) {
-          await openvpnModel.delCfg(dbCon,fwcloud,openvpn);
+          await openvpnModel.delCfg(dbCon,fwcloud,openvpn.id);
         }
       } catch(error) { return reject(error) }
       
@@ -267,7 +268,7 @@ openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
 
       try {
         for (let ipobj of result) {
-          const data = await ipobjModel.searchIpobjInRules(ipobj.id, ipobj.type, fwcloud);
+          const data = await ipobjModel.searchIpobjUsage(fwcloud, ipobj.id, ipobj.type, 1); // 1 = Search only in rules.
           if (data.result) return resolve(data);
         }         
       } catch(error) { reject(error) }

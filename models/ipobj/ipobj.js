@@ -928,8 +928,8 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
 };
 
 /**
- * ### searchIpobjInRules
- * Search where is used IPOBJ in RULES
+ * ### searchIpobjUsage
+ * Search where is used IPOBJ in RULES, OpenVPN configs, etc.
  * 
  * @method searchIpobjInRules
  * 
@@ -969,7 +969,7 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
  }
  *      
  * */
-ipobjModel.searchIpobjInRules = (id, type, fwcloud) => {
+ipobjModel.searchIpobjUsage = (fwcloud, id, type, onlyInRules) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let search = {};
@@ -981,7 +981,11 @@ ipobjModel.searchIpobjInRules = (id, type, fwcloud) => {
 			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
 			search.restrictions.InterfacesAboveIpobjInRules = await Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud); //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
 			search.restrictions.IpobjInterfacesIpobjInRules = await Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud); //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS
-			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+			
+			// Search for the ipobj in other places apart from the rules.
+			if (!onlyInRules) {
+				search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+			}
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -1050,7 +1054,7 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 
 
 //check if IPOBJ exists in and OpenVPN configuration 
-ipobjModel.searchIpobjInOpenvpn= (ipobj, type, fwcloud) => {
+ipobjModel.searchIpobjInOpenvpn = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);

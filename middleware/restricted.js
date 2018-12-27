@@ -83,7 +83,7 @@ restrictedCheck.interface = async (req, res, next) => {
 
 restrictedCheck.ipobj = async (req, res, next) => {
 	try {
-		const data = await ipobjModel.searchIpobjInRules(req.body.id, req.body.type, req.body.fwcloud);
+		const data = await ipobjModel.searchIpobjUsage(req.body.fwcloud, req.body.id, req.body.type, 0); // 0 = Search in rules, openvpn, etc.
 		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
