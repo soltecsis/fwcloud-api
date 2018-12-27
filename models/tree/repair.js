@@ -154,7 +154,7 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
 	return new Promise((resolve, reject) => {
     let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
       ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
-      ' WHERE T1.fwcloud='+dbCon.escape(fwcloud)+' AND T1.id_obj='+dbCon.escape(firewall.id) + ' AND T1.node_type="FW"';
+      ' WHERE T1.fwcloud='+fwcloud+' AND T1.id_obj='+firewall.id+' AND T1.node_type="FW"';
     dbCon.query(sql, async (error, nodes) => {
       if (error) return reject(error);
       

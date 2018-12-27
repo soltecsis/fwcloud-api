@@ -244,12 +244,12 @@ fwc_treeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 };
 
 //Create new node.
-fwc_treeModel.newNode = (connection,fwcloud,name,id_parent,node_type,id_obj,obj_type) => {
+fwc_treeModel.newNode = (dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'INSERT INTO ' + tableModel +
 			' (name,id_parent,node_type,id_obj,obj_type,fwcloud)' +
-			' VALUES ('+connection.escape(name)+','+id_parent+','+connection.escape(node_type)+','+id_obj+','+obj_type+','+fwcloud+')'; 
-		connection.query(sql, (error, result) => {
+			' VALUES ('+dbCon.escape(name.substring(0,45))+','+id_parent+','+dbCon.escape(node_type)+','+id_obj+','+obj_type+','+fwcloud+')'; 
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result.insertId);
 		});
@@ -343,33 +343,91 @@ fwc_treeModel.getFwc_TreeUserParent = function (fwcloud, idparent, callback) {
 fwc_treeModel.createAllTreeCloud = req => {
 	return new Promise(async (resolve, reject) => {
 		try {
+			let id1, id2, id3;
+			
 			// FIREWALLS
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'FIREWALLS',null,'FDF',null,null);
 
 			// OBJECTS
-			let node_id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'OBJECTS',null,'FDO',null,null);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Addresses',node_id,'OIA',null,5);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Address Ranges',node_id,'OIR',null,6);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Networks',node_id,'OIN',null,7);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',node_id,'OIH',null,8);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',node_id,'OIG',null,20);
-			// Add standard objects.
-			await fwc_treeModel.insertFwc_Tree_objects(req.dbCon, req.body.fwcloud, 'FDO');
+			id1 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'OBJECTS',null,'FDO',null,null);
+			// OBJECTS / Addresses
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Addresses',id1,'OIA',null,5);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIA',5);
+			// OBJECTS / Addresses Ranges
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Address Ranges',id1,'OIR',null,6);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIR',6);
+			// OBJECTS / Networks
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Networks',id1,'OIN',null,7);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIN',7);
+			// OBJECTS / Hosts
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',id1,'OIH',null,8);
+			// OBJECTS / Groups
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',id1,'OIG',null,20);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdGroupsTree(req.dbCon,req.body.fwcloud,id3,'OIG',20);
 
 			// SERVICES
-			node_id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'IP',node_id,'SOI',null,1);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'TCP',node_id,'SOT',null,2);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'ICMP',node_id,'SOM',null,3);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'UDP',node_id,'SOU',null,4);
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',node_id,'SOG',null,21);
-			// Add standard services.
-			await fwc_treeModel.insertFwc_Tree_objects(req.dbCon, req.body.fwcloud, 'FDS');
+			id1 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
+			// SERVICES / IP
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'IP',id1,'SOI',null,1);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOI',1);
+			// SERVICES / ICMP
+			id2= await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'ICMP',id1,'SOM',null,3);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOM',3);
+			// SERVICES / TCP
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'TCP',id1,'SOT',null,2);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOT',2);
+			// SERVICES / UDP
+			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'UDP',id1,'SOU',null,4);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOU',4);
+			// SERVICES / Groups
+			id2= await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',id1,'SOG',null,21);
+			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
+			await fwc_treeModel.createStdGroupsTree(req.dbCon,req.body.fwcloud,id3,'SOG',21);
 
 			// Creating root node for CA (Certification Authorities).
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);
 			resolve();
 		} catch(error) { return reject(error) }
+	});
+};
+
+// Create tree with standard objects.
+fwc_treeModel.createStdObjectsTree = (dbCon, fwcloud, node_id, node_type, ipobj_type) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type='+ipobj_type;
+		dbCon.query(sql, async (error, result) => {
+			if (error) return reject(error);
+
+			try {
+				for (let ipobj of result)
+					await fwc_treeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
+				resolve();
+			} catch(error) { return reject(error) }
+		});
+	});
+};
+
+// Create tree with standard groups.
+fwc_treeModel.createStdGroupsTree = (dbCon, fwcloud, node_id, node_type, ipobj_type) => {
+	return new Promise((resolve, reject) => {
+		let sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type='+ipobj_type;
+		dbCon.query(sql, async (error, result) => {
+			if (error) return reject(error);
+
+			try {
+				for (let group of result)
+					await fwc_treeModel.newNode(dbCon,fwcloud,group.name,node_id,node_type,group.id,ipobj_type);
+				resolve();
+			} catch(error) { return reject(error) }
+		});
 	});
 };
 
@@ -436,8 +494,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 			if (error) return reject(error);
 
 			// Obtain cluster data required for tree nodes creation.
-			let sql = 'SELECT name FROM firewall' +
-				' WHERE id=' + firewallId + ' AND fwcloud=' + fwcloud;
+			let sql = 'SELECT name FROM firewall WHERE id='+firewallId+' AND fwcloud='+fwcloud;
 			connection.query(sql, async (error, firewalls) => {
 				if (error) return reject(error);
 				if (firewalls.length!==1) return reject(new Error('Firewall with id '+firewallId+' not found'));
@@ -736,113 +793,6 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 				} else
 					AllDone(null, {"result": true});
 			});
-		});
-	});
-};
-
-//Add new TREE OBJECTS from user
-fwc_treeModel.insertFwc_Tree_objects = (dbCon, fwcloud, folder) => {
-	return new Promise(async (resolve, reject) => {
-		//Select Parent Node by type   
-		sql = 'SELECT T1.* FROM ' + tableModel + ' T1' +
-			' inner join fwc_tree T2 on T1.id_parent=T2.id' +
-			' where T2.node_type=' + dbCon.escape(folder) + ' and T2.id_parent is null AND (T1.fwcloud=' + fwcloud + ' OR T1.fwcloud is null) order by T1.node_order';
-		dbCon.query(sql, (error, rows) => {
-			if (error) return reject(error);
-			//For each node Select Objects by  type
-			if (rows) {
-				asyncMod.forEachSeries(rows, (row, callback) => {
-					//Añadimos nodos hijos del tipo
-					if (row.node_type === "OIG" || row.node_type === "SOG") {
-						sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj_g  where type=' + row.obj_type + ' AND (fwcloud=' + fwcloud + ' OR fwcloud is null) ';
-					} else
-						sqlnodes = 'SELECT  id,name,type,fwcloud, comment FROM ipobj  where type=' + row.obj_type + ' AND interface is null' + ' AND (fwcloud=' + fwcloud + ' OR fwcloud is null) ';
-					dbCon.query(sqlnodes, (error, rowsnodes) => {
-						if (error) return reject(error);
-
-						var i = 0;
-						if (rowsnodes) {
-							asyncMod.forEachSeries(rowsnodes, (rnode, callback) => {
-								i++;
-								//Insertamos nodo
-								sqlinsert = 'INSERT INTO ' + tableModel +	'(name, id_parent, node_type, id_obj, obj_type,fwcloud) ' +
-										' VALUES (' + dbCon.escape(rnode.name) + ',' +
-										dbCon.escape(row.id) + ',' + dbCon.escape(row.node_type) + ',' +
-										dbCon.escape(rnode.id) + ',' + dbCon.escape(rnode.type) + ',' +
-										dbCon.escape(rnode.fwcloud)  + ")";
-								dbCon.query(sqlinsert, (error, result) => {
-									if (error) return reject(error);
-
-									var NodeId = result.insertId;
-									logger.debug("INSERT OK NODE : " + rnode.id + " - " + rnode.name + "  Type: " + rnode.type + "  fwcloud:" + rnode.fwcloud);
-									//INSERT OBJECTS FROM GROUPS
-									if (row.node_type === "OIG" || row.node_type === "SOG") {
-										sqlinsert = 'INSERT INTO ' + tableModel +
-												'( name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-												' SELECT O.name,' + dbCon.escape(NodeId) + ',' +
-												' T.node_type,O.id, O.type, O.fwcloud ' +
-												' FROM ipobj O ' +
-												' INNER JOIN ipobj__ipobjg G on O.id=G.ipobj ' +
-												' inner join fwc_tree_node_types T on T.obj_type=O.type ' +
-												' WHERE G.ipobj_g=' + rnode.id +
-												' ORDER BY G.id_gi';
-										//logger.debug(sqlinsert);
-										dbCon.query(sqlinsert, (error, result) => { if (error) return reject(error) });
-									}
-									//INSERT INTERFACES FROM  HOST
-									else if (row.node_type === "OIH") {
-										sqlnodes = 'SELECT  O.id,O.name,O.interface_type, O.comment, T.node_type FROM interface O ' +
-												' inner join interface__ipobj F on F.interface=O.id ' +
-												' inner join fwc_tree_node_types T on T.obj_type=O.interface_type ' +
-												' WHERE F.ipobj=' + rnode.id;
-										dbCon.query(sqlnodes, (error, rowsnodesObj) => {
-											if (error) return reject(error);
-
-											var j = 0;
-											asyncMod.forEachSeries(rowsnodesObj, (rnodeObj, callback2) => {
-												j++;
-												sqlinsert = 'INSERT INTO ' + tableModel +
-														'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-														' SELECT O.name,' + dbCon.escape(NodeId) + ',' +
-														' T.node_type,O.id, O.interface_type, ' + rnode.fwcloud +
-														' FROM interface O ' +
-														' inner join interface__ipobj F on F.interface=O.id ' +
-														' inner join fwc_tree_node_types T on T.obj_type=O.interface_type ' +
-														' WHERE F.ipobj=' + rnode.id + ' AND O.id=' + rnodeObj.id;
-												//logger.debug(sqlinsert);
-												dbCon.query(sqlinsert, (error, result) => {
-													if (error) return reject(error);
-
-													idNodeinterface = result.insertId;
-													//logger.debug("INSERT OK CHILD NODE HOST: " + rnode.id + " - " + rnode.name + "  INTERFACE:" + rnodeObj.id + " - " + rnodeObj.name);
-													sqlinsertObj = 'INSERT INTO ' + tableModel +
-															'(name, id_parent, node_type, id_obj, obj_type, fwcloud) ' +
-															' SELECT O.name,' + dbCon.escape(idNodeinterface) + ',' +
-															' T.node_type,O.id,O.type,O.fwcloud ' +
-															' FROM ipobj O ' +
-															' inner join fwc_tree_node_types T on T.obj_type=O.type ' +
-															' WHERE  O.interface=' + rnodeObj.id;
-													//logger.debug(sqlinsertObj);
-													dbCon.query(sqlinsertObj, (error, result) => { if (error) return reject(error) });
-												});
-												callback2();
-											});
-										});
-									}
-								});
-								callback();
-							});
-						}
-					});
-					callback();
-				},
-				err => {
-					if (err)
-						resolve(null);
-					else
-						resolve({"result": true});
-				});
-			} else resolve({"result": true});
 		});
 	});
 };
