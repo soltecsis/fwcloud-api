@@ -112,7 +112,6 @@ schema.validate = req => {
 
 		if (req.method==="POST" && req.url==='/vpn/openvpn') {
 			schema = schema.append({
-				openvpn: sharedSch.id.optional(),
 				firewall: sharedSch.id,
 				crt: sharedSch.id,
 				options: Joi.array().items(schemaPar),
@@ -121,10 +120,8 @@ schema.validate = req => {
 		} else if (req.method==="PUT") {
 			if (req.url==='/vpn/openvpn') {
 				schema = schema.append({
-					firewall: sharedSch.id,
-					crt: sharedSch.id,
-					options: Joi.array().items(schemaPar),
-					node_id: sharedSch.id
+					openvpn: sharedSch.id,
+					options: Joi.array().items(schemaPar)
 				});
 			}
 			else if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 

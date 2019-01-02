@@ -36,9 +36,7 @@ openvpnModel.addCfgOpt = (req, opt) => {
 
 openvpnModel.delCfgOptAll = req => {
 	return new Promise((resolve, reject) => {
-    let sql = 'delete OPT.* from openvpn_opt OPT' +
-      ' INNER JOIN openvpn VPN ON OPT.openvpn=VPN.id' +
-			' WHERE VPN.firewall=' + req.body.firewall + ' AND VPN.crt=' + req.body.crt;
+    let sql = 'delete from openvpn_opt where openvpn='+req.body.openvpn;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve();
