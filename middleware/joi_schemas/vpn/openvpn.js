@@ -112,6 +112,7 @@ schema.validate = req => {
 
 		if (req.method==="POST" && req.url==='/vpn/openvpn') {
 			schema = schema.append({
+				openvpn: sharedSch.id.optional(), // Necessary when creating a new OpenVPN client configuration.
 				firewall: sharedSch.id,
 				crt: sharedSch.id,
 				options: Joi.array().items(schemaPar),
