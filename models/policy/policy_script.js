@@ -23,6 +23,8 @@ var streamModel = require('../../models/stream/stream');
 
 var firewallModel = require('../../models/firewall/firewall');
 
+const sshTools = require('../../utils/ssh');
+
 var config = require('../../config/config');
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -100,101 +102,34 @@ PolicyScript.dump = (accessData,fwcloud,fw,type) => {
 }
 /*----------------------------------------------------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.upload = (cloud,fw,SSHconn) => {
-  var Client = require('ssh2').Client;
-	var conn = new Client();
-
-	return new Promise((resolve,reject) => { 
-		conn.on('ready', () => {
-			conn.sftp((err, sftp) => {
-				if (err)  return reject(err);
-
-				var fs = require("fs"); // Use node filesystem
-        var readStream = fs.createReadStream(config.get('policy').data_dir+"/"+cloud+"/"+fw+"/"+config.get('policy').script_name).on('error',error => {conn.end(); reject(error)});
-        var writeStream = sftp.createWriteStream(config.get('policy').script_name).on('error',error => {conn.end(); reject(error)});
-
-				writeStream
-					.on('close',() => resolve( "File transferred succesfully"))
-					.on('end', () => {conn.close(); reject("sftp connection closed")});
-
-        // initiate transfer of file
-				readStream.pipe(writeStream);
-			});
-		})
-		.on('error',error => reject(error))
-		.connect(SSHconn);
-	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.run_ssh_command = (SSHconn,cmd) => {
-  var Client = require('ssh2').Client;
-	var conn = new Client();
-	var stdout_log = "";
-	var stderr_log ="";
+PolicyScript.install = (req, SSHconn, firewall) => {
+	return new Promise(async (resolve,reject) => {
+		try {
+			const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
-	return new Promise((resolve,reject) => { 
-		conn.on('ready',() => {
-			conn.exec(cmd, {pty: true}, (err, stream) => {
-				if (err) return reject(err);
-				stream.on('close',(code, signal) => {
-					//console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
-					conn.end();
-					if (code===0)
-						resolve(stdout_log)
-					else
-						reject("STDOUT: \n"+stdout_log+"\n\nSTDERR: \n"+stderr_log);
-				}).on('data', data => {
-					//console.log('STDOUT: ' + data);
-					var str=""+data;
-					if (str==="[sudo] password for "+SSHconn.username+": ")
-						stream.write(SSHconn.password+"\n");
-					stdout_log += data;
-				}).stderr.on('data', data => {
-					//console.log('STDERR: ' + data);
-					stderr_log += data;
-				});
-			});
-		})
-		.on('error', error => reject(error))
-		.connect(SSHconn);
-	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (req,SSHconn,fw) => {
-	return new Promise((resolve,reject) => {
-		let bash_debug;
-		const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
-
-		streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
-		PolicyScript.upload(req.body.fwcloud,fw,SSHconn)
-		.then (() => firewallModel.getFirewallOptions(req.body.fwcloud,fw))
-		.then(options => {
+			streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
+			await sshTools.upload(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
+		
 			// Enable bash depuration if it is selected in firewalls/cluster options.
-			bash_debug = (options & 0x0008) ? ' -x' : '';
-
+			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
+			const bash_debug = (options & 0x0008) ? ' -x' : '';
+	
 			streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
-			return PolicyScript.run_ssh_command(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install")
-		})
-		.then(() => {
+			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install");
+
 			streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-			//return PolicyScript.run_ssh_command(SSHconn,"sudo "+config.get('policy').script_dir+"/"+config.get('policy').script_name+" start")
-			return PolicyScript.run_ssh_command(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
+			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
 				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
 				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
-		})
-		.then(data => {
+
 			streamModel.pushMessageCompile(accessData, data+"\nEND\n");
-			resolve("DONE")
-		})
-		.catch(error => {
+			resolve("DONE");
+		} catch(error) { 
 			streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
-			reject(error)
-		});
+			reject(error);
+		}
 	});
 }
 /*----------------------------------------------------------------------------------------------------------------------*/

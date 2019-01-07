@@ -180,6 +180,10 @@ router.put('/restricted',
 router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req);
+		const data = await firewallModel.getFirewallSSH(req);
+
+		//await PolicyScript.install(req,data.SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
+		//await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (req.crt.type === 1) // Client certificate

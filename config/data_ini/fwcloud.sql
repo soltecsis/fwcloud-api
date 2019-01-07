@@ -850,10 +850,12 @@ CREATE TABLE `openvpn` (
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
   `comment` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
+  `installed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_firewall-crt` (`firewall`,`crt`),
   KEY `idx_firewall` (`firewall`),
@@ -1728,4 +1730,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-12-13 12:46:41
+-- Dump completed on 2019-01-07 17:58:46

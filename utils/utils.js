@@ -14,7 +14,6 @@ var FirewallModel = require('../models/firewall/firewall');
 const config = require('../config/config');
 var api_resp = require('./api_response');
 var crypto = require('crypto');
-var randomString = require('random-string');
 const db = require('../db');
 const fs = require('fs');
 var path = require('path');

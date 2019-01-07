@@ -8,6 +8,7 @@ const readline = require('readline');
 const fwcTreemodel = require('../../models/tree/tree');
 const fs = require('fs');
 const ip = require('ip');
+const sshTools = require('../../utils/ssh');
 
 // Insert new OpenVPN configuration register in the database.
 openvpnModel.addCfg = req => {
@@ -209,9 +210,9 @@ openvpnModel.dumpCfg = req => {
 
 openvpnModel.installCfg = (req,cfg) => {
 	return new Promise(async (resolve, reject) => {
-    const dataSSH = await firewallModel.getFirewallSSH(req);
-
-    resolve();
+    try {
+      resolve();
+    } catch(error) { reject(error) }
   });
 };
 
