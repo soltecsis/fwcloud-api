@@ -2,13 +2,11 @@
 var openvpnModel = {};
 
 const config = require('../../config/config');
-const firewallModel = require('../firewall/firewall');
 const ipobjModel = require('../ipobj/ipobj');
 const readline = require('readline');
 const fwcTreemodel = require('../../models/tree/tree');
 const fs = require('fs');
 const ip = require('ip');
-const sshTools = require('../../utils/ssh');
 
 // Insert new OpenVPN configuration register in the database.
 openvpnModel.addCfg = req => {

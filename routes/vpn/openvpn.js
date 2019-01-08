@@ -53,6 +53,7 @@ const openvpnModel = require('../../models/vpn/openvpn');
 const fwc_treeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcTreemodel = require('../../models/tree/tree');
+const firewallModel = require('../../models/firewall/firewall');
 
 
 /**
@@ -180,16 +181,17 @@ router.put('/restricted',
 router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req);
+		req.body.firewall = req.openvpn.firewall;
 		const data = await firewallModel.getFirewallSSH(req);
-
-		//await PolicyScript.install(req,data.SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
-		//await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (req.crt.type === 1) // Client certificate
-			openvpnModel.installCfg(req, cfgDump.ccd);
+			await sshTools.uploadStringTofile(data.SSHconn,cfgDump.ccd,'ccd');
 		else // Server certificate
-			openvpnModel.installCfg(req, cfgDump.cfg);
+			await sshTools.uploadStringTofile(data.SSHconn,cfgDump.cfg,'server.conf');
+
+		// Update the status flag for the OpenVPN configuration.
+		//await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

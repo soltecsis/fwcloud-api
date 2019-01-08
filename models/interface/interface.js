@@ -44,11 +44,9 @@ interfaceModel.getInterfaces = function (idfirewall, fwcloud, callback) {
 };
 
 //Get All interface by firewall and IPOBJ UNDER Interfaces
-interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+interfaceModel.getInterfacesFull = (idfirewall, fwcloud, callback) => {
+	db.get((error, connection) => {
+		if (error) return callback(error, null);
 			
 		var sql = 'SELECT ' + fwcloud + ' as fwcloud, I.*, T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' I' +
 			' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND T.node_type="IFF" AND T.fwcloud=' + fwcloud + 
@@ -58,15 +56,11 @@ interfaceModel.getInterfacesFull = function (idfirewall, fwcloud, callback) {
 			if (error)
 				callback(error, null);
 			else {
-				logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
+				//logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
 				//Bucle por interfaces
 				Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
-						.then(data => {
-							callback(null, data);
-						})
-						.catch(e => {
-							callback(e, null);
-						});
+				.then(data => callback(null, data))
+				.catch(e => callback(e, null));
 			}
 		});
 	});

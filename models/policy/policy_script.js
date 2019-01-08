@@ -106,11 +106,11 @@ PolicyScript.dump = (accessData,fwcloud,fw,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (req, SSHconn, firewall) => {
 	return new Promise(async (resolve,reject) => {
-		try {
-			const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
+		const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
 
+		try {
 			streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
-			await sshTools.upload(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
+			await sshTools.uploadFile(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
 		
 			// Enable bash depuration if it is selected in firewalls/cluster options.
 			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
@@ -120,7 +120,7 @@ PolicyScript.install = (req, SSHconn, firewall) => {
 			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install");
 
 			streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
-			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
+			const data = await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
 				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
 				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
 

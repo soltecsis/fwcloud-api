@@ -4,7 +4,7 @@ var sshTools = {};
 module.exports = sshTools;
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-sshTools.upload = (SSHconn, srcFile, dstFile) => {
+sshTools.uploadFile = (SSHconn, srcFile, dstFile) => {
   var Client = require('ssh2').Client;
 	var conn = new Client();
 
@@ -23,6 +23,31 @@ sshTools.upload = (SSHconn, srcFile, dstFile) => {
 
         // initiate transfer of file
 				readStream.pipe(writeStream);
+			});
+		})
+		.on('error',error => reject(error))
+		.connect(SSHconn);
+	});
+}
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+sshTools.uploadStringToFile = (SSHconn, str, dstFile) => {
+  var Client = require('ssh2').Client;
+	var conn = new Client();
+
+	return new Promise((resolve,reject) => { 
+		conn.on('ready', () => {
+			conn.sftp((err, sftp) => {
+				if (err)  return reject(err);
+
+				var writeStream = sftp.createWriteStream(dstFile).on('error',error => {conn.end(); reject(error)});
+				
+				writeStream
+					.on('close',() => resolve( "File transferred succesfully"))
+					.on('end', () => {conn.close(); reject("sftp connection closed")});
+
+				writeStream.write(str);
 			});
 		})
 		.on('error',error => reject(error))
