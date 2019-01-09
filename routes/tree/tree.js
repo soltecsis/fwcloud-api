@@ -59,10 +59,21 @@ router.put('/objects/get', (req, res) => {
 			fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, row.order_mode, '', function (error, data)
 			{
 				//If exists fwc_tree get data
-				if (!error)
+				if (!error) {
+					// Put standard folders at the begining.
+					for (let node1 of data.children) {
+						for (let [index, node2] of node1.children.entries()) {
+							if (node2.node_type==='STD') {
+								if (index===0) break;
+								node1.children.unshift(node2);
+								node1.children.splice(index+1,1);
+								break;
+							}
+						}
+					}					
 					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				//Get Error
-				else
+				}
+				else //Get Error
 					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			});
 		}
@@ -93,10 +104,21 @@ router.put('/services/get', (req, res) => {
 			fwcTreemodel.getFwc_TreeUserFull(iduser, fwcloud, root_node.id, tree, objs, objc, row.order_mode, '', function (error, data)
 			{
 				//If exists fwc_tree get data
-				if (!error)
+				if (!error) {
+					// Put standard folders at the begining.
+					for (let node1 of data.children) {
+						for (let [index, node2] of node1.children.entries()) {
+							if (node2.node_type==='STD') {
+								if (index===0) break;
+								node1.children.unshift(node2);
+								node1.children.splice(index+1,1);
+								break;
+							}
+						}
+					}					
 					api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				//Get Error
-				else
+				}
+				else //Get Error
 					api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			});
 		}

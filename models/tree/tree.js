@@ -86,8 +86,6 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 		var sqlorder= " id";
 		if (order_mode===2)
 				sqlorder="name";
-		
-		
 
 		//Get ALL CHILDREN NODES FROM idparent
 		var sql = 'SELECT T.*, P.order_mode FROM ' + tableModel + ' T ' +
@@ -95,71 +93,62 @@ fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, o
 				' WHERE T.id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY ' + sqlorder;
 		//logger.debug(sql);
 		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else {
+			if (error) return callback(error, null);
+			if (rows) {
+				asyncMod.forEachSeries(rows,
+						function (row, callback) {
+							hasLines(row.id, function (t) {
+								//logger.debug(row);
+								var tree_node = new fwc_tree_node(row);
+								var add_node = true;
+								if (!t) {
+									//Añadimos nodo hijo
 
-				if (rows) {
+									//logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
 
-					asyncMod.forEachSeries(rows,
-							function (row, callback) {
-								hasLines(row.id, function (t) {
-									//logger.debug(row);
-									var tree_node = new fwc_tree_node(row);
-									var add_node = true;
-									if (!t) {
-										//Añadimos nodo hijo
+									tree.append([], tree_node);
 
-										//logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
+									callback();
+								} else {
+									//dig(row.tree_id, treeArray, callback);
+									//FIREWALL CONTROL ACCESS
+									if (row.node_type === 'FW') {
+										var idfirewall = row.id_obj;
+										logger.debug("DETECTED FIREWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
+										utilsModel.checkFirewallAccessTree(iduser, fwcloud, idfirewall).
+												then(resp => {
+													add_node = resp;
+													//CHECK FILTER FIREWALL
+													if (filter_idfirewall != '' && filter_idfirewall != idfirewall)
+														add_node = false;
 
-										tree.append([], tree_node);
+													if (add_node) {
+														var treeP = new Tree(tree_node);
+														tree.append([], treeP);
+														fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
+													} else {
+														logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id);
+														callback();
+													}
+												});
 
-										callback();
 									} else {
-										//dig(row.tree_id, treeArray, callback);
-										//FIREWALL CONTROL ACCESS
-										if (row.node_type === 'FW') {
-											var idfirewall = row.id_obj;
-											logger.debug("DETECTED FIREWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
-											utilsModel.checkFirewallAccessTree(iduser, fwcloud, idfirewall).
-													then(resp => {
-														add_node = resp;
-														//CHECK FILTER FIREWALL
-														if (filter_idfirewall != '' && filter_idfirewall != idfirewall)
-															add_node = false;
+										//logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
+										//logger.debug("-------> LLAMANDO A HIJO: " + row.id + "   Node Type: " + row.node_type);
 
-														if (add_node) {
-															var treeP = new Tree(tree_node);
-															tree.append([], treeP);
-															fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
-														} else {
-															logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id);
-															callback();
-														}
-													});
-
-										} else {
-											//logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
-											//logger.debug("-------> LLAMANDO A HIJO: " + row.id + "   Node Type: " + row.node_type);
-
-											var treeP = new Tree(tree_node);
-											tree.append([], treeP);
-											fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
-										}
+										var treeP = new Tree(tree_node);
+										tree.append([], treeP);
+										fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
 									}
-								});
-							},
-							function (err) {
-								if (err)
-									AllDone(err, tree);
-								else
-									AllDone(null, tree);
+								}
 							});
-				} else
-					AllDone(null, tree);
+						},
+						function (err) {
+							if (err) return AllDone(err, tree);
+							AllDone(null, tree);
+						});
 			}
 		});
-
 	});
 };
 
