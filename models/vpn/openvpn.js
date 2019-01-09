@@ -5,8 +5,12 @@ const config = require('../../config/config');
 const ipobjModel = require('../ipobj/ipobj');
 const readline = require('readline');
 const fwcTreemodel = require('../../models/tree/tree');
+const sshTools = require('../../utils/ssh');
+const streamModel = require('../../models/stream/stream');
+const firewallModel = require('../../models/firewall/firewall');
 const fs = require('fs');
 const ip = require('ip');
+
 
 // Insert new OpenVPN configuration register in the database.
 openvpnModel.addCfg = req => {
@@ -206,11 +210,26 @@ openvpnModel.dumpCfg = req => {
 };
 
 
-openvpnModel.installCfg = (req,cfg) => {
+openvpnModel.installCfg = (req,cfg,dir,name) => {
 	return new Promise(async (resolve, reject) => {
+    const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
+
     try {
+      const fwData = await firewallModel.getFirewallSSH(req);
+
+			streamModel.pushMessageCompile(accessData, "Uploading OpenVPN configuration ("+fwData.SSHconn.host+")\n");
+      await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
+
+      streamModel.pushMessageCompile(accessData, "Installing OpenVPN configuration.\n");
+			await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
+			await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
+			await sshTools.runCommand(fwData.SSHconn,"sudo mv "+name+" "+dir);
+
       resolve();
-    } catch(error) { reject(error) }
+    } catch(error) { 
+      streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
+      reject(error); 
+    }
   });
 };
 

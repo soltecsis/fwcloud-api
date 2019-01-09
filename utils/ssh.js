@@ -47,7 +47,10 @@ sshTools.uploadStringToFile = (SSHconn, str, dstFile) => {
 					.on('close',() => resolve( "File transferred succesfully"))
 					.on('end', () => {conn.close(); reject("sftp connection closed")});
 
-				writeStream.write(str);
+				writeStream.write(str, error => {
+					if (error) return reject(error);
+					writeStream.end();
+				});
 			});
 		})
 		.on('error',error => reject(error))
@@ -73,7 +76,7 @@ sshTools.runCommand = (SSHconn, cmd) => {
 					if (code===0)
 						resolve(stdout_log)
 					else
-						reject("STDOUT: \n"+stdout_log+"\n\nSTDERR: \n"+stderr_log);
+						reject(new Error("STDOUT: \n"+stdout_log+"\n\nSTDERR: \n"+stderr_log));
 				}).on('data', data => {
 					//console.log('STDOUT: ' + data);
 					var str=""+data;

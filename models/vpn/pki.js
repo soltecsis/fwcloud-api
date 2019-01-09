@@ -75,6 +75,18 @@ pkiModel.deleteCRT = req => {
   });
 };
 
+// Get database certificate data.
+pkiModel.getCRTdata = (dbCon,crt) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
+      if (error) return reject(error);
+      if (result.length!==1) return reject(new Error('CRT not found'));
+
+      resolve(result[0]);
+    });
+  });
+};
+
 // Execute EASY-RSA command.
 pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
 	return new Promise((resolve, reject) => {
