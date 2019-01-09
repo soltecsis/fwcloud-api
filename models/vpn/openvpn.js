@@ -127,6 +127,18 @@ openvpnModel.getCfg = req => {
   });
 };
 
+openvpnModel.getOptData = (dbCon,openvpn,name) => {
+	return new Promise((resolve, reject) => {
+    let sql = 'select * from openvpn_opt where openvpn='+openvpn+' and name='+dbCon.escape(name);
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      if (result.length<1) return reject(new Error('OpenVPN option not found'))
+
+      resolve(result[0]);
+    });
+  });
+};
+
 // Get certificate data form file.
 openvpnModel.getCRTData = file => {
 	return new Promise((resolve, reject) => {

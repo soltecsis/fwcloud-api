@@ -185,8 +185,12 @@ router.put('/install', async(req, res) => {
 		const crt = await pkiModel.getCRTdata(req.dbCon,req.body.openvpn);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
-		if (crt.type === 1) // Client certificate
-			await openvpnModel.installCfg(req,cfgDump.ccd,'/etc/openvpn/ccd/',crt.cn);
+		if (crt.type === 1) { // Client certificate
+			// Obtain de configuration directory in the client-config-dir configuration option.
+			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
+			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn);
+		}
 		else // Server certificate
 			await openvpnModel.installCfg(req,cfgDump.cfg,'/etc/openvpn/','server.conf');
 
