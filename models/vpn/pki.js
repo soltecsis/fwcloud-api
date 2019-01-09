@@ -96,6 +96,7 @@ pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
     switch(easyrsaDataCmd) {
       case 'init-pki':
       case 'gen-crl':
+      case 'gen-dh':
       argv.push(easyrsaDataCmd);
       break;
 
@@ -124,7 +125,7 @@ pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
 
     childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
     childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
-    childProcess.stdin.push('mipass');
+    //childProcess.stdin.push('TEST');
 
     promise.then(result => resolve(result))
     .catch(error => reject(error));

@@ -180,6 +180,7 @@ openvpnModel.dumpCfg = req => {
       const ca_crt_path = ca_dir + 'ca.crt';
       const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
       const key_path = ca_dir + 'private/' + result[0].cn + '.key';
+      const dh_path = ca_dir + 'dh.pem';
   
       // Get all the configuration options.
       sql = 'select name,ipobj,arg,scope,comment from openvpn_opt where openvpn='+req.body.openvpn+' order by openvpn_opt.order';
@@ -211,8 +212,9 @@ openvpnModel.dumpCfg = req => {
         }
 
         // Now read the files data and put it into de config files.
+        ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
         ovpn_cfg += '\n<ca>\n' + (await openvpnModel.getCRTData(ca_crt_path)) + "</ca>\n";
-        ovpn_cfg += '\n<crt>\n' + (await openvpnModel.getCRTData(crt_path)) + "</crt>\n";
+        ovpn_cfg += '\n<cert>\n' + (await openvpnModel.getCRTData(crt_path)) + "</cert>\n";
         ovpn_cfg += '\n<key>\n' + (await openvpnModel.getCRTData(key_path)) + "</key>\n";
         
         resolve({cfg: ovpn_cfg, ccd: ovpn_ccd});

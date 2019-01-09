@@ -62,6 +62,7 @@ router.post('/ca',async (req, res) => {
 		await pkiModel.runEasyRsaCmd(req,'init-pki');
 		await pkiModel.runEasyRsaCmd(req,'build-ca');
 		await pkiModel.runEasyRsaCmd(req,'gen-crl');
+		await pkiModel.runEasyRsaCmd(req,'gen-dh');
 
 		// Create new CA tree node.
 		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',req.caId,300);
