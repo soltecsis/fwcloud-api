@@ -342,44 +342,44 @@ fwc_treeModel.createAllTreeCloud = req => {
 			// OBJECTS / Addresses
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Addresses',id1,'OIA',null,5);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIA',5);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'OIA',5);
 			// OBJECTS / Addresses Ranges
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Address Ranges',id1,'OIR',null,6);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIR',6);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'OIR',6);
 			// OBJECTS / Networks
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Networks',id1,'OIN',null,7);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'OIN',7);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'OIN',7);
 			// OBJECTS / Hosts
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',id1,'OIH',null,8);
 			// OBJECTS / Groups
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',id1,'OIG',null,20);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdGroupsTree(req.dbCon,req.body.fwcloud,id3,'OIG',20);
+			await fwc_treeModel.createStdGroupsTree(req.dbCon,id3,'OIG',20);
 
 			// SERVICES
 			id1 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
 			// SERVICES / IP
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'IP',id1,'SOI',null,1);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOI',1);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'SOI',1);
 			// SERVICES / ICMP
 			id2= await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'ICMP',id1,'SOM',null,3);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOM',3);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'SOM',3);
 			// SERVICES / TCP
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'TCP',id1,'SOT',null,2);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOT',2);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'SOT',2);
 			// SERVICES / UDP
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'UDP',id1,'SOU',null,4);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,req.body.fwcloud,id3,'SOU',4);
+			await fwc_treeModel.createStdObjectsTree(req.dbCon,id3,'SOU',4);
 			// SERVICES / Groups
 			id2= await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',id1,'SOG',null,21);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
-			await fwc_treeModel.createStdGroupsTree(req.dbCon,req.body.fwcloud,id3,'SOG',21);
+			await fwc_treeModel.createStdGroupsTree(req.dbCon,id3,'SOG',21);
 
 			// Creating root node for CA (Certification Authorities).
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);
@@ -389,7 +389,7 @@ fwc_treeModel.createAllTreeCloud = req => {
 };
 
 // Create tree with standard objects.
-fwc_treeModel.createStdObjectsTree = (dbCon, fwcloud, node_id, node_type, ipobj_type) => {
+fwc_treeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type='+ipobj_type;
 		dbCon.query(sql, async (error, result) => {
@@ -397,7 +397,7 @@ fwc_treeModel.createStdObjectsTree = (dbCon, fwcloud, node_id, node_type, ipobj_
 
 			try {
 				for (let ipobj of result)
-					await fwc_treeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
+					await fwc_treeModel.newNode(dbCon,null,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
 				resolve();
 			} catch(error) { return reject(error) }
 		});
@@ -405,7 +405,7 @@ fwc_treeModel.createStdObjectsTree = (dbCon, fwcloud, node_id, node_type, ipobj_
 };
 
 // Create tree with standard groups.
-fwc_treeModel.createStdGroupsTree = (dbCon, fwcloud, node_id, node_type, ipobj_type) => {
+fwc_treeModel.createStdGroupsTree = (dbCon, node_id, node_type, ipobj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type='+ipobj_type;
 		dbCon.query(sql, async (error, result) => {
@@ -413,7 +413,7 @@ fwc_treeModel.createStdGroupsTree = (dbCon, fwcloud, node_id, node_type, ipobj_t
 
 			try {
 				for (let group of result)
-					await fwc_treeModel.newNode(dbCon,fwcloud,group.name,node_id,node_type,group.id,ipobj_type);
+					await fwc_treeModel.newNode(dbCon,null,group.name,node_id,node_type,group.id,ipobj_type);
 				resolve();
 			} catch(error) { return reject(error) }
 		});
