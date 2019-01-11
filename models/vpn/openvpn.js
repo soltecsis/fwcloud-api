@@ -187,37 +187,39 @@ openvpnModel.dumpCfg = req => {
       req.dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
-        // Generate the OpenVPN config file.
-        var ovpn_cfg = '';
-        var ovpn_ccd = '';
+        try {
+          // Generate the OpenVPN config file.
+          var ovpn_cfg = '';
+          var ovpn_ccd = '';
 
-        // First add all the configuration options.
-        for (let opt of result) {
-          let cfg_line = ((opt.comment) ? '# '+opt.comment.replace('\n','\n# ')+'\n' : '') + opt.name;
-          if (opt.ipobj) {
-            // Get the ipobj data.
-            const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
-            if (ipobj.type===7) // Network
-              cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
-            else if (ipobj.type===5) // Address
-              cfg_line += ' '+ipobj.address;
+          // First add all the configuration options.
+          for (let opt of result) {
+            let cfg_line = ((opt.comment) ? '# '+opt.comment.replace('\n','\n# ')+'\n' : '') + opt.name;
+            if (opt.ipobj) {
+              // Get the ipobj data.
+              const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
+              if (ipobj.type===7) // Network
+                cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
+              else if (ipobj.type===5) // Address
+                cfg_line += ' '+ipobj.address;
+            }
+            else if (opt.arg)
+              cfg_line += ' '+opt.arg;
+
+            if (opt.scope===0) // CCD file
+              ovpn_ccd += cfg_line+'\n';
+            else // Config file
+              ovpn_cfg += cfg_line+'\n';
           }
-          else if (opt.arg)
-            cfg_line += ' '+opt.arg;
 
-          if (opt.scope===0) // CCD file
-            ovpn_ccd += cfg_line+'\n';
-          else // Config file
-            ovpn_cfg += cfg_line+'\n';
-        }
-
-        // Now read the files data and put it into de config files.
-        ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
-        ovpn_cfg += '\n<ca>\n' + (await openvpnModel.getCRTData(ca_crt_path)) + "</ca>\n";
-        ovpn_cfg += '\n<cert>\n' + (await openvpnModel.getCRTData(crt_path)) + "</cert>\n";
-        ovpn_cfg += '\n<key>\n' + (await openvpnModel.getCRTData(key_path)) + "</key>\n";
-        
-        resolve({cfg: ovpn_cfg, ccd: ovpn_ccd});
+          // Now read the files data and put it into de config files.
+          ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
+          ovpn_cfg += '\n<ca>\n' + (await openvpnModel.getCRTData(ca_crt_path)) + "</ca>\n";
+          ovpn_cfg += '\n<cert>\n' + (await openvpnModel.getCRTData(crt_path)) + "</cert>\n";
+          ovpn_cfg += '\n<key>\n' + (await openvpnModel.getCRTData(key_path)) + "</key>\n";
+          
+          resolve({cfg: ovpn_cfg, ccd: ovpn_ccd});
+        } catch(error) { reject(error) }
       });
     });
   });
