@@ -67,7 +67,7 @@ app.use(methodOverride((req, res) => {
 	}
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+//app.use(express.static(path.join(__dirname, 'public')));
 
 // Cross-Origin Resource Sharing (CORS)
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS

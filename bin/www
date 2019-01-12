@@ -33,8 +33,6 @@ var log = log4js.getLogger("startup");
 /**
  * Get port from environment and store in Express.
  */
-
-//var port = normalizePort(process.env.PORT || '3000');
 const port = config.get('listen').port;
 const listen_ip = config.get('listen').ip;
 app.set('port', port);
@@ -62,34 +60,6 @@ try {
 } catch(e) {
   console.error("ERROR CREATING HTTP/HTTPS SERVER: ",e);
   process.exit(1);
-}
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port,listen_ip);
-server.on('error', onError);
-server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
 }
 
 /**
@@ -131,3 +101,25 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+server.listen(port,listen_ip);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Socket.io
+ */
+const io = require('socket.io')(server);
+// For acces the socketio object from the routes.
+app.set('socketio', io);
+
+io.on('connection', socket => {
+  console.log('user connected',socket.id);
+  socket.on('disconnect', () => {
+    console.log('user disconnected',socket.id);
+  });
+});
