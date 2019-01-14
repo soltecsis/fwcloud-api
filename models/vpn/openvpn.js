@@ -169,9 +169,9 @@ openvpnModel.getCRTData = file => {
 openvpnModel.dumpCfg = req => {
 	return new Promise((resolve, reject) => {
     // First obtain the CN of the certificate.
-    let sql = 'select CRT.cn,CRT.ca from crt CRT' +
-      ' INNER JOIN openvpn VPN ON CRT.id=VPN.crt' +
-			' WHERE VPN.id=' + req.body.openvpn;
+    let sql = `select CRT.cn,CRT.ca,CRT.type from crt CRT
+      INNER JOIN openvpn VPN ON CRT.id=VPN.crt
+			WHERE VPN.id=${req.body.openvpn}`;
 
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
@@ -183,7 +183,7 @@ openvpnModel.dumpCfg = req => {
       const dh_path = ca_dir + 'dh.pem';
   
       // Get all the configuration options.
-      sql = 'select name,ipobj,arg,scope,comment from openvpn_opt where openvpn='+req.body.openvpn+' order by openvpn_opt.order';
+      sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${req.body.openvpn} order by openvpn_opt.order`;
       req.dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -213,7 +213,10 @@ openvpnModel.dumpCfg = req => {
           }
 
           // Now read the files data and put it into de config files.
-          ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
+          if (result[0].type === 2) { // Configuración OpenVPN de servidor.
+            const dh_path = ca_dir + 'dh.pem';
+            ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
+          }
           ovpn_cfg += '\n<ca>\n' + (await openvpnModel.getCRTData(ca_crt_path)) + "</ca>\n";
           ovpn_cfg += '\n<cert>\n' + (await openvpnModel.getCRTData(crt_path)) + "</cert>\n";
           ovpn_cfg += '\n<key>\n' + (await openvpnModel.getCRTData(key_path)) + "</key>\n";
@@ -253,9 +256,9 @@ openvpnModel.installCfg = (req,cfg,dir,name) => {
 openvpnModel.freeVpnIP = req => {
 	return new Promise((resolve, reject) => {
     // Search for the VPN LAN and mask.
-    let sql = 'select OBJ.address,OBJ.netmask from openvpn_opt OPT'+
-      ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
-      ' where OPT.openvpn='+req.body.openvpn+' and OPT.ipobj is not null';
+    let sql = `select OBJ.address,OBJ.netmask from openvpn_opt OPT
+      inner join ipobj OBJ on OBJ.id=OPT.ipobj
+      where OPT.openvpn=${req.body.openvpn} and OPT.ipobj is not null`;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
 
@@ -263,15 +266,16 @@ openvpnModel.freeVpnIP = req => {
       if (result.length===0) return reject(new Error('OpenVPN LAN not found'));
 
       // net will contain information about the VPN network.
-      const net = ip.subnet(result[0].address, result[0].netmask);
+      const netmask = result[0].netmask;
+      const net = ip.subnet(result[0].address, netmask);
       net.firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
       net.lastLong = ip.toLong(net.lastAddress);
       
       // Obtain the VPN LAN used IPs.
-      sql = 'select OBJ.address from openvpn VPN'+
-        ' inner join openvpn_opt OPT on OPT.openvpn=VPN.id'+
-        ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
-        ' where VPN.openvpn='+req.body.openvpn+' and OPT.ipobj is not null and OBJ.type=5'; // 5=ADDRESS
+      sql = `select OBJ.address from openvpn VPN
+        inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+        inner join ipobj OBJ on OBJ.id=OPT.ipobj
+        where VPN.openvpn=${req.body.openvpn} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
       
@@ -280,13 +284,13 @@ openvpnModel.freeVpnIP = req => {
         for(freeIPLong=net.firstLong; freeIPLong<=net.lastLong; freeIPLong++) {
           found = 0;
           for (let ipCli of result) {
-            if (freeIPLong != ip.toLong(ipCli)) {
+            if (freeIPLong != ip.toLong(ipCli.address)) {
               found=1;
               break;
             }
           }
           if (!found) 
-            return resolve(ip.fromLong(freeIPLong));
+            return resolve({'ip': ip.fromLong(freeIPLong), 'netmask': netmask});
         }
         reject(new Error('There are no free VPN IPs'));
       });
