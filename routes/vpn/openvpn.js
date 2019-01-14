@@ -180,9 +180,6 @@ router.put('/restricted',
  */
 router.put('/install', async(req, res) => {
 	try {
-		const io = req.app.get('socketio');
-		if (req.body.socketid) io.to(req.body.socketid).emit('log:info', 'Installing OpenVPN configuration.');
-		
 		const cfgDump = await openvpnModel.dumpCfg(req);
 		req.body.firewall = req.openvpn.firewall;
 		const crt = await pkiModel.getCRTdata(req.dbCon,req.body.openvpn);

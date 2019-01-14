@@ -228,22 +228,22 @@ openvpnModel.dumpCfg = req => {
 
 openvpnModel.installCfg = (req,cfg,dir,name) => {
 	return new Promise(async (resolve, reject) => {
-    const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
+    const io = req.app.get('socketio');
 
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-			streamModel.pushMessageCompile(accessData, "Uploading OpenVPN configuration ("+fwData.SSHconn.host+")\n");
+      if (req.body.socketid) io.to(req.body.socketid).emit('log:info',`Uploading OpenVPN configuration (${fwData.SSHconn.host})\n`);
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
-      streamModel.pushMessageCompile(accessData, "Installing OpenVPN configuration.\n");
+      if (req.body.socketid) io.to(req.body.socketid).emit('log:info',`Installing OpenVPN configuration.\n`);
 			await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
 			await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
 			await sshTools.runCommand(fwData.SSHconn,"sudo mv "+name+" "+dir);
 
       resolve();
     } catch(error) { 
-      streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
+      if (req.body.socketid) io.to(req.body.socketid).emit('log:info',`ERROR: ${error}\n`);
       reject(error); 
     }
   });
