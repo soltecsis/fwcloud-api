@@ -110,11 +110,12 @@ server.listen(port,listen_ip);
 server.on('error', onError);
 server.on('listening', onListening);
 
+
 /**
  * Socket.io
  */
 const io = require('socket.io')(server);
-// For acces the socketio object from the routes.
+// For acces the socketio object from the routes management code.
 app.set('socketio', io);
 
 io.on('connection', socket => {

@@ -129,7 +129,8 @@ schema.validate = req => {
 				schema = schema.append({
 					openvpn: sharedSch.id,
 					sshuser: sharedSch.linux_user,
-					sshpass: sharedSch.linux_pass
+					sshpass: sharedSch.linux_pass,
+					socketid: sharedSch.socketio_id.optional()
 				});
 			}
 			else if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 

@@ -49,3 +49,5 @@ sharedSchema.date = Joi.date().min(1).max(5);
 sharedSchema.crt_type = Joi.number().integer().valid([1, 2]); // 1=Client certificate, 2=Server certificate.
 
 sharedSchema.rule_clipboard_action = Joi.number().integer().valid([1, 2]); 
+
+sharedSchema.socketio_id = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
