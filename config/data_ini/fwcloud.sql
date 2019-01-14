@@ -28,6 +28,7 @@ CREATE TABLE `ca` (
   `cn` varchar(255) NOT NULL,
   `days` int(11) unsigned NOT NULL,
   `comment` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
@@ -1730,4 +1731,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-01-07 17:58:46
+-- Dump completed on 2019-01-14 13:59:04

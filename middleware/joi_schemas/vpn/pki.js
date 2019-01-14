@@ -13,7 +13,8 @@ schema.validate = req => {
         cn: sharedSch.cn,
         days: sharedSch.days,
         node_id: sharedSch.id,
-        comment: sharedSch.comment
+        comment: sharedSch.comment,
+        socketid: sharedSch.socketio_id.optional()
       });
       if (req.url==='/vpn/pki/crt')
         schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });

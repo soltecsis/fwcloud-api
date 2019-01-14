@@ -14,7 +14,8 @@ pkiModel.createCA = req => {
       fwcloud: req.body.fwcloud,
       cn: req.body.cn,
       days: req.body.days,
-      comment: req.body.comment
+      comment: req.body.comment,
+      status: 0 // This status variable will be changed to 1 when the DF file generation is completed.
     }
     req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
       if (error) return reject(error);
@@ -86,6 +87,19 @@ pkiModel.getCRTdata = (dbCon,crt) => {
     });
   });
 };
+
+// Get database certificate data.
+pkiModel.getCRTdata = (dbCon,crt) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
+      if (error) return reject(error);
+      if (result.length!==1) return reject(new Error('CRT not found'));
+
+      resolve(result[0]);
+    });
+  });
+};
+
 
 // Execute EASY-RSA command.
 pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {

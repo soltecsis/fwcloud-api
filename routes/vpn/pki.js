@@ -62,7 +62,14 @@ router.post('/ca',async (req, res) => {
 		await pkiModel.runEasyRsaCmd(req,'init-pki');
 		await pkiModel.runEasyRsaCmd(req,'build-ca');
 		await pkiModel.runEasyRsaCmd(req,'gen-crl');
-		await pkiModel.runEasyRsaCmd(req,'gen-dh');
+		
+		// Don't wait for the finish of this process because it takes several minutes.
+		pkiModel.runEasyRsaCmd(req,'gen-dh')
+		.then(() => {
+			req.dbCon.query(`update ca set status=1 where id=${req.caId}`, (error, result) => {
+				if (req.body.socketid) app.get('socketio').to(req.body.socketid).emit('ca:dh:created', {caId: req.caId});		
+			});	
+		});
 
 		// Create new CA tree node.
 		const nodeId = await fwcTreemodel.newNode(req.dbCon,req.body.fwcloud,req.body.cn,req.body.node_id,'CA',req.caId,300);
