@@ -1,6 +1,4 @@
 //create object
-
-
 function fwc_tree_node(node_data) {
 	try {
 		this.id = node_data.id;
@@ -15,8 +13,6 @@ function fwc_tree_node(node_data) {
 		// Handle the error here.
 	}
 }
-
-
 
 //Export the object
 module.exports = fwc_tree_node;

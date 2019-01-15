@@ -6,7 +6,6 @@ const ipobjModel = require('../ipobj/ipobj');
 const readline = require('readline');
 const fwcTreemodel = require('../../models/tree/tree');
 const sshTools = require('../../utils/ssh');
-const streamModel = require('../../models/stream/stream');
 const firewallModel = require('../../models/firewall/firewall');
 const fs = require('fs');
 const ip = require('ip');

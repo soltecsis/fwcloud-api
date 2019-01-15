@@ -16,141 +16,91 @@ var tableModel = "fwc_tree";
 //var Node = require("tree-node");
 var Tree = require('easy-tree');
 var fwc_tree_node = require("./node.js");
-var utilsModel = require("../../utils/utils.js");
 
 
-//Get FLAT TREE by user
-fwc_treeModel.getFwc_TreeUser = function (iduser, callback) {
+//Get fwcloud root node bye type.
+fwc_treeModel.getRootNodeByType = (req, type) => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT T.*, P.order_mode FROM ${tableModel} T
+			inner join fwcloud C on C.id=T.fwcloud
+			LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
+			WHERE T.fwcloud=${req.body.fwcloud} AND T.node_type=${req.dbCon.escape(type)} AND T.id_parent is null`;
 
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE  id_user=' + connection.escape(iduser) + ' ORDER BY id_parent,node_order';
-
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
-		});
-	});
-};
-
-//Get firewall node by folder
-fwc_treeModel.getFwc_TreeUserFolder = function (iduser, fwcloud, foldertype, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-
-		var sql = 'SELECT T.*, P.order_mode FROM ' + tableModel + ' T' +
-				' inner join fwcloud C on C.id=T.fwcloud ' +
-				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +   
-				' LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type' +
-				' WHERE  T.fwcloud=' + connection.escape(fwcloud) + '  AND T.node_type=' + connection.escape(foldertype) + ' AND T.id_parent is null ' +
-				' AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
-				' ORDER BY T.id limit 1';
-		logger.debug(sql);
-
-		connection.query(sql, function (error, rows) {
-			if (error) {
-				logger.error(error);
-				callback(error, null);
-			} else
-				callback(null, rows);
+		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			if (rows.lenght === 0) return reject(new Error(`Root node of type '${type}' not found`));
+			if (rows.lenght > 1) return reject(new Error(`Found more than one root nodes of type '${type}'`));
+			resolve(rows[0]);
 		});
 	});
 };
 
 
-//Get COMPLETE TREE by user
-fwc_treeModel.getFwc_TreeUserFull = function (iduser, fwcloud, idparent, tree, objStandard, objCloud, order_mode, filter_idfirewall, AllDone) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+fwc_treeModel.hasChilds = (req, node_id) => {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`SELECT count(*) AS n FROM ${tableModel} WHERE id_parent=${node_id}`, (error, result) => {
+			if (error) return reject(error);
+			resolve((result[0].n >0) ? true : false);
+		});
+	});
+};
 
-		//FALTA CONTROLAR EN QUE FWCLOUD ESTA EL USUARIO
+//Get COMPLETE TREE from idparent
+fwc_treeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode) => {
+	return new Promise((resolve, reject) => {
 		var sqlfwcloud = "";
 		if (objStandard === '1' && objCloud === '0')
-			sqlfwcloud = " AND (T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=" + fwcloud + ")) ";   //Only Standard objects
+			sqlfwcloud = ` AND (T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //Only Standard objects
 		else if (objStandard === '0' && objCloud === '1')
-			sqlfwcloud = " AND (T.fwcloud=" + fwcloud + " OR (T.id_obj is null AND T.fwcloud=" + fwcloud + ")) ";   //Only fwcloud objects
+			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //Only fwcloud objects
 		else
-			sqlfwcloud = " AND (T.fwcloud=" + fwcloud + " OR T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=" + fwcloud + ")) ";   //ALL  objects
+			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //ALL  objects
 
-
-		//logger.debug("---> DENTRO de PADRE: " + idparent + "  NODE TYPE: " + node_type + "  ORDER_MODE: " + order_mode +  "  ID_OBJ: " + tree.id + "  NAME: " + tree.text);
-		
-		var sqlorder= " id";
-		if (order_mode===2)
-				sqlorder="name";
+		const sqlorder = (order_mode===2) ? 'name' : 'id';
 
 		//Get ALL CHILDREN NODES FROM idparent
-		var sql = 'SELECT T.*, P.order_mode FROM ' + tableModel + ' T ' +
-				' LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type' +
-				' WHERE T.id_parent=' + connection.escape(idparent) + sqlfwcloud + ' ORDER BY ' + sqlorder;
-		//logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error) return callback(error, null);
-			if (rows) {
-				asyncMod.forEachSeries(rows,
-						function (row, callback) {
-							hasLines(row.id, function (t) {
-								//logger.debug(row);
-								var tree_node = new fwc_tree_node(row);
-								var add_node = true;
-								if (!t) {
-									//Añadimos nodo hijo
+		const sql = `SELECT T.*, P.order_mode FROM ${tableModel} T
+			LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
+			WHERE T.id_parent=${idparent} ${sqlfwcloud} ORDER BY ${sqlorder}`;
 
-									//logger.debug("--->  AÑADIENDO NODO FINAL " + row.id + " con PADRE: " + idparent);
+		req.dbCon.query(sql, async (error, nodes) => {
+			if (error) return reject(error);
 
-									tree.append([], tree_node);
+			try {
+				for (let node of nodes) {
+					var tree_node = new fwc_tree_node(node);
 
-									callback();
-								} else {
-									//dig(row.tree_id, treeArray, callback);
-									//FIREWALL CONTROL ACCESS
-									if (row.node_type === 'FW') {
-										var idfirewall = row.id_obj;
-										logger.debug("DETECTED FIREWALL NODE: " + row.id + "   FIREWALL: " + idfirewall + " - " + row.name);
-										utilsModel.checkFirewallAccessTree(iduser, fwcloud, idfirewall).
-												then(resp => {
-													add_node = resp;
-													//CHECK FILTER FIREWALL
-													if (filter_idfirewall != '' && filter_idfirewall != idfirewall)
-														add_node = false;
-
-													if (add_node) {
-														var treeP = new Tree(tree_node);
-														tree.append([], treeP);
-														fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
-													} else {
-														logger.debug("---> <<<<DESCARTING FIREWALL NODE>>>" + row.id);
-														callback();
-													}
-												});
-
-									} else {
-										//logger.debug("--->  AÑADIENDO NODO PADRE " + row.id + " con PADRE: " + idparent);
-										//logger.debug("-------> LLAMANDO A HIJO: " + row.id + "   Node Type: " + row.node_type);
-
-										var treeP = new Tree(tree_node);
-										tree.append([], treeP);
-										fwc_treeModel.getFwc_TreeUserFull(iduser, fwcloud, row.id, treeP, objStandard, objCloud, row.order_mode, filter_idfirewall, callback);
-									}
-								}
-							});
-						},
-						function (err) {
-							if (err) return AllDone(err, tree);
-							AllDone(null, tree);
-						});
-			}
+					if (await fwc_treeModel.hasChilds(req,node.id)) {
+						var subtree = new Tree(tree_node);
+						tree.append([], subtree);
+						await fwc_treeModel.getTree(req, node.id, subtree, objStandard, objCloud, node.order_mode);
+					} else 
+						tree.append([], tree_node);
+				}
+				resolve(tree);
+			} catch(error) { reject(error) }
 		});
 	});
 };
+
+// Put STD folders first.
+fwc_treeModel.stdFoldersFirst = root_node => {
+	return new Promise((resolve, reject) => {
+		// Put standard folders at the begining.
+		for (let node1 of root_node.children) {
+			for (let [index, node2] of node1.children.entries()) {
+				if (node2.node_type==='STD') {
+					if (index===0) break;
+					node1.children.unshift(node2);
+					node1.children.splice(index+1,1);
+					break;
+				}
+			}
+		}	
+		resolve();				
+	});
+};
+
 
 // Remove all tree nodes with the indicated id_obj.
 fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
@@ -313,21 +263,6 @@ fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
 	});
 };
 
-//Get TREE by User and Parent
-fwc_treeModel.getFwc_TreeUserParent = function (fwcloud, idparent, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud = ' + connection.escape(fwcloud) + ' AND id_parent=' + connection.escape(idparent);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
 
 fwc_treeModel.createAllTreeCloud = req => {
 	return new Promise(async (resolve, reject) => {
@@ -933,22 +868,6 @@ fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, i
 		});
 	});
 };
-function hasLines(id, callback) {
-	var ret;
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT * FROM  ' + tableModel + '  where id_parent = ' + id;
-		connection.query(sql, function (error, rows) {
-			if (rows.length > 0) {
-				ret = true;
-			} else {
-				ret = false;
-			}
-			callback(ret);
-		});
-	});
-}
 
 function getFirewallNodeId(idfirewall, callback) {
 	var ret;
