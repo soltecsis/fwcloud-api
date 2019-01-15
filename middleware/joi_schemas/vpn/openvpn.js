@@ -28,7 +28,7 @@ schema.validate = req => {
 					'route-noexec', 'route-up', 'route', 'rport', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
 					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth',
-					'tls-cipher', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tmp-dir', 'tran-window ', 'tun-ipv6',
+					'tls-cipher', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'topology', 'tmp-dir', 'tran-window ', 'tun-ipv6',
 					'tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up cmd', 'user', 'username-as-common-name ', 'verb', 'writepid'
 				]),
 				otherwise: Joi.string().valid(['push', 'push-reset', 'iroute', 'iroute-ipv6', 'ifconfig-push',
