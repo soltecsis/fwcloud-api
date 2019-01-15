@@ -15,7 +15,7 @@ pkiModel.createCA = req => {
       cn: req.body.cn,
       days: req.body.days,
       comment: req.body.comment,
-      status: 0 // This status variable will be changed to 1 when the DF file generation is completed.
+      status: 1 // This status variable will be changed to 0 when the DF file generation is completed.
     }
     req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
       if (error) return reject(error);
@@ -183,6 +183,18 @@ pkiModel.delFromIndex = (dir,cn) => {
     });
   });
 };
+
+// Get the ID of all CA who's status field is not zero.
+pkiModel.getCAStatusNotZero = (req, data) => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`, (error, rows) => {
+      if (error) return reject(error);
+      data.ca_status = rows;
+      resolve(data);
+    });
+  });
+};
+
 
 //Export the object
 module.exports = pkiModel;

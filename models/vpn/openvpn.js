@@ -18,7 +18,8 @@ openvpnModel.addCfg = req => {
       openvpn: req.body.openvpn,
       firewall: req.body.firewall,
       crt: req.body.crt,
-      comment: req.body.comment
+      comment: req.body.comment,
+      status: 1
     }
     req.dbCon.query('insert into openvpn SET ?', cfg, (error, result) => {
       if (error) return reject(error);
@@ -345,6 +346,21 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
       } catch(error) { reject(error) }
 
       resolve({result: false});
+    });
+  });
+};
+
+
+// Get the ID of all OpenVPN configurations who's status field is not zero.
+openvpnModel.getOpenvpnStatusNotZero = (req, data) => {
+	return new Promise((resolve, reject) => {
+    const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
+      INNER JOIN firewall FW on FW.id=VPN.firewall
+      WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`
+    req.dbCon.query(sql, (error, rows) => {
+      if (error) return reject(error);
+      data.openvpn_status = rows;
+      resolve(data);
     });
   });
 };
