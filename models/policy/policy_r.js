@@ -938,8 +938,6 @@ policy_rModel.deletePolicy_r = function(idfirewall, id) {
 	});
 };
 
-var streamModel = require('../stream/stream');
-
 //Compile rule and save it
 policy_rModel.compilePolicy_r = function(accessData, callback) {
 
@@ -948,22 +946,16 @@ policy_rModel.compilePolicy_r = function(accessData, callback) {
 	policy_rModel.getPolicy_r_id(rule, (error, data) => {
 		if (error) return callback(error, null);
 		if (data && data.length > 0) {
-			//streamModel.pushMessageCompile(accessData, "COMPILING RULE " + rule + " COMPILATION PROCESS\n");
 
 			RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
 				.then(data => {
 					if (data && data.length > 0) {
-						//streamModel.pushMessageCompile(accessData, "RULE " + rule + "  COMPILED\n");
-						//streamModel.pushMessageCompile(accessData, "\n" + data + " \n");
-						//streamModel.pushMessageCompile(accessData, "\nCOMPILATION COMPLETED\n\n");
 						callback(null, { "result": true, "msg": "Rule compiled" });
 					} else {
-						//streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
 						callback(null, { "result": false, "msg": "CS Empty, rule NOT compiled" });
 					}
 				})
 				.catch(error => {
-					//streamModel.pushMessageCompile(accessData, "ERROR COMPILING RULE " + rule + "\n\n");
 					callback(null, { "result": false, "msg": "ERROR rule NOT compiled" });
 				});
 		} else

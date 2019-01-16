@@ -6,11 +6,6 @@ var objModel = 'USER';
 
 var parseFile = require('./parse_file.js');
 
-var SseChannel = require('sse-channel');
-var redis = require('redis');
-var publisherClient = redis.createClient();
-
-//var bcrypt = require('bcrypt-nodejs');
 var bcrypt = require('bcrypt');
 
 var logger = require('log4js').getLogger("app");
@@ -77,125 +72,9 @@ router.post('/logout',(req, res) => {
 /*---------------------------------------------------------------------------*/
 
 
-router.get('/update-stream', function(req, res) {
-  // let request last as long as possible
-  req.socket.setTimeout(99999999);
-
-  var messageCount = 0;
-  var subscriber = redis.createClient();
-
-  subscriber.subscribe("updates");
-
-  // In case we encounter an error...print it out to the console
-  subscriber.on("error", function(err) {
-	logger.debug("Redis Error: " + err);
-  });
-
-  // When we receive a message from the redis connection
-  subscriber.on("message", function(channel, message) {
-	messageCount++; // Increment our message count
-
-	logger.debug("RECIBIENDO NUEVO MENSAJE: " + messageCount + "  MSG: " + message);
-	res.write('id: ' + messageCount + '\n');
-	res.write("data: " + message + '\n\n'); // Note the extra newline
-  });
-
-  //send headers for event-stream connection
-  res.writeHead(200, {
-	'Content-Type': 'text/event-stream',
-	'Cache-Control': 'no-cache',
-	'Connection': 'keep-alive'
-  });
-  res.write('\n');
-
-  // The 'close' event is fired when a user closes their browser window.
-  // In that situation we want to make sure our redis channel subscription
-  // is properly shut down to prevent memory leaks...and incorrect subscriber
-  // counts to the channel.
-  req.on("close", function() {
-	subscriber.unsubscribe();
-	subscriber.quit();
-  });
-});
-
-router.get('/fire-event/:event_name', function(req, res) {
-  publisherClient.publish( 'updates', ('"' + req.params.event_name + '" page visited') );
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  res.write('All clients have received "' + req.params.event_name + '"');
-  res.end();
-});
-
-router.get('/msg', function(req, res){
-	res.writeHead(200, { "Content-Type": "text/event-stream",
-						 "Cache-control": "no-cache" });
-
-	var spw = cp.spawn('ping', ['-c', '100', '127.0.0.1']),
-	str = "";
-
-
-
-	spw.stdout.on('data', function (data) {
-		str += data.toString();
-
-		// just so we can see the server is doing something
-		console.log("data");
-
-
-
-		// Flush out line by line.
-		var lines = str.split("\n");
-		for(var i in lines) {
-			if(i == lines.length - 1) {
-				str = lines[i];
-			} else{
-				// Note: The double-newline is *required*
-				res.write('data: ' + lines[i] + "\n\n");
-			}
-		}
-	});
-
-	spw.on('close', function (code) {
-		res.end(str);
-	});
-
-	spw.stderr.on('data', function (data) {
-		res.end('stderr: ' + data);
-	});
-});
-
-
-/* Get Stream*/
-router.get('/stream-log/:isuser/', function (req, res)
-{
-	parseFile(__dirname+'/../../logs/app_fwcloud.log').pipe(res);
-
-
-});
-
-/* Get Stream*/
-router.get('/stream-log1/:isuser/', function (req, res)
-{
-	const {Readable} = require('stream');
-
-
-	const inStream = new Readable({
-		read(size) {
-			this.push(String.fromCharCode(this.currentCharCode++));
-			if (this.currentCharCode > 90) {
-				this.push(null);
-			}
-		}
-	});
-
-	inStream.currentCharCode = 65;
-
-	inStream.pipe(res);
-
-
-});
 
 /* Get all users by customer*/
-router.get('/:customer', function (req, res)
+/* router.get('/:customer', function (req, res)
 {
 	var customer = req.params.customer;
 	UserModel.getUsers(customer, function (error, data)
@@ -215,21 +94,21 @@ router.get('/:customer', function (req, res)
 			});
 		}
 	});
-});
+});*/
 
 /* Get all users from Custormer and username*/
-router.get('/:customer/username/:username', (req, res) => {
+/*router.get('/:customer/username/:username', (req, res) => {
 	UserModel.getUserName(req.params.customer, req.params.username)
 	.then(data => {
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	})
 	.catch(err => api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', objModel, err, jsonResp => res.status(200).json(jsonResp)));
-});
+});*/
 
 
 /* new user */
-router.post("/user", (req, res) => {
+/*router.post("/user", (req, res) => {
   //Objet to create new user
   var userData = {
 	id: null,
@@ -250,7 +129,7 @@ router.post("/user", (req, res) => {
   will block the event loop and prevent your application from servicing any other
   inbound requests or events.
   */
-  bcrypt.genSalt(10, (error,salt) => {
+ /* bcrypt.genSalt(10, (error,salt) => {
 	bcrypt.hash(req.body.customer+req.body.username+req.body.password, salt, null, (error, hash) => {
 	  if (error) api_resp.getJson(data, api_resp.ACR_ERROR, 'Error generating password hash.', '', error, jsonResp => { res.status(200).json(jsonResp) });
 	  logger.debug("HASH: "+hash);
@@ -281,10 +160,10 @@ router.post("/user", (req, res) => {
 	  });
 	})
   });
-});
+});*/
 
 /* udate user */
-router.put('/user/', function (req, res)
+/*router.put('/user/', function (req, res)
 {
 	//Save user data into objet
 	var userData = {id: req.param('id'), customer: req.param('customer'), username: req.param('username'), allowed_ip: req.param('allowed_ip'), name: req.param('name'), email: req.param('email'), password: req.param('password'), role: req.param('role')};
@@ -310,10 +189,10 @@ router.put('/user/', function (req, res)
 			}
 		}
 	});
-});
+});*/
 
 /* Get User by id */
-router.get('/:customer/user/:id', function (req, res)
+/*router.get('/:customer/user/:id', function (req, res)
 {
 	var customer = req.params.customer;
 	var id = req.params.id;
@@ -346,13 +225,11 @@ router.get('/:customer/user/:id', function (req, res)
 			res.status(200).json(jsonResp);
 		});
 	}
-});
-
-
+});*/
 
 
 /* remove the user */
-router.put("/del/user/", function (req, res)
+/*router.put("/del/user/", function (req, res)
 {
 	//User id
 	var id = req.param('id');
@@ -377,6 +254,6 @@ router.put("/del/user/", function (req, res)
 			}
 		}
 	});
-});
+});*/
 
 module.exports = router;

@@ -19,8 +19,6 @@ var Policy_cModel = require('../../models/policy/policy_c');
  */
 var RuleCompile = require('../../models/policy/rule_compile');
 
-var streamModel = require('../../models/stream/stream');
-
 var firewallModel = require('../../models/firewall/firewall');
 
 const sshTools = require('../../utils/ssh');
@@ -75,24 +73,24 @@ PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dump = (accessData,fwcloud,fw,type) => {
+PolicyScript.dump = (req,type) => {
 	return new Promise((resolve,reject) => { 
-  	Policy_cModel.getPolicy_cs_type(fwcloud, fw, type, async (error, data) => {
+  	Policy_cModel.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
 			if (error) return reject(error);
 
 			for (var ps="", i=0; i<data.length; i++) {
-				streamModel.pushMessageCompile(accessData, "Rule "+(i+1)+" (ID: "+data[i].id+")\n");
+				req.app.get('socketio').to(req.body.socketid).emit('log:info',"Rule "+(i+1)+" (ID: "+data[i].id+")\n");
 				ps += "\necho \"RULE "+(i+1)+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
 					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
 				if (!(data[i].c_status_recompile)) // The compiled string in the database is ok.
 					ps += data[i].c_compiled;
 				else { // We must compile the rule.
-					// The rule compilation order is important, then we must wait until we have the promise fulfilled.
-					// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-					await RuleCompile.get(fwcloud,fw,type,data[i].id)
-						.then(data => ps += data)
-						.catch(error => reject(error));			
+					try {
+						// The rule compilation order is important, then we must wait until we have the promise fulfilled.
+						// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
+						ps += await RuleCompile.get(req.body.fwcloud,req.body.firewall,type,data[i].id);
+					} catch(error) { return reject(error) }
 				}
 			}
 		
@@ -106,28 +104,28 @@ PolicyScript.dump = (accessData,fwcloud,fw,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (req, SSHconn, firewall) => {
 	return new Promise(async (resolve,reject) => {
-		const accessData = {sessionID: req.sessionID, iduser: req.session.user_id};
+		const socket = req.app.get('socketio').to(req.body.socketid);
 
 		try {
-			streamModel.pushMessageCompile(accessData, "Uploading firewall script ("+SSHconn.host+")\n");
+			socket.emit('log:info', "Uploading firewall script ("+SSHconn.host+")\n");
 			await sshTools.uploadFile(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
 		
 			// Enable bash depuration if it is selected in firewalls/cluster options.
 			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
 			const bash_debug = (options & 0x0008) ? ' -x' : '';
 	
-			streamModel.pushMessageCompile(accessData, "Installing firewall script.\n");
+			socket.emit('log:info', "Installing firewall script.\n");
 			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install");
 
-			streamModel.pushMessageCompile(accessData, "Loading firewall policy.\n");
+			socket.emit('log:info', "Loading firewall policy.\n");
 			const data = await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
 				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
 				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
 
-			streamModel.pushMessageCompile(accessData, data+"\nEND\n");
+			socket.emit('log:info',data);
 			resolve("DONE");
 		} catch(error) { 
-			streamModel.pushMessageCompile(accessData, "ERROR: "+error+"\n");
+			socket.emit('log:info',`ERROR: ${error}\n`);
 			reject(error);
 		}
 	});
