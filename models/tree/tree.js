@@ -381,7 +381,7 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 	return new Promise((resolve, reject) => {
 		// Get firewall interfaces.  
 		let sql = '';
-		let oby_type;
+		let obj_type;
 		
 		if (ownerType==='FW') {
 			sql = 'SELECT id,name,labelName FROM interface' +
@@ -404,6 +404,49 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 				for(let interface of interfaces) {
 					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,obj_type);
 					await fwc_treeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
+				}
+			} catch(error) { return reject(error )}
+			resolve();
+		});
+	});
+};
+
+//Generate the OpenVPN client nodes.
+fwc_treeModel.openvpnClientTree = (connection, fwcloud, firewall, server_vpn, node) => {
+	return new Promise((resolve, reject) => {
+		// Get client OpenVPN configurations.
+		const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
+			INNER JOIN crt CRT on CRT.id=VPN.crt
+			WHERE VPN.firewall=${firewall} and VPN.openvpn=${server_vpn}`
+		connection.query(sql, async (error, vpns) => {
+			if (error) return reject(error);
+			if (vpns.length===0) resolve();
+
+			try {
+				for(let vpn of vpns) {
+					await fwc_treeModel.newNode(connection,fwcloud,vpn.cn,node,'OCL',vpn.id,311);
+				}
+			} catch(error) { return reject(error )}
+			resolve();
+		});
+	});
+};
+
+//Generate the OpenVPN server nodes.
+fwc_treeModel.openvpnServerTree = (connection, fwcloud, firewall, node) => {
+	return new Promise((resolve, reject) => {
+		// Get server OpenVPN configurations.
+		const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
+			INNER JOIN crt CRT on CRT.id=VPN.crt
+			WHERE VPN.firewall=${firewall} and VPN.openvpn is null`
+		connection.query(sql, async (error, vpns) => {
+			if (error) return reject(error);
+			if (vpns.length===0) resolve();
+
+			try {
+				for(let vpn of vpns) {
+					let newNodeId = await fwc_treeModel.newNode(connection,fwcloud,vpn.cn,node,'OSR',vpn.id,312);
+					await fwc_treeModel.openvpnClientTree(connection,fwcloud,firewall,vpn.id,newNodeId);
 				}
 			} catch(error) { return reject(error )}
 			resolve();
@@ -437,7 +480,9 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
 					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
 
-					await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',firewallId,0);					
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',firewallId,0);	
+					await fwc_treeModel.openvpnServerTree(connection,fwcloud,firewallId,id2);
+
 					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);					
 				} catch(error) { return reject(error) }
 				resolve();
