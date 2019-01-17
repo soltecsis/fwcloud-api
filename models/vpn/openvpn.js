@@ -6,6 +6,7 @@ const ipobjModel = require('../ipobj/ipobj');
 const readline = require('readline');
 const fwcTreemodel = require('../../models/tree/tree');
 const sshTools = require('../../utils/ssh');
+const socketTools = require('../../utils/socket');
 const firewallModel = require('../../models/firewall/firewall');
 const fs = require('fs');
 const ip = require('ip');
@@ -180,6 +181,7 @@ openvpnModel.dumpCfg = req => {
       const ca_crt_path = ca_dir + 'ca.crt';
       const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
       const key_path = ca_dir + 'private/' + result[0].cn + '.key';
+      let dh_path = (result[0].type === 2) ? ca_dir+'dh.pem' : '';
   
       // Get all the configuration options.
       sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${req.body.openvpn} order by openvpn_opt.order`;
@@ -212,10 +214,8 @@ openvpnModel.dumpCfg = req => {
           }
 
           // Now read the files data and put it into de config files.
-          if (result[0].type === 2) { // Configuración OpenVPN de servidor.
-            const dh_path = ca_dir + 'dh.pem';
+          if (dh_path) // Configuración OpenVPN de servidor.
             ovpn_cfg += '\n<dh>\n' + (await openvpnModel.getCRTData(dh_path)) + "</dh>\n";
-          }
           ovpn_cfg += '\n<ca>\n' + (await openvpnModel.getCRTData(ca_crt_path)) + "</ca>\n";
           ovpn_cfg += '\n<cert>\n' + (await openvpnModel.getCRTData(crt_path)) + "</cert>\n";
           ovpn_cfg += '\n<key>\n' + (await openvpnModel.getCRTData(key_path)) + "</key>\n";
@@ -230,22 +230,23 @@ openvpnModel.dumpCfg = req => {
 
 openvpnModel.installCfg = (req,cfg,dir,name) => {
 	return new Promise(async (resolve, reject) => {
-    const socket = req.app.get('socketio').to(req.body.socketid);
+    // Init the socket used for message notification by the socketTools module.
+    socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
 
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-      socket.emit('log:info',`Uploading OpenVPN configuration (${fwData.SSHconn.host})\n`);
+      socketTools.msg(`Uploading OpenVPN configuration (${fwData.SSHconn.host})\n`);
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
-      socket.emit('log:info',`Installing OpenVPN configuration.\n`);
+      socketTools.msg(`Installing OpenVPN configuration.\n`);
 			await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
 			await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
 			await sshTools.runCommand(fwData.SSHconn,"sudo mv "+name+" "+dir);
 
       resolve();
     } catch(error) { 
-      socket.emit('log:info',`ERROR: ${error}\n`);
+      socketTools.msg(`ERROR: ${error}\n`);
       reject(error); 
     }
   });

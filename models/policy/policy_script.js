@@ -22,6 +22,7 @@ var RuleCompile = require('../../models/policy/rule_compile');
 var firewallModel = require('../../models/firewall/firewall');
 
 const sshTools = require('../../utils/ssh');
+const socketTools = require('../../utils/socket');
 
 var config = require('../../config/config');
 
@@ -78,8 +79,11 @@ PolicyScript.dump = (req,type) => {
   	Policy_cModel.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
 			if (error) return reject(error);
 
+			// Init the socket used for message notification by the socketTools module.
+  		socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+
 			for (var ps="", i=0; i<data.length; i++) {
-				req.app.get('socketio').to(req.body.socketid).emit('log:info',"Rule "+(i+1)+" (ID: "+data[i].id+")\n");
+				socketTools.msg("Rule "+(i+1)+" (ID: "+data[i].id+")\n");
 				ps += "\necho \"RULE "+(i+1)+" (ID: "+data[i].id+")\"\n";
 				if (data[i].comment)
 					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
@@ -104,28 +108,31 @@ PolicyScript.dump = (req,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (req, SSHconn, firewall) => {
 	return new Promise(async (resolve,reject) => {
-		const socket = req.app.get('socketio').to(req.body.socketid);
+		// Init the socket used for message notification by the socketTools module.
+  	socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
 
 		try {
-			socket.emit('log:info', "Uploading firewall script ("+SSHconn.host+")\n");
+			socketTools.msg("Uploading firewall script ("+SSHconn.host+")\n");
 			await sshTools.uploadFile(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
 		
 			// Enable bash depuration if it is selected in firewalls/cluster options.
 			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
 			const bash_debug = (options & 0x0008) ? ' -x' : '';
 	
-			socket.emit('log:info', "Installing firewall script.\n");
+			socketTools.msg("Installing firewall script.\n");
 			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install");
 
-			socket.emit('log:info', "Loading firewall policy.\n");
+			socketTools.msg("Loading firewall policy.\n");
 			const data = await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
 				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
 				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
 
-			socket.emit('log:info',data);
+			socketTools.msg(data);
+			socketTools.msgEnd();
 			resolve("DONE");
 		} catch(error) { 
-			socket.emit('log:info',`ERROR: ${error}\n`);
+			socketTools.msg(`ERROR: ${error}\n`);
+			socketTools.msgEnd();
 			reject(error);
 		}
 	});

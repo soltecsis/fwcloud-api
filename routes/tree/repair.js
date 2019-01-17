@@ -6,6 +6,7 @@ const fs = require('fs');
 const fwcTreeRepairModel = require('../../models/tree/repair');
 const api_resp = require('../../utils/api_response');
 const config = require('../../config/config');
+const socketTools = require('../../utils/socket');
 
 var objModel = 'FWC TREE REPAIR';
 
@@ -17,49 +18,50 @@ router.put('/', async (req, res) =>{
     fs.mkdirSync(lockFilePath);
   lockFilePath += "/"+req.body.fwcloud;
 
-  const socket = req.app.get('socketio').to(req.body.socketid);
+  // Init the socket used for message notification by the socketTools module.
+  socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
     
 	try {
     if (!fs.existsSync(lockFilePath))
       fs.closeSync(fs.openSync(lockFilePath,'w'));
 
     if (req.body.type==='FDF')
-      socket.emit('log:info','<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+      socketTools.msg('<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
     else if (req.body.type==='FDO')
-      socket.emit('log:info','<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+      socketTools.msg('<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
     else if (req.body.type==='FDS')
-      socket.emit('log:info','<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+      socketTools.msg('<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
     else
       return api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
     
     await fwcTreeRepairModel.initData(req);
 
-    socket.emit('log:info','<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
+    socketTools.msg('<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
 
     // MUTUAL EXCLUSION ACCESS
     const release = await lockFile.lock(lockFilePath);
     const rootNodes = await fwcTreeRepairModel.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
-    socket.emit('log:info','<font color="blue">Checking tree struture.</font>\n');
+    socketTools.msg('<font color="blue">Checking tree struture.</font>\n');
     await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF' && req.body.type==='FDF') { // Firewalls and clusters tree.
-        socket.emit('log:info','<font color="blue">Checking folders.</font>\n');
+        socketTools.msg('<font color="blue">Checking folders.</font>\n');
         await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
-        socket.emit('log:info','<font color="blue">Checking firewalls and clusters tree.</font>\n');
+        socketTools.msg('<font color="blue">Checking firewalls and clusters tree.</font>\n');
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
         break;
       }
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.
-        socket.emit('log:info','<font color="blue">Checking host objects.</font>\n');
+        socketTools.msg('<font color="blue">Checking host objects.</font>\n');
         await fwcTreeRepairModel.checkHostObjects(rootNode);
         break;
       }
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
-        socket.emit('log:info','<font color="blue">Checking services tree.</font>\n');
+        socketTools.msg('<font color="blue">Checking services tree.</font>\n');
         break;
       }
     }
@@ -67,11 +69,11 @@ router.put('/', async (req, res) =>{
     // EXIT MUTEX
     await release();
 
-    socket.emit('log:END','');
+    socketTools.msgEnd();
     api_resp.getJson(null, api_resp.ACR_OK, 'REPAIR PROCESS COMPLETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { 
-    socket.emit('log:info',`\nERROR: ${error}\n`);
-		socket.emit('log:END','');
+    socketTools.msg(`\nERROR: ${error}\n`);
+		socketTools.msgEnd();
     api_resp.getJson(null, api_resp.ACR_ERROR, 'Error repairing tree', objModel, error, jsonResp => res.status(200).json(jsonResp)) 
   }
 });

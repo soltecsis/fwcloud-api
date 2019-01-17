@@ -67,7 +67,8 @@ router.post('/ca', async(req, res) => {
 		pkiModel.runEasyRsaCmd(req, 'gen-dh')
 			.then(() => {
 				req.dbCon.query(`update ca set status=0 where id=${req.caId}`, (error, result) => {
-					req.app.get('socketio').to(req.body.socketid).emit('ca:dh:created', { caId: req.caId });
+					const socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+					if (socket) socket.emit('ca:dh:created', { caId: req.caId, caCn: req.body.cn });
 				});
 			});
 

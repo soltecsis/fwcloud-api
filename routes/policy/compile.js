@@ -67,6 +67,7 @@ var PolicyScript = require('../../models/policy/policy_script');
 
 const config = require('../../config/config');
 const FirewallModel = require('../../models/firewall/firewall');
+const socketTools = require('../../utils/socket');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -99,7 +100,8 @@ router.put('/', (req, res) => {
 	var stream = fs.createWriteStream(path);
 
 	stream.on('open', async fd => {
-		const socket = req.app.get('socketio').to(req.body.socketid);
+		// Init the socket used for message notification by the socketTools module.
+  	socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
 
 		try {
 			/* Generate the policy script. */
@@ -114,29 +116,29 @@ router.put('/', (req, res) => {
 					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
 					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
 					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n");
-				socket.emit('log:info',"--- STATEFULL FIREWALL ---\n\n");
+				socketTools.msg("--- STATEFULL FIREWALL ---\n\n");
 			}
 			else
-				socket.emit('log:info',"--- STATELESS FIREWALL ---\n\n");
+				socketTools.msg("--- STATELESS FIREWALL ---\n\n");
 			
 			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
-			socket.emit('log:info',"INPUT TABLE:\n");
+			socketTools.msg("INPUT TABLE:\n");
 
 			let cs = await PolicyScript.dump(req,1);
 			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-			socket.emit('log:info',"\nOUTPUT TABLE\n");
+			socketTools.msg("\nOUTPUT TABLE\n");
 	
 			cs = await PolicyScript.dump(req,2);
 			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-			socket.emit('log:info',"\nFORWARD TABLE\n");
+			socketTools.msg("\nFORWARD TABLE\n");
 			
 			cs = await PolicyScript.dump(req,3);
 			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-			socket.emit('log:info',"\nSNAT TABLE\n");
+			socketTools.msg("\nSNAT TABLE\n");
 			
 			cs = await PolicyScript.dump(req,4);
 			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-			socket.emit('log:info',"\nDNAT TABLE\n");
+			socketTools.msg("\nDNAT TABLE\n");
 			
 			cs = await PolicyScript.dump(req, 5);
 			stream.write(cs+"\n}\n\n");
@@ -149,11 +151,11 @@ router.put('/', (req, res) => {
 			
 			// Update firewall status flags.
 			await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~1");
-			socket.emit('log:END','');
+			socketTools.msgEnd();
 			api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
 		} catch(error) { 
-			socket.emit('log:info',`\nERROR: ${error}\n`);
-			socket.emit('log:END','');
+			socketTools.msg(`\nERROR: ${error}\n`);
+			socketTools.msgEnd();
 			api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)) 
 		}
 	}).on('error', error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)))
