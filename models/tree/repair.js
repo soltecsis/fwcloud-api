@@ -14,7 +14,7 @@ var tableModel = "fwc_tree";
 
 fwc_treeRepairModel.initData = req => {
 	return new Promise(async resolve => {
-    socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+    socketTools.init(req); // Init the socket used for message notification by the socketTools module.
     dbCon = req.dbCon;
     fwcloud = req.body.fwcloud;
     resolve();

@@ -100,8 +100,7 @@ router.put('/', (req, res) => {
 	var stream = fs.createWriteStream(path);
 
 	stream.on('open', async fd => {
-		// Init the socket used for message notification by the socketTools module.
-  	socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+		socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
 		try {
 			/* Generate the policy script. */

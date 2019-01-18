@@ -230,8 +230,7 @@ openvpnModel.dumpCfg = req => {
 
 openvpnModel.installCfg = (req,cfg,dir,name) => {
 	return new Promise(async (resolve, reject) => {
-    // Init the socket used for message notification by the socketTools module.
-    socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+    socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
     try {
       const fwData = await firewallModel.getFirewallSSH(req);

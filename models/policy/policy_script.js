@@ -79,8 +79,7 @@ PolicyScript.dump = (req,type) => {
   	Policy_cModel.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
 			if (error) return reject(error);
 
-			// Init the socket used for message notification by the socketTools module.
-  		socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+			socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
 			for (var ps="", i=0; i<data.length; i++) {
 				socketTools.msg("Rule "+(i+1)+" (ID: "+data[i].id+")\n");
@@ -108,8 +107,7 @@ PolicyScript.dump = (req,type) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.install = (req, SSHconn, firewall) => {
 	return new Promise(async (resolve,reject) => {
-		// Init the socket used for message notification by the socketTools module.
-  	socketTools.socket = req.app.get('socketio').sockets.connected[req.body.socketid];
+		socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
 		try {
 			socketTools.msg("Uploading firewall script ("+SSHconn.host+")\n");
