@@ -10,7 +10,8 @@ schema.validate = req => {
       fwcloud: sharedSch.id,
       firewall: sharedSch.id,
       sshuser: sharedSch.linux_user,
-      sshpass: sharedSch.linux_pass
+      sshpass: sharedSch.linux_pass,
+      socketid: sharedSch.socketio_id.optional()
      });
     
     if (req.method!=='POST' && req.url!=='/policy/install') return reject(new Error('Request method not accepted'));

@@ -8,7 +8,8 @@ schema.validate = req => {
   return new Promise(async (resolve, reject) => {
     var schema = Joi.object().keys({ 
       fwcloud: sharedSch.id,
-      type: Joi.string().valid(['FDF','FDO','FDS']) 
+      type: Joi.string().valid(['FDF','FDO','FDS']),
+      socketid: sharedSch.socketio_id.optional()
     });
     
     if (req.method!=='PUT') return reject(new Error('Request method not accepted'));
