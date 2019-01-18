@@ -127,6 +127,7 @@ schema.validate = req => {
 			}
 			else if (req.url==='/vpn/openvpn/install') {
 				schema = schema.append({
+					firewall: sharedSch.id,
 					openvpn: sharedSch.id,
 					sshuser: sharedSch.linux_user,
 					sshpass: sharedSch.linux_pass,

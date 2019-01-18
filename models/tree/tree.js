@@ -539,7 +539,9 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
 					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
 
-					await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',clusters[0].fwmaster_id,0);					
+					id2 = await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',clusters[0].fwmaster_id,0);
+					await fwc_treeModel.openvpnServerTree(connection,fwcloud,clusters[0].fwmaster_id,id2);
+
 					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);					
 
 					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
