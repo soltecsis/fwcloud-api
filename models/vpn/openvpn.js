@@ -283,7 +283,7 @@ openvpnModel.freeVpnIP = req => {
         for(freeIPLong=net.firstLong; freeIPLong<=net.lastLong; freeIPLong++) {
           found = 0;
           for (let ipCli of result) {
-            if (freeIPLong != ip.toLong(ipCli.address)) {
+            if (freeIPLong === ip.toLong(ipCli.address)) {
               found=1;
               break;
             }

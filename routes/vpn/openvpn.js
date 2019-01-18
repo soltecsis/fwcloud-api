@@ -71,10 +71,20 @@ router.post('/', async(req, res) => {
 
 		// Verify that we are using the correct type of certificate.
 		// 1=Client certificate, 2=Server certificate.
-		if (req.crt.type === 1 && !req.body.openvpn)
+		if (req.crt.type===1 && !req.body.openvpn)
 			throw (new Error('When using client certificates you must indicate the OpenVPN server configuration'));
-		if (req.crt.type === 2 && req.body.openvpn)
+		if (req.crt.type===2 && req.body.openvpn)
 			throw (new Error('When using server certificates you must not indicate the OpenVPN server configuration'));
+
+		// The client certificate for a new OpenVPN client configuration must belong to the same CA
+		// that the OpenVPN server configuration to which we are vinculationg this new client VPN.
+		if (req.crt.type===1 && req.crt.ca!==req.openvpn.ca) 
+			throw (new Error('CRT for a new client OpenVPN configuration must has the same CA that the server OpenVPN configuration to which it belongs'));
+
+		// The firewall id for the new OpenVPN client configuration must be the same firewall id of
+		// the server OpenVPN configuration.
+		if (req.crt.type===1 && req.body.firewall!==req.openvpn.firewall) 
+			throw (new Error('Firewall ID for the new client OpenVPN configuration must match server OpenVPN configuration'));
 
 		const cfg = await openvpnModel.addCfg(req);
 

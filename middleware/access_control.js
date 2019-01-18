@@ -93,9 +93,9 @@ function checkCAAccess(req) {
 // Check access to certificate.
 function checkCrtAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = 'select R.*,A.fwcloud FROM crt R' +
-		 ' INNER JOIN ca A ON R.ca=A.id' +
-		 ' WHERE R.id='+req.body.crt;
+	 let sql = `select R.*,A.fwcloud FROM crt R
+			INNER JOIN ca A ON R.ca=A.id
+			WHERE R.id=${req.body.crt}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
@@ -114,10 +114,10 @@ function checkCrtAccess(req) {
 // Check access to openvpn configuration.
 function checkOpenVPNAccess(req) {
 	return new Promise((resolve, reject) => {
-	 let sql = 'select F.fwcloud,O.*,CRT.* FROM openvpn O' +
-		 ' INNER JOIN firewall F ON O.firewall=F.id' +
-		 ' INNER JOIN crt CRT ON CRT.id=O.crt' +
-		 ' WHERE O.id='+req.body.openvpn;
+		let sql = `select F.fwcloud,O.*,CRT.* FROM openvpn O
+			INNER JOIN firewall F ON O.firewall=F.id
+			INNER JOIN crt CRT ON CRT.id=O.crt
+			WHERE O.id=${req.body.openvpn}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
