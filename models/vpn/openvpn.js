@@ -201,8 +201,11 @@ openvpnModel.dumpCfg = req => {
               const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
               if (ipobj.type===7) // Network
                 cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
-              else if (ipobj.type===5) // Address
+              else if (ipobj.type===5) {// Address
                 cfg_line += ' '+ipobj.address;
+                if (opt.name==='ifconfig-push')
+                  cfg_line += ' '+ipobj.netmask;
+              }
             }
             else if (opt.arg)
               cfg_line += ' '+opt.arg;
@@ -228,7 +231,7 @@ openvpnModel.dumpCfg = req => {
 };
 
 
-openvpnModel.installCfg = (req,cfg,dir,name) => {
+openvpnModel.installCfg = (req,cfg,dir,name,type) => {
 	return new Promise(async (resolve, reject) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
@@ -239,15 +242,30 @@ openvpnModel.installCfg = (req,cfg,dir,name) => {
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
       socketTools.msg(`Installing OpenVPN configuration.\n`);
-			await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
-			await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
+      await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
+      if (type===1) // Client certificate.
+        await sshTools.runCommand(fwData.SSHconn,"sudo chmod 644 "+name);
+      else
+			  await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
 			await sshTools.runCommand(fwData.SSHconn,"sudo mv "+name+" "+dir);
 
+      socketTools.msgEnd();
       resolve();
     } catch(error) { 
       socketTools.msg(`ERROR: ${error}\n`);
+      socketTools.msgEnd();
       reject(error); 
     }
+  });
+};
+
+
+openvpnModel.updateOpenvpnStatus = (dbCon, openvpn, status_action) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`, (error, result) => {
+      if (error) return reject(error);
+      resolve({"result": true});
+    });
   });
 };
 

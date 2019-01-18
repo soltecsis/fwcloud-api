@@ -192,20 +192,20 @@ router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req);
 		req.body.firewall = req.openvpn.firewall;
-		const crt = await pkiModel.getCRTdata(req.dbCon,req.body.openvpn);
+		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
-			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn);
+			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
 		}
 		else // Server certificate
-			await openvpnModel.installCfg(req,cfgDump.cfg,'/etc/openvpn/','server.conf');
+			await openvpnModel.installCfg(req,cfgDump.cfg,'/etc/openvpn/','server.conf',2);
 
 		// Update the status flag for the OpenVPN configuration.
-		//await FirewallModel.updateFirewallStatus(req.dbCon,req.body.openvpn,"&~1");
+		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
