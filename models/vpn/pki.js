@@ -127,18 +127,18 @@ pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
       argv.push('--days='+req.body.days);
       argv.push(easyrsaDataCmd);
       argv.push(req.body.cn);
-      if (!req.body.nopass)
+      if (!req.body.pass)
         argv.push('nopass');
       break;
     }
     const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
-    const childProcess = promise.childProcess;
+    //const childProcess = promise.childProcess;
 
-   if (!req.body.nopass)
-      childProcess.stdin.push('mipass');
+    //if (!req.body.pass)
+      //  childProcess.stdin.push('mipass');
 
-    childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
-    childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
+    //childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
+    //childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
     //childProcess.stdin.push('TEST');
 
     promise.then(result => resolve(result))
