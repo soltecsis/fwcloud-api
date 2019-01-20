@@ -130,36 +130,29 @@ fwc_treeModel.deleteFwc_TreeFullNode = data => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
-			let sql = 'SELECT * FROM ' + tableModel + ' WHERE fwcloud=' + data.fwcloud + ' AND id_parent=' + data.id;
+			let sql = `SELECT * FROM ${tableModel} 
+				WHERE (fwcloud=${data.fwcloud} OR fwcloud is null) AND id_parent=${data.id}`;
 			connection.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 
 				try {
-					if (rows.length > 0) {
-						//logger.debug("-----> DELETING NODES UNDER PARENT: " + data.id);
-						//Bucle por interfaces
+					if (rows.length > 0) 
 						await Promise.all(rows.map(fwc_treeModel.deleteFwc_TreeFullNode));
-						await fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id);
-					} else {
-						//logger.debug("NODE FINAL: TO DELETE NODE: ", data.id);
-						await fwc_treeModel.deleteFwc_Tree_node(data.fwcloud, data.id);
-					}
-				}	catch(err) { reject(err) }
-
-				resolve();
+					await fwc_treeModel.deleteFwc_Tree_node(data.id);
+					resolve();
+				}	catch(err) { return reject(err) }
 			});
 		});
 	});
 };
 
 //DELETE NODE
-fwc_treeModel.deleteFwc_Tree_node = (fwcloud, id) => {
+fwc_treeModel.deleteFwc_Tree_node = id => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 			
-			let sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
-			connection.query(sql, (error, result) => {
+			connection.query(`DELETE FROM ${tableModel} WHERE id=${id}`, (error, result) => {
 				if (error) return reject(error);
 				resolve({"result": true, "msg": "deleted"});
 			});
@@ -264,13 +257,10 @@ fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
 };
 
 
-fwc_treeModel.createAllTreeCloud = req => {
+fwc_treeModel.createObjectsTree = req => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let id1, id2, id3;
-			
-			// FIREWALLS
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'FIREWALLS',null,'FDF',null,null);
 
 			// OBJECTS
 			id1 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'OBJECTS',null,'FDO',null,null);
@@ -293,7 +283,16 @@ fwc_treeModel.createAllTreeCloud = req => {
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
 			await fwc_treeModel.createStdGroupsTree(req.dbCon,id3,'OIG',20);
 
-			// SERVICES
+			resolve(id1);
+		} catch(error) { return reject(error) }
+	});
+}
+
+fwc_treeModel.createServicesTree = req => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let id1, id2, id3;
+
 			id1 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
 			// SERVICES / IP
 			id2 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'IP',id1,'SOI',null,1);
@@ -315,6 +314,23 @@ fwc_treeModel.createAllTreeCloud = req => {
 			id2= await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',id1,'SOG',null,21);
 			id3 = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',id2,'STD',null,null);
 			await fwc_treeModel.createStdGroupsTree(req.dbCon,id3,'SOG',21);
+
+			resolve(id1);
+		} catch(error) { return reject(error) }
+	});
+}
+
+fwc_treeModel.createAllTreeCloud = req => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			// FIREWALLS
+			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'FIREWALLS',null,'FDF',null,null);
+
+			// OBJECTS
+			await fwc_treeModel.createObjectsTree(req);
+
+			// SERVICES
+			await fwc_treeModel.createServicesTree(req);
 
 			// Creating root node for CA (Certification Authorities).
 			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);

@@ -347,7 +347,7 @@ fwc_treeRepairModel.checkHostObjects = rootNode => {
         if (error) return reject(error);
         try {
           for (let child of childs)
-              await fwcTreemodel.deleteFwc_TreeFullNode({id: child.id, fwcloud: fwcloud});
+            await fwcTreemodel.deleteFwc_TreeFullNode({id: child.id, fwcloud: fwcloud});
         } catch (error) { return reject(error) }
 
         // Search for all the hosts in the selected cloud.
