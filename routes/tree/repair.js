@@ -46,16 +46,45 @@ router.put('/', async (req, res) =>{
         socketTools.msg('<font color="blue">Checking objects tree.</font>\n');
         // Remove the full tree an create it again from scratch.
         await fwcTreemodel.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        rootNode.id = await fwcTreemodel.createObjectsTree(req);
+        const ids = await fwcTreemodel.createObjectsTree(req);
+
+        socketTools.msg('<font color="blue">Checking addresses objects.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.Addresses,'OIA',5);
+
+        socketTools.msg('<font color="blue">Checking address ranges objects.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.AddressesRanges,'OIR',6);
+
+        socketTools.msg('<font color="blue">Checking network objects.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.Networks,'OIN',7);
+
         socketTools.msg('<font color="blue">Checking host objects.</font>\n');
+        rootNode.id = ids.OBJECTS;
         await fwcTreeRepairModel.checkHostObjects(rootNode);
+
+        socketTools.msg('<font color="blue">Checking objects groups.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
         break;
       }
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
         socketTools.msg('<font color="blue">Checking services tree.</font>\n');
         // Remove the full tree an create it again from scratch.
         await fwcTreemodel.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        rootNode.id = await fwcTreemodel.createServicesTree(req);
+        const ids = await fwcTreemodel.createServicesTree(req);
+
+        socketTools.msg('<font color="blue">Checking IP services.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.IP,'SOI',1);
+
+        socketTools.msg('<font color="blue">Checking ICMP services.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.ICMP,'SOM',3);
+
+        socketTools.msg('<font color="blue">Checking TCP services.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.TCP,'SOT',2);
+
+        socketTools.msg('<font color="blue">Checking UDP services.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.UDP,'SOU',4);
+
+        socketTools.msg('<font color="blue">Checking services groups.</font>\n');
+        await fwcTreeRepairModel.checkNonStdIPObjGroup(ids.Groups,'SOG',21);
         break;
       }
     }

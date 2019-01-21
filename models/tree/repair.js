@@ -1,4 +1,4 @@
-const fwcTreemodel = require('./tree');
+const fwcTreeModel = require('./tree');
 const socketTools = require('../../utils/socket');
 
 //create object
@@ -52,7 +52,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
         }
         else {
           socketTools.msg('<font color="red">Deleting invalid root node: '+JSON.stringify(node)+'</font>\n');
-          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+          await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
         }
 
         if (node.id_obj!=null || node.obj_type!=null) {
@@ -119,7 +119,7 @@ fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
               else if (deep>100)
                 socketTools.msg('<font color="red">Deleting a too much deep node: '+JSON.stringify(node)+'</font>\n');
 
-              await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+              await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
               break;
             }
           } while (id_ancestor);
@@ -134,7 +134,7 @@ fwc_treeRepairModel.checkNotRootNodes = rootNodes => {
           }
           if (!root_node_found) {
             socketTools.msg('<font color="red">Root node for this node is not correct. Deleting node: '+JSON.stringify(node)+'</font>\n');
-            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+            await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
             continue;
           }
         }
@@ -169,12 +169,12 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
           
           // Remove nodes for this firewall.
           for(let node of nodes)
-            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+            await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
         }
 
         // Regenerate the tree.
         socketTools.msg( "Regenerating tree for firewall: "+JSON.stringify(firewall)+"\n");
-        await fwcTreemodel.insertFwc_Tree_New_firewall(fwcloud, nodeId,firewall.id);
+        await fwcTreeModel.insertFwc_Tree_New_firewall(fwcloud, nodeId,firewall.id);
       } catch(err) { reject(err) }
       resolve();
     });
@@ -221,12 +221,12 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
           
           // Remove nodes for this cluster.
           for(let node of nodes)
-            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+            await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
         }
 
         // Regenerate the tree.
         socketTools.msg( "Regenerating tree for cluster: "+JSON.stringify(cluster)+"\n");
-        await fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, nodeId, cluster.id);
+        await fwcTreeModel.insertFwc_Tree_New_cluster(fwcloud, nodeId, cluster.id);
       } catch(err) { reject(err) }
       resolve();
     });
@@ -258,7 +258,7 @@ fwc_treeRepairModel.checkNode = node => {
       if (node.node_type==='FW') {
         if (node.obj_type!==0) { // Verify that object type is correct.
           socketTools.msg('<font color="red">Deleting node with bad obj_type: '+JSON.stringify(node)+'</font>\n');
-          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+          await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
           return resolve(false);
         }
         sql = 'SELECT id FROM firewall WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id=' + dbCon.escape(node.id_obj) + ' AND cluster is null';
@@ -266,7 +266,7 @@ fwc_treeRepairModel.checkNode = node => {
       else if (node.node_type==='CL') {
         if (node.obj_type!==100) { // Verify that object type is correct.
           socketTools.msg('<font color="red">Deleting node with bad obj_type: '+JSON.stringify(node)+'</font>\n');
-          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+          await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
           return resolve(false);
         }
         sql = 'SELECT id FROM cluster WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id=' + dbCon.escape(node.id_obj);
@@ -279,7 +279,7 @@ fwc_treeRepairModel.checkNode = node => {
 
         if (rows.length!==1) {
           socketTools.msg('<font color="red">Referenced object not found. Deleting node: '+JSON.stringify(node)+'</font>\n');
-          await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+          await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
           resolve(false);
         } else resolve(true);
       }); 
@@ -301,7 +301,7 @@ fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
           // Into a folder we can have only more folders, firewalls or clusters.
           if (node.node_type!=='FD' && node.node_type!=='FW' && node.node_type!=='CL') {
             socketTools.msg('<font color="red">This node type can not be into a folder. Deleting it: '+JSON.stringify(node)+'</font>\n');
-            await fwcTreemodel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
+            await fwcTreeModel.deleteFwc_TreeFullNode({id: node.id, fwcloud: fwcloud});
           }
 
           // Check that the firewall or cluster pointed by the node exists.
@@ -322,8 +322,8 @@ fwc_treeRepairModel.checkFirewallsFoldersContent = rootNode => {
 fwc_treeRepairModel.regenerateHostTree = (hostsNode,host) => {
 	return new Promise(async (resolve, reject) => {
     try {
-      let newId = await fwcTreemodel.newNode(dbCon,fwcloud,host.name,hostsNode.id,'OIH',host.id,8);
-      await fwcTreemodel.interfacesTree(dbCon,fwcloud,newId,host.id,'HOST');
+      let newId = await fwcTreeModel.newNode(dbCon,fwcloud,host.name,hostsNode.id,'OIH',host.id,8);
+      await fwcTreeModel.interfacesTree(dbCon,fwcloud,newId,host.id,'HOST');
     } catch(error) { reject(error) }
     resolve();
   });
@@ -347,7 +347,7 @@ fwc_treeRepairModel.checkHostObjects = rootNode => {
         if (error) return reject(error);
         try {
           for (let child of childs)
-            await fwcTreemodel.deleteFwc_TreeFullNode({id: child.id, fwcloud: fwcloud});
+            await fwcTreeModel.deleteFwc_TreeFullNode({id: child.id, fwcloud: fwcloud});
         } catch (error) { return reject(error) }
 
         // Search for all the hosts in the selected cloud.
@@ -365,4 +365,40 @@ fwc_treeRepairModel.checkHostObjects = rootNode => {
     });
   });
 };
+
+// Regenerate non standard IP objects for this cloud.
+fwc_treeRepairModel.checkNonStdIPObj = (node_id,node_type,ipobj_type) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT id,name,type FROM ipobj 
+      WHERE fwcloud=${fwcloud} AND type=${ipobj_type} AND interface is null`;
+    dbCon.query(sql, async (error, ipobjs) => {
+      if (error) return reject(error);
+
+      try {
+        for (let ipobj of ipobjs) {
+          await fwcTreeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
+        }
+        resolve();
+      } catch (error) { return reject(error) }
+    });
+  });
+};
+
+// Regenerate non standard IP objects groups for this cloud.
+fwc_treeRepairModel.checkNonStdIPObjGroup = (node_id,node_type,group_type) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT id,name,type FROM ipobj_g WHERE fwcloud=${fwcloud} AND type=${group_type}`;
+    dbCon.query(sql, async (error, groups) => {
+      if (error) return reject(error);
+
+      try {
+        for (let group of groups) {
+          await fwcTreeModel.newNode(dbCon,fwcloud,group.name,node_id,node_type,group.id,group_type);
+        }
+        resolve();
+      } catch (error) { return reject(error) }
+    });
+  });
+};
+
 
