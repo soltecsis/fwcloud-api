@@ -392,8 +392,10 @@ fwc_treeRepairModel.checkNonStdIPObjGroup = (node_id,node_type,group_type) => {
       if (error) return reject(error);
 
       try {
+        let id;
         for (let group of groups) {
-          await fwcTreeModel.newNode(dbCon,fwcloud,group.name,node_id,node_type,group.id,group_type);
+          id = await fwcTreeModel.newNode(dbCon,fwcloud,group.name,node_id,node_type,group.id,group_type);
+          await fwcTreeModel.createGroupNodes(dbCon,fwcloud,id,group.id)
         }
         resolve();
       } catch (error) { return reject(error) }

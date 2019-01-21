@@ -3,10 +3,10 @@ var asyncMod = require('async');
 
 
 //create object
-var fwc_treeModel = {};
+var fwcTreeModel = {};
 
 //Export the object
-module.exports = fwc_treeModel;
+module.exports = fwcTreeModel;
 
 
 
@@ -19,7 +19,7 @@ var fwc_tree_node = require("./node.js");
 
 
 //Get fwcloud root node bye type.
-fwc_treeModel.getRootNodeByType = (req, type) => {
+fwcTreeModel.getRootNodeByType = (req, type) => {
 	return new Promise((resolve, reject) => {
 		var sql = `SELECT T.*, P.order_mode FROM ${tableModel} T
 			inner join fwcloud C on C.id=T.fwcloud
@@ -36,7 +36,7 @@ fwc_treeModel.getRootNodeByType = (req, type) => {
 };
 
 
-fwc_treeModel.hasChilds = (req, node_id) => {
+fwcTreeModel.hasChilds = (req, node_id) => {
 	return new Promise((resolve, reject) => {
 		req.dbCon.query(`SELECT count(*) AS n FROM ${tableModel} WHERE id_parent=${node_id}`, (error, result) => {
 			if (error) return reject(error);
@@ -46,7 +46,7 @@ fwc_treeModel.hasChilds = (req, node_id) => {
 };
 
 //Get COMPLETE TREE from idparent
-fwc_treeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode) => {
+fwcTreeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode) => {
 	return new Promise((resolve, reject) => {
 		var sqlfwcloud = "";
 		if (objStandard === '1' && objCloud === '0')
@@ -70,10 +70,10 @@ fwc_treeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode)
 				for (let node of nodes) {
 					var tree_node = new fwc_tree_node(node);
 
-					if (await fwc_treeModel.hasChilds(req,node.id)) {
+					if (await fwcTreeModel.hasChilds(req,node.id)) {
 						var subtree = new Tree(tree_node);
 						tree.append([], subtree);
-						await fwc_treeModel.getTree(req, node.id, subtree, objStandard, objCloud, node.order_mode);
+						await fwcTreeModel.getTree(req, node.id, subtree, objStandard, objCloud, node.order_mode);
 					} else 
 						tree.append([], tree_node);
 				}
@@ -84,7 +84,7 @@ fwc_treeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode)
 };
 
 // Put STD folders first.
-fwc_treeModel.stdFoldersFirst = root_node => {
+fwcTreeModel.stdFoldersFirst = root_node => {
 	return new Promise((resolve, reject) => {
 		// Put standard folders at the begining.
 		for (let node1 of root_node.children) {
@@ -103,7 +103,7 @@ fwc_treeModel.stdFoldersFirst = root_node => {
 
 
 // Remove all tree nodes with the indicated id_obj.
-fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
+fwcTreeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -116,7 +116,7 @@ fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
 
 				try {
 					for (let node of rows)
-						await fwc_treeModel.deleteFwc_TreeFullNode(node);
+						await fwcTreeModel.deleteFwc_TreeFullNode(node);
 					resolve();
 				}	catch(error) { reject(error) }
 			});
@@ -125,7 +125,7 @@ fwc_treeModel.deleteObjFromTree = (fwcloud, id_obj, obj_type) => {
 };
 
 //REMOVE FULL TREE FROM PARENT NODE
-fwc_treeModel.deleteFwc_TreeFullNode = data => {
+fwcTreeModel.deleteFwc_TreeFullNode = data => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -137,8 +137,8 @@ fwc_treeModel.deleteFwc_TreeFullNode = data => {
 
 				try {
 					if (rows.length > 0) 
-						await Promise.all(rows.map(fwc_treeModel.deleteFwc_TreeFullNode));
-					await fwc_treeModel.deleteFwc_Tree_node(data.id);
+						await Promise.all(rows.map(fwcTreeModel.deleteFwc_TreeFullNode));
+					await fwcTreeModel.deleteFwc_Tree_node(data.id);
 					resolve();
 				}	catch(err) { return reject(err) }
 			});
@@ -147,7 +147,7 @@ fwc_treeModel.deleteFwc_TreeFullNode = data => {
 };
 
 //DELETE NODE
-fwc_treeModel.deleteFwc_Tree_node = id => {
+fwcTreeModel.deleteFwc_Tree_node = id => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -161,7 +161,7 @@ fwc_treeModel.deleteFwc_Tree_node = id => {
 };
 
 //Verify node info.
-fwc_treeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
+fwcTreeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -176,7 +176,7 @@ fwc_treeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 };
 
 //Create new node.
-fwc_treeModel.newNode = (dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type) => {
+fwcTreeModel.newNode = (dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'INSERT INTO ' + tableModel +
 			' (name,id_parent,node_type,id_obj,obj_type,fwcloud)' +
@@ -190,7 +190,7 @@ fwc_treeModel.newNode = (dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type)
 
 
 //UPDATE ID_OBJ FOR FIREWALL CLUSTER FULL TREE FROM PARENT NODE
-fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
+fwcTreeModel.updateIDOBJFwc_TreeFullNode = function (data) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
@@ -205,10 +205,10 @@ fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
 				if (rows.length > 0) {
 					logger.debug("-----> UPDATING NODES UNDER PARENT: " + data.id);
 					//Bucle por interfaces
-					Promise.all(rows.map(fwc_treeModel.updateIDOBJFwc_TreeFullNode))
+					Promise.all(rows.map(fwcTreeModel.updateIDOBJFwc_TreeFullNode))
 							.then(resp => {
 								//logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
-								fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW )
+								fwcTreeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW )
 										.then(resp => {
 											//logger.debug("UPDATED NODE: ", data.id);
 											resolve();
@@ -222,7 +222,7 @@ fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
 					logger.debug("NODE FINAL: TO UPDATE NODE: ", data.id);
 					resolve();
 					//Node whithout children, delete node
-					fwc_treeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW)
+					fwcTreeModel.updateIDOBJFwc_Tree_node(data.fwcloud, data.id,data.NEWFW)
 							.then(resp => {
 								logger.debug("UPDATED NODE: ", data.id);
 								resolve();
@@ -236,7 +236,7 @@ fwc_treeModel.updateIDOBJFwc_TreeFullNode = function (data) {
 
 
 //UPDATE NODE
-fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
+fwcTreeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error)
@@ -257,106 +257,109 @@ fwc_treeModel.updateIDOBJFwc_Tree_node = function (fwcloud, id, idNew) {
 };
 
 
-fwc_treeModel.createObjectsTree = req => {
+fwcTreeModel.createObjectsTree = req => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let ids = {};
 			let id;
 
 			// OBJECTS
-			ids.OBJECTS = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'OBJECTS',null,'FDO',null,null);
+			ids.OBJECTS = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'OBJECTS',null,'FDO',null,null);
 
 			// OBJECTS / Addresses
-			ids.Addresses = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Addresses',ids.OBJECTS,'OIA',null,5);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Addresses,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'OIA',5);
-
-			// OBJECTS / DNS Names
-			//ids.DNSNames = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'DNS Names',ids.OBJECTS,'OIR',null,6);
+			ids.Addresses = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Addresses',ids.OBJECTS,'OIA',null,5);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Addresses,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'OIA',5);
 
 			// OBJECTS / Addresses Ranges
-			ids.AddressesRanges = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Address Ranges',ids.OBJECTS,'OIR',null,6);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.AddressesRanges,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'OIR',6);
+			ids.AddressesRanges = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Address Ranges',ids.OBJECTS,'OIR',null,6);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.AddressesRanges,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'OIR',6);
 
 			// OBJECTS / Networks
-			ids.Networks = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Networks',ids.OBJECTS,'OIN',null,7);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Networks,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'OIN',7);
+			ids.Networks = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Networks',ids.OBJECTS,'OIN',null,7);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Networks,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'OIN',7);
+
+			// OBJECTS / DNS
+			ids.DNS = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'DNS',ids.OBJECTS,'ONS',null,9);
 
 			// OBJECTS / Hosts
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',ids.OBJECTS,'OIH',null,8);
+			await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',ids.OBJECTS,'OIH',null,8);
+
+			// OBJECTS / Labels
+			ids.Labels = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Labels',ids.OBJECTS,'LBL',null,30);
 
 			// OBJECTS / Groups
-			ids.Groups = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',ids.OBJECTS,'OIG',null,20);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Groups,'STD',null,null);
-			await fwc_treeModel.createStdGroupsTree(req.dbCon,id,'OIG',20);
+			ids.Groups = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',ids.OBJECTS,'OIG',null,20);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Groups,'STD',null,null);
+			await fwcTreeModel.createStdGroupsTree(req.dbCon,id,'OIG',20);
 
 			resolve(ids);
 		} catch(error) { return reject(error) }
 	});
 }
 
-fwc_treeModel.createServicesTree = req => {
+fwcTreeModel.createServicesTree = req => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let ids = {};
 			let id;
 
 			// SERVICES
-			ids.SERVICES = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
+			ids.SERVICES = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'SERVICES',null,'FDS',null,null);
 
 			// SERVICES / IP
-			ids.IP = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'IP',ids.SERVICES,'SOI',null,1);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.IP,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'SOI',1);
+			ids.IP = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'IP',ids.SERVICES,'SOI',null,1);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.IP,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'SOI',1);
 			
 			// SERVICES / ICMP
-			ids.ICMP = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'ICMP',ids.SERVICES,'SOM',null,3);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.ICMP,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'SOM',3);
+			ids.ICMP = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'ICMP',ids.SERVICES,'SOM',null,3);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.ICMP,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'SOM',3);
 
 			// SERVICES / TCP
-			ids.TCP = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'TCP',ids.SERVICES,'SOT',null,2);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.TCP,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'SOT',2);
+			ids.TCP = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'TCP',ids.SERVICES,'SOT',null,2);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.TCP,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'SOT',2);
 
 			// SERVICES / UDP
-			ids.UDP = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'UDP',ids.SERVICES,'SOU',null,4);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.UDP,'STD',null,null);
-			await fwc_treeModel.createStdObjectsTree(req.dbCon,id,'SOU',4);
+			ids.UDP = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'UDP',ids.SERVICES,'SOU',null,4);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.UDP,'STD',null,null);
+			await fwcTreeModel.createStdObjectsTree(req.dbCon,id,'SOU',4);
 
 			// SERVICES / Groups
-			ids.Groups = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',ids.SERVICES,'SOG',null,21);
-			id = await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Groups,'STD',null,null);
-			await fwc_treeModel.createStdGroupsTree(req.dbCon,id,'SOG',21);
+			ids.Groups = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',ids.SERVICES,'SOG',null,21);
+			id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Standard',ids.Groups,'STD',null,null);
+			await fwcTreeModel.createStdGroupsTree(req.dbCon,id,'SOG',21);
 
 			resolve(ids);
 		} catch(error) { return reject(error) }
 	});
 }
 
-fwc_treeModel.createAllTreeCloud = req => {
+fwcTreeModel.createAllTreeCloud = req => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			// FIREWALLS
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'FIREWALLS',null,'FDF',null,null);
+			await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'FIREWALLS',null,'FDF',null,null);
 
 			// OBJECTS
-			await fwc_treeModel.createObjectsTree(req);
+			await fwcTreeModel.createObjectsTree(req);
 
 			// SERVICES
-			await fwc_treeModel.createServicesTree(req);
+			await fwcTreeModel.createServicesTree(req);
 
 			// Creating root node for CA (Certification Authorities).
-			await fwc_treeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);
+			await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'CA',null,'FCA',null,null);
 			resolve();
 		} catch(error) { return reject(error) }
 	});
 };
 
 // Create tree with standard objects.
-fwc_treeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => {
+fwcTreeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type='+ipobj_type;
 		dbCon.query(sql, async (error, result) => {
@@ -364,7 +367,37 @@ fwc_treeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => 
 
 			try {
 				for (let ipobj of result)
-					await fwc_treeModel.newNode(dbCon,null,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
+					await fwcTreeModel.newNode(dbCon,null,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
+				resolve();
+			} catch(error) { return reject(error) }
+		});
+	});
+};
+
+// Create nodes under group.
+fwcTreeModel.createGroupNodes = (dbCon, fwcloud, node_id, group) => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg OG
+			INNER JOIN ipobj O ON O.id=OG.ipobj
+			WHERE OG.ipobj_g=${group}`;
+		dbCon.query(sql, async (error, ipobjs) => {
+			if (error) return reject(error);
+
+			try {
+				let node_type;
+				for (let ipobj of ipobjs) {
+					if (ipobj.type===1) node_type='SOI';
+					else if (ipobj.type===2) node_type='SOT';
+					else if (ipobj.type===3) node_type='SOM';
+					else if (ipobj.type===2) node_type='SOT';
+					else if (ipobj.type===4) node_type='SOU';
+					else if (ipobj.type===5) node_type='OIA';
+					else if (ipobj.type===6) node_type='OIR';
+					else if (ipobj.type===7) node_type='OIN';
+					else if (ipobj.type===8) node_type='OIN';
+					else if (ipobj.type===9) node_type='ONS';
+					await fwcTreeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj.type);
+				}
 				resolve();
 			} catch(error) { return reject(error) }
 		});
@@ -372,15 +405,18 @@ fwc_treeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => 
 };
 
 // Create tree with standard groups.
-fwc_treeModel.createStdGroupsTree = (dbCon, node_id, node_type, ipobj_type) => {
+fwcTreeModel.createStdGroupsTree = (dbCon, node_id, node_type, ipobj_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type='+ipobj_type;
-		dbCon.query(sql, async (error, result) => {
+		dbCon.query(sql, async (error, groups) => {
 			if (error) return reject(error);
 
 			try {
-				for (let group of result)
-					await fwc_treeModel.newNode(dbCon,null,group.name,node_id,node_type,group.id,ipobj_type);
+				let id;
+				for (let group of groups) {
+					id = await fwcTreeModel.newNode(dbCon,null,group.name,node_id,node_type,group.id,ipobj_type);
+					await fwcTreeModel.createGroupNodes(dbCon,null,id,group.id)
+				}
 				resolve();
 			} catch(error) { return reject(error) }
 		});
@@ -389,7 +425,7 @@ fwc_treeModel.createStdGroupsTree = (dbCon, node_id, node_type, ipobj_type) => {
 
 
 //Generate the IPs nodes for each interface.
-fwc_treeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
+fwcTreeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 	return new Promise((resolve, reject) => {
 		// Get interface IPs.  
 		let sql = 'SELECT O.id,O.name,O.type,T.node_type FROM ipobj O' +
@@ -401,7 +437,7 @@ fwc_treeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 
 			try {
 				for(let ip of ips)
-					await fwc_treeModel.newNode(connection,fwcloud,ip.name,nodeId,ip.node_type,ip.id,ip.type);
+					await fwcTreeModel.newNode(connection,fwcloud,ip.name,nodeId,ip.node_type,ip.id,ip.type);
 			} catch(error) { return reject(error) }
 			resolve();
 		});
@@ -409,7 +445,7 @@ fwc_treeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 };
 
 //Generate the interfaces nodes.
-fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType) => {
+fwcTreeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType) => {
 	return new Promise((resolve, reject) => {
 		// Get firewall interfaces.  
 		let sql = '';
@@ -434,8 +470,8 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 
 			try {
 				for(let interface of interfaces) {
-					let id = await fwc_treeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,obj_type);
-					await fwc_treeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
+					let id = await fwcTreeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,obj_type);
+					await fwcTreeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
 				}
 			} catch(error) { return reject(error )}
 			resolve();
@@ -444,7 +480,7 @@ fwc_treeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType)
 };
 
 //Generate the OpenVPN client nodes.
-fwc_treeModel.openvpnClientTree = (connection, fwcloud, firewall, server_vpn, node) => {
+fwcTreeModel.openvpnClientTree = (connection, fwcloud, firewall, server_vpn, node) => {
 	return new Promise((resolve, reject) => {
 		// Get client OpenVPN configurations.
 		const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -456,7 +492,7 @@ fwc_treeModel.openvpnClientTree = (connection, fwcloud, firewall, server_vpn, no
 
 			try {
 				for(let vpn of vpns) {
-					await fwc_treeModel.newNode(connection,fwcloud,vpn.cn,node,'OCL',vpn.id,311);
+					await fwcTreeModel.newNode(connection,fwcloud,vpn.cn,node,'OCL',vpn.id,311);
 				}
 			} catch(error) { return reject(error )}
 			resolve();
@@ -465,7 +501,7 @@ fwc_treeModel.openvpnClientTree = (connection, fwcloud, firewall, server_vpn, no
 };
 
 //Generate the OpenVPN server nodes.
-fwc_treeModel.openvpnServerTree = (connection, fwcloud, firewall, node) => {
+fwcTreeModel.openvpnServerTree = (connection, fwcloud, firewall, node) => {
 	return new Promise((resolve, reject) => {
 		// Get server OpenVPN configurations.
 		const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -477,8 +513,8 @@ fwc_treeModel.openvpnServerTree = (connection, fwcloud, firewall, node) => {
 
 			try {
 				for(let vpn of vpns) {
-					let newNodeId = await fwc_treeModel.newNode(connection,fwcloud,vpn.cn,node,'OSR',vpn.id,312);
-					await fwc_treeModel.openvpnClientTree(connection,fwcloud,firewall,vpn.id,newNodeId);
+					let newNodeId = await fwcTreeModel.newNode(connection,fwcloud,vpn.cn,node,'OSR',vpn.id,312);
+					await fwcTreeModel.openvpnClientTree(connection,fwcloud,firewall,vpn.id,newNodeId);
 				}
 			} catch(error) { return reject(error )}
 			resolve();
@@ -487,7 +523,7 @@ fwc_treeModel.openvpnServerTree = (connection, fwcloud, firewall, node) => {
 };
 
 //Add new TREE FIREWALL for a New Firewall
-fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
+fwcTreeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -500,22 +536,22 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 
 				try {
 					// Create root firewall node
-					let id1 = await fwc_treeModel.newNode(connection,fwcloud,firewalls[0].name,nodeId,'FW',firewallId,0);
+					let id1 = await fwcTreeModel.newNode(connection,fwcloud,firewalls[0].name,nodeId,'FW',firewallId,0);
 					
-					let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',firewallId,0);
-					await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',firewallId,1);
-					await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',firewallId,2);
-					await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',firewallId,3);
-					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
-					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
+					let id2 = await fwcTreeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',firewallId,0);
+					await fwcTreeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',firewallId,1);
+					await fwcTreeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',firewallId,2);
+					await fwcTreeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',firewallId,3);
+					await fwcTreeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',firewallId,4);
+					await fwcTreeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',firewallId,5);
 					
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
-					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
+					id2 = await fwcTreeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',firewallId,10);
+					await fwcTreeModel.interfacesTree(connection,fwcloud,id2,firewallId,'FW');
 
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',firewallId,0);	
-					await fwc_treeModel.openvpnServerTree(connection,fwcloud,firewallId,id2);
+					id2 = await fwcTreeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',firewallId,0);	
+					await fwcTreeModel.openvpnServerTree(connection,fwcloud,firewallId,id2);
 
-					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);					
+					await fwcTreeModel.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);					
 				} catch(error) { return reject(error) }
 				resolve();
 			});
@@ -524,7 +560,7 @@ fwc_treeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 };
 
 // Create a new node for the new firewall into the NODES node of the cluster tree.
-fwc_treeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewallId, firewallName) => {
+fwcTreeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewallId, firewallName) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -536,7 +572,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewal
 				if (error) return reject(error);
 				if (nodes.length!==1) return reject(new Error('Node NODES not found'));
 
-				await fwc_treeModel.newNode(connection,fwcloud,firewallName,nodes[0].id,'FW',firewallId,0);
+				await fwcTreeModel.newNode(connection,fwcloud,firewallName,nodes[0].id,'FW',firewallId,0);
 				resolve();
 			});
 		});
@@ -544,7 +580,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewal
 };
 
 //Add new TREE CLUSTER for a New CLuster
-fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
+fwcTreeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -559,24 +595,24 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 
 				try {
 					// Create root cluster node
-					let id1 = await fwc_treeModel.newNode(connection,fwcloud,clusters[0].name,nodeId,'CL',clusters[0].id,100);
+					let id1 = await fwcTreeModel.newNode(connection,fwcloud,clusters[0].name,nodeId,'CL',clusters[0].id,100);
 					
-					let id2 = await fwc_treeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].fwmaster_id,100);
-					await fwc_treeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',clusters[0].fwmaster_id,1);
-					await fwc_treeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',clusters[0].fwmaster_id,2);
-					await fwc_treeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',clusters[0].fwmaster_id,3);
-					await fwc_treeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',clusters[0].fwmaster_id,4);
-					await fwc_treeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',clusters[0].fwmaster_id,5);
+					let id2 = await fwcTreeModel.newNode(connection,fwcloud,'IPv4 POLICY',id1,'FP',clusters[0].fwmaster_id,100);
+					await fwcTreeModel.newNode(connection,fwcloud,'INPUT',id2,'PI',clusters[0].fwmaster_id,1);
+					await fwcTreeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO',clusters[0].fwmaster_id,2);
+					await fwcTreeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF',clusters[0].fwmaster_id,3);
+					await fwcTreeModel.newNode(connection,fwcloud,'SNAT',id2,'NTS',clusters[0].fwmaster_id,4);
+					await fwcTreeModel.newNode(connection,fwcloud,'DNAT',id2,'NTD',clusters[0].fwmaster_id,5);
 					
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
-					await fwc_treeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
+					id2 = await fwcTreeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
+					await fwcTreeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
 
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',clusters[0].fwmaster_id,0);
-					await fwc_treeModel.openvpnServerTree(connection,fwcloud,clusters[0].fwmaster_id,id2);
+					id2 = await fwcTreeModel.newNode(connection,fwcloud,'OpenVPN',id1,'OPN',clusters[0].fwmaster_id,0);
+					await fwcTreeModel.openvpnServerTree(connection,fwcloud,clusters[0].fwmaster_id,id2);
 
-					await fwc_treeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);					
+					await fwcTreeModel.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);					
 
-					id2 = await fwc_treeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
+					id2 = await fwcTreeModel.newNode(connection,fwcloud,'NODES',id1,'FCF',clusters[0].fwmaster_id,null);
 
 					// Create the nodes for the cluster firewalls.
 					sql ='SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
@@ -585,7 +621,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 						if (firewalls.length===0) return reject(new Error('No firewalls found for cluster with id '+clusters[0].id));
 
 						for(let firewall of firewalls) 
-							await fwc_treeModel.newNode(connection,fwcloud,firewall.name,id2,'FW',firewall.id,0);
+							await fwcTreeModel.newNode(connection,fwcloud,firewall.name,id2,'FW',firewall.id,0);
 
 						resolve();
 					});
@@ -596,7 +632,7 @@ fwc_treeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 };
 
 //CONVERT TREE FIREWALL TO CLUSTER for a New CLuster
-fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
+fwcTreeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
 	db.get(function (error, connection) {
 		if (error) return	callback(error, null);
 
@@ -706,7 +742,7 @@ fwc_treeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclu
 };
 
 //CONVERT TREE CLUSTER TO FIREWALL for a New Firewall
-fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
+fwcTreeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idcluster, idfirewall, AllDone) => {
 	db.get(function (error, connection) {
 		if (error) return callback(error, null);
 
@@ -802,7 +838,7 @@ fwc_treeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclu
 
 
 //Add new NODE from IPOBJ or Interface
-fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
+fwcTreeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
 	var fwc_treeData = {
 		id: null,
 		name: node_Data.name + (((node_Data.type===10 ||node_Data.type===11) && node_Data.labelName) ? " ["+node_Data.labelName+"]": ""),
@@ -832,7 +868,7 @@ fwc_treeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_
 };
 
 //Update NODE from user
-fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
+fwcTreeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 
 	db.get(function (error, connection) {
 		if (error)
@@ -851,7 +887,7 @@ fwc_treeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 };
 
 //Update NODE from FIREWALL UPDATE
-fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callback) {
+fwcTreeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -873,7 +909,7 @@ fwc_treeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callb
 };
 
 //Update NODE from CLUSTER UPDATE
-fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback) {
+fwcTreeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -896,7 +932,7 @@ fwc_treeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback
 };
 
 //Update NODE from IPOBJ or INTERFACE UPDATE
-fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
+fwcTreeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 	db.get(function (error, connection) {
 		if (error) return callback(error, null);
 		let sql = 'UPDATE ' + tableModel + ' SET' +
@@ -921,7 +957,7 @@ fwc_treeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callbac
 
 
 //Remove NODE FROM GROUP with id_obj to remove
-fwc_treeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_group, id_obj, callback) {
+fwcTreeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_group, id_obj, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -991,7 +1027,7 @@ function OrderList(new_order, fwcloud, id_parent, old_order, id) {
 //Busca todos los padres donde aparece el IPOBJ a borrar
 //Ordena todos los nodos padres sin contar el nodo del IPOBJ
 //Order Tree Node by IPOBJ
-fwc_treeModel.orderTreeNodeDeleted = (dbCon, fwcloud, id_obj_deleted) => {
+fwcTreeModel.orderTreeNodeDeleted = (dbCon, fwcloud, id_obj_deleted) => {
 	return new Promise((resolve, reject) => {
 		let sqlParent = 'SELECT DISTINCT id_parent FROM ' + tableModel +
 			' WHERE (fwcloud=' + fwcloud + ' OR fwcloud is null) AND id_obj=' + id_obj_deleted + ' order by id_parent';
@@ -1038,7 +1074,7 @@ fwc_treeModel.orderTreeNodeDeleted = (dbCon, fwcloud, id_obj_deleted) => {
 	});
 };
 //Order Tree Node by IPOBJ
-fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
+fwcTreeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
@@ -1072,7 +1108,7 @@ fwc_treeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 
 
 //Get ipobjects node info.
-fwc_treeModel.getNodeInfo = req => {
+fwcTreeModel.getNodeInfo = req => {
 	return new Promise((resolve, reject) => {
 		let sql = 'SELECT * FROM ' + tableModel + 
 			' WHERE fwcloud=' + req.body.fwcloud + ' AND node_type=' + req.dbCon.escape(req.body.node_type) +
