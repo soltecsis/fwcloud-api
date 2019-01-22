@@ -16,11 +16,10 @@ schema.validate = req => {
 
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
-		var valid_types = [1, 2, 3, 4, 5, 6, 7, 8, 20, 21];
+		var valid_types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21];
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
 			schema = schema.append({
-				fwcloud: sharedSch.id,
 				name: sharedSch.name,
 				type: sharedSch.u8bits.valid(valid_types),
 				interface: sharedSch.id.allow(null).optional(),
@@ -33,10 +32,7 @@ schema.validate = req => {
 			// We will have different schemas depending upon the req.body.type parameter.
 			// Verify that this parameters, exists, is number and has the accepted values.
 			if (req.body.type === undefined || req.body.type === null ||
-				typeof req.body.type !== "number" ||
-				valid_types.findIndex(function(type) {
-					return type == req.body.type;
-				}) == -1)
+					typeof req.body.type !== "number" || valid_types.findIndex(type => {return type == req.body.type;}) == -1)
 				return reject(new Error('Bad value in req.body.type'));
 
 			switch (req.body.type) {
@@ -91,6 +87,7 @@ schema.validate = req => {
 						range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
 					});
 					break;
+
 				case 7: // NETWORK
 					schema = schema.append({
 						ip_version: Joi.number().integer().valid([4, 6]),
@@ -98,10 +95,10 @@ schema.validate = req => {
 						netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
 					});
 					break;
+
 				case 8: // HOST
-					break;
+				case 9: // DNS
 				case 20: // GROUP
-					break;
 				case 21: // SERVICE GROUP
 					break;
 			}
@@ -112,7 +109,7 @@ schema.validate = req => {
 			if (req.url === '/ipobj/get')
 				schema = schema.append({ id: sharedSch.id });
 			else if (req.url === '/ipobj/del' || req.url === '/ipobj/where' || req.url === '/ipobj/restricted')
-				schema = schema.append({ id: sharedSch.id, type: sharedSch.id });
+				schema = schema.append({ id: sharedSch.id, type: sharedSch.u8bits.valid(valid_types) });
 		} else return reject(new Error('Request method not accepted'));
 
 		try {

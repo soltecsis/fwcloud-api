@@ -198,37 +198,37 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Update ORDER policy_r__ipobj that exist */
 router.put('/order',
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		var rule = req.body.rule;
-		var ipobj = req.body.ipobj;
-		var ipobj_g = req.body.ipobj_g;
-		var interface = req.body.interface;
-		var position = req.body.position;
-		var position_order = req.body.position_order;
-		var new_order = req.body.new_order;
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
+	var rule = req.body.rule;
+	var ipobj = req.body.ipobj;
+	var ipobj_g = req.body.ipobj_g;
+	var interface = req.body.interface;
+	var position = req.body.position;
+	var position_order = req.body.position_order;
+	var new_order = req.body.new_order;
 
-		Policy_r__ipobjModel.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, function(error, data) {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
+	Policy_r__ipobjModel.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, function(error, data) {
+		if (error)
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		else {
+			//If saved policy_r__ipobj saved ok, get data
+			if (data && data.result) {
+				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
+				Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
-			else {
-				//If saved policy_r__ipobj saved ok, get data
-				if (data && data.result) {
-					var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-					Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else {
-					api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
+			} else {
+				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
 			}
-		});
+		}
 	});
+});
 
 
 /* Get all policy_r__ipobjs by rule*/
@@ -246,271 +246,67 @@ router.put('/get', (req, res) => {
 /* Update NEGATE policy_r__ipobj that exist */
 /* Update ALL IPOBJ/POLICY_R TO new NEGATE satus*/
 router.put('/negate',
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		var rule = req.body.rule;
-		var position = req.body.position;
-		var negate = req.body.negate;
-
-		Policy_r__ipobjModel.updatePolicy_r__ipobj_negate(rule, position, negate, function(error, data) {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			else {
-				//If saved policy_r__ipobj saved ok, get data
-				if (data && data.result) {
-					var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-					Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else {
-					api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			}
-		});
-	});
-
-
-/* Remove policy_r__ipobj */
-router.put("/del",
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		//Id from policy_r__ipobj to remove
-		var rule = req.body.rule;
-		var ipobj = req.body.ipobj;
-		var ipobj_g = req.body.ipobj_g;
-		var interface = req.body.interface;
-		var position = req.body.position;
-		var position_order = req.body.position_order;
-
-		Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, function(error, data) {
-			if (data && data.result) {
-				if (data.msg === "deleted") {
-					var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-					Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else if (data.msg === "notExist") {
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	});
-
-
-
-/* Get all policy_r__ipobjs by rule and posicion*/
-/* router.get('/:idfirewall/:rule/:position', function (req, res)
-{
-	var rule = req.params.rule;
-	var position = req.params.position;
-
-	Policy_r__ipobjModel.getPolicy_r__ipobjs_position(rule, position, function (error, data)
-	{
-		//If exists policy_r__ipobj get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-
-}); */
-
-/* Get all policy_r__ipobjs by rule and posicion with IPOBJ DATA*/
-/* router.get('/data/:idfirewall/:rule/:position', function (req, res)
-{
-	var rule = req.params.rule;
-	var position = req.params.position;
-
-	Policy_r__ipobjModel.getPolicy_r__ipobjs_position_data(rule, position, function (error, data)
-	{
-		//If exists policy_r__ipobj get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-}); */
-
-
-/* Get  policy_r__ipobj by id  */
-/* router.get('/:idfirewall/:rule/:ipobj/:ipobj_g/:interface/:position', function (req, res)
-{
-	var rule = req.params.rule;
-	var ipobj = req.params.ipobj;
-	var ipobj_g = req.params.ipobj_g;
-	var interface = req.params.interface;
-	var position = req.params.position;
-
-	Policy_r__ipobjModel.getPolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, function (error, data)
-	{
-		//If exists policy_r__ipobj get data
-		if (data && data.length > 0)
-		{
-
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-}); */
-
-
-/* Update policy_r__ipobj that exist */
-/* router.put('/policy-r__ipobj/:idfirewall',
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
-	var rule = req.body.get_rule;
-	var ipobj = req.body.get_ipobj;
-	var ipobj_g = req.body.get_ipobj_g;
-	var interface = req.body.get_interface;
-	var position = req.body.get_position;
-	var position_order = req.body.get_position_order;
+	var rule = req.body.rule;
+	var position = req.body.position;
+	var negate = req.body.negate;
 
-
-	//Save new data into object
-	var policy_r__ipobjData = {
-		rule: req.body.rule,
-		ipobj: req.body.ipobj,
-		ipobj_g: req.body.ipobj_g,
-		interface: req.body.interface,
-		position: req.body.position,
-		position_order: req.body.position_order
-
-	};
-
-	
-	var accessData = {sessionID: req.sessionID , iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.params.idfirewall, rule: rule };
-
-	Policy_r__ipobjModel.updatePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, policy_r__ipobjData, function (error, data)
-	{
+	Policy_r__ipobjModel.updatePolicy_r__ipobj_negate(rule, position, negate, function(error, data) {
 		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function (jsonResp) {
+			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
 		else {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data && data.result) {
-				if (data.result) {
-					Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-			} else
-			{
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function (jsonResp) {
+				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
+				Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else {
+				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			}
 		}
 	});
-}); */
+});
 
-/* Reorder ALL rule positions  */
-/* router.put("/policy-r__ipobj/order/:idfirewall",
+
+/* Remove policy_r__ipobj */
+router.put("/del",
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
-	Policy_r__ipobjModel.orderAllPolicy(function (error, data)
-	{
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'REORDER OK', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error REORDER', objModel, error, function (jsonResp) {
+	//Id from policy_r__ipobj to remove
+	var rule = req.body.rule;
+	var ipobj = req.body.ipobj;
+	var ipobj_g = req.body.ipobj_g;
+	var interface = req.body.interface;
+	var position = req.body.position;
+	var position_order = req.body.position_order;
+
+	Policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, function(error, data) {
+		if (data && data.result) {
+			if (data.msg === "deleted") {
+				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
+				Policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+				api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			} else if (data.msg === "notExist") {
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function(jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		} else {
+			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
 		}
 	});
-}); */
+});
 
-/* Reorder ALL rule positions  */
-/* router.put("/policy-r__ipobj/order/:idfirewall/:rule",
-utilsModel.disableFirewallCompileStatus,
-(req, res) => {
-	var rule = req.params.rule;
-	Policy_r__ipobjModel.orderPolicy(rule, function (error, data)
-	{
-		if (data && data.result)
-		{
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'REORDER OK', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error REORDER', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-}); */
-
-/* Reorder rule Positions */
-//router.get("/policy-r__ipobj/order/:rule/:position", function (req, res)
-//{
-//    //Id from policy_r__ipobj to remove
-//    var rule = req.params.rule;
-//    var position = req.params.position;
-//    
-//    logger.debug("ORDENANDO REGLA: " + rule + '  Position: ' + position);
-//    Policy_r__ipobjModel.orderPolicyPosition(rule,  position,  function (error, data)
-//    {
-//        if (data && data.msg === "success" || data.msg === "notExist")
-//        {
-//            res.status(200).json(data.msg);
-//        } else
-//        {
-//            api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
-//                            res.status(200).json(jsonResp);
-//                        });
-//        }
-//    });
-//});
 
 module.exports = router;
