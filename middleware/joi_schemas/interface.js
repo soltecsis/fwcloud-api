@@ -14,7 +14,7 @@ schema.validate = req => {
                 firewall: sharedSch.id.allow(null).optional(),
                 host: sharedSch.id.allow(null).optional(),
                 name: sharedSch.name,
-                labelName: sharedSch.name.allow(null).optional(),
+                labelName: sharedSch.name.allow(null).allow('').optional(),
                 type: sharedSch.interface_type,
                 interface_type: sharedSch.interface_type,
                 comment: sharedSch.comment,
