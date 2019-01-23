@@ -368,11 +368,13 @@ duplicityCheck.ipobj,
 							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
 							await IpobjModel.UpdateHOST(ipobjData.id);
 							await IpobjModel.UpdateINTERFACE(ipobjData.id);
-							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
+							var data_return = {};
+							data_return.not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
+							await openvpnModel.getOpenvpnStatusNotZero(req,data);
 							//UPDATE TREE            
 							fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
 								if (data && data.result)
-									api_resp.getJson(not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+									api_resp.getJson(data_return.not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 								else
 									api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 							});
