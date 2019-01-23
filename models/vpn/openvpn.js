@@ -282,7 +282,7 @@ openvpnModel.updateOpenvpnStatusIPOBJ = (req, ipobj, status_action) => {
       INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
       INNER JOIN ipobj O ON O.id=OPT.ipobj
       SET VPN.status=VPN.status${status_action}
-      WHERE O.fwcloud=${req.body.fwcloud} AND O.ipobj=${ipobj}`;
+      WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve();

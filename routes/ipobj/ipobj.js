@@ -364,17 +364,17 @@ duplicityCheck.ipobj,
 					if (data && data.result)
 					{
 						try {
-							await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
 							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
+							await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
 							await IpobjModel.UpdateHOST(ipobjData.id);
 							await IpobjModel.UpdateINTERFACE(ipobjData.id);
 							var data_return = {};
-							data_return.not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
-							await openvpnModel.getOpenvpnStatusNotZero(req,data);
+							await FirewallModel.getFirewallStatusNotZero(fwcloud,data_return);
+							await openvpnModel.getOpenvpnStatusNotZero(req,data_return);
 							//UPDATE TREE            
 							fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
 								if (data && data.result)
-									api_resp.getJson(data_return.not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+									api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 								else
 									api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 							});
