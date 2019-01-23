@@ -12,23 +12,15 @@ const openvpnModel = require('../models/vpn/openvpn');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
-	var sql = 'Select (SELECT count(*) FROM firewall where fwcloud=' + req.body.fwcloud + ') as CF, ' +
-		' (SELECT count(*) FROM cluster where fwcloud=' + req.body.fwcloud + ') as CC ';
+	var sql = `Select (SELECT count(*) FROM firewall where fwcloud=${req.body.fwcloud} AND cluster is null) as CF,
+		(SELECT count(*) FROM cluster where fwcloud=${req.body.fwcloud}) as CC,
+		(SELECT count(*) FROM ca where fwcloud=${req.body.fwcloud}) as CCA`;
 	req.dbCon.query(sql, (error, row) => {
 		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
 
 		if (row && row.length > 0) {
-			var cadRestricted = "";
-			if (row[0].CF > 0) {
-				cadRestricted = " FIREWALLS";
-				if (row[0].CC > 0)
-					cadRestricted = cadRestricted + " AND CLUSTERS";
-			} else if (row[0].CC > 0)
-				cadRestricted = "  CLUSTERS";
-
-			if (cadRestricted !== "") {
-				const restricted = { "result": false, "restrictions": "CLOUD WITH RESTRICTIONS, CLOUD HAS " + cadRestricted };
-				api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+			if (row[0].CF>0 || row[0].CC>0 || row[0].CCA>0) {
+				api_resp.getJson({"result": false, "count": row[0]}, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 			} else next();
 		} else next();
 	});
