@@ -96,8 +96,13 @@ schema.validate = req => {
 					});
 					break;
 
-				case 8: // HOST
 				case 9: // DNS
+					schema = schema.append({
+						name: sharedSch.dns_name
+					});
+					break;
+
+				case 8: // HOST
 				case 20: // GROUP
 				case 21: // SERVICE GROUP
 					break;
