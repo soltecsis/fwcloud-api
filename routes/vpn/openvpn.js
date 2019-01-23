@@ -124,6 +124,9 @@ router.put('/', async(req, res) => {
 			await openvpnModel.addCfgOpt(req, opt);
 		}
 
+		// Update the status flag for the OpenVPN configuration.
+		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

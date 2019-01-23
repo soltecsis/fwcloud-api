@@ -107,6 +107,7 @@ var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
+const openvpnModel = require('../../models/vpn/openvpn');
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO
@@ -357,40 +358,30 @@ duplicityCheck.ipobj,
 			else {
 				if (data && data[0].protocol_number !== null)
 					ipobjData.protocol = data[0].protocol_number;
-				IpobjModel.updateIpobj(ipobjData, (error, data) => {
-					if (error)
-						api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, jsonResp => res.status(200).json(jsonResp));
-					else {
-						//If saved ipobj saved ok, get data
-						if (data && data.result)
-						{
-							if (data.result) {
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3")
-								.then(() => IpobjModel.UpdateHOST(ipobjData.id))
-								.then(() => IpobjModel.UpdateINTERFACE(ipobjData.id))
-								.then(() => FirewallModel.getFirewallStatusNotZero(fwcloud,null))
-								.then((not_zero_status_fws) => {
-									logger.debug("UPDATED IPOBJ id:" + ipobjData.id + "  Type:" + ipobjData.type + "  Name:" + ipobjData.name);
-											
-									//UPDATE TREE            
-									fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
-										if (data && data.result)
-											api_resp.getJson(not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-										else
-											api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-									});
-								})
-								.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
-							} else 
-								api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-						} else
-							api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-					}
+				IpobjModel.updateIpobj(ipobjData, async (error, data) => {
+					if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					//If saved ipobj saved ok, get data
+					if (data && data.result)
+					{
+						try {
+							await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
+							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
+							await IpobjModel.UpdateHOST(ipobjData.id);
+							await IpobjModel.UpdateINTERFACE(ipobjData.id);
+							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
+							//UPDATE TREE            
+							fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
+								if (data && data.result)
+									api_resp.getJson(not_zero_status_fws, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+								else
+									api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
+							});
+						}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+					} else api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
 				});
 			}
 		});
-	} else
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'Null identifiers', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} else api_resp.getJson(null, api_resp.ACR_ERROR, 'Null identifiers', objModel, null, jsonResp => res.status(200).json(jsonResp));
 });
 
 
