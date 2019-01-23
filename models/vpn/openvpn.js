@@ -201,10 +201,17 @@ openvpnModel.dumpCfg = req => {
               const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
               if (ipobj.type===7) // Network
                 cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
-              else if (ipobj.type===5) {// Address
+              else if (ipobj.type===5) { // Address
                 cfg_line += ' '+ipobj.address;
                 if (opt.name==='ifconfig-push')
                   cfg_line += ' '+ipobj.netmask;
+                else if (opt.name==='remote')
+                  cfg_line += ' '+opt.arg;
+              }
+              else if (ipobj.type===9) { // DNS Name
+                cfg_line += ' '+ipobj.address;
+                if (opt.name==='remote')
+                  cfg_line += ' '+opt.arg;
               }
             }
             else if (opt.arg)
