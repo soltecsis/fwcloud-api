@@ -76,7 +76,6 @@ router.put('/host/get', (req, res) => {
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Create New interface */
 router.post("/", async(req, res) => {
-	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var node_parent = req.body.node_parent;
 	var node_order = req.body.node_order;
@@ -105,57 +104,46 @@ router.post("/", async(req, res) => {
 	};
 
 	InterfaceModel.insertInterface(interfaceData, function(error, data) {
-		if (error)
+		if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+
+		//If saved interface Get data
+		if (data && data.insertId > 0) {
+			if (host !== null) {
+				//INSERT INTERFACE UNDER IPOBJ HOST
+				//Create New objet with data interface__ipobj
+				var interface__ipobjData = {
+					interface: data.insertId,
+					ipobj: host,
+					interface_order: 1
+				};
+
+				Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function(error, dataH) {
+					//If saved interface__ipobj Get data
+					if (dataH && dataH.result) {
+						Interface__ipobjModel.UpdateHOST(data.insertId)
+							.then(() => {});
+						logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
+					} else {
+						logger.debug(error);
+					}
+				});
+
+			}
+			var id = data.insertId;
+			logger.debug("NEW INTERFACE id:" + id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
+			interfaceData.id = id;
+			interfaceData.type = interfaceData.interface_type;
+
+			try {
+				//INSERT IN TREE
+				const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
+				var dataresp = { "insertId": id, "TreeinsertId": node_id };
+				api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));	
+			} catch(error) { return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		} else {
 			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
-		else {
-			//If saved interface Get data
-			if (data && data.insertId > 0) {
-				if (host !== null) {
-					//INSERT INTERFACE UNDER IPOBJ HOST
-					//Create New objet with data interface__ipobj
-					var interface__ipobjData = {
-						interface: data.insertId,
-						ipobj: host,
-						interface_order: 1
-					};
-
-					Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function(error, dataH) {
-						//If saved interface__ipobj Get data
-						if (dataH && dataH.result) {
-							Interface__ipobjModel.UpdateHOST(data.insertId)
-								.then(() => {});
-							logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
-						} else {
-							logger.debug(error);
-						}
-					});
-
-				}
-				var id = data.insertId;
-				logger.debug("NEW INTERFACE id:" + id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
-				interfaceData.id = id;
-				interfaceData.type = interfaceData.interface_type;
-				//INSERT IN TREE
-				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, interfaceData, (error, data) => {
-					if (data && data.insertId) {
-						var dataresp = { "insertId": id, "TreeinsertId": data.insertId };
-						api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					} else {
-						logger.debug(error);
-						api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
 		}
 	});
 });

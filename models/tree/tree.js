@@ -839,36 +839,28 @@ fwcTreeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclus
 
 
 //Add new NODE from IPOBJ or Interface
-fwcTreeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
-	var fwc_treeData = {
-		id: null,
-		name: node_Data.name,
-		id_parent: node_parent,
-		node_type: node_type,
-		obj_type: node_Data.type,
-		id_obj: node_Data.id,
-		fwcloud: fwcloud
-	};
+fwcTreeModel.insertFwc_TreeOBJ = (req, node_parent, node_order, node_type, node_Data) => {
+	return new Promise((resolve, reject) => {
+		var fwc_treeData = {
+			id: null,
+			name: node_Data.name,
+			id_parent: node_parent,
+			node_type: node_type,
+			obj_type: node_Data.type,
+			id_obj: node_Data.id,
+			fwcloud: req.body.fwcloud
+		};
 
-	// Firewall and host interfaces.
-	if ((node_Data.type===10 ||node_Data.type===11) && node_Data.labelName) fwc_treeData.name+=" ["+node_Data.labelName+"]";
-	// Interface address.
-	if (node_Data.type===5 && node_Data.interface) fwc_treeData.name+=" ("+node_Data.address+")";
+		// Firewall and host interfaces.
+		if ((node_Data.type===10 || node_Data.type===11) && node_Data.labelName) fwc_treeData.name+=" ["+node_Data.labelName+"]";
+		// Interface address.
+		if (node_Data.type===5 && node_Data.interface) fwc_treeData.name+=" ("+node_Data.address+")";
 
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', fwc_treeData, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					OrderList(node_order, fwcloud, node_parent, 999999, result.insertId);
-					//devolvemos la última id insertada
-					callback(null, {"insertId": result.insertId});
-				} else
-					callback(null, {"insertId": 0});
-			}
+		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, fwc_treeData, (error, result) => {
+			if (error) return reject(error);
+			OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
+			//devolvemos la última id insertada
+			resolve(result.insertId);
 		});
 	});
 };

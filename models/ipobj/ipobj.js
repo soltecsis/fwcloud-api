@@ -646,21 +646,19 @@ ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) => {
  * #### JSON RESPONSE ERROR:
  *      {result: false, "insertId": ''}
  * */
-ipobjModel.insertIpobj = function (ipobjData, callback) {
-	db.get((error, connection) => {
-		if (error) return callback(error, null);
+ipobjModel.insertIpobj = (req, ipobjData) => {
+	return new Promise((resolve, reject) => {
+		if (error) return reject(error);
+
 		// The IDs for the user defined IP Objects begin from the value 100000. 
 		// IDs values from 0 to 99999 are reserved for standard IP Objects.
-		connection.query('SELECT ID FROM ' + tableModel + ' ORDER BY ID DESC LIMIT 1', (error, result) => {
-			if (error) return callback(error, null);
+		req.dbCon.query(`SELECT ID FROM ${tableModel} ORDER BY ID DESC LIMIT 1`, (error, result) => {
+			if (error) return reject(error);
+
 			ipobjData.id = ((result[0].ID >= 100000) ? (result[0].ID+1) : 100000);
-			connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobjData, function (error, result) {
-				if (error) return callback(error, null);			
-				if (result.affectedRows > 0) {
-					//devolvemos la última id insertada
-					callback(null, {result: true, "insertId": result.insertId});
-				} else
-					callback(null, {result: false, "insertId": ''});
+			connection.query(`INSERT INTO ${tableModel} SET ?`, ipobjData, (error, result) => {
+				if (error) return reject(error);
+				resolve(result.insertId);		
 			});
 		});
 	});

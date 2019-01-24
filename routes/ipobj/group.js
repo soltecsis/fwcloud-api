@@ -29,7 +29,7 @@ router.post("/", (req, res) => {
 		comment: req.body.comment
 	};
 
-	Ipobj_gModel.insertIpobj_g(ipobj_gData, function(error, data) {
+	Ipobj_gModel.insertIpobj_g(ipobj_gData, async (error, data) => {
 		if (error)
 			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
 				res.status(200).json(jsonResp);
@@ -40,19 +40,11 @@ router.post("/", (req, res) => {
 				var id = data.insertId;
 				ipobj_gData.id = id;
 				//INSERT IN TREE
-				fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, ipobj_gData, function(error, data) {
-					if (data && data.insertId) {
-						var dataresp = { "insertId": id, "TreeinsertId": data.insertId };
-						api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					} else {
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-
+				try {
+					const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
+					var dataresp = { "insertId": id, "TreeinsertId": node_id };
+					api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				} catch(error) { return api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 			} else {
 				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function(jsonResp) {
 					res.status(200).json(jsonResp);
@@ -195,7 +187,7 @@ router.put("/addto", (req, res) => {
 			if (data && data.insertId > 0) {
 				logger.debug("NEW IPOBJ IN GROUP: " + ipobj__ipobjgData.ipobj_g + "  IPOBJ:" + ipobj__ipobjgData.ipobj);
 				//Search IPOBJ Data
-				IpobjModel.getIpobjGroup(fwcloud, ipobj__ipobjgData.ipobj_g, ipobj__ipobjgData.ipobj, function(error, dataIpobj) {
+				IpobjModel.getIpobjGroup(fwcloud, ipobj__ipobjgData.ipobj_g, ipobj__ipobjgData.ipobj, async (error, dataIpobj) => {
 					//If exists ipobj get data
 					if (typeof dataIpobj !== 'undefined') {
 
@@ -206,19 +198,14 @@ router.put("/addto", (req, res) => {
 							comment: dataIpobj.comment
 						};
 
-						//INSERT IN TREE
-						fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, NodeData, (error, data2) => {
-							if (data2 && data2.insertId) {
-								// Update affected firewalls status.
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.body.ipobj_g, -1, -1, "|3")
-									.then(() => { return FirewallModel.getFirewallStatusNotZero(fwcloud, null) })
-									.then(not_zero_status_fws => api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-									.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
-							} else {
-								logger.debug(error);
-								api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
-							}
-						});
+						try {
+							//INSERT IN TREE
+							await fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, NodeData);
+							// Update affected firewalls status.
+							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
+							api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+						} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 					}
 					//Get Error
 					else
