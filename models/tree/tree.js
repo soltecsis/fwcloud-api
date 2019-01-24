@@ -428,7 +428,7 @@ fwcTreeModel.createStdGroupsTree = (dbCon, node_id, node_type, ipobj_type) => {
 fwcTreeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 	return new Promise((resolve, reject) => {
 		// Get interface IPs.  
-		let sql = 'SELECT O.id,O.name,O.type,T.node_type FROM ipobj O' +
+		let sql = 'SELECT O.id,O.name,O.type,O.address,T.node_type FROM ipobj O' +
 			' INNER JOIN fwc_tree_node_types T on T.obj_type=O.type' +
 			' WHERE O.interface=' + connection.escape(ifId);
 		connection.query(sql, async (error, ips) => {
@@ -436,8 +436,9 @@ fwcTreeModel.interfacesIpTree = (connection, fwcloud, nodeId, ifId) => {
 			if (ips.length===0) resolve();
 
 			try {
-				for(let ip of ips)
-					await fwcTreeModel.newNode(connection,fwcloud,ip.name,nodeId,ip.node_type,ip.id,ip.type);
+				for(let ip of ips) {
+					await fwcTreeModel.newNode(connection,fwcloud,`${ip.name} (${ip.address})`,nodeId,ip.node_type,ip.id,ip.type);
+				}
 			} catch(error) { return reject(error) }
 			resolve();
 		});
@@ -841,13 +842,18 @@ fwcTreeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclus
 fwcTreeModel.insertFwc_TreeOBJ = function (id_user, fwcloud, node_parent, node_order, node_type, node_Data, callback) {
 	var fwc_treeData = {
 		id: null,
-		name: node_Data.name + (((node_Data.type===10 ||node_Data.type===11) && node_Data.labelName) ? " ["+node_Data.labelName+"]": ""),
+		name: node_Data.name,
 		id_parent: node_parent,
 		node_type: node_type,
 		obj_type: node_Data.type,
 		id_obj: node_Data.id,
 		fwcloud: fwcloud
 	};
+
+	// Firewall and host interfaces.
+	if ((node_Data.type===10 ||node_Data.type===11) && node_Data.labelName) fwc_treeData.name+=" ["+node_Data.labelName+"]";
+	// Interface address.
+	if (node_Data.type===5 && node_Data.interface) fwc_treeData.name+=" ("+node_Data.address+")";
 
 	db.get(function (error, connection) {
 		if (error)
@@ -935,8 +941,14 @@ fwcTreeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback)
 fwcTreeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
 	db.get(function (error, connection) {
 		if (error) return callback(error, null);
-		let sql = 'UPDATE ' + tableModel + ' SET' +
-			' name=' + connection.escape(ipobjData.name+(((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) ? " ["+ipobjData.labelName+"]": "")) + 
+
+		let name = ipobjData.name;
+		// Firewall and host interfaces.
+		if ((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) name+=" ["+ipobjData.labelName+"]";
+		// Interface address.
+		if (ipobjData.type===5 && ipobjData.interface) name+=" ("+ipobjData.address+")";
+
+		let sql = 'UPDATE ' + tableModel + ' SET' + ' name=' + connection.escape(name) +
 			' WHERE node_type NOT LIKE "F%" AND' +
 			' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, result) {
