@@ -103,7 +103,7 @@ router.post("/", async(req, res) => {
 		mac: req.body.mac
 	};
 
-	InterfaceModel.insertInterface(interfaceData, function(error, data) {
+	InterfaceModel.insertInterface(interfaceData, async (error, data) => {
 		if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
 
 		//If saved interface Get data
@@ -165,7 +165,7 @@ router.put('/', (req, res) => {
 	};
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
-		InterfaceModel.updateInterface(interfaceData, function(error, data) {
+		InterfaceModel.updateInterface(interfaceData, async (error, data) => {
 			if (error)
 				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error Updating', objModel, error, function(jsonResp) {
 					res.status(200).json(jsonResp);
@@ -173,31 +173,11 @@ router.put('/', (req, res) => {
 			else {
 				//If saved interface saved ok, get data
 				if (data && data.result) {
-					Interface__ipobjModel.UpdateHOST(interfaceData.id)
-						.then(() => {
-							if (data.result) {
-								interfaceData.type = interfaceData.interface_type;
-								logger.debug("UPDATED INTERFACE id:" + interfaceData.id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
-								//UPDATE TREE            
-								fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, interfaceData, function(error, data) {
-									if (data && data.result) {
-										api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									} else {
-										api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function(jsonResp) {
-											res.status(200).json(jsonResp);
-										});
-									}
-								});
-							} else {
-								logger.debug("TREE NOT UPDATED");
-								api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating TREE', objModel, error, function(jsonResp) {
-									res.status(200).json(jsonResp);
-								});
-							}
-						});
-
+					try {
+						await Interface__ipobjModel.UpdateHOST(interfaceData.id);
+						await fwcTreemodel.updateFwc_Tree_OBJ(req, interfaceData);
+						api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+					} catch(error) { return api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, null, jsonResp => res.status(200).json(jsonResp)) }
 				} else {
 					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating Interface', objModel, error, function(jsonResp) {
 						res.status(200).json(jsonResp);

@@ -55,39 +55,21 @@ router.post("/", (req, res) => {
 });
 
 /* Update ipobj_g that exist */
-router.put('/', (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-
+router.put('/', async (req, res) => {
 	//Save data into object
-	var ipobj_gData = { id: req.body.id, name: req.body.name, type: req.body.type, comment: req.body.comment, fwcloud: req.body.fwcloud };
-	Ipobj_gModel.updateIpobj_g(ipobj_gData, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved ipobj_g saved ok, get data
-			if (data && data.result) {
-				//UPDATE TREE            
-				fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobj_gData, function(error, data) {
-					if (data && data.result) {
-						api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					} else {
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating', objModel, error, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					}
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
+	var ipobj_gData = { 
+		id: req.body.id, 
+		name: req.body.name, 
+		type: req.body.type, 
+		comment: req.body.comment, 
+		fwcloud: req.body.fwcloud 
+	};
+
+	try {
+		await Ipobj_gModel.updateIpobj_g(req, ipobj_gData);
+		await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobj_gData);
+		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -200,7 +182,7 @@ router.put("/addto", (req, res) => {
 
 						try {
 							//INSERT IN TREE
-							await fwcTreemodel.insertFwc_TreeOBJ(iduser, fwcloud, node_parent, node_order, node_type, NodeData);
+							await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, NodeData);
 							// Update affected firewalls status.
 							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);

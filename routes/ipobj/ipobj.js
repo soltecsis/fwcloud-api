@@ -227,7 +227,7 @@ async (req, res) => {
 			await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,ipobjData.interface,ipobjData.type,"|3");
 			dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
 		}
-		
+
 		api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -302,9 +302,6 @@ async (req, res) => {
 router.put('/', 
 duplicityCheck.ipobj,
 (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-
 	//Save data into object
 	var ipobjData = {
 		id: req.body.id,
@@ -331,39 +328,26 @@ duplicityCheck.ipobj,
 		comment: req.body.comment
 	};
 
-	if ((ipobjData.id !== null) && (ipobjData.fwcloud !== null)) {
-		Ipobj_typeModel.getIpobj_type(ipobjData.type, (error, data) => {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-			else {
-				if (data && data[0].protocol_number !== null)
-					ipobjData.protocol = data[0].protocol_number;
-				IpobjModel.updateIpobj(ipobjData, async (error, data) => {
-					if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', objModel, error, jsonResp => res.status(200).json(jsonResp));
-					//If saved ipobj saved ok, get data
-					if (data && data.result)
-					{
-						try {
-							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
-							await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
-							await IpobjModel.UpdateHOST(ipobjData.id);
-							await IpobjModel.UpdateINTERFACE(ipobjData.id);
-							var data_return = {};
-							await FirewallModel.getFirewallStatusNotZero(fwcloud,data_return);
-							await openvpnModel.getOpenvpnStatusNotZero(req,data_return);
-							//UPDATE TREE            
-							fwcTreemodel.updateFwc_Tree_OBJ(iduser, fwcloud, ipobjData, (error, data) => {
-								if (data && data.result)
-									api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-								else
-									api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating TREE NODE IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-							});
-						}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
-					} else api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
-				});
-			}
-		});
-	} else api_resp.getJson(null, api_resp.ACR_ERROR, 'Null identifiers', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	Ipobj_typeModel.getIpobj_type(ipobjData.type, async (error, data) => {
+		if (error) return api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		
+		if (data && data[0].protocol_number !== null)
+			ipobjData.protocol = data[0].protocol_number;
+
+		try {
+			await IpobjModel.updateIpobj(req,ipobjData);
+			await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
+			await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
+			await IpobjModel.UpdateHOST(ipobjData.id);
+			await IpobjModel.UpdateINTERFACE(ipobjData.id);
+			var data_return = {};
+			await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,data_return);
+			await openvpnModel.getOpenvpnStatusNotZero(req,data_return);
+			//UPDATE TREE            
+			await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData);
+			api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	});
 });
 
 

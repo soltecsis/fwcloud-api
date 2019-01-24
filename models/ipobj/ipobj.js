@@ -648,15 +648,13 @@ ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) => {
  * */
 ipobjModel.insertIpobj = (req, ipobjData) => {
 	return new Promise((resolve, reject) => {
-		if (error) return reject(error);
-
 		// The IDs for the user defined IP Objects begin from the value 100000. 
 		// IDs values from 0 to 99999 are reserved for standard IP Objects.
 		req.dbCon.query(`SELECT ID FROM ${tableModel} ORDER BY ID DESC LIMIT 1`, (error, result) => {
 			if (error) return reject(error);
 
 			ipobjData.id = ((result[0].ID >= 100000) ? (result[0].ID+1) : 100000);
-			connection.query(`INSERT INTO ${tableModel} SET ?`, ipobjData, (error, result) => {
+			req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, ipobjData, (error, result) => {
 				if (error) return reject(error);
 				resolve(result.insertId);		
 			});
@@ -716,47 +714,34 @@ ipobjModel.cloneIpobj = function (ipobjDataclone) {
  * #### JSON RESPONSE ERROR:
  *      {result: false}
  * */
-ipobjModel.updateIpobj = function (ipobjData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+ipobjModel.updateIpobj = (req, ipobjData) => {
+	return new Promise((resolve, reject) => {
 		var sql = 'UPDATE ' + tableModel + ' SET ' +
-				'fwcloud = ' + connection.escape(ipobjData.fwcloud) + ',' +
-				'interface = ' + connection.escape(ipobjData.interface) + ',' +
-				'name = ' + connection.escape(ipobjData.name) + ',' +
-				'type = ' + connection.escape(ipobjData.type) + ',' +
-				'protocol = ' + connection.escape(ipobjData.protocol) + ',' +
-				'address = ' + connection.escape(ipobjData.address) + ',' +
-				'netmask = ' + connection.escape(ipobjData.netmask) + ',' +
-				'diff_serv = ' + connection.escape(ipobjData.diff_serv) + ',' +
-				'ip_version = ' + connection.escape(ipobjData.ip_version) + ',' +
-				'icmp_code = ' + connection.escape(ipobjData.icmp_code) + ',' +
-				'icmp_type = ' + connection.escape(ipobjData.icmp_type) + ',' +
-				'tcp_flags_mask = ' + connection.escape(ipobjData.tcp_flags_mask) + ',' +
-				'tcp_flags_settings = ' + connection.escape(ipobjData.tcp_flags_settings) + ',' +
-				'range_start = ' + connection.escape(ipobjData.range_start) + ',' +
-				'range_end = ' + connection.escape(ipobjData.range_end) + ',' +
-				'source_port_start = ' + connection.escape(ipobjData.source_port_start) + ',' +
-				'source_port_end = ' + connection.escape(ipobjData.source_port_end) + ',' +
-				'destination_port_start = ' + connection.escape(ipobjData.destination_port_start) + ',' +
-				'destination_port_end = ' + connection.escape(ipobjData.destination_port_end) + ',' +
-				'options = ' + connection.escape(ipobjData.options) + ',' +
-				'comment = ' + connection.escape(ipobjData.comment) + ' ' +
-				' WHERE id = ' + ipobjData.id + ' AND fwcloud=' + connection.escape(ipobjData.fwcloud);
-		logger.debug(sql);
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					ipobjModel.UpdateHOST(ipobjData.id)
-							.then(ipobjModel.UpdateINTERFACE(ipobjData.id));
-					callback(null, {"result": true});
-				} else {
-					callback(null, {"result": false});
-				}
-			}
+			'fwcloud = ' + ipobjData.fwcloud + ',' +
+			'interface = ' + req.dbCon.escape(ipobjData.interface) + ',' +
+			'name = ' + req.dbCon.escape(ipobjData.name) + ',' +
+			'type = ' + req.dbCon.escape(ipobjData.type) + ',' +
+			'protocol = ' + req.dbCon.escape(ipobjData.protocol) + ',' +
+			'address = ' + req.dbCon.escape(ipobjData.address) + ',' +
+			'netmask = ' + req.dbCon.escape(ipobjData.netmask) + ',' +
+			'diff_serv = ' + req.dbCon.escape(ipobjData.diff_serv) + ',' +
+			'ip_version = ' + req.dbCon.escape(ipobjData.ip_version) + ',' +
+			'icmp_code = ' + req.dbCon.escape(ipobjData.icmp_code) + ',' +
+			'icmp_type = ' + req.dbCon.escape(ipobjData.icmp_type) + ',' +
+			'tcp_flags_mask = ' + req.dbCon.escape(ipobjData.tcp_flags_mask) + ',' +
+			'tcp_flags_settings = ' + req.dbCon.escape(ipobjData.tcp_flags_settings) + ',' +
+			'range_start = ' + req.dbCon.escape(ipobjData.range_start) + ',' +
+			'range_end = ' + req.dbCon.escape(ipobjData.range_end) + ',' +
+			'source_port_start = ' + req.dbCon.escape(ipobjData.source_port_start) + ',' +
+			'source_port_end = ' + req.dbCon.escape(ipobjData.source_port_end) + ',' +
+			'destination_port_start = ' + req.dbCon.escape(ipobjData.destination_port_start) + ',' +
+			'destination_port_end = ' + req.dbCon.escape(ipobjData.destination_port_end) + ',' +
+			'options = ' + req.dbCon.escape(ipobjData.options) + ',' +
+			'comment = ' + req.dbCon.escape(ipobjData.comment) + ' ' +
+			' WHERE id = ' + ipobjData.id + ' AND fwcloud=' + ipobjData.fwcloud;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

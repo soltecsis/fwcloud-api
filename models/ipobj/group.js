@@ -273,25 +273,17 @@ ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
 	});
 };
 //Update ipobj_g
-ipobj_gModel.updateIpobj_g = function (ipobj_gData, callback) {
-
-		db.get(function (error, connection) {
-				if (error)
-						callback(error, null);
-				var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(ipobj_gData.name) + ' ' +
-								' ,type = ' + connection.escape(ipobj_gData.type) + ' ' +
-								' ,comment = ' + connection.escape(ipobj_gData.comment) + ' ' +
-								' WHERE id = ' + ipobj_gData.id + ' AND fwcloud=' + connection.escape(ipobj_gData.fwcloud);
-				connection.query(sql, function (error, result) {
-						if (error) {
-								logger.debug(sql);
-								logger.debug(error);
-								callback(error, null);
-						} else {
-								callback(null, {"result": true});
-						}
-				});
+ipobj_gModel.updateIpobj_g = (req, ipobj_gData) => {
+	return new Promise((resolve, reject) => {
+		let sql = `UPDATE ${tableModel} SET name=${req.dbCon.escape(ipobj_gData.name)}
+			,type=${ipobj_gData.type}
+			,comment=${req.dbCon.escape(ipobj_gData.comment)}
+			WHERE id=${ipobj_gData.id} AND fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
+	});
 };
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {

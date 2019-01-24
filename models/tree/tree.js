@@ -930,30 +930,23 @@ fwcTreeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback)
 };
 
 //Update NODE from IPOBJ or INTERFACE UPDATE
-fwcTreeModel.updateFwc_Tree_OBJ = function (iduser, fwcloud, ipobjData, callback) {
-	db.get(function (error, connection) {
-		if (error) return callback(error, null);
-
+fwcTreeModel.updateFwc_Tree_OBJ = (req, ipobjData) => {
+	return new Promise((resolve, reject) => {
 		let name = ipobjData.name;
 		// Firewall and host interfaces.
 		if ((ipobjData.type===10 ||ipobjData.type===11) && ipobjData.labelName) name+=" ["+ipobjData.labelName+"]";
 		// Interface address.
 		if (ipobjData.type===5 && ipobjData.interface) name+=" ("+ipobjData.address+")";
 
-		let sql = 'UPDATE ' + tableModel + ' SET' + ' name=' + connection.escape(name) +
-			' WHERE node_type NOT LIKE "F%" AND' +
-			' id_obj = ' + connection.escape(ipobjData.id) + ' AND obj_type=' + connection.escape(ipobjData.type) + ' AND fwcloud=' + connection.escape(fwcloud);
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(sql);
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0)
-					callback(null, {"result": true});
-				else
-					callback(null, {"result": false});
-			}
+		let sql = `UPDATE ${tableModel} SET name=${req.dbCon.escape(name)}
+			WHERE node_type NOT LIKE "F%" AND id_obj=${ipobjData.id} AND obj_type=${ipobjData.type} AND fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			if (result.affectedRows > 0)
+				resolve({"result": true});
+			else
+				resolve({"result": false});
 		});
 	});
 };
