@@ -333,7 +333,7 @@ async (req, res) => {
  * */
 router.put('/get', async (req, res) => {
 	try {
-		const data = await IpobjModel.getIpobj(req);
+		const data = await IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.id);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else

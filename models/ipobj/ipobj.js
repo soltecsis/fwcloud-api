@@ -138,22 +138,22 @@ var logger = require('log4js').getLogger("app");
  * 
  * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
  * */
-ipobjModel.getIpobj = req => {
+ipobjModel.getIpobj = (dbCon,fwcloud,id) => {
 	return new Promise((resolve, reject) => {
 		var sql = `SELECT I.* FROM ${tableModel} I
-			WHERE I.id=${req.body.id} AND (I.fwcloud=${req.body.fwcloud} OR I.fwcloud IS NULL)`;
+			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 
-		req.dbCon.query(sql, (error, rows) => {
+		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
 
 			if (rows.length > 0) {
 				if (rows[0].type === 8) { //CHECK IF IPOBJ IS a HOST
-					ipobjModel.getIpobj_Host_Full(req.body.fwcloud, req.body.id, (errorhost, datahost) => {
+					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) => {
 						if (errorhost) return reject(errorhost);
 						resolve(datahost);
 					});
 				} else if (rows[0].type===5 && rows[0].interface!=null) { // Address that is part of an interface.
-					ipobjModel.addressParentsData(req.dbCon, rows[0])
+					ipobjModel.addressParentsData(dbCon, rows[0])
 					.then(() => resolve(rows))
 					.catch(error => reject(error));
 				} else

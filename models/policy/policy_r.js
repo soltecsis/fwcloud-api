@@ -132,13 +132,13 @@ policy_rModel.getPolicy_rs_type = (fwcloud, idfirewall, type, rule, AllDone) => 
 															//creamos array de ipobj
 															position_node.ipobjs = new Array();
 															//--------------------------------------------------------------------------------------------------
-															asyncMod.map(data__rule_ipobjs, function(row_ipobj, callback3) {
+															asyncMod.map(data__rule_ipobjs, async (row_ipobj, callback3) => {
 																	k++;
-																	logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+																	//logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
 																	// GET IPOBJs  Position O
 																	if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
-																		IpobjModel.getIpobj(fwcloud, row_ipobj.ipobj, function(error, data_ipobjs) {
-																			//If exists ipobj get data
+																		try {
+																			const data_ipobjs = await IpobjModel.getIpobj(connection, fwcloud, row_ipobj.ipobj);
 																			if (data_ipobjs.length > 0) {
 																				var ipobj = data_ipobjs[0];
 																				var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'O');
@@ -147,12 +147,10 @@ policy_rModel.getPolicy_rs_type = (fwcloud, idfirewall, type, rule, AllDone) => 
 
 																				callback3();
 																			}
-																			//Get Error
-																			else {
-																				logger.debug("ERROR getIpobj: " + error);
-																				callback3();
-																			}
-																		});
+																		} catch(error) {
+																			logger.debug("ERROR getIpobj: " + error);
+																			callback3();
+																		}
 																	}
 																	//GET GROUPS  Position O
 																	else if (row_ipobj.ipobj_g > 0 && row_ipobj.type === 'O') {
