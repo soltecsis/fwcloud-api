@@ -133,35 +133,33 @@ var logger = require('log4js').getLogger("app");
  * 
  * @method getIpobj
  * 
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} id Ipobj identifier
+ * @param {Integer} req.body.fwcloud FwCloud identifier
+ * @param {Integer} req.body.id Ipobj identifier
  * 
  * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
  * */
-ipobjModel.getIpobj = (fwcloud, id, callback) => {
-	db.get((error, connection) => {
-		if (error) return callback(error, null);
+ipobjModel.getIpobj = req => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT I.* FROM ${tableModel} I
+			WHERE I.id=${req.body.id} AND (I.fwcloud=${req.body.fwcloud} OR I.fwcloud IS NULL)`;
 
-		var sql = 'SELECT I.* FROM ' + tableModel + ' I ' +
-			' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
+		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
 
-		connection.query(sql, (error, rows) => {
-			if (error) return callback(error, null);
-			//CHECK IF IPOBJ IS a HOST
 			if (rows.length > 0) {
-				if (rows[0].type === 8) {
-					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) => {
-						if (errorhost) return callback(errorhost, null);
-							callback(null, datahost);
+				if (rows[0].type === 8) { //CHECK IF IPOBJ IS a HOST
+					ipobjModel.getIpobj_Host_Full(req.body.fwcloud, req.body.id, (errorhost, datahost) => {
+						if (errorhost) return reject(errorhost);
+						resolve(datahost);
 					});
 				} else if (rows[0].type===5 && rows[0].interface!=null) { // Address that is part of an interface.
-					ipobjModel.addressParentsData(connection, rows[0])
-					.then(() => callback(null, rows))
-					.catch(error => callback(error, null));
+					ipobjModel.addressParentsData(req.dbCon, rows[0])
+					.then(() => resolve(rows))
+					.catch(error => reject(error));
 				} else
-					callback(null, rows);
+					resolve(rows);
 			} else
-				callback(null, rows);
+				resolve(rows);
 		});
 	});
 };

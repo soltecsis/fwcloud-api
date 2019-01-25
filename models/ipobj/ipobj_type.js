@@ -24,15 +24,11 @@ ipobj_typeModel.getIpobj_types = function (callback) {
 
 
 //Get ipobj_type by  id
-ipobj_typeModel.getIpobj_type = function (id, callback) {
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
+ipobj_typeModel.getIpobj_type = (req, id) => {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`SELECT * FROM ${tableModel} WHERE id=${id}`, (error, row) => {
+			if (error) return reject(error);
+			resolve(row);
 		});
 	});
 };

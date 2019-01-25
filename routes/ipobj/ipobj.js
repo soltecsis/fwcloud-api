@@ -51,33 +51,6 @@ var IpobjModel = require('../../models/ipobj/ipobj');
 var fwcTreemodel = require('../../models/tree/tree');
 
 /**
- * Property Model to manage FWC_TREE_NODE Data
- *
- * @property fwc_tree_nodeModel
- * @type ../../models/tree/fwc_tree_node
- * 
- */
-var fwc_tree_node = require("../../models/tree/node.js");
-
-/**
- * Property Model to manage UTIL functions
- *
- * @property utilsModel
- * @type ../../models/utils
- * 
- */
-var utilsModel = require("../../utils/utils.js");
-
-/**
- * Property Model to manage interface__ipobj data relation
- *
- * @property Interface__ipobjModel
- * @type ../../models/interface/interface__ipobj
- * 
- */
-var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
-
-/**
  * Property Model to manage API RESPONSE data
  *
  * @property api_resp
@@ -93,15 +66,6 @@ var api_resp = require('../../utils/api_response');
  * @type text
  */
 var objModel = 'IPOBJ';
-
-/**
- * Property Logger to manage App logs
- *
- * @attribute logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
 
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
@@ -301,7 +265,7 @@ async (req, res) => {
  * */
 router.put('/', 
 duplicityCheck.ipobj,
-(req, res) => {
+async (req, res) => {
 	//Save data into object
 	var ipobjData = {
 		id: req.body.id,
@@ -328,26 +292,26 @@ duplicityCheck.ipobj,
 		comment: req.body.comment
 	};
 
-	Ipobj_typeModel.getIpobj_type(ipobjData.type, async (error, data) => {
-		if (error) return api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	try {
+		const data = await  Ipobj_typeModel.getIpobj_type(req, ipobjData.type);
 		
 		if (data && data[0].protocol_number !== null)
 			ipobjData.protocol = data[0].protocol_number;
 
-		try {
-			await IpobjModel.updateIpobj(req,ipobjData);
-			await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
-			await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
-			await IpobjModel.UpdateHOST(ipobjData.id);
-			await IpobjModel.UpdateINTERFACE(ipobjData.id);
-			var data_return = {};
-			await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,data_return);
-			await openvpnModel.getOpenvpnStatusNotZero(req,data_return);
-			//UPDATE TREE            
-			await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData);
-			api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-	});
+		await IpobjModel.updateIpobj(req,ipobjData);
+		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
+		await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
+		await IpobjModel.UpdateHOST(ipobjData.id);
+		await IpobjModel.UpdateINTERFACE(ipobjData.id);
+
+		var data_return = {};
+		await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,data_return);
+		await openvpnModel.getOpenvpnStatusNotZero(req,data_return);        
+
+		await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
+
+		api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -367,15 +331,14 @@ duplicityCheck.ipobj,
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.put('/get', (req, res) => {
-	IpobjModel.getIpobj(req.body.fwcloud, req.body.id, (error, data) =>	{
-		//If exists ipobj get data
+router.put('/get', async (req, res) => {
+	try {
+		const data = await IpobjModel.getIpobj(req);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		//Get Error
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	});
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
