@@ -164,6 +164,34 @@ ipobjModel.getIpobj = (dbCon,fwcloud,id) => {
 	});
 };
 
+ipobjModel.getIpobj_NoPromise = (fwcloud, id, callback) => {
+	db.get((error, connection) => {
+		if (error) return callback(error, null);
+
+		var sql = 'SELECT I.* FROM ' + tableModel + ' I ' +
+			' WHERE I.id = ' + connection.escape(id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)';
+
+		connection.query(sql, (error, rows) => {
+			if (error) return callback(error, null);
+			//CHECK IF IPOBJ IS a HOST
+			if (rows.length > 0) {
+				if (rows[0].type === 8) {
+					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) => {
+						if (errorhost) return callback(errorhost, null);
+							callback(null, datahost);
+					});
+				} else if (rows[0].type===5 && rows[0].interface!=null) { // Address that is part of an interface.
+					ipobjModel.addressParentsData(connection, rows[0])
+					.then(() => callback(null, rows))
+					.catch(error => callback(error, null));
+				} else
+					callback(null, rows);
+			} else
+				callback(null, rows);
+		});
+	});
+};
+
 ipobjModel.addressParentsData = (connection,addr) => {
 	return new Promise((resolve, reject) => {
 		let sql = 'select I.name' +
