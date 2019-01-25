@@ -471,7 +471,7 @@ fwcTreeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType) 
 
 			try {
 				for(let interface of interfaces) {
-					let id = await fwcTreeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,'IFF',interface.id,obj_type);
+					let id = await fwcTreeModel.newNode(connection,fwcloud,interface.name+(interface.labelName ? ' ['+interface.labelName+']' : ''),nodeId,(ownerType==='FW') ? 'IFF' : 'IFH',interface.id,obj_type);
 					await fwcTreeModel.interfacesIpTree(connection,fwcloud,id,interface.id);
 				}
 			} catch(error) { return reject(error )}
