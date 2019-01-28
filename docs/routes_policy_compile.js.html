@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>routes/policy/compile.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module-api_response.html#~respModel">respModel</a></li><li><a href="module-Cluster-ClusterRouter.html">ClusterRouter</a></li><li><a href="module-Compile-CompileRouter.html">CompileRouter</a></li><li><a href="module-FirewallExport-FirewallModel.html">FirewallModel</a></li><li><a href="module-Firewall-FirewallRouter.html">FirewallRouter</a></li><li><a href="module-Fwcloud.html#~FwcloudModel">FwcloudModel</a></li><li><a href="module-Fwcloud-FwcloudRouter.html">FwcloudRouter</a></li><li><a href="module-Ipobjs-IpobjsRouter.html">IpobjsRouter</a></li></ul><h3>Modules</h3><ul><li><a href="module-api_response.html">api_response</a><ul class='methods'><li data-type='method'><a href="module-api_response.html#~getJson">getJson</a></li><li data-type='method'><a href="module-api_response.html#~getMsgCodeResp">getMsgCodeResp</a></li></ul></li><li><a href="module-Cluster.html">Cluster</a><ul class='methods'><li data-type='method'><a href="module-Cluster.html#~getclusters">getclusters</a></li></ul></li><li><a href="module-Compile.html">Compile</a></li><li></li><li><a href="module-Firewall.html">Firewall</a><ul class='methods'><li data-type='method'><a href="module-Firewall.html#~AddFirewall">AddFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~DeleteFirewall">DeleteFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser">getFirewallByUser</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cloud">getFirewallByUser_and_Cloud</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cluster">getFirewallByUser_and_Cluster</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Id">getFirewallByUser_and_Id</a></li><li data-type='method'><a href="module-Firewall.html#~getLockedStatusFirewallByUser_and_ID_V2">getLockedStatusFirewallByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Firewall.html#~UpdateFirewall">UpdateFirewall</a></li></ul></li><li><a href="module-FirewallExport.html">FirewallExport</a></li><li><a href="module-Fwcloud.html">Fwcloud</a><ul class='methods'><li data-type='method'><a href="module-Fwcloud.html#~AddFwcloud">AddFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~DeleteFwcloud">DeleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~deleteFwcloud">deleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser">getFwcloudByUser</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser_and_ID_V2">getFwcloudByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedAccess">getFwcloudLockedAccess</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedTimeout">getFwcloudLockedTimeout</a></li><li data-type='method'><a href="module-Fwcloud.html#~getLockedStatusFwcloudByUser_and_ID">getLockedStatusFwcloudByUser_and_ID</a></li><li data-type='method'><a href="module-Fwcloud.html#~insertFwcloud">insertFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloud">UpdateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloud">updateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudLock">updateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudLock">UpdateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudUnlock">UpdateFwcloudUnlock</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudUnlock">updateFwcloudUnlock</a></li></ul></li><li></li><li><a href="module-ipobj%2520group.html">ipobj group</a></li><li><a href="module-Ipobjs.html">Ipobjs</a><ul class='methods'><li data-type='method'><a href="module-Ipobjs.html#~DeleteIpobj">DeleteIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~getIpobjById">getIpobjById</a></li><li data-type='method'><a href="module-Ipobjs.html#~NewIpobj">NewIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~SearchIpobjWhereUsed">SearchIpobjWhereUsed</a></li><li data-type='method'><a href="module-Ipobjs.html#~UpdateIpobj">UpdateIpobj</a></li></ul></li><li><a href="module-OpenVPN.html">OpenVPN</a></li><li></li></ul><h3>Global</h3><ul><li><a href="global.html#api_resp">api_resp</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#Policy_cModel">Policy_cModel</a></li><li><a href="global.html#Policy_rModel">Policy_rModel</a></li><li><a href="global.html#RuleCompile">RuleCompile</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">routes/policy/compile.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Module to routing COMPILE requests
+ * &lt;br>BASE ROUTE CALL: &lt;b>/policy/compile&lt;/b>
+ *
+ * @module Compile
+ *
+ * @requires express
+ * @requires Policy_rModel
+ *
+ */
+
+
+/**
+ * Class to manage Compile Policy
+ *
+ * @class CompileRouter
+ */
+
+
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require('express');
+/**
+ * Property  to manage  route
+ *
+ * @property router
+ * @type express.Router
+ */
+var router = express.Router();
+
+/**
+ * Property Logger to manage App logs
+ *
+ * @property logger
+ * @type log4js/app
+ *
+ */
+var logger = require('log4js').getLogger("compiler");
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type ../../models/api_response
+ *
+ */
+var api_resp = require('../../utils/api_response');
+
+/**
+ * Property Model to manage compilation process
+ *
+ * @property RuleCompileModel
+ * @type ../../models/compile/
+ */
+var RuleCompile = require('../../models/policy/rule_compile');
+
+/**
+ * Property Model to manage policy script generation and install process
+ *
+ * @property PolicyScript
+ * @type ../../models/compile/
+ */
+var PolicyScript = require('../../models/policy/policy_script');
+
+const config = require('../../config/config');
+const FirewallModel = require('../../models/firewall/firewall');
+const socketTools = require('../../utils/socket');
+
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+/* Compile a firewall rule. */
+/*----------------------------------------------------------------------------------------------------------------------*/
+router.put('/rule', async (req, res) => {
+	try {
+  	/* The get method of the RuleCompile model returns a promise. */
+  	const data = await RuleCompile.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)) }
+});
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+/* Compile a firewall. */
+/*----------------------------------------------------------------------------------------------------------------------*/
+router.put('/', (req, res) => {
+	var fs = require('fs');
+	var path = config.get('policy').data_dir;
+	if (!fs.existsSync(path))
+		fs.mkdirSync(path);
+	path += "/" + req.body.fwcloud;
+	if (!fs.existsSync(path))
+		fs.mkdirSync(path);
+	path += "/" + req.body.firewall;
+	if (!fs.existsSync(path))
+		fs.mkdirSync(path);
+	path += "/" + config.get('policy').script_name;
+	var stream = fs.createWriteStream(path);
+
+	stream.on('open', async fd => {
+		socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+
+		try {
+			/* Generate the policy script. */
+			let data = await PolicyScript.append(config.get('policy').header_file);
+			data = await PolicyScript.dumpFirewallOptions(req.body.fwcloud,req.body.firewall,data);
+			stream.write(data.cs + "greeting_msg() {\n" +
+				"log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
+				"policy_load() {\n");
+			
+			if (data.options &amp; 0x0001) { // Statefull firewall
+				stream.write("# Statefull firewall.\n" +
+					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
+					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
+					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n");
+				socketTools.msg("&lt;strong>--- STATEFUL FIREWALL ---&lt;/strong>\n\n");
+			}
+			else
+				socketTools.msg("&lt;strong>--- STATELESS FIREWALL ---&lt;/strong>\n\n");
+			
+			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
+			socketTools.msg("&lt;strong>INPUT TABLE:&lt;/strong>\n");
+
+			let cs = await PolicyScript.dump(req,1);
+			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
+			socketTools.msg("&lt;strong>OUTPUT TABLE:&lt;/strong>\n");
+	
+			cs = await PolicyScript.dump(req,2);
+			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
+			socketTools.msg("&lt;strong>FORWARD TABLE:&lt;/strong>\n");
+			
+			cs = await PolicyScript.dump(req,3);
+			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
+			socketTools.msg("&lt;strong>SNAT TABLE:&lt;/strong>\n");
+			
+			cs = await PolicyScript.dump(req,4);
+			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
+			socketTools.msg("&lt;strong>DNAT TABLE:&lt;/strong>\n");
+			
+			cs = await PolicyScript.dump(req, 5);
+			stream.write(cs+"\n}\n\n");
+			
+			data = await PolicyScript.append(config.get('policy').footer_file);
+			stream.write(data.cs);
+			
+			/* Close stream. */
+			stream.end();
+			
+			// Update firewall status flags.
+			await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&amp;~1");
+			socketTools.msgEnd();
+			api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
+		} catch(error) { 
+			socketTools.msg(`\nERROR: ${error}\n`);
+			socketTools.msgEnd();
+			api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)) 
+		}
+	}).on('error', error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)))
+});
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+module.exports = router;
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Jan 28 2019 22:45:33 GMT+0100 (GMT+01:00) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+
+
+</body>
+</html>

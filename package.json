@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node bin/www"
+    "start": "node bin/www",
+    "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json"
   },
   "dependencies": {
     "async": "^2.6.1",
@@ -16,6 +17,7 @@
     "cookie-parser": "~1.4.3",
     "cors": "^2.8.5",
     "debug": "^4.1.1",
+    "docdash": "^1.0.2",
     "dotenv": "^6.2.0",
     "easy-tree": "0.0.3",
     "ejs": "^2.6.1",
@@ -28,6 +30,7 @@
     "is-ip": "^2.0.0",
     "jade": "~1.11.0",
     "joi": "^14.3.1",
+    "jsdoc": "^3.5.5",
     "knex": "^0.16.3",
     "lockfile": "^1.0.4",
     "lodash": "^4.17.11",

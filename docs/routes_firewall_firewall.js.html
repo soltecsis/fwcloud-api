@@ -1,6 +1,49 @@
-/**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>routes/firewall/firewall.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module-api_response.html#~respModel">respModel</a></li><li><a href="module-Cluster-ClusterRouter.html">ClusterRouter</a></li><li><a href="module-Compile-CompileRouter.html">CompileRouter</a></li><li><a href="module-FirewallExport-FirewallModel.html">FirewallModel</a></li><li><a href="module-Firewall-FirewallRouter.html">FirewallRouter</a></li><li><a href="module-Fwcloud.html#~FwcloudModel">FwcloudModel</a></li><li><a href="module-Fwcloud-FwcloudRouter.html">FwcloudRouter</a></li><li><a href="module-Ipobjs-IpobjsRouter.html">IpobjsRouter</a></li></ul><h3>Modules</h3><ul><li><a href="module-api_response.html">api_response</a><ul class='methods'><li data-type='method'><a href="module-api_response.html#~getJson">getJson</a></li><li data-type='method'><a href="module-api_response.html#~getMsgCodeResp">getMsgCodeResp</a></li></ul></li><li><a href="module-Cluster.html">Cluster</a><ul class='methods'><li data-type='method'><a href="module-Cluster.html#~getclusters">getclusters</a></li></ul></li><li><a href="module-Compile.html">Compile</a></li><li></li><li><a href="module-Firewall.html">Firewall</a><ul class='methods'><li data-type='method'><a href="module-Firewall.html#~AddFirewall">AddFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~DeleteFirewall">DeleteFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser">getFirewallByUser</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cloud">getFirewallByUser_and_Cloud</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cluster">getFirewallByUser_and_Cluster</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Id">getFirewallByUser_and_Id</a></li><li data-type='method'><a href="module-Firewall.html#~getLockedStatusFirewallByUser_and_ID_V2">getLockedStatusFirewallByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Firewall.html#~UpdateFirewall">UpdateFirewall</a></li></ul></li><li><a href="module-FirewallExport.html">FirewallExport</a></li><li><a href="module-Fwcloud.html">Fwcloud</a><ul class='methods'><li data-type='method'><a href="module-Fwcloud.html#~AddFwcloud">AddFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~DeleteFwcloud">DeleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~deleteFwcloud">deleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser">getFwcloudByUser</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser_and_ID_V2">getFwcloudByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedAccess">getFwcloudLockedAccess</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedTimeout">getFwcloudLockedTimeout</a></li><li data-type='method'><a href="module-Fwcloud.html#~getLockedStatusFwcloudByUser_and_ID">getLockedStatusFwcloudByUser_and_ID</a></li><li data-type='method'><a href="module-Fwcloud.html#~insertFwcloud">insertFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloud">UpdateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloud">updateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudLock">updateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudLock">UpdateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudUnlock">UpdateFwcloudUnlock</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudUnlock">updateFwcloudUnlock</a></li></ul></li><li></li><li><a href="module-ipobj%2520group.html">ipobj group</a></li><li><a href="module-Ipobjs.html">Ipobjs</a><ul class='methods'><li data-type='method'><a href="module-Ipobjs.html#~DeleteIpobj">DeleteIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~getIpobjById">getIpobjById</a></li><li data-type='method'><a href="module-Ipobjs.html#~NewIpobj">NewIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~SearchIpobjWhereUsed">SearchIpobjWhereUsed</a></li><li data-type='method'><a href="module-Ipobjs.html#~UpdateIpobj">UpdateIpobj</a></li></ul></li><li><a href="module-OpenVPN.html">OpenVPN</a></li><li></li></ul><h3>Global</h3><ul><li><a href="global.html#api_resp">api_resp</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#Policy_cModel">Policy_cModel</a></li><li><a href="global.html#Policy_rModel">Policy_rModel</a></li><li><a href="global.html#RuleCompile">RuleCompile</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">routes/firewall/firewall.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
  * Module for routing Firewalls requests
- * <br>BASE ROUTE CALL: <b>/firewalls</b>
+ * &lt;br>BASE ROUTE CALL: &lt;b>/firewalls&lt;/b>
  *
  * @module Firewall
  * 
@@ -126,7 +169,7 @@ const config = require('../../config/config');
 router.put('/all/get', (req, res) => {
 	FirewallModel.getFirewalls(req.session.user_id, function(error, data) {
 		//Get data
-		if (data && data.length > 0) {
+		if (data &amp;&amp; data.length > 0) {
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
@@ -175,7 +218,7 @@ router.put('/all/get', (req, res) => {
 router.put('/cloud/get', (req, res) => {
 	FirewallModel.getFirewallCloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		//get data
-		if (data && data.length > 0) {
+		if (data &amp;&amp; data.length > 0) {
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
@@ -225,7 +268,7 @@ router.put('/cloud/get', (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await FirewallModel.getFirewall(req);
-		if (data && data.length > 0)
+		if (data &amp;&amp; data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
 			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -269,7 +312,7 @@ router.put('/get', async (req, res) => {
 router.put('/cluster/get', (req, res) => {
 	FirewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, function(error, data) {
 		//get data
-		if (data && data.length > 0) {
+		if (data &amp;&amp; data.length > 0) {
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
@@ -341,7 +384,7 @@ router.post('/', async(req, res) => {
 
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
+		if (req.tree_node.node_type!=='FDF' &amp;&amp; req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
 
 		firewallData = await FirewallModel.checkBodyFirewall(firewallData, true);
 
@@ -350,13 +393,13 @@ router.post('/', async(req, res) => {
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
 		let data = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
-		if (data && data.insertId) {
+		if (data &amp;&amp; data.insertId) {
 			var dataresp = { "insertId": data.insertId };
 			var newFirewallId = data.insertId;
 
 			await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
 
-			if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
+			if ((firewallData.cluster > 0 &amp;&amp; firewallData.fwmaster === 1) || firewallData.cluster === null) {
 				// Create the loop backup interface.
 				const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
 				await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId);
@@ -458,7 +501,7 @@ router.put('/', (req, res) => {
 
 					FirewallModel.updateFirewall(req.session.user_id, firewallData, function(error, data) {
 						//Saved ok
-						if (data && data.result) {
+						if (data &amp;&amp; data.result) {
 							FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster)
 								.then(() => {
 									//////////////////////////////////
@@ -468,7 +511,7 @@ router.put('/', (req, res) => {
 											api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
 												res.status(200).json(jsonResp);
 											});
-										else if (data && data.result)
+										else if (data &amp;&amp; data.result)
 											api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
 												res.status(200).json(jsonResp);
 											});
@@ -506,7 +549,7 @@ router.put('/', (req, res) => {
 
 router.put('/clone', async (req, res) => {
 	// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
+	if (req.tree_node.node_type!=='FDF' &amp;&amp; req.tree_node.node_type!=='FD')
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 	//Save firewall data into objet    
@@ -520,7 +563,7 @@ router.put('/clone', async (req, res) => {
 
 	try {
 		const data = await FirewallModel.cloneFirewall(req.session.user_id, firewallData);
-		if (data && data.result) {
+		if (data &amp;&amp; data.result) {
 			const idNewFirewall = data.insertId;
 
 			const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
@@ -538,8 +581,8 @@ router.put('/clone', async (req, res) => {
 /**
  * Get Locked status of Firewall by ID and User
  * 
- * <br>ROUTE CALL:  <b>/firewalls/:iduser/firewall/:id/locked</b>
- * <br>METHOD: <b>GET</b>
+ * &lt;br>ROUTE CALL:  &lt;b>/firewalls/:iduser/firewall/:id/locked&lt;/b>
+ * &lt;br>METHOD: &lt;b>GET&lt;/b>
  *
  * @method getLockedStatusFirewallByUser_and_ID_V2
  * 
@@ -551,7 +594,7 @@ router.put('/clone', async (req, res) => {
 router.put('/accesslock/get', async (req, res) => {
 	try {
 		const data = await FirewallModel.getFirewall(req);
-		if (data && data.length > 0) {
+		if (data &amp;&amp; data.length > 0) {
 			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
 			api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, jsonResp => res.status(200).json(jsonResp));
 		}
@@ -604,7 +647,7 @@ router.put('/del',
 	async(req, res) => {
 		try {
 			data = await FirewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
-			if (data && data.result)
+			if (data &amp;&amp; data.result)
 				api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 			else
 				api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -619,7 +662,7 @@ restrictedCheck.firewallApplyTo,
 	//CHECK FIREWALL DATA TO DELETE
 	FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
 	.then(data => {
-		if (data && data.result)
+		if (data &amp;&amp; data.result)
 			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	 	else
 			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -639,4 +682,26 @@ router.put('/export/get', (req, res) => {
 		.catch(err => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, err, jsonResp => res.status(200).json(jsonResp)));
 });
 
-module.exports = router;
+module.exports = router;</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Jan 28 2019 22:45:33 GMT+0100 (GMT+01:00) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+
+
+</body>
+</html>
