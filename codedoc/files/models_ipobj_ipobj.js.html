@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>models/ipobj/ipobj.js - FWCloud API REST Documentation</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="icon" href="../assets/favicon.ico">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+                <h1><img src="http://foswiki.soltecsis.com/codedoc/soltecsis-logo1.png" title="FWCloud API REST Documentation"></h1>
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: 1.0.0</em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+                    <h2 class="off-left">APIs</h2>
+                    <div id="api-tabview" class="tabview">
+                        <ul class="tabs">
+                            <li><a href="#api-classes">Classes</a></li>
+                            <li><a href="#api-modules">Modules</a></li>
+                        </ul>
+                
+                        <div id="api-tabview-filter">
+                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+                        </div>
+                
+                        <div id="api-tabview-panel">
+                            <ul id="api-classes" class="apis classes">
+                                <li><a href="../classes/ClusterRouter.html">ClusterRouter</a></li>
+                                <li><a href="../classes/CompileRouter.html">CompileRouter</a></li>
+                                <li><a href="../classes/FirewallModel.html">FirewallModel</a></li>
+                                <li><a href="../classes/FirewallRouter.html">FirewallRouter</a></li>
+                                <li><a href="../classes/FwcloudModel.html">FwcloudModel</a></li>
+                                <li><a href="../classes/FwcloudRouter.html">FwcloudRouter</a></li>
+                                <li><a href="../classes/IpobjModel.html">IpobjModel</a></li>
+                                <li><a href="../classes/IpobjsRouter.html">IpobjsRouter</a></li>
+                            </ul>
+                
+                
+                            <ul id="api-modules" class="apis modules">
+                                <li><a href="../modules/Cluster.html">Cluster</a></li>
+                                <li><a href="../modules/Compile.html">Compile</a></li>
+                                <li><a href="../modules/Firewall.html">Firewall</a></li>
+                                <li><a href="../modules/FirewallExport.html">FirewallExport</a></li>
+                                <li><a href="../modules/Fwcloud.html">Fwcloud</a></li>
+                                <li><a href="../modules/Ipobjs.html">Ipobjs</a></li>
+                                <li><a href="../modules/OpenVPN.html">OpenVPN</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+                    Show:
+                    <label for="api-show-inherited">
+                        <input type="checkbox" id="api-show-inherited" checked>
+                        Inherited
+                    </label>
+            
+                    <label for="api-show-protected">
+                        <input type="checkbox" id="api-show-protected">
+                        Protected
+                    </label>
+            
+                    <label for="api-show-private">
+                        <input type="checkbox" id="api-show-private">
+                        Private
+                    </label>
+                    <label for="api-show-deprecated">
+                        <input type="checkbox" id="api-show-deprecated">
+                        Deprecated
+                    </label>
+            
+                </div>
+            
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+<h1 class="file-heading">File: models/ipobj/ipobj.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+/**
+ * DATA Module to manage IPOBJ Data
+ *
+ * @module Ipobjs
+ * 
+ * @requires db
+ */
+
+/**
+ * ## Class to manage IPOBJ DATA
+ *
+ * @class IpobjModel
+ * 
+ */
+var ipobjModel = {};
+
+//Export the object
+module.exports = ipobjModel;
+
+/**
+ * Property to identify Data Object
+ *
+ * @property objModel
+ * @type text
+ */
+var objModel = &#x27;IPOBJ&#x27;;
+
+/**
+ * Property  to manage Dabase Access
+ *
+ * @property db
+ * @type db 
+ */
+var db = require(&#x27;../../db.js&#x27;);
+
+/**
+ * Property  to manage Ipobj in Rules
+ *
+ * @property Policy_r__ipobjModel
+ * @type models.policy_r__ipobj
+ */
+var Policy_r__ipobjModel = require(&#x27;../../models/policy/policy_r__ipobj&#x27;);
+/**
+ * Property  to manage Interfaces in Rules
+ *
+ * @property Policy_r__interfaceModel
+ * @type models.policy_r__interface
+ */
+var Policy_r__interfaceModel = require(&#x27;../../models/policy/policy_r__interface&#x27;);
+/**
+ * Property manage async process
+ *
+ * @property async
+ * @type async
+ */
+var asyncMod = require(&#x27;async&#x27;);
+
+/**
+ * Property  to manage Interfaces Data
+ *
+ * @property InterfaceModel
+ * @type models.interface
+ */
+var InterfaceModel = require(&#x27;../../models/interface/interface&#x27;);
+/**
+ * Property  to manage Ipobj host data
+ *
+ * @property host_Data
+ * @type models.data_ipobj_host
+ */
+var host_Data = require(&#x27;../../models/data/data_ipobj_host&#x27;);
+/**
+ * Property  to manage Interface data
+ *
+ * @property interface_Data
+ * @type models.data_interface
+ */
+var interface_Data = require(&#x27;../../models/data/data_interface&#x27;);
+/**
+ * Property  to manage Ipobj  data
+ *
+ * @property ipobj_Data
+ * @type models.data_ipobj
+ */
+var ipobj_Data = require(&#x27;../../models/data/data_ipobj&#x27;);
+/**
+ * Property  to manage Ipobj in Groups
+ *
+ * @property Ipobj__ipobjgModel
+ * @type models.ipobj__ipobjg
+ */
+
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type ../../models/api_response
+ * 
+ */
+var api_resp = require(&#x27;../../utils/api_response&#x27;);
+
+var Ipobj_gModel = require(&#x27;./group&#x27;);
+
+var Ipobj__ipobjgModel = require(&#x27;../../models/ipobj/ipobj__ipobjg&#x27;);
+
+var data_policy_position_ipobjs = require(&#x27;../../models/data/data_policy_position_ipobjs&#x27;);
+
+const isIp = require(&#x27;is-ip&#x27;);
+
+
+/**
+ * Property Table
+ *
+ * @property tableModel
+ * @type &quot;ipobj&quot;
+ * @private
+ * 
+ */
+var tableModel = &quot;ipobj&quot;;
+
+/**
+ * Property Logger to manage App logs
+ *
+ * @attribute logger
+ * @type log4js/app
+ * 
+ */
+var logger = require(&#x27;log4js&#x27;).getLogger(&quot;app&quot;);
+
+
+/**
+ * Get ipobj by Ipobj id
+ * 
+ * @method getIpobj
+ * 
+ * @param {Integer} req.body.fwcloud FwCloud identifier
+ * @param {Integer} req.body.id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getIpobj = (dbCon,fwcloud,id) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		var sql = &#x60;SELECT I.* FROM ${tableModel} I
+			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)&#x60;;
+
+		dbCon.query(sql, (error, rows) =&gt; {
+			if (error) return reject(error);
+
+			if (rows.length &gt; 0) {
+				if (rows[0].type === 8) { //CHECK IF IPOBJ IS a HOST
+					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) =&gt; {
+						if (errorhost) return reject(errorhost);
+						resolve(datahost);
+					});
+				} else if (rows[0].type===5 &amp;&amp; rows[0].interface!=null) { // Address that is part of an interface.
+					ipobjModel.addressParentsData(dbCon, rows[0])
+					.then(() =&gt; resolve(rows))
+					.catch(error =&gt; reject(error));
+				} else
+					resolve(rows);
+			} else
+				resolve(rows);
+		});
+	});
+};
+
+ipobjModel.getIpobj_NoPromise = (fwcloud, id, callback) =&gt; {
+	db.get((error, connection) =&gt; {
+		if (error) return callback(error, null);
+
+		var sql = &#x27;SELECT I.* FROM &#x27; + tableModel + &#x27; I &#x27; +
+			&#x27; WHERE I.id = &#x27; + connection.escape(id) + &#x27; AND (I.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; OR I.fwcloud IS NULL)&#x27;;
+
+		connection.query(sql, (error, rows) =&gt; {
+			if (error) return callback(error, null);
+			//CHECK IF IPOBJ IS a HOST
+			if (rows.length &gt; 0) {
+				if (rows[0].type === 8) {
+					ipobjModel.getIpobj_Host_Full(fwcloud, id, (errorhost, datahost) =&gt; {
+						if (errorhost) return callback(errorhost, null);
+							callback(null, datahost);
+					});
+				} else if (rows[0].type===5 &amp;&amp; rows[0].interface!=null) { // Address that is part of an interface.
+					ipobjModel.addressParentsData(connection, rows[0])
+					.then(() =&gt; callback(null, rows))
+					.catch(error =&gt; callback(error, null));
+				} else
+					callback(null, rows);
+			} else
+				callback(null, rows);
+		});
+	});
+};
+
+ipobjModel.addressParentsData = (connection,addr) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		let sql = &#x27;select I.name&#x27; +
+			&#x27; ,case when I.firewall is not null then F.id end as firewall_id&#x27; +
+			&#x27; ,case when I.firewall is not null then F.name end as firewall_name&#x27; +
+			&#x27; ,case when C.id is not null then C.id end as cluster_id&#x27; +
+			&#x27; ,case when C.name is not null then C.name end as cluster_name&#x27; +
+			&#x27; ,case when OBJ.id is not null then OBJ.id end as host_id&#x27; +
+			&#x27; ,case when OBJ.name is not null then OBJ.name end as host_name&#x27; +
+			&#x27; from interface I&#x27; +
+			&#x27; left join firewall F on F.id=I.firewall&#x27; +
+			&#x27; left join cluster C on C.id=F.cluster&#x27; +
+			&#x27; left join interface__ipobj II on II.interface=I.id&#x27; +
+			&#x27; left join ipobj OBJ on OBJ.id=II.ipobj&#x27; +
+			&#x27; where I.id=&#x27; + connection.escape(addr.interface);
+		connection.query(sql, (error, rows) =&gt; {
+			if (error) return reject(error);
+			if (rows.length!=1) return reject(new Error(&#x27;Interface not found&#x27;));
+			
+			if (rows[0].cluster_id) {
+				addr.cluster_id = rows[0].cluster_id;
+				addr.cluster_name = rows[0].cluster_name;
+			}
+			if (rows[0].firewall_id) {
+				addr.firewall_id = rows[0].firewall_id;
+				addr.firewall_name = rows[0].firewall_name;
+			}
+			if (rows[0].host_id) {
+				addr.host_id = rows[0].host_id;
+				addr.host_name = rows[0].host_name;
+			}
+			addr.if_id = addr.interface;
+			addr.if_name = rows[0].name;
+
+			resolve(addr);
+		});
+	});
+}
+
+
+/**
+ * Get ipobj by Ipobj id
+ * 
+ * @method getIpobjPro
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getIpobjPro = function (position_ipobj) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			if (position_ipobj.negate === undefined)
+				position_ipobj.negate = 0;
+
+			//logger.debug(&quot;IPOBJ: &quot;, position_ipobj);
+
+			//SELECT IPOBJ DATA UNDER POSITION
+			var sql = &#x27;SELECT &#x27; + position_ipobj.negate + &#x27; as negate,  I.*, T.id id_node, T.id_parent id_parent_node &#x27; +
+					&#x27; FROM &#x27; + tableModel + &#x27; I &#x27; +
+					&#x27; inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=&#x27; + connection.escape(position_ipobj.fwcloud) + &#x27; OR T.fwcloud IS NULL)&#x27; +
+					&#x27; inner join fwc_tree P on P.id=T.id_parent &#x27; + //  and P.obj_type&lt;&gt;20 and P.obj_type&lt;&gt;21&#x27; +
+					&#x27; WHERE I.id = &#x27; + connection.escape(position_ipobj.ipobj) + &#x27; AND (I.fwcloud=&#x27; + connection.escape(position_ipobj.fwcloud) + &#x27; OR I.fwcloud IS NULL)&#x27;;
+
+			logger.debug(&quot;getIpobjPro -&gt; &quot;, sql);
+			connection.query(sql, function (error, row) {
+				if (error) {
+					reject(error);
+				} else {
+					if (row.length &gt; 0) {
+						//CHECK IF IPOBJ IS a HOST
+						if (row[0].type === 8) {
+							logger.debug(&quot;======== &gt; ENCONTRADO HOST: &quot; + position_ipobj.ipobj);
+							//GET ALL HOST INTERFACES
+							InterfaceModel.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
+									.then(interfacesHost =&gt; {
+
+										//RETURN IPOBJ HOST DATA                                                                            
+										var hostdata = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, &#x27;O&#x27;);
+										hostdata.interfaces = interfacesHost;
+
+										resolve(hostdata);
+									})
+									.catch(e =&gt; {
+										resolve();
+									});
+						} else {
+							//RETURN IPOBJ DATA
+							var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, &#x27;O&#x27;);
+							//logger.debug(&quot;------------------- &gt; ENCONTRADO IPOBJ: &quot; + position_ipobj.ipobj + &quot;  EN POSITION: &quot; + position_ipobj.position);
+							resolve(ipobj);
+						}
+					} else if (position_ipobj.type === &#x27;I&#x27;) {
+						//SEARCH INTERFACE DATA
+						InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
+								.then(dataInt =&gt; {
+									logger.debug(&quot;------- &gt; ENCONTRADA INTERFACE: &quot; + position_ipobj.ipobj + &quot;  EN POSITION: &quot; + position_ipobj.position);
+									//var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, position_ipobj.negate, &#x27;I&#x27;);
+									//RETURN INTERFACE DATA
+									resolve(dataInt);
+								})
+								.catch(() =&gt;
+									resolve({})
+								);
+					} else if (position_ipobj.type === &#x27;O&#x27; &amp;&amp; position_ipobj.ipobj_g &gt; 0) {
+						logger.debug(&quot;======== &gt; ENCONTRADO GROUP: &quot; + position_ipobj.ipobj_g);
+						//GET ALL GROUP&#x27;s IPOBJS
+						Ipobj_gModel.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
+								.then(ipobjsGroup =&gt; {
+									logger.debug(&quot;-------------------------&gt; FINAL de GROUP : &quot; + position_ipobj.ipobj_g + &quot; ----&quot;);
+									//RETURN IPOBJ GROUP DATA                                                                            
+									var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, position_ipobj.negate, &#x27;G&#x27;);
+									groupdata.ipobjs = ipobjsGroup;
+									resolve(groupdata);
+								})
+								.catch(e =&gt; {
+									resolve({});
+								});
+
+					} else {
+						resolve({});
+					}
+
+
+				}
+			});
+		});
+	});
+};
+
+
+ipobjModel.getFinalIpobjPro = function (position_ipobj) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			if (position_ipobj.negate === undefined)
+				position_ipobj.negate = 0;
+
+			//logger.debug(&quot;IPOBJ: &quot;, position_ipobj);
+			var sql = &quot;&quot;;
+
+			if (position_ipobj.type === &quot;O&quot;) {
+				//SELECT IPOBJ DATA UNDER POSITION
+				sql = &#x27;SELECT &#x27; + position_ipobj.negate + &#x27; as negate,  I.*&#x27; +
+						&#x27; FROM &#x27; + tableModel + &#x27; I &#x27; +
+						&#x27; WHERE I.id = &#x27; + connection.escape(position_ipobj.ipobj) + &#x27; AND (I.fwcloud=&#x27; + connection.escape(position_ipobj.fwcloud) + &#x27; OR I.fwcloud IS NULL)&#x27;;
+			} else {
+				sql = &#x27;SELECT &#x27; + position_ipobj.negate + &#x27; as negate,  I.*&#x27; +
+						&#x27; FROM interface I &#x27; +
+						&#x27; WHERE I.id = &#x27; + connection.escape(position_ipobj.interface);
+			}
+			//logger.debug(&quot;getIpobjPro -&gt; &quot;, sql);
+			connection.query(sql, function (error, row) {
+				if (error) {
+					reject(error);
+				} else {
+					if (row.length &gt; 0) {
+						//RETURN IPOBJ DATA
+						var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, position_ipobj.type);
+						//logger.debug(&quot;------------------- &gt; ENCONTRADO IPOBJ: &quot; + position_ipobj.ipobj + &quot;  EN POSITION: &quot; + position_ipobj.position);
+						resolve(ipobj);
+
+					} else {
+						resolve({});
+					}
+
+
+				}
+			});
+		});
+	});
+};
+
+//Get ipobj HOST by  id and ALL IPOBjs
+/**
+ * Get ipobj HOST DATA and Interfaces and Ipobj bellow Interfaces
+ * 
+ * @method getIpobj_Host_Full
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} id Ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj_Host/Interfaces/Ipobjs
+ * */
+ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
+
+	var hosts = [];
+	var host_cont = 0;
+	var ipobjs_cont = 0;
+	var interfaces_cont = 0;
+
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+
+		var sqlId = &#x27;&#x27;;
+		if (id !== &#x27;&#x27;)
+			sqlId = &#x27; AND G.id = &#x27; + connection.escape(id);
+		var sql = &#x27;SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM &#x27; + tableModel + &#x27; G &#x27; +
+				&#x27;inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; OR T.fwcloud IS NULL) &#x27; +
+				&#x27; WHERE  (G.fwcloud= &#x27; + connection.escape(fwcloud) + &#x27; OR G.fwcloud is null) &#x27; + sqlId;
+		logger.debug(sql);
+		connection.query(sql, function (error, rows) {
+			if (error)
+				callback(error, null);
+			else if (rows.length &gt; 0) {
+				host_cont = rows.length;
+				var row = rows[0];
+				asyncMod.map(rows, function (row, callback1) {
+
+					var host_node = new host_Data(row);
+
+					logger.debug(&quot; ---&gt; DENTRO de HOST: &quot; + row.id + &quot; NAME: &quot; + row.name);
+					var idhost = row.id;
+					host_node.interfaces = new Array();
+
+					//GET ALL HOST INTERFACES
+					InterfaceModel.getInterfacesHost(idhost, fwcloud, function (error, data_interfaces) {
+						if (data_interfaces.length &gt; 0) {
+							interfaces_cont = data_interfaces.length;
+
+							asyncMod.map(data_interfaces, function (data_interface, callback2) {
+								//GET INTERFACES
+								logger.debug(&quot;--&gt; DENTRO de INTERFACE id:&quot; + data_interface.id + &quot;  Name:&quot; + data_interface.name + &quot;  Type:&quot; + data_interface.interface_type)
+
+								var interface_node = new interface_Data(data_interface);
+								var idinterface = data_interface.id;
+
+								interface_node.ipobjs = new Array();
+
+								//GET ALL INTERFACE OBJECTs
+								ipobjModel.getAllIpobjsInterface(fwcloud, idinterface, function (error, data_ipobjs) {
+									if (data_ipobjs.length &gt; 0) {
+										ipobjs_cont = data_ipobjs.length;
+
+										asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+											//GET OBJECTS
+											logger.debug(&quot;--&gt; DENTRO de OBJECT id:&quot; + data_ipobj.id + &quot;  Name:&quot; + data_ipobj.name + &quot;  Type:&quot; + data_ipobj.type);
+
+											var ipobj_node = new ipobj_Data(data_ipobj);
+											//Añadimos ipobj a array Interfaces
+											interface_node.ipobjs.push(ipobj_node);
+											callback2();
+										}, //Fin de bucle de IPOBJS
+												function (err) {
+
+													if (interface_node.ipobjs.length &gt;= ipobjs_cont) {
+														host_node.interfaces.push(interface_node);
+														if (host_node.interfaces.length &gt;= interfaces_cont) {
+															hosts.push(host_node);
+															if (hosts.length &gt;= host_cont) {
+																AllDone(null, hosts);
+															}
+														}
+													}
+												}
+										);
+									} else {
+										host_node.interfaces.push(interface_node);
+										if (host_node.interfaces.length &gt;= interfaces_cont) {
+											hosts.push(host_node);
+											if (hosts.length &gt;= host_cont) {
+												AllDone(null, hosts);
+											}
+										}
+									}
+								}
+								);
+
+								callback2();
+							}, //Fin de bucle de INTERFACES
+									function (err) {
+
+//                                        if (host_node.interfaces.length &gt;= interfaces_cont) {
+//                                            hosts.push(host_node);
+//                                            if (hosts.length &gt;= host_cont) {
+//                                                AllDone(null, hosts);
+//                                            }
+//                                        }
+									}
+							);
+						} else {
+							hosts.push(host_node);
+							if (hosts.length &gt;= host_cont) {
+								AllDone(null, hosts);
+							}
+						}
+					}
+					);
+					callback1();
+				}, //Fin de bucle de GROUPS
+						function (err) {
+							if (hosts.length &gt;= host_cont) {
+
+								AllDone(null, hosts);
+							}
+						}
+				);
+			} else {
+				AllDone(&quot;&quot;, null);
+			}
+		});
+	});
+};
+
+/**
+ * Get All ipobj by Group
+ * 
+ * @method getAllIpobjsGroup
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup Group identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
+
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+
+		var sql = &#x27;SELECT * FROM &#x27; + tableModel + &#x27; I &#x27; +
+			&#x27; INNER JOIN ipobj__ipobjg G on G.ipobj=I.id &#x27; +
+			&#x27; WHERE  G.ipobj_g=&#x27; + idgroup +
+			&#x27; AND (I.fwcloud=&#x27; + fwcloud + &#x27; OR I.fwcloud IS NULL) ORDER BY G.id_gi&#x27;;
+		//var sql = &#x27;SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM &#x27; + tableModel + &#x27; I &#x27; +
+		//	&#x27; INNER JOIN ipobj__ipobjg G on G.ipobj=I.id &#x27; +
+		//	&#x27; inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=&#x27; + fwcloud + &#x27; OR T.fwcloud IS NULL)&#x27; +
+		//	&#x27; inner join fwc_tree P on P.id=T.id_parent  and P.obj_type&lt;&gt;20 and P.obj_type&lt;&gt;21&#x27; +
+		//	&#x27; WHERE G.ipobj_g=&#x27; + idgroup + &#x27; AND (I.fwcloud=&#x27; + fwcloud + &#x27; OR I.fwcloud IS NULL)&#x27; +
+		//	&#x27; ORDER BY G.id_gi&#x27;;
+
+		connection.query(sql, function (error, rows) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, rows);
+		});
+	});
+};
+
+/**
+ * Get All ipobj by Interface
+ * 
+ * @method getAllIpobjsInterface
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idinterface Interface identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
+
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+
+
+
+		var sql = &#x27;SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM &#x27; + tableModel + &#x27; I &#x27; +
+				&#x27; inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27;)&#x27; +
+				&#x27; inner join fwc_tree P on P.id=T.id_parent  and P.obj_type&lt;&gt;20 and P.obj_type&lt;&gt;21&#x27; +
+				&#x27; WHERE I.interface=&#x27; + connection.escape(idinterface) + &#x27; AND (I.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; OR I.fwcloud IS NULL)&#x27; +
+				&#x27; ORDER BY I.id&#x27;;
+		logger.debug(sql);
+
+		connection.query(sql, function (error, rows) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, rows);
+		});
+	});
+};
+
+/**
+ * Get All ipobj by Interface PROMISE
+ * 
+ * @method getAllIpobjsInterface
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idinterface Interface identifier
+ * 
+ * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
+ * */
+ipobjModel.getAllIpobjsInterfacePro = function (data) {
+	var fwcloud = data.fwcloud;
+
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error) return reject(error);
+
+			var sql = &#x27;SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM &#x27; + tableModel + &#x27; I &#x27; +
+				&#x27; inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; )&#x27; +
+				&#x27; inner join fwc_tree P on P.id=T.id_parent  and P.obj_type&lt;&gt;20 and P.obj_type&lt;&gt;21&#x27; +
+				&#x27; WHERE I.interface=&#x27; + connection.escape(data.id) + &#x27; AND (I.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; OR I.fwcloud IS NULL)&#x27; +
+				&#x27; ORDER BY I.id&#x27;;
+			//logger.debug(&quot;getAllIpobjsInterfacePro -&gt; &quot;, sql);
+			var interface = new interface_Data(data);
+			connection.query(sql, function (error, rows) {
+				if (error) return reject(error);
+				Promise.all(rows.map(getIpobjData))
+				.then(ipobjs =&gt; {
+					interface.ipobjs = ipobjs;
+					resolve(interface);
+				})
+				.catch(e =&gt; resolve(null));
+			});
+		});
+	});
+};
+
+function getIpobjData(row) {
+	return new Promise((resolve, reject) =&gt; {
+		var ipobj = new ipobj_Data(row);
+		resolve(ipobj);
+	});
+}
+
+/**
+ * Get ipobj by id and Group
+ * 
+ * @method getIpobjGroup
+ * 
+ * @param {Integer} fwcloud FwCloud identifier
+ * @param {Integer} idgroup id Group identifier
+ * @param {Integer} id id ipobj identifier
+ * 
+ * @return {ROW} Returns ROW Data from Ipobj
+ * */
+ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
+	db.get(function (error, connection) {
+		if (error)
+			callback(error, null);
+
+		var innergroup = &#x27; T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id &#x27;;
+		var sql = &#x27;SELECT * FROM &#x27; + tableModel + innergroup + &#x27; WHERE id = &#x27; + connection.escape(id) + &#x27; AND G.ipobj_g=&#x27; + connection.escape(idgroup) + &#x27; AND (T.fwcloud=&#x27; + connection.escape(fwcloud) + &#x27; OR T.fwcloud IS NULL) &#x27;;
+
+		connection.query(sql, function (error, rows) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, rows[0]);
+		});
+	});
+};
+
+
+ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		const sql = &#x27;SELECT * FROM ipobj WHERE fwcloud=&#x27;+fwcloud+&#x27; AND id=&#x27;+ipobj;
+		dbCon.query(sql, function (error, result) {
+			if (error) return	reject(error);
+			if (result.length &lt; 1) return reject(new Error(&#x27;IP object not found&#x27;))
+
+			resolve(result[0]);
+		});
+	});
+};
+
+
+/**
+ * Add ipobj
+ * 
+ * @method insertIpobj
+ * 
+ * @param {Object} ipobjData Ipobj Data
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *      {result: true, &quot;insertId&quot;: result.insertId}
+ * 
+ * #### JSON RESPONSE ERROR:
+ *      {result: false, &quot;insertId&quot;: &#x27;&#x27;}
+ * */
+ipobjModel.insertIpobj = (req, ipobjData) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		// The IDs for the user defined IP Objects begin from the value 100000. 
+		// IDs values from 0 to 99999 are reserved for standard IP Objects.
+		req.dbCon.query(&#x60;SELECT ID FROM ${tableModel} ORDER BY ID DESC LIMIT 1&#x60;, (error, result) =&gt; {
+			if (error) return reject(error);
+
+			ipobjData.id = ((result[0].ID &gt;= 100000) ? (result[0].ID+1) : 100000);
+			req.dbCon.query(&#x60;INSERT INTO ${tableModel} SET ?&#x60;, ipobjData, (error, result) =&gt; {
+				if (error) return reject(error);
+				resolve(result.insertId);		
+			});
+		});
+	});
+};
+
+ipobjModel.cloneIpobj = function (ipobjDataclone) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get((error, connection) =&gt; {
+			if (error) return reject(error);
+
+			var ipobjData = {
+				id: null,
+				fwcloud: ipobjDataclone.fwcloud,
+				interface: ipobjDataclone.newinterface,
+				name: ipobjDataclone.name,
+				type: ipobjDataclone.type,
+				protocol: ipobjDataclone.protocol,
+				address: ipobjDataclone.address,
+				netmask: ipobjDataclone.netmask,
+				diff_serv: ipobjDataclone.diff_serv,
+				ip_version: ipobjDataclone.ip_version,
+				icmp_code: ipobjDataclone.icmp_code,
+				icmp_type: ipobjDataclone.icmp_type,
+				tcp_flags_mask: ipobjDataclone.tcp_flags_mask,
+				tcp_flags_settings: ipobjDataclone.tcp_flags_settings,
+				range_start: ipobjDataclone.range_start,
+				range_end: ipobjDataclone.range_end,
+				source_port_start: ipobjDataclone.source_port_start,
+				source_port_end: ipobjDataclone.source_port_end,
+				destination_port_start: ipobjDataclone.destination_port_start,
+				destination_port_end: ipobjDataclone.destination_port_end,
+				options: ipobjDataclone.options,
+				comment: ipobjDataclone.comment
+			};
+			connection.query(&#x27;INSERT INTO &#x27; + tableModel + &#x27; SET ?&#x27;, ipobjData, (error, result) =&gt; {
+				if (error) return reject(error);
+				resolve({&quot;id_org&quot;: ipobjDataclone.id, &quot;id_clon&quot;: result.insertId});                        
+			});
+		});
+	});
+};
+
+/**
+ * Update ipobj
+ * 
+ * @method updateIpobj
+ * 
+ * @param {Object} ipobjData Ipobj Data
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *      {result: true}
+ * 
+ * #### JSON RESPONSE ERROR:
+ *      {result: false}
+ * */
+ipobjModel.updateIpobj = (req, ipobjData) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		var sql = &#x27;UPDATE &#x27; + tableModel + &#x27; SET &#x27; +
+			&#x27;fwcloud = &#x27; + ipobjData.fwcloud + &#x27;,&#x27; +
+			&#x27;interface = &#x27; + req.dbCon.escape(ipobjData.interface) + &#x27;,&#x27; +
+			&#x27;name = &#x27; + req.dbCon.escape(ipobjData.name) + &#x27;,&#x27; +
+			&#x27;type = &#x27; + req.dbCon.escape(ipobjData.type) + &#x27;,&#x27; +
+			&#x27;protocol = &#x27; + req.dbCon.escape(ipobjData.protocol) + &#x27;,&#x27; +
+			&#x27;address = &#x27; + req.dbCon.escape(ipobjData.address) + &#x27;,&#x27; +
+			&#x27;netmask = &#x27; + req.dbCon.escape(ipobjData.netmask) + &#x27;,&#x27; +
+			&#x27;diff_serv = &#x27; + req.dbCon.escape(ipobjData.diff_serv) + &#x27;,&#x27; +
+			&#x27;ip_version = &#x27; + req.dbCon.escape(ipobjData.ip_version) + &#x27;,&#x27; +
+			&#x27;icmp_code = &#x27; + req.dbCon.escape(ipobjData.icmp_code) + &#x27;,&#x27; +
+			&#x27;icmp_type = &#x27; + req.dbCon.escape(ipobjData.icmp_type) + &#x27;,&#x27; +
+			&#x27;tcp_flags_mask = &#x27; + req.dbCon.escape(ipobjData.tcp_flags_mask) + &#x27;,&#x27; +
+			&#x27;tcp_flags_settings = &#x27; + req.dbCon.escape(ipobjData.tcp_flags_settings) + &#x27;,&#x27; +
+			&#x27;range_start = &#x27; + req.dbCon.escape(ipobjData.range_start) + &#x27;,&#x27; +
+			&#x27;range_end = &#x27; + req.dbCon.escape(ipobjData.range_end) + &#x27;,&#x27; +
+			&#x27;source_port_start = &#x27; + req.dbCon.escape(ipobjData.source_port_start) + &#x27;,&#x27; +
+			&#x27;source_port_end = &#x27; + req.dbCon.escape(ipobjData.source_port_end) + &#x27;,&#x27; +
+			&#x27;destination_port_start = &#x27; + req.dbCon.escape(ipobjData.destination_port_start) + &#x27;,&#x27; +
+			&#x27;destination_port_end = &#x27; + req.dbCon.escape(ipobjData.destination_port_end) + &#x27;,&#x27; +
+			&#x27;options = &#x27; + req.dbCon.escape(ipobjData.options) + &#x27;,&#x27; +
+			&#x27;comment = &#x27; + req.dbCon.escape(ipobjData.comment) + &#x27; &#x27; +
+			&#x27; WHERE id = &#x27; + ipobjData.id + &#x27; AND fwcloud=&#x27; + ipobjData.fwcloud;
+		req.dbCon.query(sql, (error, result) =&gt; {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
+/**
+ * ### Delete ipobj
+ * 
+ * @method deleteIpobj
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ * 
+ *      {&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;}
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {&quot;result&quot;: false, &quot;msg&quot;: &quot;notExist&quot;}
+ *      
+ * #### JSON RESPONSE RESTRICTED:
+ * 
+ *      {&quot;result&quot;: false, &quot;msg&quot;: &quot;Restricted&quot;, &quot;restrictions&quot;: data.search}
+ * */
+ipobjModel.deleteIpobj = (dbCon,fwcloud,id) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		let sql = &#x27;DELETE FROM &#x27; + tableModel + &#x27; WHERE id=&#x27; + id + &#x27; AND fwcloud=&#x27; + fwcloud;
+		dbCon.query(sql, (error, result) =&gt; {
+			if (error) return reject(error);
+
+			if (result.affectedRows &gt; 0)
+				resolve({&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
+			else 
+				resolve({&quot;result&quot;: false, &quot;msg&quot;: &quot;notExist&quot;});
+		});
+	});
+};
+
+//DELETE ALL IPOBJ UNDER INTERFACE
+ipobjModel.deleteIpobjInterface = function (data) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			var sql = &#x27;DELETE FROM &#x27; + tableModel + &#x27; WHERE interface = &#x27; + connection.escape(data.id);
+
+			connection.query(sql, function (error, result) {
+				if (error) {
+					logger.debug(error);
+					reject(error);
+				} else {
+					if (result.affectedRows &gt; 0) {
+						resolve({&quot;result&quot;: true, &quot;msg&quot;: &quot;deleted&quot;});
+					} else {
+						resolve({&quot;result&quot;: false, &quot;msg&quot;: &quot;notExist&quot;});
+					}
+				}
+			});
+		});
+	});
+
+};
+
+//UPDATE HOST IF IPOBJ IS UNDER 
+ipobjModel.UpdateHOST = function (id) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			var sql = &#x27;UPDATE ipobj H  &#x27; +
+					&#x27;inner join interface__ipobj II on II.ipobj=H.id &#x27; +
+					&#x27;inner join interface I on I.id=II.interface &#x27; +
+					&#x27;inner join ipobj O on O.interface= I.id &#x27; +
+					&#x27;set H.updated_at= CURRENT_TIMESTAMP &#x27; +
+					&#x27; WHERE O.id = &#x27; + connection.escape(id);
+			logger.debug(sql);
+			connection.query(sql, function (error, result) {
+				if (error) {
+					logger.debug(error);
+					reject(error);
+				} else {
+					if (result.affectedRows &gt; 0) {
+						resolve({&quot;result&quot;: true});
+					} else {
+						resolve({&quot;result&quot;: false});
+					}
+				}
+			});
+		});
+	});
+};
+
+//UPDATE INTEFACE IF IPOBJ IS UNDER 
+ipobjModel.UpdateINTERFACE = function (id) {
+	return new Promise((resolve, reject) =&gt; {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			var sql = &#x27;UPDATE interface I  &#x27; +
+					&#x27;inner join ipobj O on O.interface= I.id &#x27; +
+					&#x27;set I.updated_at= CURRENT_TIMESTAMP &#x27; +
+					&#x27; WHERE O.id = &#x27; + connection.escape(id);
+			logger.debug(sql);
+			connection.query(sql, function (error, result) {
+				if (error) {
+					logger.debug(error);
+					reject(error);
+				} else {
+					if (result.affectedRows &gt; 0) {
+						resolve({&quot;result&quot;: true});
+					} else {
+						resolve({&quot;result&quot;: false});
+					}
+				}
+			});
+		});
+	});
+};
+
+
+
+
+/**
+ * ### check if IPOBJ Exists in any Group
+ * 
+ * @method checkIpobjInGroup
+ * 
+ * @param {Integer} ipobj id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example 
+ * #### JSON RESPONSE OK:
+ * 
+ *      {&quot;result&quot;: true};
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {&quot;result&quot;: false};
+ *      
+ * */
+ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
+
+	logger.debug(&quot;CHECK DELETING FROM GROUP ipobj:&quot; + ipobj + &quot; Type:&quot; + type + &quot;  fwcloud:&quot; + fwcloud);
+	db.get(function (error, connection) {
+
+		var sql = &#x27;SELECT count(*) as n FROM &#x27; + tableModel + &#x27; I &#x27; +
+				&#x27; INNER JOIN ipobj__ipobjg G on G.ipobj=I.id &#x27; +
+				&#x27; WHERE I.id=&#x27; + connection.escape(ipobj) + &#x27; AND I.type=&#x27; + connection.escape(type) + &#x27; AND I.fwcloud=&#x27; + connection.escape(fwcloud);
+		logger.debug(sql);
+		connection.query(sql, function (error, rows) {
+			if (!error) {
+				if (rows.length &gt; 0) {
+					if (rows[0].n &gt; 0) {
+						logger.debug(&quot;ALERT DELETING ipobj IN GROUP:&quot; + ipobj + &quot; type: &quot; + type + &quot; fwcloud:&quot; + fwcloud + &quot; --&gt; FOUND IN &quot; + rows[0].n + &quot; GROUPS&quot;);
+						callback(null, {&quot;result&quot;: true});
+					} else {
+						callback(null, {&quot;result&quot;: false});
+					}
+				} else
+					callback(null, {&quot;result&quot;: false});
+			} else {
+				logger.error(error);
+				callback(null, {&quot;result&quot;: false});
+			}
+		});
+	});
+
+};
+
+/**
+ * ### searchIpobjUsage
+ * Search where is used IPOBJ in RULES, OpenVPN configs, etc.
+ * 
+ * @method searchIpobjInRules
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example #### JSON RESPONSE OK
+ * 
+ *          {&quot;result&quot;: true, &quot;msg&quot;: &quot;IPOBJ FOUND&quot;, 
+ *              &quot;search&quot;:
+ *                  {   &quot;IpobjInRules&quot;: data_ipobj, 
+ *                      &quot;GroupInRules&quot;: data_grouprule, 
+ *                      &quot;IpobjInGroup&quot;: data_group,
+ *                      &quot;InterfacesIpobjInRules&quot;: data_interfaces, 
+ *                      &quot;InterfacesFIpobjInRules&quot;: data_interfaces_f,
+ *                      &quot;InterfacesAboveIpobjInRules&quot;: data_interfaces_above,
+ *                      &quot;HostIpobjInterfacesIpobjInRules&quot;: data_ipobj_host, 
+ *                      &quot;IpobjInterfacesIpobjInRules&quot;: data_ipobj_ipobj
+ *                  }
+ *          }
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {&quot;result&quot;: false, &quot;msg&quot;: &quot;IPOBJ NOT FOUND&quot;, 
+ *          &quot;search&quot;: {
+ &quot;IpobjInRules&quot;: &quot;&quot;, 
+ &quot;GroupInRules&quot;: &quot;&quot;,
+ &quot;IpobjInGroup&quot;: &quot;&quot;, 
+ &quot;InterfacesIpobjInRules&quot;: &quot;&quot;, 
+ &quot;InterfacesFIpobjInRules&quot;: &quot;&quot;,
+ &quot;InterfacesAboveIpobjInRules&quot;: &quot;&quot;,
+ &quot;HostIpobjInterfacesIpobjInRules&quot;: &quot;&quot;, 
+ &quot;IpobjInterfacesIpobjInRules&quot;: &quot;&quot;
+ }
+ }
+ *      
+ * */
+ipobjModel.searchIpobjUsage = (fwcloud, id, type, onlyInRules) =&gt; {
+	return new Promise(async (resolve, reject) =&gt; {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions ={};
+			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.GroupInRules = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  &#x27;O&#x27;  POSITIONS
+			search.restrictions.InterfacesAboveIpobjInRules = await Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud); //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  &#x27;O&#x27;  POSITIONS
+			search.restrictions.IpobjInterfacesIpobjInRules = await Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud); //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES &#x27;O&#x27; POSITIONS
+			
+			// Search for the ipobj in other places apart from the rules.
+			if (!onlyInRules) {
+				search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+			}
+
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length &gt; 0) {
+					search.result = true;
+					break;
+				}
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
+	});
+};
+
+/**
+ * ### searchIpobj
+ * Search where is used IPOBJ
+ * 
+ * @method searchIpobj
+ * 
+ * @param {Integer} id id ipobj identifier
+ * @param {Integer} type ipobj type
+ * @param {Integer} fwcloud FwCloud identifier
+ * 
+ * @return {JSON} Returns JSON result
+ * @example #### JSON RESPONSE OK
+ * 
+ *          {&quot;result&quot;: true, &quot;msg&quot;: &quot;IPOBJ FOUND&quot;, 
+ *              &quot;search&quot;: {
+ *                  &quot;IpobjInRules&quot;: data_ipobj, 
+ *                  &quot;IpobjInGroup&quot;: data_group, 
+ *                  &quot;IpobjInterfaces&quot;: data_ipobj_interfaces
+ *                  }
+ *          }
+ * 
+ * #### JSON RESPONSE ERROR NOT EXIST:
+ * 
+ *      {&quot;result&quot;: false, &quot;msg&quot;: &quot;IPOBJ NOT FOUND&quot;, 
+ *              &quot;search&quot;: {
+ *                  &quot;IpobjInRules&quot;: &quot;&quot;, 
+ *                  &quot;IpobjInGroup&quot;: &quot;&quot;, 
+ *                  &quot;IpobjInterfaces&quot;: &quot;&quot;
+ *               }
+ *      }
+ *      
+ * */
+ipobjModel.searchIpobj = (id, type, fwcloud) =&gt; {
+	return new Promise(async (resolve, reject) =&gt; {
+		try {
+			let search = {};
+			search.result = false;
+			search.restrictions = {};
+			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInterfaces = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES &#x27;O&#x27; POSITONS
+			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+
+			for (let key in search.restrictions) {
+				if (search.restrictions[key].length &gt; 0) {
+					search.result = true;
+					break;
+				}
+			}
+			resolve(search);
+		} catch(error) { reject(error) }
+	});
+};
+
+
+//check if IPOBJ exists in and OpenVPN configuration 
+ipobjModel.searchIpobjInOpenvpn = (ipobj, type, fwcloud) =&gt; {
+	return new Promise((resolve, reject) =&gt; {
+		db.get((error, connection) =&gt; {
+			if (error) return reject(error);
+			let sql=&#x27;SELECT VPN.* FROM openvpn AS VPN&#x27; +
+				&#x27; INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id&#x27; +
+				&#x27; INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj&#x27; +
+				&#x27; WHERE OBJ.id=&#x27; + ipobj + &#x27; AND OBJ.type=&#x27; + type + &#x27; AND (OBJ.fwcloud=&#x27; + fwcloud + &#x27; OR OBJ.fwcloud IS NULL)&#x27;;
+			connection.query(sql, (error, rows) =&gt; {
+				if (error) return reject(error);
+				resolve(rows);
+			});
+		});
+	});
+};
+
+
+    </pre>
+</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>

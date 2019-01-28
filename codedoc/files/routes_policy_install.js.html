@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Cluster - FWCloud API REST Documentation</title>
+    <title>routes/policy/install.js - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -90,47 +90,69 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1>Cluster Module</h1>
-<div class="box clearfix meta">
+<h1 class="file-heading">File: routes/policy/install.js</h1>
 
-        <div class="uses">
-            Requires
-            <ul class="inline commas">
-                    <li>express</li>
-                    <li>Clustermodel</li>
-            </ul>
-        </div>
+<div class="file">
+    <pre class="code prettyprint linenums">
+/**
+ * Module to generate and install policy script
+ * &lt;br&gt;BASE ROUTE CALL: &lt;b&gt;/policy/compile&lt;/b&gt;
+ *
+ * @module Compile
+ *
+ * @requires express
+ * @requires Policy_rModel
+ *
+ */
 
-        <div class="foundat">
-            Defined in: <a href="../files/routes_firewall_cluster.js.html#l13"><code>routes&#x2F;firewall&#x2F;cluster.js:13</code></a>
-        </div>
+/**
+ * Property  to manage express
+ *
+ * @property express
+ * @type express
+ */
+var express = require(&#x27;express&#x27;);
+/**
+ * Property  to manage  route
+ *
+ * @property router
+ * @type express.Router
+ */
+var router = express.Router();
 
-</div>
+/**
+ * Property Model to manage API RESPONSE data
+ *
+ * @property api_resp
+ * @type ../../models/api_response
+ *
+ */
+var api_resp = require(&#x27;../../utils/api_response&#x27;);
 
+/**
+ * Property Model to manage policy script generation and install process
+ *
+ * @property PolicyScript
+ * @type ../../models/compile/
+ */
+var PolicyScript = require(&#x27;../../models/policy/policy_script&#x27;);
+var FirewallModel = require(&#x27;../../models/firewall/firewall&#x27;);
 
-<div class="box intro">
-    <p>Module to routing CLUSTER requests
-<br>BASE ROUTE CALL: <b>/clusters</b></p>
+/*----------------------------------------------------------------------------------------------------------------------*/
+router.post(&#x27;/&#x27;, async (req, res) =&gt; {
+  try {
+    const data = await FirewallModel.getFirewallSSH(req);
 
-</div>
+    await PolicyScript.install(req,data.SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
+    await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,&quot;&amp;~2&quot;);
+    
+    api_resp.getJson(null, api_resp.ACR_OK,&#x27;&#x27;,&#x27;POLICY_INSTALL&#x27;, null,jsonResp =&gt; res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(error,api_resp.ACR_ERROR,&#x27;&#x27;,&#x27;POLICY_INSTALL&#x27;, error,jsonResp =&gt; res.status(200).json(jsonResp)) }
+});
+/*----------------------------------------------------------------------------------------------------------------------*/
 
-
-<div class="yui3-g">
-    <div class="yui3-u-1-2">
-            <p>This module provides the following classes:</p>
-
-            <ul class="module-classes">
-                <li class="module-class">
-                    <a href="../classes/ClusterRouter.html">
-                        ClusterRouter
-                    </a>
-                </li>
-            </ul>
-    </div>
-
-
-    <div class="yui3-u-1-2">
-    </div>
+module.exports = router;
+    </pre>
 </div>
                     </div>
                 </div>

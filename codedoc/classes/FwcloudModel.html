@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>FirewallModel - FWCloud API REST Documentation</title>
+    <title>FwcloudModel - FWCloud API REST Documentation</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
     <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
@@ -90,7 +90,7 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-<h1>FirewallModel Class</h1>
+<h1>FwcloudModel Class</h1>
 <div class="box meta">
         <div class="uses">
             Uses
@@ -101,16 +101,16 @@
 
 
         <div class="foundat">
-            Defined in: <a href="../files/models_firewall_firewall.js.html#l11"><code>models&#x2F;firewall&#x2F;firewall.js:11</code></a>
+            Defined in: <a href="../files/models_fwcloud_fwcloud.js.html#l12"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:12</code></a>
         </div>
 
-            Module: <a href="../modules/Firewall.html">Firewall</a>
+            Module: <a href="../modules/Fwcloud.html">Fwcloud</a>
 
 </div>
 
 
 <div class="box intro">
-    <p>Class to manage firewalls data</p>
+    <p>Class to manage fwclouds data</p>
 
 </div>
 
@@ -132,47 +132,39 @@
 
                     <ul class="index-list methods">
                             <li class="index-item method">
-                                <a href="#method_deleteFirewall">deleteFirewall</a>
+                                <a href="#method_deleteFwcloud">deleteFwcloud</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewall">getFirewall</a>
+                                <a href="#method_getFwcloud">getFwcloud</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallCloud">getFirewallCloud</a>
+                                <a href="#method_getFwcloud">getFwcloud</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallCluster">getFirewallCluster</a>
+                                <a href="#method_getFwcloudLockedAccess">getFwcloudLockedAccess</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallLockedAccess">getFirewallLockedAccess</a>
+                                <a href="#method_getFwcloudLockedTimeout">getFwcloudLockedTimeout</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewalls">getFirewalls</a>
+                                <a href="#method_insertFwcloud">insertFwcloud</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_getFirewallSSH">getFirewallSSH</a>
+                                <a href="#method_updateFwcloud">updateFwcloud</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_insertFirewall">insertFirewall</a>
+                                <a href="#method_updateFwcloudLock">updateFwcloudLock</a>
 
                             </li>
                             <li class="index-item method">
-                                <a href="#method_updateFirewall">updateFirewall</a>
-
-                            </li>
-                            <li class="index-item method">
-                                <a href="#method_updateFirewallLock">updateFirewallLock</a>
-
-                            </li>
-                            <li class="index-item method">
-                                <a href="#method_updateFirewallUnlock">updateFirewallUnlock</a>
+                                <a href="#method_updateFwcloudUnlock">updateFwcloudUnlock</a>
 
                             </li>
                     </ul>
@@ -195,13 +187,13 @@
             <div id="methods" class="api-class-tabpanel">
                 <h2 class="off-left">Methods</h2>
 
-<div id="method_deleteFirewall" class="method item">
-    <h3 class="name"><code>deleteFirewall</code></h3>
+<div id="method_deleteFwcloud" class="method item">
+    <h3 class="name"><code>deleteFwcloud</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
                 <li class="arg">
-                        <code>user</code>
+                        <code>iduser</code>
                 </li>
                 <li class="arg">
                         <code>id</code>
@@ -225,7 +217,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l808"><code>models&#x2F;firewall&#x2F;firewall.js:808</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l454"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:454</code></a>
         </p>
 
 
@@ -233,7 +225,7 @@
     </div>
 
     <div class="description">
-        <p>DELETE Firewall</p>
+        <p>DELETE Fwcloud</p>
 
     </div>
 
@@ -242,7 +234,7 @@
 
             <ul class="params-list">
                 <li class="param">
-                        <code class="param-name">user</code>
+                        <code class="param-name">iduser</code>
                         <span class="type">Integer</span>
 
 
@@ -258,7 +250,7 @@
 
 
                     <div class="param-description">
-                        <p>Firewall identifier</p>
+                        <p>Fwcloud identifier</p>
 
                     </div>
 
@@ -301,8 +293,98 @@
             </div>
         </div>
 </div>
-<div id="method_getFirewall" class="method item">
-    <h3 class="name"><code>getFirewall</code></h3>
+<div id="method_getFwcloud" class="method item">
+    <h3 class="name"><code>getFwcloud</code></h3>
+
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+                <li class="arg">
+                        <code>iduser</code>
+                </li>
+                <li class="arg">
+                        <code>callback</code>
+                </li>
+            </ul><span class="paren">)</span>
+        </div>
+
+        <span class="returns-inline">
+            <span class="type">ARRAY of Fwcloud objects</span>
+        </span>
+
+
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/models_fwcloud_fwcloud.js.html#l42"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:42</code></a>
+        </p>
+
+
+
+    </div>
+
+    <div class="description">
+        <p>Get Fwcloud by User</p>
+
+    </div>
+
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+                <li class="param">
+                        <code class="param-name">iduser</code>
+                        <span class="type">Integer</span>
+
+
+                    <div class="param-description">
+                        <p>User identifier</p>
+
+                    </div>
+
+                </li>
+                <li class="param">
+                        <code class="param-name">callback</code>
+                        <span class="type">Function</span>
+
+
+                    <div class="param-description">
+                        <p>Function callback response</p>
+<pre><code>  callback(error, Rows)</code></pre>
+
+                    </div>
+
+                </li>
+            </ul>
+        </div>
+
+        <div class="returns">
+            <h4>Returns:</h4>
+
+            <div class="returns-description">
+                        <span class="type">ARRAY of Fwcloud objects</span>:
+                    <p>Returns <code>ARRAY OBJECT FWCLOUD DATA</code></p>
+<p>Table: <strong>fwcloud</strong></p>
+<pre><code>      id    int(11) AI PK
+      cluster   int(11)
+      fwcloud   int(11)
+      name  varchar(255)
+      comment   longtext
+      created_at    datetime
+      updated_at    datetime
+      by_user   int(11)</code></pre>
+
+            </div>
+        </div>
+
+
+</div>
+<div id="method_getFwcloud" class="method item">
+    <h3 class="name"><code>getFwcloud</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -319,7 +401,7 @@
         </div>
 
         <span class="returns-inline">
-            <span class="type">Firewall object</span>
+            <span class="type">Fwcloud object</span>
         </span>
 
 
@@ -331,7 +413,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l91"><code>models&#x2F;firewall&#x2F;firewall.js:91</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l85"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:85</code></a>
         </p>
 
 
@@ -339,7 +421,7 @@
     </div>
 
     <div class="description">
-        <p>Get Firewalls by User and ID</p>
+        <p>Get Fwcloud by User and ID</p>
 
     </div>
 
@@ -364,7 +446,7 @@
 
 
                     <div class="param-description">
-                        <p>firewall identifier</p>
+                        <p>fwcloud identifier</p>
 
                     </div>
 
@@ -388,9 +470,9 @@
             <h4>Returns:</h4>
 
             <div class="returns-description">
-                        <span class="type">Firewall object</span>:
-                    <p>Returns <code>OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
+                        <span class="type">Fwcloud object</span>:
+                    <p>Returns <code>OBJECT FWCLOUD DATA</code></p>
+<p>Table: <strong>fwcloud</strong></p>
 <pre><code>      id    int(11) AI PK
       cluster   int(11)
       fwcloud   int(11)
@@ -405,224 +487,13 @@
 
 
 </div>
-<div id="method_getFirewallCloud" class="method item">
-    <h3 class="name"><code>getFirewallCloud</code></h3>
+<div id="method_getFwcloudLockedAccess" class="method item">
+    <h3 class="name"><code>getFwcloudLockedAccess</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
                 <li class="arg">
                         <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idCloud</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_firewall_firewall.js.html#l310"><code>models&#x2F;firewall&#x2F;firewall.js:310</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Cloud</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idCloud</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Cloud identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallCluster" class="method item">
-    <h3 class="name"><code>getFirewallCluster</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idcluster</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_firewall_firewall.js.html#l223"><code>models&#x2F;firewall&#x2F;firewall.js:223</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewalls by User and Cluster</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idcluster</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>Cluster identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_getFirewallLockedAccess" class="method item">
-    <h3 class="name"><code>getFirewallLockedAccess</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>idfirewall</code>
                 </li>
                 <li class="arg">
                         <code>fwcloud</code>
@@ -646,7 +517,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l189"><code>models&#x2F;firewall&#x2F;firewall.js:189</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l126"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:126</code></a>
         </p>
 
 
@@ -654,7 +525,7 @@
     </div>
 
     <div class="description">
-        <p>Get Firewall Access by Locked</p>
+        <p>Get Fwcloud Access by Locked</p>
 
     </div>
 
@@ -669,17 +540,6 @@
 
                     <div class="param-description">
                         <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">idfirewall</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>firewall identifier</p>
 
                     </div>
 
@@ -722,14 +582,11 @@
 
 
 </div>
-<div id="method_getFirewalls" class="method item">
-    <h3 class="name"><code>getFirewalls</code></h3>
+<div id="method_getFwcloudLockedTimeout" class="method item">
+    <h3 class="name"><code>getFwcloudLockedTimeout</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
                 <li class="arg">
                         <code>callback</code>
                 </li>
@@ -737,7 +594,7 @@
         </div>
 
         <span class="returns-inline">
-            <span class="type">ARRAY of Firewall objects</span>
+            <span class="type">Boolean</span>
         </span>
 
 
@@ -749,7 +606,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l40"><code>models&#x2F;firewall&#x2F;firewall.js:40</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l176"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:176</code></a>
         </p>
 
 
@@ -757,7 +614,7 @@
     </div>
 
     <div class="description">
-        <p>Get Firewalls by User</p>
+        <p>Check Fwcloud locked timeout</p>
 
     </div>
 
@@ -765,17 +622,6 @@
             <h4>Parameters:</h4>
 
             <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
                 <li class="param">
                         <code class="param-name">callback</code>
                         <span class="type">Function</span>
@@ -795,25 +641,16 @@
             <h4>Returns:</h4>
 
             <div class="returns-description">
-                        <span class="type">ARRAY of Firewall objects</span>:
-                    <p>Returns <code>ARRAY OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)</code></pre>
+                        <span class="type">Boolean</span>:
+                    <p>Returns <code>RESULT UNLOCKED</code></p>
 
             </div>
         </div>
 
 
 </div>
-<div id="method_getFirewallSSH" class="method item">
-    <h3 class="name"><code>getFirewallSSH</code></h3>
+<div id="method_insertFwcloud" class="method item">
+    <h3 class="name"><code>insertFwcloud</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -821,111 +658,7 @@
                         <code>iduser</code>
                 </li>
                 <li class="arg">
-                        <code>id</code>
-                </li>
-                <li class="arg">
-                        <code>callback</code>
-                </li>
-            </ul><span class="paren">)</span>
-        </div>
-
-        <span class="returns-inline">
-            <span class="type">Firewall object</span>
-        </span>
-
-
-
-
-
-
-
-    <div class="meta">
-                <p>
-                Defined in
-        <a href="../files/models_firewall_firewall.js.html#l136"><code>models&#x2F;firewall&#x2F;firewall.js:136</code></a>
-        </p>
-
-
-
-    </div>
-
-    <div class="description">
-        <p>Get Firewall SSH connection data</p>
-
-    </div>
-
-        <div class="params">
-            <h4>Parameters:</h4>
-
-            <ul class="params-list">
-                <li class="param">
-                        <code class="param-name">iduser</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>User identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">id</code>
-                        <span class="type">Integer</span>
-
-
-                    <div class="param-description">
-                        <p>firewall identifier</p>
-
-                    </div>
-
-                </li>
-                <li class="param">
-                        <code class="param-name">callback</code>
-                        <span class="type">Function</span>
-
-
-                    <div class="param-description">
-                        <p>Function callback response</p>
-<pre><code>  callback(error, Rows)</code></pre>
-
-                    </div>
-
-                </li>
-            </ul>
-        </div>
-
-        <div class="returns">
-            <h4>Returns:</h4>
-
-            <div class="returns-description">
-                        <span class="type">Firewall object</span>:
-                    <p>Returns <code>OBJECT FIREWALL DATA</code></p>
-<p>Table: <strong>firewall</strong></p>
-<pre><code>      id    int(11) AI PK
-      cluster   int(11)
-      fwcloud   int(11)
-      name  varchar(255)
-      comment   longtext
-      created_at    datetime
-      updated_at    datetime
-      by_user   int(11)</code></pre>
-
-            </div>
-        </div>
-
-
-</div>
-<div id="method_insertFirewall" class="method item">
-    <h3 class="name"><code>insertFirewall</code></h3>
-
-        <div class="args">
-            <span class="paren">(</span><ul class="args-list inline commas">
-                <li class="arg">
-                        <code>iduser</code>
-                </li>
-                <li class="arg">
-                        <code>firewallData</code>
+                        <code>fwcloudData</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -946,7 +679,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l360"><code>models&#x2F;firewall&#x2F;firewall.js:360</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l217"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:217</code></a>
         </p>
 
 
@@ -954,7 +687,7 @@
     </div>
 
     <div class="description">
-        <p>ADD New Firewall</p>
+        <p>ADD New Fwcloud</p>
 
     </div>
 
@@ -974,12 +707,12 @@
 
                 </li>
                 <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
+                        <code class="param-name">fwcloudData</code>
+                        <span class="type">Fwcloud Object</span>
 
 
                     <div class="param-description">
-                        <p>Firewall Object data</p>
+                        <p>Fwcloud Object data</p>
 
                     </div>
 
@@ -994,42 +727,11 @@
 
                             </li>
                             <li class="param">
-                                    <code class="param-name">cluster</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>Cluster ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">fwcloud</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>FWcloud ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
                                     <code class="param-name">name</code>
                                     <span class="type">String</span>
 
                                 <div class="param-description">
-                                    <p>Firewall Name</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name optional">[comment]</code>
-                                    <span class="type">String</span>
-                                    <span class="flag optional" title="This parameter is optional.">optional</span>
-
-                                <div class="param-description">
-                                    <p>comment text</p>
+                                    <p>Fwcloud Name</p>
 
                                 </div>
 
@@ -1074,8 +776,8 @@
             </div>
         </div>
 </div>
-<div id="method_updateFirewall" class="method item">
-    <h3 class="name"><code>updateFirewall</code></h3>
+<div id="method_updateFwcloud" class="method item">
+    <h3 class="name"><code>updateFwcloud</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -1083,7 +785,7 @@
                         <code>iduser</code>
                 </li>
                 <li class="arg">
-                        <code>firewallData</code>
+                        <code>fwcloudData</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -1104,7 +806,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l415"><code>models&#x2F;firewall&#x2F;firewall.js:415</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l266"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:266</code></a>
         </p>
 
 
@@ -1112,7 +814,7 @@
     </div>
 
     <div class="description">
-        <p>UPDATE Firewall</p>
+        <p>UPDATE Fwcloud</p>
 
     </div>
 
@@ -1132,12 +834,12 @@
 
                 </li>
                 <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
+                        <code class="param-name">fwcloudData</code>
+                        <span class="type">Fwcloud Object</span>
 
 
                     <div class="param-description">
-                        <p>Firewall Object data</p>
+                        <p>Fwcloud Object data</p>
 
                     </div>
 
@@ -1152,42 +854,11 @@
 
                             </li>
                             <li class="param">
-                                    <code class="param-name">cluster</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>Cluster ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name">fwcloud</code>
-                                    <span class="type">Integer</span>
-
-                                <div class="param-description">
-                                    <p>FWcloud ID</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
                                     <code class="param-name">name</code>
                                     <span class="type">String</span>
 
                                 <div class="param-description">
-                                    <p>Firewall Name</p>
-
-                                </div>
-
-                            </li>
-                            <li class="param">
-                                    <code class="param-name optional">[comment]</code>
-                                    <span class="type">String</span>
-                                    <span class="flag optional" title="This parameter is optional.">optional</span>
-
-                                <div class="param-description">
-                                    <p>comment text</p>
+                                    <p>Fwcloud Name</p>
 
                                 </div>
 
@@ -1232,8 +903,8 @@
             </div>
         </div>
 </div>
-<div id="method_updateFirewallLock" class="method item">
-    <h3 class="name"><code>updateFirewallLock</code></h3>
+<div id="method_updateFwcloudLock" class="method item">
+    <h3 class="name"><code>updateFwcloudLock</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -1241,7 +912,7 @@
                         <code>iduser</code>
                 </li>
                 <li class="arg">
-                        <code>firewallData</code>
+                        <code>fwcloudData</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -1262,7 +933,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l684"><code>models&#x2F;firewall&#x2F;firewall.js:684</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l311"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:311</code></a>
         </p>
 
 
@@ -1270,7 +941,7 @@
     </div>
 
     <div class="description">
-        <p>UPDATE Firewall lock status</p>
+        <p>UPDATE Fwcloud lock status</p>
 
     </div>
 
@@ -1290,12 +961,12 @@
 
                 </li>
                 <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
+                        <code class="param-name">fwcloudData</code>
+                        <span class="type">Fwcloud Object</span>
 
 
                     <div class="param-description">
-                        <p>Firewall Object data</p>
+                        <p>Fwcloud Object data</p>
 
                     </div>
 
@@ -1369,8 +1040,8 @@
             </div>
         </div>
 </div>
-<div id="method_updateFirewallUnlock" class="method item">
-    <h3 class="name"><code>updateFirewallUnlock</code></h3>
+<div id="method_updateFwcloudUnlock" class="method item">
+    <h3 class="name"><code>updateFwcloudUnlock</code></h3>
 
         <div class="args">
             <span class="paren">(</span><ul class="args-list inline commas">
@@ -1378,7 +1049,7 @@
                         <code>iduser</code>
                 </li>
                 <li class="arg">
-                        <code>firewallData</code>
+                        <code>fwcloudData</code>
                 </li>
                 <li class="arg">
                         <code>callback</code>
@@ -1399,7 +1070,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l740"><code>models&#x2F;firewall&#x2F;firewall.js:740</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l396"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:396</code></a>
         </p>
 
 
@@ -1407,7 +1078,7 @@
     </div>
 
     <div class="description">
-        <p>UNLOCK Firewall status</p>
+        <p>UNLOCK Fwcloud status</p>
 
     </div>
 
@@ -1427,12 +1098,12 @@
 
                 </li>
                 <li class="param">
-                        <code class="param-name">firewallData</code>
-                        <span class="type">Firewall Object</span>
+                        <code class="param-name">fwcloudData</code>
+                        <span class="type">Fwcloud Object</span>
 
 
                     <div class="param-description">
-                        <p>Firewall Object data</p>
+                        <p>Fwcloud Object data</p>
 
                     </div>
 
@@ -1513,7 +1184,7 @@
 
 <div id="property_tableModel" class="property item private">
     <h3 class="name"><code>tableModel</code></h3>
-    <span class="type">"firewall"</span>
+    <span class="type">"fwcloud"</span>
 
 
         <span class="flag private">private</span>
@@ -1523,7 +1194,7 @@
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/models_firewall_firewall.js.html#l21"><code>models&#x2F;firewall&#x2F;firewall.js:21</code></a>
+        <a href="../files/models_fwcloud_fwcloud.js.html#l27"><code>models&#x2F;fwcloud&#x2F;fwcloud.js:27</code></a>
         </p>
 
 
