@@ -29,7 +29,6 @@ var router = express.Router();
  * Property Model to manage API RESPONSE data
  *
  * @property api_resp
- * @type ../../models/api_response
  * 
  */
 var api_resp = require('../../utils/api_response');
