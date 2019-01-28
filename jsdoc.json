@@ -20,5 +20,26 @@
 	"templates": {
 		"cleverLinks": false,
 		"monospaceLinks": false
+	},
+	"docdash": {
+		"search": true,
+		"sectionOrder": [ 
+			"Modules",
+			"Classes",
+			"Externals",
+			"Events",
+			"Namespaces",
+			"Mixins",
+			"Tutorials",
+			"Interfaces"
+	  ],
+	  "menu":{                      
+			"FWCloud.net":{         
+				"href":"https://fwcloud.net", 
+				"target":"_blank",
+				"class":"menu-item",
+				"id":"website_link"
+			}
+		}
 	}
 }
