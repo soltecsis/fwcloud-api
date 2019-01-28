@@ -115,29 +115,29 @@ router.put('/', (req, res) => {
 					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
 					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
 					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n");
-				socketTools.msg("--- STATEFULL FIREWALL ---\n\n");
+				socketTools.msg("<strong>--- STATEFUL FIREWALL ---</strong>\n\n");
 			}
 			else
-				socketTools.msg("--- STATELESS FIREWALL ---\n\n");
+				socketTools.msg("<strong>--- STATELESS FIREWALL ---</strong>\n\n");
 			
 			stream.write("\n\necho -e \"\\nINPUT TABLE\\n-----------\"\n");
-			socketTools.msg("INPUT TABLE:\n");
+			socketTools.msg("<strong>INPUT TABLE:</strong>\n");
 
 			let cs = await PolicyScript.dump(req,1);
 			stream.write(cs + "\n\necho -e \"\\nOUTPUT TABLE\\n------------\"\n");
-			socketTools.msg("\nOUTPUT TABLE\n");
+			socketTools.msg("<strong>OUTPUT TABLE:</strong>\n");
 	
 			cs = await PolicyScript.dump(req,2);
 			stream.write(cs + "\n\necho -e \"\\nFORWARD TABLE\\n-------------\"\n");
-			socketTools.msg("\nFORWARD TABLE\n");
+			socketTools.msg("<strong>FORWARD TABLE:</strong>\n");
 			
 			cs = await PolicyScript.dump(req,3);
 			stream.write(cs + "\n\necho -e \"\\nSNAT TABLE\\n----------\"\n");
-			socketTools.msg("\nSNAT TABLE\n");
+			socketTools.msg("<strong>SNAT TABLE:</strong>\n");
 			
 			cs = await PolicyScript.dump(req,4);
 			stream.write(cs + "\n\necho -e \"\\nDNAT TABLE\\n----------\"\n");
-			socketTools.msg("\nDNAT TABLE\n");
+			socketTools.msg("<strong>DNAT TABLE:</strong>\n");
 			
 			cs = await PolicyScript.dump(req, 5);
 			stream.write(cs+"\n}\n\n");
