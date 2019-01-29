@@ -105,6 +105,7 @@ schema.validate = req => {
 				.when('name', { is: 'keepalive', then: Joi.string().regex(/^[0-9]{1,10} [0-9]{1,10}$/), otherwise: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional() }),
 			ipobj: Joi.alternatives()
 				.when('name', { is: 'server', then: sharedSch.id })
+				.when('name', { is: 'remote', then: sharedSch.id })
 				.when('name', { is: 'ifconfig-push', then: sharedSch.id, otherwise: Joi.valid(null) }),
 			scope: sharedSch._0_1, // 0=ccd, 1=config file
 			comment: sharedSch.comment
