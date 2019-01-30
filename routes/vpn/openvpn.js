@@ -54,6 +54,7 @@ const fwc_treeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcTreemodel = require('../../models/tree/tree');
 const pkiModel = require('../../models/vpn/pki');
+const ipobjModel = require('../../models/ipobj/ipobj');
 
 
 /**
@@ -151,6 +152,22 @@ router.put('/file/get', async(req, res) => {
 		const cfgDump = await openvpnModel.dumpCfg(req);
 		api_resp.getJson(cfgDump, api_resp.ACR_OK, 'OpenVPN configuration file sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN file configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
+ * Get OpenVPN ipobj data.
+ */
+router.put('/ipobj/get', async(req, res) => {
+	try {
+		const cfgData = await openvpnModel.getCfg(req);
+		let data = [];
+		for (let openvpn_opt of cfgData.options) {
+			if (openvpn_opt.ipobj)
+				data.push(await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj));
+		}
+		api_resp.getJson(data, api_resp.ACR_OK, 'OpenVPN ipobj array sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN ipobj array', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
