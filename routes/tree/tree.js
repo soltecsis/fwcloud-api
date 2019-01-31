@@ -20,6 +20,7 @@ router.put('/firewalls/get', async (req, res) => {
 		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
 		await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await openvpnModel.getOpenvpnStatusNotZero(req,tree);
+		await pkiModel.storePkiInfo(req,tree);
 		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

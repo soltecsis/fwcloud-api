@@ -100,6 +100,22 @@ pkiModel.getCRTdata = (dbCon,crt) => {
   });
 };
 
+/** 
+ * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
+ */
+pkiModel.storePkiInfo = (req,tree) => {
+	return new Promise((resolve, reject) => {
+    let sql =`SELECT VPN.id as openvpn,CRT.id as crt,CRT.ca FROM crt CRT
+      INNER JOIN openvpn VPN on VPN.crt=CRT.id
+      INNER JOIN firewall FW ON FW.id=VPN.firewall
+      WHERE FW.fwcloud=${req.body.fwcloud}`;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      tree.openvpn_info = result;
+      resolve();
+    });
+  });
+};
 
 // Execute EASY-RSA command.
 pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
