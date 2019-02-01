@@ -105,7 +105,7 @@ pkiModel.getCRTdata = (dbCon,crt) => {
  */
 pkiModel.storePkiInfo = (req,tree) => {
 	return new Promise((resolve, reject) => {
-    let sql =`SELECT VPN.id as openvpn,CRT.id as crt,CRT.ca FROM crt CRT
+    let sql =`SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca FROM crt CRT
       INNER JOIN openvpn VPN on VPN.crt=CRT.id
       INNER JOIN firewall FW ON FW.id=VPN.firewall
       WHERE FW.fwcloud=${req.body.fwcloud}`;
