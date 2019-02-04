@@ -15,7 +15,7 @@ sharedSchema.username = Joi.string().alphanum().min(3).max(32);
 sharedSchema.password = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
 
 sharedSchema.days = Joi.number().integer().min(1).max(36500);
-sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
+sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_.]{4,64}$/);
 
 sharedSchema.name = Joi.string().regex(/^[ -~\x80-\xFE]{1,64}$/);
 sharedSchema.comment = Joi.string().allow('').allow(null).regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional();
