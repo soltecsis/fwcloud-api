@@ -851,7 +851,7 @@ CREATE TABLE `openvpn` (
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
   `install_dir` varchar(255) DEFAULT NULL,
-  `isntall_name` varchar(255) DEFAULT NULL,
+  `install_name` varchar(255) DEFAULT NULL,
   `comment` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
   `status` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
