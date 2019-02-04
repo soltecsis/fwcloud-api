@@ -125,6 +125,8 @@ schema.validate = req => {
 			if (req.url==='/vpn/openvpn') {
 				schema = schema.append({
 					openvpn: sharedSch.id,
+					install_dir: sharedSch.linux_path.optional(),
+					install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{4,64}$/).optional(),
 					options: Joi.array().items(schemaPar)
 				});
 			}
