@@ -221,8 +221,9 @@ router.put('/install', async(req, res) => {
 			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
 		}
-		else // Server certificate
-			await openvpnModel.installCfg(req,cfgDump.cfg,'/etc/openvpn/','server.conf',2);
+		else { // Server certificate
+			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2);
+		}
 
 		// Update the status flag for the OpenVPN configuration.
 		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");

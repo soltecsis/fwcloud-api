@@ -116,6 +116,8 @@ schema.validate = req => {
 				openvpn: sharedSch.id.optional(), // Necessary when creating a new OpenVPN client configuration.
 				firewall: sharedSch.id,
 				crt: sharedSch.id,
+				install_dir: sharedSch.lilnux_path.optional(),
+				install_name: Joi.string().regex(/^[a-zA-Z0-9\-_.]{4,64}$/).optional(),
 				options: Joi.array().items(schemaPar),
 				node_id: sharedSch.id
 			});

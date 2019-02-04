@@ -160,7 +160,7 @@ router.put('/crt/del', async(req, res) => {
 		await utilsModel.deleteFile(base_dir + '/certs_by_serial', serial + '.pem');
 
 		// Delete the certificate node into the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt, 301);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
 
 		// Answer to the API request.
 		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));

@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.24, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.25, for Linux (x86_64)
 --
 -- Host: localhost    Database: fwcloud
 -- ------------------------------------------------------
--- Server version	5.7.24-0ubuntu0.16.04.1
+-- Server version	5.7.25-0ubuntu0.16.04.2
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -306,7 +306,7 @@ CREATE TABLE `fwc_tree_node_types` (
 
 LOCK TABLES `fwc_tree_node_types` WRITE;
 /*!40000 ALTER TABLE `fwc_tree_node_types` DISABLE KEYS */;
-INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2),('LBL',30,'Firewall policy labels',NULL,2);
+INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('LBL',30,'Firewall policy labels',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2);
 /*!40000 ALTER TABLE `fwc_tree_node_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -850,6 +850,8 @@ CREATE TABLE `openvpn` (
   `openvpn` int(11) DEFAULT NULL,
   `firewall` int(11) NOT NULL,
   `crt` int(11) NOT NULL,
+  `install_dir` varchar(255) DEFAULT NULL,
+  `isntall_name` varchar(255) DEFAULT NULL,
   `comment` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
   `status` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1731,4 +1733,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-01-14 13:59:04
+-- Dump completed on 2019-02-04 11:40:45
