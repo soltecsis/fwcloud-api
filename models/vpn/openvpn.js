@@ -397,7 +397,7 @@ openvpnModel.searchOpenvpnChilds = (dbCon,fwcloud,openvpn) => {
       if (error) return reject(error);
 
       if (result.length > 0)
-        resolve({result: true, openvpnHasChilds: true});
+        resolve({result: true, restrictions: { openvpnHasChilds: true}});
       else
         resolve({result: false});
     });
