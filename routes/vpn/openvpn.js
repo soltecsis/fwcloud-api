@@ -114,6 +114,8 @@ router.post('/', async(req, res) => {
  */
 router.put('/', async(req, res) => {
 	try {
+		await openvpnModel.updateCfg(req);
+
 		// First remove all the current configuration options.
 		await openvpnModel.delCfgOptAll(req);
 

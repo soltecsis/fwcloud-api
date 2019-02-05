@@ -19,12 +19,27 @@ openvpnModel.addCfg = req => {
       openvpn: req.body.openvpn,
       firewall: req.body.firewall,
       crt: req.body.crt,
+      install_dir: req.body.install_dir,
+      install_name: req.body.install_name,
       comment: req.body.comment,
       status: 1
     }
     req.dbCon.query('insert into openvpn SET ?', cfg, (error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
+    });
+  });
+};
+
+openvpnModel.updateCfg = req => {
+	return new Promise((resolve, reject) => {
+    let sql =`UPDATE openvpn SET install_dir=${req.dbCon.escape(req.body.install_dir)},
+      install_name=${req.dbCon.escape(req.body.install_name)},
+      comment=${req.dbCon.escape(req.body.comment)}
+      WHERE id=${req.body.openvpn}`
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve();
     });
   });
 };

@@ -119,6 +119,7 @@ schema.validate = req => {
 				install_dir: sharedSch.linux_path.optional(),
 				install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{2,64}$/).optional(),
 				options: Joi.array().items(schemaPar),
+				comment: sharedSch.comment,
 				node_id: sharedSch.id
 			});
 		} else if (req.method==="PUT") {
@@ -127,7 +128,8 @@ schema.validate = req => {
 					openvpn: sharedSch.id,
 					install_dir: sharedSch.linux_path.optional(),
 					install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{2,64}$/).optional(),
-					options: Joi.array().items(schemaPar)
+					options: Joi.array().items(schemaPar),
+					comment: sharedSch.comment
 				});
 			}
 			else if (req.url==='/vpn/openvpn/install') {
