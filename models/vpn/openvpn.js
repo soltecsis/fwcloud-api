@@ -388,6 +388,23 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
 };
 
 
+openvpnModel.searchOpenvpnChilds = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT VPN.id FROM openvpn VPN
+      INNER JOIN firewall FW ON FW.id=VPN.firewall
+      WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
+    dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result.length > 0)
+        resolve({result: true, openvpnHasChilds: true});
+      else
+        resolve({result: false});
+    });
+  });
+};
+
+
 // Get the ID of all OpenVPN configurations who's status field is not zero.
 openvpnModel.getOpenvpnStatusNotZero = (req, data) => {
 	return new Promise((resolve, reject) => {

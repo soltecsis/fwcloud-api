@@ -117,7 +117,7 @@ schema.validate = req => {
 				firewall: sharedSch.id,
 				crt: sharedSch.id,
 				install_dir: sharedSch.linux_path.optional(),
-				install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{4,64}$/).optional(),
+				install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{2,64}$/).optional(),
 				options: Joi.array().items(schemaPar),
 				node_id: sharedSch.id
 			});
@@ -126,7 +126,7 @@ schema.validate = req => {
 				schema = schema.append({
 					openvpn: sharedSch.id,
 					install_dir: sharedSch.linux_path.optional(),
-					install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{4,64}$/).optional(),
+					install_name: Joi.string().regex(/^[a-zA-Z0-9\-_\.]{2,64}$/).optional(),
 					options: Joi.array().items(schemaPar)
 				});
 			}
