@@ -274,7 +274,7 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
       socketTools.msg(`Installing OpenVPN configuration file.\n`);
 			await sshTools.runCommand(fwData.SSHconn,`sudo mv ${name} ${dir}/`);
 
-      socketTools.msg(`Setting up file permisions.\n`);
+      socketTools.msg(`Setting up file permissions.\n`);
       await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root ${dir}/${name}`);
       if (type===1) // Client certificate.
         await sshTools.runCommand(fwData.SSHconn,`sudo chmod 644 ${dir}/${name}`);
