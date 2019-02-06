@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>models/policy/policy_script.js - Documentation</title>
+    <title>models/vpn/pki.js - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -33,7 +33,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">models/policy/policy_script.js</h1>
+    <h1 class="page-title">models/vpn/pki.js</h1>
     
 
     
@@ -44,143 +44,221 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>//create object
-var PolicyScript = {};
-
-module.exports = PolicyScript;
-
-/**
-* Property Model to manage Policy Compiled Data
-*
-* @property Policy_cModel
-* @type /models/policy_c
-*/
-var Policy_cModel = require('../../models/policy/policy_c');
-
-/**
- * Property Model to manage compilation process
- *
- * @property RuleCompileModel
- * @type /models/compile/
- */
-var RuleCompile = require('../../models/policy/rule_compile');
-
-var firewallModel = require('../../models/firewall/firewall');
-
-const sshTools = require('../../utils/ssh');
-const socketTools = require('../../utils/socket');
+var pkiModel = {};
 
 var config = require('../../config/config');
+const spawn = require('child-process-promise').spawn;
+const readline = require('readline');
+const fs = require('fs');
+ 
 
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.append = path => {
-	return new Promise((resolve,reject) => {
-		var fs = require('fs');
+// Insert new CA in the database.
+pkiModel.createCA = req => {
+	return new Promise((resolve, reject) => {
+    const ca = {
+      fwcloud: req.body.fwcloud,
+      cn: req.body.cn,
+      days: req.body.days,
+      comment: req.body.comment,
+      status: 1 // This status variable will be changed to 0 when the DF file generation is completed.
+    }
+    req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
 
-		try {
-			var data = {};
-			data.cs = fs.readFileSync(path, 'utf8');
-			resolve(data);
-		} catch(error) { reject(error); }
+// Delete CA.
+pkiModel.deleteCA = req => {
+	return new Promise((resolve, reject) => {
+    // Verify that the CA can be deleted.
+    req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca='+req.body.ca, (error, result) => {
+      if (error) return reject(error);
+      if (result[0].n > 0) return reject(new Error('This CA can not be removed because it still has certificates'));
+
+      req.dbCon.query('DELETE FROM ca WHERE id='+req.body.ca, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
+};
+
+
+
+
+// Insert new certificate in the database.
+pkiModel.createCRT = req => {
+	return new Promise((resolve, reject) => {
+    const cert = {
+      ca: req.body.ca,
+      cn: req.body.cn,
+      days: req.body.days,
+      type: req.body.type,
+      comment: req.body.comment
+    }
+    req.dbCon.query('insert into crt SET ?', cert, (error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
+// Delete CRT.
+pkiModel.deleteCRT = req => {
+	return new Promise((resolve, reject) => {
+    // Verify that the CA can be deleted.
+    req.dbCon.query('SELECT count(*) AS n FROM openvpn WHERE crt='+req.body.crt, (error, result) => {
+      if (error) return reject(error);
+      if (result[0].n > 0) return reject(new Error('This certificate can not be removed because it is used in a OpenVPN setup'));
+
+      req.dbCon.query('DELETE FROM crt WHERE id='+req.body.crt, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
+};
+
+// Get database certificate data.
+pkiModel.getCRTdata = (dbCon,crt) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
+      if (error) return reject(error);
+      if (result.length!==1) return reject(new Error('CRT not found'));
+
+      resolve(result[0]);
+    });
+  });
+};
+
+// Get database certificate data.
+pkiModel.getCRTdata = (dbCon,crt) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
+      if (error) return reject(error);
+      if (result.length!==1) return reject(new Error('CRT not found'));
+
+      resolve(result[0]);
+    });
+  });
+};
+
+/** 
+ * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
+ */
+pkiModel.storePkiInfo = (req,tree) => {
+	return new Promise((resolve, reject) => {
+    let sql =`SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca FROM crt CRT
+      INNER JOIN openvpn VPN on VPN.crt=CRT.id
+      INNER JOIN firewall FW ON FW.id=VPN.firewall
+      WHERE FW.fwcloud=${req.body.fwcloud}`;
+    req.dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      tree.openvpn_info = result;
+      resolve();
+    });
+  });
+};
+
+// Execute EASY-RSA command.
+pkiModel.runEasyRsaCmd = (req,easyrsaDataCmd) => {
+	return new Promise((resolve, reject) => {
+    const pki_dir = '--pki-dir=' + config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.caId;
+    var argv = ['--batch',pki_dir];
+
+    switch(easyrsaDataCmd) {
+      case 'init-pki':
+      case 'gen-crl':
+      case 'gen-dh':
+      argv.push(easyrsaDataCmd);
+      break;
+
+      case 'build-ca':
+      argv.push('--days='+req.body.days);
+      argv.push('--req-cn='+req.body.cn);
+      argv.push(easyrsaDataCmd);
+      if (!req.body.pass)
+        argv.push('nopass');
+      break;
+
+      case 'build-server-full':
+      case 'build-client-full':
+      argv.push('--days='+req.body.days);
+      argv.push(easyrsaDataCmd);
+      argv.push(req.body.cn);
+      if (!req.body.pass)
+        argv.push('nopass');
+      break;
+    }
+    const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
+    //const childProcess = promise.childProcess;
+
+    //if (!req.body.pass)
+      //  childProcess.stdin.push('mipass');
+
+    //childProcess.stdout.on('data', data => console.log('stdout: ', data.toString()) );
+    //childProcess.stderr.on('data', data => console.log('stderr: ', data.toString()) );
+    //childProcess.stdin.push('TEST');
+
+    promise.then(result => resolve(result))
+    .catch(error => reject(error));
 	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
+};
 
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
-	return new Promise((resolve,reject) => { 
-		firewallModel.getFirewallOptions(fwcloud,fw)
-		.then(options => {
-			var action = '';
-			data.options = options;
-			data.cs += "options_load() {\n"+
-				"echo\n"+
-				"echo \"OPTIONS\"\n"+
-				"echo \"-------\"\n";
-			
-			// IPv4 packet forwarding
-			action = (options &amp; 0x0002) ? '1' : '0';
-			data.cs += 'if [ -z "$SYSCTL" ]; then\n' +
-				'  echo '+action+' > /proc/sys/net/ipv4/ip_forward\n' +
-				'else\n' +
-				'  $SYSCTL -w net.ipv4.conf.all.forwarding='+action+'\n' +
-				'fi\n\n';
+// Get certificate serial number.
+pkiModel.delFromIndex = (dir,cn) => {
+	return new Promise((resolve, reject) => {
+    var serial = '';
+    const substr = 'CN='+cn+'\n';
+    const src_path = dir+'/index.txt';
+    const dst_path = dir+'/index.txt.TMP';
+    var rs = fs.createReadStream(src_path);
+    var ws = fs.createWriteStream(dst_path);
 
-			// IPv6 packet forwarding
-			action = (options &amp; 0x0004) ? '1' : '0';
-			data.cs += '$SYSCTL -w net.ipv6.conf.all.forwarding='+action+'\n';
-			
-			data.cs += "}\n\n";
+    rs.on('error',error => reject(error));
+    ws.on('error',error => reject(error));
 
-			resolve(data);
-		})
-		.catch(error => reject(error));
-	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
+    const rl = readline.createInterface({
+      input: rs,
+      crlfDelay: Infinity
+    });
 
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.dump = (req,type) => {
-	return new Promise((resolve,reject) => { 
-  	Policy_cModel.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
-			if (error) return reject(error);
+    rl.on('line', line => {
+      const line2 = line + '\n';
+      if(line2.indexOf(substr) > -1) {
+        serial = line.split('\t')[3];
+      } else ws.write(line2);
+    });
 
-			socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+    rl.on('close', () => {
+      ws.close();
+      fs.unlink(src_path, error => {
+        if (error) return reject(error);
+        fs.rename(dst_path,src_path, error => {
+          if (error) return reject(error);
+          resolve(serial);
+        });
+      });
+    });
+  });
+};
 
-			for (var ps="", i=0; i&lt;data.length; i++) {
-				socketTools.msg("Rule "+(i+1)+" (ID: "+data[i].id+")\n");
-				ps += "\necho \"RULE "+(i+1)+" (ID: "+data[i].id+")\"\n";
-				if (data[i].comment)
-					ps += "# "+data[i].comment.replace(/\n/g,"\n# ")+"\n";
-				if (!(data[i].c_status_recompile)) // The compiled string in the database is ok.
-					ps += data[i].c_compiled;
-				else { // We must compile the rule.
-					try {
-						// The rule compilation order is important, then we must wait until we have the promise fulfilled.
-						// For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-						ps += await RuleCompile.get(req.body.fwcloud,req.body.firewall,type,data[i].id);
-					} catch(error) { return reject(error) }
-				}
-			}
-		
-			resolve(ps);
-		});
-	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/
+// Get the ID of all CA who's status field is not zero.
+pkiModel.getCAStatusNotZero = (req, data) => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`, (error, rows) => {
+      if (error) return reject(error);
+      data.ca_status = rows;
+      resolve(data);
+    });
+  });
+};
 
 
-/*----------------------------------------------------------------------------------------------------------------------*/
-PolicyScript.install = (req, SSHconn, firewall) => {
-	return new Promise(async (resolve,reject) => {
-		socketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
-		try {
-			socketTools.msg("Uploading firewall script ("+SSHconn.host+")\n");
-			await sshTools.uploadFile(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
-		
-			// Enable bash depuration if it is selected in firewalls/cluster options.
-			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
-			const bash_debug = (options &amp; 0x0008) ? ' -x' : '';
-	
-			socketTools.msg("Installing firewall script.\n");
-			await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" ./"+config.get('policy').script_name+" install");
-
-			socketTools.msg("Loading firewall policy.\n");
-			const data = await sshTools.runCommand(SSHconn,"sudo bash"+bash_debug+" -c 'if [ -d /etc/fwcloud ]; then "+
-				"bash"+bash_debug+" /etc/fwcloud/"+config.get('policy').script_name+" start; "+
-				"else bash"+bash_debug+" /config/scripts/post-config.d/"+config.get('policy').script_name+" start; fi'")
-
-			socketTools.msg(data);
-			socketTools.msgEnd();
-			resolve("DONE");
-		} catch(error) { 
-			socketTools.msg(`ERROR: ${error}\n`);
-			socketTools.msgEnd();
-			reject(error);
-		}
-	});
-}
-/*----------------------------------------------------------------------------------------------------------------------*/</code></pre>
+//Export the object
+module.exports = pkiModel;</code></pre>
         </article>
     </section>
 
