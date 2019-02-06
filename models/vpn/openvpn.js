@@ -66,9 +66,9 @@ openvpnModel.delCfgOptAll = req => {
 openvpnModel.delCfg = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     // Get all the ipobj referenced by this OpenVPN configuration.
-    let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
-    ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
-    ' where OPT.openvpn='+openvpn;
+    let sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
+      inner join ipobj OBJ on OBJ.id=OPT.ipobj
+      where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
     dbCon.query(sql, (error, ipobj_list) => {
       if (error) return reject(error);
 
