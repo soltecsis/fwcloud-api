@@ -151,7 +151,7 @@ router.put('/get', async(req, res) => {
  */
 router.put('/file/get', async(req, res) => {
 	try {
-		const cfgDump = await openvpnModel.dumpCfg(req);
+		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		api_resp.getJson(cfgDump, api_resp.ACR_OK, 'OpenVPN configuration file sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN file configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -212,7 +212,7 @@ router.put('/restricted',
  */
 router.put('/install', async(req, res) => {
 	try {
-		const cfgDump = await openvpnModel.dumpCfg(req);
+		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
@@ -247,30 +247,26 @@ router.put('/ccdsync', async(req, res) => {
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw (new Error('This is not an OpenVPN server configuration'));
 
-		// Obtain de configuration directory in the client-config-dir configuration option.
+		// Obtain de configuration directory in the client-config-dir configuration option of the opevpn
+		// server configuration.
 		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
+		const client_config_dir = openvpn_opt.arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
-		const clients = await getOpenvpnClients(req.dbCon,req.body.openvpn);
+		const clients = await openvpnModel.getOpenvpnClients(req.dbCon,req.body.openvpn);
 
+		for (let client of clients) {
+			let cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
+			await openvpnModel.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1);
 
-		let cfgDump = await openvpnModel.dumpCfg(req);
-
-		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
-		if (crt.type === 1) { // Client certificate
-			// Obtain de configuration directory in the client-config-dir configuration option.
-			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
-			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
-			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
-		}
-		else { // Server certificate
-			if (!req.openvpn.install_dir || !req.openvpn.install_name)
-				throw(new Error('Empty install dir or install name'));
-			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2);
+			// Update the status flag for the OpenVPN configuration.
+			await openvpnModel.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
 		}
 
-		// Update the status flag for the OpenVPN configuration.
-		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
+		// Get the list of files into the client-config-dir directory.
+		// If we have files in the client-config-dir with no corresponding OpenVPN configuration, 
+		// inform the user.
+		const cmp = await openvpnModel.ccdCompare(req,client_config_dir,clients)
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

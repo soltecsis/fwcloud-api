@@ -184,33 +184,35 @@ openvpnModel.getCRTData = file => {
 
 openvpnModel.getOpenvpnClients = (dbCon,openvpn) => {
 	return new Promise((resolve, reject) => {
-    dbCon.query(`select id from openvpn where openvpn=${openvpn}`, (error, result) => {
+    let sql = `select VPN.id,CRT.cn from openvpn VPN 
+      inner join crt CRT on CRT.id=VPN.crt
+      where openvpn=${openvpn}`;
+    dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
-
       resolve(result);
     });
   });
 };
 
-openvpnModel.dumpCfg = req => {
+openvpnModel.dumpCfg = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     // First obtain the CN of the certificate.
     let sql = `select CRT.cn,CRT.ca,CRT.type from crt CRT
       INNER JOIN openvpn VPN ON CRT.id=VPN.crt
-			WHERE VPN.id=${req.body.openvpn}`;
+			WHERE VPN.id=${openvpn}`;
 
-    req.dbCon.query(sql, (error, result) => {
+    dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
 
-      const ca_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + result[0].ca + '/';
+      const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
       const ca_crt_path = ca_dir + 'ca.crt';
       const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
       const key_path = ca_dir + 'private/' + result[0].cn + '.key';
       let dh_path = (result[0].type === 2) ? ca_dir+'dh.pem' : '';
   
       // Get all the configuration options.
-      sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${req.body.openvpn} order by openvpn_opt.order`;
-      req.dbCon.query(sql, async (error, result) => {
+      sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
+      dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
         try {
@@ -223,7 +225,7 @@ openvpnModel.dumpCfg = req => {
             let cfg_line = ((opt.comment) ? '# '+opt.comment.replace('\n','\n# ')+'\n' : '') + opt.name;
             if (opt.ipobj) {
               // Get the ipobj data.
-              const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,opt.ipobj);
+              const ipobj = await ipobjModel.getIpobjInfo(dbCon,fwcloud,opt.ipobj);
               if (ipobj.type===7) // Network
                 cfg_line += ' '+ipobj.address+' '+ipobj.netmask;
               else if (ipobj.type===5) { // Address
@@ -270,7 +272,10 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-      socketTools.msg(`Uploading OpenVPN configuration to: (${fwData.SSHconn.host})\n`);
+      if (type===1) // Client certificarte
+        socketTools.msg(`Uploading CCD configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
+      else // Server certificate.
+        socketTools.msg(`Uploading OpenVPN configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
       const existsDir = await sshTools.runCommand(fwData.SSHconn,`if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
@@ -284,7 +289,48 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
       socketTools.msg(`Installing OpenVPN configuration file.\n`);
 			await sshTools.runCommand(fwData.SSHconn,`sudo mv ${name} ${dir}/`);
 
-      socketTools.msg(`Setting up file permissions.\n`);
+      socketTools.msg(`Setting up file permissions.\n\n`);
+      await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root ${dir}/${name}`);
+      if (type===1) // Client certificate.
+        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 644 ${dir}/${name}`);
+      else // Server certificate.
+			  await sshTools.runCommand(fwData.SSHconn,`sudo chmod 600 ${dir}/${name}`);
+
+      socketTools.msgEnd();
+      resolve();
+    } catch(error) { 
+      socketTools.msg(`ERROR: ${error}\n`);
+      socketTools.msgEnd();
+      reject(error); 
+    }
+  });
+};
+
+openvpnModel.ccdCompare = (req,dir,clients) => {
+	return new Promise(async (resolve, reject) => {
+    socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+
+    try {
+      const fwData = await firewallModel.getFirewallSSH(req);
+
+      if (type===1) // Client certificarte
+        socketTools.msg(`Uploading CCD configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
+      else // Server certificate.
+        socketTools.msg(`Uploading OpenVPN configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
+      await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
+
+      const existsDir = await sshTools.runCommand(fwData.SSHconn,`if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
+      if (existsDir==="0") {
+        socketTools.msg(`Creating install directory.\n`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo mkdir "${dir}"`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root "${dir}"`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 755 "${dir}"`);
+      }
+
+      socketTools.msg(`Installing OpenVPN configuration file.\n`);
+			await sshTools.runCommand(fwData.SSHconn,`sudo mv ${name} ${dir}/`);
+
+      socketTools.msg(`Setting up file permissions.\n\n`);
       await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root ${dir}/${name}`);
       if (type===1) // Client certificate.
         await sshTools.runCommand(fwData.SSHconn,`sudo chmod 644 ${dir}/${name}`);
