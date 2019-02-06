@@ -223,6 +223,49 @@ router.put('/install', async(req, res) => {
 			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
 		}
 		else { // Server certificate
+			if (!req.openvpn.install_dir || !req.openvpn.install_name)
+				throw(new Error('Empty install dir or install name'));
+			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2);
+		}
+
+		// Update the status flag for the OpenVPN configuration.
+		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
+
+		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
+ * Sync all CCD file configurations.
+ * Remove first all the server CCD files and then install all the CCD files.
+ * ROUTE CALL:  /vpn/openvpn/ccdsync
+ */
+router.put('/ccdsync', async(req, res) => {
+	try {
+		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw (new Error('This is not an OpenVPN server configuration'));
+
+		// Obtain de configuration directory in the client-config-dir configuration option.
+		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
+
+		// Get all client configurations for this OpenVPN server configuration.
+		const clients = await getOpenvpnClients(req.dbCon,req.body.openvpn);
+
+
+		let cfgDump = await openvpnModel.dumpCfg(req);
+
+		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
+		if (crt.type === 1) { // Client certificate
+			// Obtain de configuration directory in the client-config-dir configuration option.
+			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
+			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
+		}
+		else { // Server certificate
+			if (!req.openvpn.install_dir || !req.openvpn.install_name)
+				throw(new Error('Empty install dir or install name'));
 			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2);
 		}
 

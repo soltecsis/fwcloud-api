@@ -182,6 +182,16 @@ openvpnModel.getCRTData = file => {
   });
 };
 
+openvpnModel.getOpenvpnClients = (dbCon,openvpn) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`select id from openvpn where openvpn=${openvpn}`, (error, result) => {
+      if (error) return reject(error);
+
+      resolve(result);
+    });
+  });
+};
+
 openvpnModel.dumpCfg = req => {
 	return new Promise((resolve, reject) => {
     // First obtain the CN of the certificate.
