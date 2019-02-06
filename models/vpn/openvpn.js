@@ -363,9 +363,9 @@ openvpnModel.freeVpnIP = req => {
 openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     // For each ipobj referenced by the OpenVPN configuration options, verify that it is not being used in any firewall rule.
-    let sql = 'select OBJ.id,OBJ.type from openvpn_opt OPT'+
-      ' inner join ipobj OBJ on OBJ.id=OPT.ipobj'+
-      ' where OPT.openvpn='+openvpn;
+    let sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
+      inner join ipobj OBJ on OBJ.id=OPT.ipobj
+      where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
