@@ -213,7 +213,6 @@ router.put('/restricted',
 router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req);
-		req.body.firewall = req.openvpn.firewall;
 		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.

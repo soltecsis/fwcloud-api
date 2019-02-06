@@ -260,16 +260,26 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-      socketTools.msg(`Uploading OpenVPN configuration (${fwData.SSHconn.host})\n`);
+      socketTools.msg(`Uploading OpenVPN configuration to: (${fwData.SSHconn.host})\n`);
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
-      socketTools.msg(`Installing OpenVPN configuration.\n`);
-      await sshTools.runCommand(fwData.SSHconn,"sudo chown root:root "+name);
+      const existsDir = await sshTools.runCommand(fwData.SSHconn,`if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
+      if (existsDir==="0") {
+        socketTools.msg(`Creating install directory.\n`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo mkdir "${dir}"`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root "${dir}"`);
+        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 755 "${dir}"`);
+      }
+
+      socketTools.msg(`Installing OpenVPN configuration file.\n`);
+			await sshTools.runCommand(fwData.SSHconn,`sudo mv ${name} ${dir}/`);
+
+      socketTools.msg(`Setting up file permisions.\n`);
+      await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root ${dir}/${name}`);
       if (type===1) // Client certificate.
-        await sshTools.runCommand(fwData.SSHconn,"sudo chmod 644 "+name);
-      else
-			  await sshTools.runCommand(fwData.SSHconn,"sudo chmod 600 "+name);
-			await sshTools.runCommand(fwData.SSHconn,"sudo mv "+name+" "+dir);
+        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 644 ${dir}/${name}`);
+      else // Server certificate.
+			  await sshTools.runCommand(fwData.SSHconn,`sudo chmod 600 ${dir}/${name}`);
 
       socketTools.msgEnd();
       resolve();
