@@ -313,32 +313,32 @@ openvpnModel.ccdCompare = (req,dir,clients) => {
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-      if (type===1) // Client certificarte
-        socketTools.msg(`Uploading CCD configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
-      else // Server certificate.
-        socketTools.msg(`Uploading OpenVPN configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
-      await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
-
-      const existsDir = await sshTools.runCommand(fwData.SSHconn,`if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
-      if (existsDir==="0") {
-        socketTools.msg(`Creating install directory.\n`);
-        await sshTools.runCommand(fwData.SSHconn,`sudo mkdir "${dir}"`);
-        await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root "${dir}"`);
-        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 755 "${dir}"`);
+      socketTools.msg(`Comparing files with OpenVPN client configurations.\n`);
+      const fileList = (await sshTools.runCommand(fwData.SSHconn,`cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
+      let found;
+      let notFoundList = "";
+      for (let file of fileList) {
+        found = 0;
+        for (let client of clients) {
+          if (client.cn === file) {
+            found = 1;
+            break;
+          }
+        }
+        if (!found) notFoundList += `${file} `;
       }
 
-      socketTools.msg(`Installing OpenVPN configuration file.\n`);
-			await sshTools.runCommand(fwData.SSHconn,`sudo mv ${name} ${dir}/`);
-
-      socketTools.msg(`Setting up file permissions.\n\n`);
-      await sshTools.runCommand(fwData.SSHconn,`sudo chown root:root ${dir}/${name}`);
-      if (type===1) // Client certificate.
-        await sshTools.runCommand(fwData.SSHconn,`sudo chmod 644 ${dir}/${name}`);
-      else // Server certificate.
-			  await sshTools.runCommand(fwData.SSHconn,`sudo chmod 600 ${dir}/${name}`);
+      if (notFoundList) {
+        socketTools.msg(`<strong><font color="orange">
+            WARNING: Found files in the directory '${dir}' without OpenVPN config file:\n
+            ${notFoundList}
+          </font></strong>\n\n`);
+      }
+      else
+        socketTools.msg(`Ok.\n\n`);
 
       socketTools.msgEnd();
-      resolve();
+      resolve(notFoundList);
     } catch(error) { 
       socketTools.msg(`ERROR: ${error}\n`);
       socketTools.msgEnd();

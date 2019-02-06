@@ -264,12 +264,11 @@ router.put('/ccdsync', async(req, res) => {
 		}
 
 		// Get the list of files into the client-config-dir directory.
-		// If we have files in the client-config-dir with no corresponding OpenVPN configuration, 
-		// inform the user.
-		const cmp = await openvpnModel.ccdCompare(req,client_config_dir,clients)
+		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
+		await openvpnModel.ccdCompare(req,client_config_dir,clients)
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		api_resp.getJson(null, api_resp.ACR_OK, 'CCD configuration files installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing CCD configuration files', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 module.exports = router;
