@@ -188,18 +188,18 @@ router.put('/ip/get', async(req, res) => {
  * Delete OpenVPN configuration.
  */
 router.put('/del',
-	restrictedCheck.openvpn,
-	async(req, res) => {
-		try {
-			// Delete the configuration from de database.
-			await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+restrictedCheck.openvpn,
+async(req, res) => {
+	try {
+		// Delete the configuration from de database.
+		await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
-			// Delete the openvpn node from the tree.
-			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type === 1 ? 311 : 312));
+		// Delete the openvpn node from the tree.
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type === 1 ? 311 : 312));
 
-			api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-	});
+		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
 // API call for check deleting restrictions.
 router.put('/restricted',

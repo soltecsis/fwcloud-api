@@ -8,6 +8,7 @@ var firewallModel = require('../models/firewall/firewall');
 var interfaceModel = require('../models/interface/interface');
 var ipobjModel = require('../models/ipobj/ipobj');
 var ipobj_gModel = require('../models/ipobj/group');
+const pkiModel = require('../models/vpn/pki');
 const openvpnModel = require('../models/vpn/openvpn');
 
 
@@ -99,6 +100,23 @@ restrictedCheck.openvpn = async (req, res, next) => {
 		data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+
+restrictedCheck.ca = async (req, res, next) => {
+	try {
+		let data = await pkiModel.searchCAHasCRTs(req.dbCon,req.body.fwcloud,req.body.ca);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+restrictedCheck.crt = async (req, res, next) => {
+	try {
+		let data = await pkiModel.searchCRTInOpenvpn(req.dbCon,req.body.fwcloud,req.body.crt);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };

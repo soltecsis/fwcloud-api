@@ -45,6 +45,7 @@ const pkiModel = require('../../models/vpn/pki');
 const fwcTreemodel = require('../../models/tree/tree');
 const config = require('../../config/config');
 const utilsModel = require('../../utils/utils');
+const restrictedCheck = require('../../middleware/restricted');
 
 
 /**
@@ -89,7 +90,9 @@ router.put('/ca/get', (req, res) => {
 /**
  * Delete ca.
  */
-router.put('/ca/del', async(req, res) => {
+router.put('/ca/del', 
+restrictedCheck.ca,
+async(req, res) => {
 	try {
 		// Check that the ca can be deleted and delete it from the database.
 		await pkiModel.deleteCA(req);
@@ -105,8 +108,10 @@ router.put('/ca/del', async(req, res) => {
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
-
-
+// API call for check deleting restrictions.
+router.put('/ca/restricted',
+	restrictedCheck.ca,
+	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 
 /**
@@ -146,7 +151,9 @@ router.put('/crt/get', (req, res) => {
 /**
  * Delete certificate.
  */
-router.put('/crt/del', async(req, res) => {
+router.put('/crt/del', 
+restrictedCheck.crt,
+async(req, res) => {
 	try {
 		// Check that the certificate can be deleted and remove it from the database.
 		await pkiModel.deleteCRT(req);
@@ -166,5 +173,10 @@ router.put('/crt/del', async(req, res) => {
 		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
+
+// API call for check deleting restrictions.
+router.put('/crt/restricted',
+	restrictedCheck.crt,
+	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 module.exports = router;

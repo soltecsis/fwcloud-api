@@ -212,5 +212,39 @@ pkiModel.getCAStatusNotZero = (req, data) => {
 };
 
 
+pkiModel.searchCAHasCRTs = (dbCon,fwcloud,ca) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT CRT.id FROM crt CRT
+      INNER JOIN ca CA ON CA.id=CRT.ca
+      WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
+    dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result.length > 0)
+        resolve({result: true, restrictions: { caHasCertificates: true}});
+      else
+        resolve({result: false});
+    });
+  });
+};
+
+pkiModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT VPN.id FROM openvpn VPN
+      INNER JOIN crt CRT ON CRT.id=VPN.crt
+      INNER JOIN ca CA ON CA.id=CRT.ca
+      WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
+    dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result.length > 0)
+        resolve({result: true, restrictions: { crtUsedInOpenvpn: true}});
+      else
+        resolve({result: false});
+    });
+  });
+};
+
+
 //Export the object
 module.exports = pkiModel;
