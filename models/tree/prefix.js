@@ -7,25 +7,32 @@ module.exports = treePrefixModel;
 var tableModel = "fwc_tree";
 
 //Add new folder node
-treePrefixModel.createPrefixNode = nodeData => {
+treePrefixModel.createPrefixNode = req => {
 	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
-			if (error) return reject(error);
-			// Verify that parent node exists and is a node that can contain folders.
-			let sql =  'SELECT node_type FROM ' + tableModel +
-				' WHERE fwcloud=' + nodeData.fwcloud + ' AND id=' + nodeData.id_parent; 
-			connection.query(sql, (error, result) => {
-				if (error) return reject(error);
-				if (result.length !== 1) return reject(new Error('Parent node tree not found'));
-				if (result[0].node_type!=='FDF' && result[0].node_type!=='FD') 
-					return reject(new Error('Can not create folders under this node type'));
+    // Verify that we are not creating a prefix of a prefix that already exists.
 
-				connection.query('INSERT INTO ' + tableModel + ' SET ?', nodeData, (error, result) => {
-					if (error) return reject(error);
-					// Return the las inserted id.
-					(result.insertId) ?	resolve({"insertId": result.insertId}) : reject(new Error('Node tree not created'));
-				});
-			});
-		});
-	});
+    const nodeData = {
+      id: null,
+      name: req.body.name,
+      id_parent: req.body.node_id,
+      node_type: 'FD',
+      obj_type: null,
+      id_obj: null,
+      fwcloud: req.body.fwcloud
+    };
+  
+    req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, nodeData, (error, result) => {
+      if (error) return reject(error);
+
+      // Move all affected nodes into the new prefix container node.
+      const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
+      const sql =`UPDATE ${tableModel} SET id_parent=${result.insertId},
+        name=SUBSTRING(name,${prefix.length+1},255)
+        WHERE id_parent=${req.body.node_id} AND node_type='CRT' AND name LIKE '${prefix}%'`;
+      req.dbCon.query(sql, nodeData, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
 };
