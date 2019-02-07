@@ -132,7 +132,8 @@ schema.validate = req => {
 					comment: sharedSch.comment
 				});
 			}
-			else if (req.url==='/vpn/openvpn/install' || req.url==='/vpn/openvpn/ccdsync') {
+			else if (req.url==='/vpn/openvpn/install' || req.url==='/vpn/openvpn/uninstall'
+					|| req.url==='/vpn/openvpn/ccdsync') {
 				schema = schema.append({
 					firewall: sharedSch.id,
 					openvpn: sharedSch.id,

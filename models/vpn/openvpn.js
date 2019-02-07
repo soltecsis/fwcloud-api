@@ -306,6 +306,26 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
   });
 };
 
+openvpnModel.uninstallCfg = (req,dir,name) => {
+	return new Promise(async (resolve, reject) => {
+    socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+
+    try {
+      const fwData = await firewallModel.getFirewallSSH(req);
+
+      socketTools.msg(`Removing OpenVPN configuration file '${name}' from: (${fwData.SSHconn.host})\n`);
+      await sshTools.runCommand(fwData.SSHconn,`sudo rm -f "${dir}/${name}"`);
+
+      socketTools.msgEnd();
+      resolve();
+    } catch(error) { 
+      socketTools.msg(`ERROR: ${error}\n`);
+      socketTools.msgEnd();
+      reject(error); 
+    }
+  });
+};
+
 openvpnModel.ccdCompare = (req,dir,clients) => {
 	return new Promise(async (resolve, reject) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.

@@ -237,6 +237,31 @@ router.put('/install', async(req, res) => {
 
 
 /**
+ * Uninstall OpenVPN configuration from the destination firewall.
+ */
+router.put('/uninstall', 
+restrictedCheck.openvpn,
+async(req, res) => {
+	try {
+		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
+
+		if (crt.type === 1) { // Client certificate
+			// Obtain de configuration directory in the client-config-dir configuration option.
+			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
+			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			await openvpnModel.uninstallCfg(req,openvpn_opt.arg,crt.cn);
+		}
+		else { // Server certificate
+			if (!req.openvpn.install_dir || !req.openvpn.install_name)
+				throw(new Error('Empty install dir or install name'));
+			await openvpnModel.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name);
+		}
+
+		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration uninstalled', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error uninstalling OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+/**
  * Sync all CCD file configurations.
  * Remove first all the server CCD files and then install all the CCD files.
  * ROUTE CALL:  /vpn/openvpn/ccdsync
