@@ -306,7 +306,7 @@ CREATE TABLE `fwc_tree_node_types` (
 
 LOCK TABLES `fwc_tree_node_types` WRITE;
 /*!40000 ALTER TABLE `fwc_tree_node_types` DISABLE KEYS */;
-INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('LBL',30,'Firewall policy labels',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2);
+INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('LBL',30,'Firewall policy labels',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('PRE',NULL,'CRT prefix container',NULL,2),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2);
 /*!40000 ALTER TABLE `fwc_tree_node_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -771,7 +771,7 @@ CREATE TABLE `ipobj_type` (
 
 LOCK TABLES `ipobj_type` WRITE;
 /*!40000 ALTER TABLE `ipobj_type` DISABLE KEYS */;
-INSERT INTO `ipobj_type` VALUES (0,'FIREWALL',NULL,'2017-07-10 13:30:26','2017-07-10 13:30:26',0,0),(1,'IP',NULL,'2017-02-21 12:39:51','2018-01-18 11:45:17',0,0),(2,'TCP',6,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(3,'ICMP',1,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(4,'UDP',17,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(5,'ADDRESS',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(6,'ADDRESS RANGE',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(7,'NETWORK',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(8,'HOST',NULL,'2017-06-23 15:31:19','2017-06-23 15:31:19',0,0),(9,'DNS',NULL,'2017-06-23 15:31:19','2017-06-23 15:31:19',0,0),(10,'INTERFACE FIREWALL',NULL,'2017-06-19 16:16:29','2017-06-23 14:11:11',0,0),(11,'INTERFACE HOST',NULL,'2017-06-19 16:24:54','2017-06-19 16:24:54',0,0),(20,'GROUP OBJECTS',NULL,'2017-06-22 16:20:20','2017-06-22 16:20:20',0,0),(21,'GROUP SERVICES',NULL,'2017-06-22 16:20:20','2017-06-22 16:20:20',0,0),(30,'FIREWALL LABELS',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(100,'CLUSTER',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(300,'CA',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(301,'CRT_CLIENT',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(302,'CRT_SERVER',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(310,'OPENVPN CONFIG',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(311,'OPENVPN CLI',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(312,'OPENVPN SRV',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0);
+INSERT INTO `ipobj_type` VALUES (0,'FIREWALL',NULL,'2017-07-10 13:30:26','2017-07-10 13:30:26',0,0),(1,'IP',NULL,'2017-02-21 12:39:51','2018-01-18 11:45:17',0,0),(2,'TCP',6,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(3,'ICMP',1,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(4,'UDP',17,'2017-02-21 12:39:51','2018-01-18 12:51:48',0,0),(5,'ADDRESS',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(6,'ADDRESS RANGE',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(7,'NETWORK',NULL,'2017-02-21 12:39:51','2017-02-21 12:39:51',0,0),(8,'HOST',NULL,'2017-06-23 15:31:19','2017-06-23 15:31:19',0,0),(9,'DNS',NULL,'2017-06-23 15:31:19','2017-06-23 15:31:19',0,0),(10,'INTERFACE FIREWALL',NULL,'2017-06-19 16:16:29','2017-06-23 14:11:11',0,0),(11,'INTERFACE HOST',NULL,'2017-06-19 16:24:54','2017-06-19 16:24:54',0,0),(20,'GROUP OBJECTS',NULL,'2017-06-22 16:20:20','2017-06-22 16:20:20',0,0),(21,'GROUP SERVICES',NULL,'2017-06-22 16:20:20','2017-06-22 16:20:20',0,0),(30,'FIREWALL LABELS',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(100,'CLUSTER',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(300,'CA',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(301,'CRT_CLIENT',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(302,'CRT_SERVER',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(310,'OPENVPN CONFIG',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(311,'OPENVPN CLI',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(312,'OPENVPN SRV',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0),(400,'CRT PREFIX CONTAINER',NULL,'2018-03-12 13:27:52','2018-03-12 13:27:52',0,0);
 /*!40000 ALTER TABLE `ipobj_type` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1423,6 +1423,33 @@ INSERT INTO `policy_type` VALUES (1,'I','Input',1,1),(2,'O','Output',2,1),(3,'F'
 UNLOCK TABLES;
 
 --
+-- Table structure for table `prefix`
+--
+
+DROP TABLE IF EXISTS `prefix`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `prefix` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ca` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_ca-name` (`ca`,`name`),
+  KEY `idx_ca` (`ca`),
+  CONSTRAINT `fk_prefix-ca` FOREIGN KEY (`ca`) REFERENCES `ca` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `prefix`
+--
+
+LOCK TABLES `prefix` WRITE;
+/*!40000 ALTER TABLE `prefix` DISABLE KEYS */;
+/*!40000 ALTER TABLE `prefix` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `routing_g`
 --
 
@@ -1733,4 +1760,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-02-04 11:40:45
+-- Dump completed on 2019-02-08 13:52:02

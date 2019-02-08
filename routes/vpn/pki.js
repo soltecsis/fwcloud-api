@@ -42,7 +42,7 @@ var api_resp = require('../../utils/api_response');
 const objModel = 'PKI';
 
 const pkiModel = require('../../models/vpn/pki');
-const fwcTreemodel = require('../../models/tree/tree');
+const fwcTreeModel = require('../../models/tree/tree');
 const config = require('../../config/config');
 const utilsModel = require('../../utils/utils');
 const restrictedCheck = require('../../middleware/restricted');
@@ -73,7 +73,7 @@ router.post('/ca', async(req, res) => {
 			});
 
 		// Create new CA tree node.
-		const nodeId = await fwcTreemodel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
+		const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
 
 		api_resp.getJson({ insertId: req.caId, TreeinsertId: nodeId }, api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -101,7 +101,7 @@ async(req, res) => {
 		await utilsModel.deleteFolder(config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.body.ca);
 
 		// Delete the ca node into the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
+		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
 
 		// Answer to the API request.
 		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -136,7 +136,7 @@ router.post('/crt', async(req, res) => {
 		await pkiModel.runEasyRsaCmd(req, cmd);
 
 		// Create new CRT tree node.
-		const nodeId = await fwcTreemodel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CRT', crtId, obj_type);
+		const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CRT', crtId, obj_type);
 
 		api_resp.getJson({ insertId: crtId, TreeinsertId: nodeId }, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -167,7 +167,7 @@ async(req, res) => {
 		await utilsModel.deleteFile(base_dir + '/certs_by_serial', serial + '.pem');
 
 		// Delete the certificate node into the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
+		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
 
 		// Answer to the API request.
 		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -178,5 +178,31 @@ async(req, res) => {
 router.put('/crt/restricted',
 	restrictedCheck.crt,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+
+
+/**
+ * Create a new crt prefix container.
+ */
+router.post('/crt/prefix', async(req, res) => {
+	try {
+    // It is only possible to create prefix containers into tree CA nodes.
+    if (req.tree_node.node_type !== 'CA')
+      throw (new Error('Parent tree node is not a CA node'));
+
+    // The supplied CA id must match the tree node referenced object id.
+		if (req.tree_node.id_obj !== req.body.ca)
+			throw (new Error('Node object id and CA id doesn\'t match'));
+		
+    // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
+    // Even check that we are not creating a prefix that shadows any existing prefix.
+		if (!(await pkiModel.validateCrtPrefix(req))) 
+			throw (new Error('Invalid prefix name'));
+
+   	// Create the tree node and move all affected nodes into the prefix container.
+		await pkiModel.createCrtPrefix(req);
+		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
 
 module.exports = router;

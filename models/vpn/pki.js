@@ -2,6 +2,7 @@
 var pkiModel = {};
 
 var config = require('../../config/config');
+const fwcTreeModel = require('../../models/tree/tree');
 const spawn = require('child-process-promise').spawn;
 const readline = require('readline');
 const fs = require('fs');
@@ -241,6 +242,47 @@ pkiModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
         resolve({result: true, restrictions: { crtUsedInOpenvpn: true}});
       else
         resolve({result: false});
+    });
+  });
+};
+
+
+// Add new prefix container.
+pkiModel.createCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    const prefixData = {
+      id: null,
+      name: req.body.name,
+      ca: req.body.ca
+    };
+    req.dbCon.query(`INSERT INTO prefix SET ?`, prefixData, async (error, result) => {
+      if (error) return reject(error);
+
+      let parent;
+      try {
+        parent = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,req.body.name,req.body.node_id,'PRE',result.insertId,400);
+      } catch(error) { return reject(error) }
+
+      // Move all affected nodes into the new prefix container node.
+      const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
+      const sql =`UPDATE fwc_tree SET id_parent=${parent},
+        name=SUBSTRING(name,${prefix.length+1},255)
+        WHERE id_parent=${req.body.node_id} AND node_type='CRT' AND name LIKE '${prefix}%'`;
+      req.dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
+};
+
+// Validate new prefix container.
+pkiModel.validateCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
+    req.dbCon.query(`SELECT id FROM prefix WHERE ca=${req.body.ca} AND name LIKE '${prefix}%'`, (error, result) => {
+      if (error) return reject(error);
+      resolve((result.length>0) ? false : true);
     });
   });
 };
