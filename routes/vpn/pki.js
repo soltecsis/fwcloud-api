@@ -194,7 +194,7 @@ router.post('/crt/prefix', async(req, res) => {
 			throw (new Error('Node object id and CA id doesn\'t match'));
 		
     // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
-    // Even check that we are not creating a prefix that shadows any existing prefix.
+    // Verify too that we are not creating a prefix that shadows any existing prefix.
 		if (!(await pkiModel.validateCrtPrefix(req))) 
 			throw (new Error('Invalid prefix name'));
 

@@ -279,9 +279,13 @@ pkiModel.createCrtPrefix = req => {
 // Validate new prefix container.
 pkiModel.validateCrtPrefix = req => {
 	return new Promise((resolve, reject) => {
+    // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
     const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
     req.dbCon.query(`SELECT id FROM prefix WHERE ca=${req.body.ca} AND name LIKE '${prefix}%'`, (error, result) => {
       if (error) return reject(error);
+    
+      // Verify too that we are not creating a prefix that shadows any existing prefix.
+
       resolve((result.length>0) ? false : true);
     });
   });
