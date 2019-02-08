@@ -135,10 +135,13 @@ router.post('/crt', async(req, res) => {
 		req.caId = req.body.ca;
 		await pkiModel.runEasyRsaCmd(req, cmd);
 
+		// Apply prefixes to the newly created certificate.
+		await pkiModel.applyCrtPrefixes(req,req.body.node_id);
 		// Create new CRT tree node.
-		const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CRT', crtId, obj_type);
+		//const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CRT', crtId, obj_type);
 
-		api_resp.getJson({ insertId: crtId, TreeinsertId: nodeId }, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		//api_resp.getJson({ insertId: crtId, TreeinsertId: nodeId }, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
@@ -195,8 +198,8 @@ router.post('/crt/prefix', async(req, res) => {
 		
     // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
     // Verify too that we are not creating a prefix that shadows any existing prefix.
-		if (!(await pkiModel.validateCrtPrefix(req))) 
-			throw (new Error('Invalid prefix name'));
+		if (await pkiModel.existsCrtPrefix(req)) 
+			throw (new Error('Prefix name already exists'));
 
    	// Create the tree node and move all affected nodes into the prefix container.
 		await pkiModel.createCrtPrefix(req);

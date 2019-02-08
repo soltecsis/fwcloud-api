@@ -160,6 +160,24 @@ fwcTreeModel.deleteFwc_Tree_node = id => {
 	});
 };
 
+// Delete nodes under the indicated node.
+fwcTreeModel.deleteNodesUnderMe = (dbCon,fwcloud,node_id) => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT fwcloud,id FROM ${tableModel} 
+			WHERE (fwcloud=${fwcloud} OR fwcloud is null) AND id_parent=${node_id}`;
+		dbCon.query(sql, async (error, rows) => {
+			if (error) return reject(error);
+
+			try {
+				if (rows.length > 0) 
+					await Promise.all(rows.map(fwcTreeModel.deleteFwc_TreeFullNode));
+
+				resolve();
+			}	catch(err) { return reject(err) }
+		});
+	});
+};
+
 //Verify node info.
 fwcTreeModel.verifyNodeInfo = (id, fwcloud, id_obj) => {
 	return new Promise((resolve, reject) => {

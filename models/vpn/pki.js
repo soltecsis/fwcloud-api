@@ -89,14 +89,12 @@ pkiModel.getCRTdata = (dbCon,crt) => {
   });
 };
 
-// Get database certificate data.
-pkiModel.getCRTdata = (dbCon,crt) => {
+// Get certificate list for a CA.
+pkiModel.getCRTlist = (dbCon,ca) => {
 	return new Promise((resolve, reject) => {
-    dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
+    dbCon.query(`SELECT * FROM crt WHERE ca=${ca}`, (error, result) => {
       if (error) return reject(error);
-      if (result.length!==1) return reject(new Error('CRT not found'));
-
-      resolve(result[0]);
+      resolve(result);
     });
   });
 };
@@ -247,6 +245,77 @@ pkiModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
 };
 
 
+// Validate new prefix container.
+pkiModel.existsCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`SELECT id FROM prefix WHERE ca=${req.body.ca} AND name=${req.dbCon.escape(req.body.name)}`, (error, result) => {
+      if (error) return reject(error);
+      resolve((result.length>0) ? true : false);
+    });
+  });
+};
+
+// Gest all prefixes for the indicated CA.
+pkiModel.getPrefixes = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`SELECT id,name FROM prefix WHERE ca=${req.body.ca}`, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
+// Fill prefix node with matching entries.
+pkiModel.fillPrefixNode = (req,name,parent,node) => {
+	return new Promise((resolve, reject) => {
+    // Move all affected nodes into the new prefix container node.
+    const prefix = req.dbCon.escape(name).slice(1,-1);
+    let sql =`SELECT id,type,cn,SUBSTRING(cn,${prefix.length+1},255) as sufix FROM crt
+      WHERE ca=${req.body.ca} AND cn LIKE '${prefix}%'`;
+    req.dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      try {
+        for (let row of result)
+          await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,row.sufix,node,'CRT',row.id,((row.type===1)?301:302));
+      } catch(error) { return reject(error) }
+
+      // Remove from root CA node the nodes that match de prefix.
+      sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} 
+        AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
+        req.dbCon.query(sql, async (error, result) => {
+          if (error) return reject(error);
+          resolve();
+        });
+    });
+  });
+};
+
+// Apply CRT prefix to tree node.
+pkiModel.applyCrtPrefixes = (req,node_id) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      // Remove all nodes under the CA node.
+      await fwcTreeModel.deleteNodesUnderMe(req.dbCon,req.body.fwcloud,node_id);
+
+      // Generate all the CRT tree nodes under the CA node.
+      const crt_list = await pkiModel.getCRTlist(req.dbCon,req.body.ca);
+      for (let crt of crt_list)
+        await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,crt.cn,node_id,'CRT',crt.id,((crt.type===1)?301:302));
+
+      // Create the nodes for all the prefixes.
+      const prefix_list = await pkiModel.getPrefixes(req);
+      for (let prefix of prefix_list) {
+        let id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,prefix.name,req.body.node_id,'PRE',prefix.id,400);
+        await pkiModel.fillPrefixNode(req,prefix.name,node_id,id);
+      }
+
+      resolve();
+    } catch(error) { return reject(error) }
+  });
+};
+
+
 // Add new prefix container.
 pkiModel.createCrtPrefix = req => {
 	return new Promise((resolve, reject) => {
@@ -258,35 +327,11 @@ pkiModel.createCrtPrefix = req => {
     req.dbCon.query(`INSERT INTO prefix SET ?`, prefixData, async (error, result) => {
       if (error) return reject(error);
 
-      let parent;
       try {
-        parent = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,req.body.name,req.body.node_id,'PRE',result.insertId,400);
+        await pkiModel.applyCrtPrefixes(req,req.body.node_id);
       } catch(error) { return reject(error) }
 
-      // Move all affected nodes into the new prefix container node.
-      const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
-      const sql =`UPDATE fwc_tree SET id_parent=${parent},
-        name=SUBSTRING(name,${prefix.length+1},255)
-        WHERE id_parent=${req.body.node_id} AND node_type='CRT' AND name LIKE '${prefix}%'`;
-      req.dbCon.query(sql, (error, result) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-  });
-};
-
-// Validate new prefix container.
-pkiModel.validateCrtPrefix = req => {
-	return new Promise((resolve, reject) => {
-    // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
-    const prefix = req.dbCon.escape(req.body.name).slice(1,-1);
-    req.dbCon.query(`SELECT id FROM prefix WHERE ca=${req.body.ca} AND name LIKE '${prefix}%'`, (error, result) => {
-      if (error) return reject(error);
-    
-      // Verify too that we are not creating a prefix that shadows any existing prefix.
-
-      resolve((result.length>0) ? false : true);
+      resolve();
     });
   });
 };
