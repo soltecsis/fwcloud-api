@@ -9,7 +9,7 @@ schema.validate = req => {
     var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
     if (req.method==="POST" && req.url==='/vpn/pki/crt/prefix') {
-      schema = schema.append({ node_id: sharedSch.id, ca: sharedSch.id, name: sharedSch.name });
+      schema = schema.append({ ca: sharedSch.id, name: sharedSch.name });
     }
     else if (req.method==="POST") {
       schema = schema.append({ 

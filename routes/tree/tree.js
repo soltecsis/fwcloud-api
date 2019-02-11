@@ -72,7 +72,7 @@ router.put('/ca/get', async (req, res) => {
 // Get objects node information.
 router.put('/node/get', async (req, res) => {
 	try {
-		const data = await fwcTreemodel.getNodeInfo(req);
+		const data = await fwcTreemodel.getNodeInfo(req,req.body.node_type,req.body.id_obj);
 		if (data.length>0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else

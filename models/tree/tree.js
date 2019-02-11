@@ -1123,12 +1123,12 @@ fwcTreeModel.orderTreeNode = function (fwcloud, id_parent, callback) {
 
 
 //Get ipobjects node info.
-fwcTreeModel.getNodeInfo = req => {
+fwcTreeModel.getNodeInfo = (dbCon,fwcloud,node_type,id_obj) => {
 	return new Promise((resolve, reject) => {
 		let sql = `SELECT * FROM ${tableModel}
-			WHERE fwcloud=${req.body.fwcloud} AND node_type=${req.dbCon.escape(req.body.node_type)}
-			AND id_obj${(!req.body.id_obj ? " IS NULL" : ("="+req.body.id_obj))}`;
-		req.dbCon.query(sql, (error, result) => {
+			WHERE fwcloud=${fwcloud} AND node_type=${dbCon.escape(node_type)}
+			AND id_obj${(!id_obj ? " IS NULL" : ("="+id_obj))}`;
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
 		});
