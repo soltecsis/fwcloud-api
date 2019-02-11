@@ -109,7 +109,7 @@ schema.validate = req => {
 			}
 
 			if (req.method === 'PUT') schema = schema.append({ id: sharedSch.id });
-			else if (req.method === 'POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.name }); // node_type is an string
+			else if (req.method === 'POST') schema = schema.append({ node_parent: sharedSch.id.optional(), node_order: sharedSch.id, node_type: sharedSch.name }); // node_type is an string
 		} else if (req.method === 'PUT') {
 			if (req.url === '/ipobj/get')
 				schema = schema.append({ id: sharedSch.id });

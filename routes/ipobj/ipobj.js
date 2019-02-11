@@ -184,7 +184,7 @@ async (req, res) => {
 		await IpobjModel.UpdateINTERFACE(id);
 		
 		//INSERT IN TREE
-		const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData);
+		const node_id = (node_parent) ? await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
 		
 		var dataresp = {"insertId": id, "TreeinsertId": node_id};
 		if (ipobjData.interface) {
