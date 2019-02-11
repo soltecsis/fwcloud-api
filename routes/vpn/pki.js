@@ -173,10 +173,11 @@ router.put('/crt/restricted',
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 
+
 /**
  * Create a new crt prefix container.
  */
-router.post('/crt/prefix', async(req, res) => {
+router.post('/crt/prefix', async (req, res) => {
 	try {
     // It is only possible to create prefix containers into tree CA nodes.
     if (req.tree_node.node_type !== 'CA')
@@ -186,16 +187,74 @@ router.post('/crt/prefix', async(req, res) => {
 		if (req.tree_node.id_obj !== req.body.ca)
 			throw (new Error('Node object id and CA id doesn\'t match'));
 		
-    // Verify that we are not creating a prefix of a prefix that already exists for the same CA.
-    // Verify too that we are not creating a prefix that shadows any existing prefix.
+    // Verify that we are not creating a prefix that already exists for the same CA.
 		if (await pkiModel.existsCrtPrefix(req)) 
 			throw (new Error('Prefix name already exists'));
 
-   	// Create the tree node and move all affected nodes into the prefix container.
+   	// Create the tree node.
 		await pkiModel.createCrtPrefix(req);
+
+		// Apply the new CRT prefix container.
+		await pkiModel.applyCrtPrefixes(req,req.body.node_id);
+
 		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
+
+
+/**
+ * Modify a CRT prefix container.
+ */
+router.put('/crt/prefix', async (req, res) => {
+	try {
+		// Verify that the new prefix name doesn't already exists.
+		req.body.ca = req.body.prefix.ca;
+		if (await pkiModel.existsCrtPrefix(req)) 
+			throw (new Error('Prefix name already exists'));
+
+   	// Modify the prefix name.
+		await pkiModel.modifyCrtPrefix(req);
+
+		// Search for the prefix container node tree.
+		req.body.id_obj = req.body.prefix;
+		req.body.node_type = 'PRE';
+		const node = await fwcTreeModel.getNodeInfo(req);
+		
+		// Apply the new CRT prefix container.
+		await pkiModel.applyCrtPrefixes(req,node.id_parent);
+
+		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'UPDATE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
+ * Delete a CRT prefix container.
+ */
+router.put('/crt/prefix/del', 
+restrictedCheck.prefix,
+async (req, res) => {
+	try {
+		// Search for the prefix container node tree.
+		req.body.id_obj = req.body.prefix;
+		req.body.node_type = 'PRE';
+		const node = await fwcTreeModel.getNodeInfo(req);
+
+		// Delete prefix.
+		await pkiModel.deleteCrtPrefix(req);
+
+		// Apply the new CRT prefixes definition.
+		await pkiModel.applyCrtPrefixes(req,node.id_parent);
+	
+		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'REMOVED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+// API call for check deleting restrictions.
+router.put('/crt/prefix/restricted',
+	restrictedCheck.prefix,
+	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 
 module.exports = router;

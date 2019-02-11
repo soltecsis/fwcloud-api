@@ -27,6 +27,11 @@ schema.validate = req => {
         schema = schema.append({ crt: sharedSch.id });
       else if (req.url==='/vpn/pki/ca/get' || req.url==='/vpn/pki/ca/del' || req.url==='/vpn/pki/ca/restricted')
         schema = schema.append({ ca: sharedSch.id });
+      else if (req.url==='/vpn/pki/crt/prefix' || req.url==='/vpn/pki/crt/prefix/del' || req.url==='/vpn/pki/crt/prefix/restricted') {
+        schema = schema.append({ prefix: sharedSch.id });
+        if (req.url==='/vpn/pki/crt/prefix')
+          schema = schema.append({ name: sharedSch.name });
+      }
     } else return reject(new Error('Request method not accepted'));
 
     try {

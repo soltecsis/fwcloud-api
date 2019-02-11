@@ -67,6 +67,12 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'OpenVPN ACCESS NOT ALLOWED', 'OpenVPN', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
+		// Check access to the CRT prefix indicated in req.body.prefix.
+		if (req.body.prefix) {
+			if (!(await checkCRTPrefixAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT Prefix ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+		}
+
 		next()
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
 };
@@ -127,6 +133,28 @@ function checkOpenVPNAccess(req) {
 
 			// Store the crt info for use in the API call processing.
 			req.openvpn = result[0];
+
+			resolve(true);
+		});
+	});
+};
+
+
+// Check access to CRT Prefix.
+function checkCRTPrefixAccess(req) {
+	return new Promise((resolve, reject) => {
+		let sql = `select CA.fwcloud,P.* FROM prefix P
+			INNER JOIN ca CA ON CA.id=P.ca
+			WHERE P.id=${req.body.prefix}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			// Check that fwcloud of the CA of the CRT prefix row is the same fwcloud indicated in the req.body.fwcloud.
+			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
+			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
+
+			// Store the crt info for use in the API call processing.
+			req.prefix = result[0];
 
 			resolve(true);
 		});

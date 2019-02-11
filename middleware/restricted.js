@@ -120,3 +120,11 @@ restrictedCheck.crt = async (req, res, next) => {
 		next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
+
+restrictedCheck.prefix = async (req, res, next) => {
+	try {
+		//let data = await pkiModel.searchPrefixInPolicy(req.dbCon,req.body.fwcloud,req.body.crt);
+		//if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};

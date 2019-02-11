@@ -324,13 +324,28 @@ pkiModel.createCrtPrefix = req => {
       name: req.body.name,
       ca: req.body.ca
     };
-    req.dbCon.query(`INSERT INTO prefix SET ?`, prefixData, async (error, result) => {
+    req.dbCon.query(`INSERT INTO prefix SET ?`, prefixData, (error, result) => {
       if (error) return reject(error);
+      resolve();
+    });
+  });
+};
 
-      try {
-        await pkiModel.applyCrtPrefixes(req,req.body.node_id);
-      } catch(error) { return reject(error) }
+// Modify a CRT Prefix container.
+pkiModel.modifyCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`UPDATE prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
 
+// Delete CRT Prefix container.
+pkiModel.deleteCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`DELETE from prefix WHERE id=${req.body.prefix}`, (error, result) => {
+      if (error) return reject(error);
       resolve();
     });
   });
