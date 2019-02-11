@@ -129,7 +129,7 @@ router.post('/crt', async(req, res) => {
 		await pkiModel.runEasyRsaCmd(req, (req.body.type===1) ? 'build-client-full' : 'build-server-full');
 
 		// Apply prefixes to the newly created certificate.
-		await pkiModel.applyCrtPrefixes(req,req.body.node_id);
+		await pkiModel.applyCrtPrefixes(req,req.body.ca);
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
