@@ -194,6 +194,19 @@ openvpnModel.getOpenvpnClients = (dbCon,openvpn) => {
   });
 };
 
+openvpnModel.getOpenvpnServersByCA = (dbCon,ca) => {
+	return new Promise((resolve, reject) => {
+    let sql = `select VPN.id,CRT.cn from openvpn VPN 
+      inner join crt CRT on CRT.id=VPN.crt
+      inner join ca CA on CA.id=CRT.ca
+      where CA.id=${ca} and CRT.type=2`; // 2 = Server certificate.
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
 openvpnModel.dumpCfg = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     // First obtain the CN of the certificate.

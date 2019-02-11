@@ -3,6 +3,7 @@ var pkiModel = {};
 
 var config = require('../../config/config');
 const fwcTreeModel = require('../../models/tree/tree');
+const openvpnModel = require('../../models/vpn/openvpn');
 const spawn = require('child-process-promise').spawn;
 const readline = require('readline');
 const fs = require('fs');
@@ -93,6 +94,16 @@ pkiModel.getCRTdata = (dbCon,crt) => {
 pkiModel.getCRTlist = (dbCon,ca) => {
 	return new Promise((resolve, reject) => {
     dbCon.query(`SELECT * FROM crt WHERE ca=${ca}`, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
+// Get CA list for a fwcloud.
+pkiModel.getCAlist = (dbCon,fwcloud) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`SELECT * FROM ca WHERE fwcloud=${fwcloud}`, (error, result) => {
       if (error) return reject(error);
       resolve(result);
     });
@@ -266,7 +277,7 @@ pkiModel.getPrefixes = (dbCon,ca) => {
 };
 
 // Fill prefix node with matching entries.
-pkiModel.fillPrefixNode = (dbCon,fwcloud,ca,name,parent,node) => {
+pkiModel.fillPrefixNodeCA = (dbCon,fwcloud,ca,name,parent,node) => {
 	return new Promise((resolve, reject) => {
     // Move all affected nodes into the new prefix container node.
     const prefix = dbCon.escape(name).slice(1,-1);
@@ -281,25 +292,84 @@ pkiModel.fillPrefixNode = (dbCon,fwcloud,ca,name,parent,node) => {
       } catch(error) { return reject(error) }
 
       // Remove from root CA node the nodes that match de prefix.
-      sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} 
-        AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
-        dbCon.query(sql, async (error, result) => {
-          if (error) return reject(error);
-          resolve();
-        });
+      sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   });
 };
+
+// Fill prefix node with matching entries.
+pkiModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_name,prefix_id,parent) => {
+	return new Promise((resolve, reject) => {
+    // Move all affected nodes into the new prefix container node.
+    const prefix = dbCon.escape(prefix_name).slice(1,-1);
+    let sql =`SELECT CRT.id,SUBSTRING(cn,${prefix.length+1},255) as sufix FROM crt CRT
+      INNER JOIN openvpn VPN on VPN.crt=CRT.id
+      WHERE VPN.openvpn=${openvpn_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
+    dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result.length === 0) return resolve(); // If no prefix match then do nothing.
+
+      try {
+        // Create the prefix and OpenVPN client configuration nodes.
+        let node_id = await fwcTreeModel.newNode(dbCon,fwcloud,prefix_name,parent,'PRE',prefix_id,400);
+        for (let row of result)
+          await fwcTreeModel.newNode(dbCon,fwcloud,row.sufix,node_id,'OCL',row.id,((row.type===1)?311:312));
+      } catch(error) { return reject(error) }
+
+      // Remove from OpenVPN server node the nodes that match de prefix.
+      sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=311 AND name LIKE '${prefix}%'`;
+      dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  });
+};
+
+
+// Apply CRT prefix to tree node.
+pkiModel.applyCrtPrefixesOpenVPN = (dbCon,fwcloud,ca) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      // Search all openvpn server configurations for this CA.
+      const openvpn_ser_list = await openvpnModel.getOpenvpnServersByCA(dbCon,ca);
+      for (let openvpn_ser of openvpn_ser_list) {
+        let node = await fwcTreeModel.getNodeInfo(dbCon,fwcloud,'OSR',openvpn_ser.id);
+        let node_id = node[0].id;
+        // Remove all nodes under the OpenVPN server configuration node.
+        await fwcTreeModel.deleteNodesUnderMe(dbCon,fwcloud,node_id);
+
+        // Create all OpenVPN client config nodes.
+        let openvpn_cli_list = await openvpnModel.getOpenvpnClients(dbCon,openvpn_ser.id);
+        for (let openvpn_cli of openvpn_cli_list)
+          await fwcTreeModel.newNode(dbCon,fwcloud,openvpn_cli.cn,node_id,'OCL',openvpn_cli.id,311);
+
+        // Create the nodes for all not empty prefixes.
+        const prefix_list = await pkiModel.getPrefixes(dbCon,ca);
+        for (let prefix of prefix_list)
+          await pkiModel.fillPrefixNodeOpenVPN(dbCon,fwcloud,openvpn_ser.id,prefix.name,prefix.id,node_id);
+      }
+
+      resolve();
+    } catch(error) { return reject(error) }
+  });
+};
+
 
 // Apply CRT prefix to tree node.
 pkiModel.applyCrtPrefixes = (req,ca) => {
 	return new Promise(async (resolve, reject) => {
     try {
    		// Search for the CA node tree.
-      const node = await fwcTreeModel.getNodeInfo(req.dbCon,req.body.fwcloud,'CA',ca);
+      let node = await fwcTreeModel.getNodeInfo(req.dbCon,req.body.fwcloud,'CA',ca);
       if (node.length !== 1)
         throw (new Error(`Found ${node.length} CA nodes, awaited 1`));
-      node_id = node[0].id;
+      let node_id = node[0].id;
 
       // Remove all nodes under the CA node.
       await fwcTreeModel.deleteNodesUnderMe(req.dbCon,req.body.fwcloud,node_id);
@@ -313,12 +383,11 @@ pkiModel.applyCrtPrefixes = (req,ca) => {
       const prefix_list = await pkiModel.getPrefixes(req.dbCon,ca);
       for (let prefix of prefix_list) {
         let id = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,prefix.name,node_id,'PRE',prefix.id,400);
-        await pkiModel.fillPrefixNode(req.dbCon,req.body.fwcloud,ca,prefix.name,node_id,id);
+        await pkiModel.fillPrefixNodeCA(req.dbCon,req.body.fwcloud,ca,prefix.name,node_id,id);
       }
 
       // Now apply to the OpenVPN nodes.
-      // Search all openvpn server configurations for this CA.
-      
+      await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,ca);
 
       resolve();
     } catch(error) { return reject(error) }
