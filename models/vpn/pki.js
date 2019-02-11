@@ -316,6 +316,10 @@ pkiModel.applyCrtPrefixes = (req,ca) => {
         await pkiModel.fillPrefixNode(req.dbCon,req.body.fwcloud,ca,prefix.name,node_id,id);
       }
 
+      // Now apply to the OpenVPN nodes.
+      // Search all openvpn server configurations for this CA.
+      
+
       resolve();
     } catch(error) { return reject(error) }
   });
