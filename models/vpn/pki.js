@@ -318,7 +318,7 @@ pkiModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_name,prefix_i
         // Create the prefix and OpenVPN client configuration nodes.
         let node_id = await fwcTreeModel.newNode(dbCon,fwcloud,prefix_name,parent,'PRE',prefix_id,400);
         for (let row of result)
-          await fwcTreeModel.newNode(dbCon,fwcloud,row.sufix,node_id,'OCL',row.id,((row.type===1)?311:312));
+          await fwcTreeModel.newNode(dbCon,fwcloud,row.sufix,node_id,'OCL',row.id,311);
       } catch(error) { return reject(error) }
 
       // Remove from OpenVPN server node the nodes that match de prefix.
