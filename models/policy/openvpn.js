@@ -5,27 +5,27 @@ var tableModel = "policy_r__openvpn";
 
 
 //Add new policy_r__openvpn
-policyOpenvpnModel.create = (idfirewall, policy_r__interfaceData) => {
-	return new Promise((resolve, reject) => {
-			//Check if IPOBJ TYPE is ALLOWED in this Position
-		checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function(error, data) {
+policyOpenvpnModel.insertInRule = req => {
+	return new Promise(async (resolve, reject) => {
+		var policyOpenvpn = {
+			rule: req.body.rule,
+			openvpn: req.body.openvpn,
+			negate: req.body.negate,
+			position: req.body.position,
+			position_order: req.body.position_order
+		};
+		req.dbCon.query(`insert into ${tableModel} set ?`, policyOpenvpn, (error, result) => {
 			if (error) return reject(error);
-			allowed = data;
-			if (allowed) {
-				db.get(function(error, connection) {
-					if (error) return reject(error);
-					connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__interfaceData, function(error, result) {
-						if (error)return reject(error);
-						if (result.affectedRows > 0) {
-							OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
-							resolve({ "result": true, "allowed": "1" });
-						} else
-							resolve({ "result": false, "allowed": "1" });
-					});
-				});
-			} else {
-				callback(null, { "result": false, "allowed": "0" });
-			}
+			resolve(result.insertId);
+		});
+	});
+};
+
+policyOpenvpnModel.checkOpenvpnPosition = (dbCon,position) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select type from ipobj_type__policy_position where type=311 and position=${position}`, (error, rows) => {
+			if (error) return reject(error);
+			resolve((rows.length>0)?1:0);
 		});
 	});
 };
