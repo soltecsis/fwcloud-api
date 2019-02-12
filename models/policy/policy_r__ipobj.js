@@ -625,71 +625,33 @@ function OrderList(new_order, rule, position, old_order, ipobj, ipobj_g, interfa
 
 
 function checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
+	db.get((error, connection) => {
+		if (error) return callback(error, 0);
 
-	var allowed = 0;
-	db.get(function (error, connection) {
-		if (error)
-			callback(null, 0);
-		var sql = "";
+		let sql = "";
 		if (ipobj > 0) {
-			sql = 'select A.allowed from ipobj O ' +
-					'inner join ipobj_type T on O.type=T.id ' +
-					'inner join ipobj_type__policy_position A on A.type=O.type ' +
-					'inner join policy_position P on P.id=A.position ' +
-					' WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
+			sql = 'select A.type from ipobj O ' +
+				'inner join ipobj_type T on O.type=T.id ' +
+				'inner join ipobj_type__policy_position A on A.type=O.type ' +
+				'inner join policy_position P on P.id=A.position ' +
+				'WHERE O.id = ' + connection.escape(ipobj) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
 		} else if (ipobj_g > 0) {
-			sql = 'select A.allowed from ipobj_g O ' +
-					'inner join ipobj_type T on O.type=T.id ' +
-					'inner join ipobj_type__policy_position A on A.type=O.type ' +
-					'inner join policy_position P on P.id=A.position ' +
-					' WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
+			sql = 'select A.type from ipobj_g O ' +
+				'inner join ipobj_type T on O.type=T.id ' +
+				'inner join ipobj_type__policy_position A on A.type=O.type ' +
+				'inner join policy_position P on P.id=A.position ' +
+				'WHERE O.id = ' + connection.escape(ipobj_g) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
 		} else if (interface > 0) {
-			sql = 'select A.allowed from interface O ' +
-					'inner join ipobj_type T on O.interface_type=T.id ' +
-					'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
-					'inner join policy_position P on P.id=A.position ' +
-					' WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
+			sql = 'select A.type from interface O ' +
+				'inner join ipobj_type T on O.interface_type=T.id ' +
+				'inner join ipobj_type__policy_position A on A.type=O.interface_type ' +
+				'inner join policy_position P on P.id=A.position ' +
+				'WHERE O.id = ' + connection.escape(interface) + ' AND A.position=' + connection.escape(position) + '  AND P.content="O"';
 		}
-		logger.debug(sql);
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				if (rows.length > 0) {
-					allowed = rows[0].allowed;
-					logger.debug("ALLOWED: " + allowed);
-					if (allowed > 0) {
-						if (ipobj_g > 0) {
-							logger.debug("CHECKING GROUP IPOBJS: ", ipobj_g);
-							//Check if all IPOBJS under Group are allowed all
-							sql = 'select count(*) as n from ipobj__ipobjg I ' +
-									'inner join ipobj O on O.id=I.ipobj ' +
-									'inner join ipobj_type T on O.type=T.id ' +
-									'inner join ipobj_type__policy_position A on A.type=O.type ' +
-									'inner join policy_position P on P.id=A.position ' +
-									' WHERE I.ipobj_g = ' + connection.escape(ipobj_g) +
-									' AND A.position=' + connection.escape(position) +
-									' AND P.content="O"  AND A.allowed=0';
-							connection.query(sql, function (error, rows) {
-								if (error) {
-									logger.debug(error);
-									callback(error, null);
-								} else {
-									logger.debug(rows);
-									var notallowed = rows[0].n;
-									if (notallowed > 0)
-										callback(null, 0);
-									else
-										callback(null, 1);
-								}
-							});
-						} else
-							callback(null, 1);
-					} else
-						callback(null, 0);
-				} else
-					callback(null, 0);
-			}
+
+		connection.query(sql, (error, rows) => {
+			if (error) return callback(error, null);
+			callback(null,(rows.length>0)?1:0);
 		});
 	});
 }

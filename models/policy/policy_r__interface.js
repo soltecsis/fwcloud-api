@@ -307,31 +307,16 @@ function OrderList(new_order, rule, position, old_order, interface) {
 
 //Check if a object (type) can be inserted in a position type
 function checkInterfacePosition(idfirewall, rule, id, position, callback) {
+	db.get((error, connection) => {
+		if (error) return callback(null, 0);
 
-	var allowed = 0;
-	db.get(function(error, connection) {
-		if (error)
-			callback(null, 0);
-		var sql = 'select A.allowed from ipobj_type__policy_position A  ' +
-			'inner join interface I on A.type=I.interface_type ' +
-			'inner join policy_position P on P.id=A.position ' +
-			' WHERE I.id = ' + connection.escape(id) + ' AND A.position=' + connection.escape(position) +
-			' AND I.firewall= ' + connection.escape(idfirewall);
-		logger.debug(sql);
-		connection.query(sql, function(error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				if (rows.length > 0) {
-					allowed = rows[0].allowed;
-					logger.debug("ALLOWED: " + allowed);
-					if (allowed > 0)
-						callback(null, 1);
-					else
-						callback(null, 0);
-				} else
-					callback(null, 0);
-			}
+		let sql = `select A.type from ipobj_type__policy_position A
+			inner join interface I on A.type=I.interface_type
+			inner join policy_position P on P.id=A.position
+			WHERE I.id=${id} AND A.position=${position} AND I.firewall=${idfirewall}`;
+		connection.query(sql, (error, rows) => {
+			if (error) return callback(error, null);
+			callback(null,(rows.length>0)?1:0);
 		});
 	});
 }
