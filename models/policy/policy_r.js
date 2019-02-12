@@ -281,9 +281,9 @@ policy_rModel.getPolicy_rs_type = (fwcloud, idfirewall, type, rule, AllDone) => 
 };
 
 //Get All policy_r by firewall and type
-policy_rModel.getPolicy_rs_type_full = function(fwcloud, idfirewall, type, rule, AllDone) {
+policy_rModel.getPolicy_rs_type_full =(fwcloud, idfirewall, type, rule) => {
 	return new Promise((resolve, reject) => {
-		var sqlRule = "";
+		let sqlRule = "";
 
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -319,13 +319,8 @@ policy_rModel.getPolicy_rs_type_full = function(fwcloud, idfirewall, type, rule,
 						//Bucle por REGLAS                            
 						//logger.debug("DENTRO de BUCLE de REGLAS: " + rows.length + " Reglas");
 						Promise.all(rows.map(Policy_positionModel.getPolicy_positionsTypePro))
-							.then(data => {
-								logger.debug("---------------------------------------------------> FINAL de REGLAS <----");
-								resolve(data);
-							})
-							.catch(e => {
-								reject(e);
-							});
+						.then(data => resolve(data))
+						.catch(e => reject(e));
 					} else {
 						//NO existe regla
 						logger.debug("NO HAY REGLAS");
@@ -939,8 +934,7 @@ policy_rModel.deletePolicy_r = function(idfirewall, id) {
 };
 
 //Compile rule and save it
-policy_rModel.compilePolicy_r = function(accessData, callback) {
-
+policy_rModel.compilePolicy_r = (accessData, callback) => {
 	var rule = accessData.rule;
 
 	policy_rModel.getPolicy_r_id(rule, (error, data) => {

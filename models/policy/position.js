@@ -44,25 +44,21 @@ policy_positionModel.getPolicy_positionsType = function (p_type, callback) {
 policy_positionModel.getPolicy_positionsTypePro = function (data) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'SELECT ' + data.fwcloud + ' as fwcloud, ' + data.firewall + ' as firewall, ' + data.id + ' as rule, P.* FROM ' + tableModel + ' P WHERE P.policy_type = ' + connection.escape(data.type) + ' ORDER BY P.position_order';
-			//logger.debug(sql);
+			if (error) retun reject(error);
+			
+			var sql = `SELECT ${data.fwcloud} as fwcloud,${data.firewall} as firewall,${data.id} as rule, P.* 
+				FROM ${tableModel} P WHERE P.policy_type=${data.type} ORDER BY P.position_order`;
 			connection.query(sql, function (error, rows) {
-				if (error)
-					reject(error);
-				else {
-					//Bucle por POSITIONS
-					//logger.debug("DENTRO de BUCLE de POSITIONS REGLA: " + data.id + " --> " + rows.length + " Positions");
-					Promise.all(rows.map(Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro))
-							.then(dataP => {                                
-								data.positions = dataP;                                
-								resolve(data);                                
-							})
-							.catch(e => {
-								reject(e);
-							});                                        
-				}
+				if (error) return reject(error);
+
+				//Bucle por POSITIONS
+				//logger.debug("DENTRO de BUCLE de POSITIONS REGLA: " + data.id + " --> " + rows.length + " Positions");
+				Promise.all(rows.map(Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro))
+				.then(dataP => {                                
+					data.positions = dataP;                                
+					resolve(data);                                
+				})
+				.catch(e => reject(e));                                        
 			});
 		});
 	});

@@ -23,9 +23,7 @@ schema.validate = req => {
 				position: sharedSch.rule_position,
 				position_order: sharedSch.u16bits
 			});
-			if (req.method === 'POST')
-				schema = schema.append({ negate: sharedSch._0_1 });
-			else if (req.method === 'PUT' && req.url === '/policy/openvpn/move')
+			if (req.method === 'PUT' && req.url === '/policy/openvpn/move')
 				schema = schema.append({ new_rule: sharedSch.id, new_position: sharedSch.rule_position, new_order: sharedSch.u16bits });
 			else if (req.method === 'PUT' && req.url === '/policy/openvpn/order')
 				schema = schema.append({ new_order: sharedSch.u16bits });

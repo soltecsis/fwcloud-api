@@ -75,70 +75,67 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position = function (rule, p
 policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (position) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
+			
 			//SELECT ALL IPOBJ UNDER a POSITION
-			var sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-					' FROM ' + tableModel + ' P ' +
-					' inner join ipobj O on O.id=P.ipobj ' +
-					' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' AND O.type<>8 ' +
-					' UNION ' + //SELECT IPOBJ UNDER HOST/INTERFACE
-					' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-					' FROM ' + tableModel + ' P ' +
-					' inner join ipobj O on O.id=P.ipobj ' +
-					' inner join interface__ipobj II on II.ipobj=O.id ' +
-					' inner join interface I on I.id=II.interface ' +
-					' inner join ipobj OF on OF.interface=I.id ' +
-					' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' AND O.type=8 ' +
-					' UNION ' + //SELECT IPOBJ UNDER GROUP (NOT HOSTS)
-					' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-					' FROM ' + tableModel + ' P ' +
-					' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
-					' inner join ipobj O on O.id=G.ipobj ' +
-					' WHERE O.type<>8 AND rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' UNION ' + //SELECT IPOBJ UNDER HOST IN GROUP 
-					' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-					' FROM ' + tableModel + ' P ' +
-					' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
-					' inner join ipobj O on O.id=G.ipobj ' +
-					' inner join interface__ipobj II on II.ipobj=O.id ' +
-					' inner join interface I on I.id=II.interface ' +
-					' inner join ipobj OF on OF.interface=I.id ' +
-					' WHERE O.type=8 AND rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' UNION ' + //SELECT INTERFACES in  POSITION I
-					' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type ' +
-					' FROM policy_r__interface P ' +
-					' inner join interface I on I.id=P.interface ' +
-					' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' UNION ' + //SELECT IPOBJ UNDER INTERFACE POSITION O
-					' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type ' +
-					' FROM ' + tableModel + ' P ' +
-					' inner join interface I on I.id=P.interface ' +
-					' inner join ipobj O on O.interface=I.id ' +
-					' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
-					' ORDER BY position_order';
-
+			let sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
+				' FROM ' + tableModel + ' P ' +
+				' inner join ipobj O on O.id=P.ipobj ' +
+				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' AND O.type<>8 ' +
+				' UNION ' + //SELECT IPOBJ UNDER HOST/INTERFACE
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
+				' FROM ' + tableModel + ' P ' +
+				' inner join ipobj O on O.id=P.ipobj ' +
+				' inner join interface__ipobj II on II.ipobj=O.id ' +
+				' inner join interface I on I.id=II.interface ' +
+				' inner join ipobj OF on OF.interface=I.id ' +
+				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' AND O.type=8 ' +
+				' UNION ' + //SELECT IPOBJ UNDER GROUP (NOT HOSTS)
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
+				' FROM ' + tableModel + ' P ' +
+				' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
+				' inner join ipobj O on O.id=G.ipobj ' +
+				' WHERE O.type<>8 AND rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' UNION ' + //SELECT IPOBJ UNDER HOST IN GROUP 
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
+				' FROM ' + tableModel + ' P ' +
+				' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
+				' inner join ipobj O on O.id=G.ipobj ' +
+				' inner join interface__ipobj II on II.ipobj=O.id ' +
+				' inner join interface I on I.id=II.interface ' +
+				' inner join ipobj OF on OF.interface=I.id ' +
+				' WHERE O.type=8 AND rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' UNION ' + //SELECT INTERFACES in  POSITION I
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type ' +
+				' FROM policy_r__interface P ' +
+				' inner join interface I on I.id=P.interface ' +
+				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' UNION ' + //SELECT IPOBJ UNDER INTERFACE POSITION O
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type ' +
+				' FROM ' + tableModel + ' P ' +
+				' inner join interface I on I.id=P.interface ' +
+				' inner join ipobj O on O.interface=I.id ' +
+				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' ORDER BY position_order';
 
 			//logger.debug("BUSCANDO OBJETOS EN POSITION: ", position.name, "  -> ", sql);
-			connection.query(sql, function (error, rows) {
-				if (error)
-					reject(error);
-				else {
-					getNegateRulePosition(position.rule, position.id, function (error, negate) {
-						//logger.debug("DENTRO de BUCLE de IPOBJS dentro de POSITION: " + position.id + " FWCLOUD: " + position.fwcloud + " --> " + rows.length + " IPOBJS");
-						Promise.all(rows.map(IpobjModel.getFinalIpobjPro))
-								.then(dataI => {
-									position.ipobjs = dataI;
-									//logger.debug("-------------------------> FINAL de POSITIONS : " + position.id + " ----");
-									resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "negate": negate, "position_objs": dataI});
-								})
-								.catch(e => {
-									reject(e);
-								});
-					});
-				}
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+
+				getNegateRulePosition(position.rule, position.id, (error, negate) => {
+					if (error) return reject(error);
+
+					//logger.debug("DENTRO de BUCLE de IPOBJS dentro de POSITION: " + position.id + " FWCLOUD: " + position.fwcloud + " --> " + rows.length + " IPOBJS");
+					Promise.all(rows.map(IpobjModel.getFinalIpobjPro))
+					.then(dataI => {
+						position.ipobjs = dataI;
+						//logger.debug("-------------------------> FINAL de POSITIONS : " + position.id + " ----");
+						resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "negate": negate, "position_objs": dataI});
+					})
+					.catch(e => reject(e));
+				});
 			});
 		});
 	});

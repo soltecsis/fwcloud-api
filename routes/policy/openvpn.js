@@ -2,12 +2,11 @@ var express = require('express');
 var router = express.Router();
 
 const policyOpenvpnModel = require('../../models/policy/openvpn');
+const Policy_rModel = require('../../models/policy/policy_r');
 const api_resp = require('../../utils/api_response');
 const utilsModel = require("../../utils/utils.js");
 
-
 var objModel = "OpenVPN in Rule";
-
 
 /* Create New policy_r__openvpn */
 router.post("/",
