@@ -51,231 +51,203 @@ policy_rModel.getPolicy_rs = function(idfirewall, idgroup, callback) {
 };
 
 //Get All policy_r by firewall and type
-policy_rModel.getPolicy_rs_type = (fwcloud, idfirewall, type, rule, AllDone) => {
-	var policy = [];
-	var policy_cont = 0;
-	var position_cont = 0;
-	var ipobj_cont = 0;
-	var i, j, k;
-	var sqlRule = "";
+policy_rModel.getPolicy_rs_type = req => {
+	return new Promise((resolve, reject) => {
+		var policy = [];
+		var policy_cont = 0;
+		var position_cont = 0;
+		var i;
 
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
+		let sql = `SELECT P.*, G.name as group_name, G.groupstyle as group_style, C.updated_at as c_updated_at,
+			IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
+			FROM ${tableModel} P
+			LEFT JOIN policy_g G ON G.id=P.idgroup
+			LEFT JOIN policy_c C ON C.rule=P.id
+			WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
+			${(req.body.rule)?` AND P.id=${req.body.rule}`:``} ORDER BY P.rule_order`;
 
-		if (rule !== "") {
-			sqlRule = " AND P.id=" + connection.escape(rule);
-		}
-		Policy_typeModel.getPolicy_type(type, function(error, data_types) {
-			if (error)
-				AllDone(error, null);
-			else {
-				if (data_types.length > 0)
-					type = data_types[0].id;
-				else
-					type = 1;
+		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			if (rows.length === 0) return resolve();
 
-				var sql = 'SELECT P.*, G.name as group_name, G.groupstyle as group_style, ' +
-					' C.updated_at as c_updated_at, ' +
-					' IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled ' +
-					' FROM ' + tableModel + ' P ' +
-					' LEFT JOIN policy_g G ON G.id=P.idgroup ' +
-					' LEFT JOIN policy_c C ON C.rule=P.id ' +
-					' WHERE P.firewall=' + connection.escape(idfirewall) + ' AND  P.type= ' + connection.escape(type) +
-					sqlRule + ' ORDER BY P.rule_order';
-				logger.debug(sql);
-				connection.query(sql, function(error, rows) {
-					if (error)
-						AllDone(error, null);
-					else {
-						if (rows.length > 0) {
-							i = 0;
-							policy_cont = rows.length;
-							//for (i = 0; i < rows.length; i++) {
+			i = 0;
+			policy_cont = rows.length;
+			//for (i = 0; i < rows.length; i++) {
+			//--------------------------------------------------------------------------------------------------
+			asyncMod.map(rows, function(row_rule, callback1) {
+					i++;
+					var policy_node = new data_policy_r(row_rule);
+
+
+					var rule_id = row_rule.id;
+					logger.debug(i + " ---> DENTRO de REGLA: " + rule_id + " ORDER: " + row_rule.rule_order);
+
+					//Buscamos POSITIONS de REGLA
+					Policy_positionModel.getPolicy_positionsType(req.body.type, function(error, data_positions) {
+						//If exists policy_position get data
+						if (typeof data_positions !== 'undefined') {
+							//logger.debug("REGLA: " + rule_id + "  POSITIONS: " + data_positions.length);
+							j = 0;
+							//for (j = 0; j < data_positions.length; j++) {
+
+							position_cont = data_positions.length;
+							policy_node.positions = new Array();
+
 							//--------------------------------------------------------------------------------------------------
-							asyncMod.map(rows, function(row_rule, callback1) {
-									i++;
-									var policy_node = new data_policy_r(row_rule);
+							asyncMod.map(data_positions, function(row_position, callback2) {
+									j++;
+									//logger.debug(j + " - DENTRO de POSITION: " + row_position.id + " - " + row_position.name + "     ORDER:" + row_position.position_order);
+									var position_node = new data_policy_positions(row_position);
 
+									//Buscamos IPOBJS por POSITION
+									Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function(error, data__rule_ipobjs) {
+										//logger.debug(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
+										//If exists policy_r__ipobj get data
+										//if (typeof data__rule_ipobjs !== 'undefined' && data__rule_ipobjs.length > 0)
+										if (typeof data__rule_ipobjs !== 'undefined') {
 
-									var rule_id = row_rule.id;
-									logger.debug(i + " ---> DENTRO de REGLA: " + rule_id + " ORDER: " + row_rule.rule_order);
-
-									//Buscamos POSITIONS de REGLA
-									Policy_positionModel.getPolicy_positionsType(type, function(error, data_positions) {
-										//If exists policy_position get data
-										if (typeof data_positions !== 'undefined') {
-											//logger.debug("REGLA: " + rule_id + "  POSITIONS: " + data_positions.length);
-											j = 0;
-											//for (j = 0; j < data_positions.length; j++) {
-
-											position_cont = data_positions.length;
-											policy_node.positions = new Array();
-
+											//obtenemos IPOBJS o INTERFACES o GROUPS
+											k = 0;
+											//for (k = 0; k < data__rule_ipobjs.length; k++) {
+											ipobj_cont = data__rule_ipobjs.length;
+											//creamos array de ipobj
+											position_node.ipobjs = new Array();
 											//--------------------------------------------------------------------------------------------------
-											asyncMod.map(data_positions, function(row_position, callback2) {
-													j++;
-													//logger.debug(j + " - DENTRO de POSITION: " + row_position.id + " - " + row_position.name + "     ORDER:" + row_position.position_order);
-													var position_node = new data_policy_positions(row_position);
+											asyncMod.map(data__rule_ipobjs, function(row_ipobj, callback3) {
+													k++;
+													//logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
+													// GET IPOBJs  Position O
+													if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
+														IpobjModel.getIpobj_NoPromise(req.body.fwcloud, row_ipobj.ipobj, function(error, data_ipobjs) {
+															//If exists ipobj get data
+															if (data_ipobjs.length > 0) {
+																var ipobj = data_ipobjs[0];
+																var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'O');
+																//Añadimos ipobj a array de position
+																position_node.ipobjs.push(ipobj_node);
 
-													//Buscamos IPOBJS por POSITION
-													Policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_position(rule_id, row_position.id, function(error, data__rule_ipobjs) {
-														//logger.debug(" IPOBJS PARA POSITION:" + row_position.id + " --> " + data__rule_ipobjs.length);
-														//If exists policy_r__ipobj get data
-														//if (typeof data__rule_ipobjs !== 'undefined' && data__rule_ipobjs.length > 0)
-														if (typeof data__rule_ipobjs !== 'undefined') {
+																callback3();
+															}
+															//Get Error
+															else {
+																logger.debug("ERROR getIpobj: " + error);
+																callback3();
+															}
+														});
+													}
+													//GET GROUPS  Position O
+													else if (row_ipobj.ipobj_g > 0 && row_ipobj.type === 'O') {
+														Ipobj_gModel.getIpobj_g(req.body.fwcloud, row_ipobj.ipobj_g, function(error, data_ipobjs) {
+															//If exists ipobj_g get data
+															if (data_ipobjs.length > 0) {
+																var ipobj = data_ipobjs[0];
+																var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'G');
+																//Añadimos ipobj a array de position
+																position_node.ipobjs.push(ipobj_node);
 
-															//obtenemos IPOBJS o INTERFACES o GROUPS
-															k = 0;
-															//for (k = 0; k < data__rule_ipobjs.length; k++) {
-															ipobj_cont = data__rule_ipobjs.length;
-															//creamos array de ipobj
-															position_node.ipobjs = new Array();
-															//--------------------------------------------------------------------------------------------------
-															asyncMod.map(data__rule_ipobjs, function(row_ipobj, callback3) {
-																	k++;
-																	//logger.debug("BUCLE REGLA:" + rule_id + "  POSITION:" + row_position.id + "  IPOBJ ID: " + row_ipobj.ipobj + "  IPOBJ_GROUP: " + row_ipobj.ipobj_g + "  TYPE: " + row_ipobj.type + "  INTERFACE:" + row_ipobj.interface + "   ORDER:" + row_ipobj.position_order + "  NEGATE:" + row_ipobj.negate);
-																	// GET IPOBJs  Position O
-																	if (row_ipobj.ipobj > 0 && row_ipobj.type === 'O') {
-																		IpobjModel.getIpobj_NoPromise(fwcloud, row_ipobj.ipobj, function(error, data_ipobjs) {
-																			//If exists ipobj get data
-																			if (data_ipobjs.length > 0) {
-																				var ipobj = data_ipobjs[0];
-																				var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'O');
-																				//Añadimos ipobj a array de position
-																				position_node.ipobjs.push(ipobj_node);
+																callback3();
+															}
+															//Get Error
+															else {
+																logger.debug("ERROR GROUP getIpobj: " + error);
+																callback3();
+															}
+														});
+													}
+													//GET INTERFACES Position I and O
+													else if (row_ipobj.interface > 0 || row_ipobj.type === 'I') {
+														var idInterface = row_ipobj.interface;
+														if (row_ipobj.type === 'I')
+															idInterface = row_ipobj.ipobj;
 
-																				callback3();
-																			}
-																			//Get Error
-																			else {
-																				logger.debug("ERROR getIpobj: " + error);
-																				callback3();
-																			}
-																		});
-																	}
-																	//GET GROUPS  Position O
-																	else if (row_ipobj.ipobj_g > 0 && row_ipobj.type === 'O') {
-																		Ipobj_gModel.getIpobj_g(fwcloud, row_ipobj.ipobj_g, function(error, data_ipobjs) {
-																			//If exists ipobj_g get data
-																			if (data_ipobjs.length > 0) {
-																				var ipobj = data_ipobjs[0];
-																				var ipobj_node = new data_policy_position_ipobjs(ipobj, row_ipobj.position_order, row_ipobj.negate, 'G');
-																				//Añadimos ipobj a array de position
-																				position_node.ipobjs.push(ipobj_node);
+														InterfaceModel.getInterface(req.body.firewall, req.body.fwcloud, idInterface, function(error, data_interface) {
+															if (data_interface.length > 0) {
+																var interface = data_interface[0];
+																var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, 'I');
+																//Añadimos ipobj a array de position
+																position_node.ipobjs.push(ipobj_node);
 
-																				callback3();
-																			}
-																			//Get Error
-																			else {
-																				logger.debug("ERROR GROUP getIpobj: " + error);
-																				callback3();
-																			}
-																		});
-																	}
-																	//GET INTERFACES Position I and O
-																	else if (row_ipobj.interface > 0 || row_ipobj.type === 'I') {
-																		var idInterface = row_ipobj.interface;
-																		if (row_ipobj.type === 'I')
-																			idInterface = row_ipobj.ipobj;
+																callback3();
+															}
+															//Get Error
+															else {
+																logger.debug("ERROR getInterface: " + error);
+																callback3();
+															}
+														});
+													} else {
+														callback3();
+													}
+												}, //Fin de bucle de IPOBJS
+												function(err) {
+													//logger.debug("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
+													//logger.debug("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
+													//logger.debug(position_node);
 
-																		InterfaceModel.getInterface(idfirewall, fwcloud, idInterface, function(error, data_interface) {
-																			if (data_interface.length > 0) {
-																				var interface = data_interface[0];
-																				var ipobj_node = new data_policy_position_ipobjs(interface, row_ipobj.position_order, row_ipobj.negate, 'I');
-																				//Añadimos ipobj a array de position
-																				position_node.ipobjs.push(ipobj_node);
-
-																				callback3();
-																			}
-																			//Get Error
-																			else {
-																				logger.debug("ERROR getInterface: " + error);
-																				callback3();
-																			}
-																		});
-																	} else {
-																		callback3();
-																	}
-																}, //Fin de bucle de IPOBJS
-																function(err) {
-																	//logger.debug("añadiendo IPOBJS: " + ipobj_cont + "   IPOBJS_COUNT:" + position_node.ipobjs.length);
-																	//logger.debug("-------------------------Añadiendo IPOBJS  en Regla:" + rule_id + "  Position:" + row_position.id);
-																	//logger.debug(position_node);
-
-																	position_node.ipobjs.sort(function(a, b) {
-																		return a.position_order - b.position_order;
-																	});
-
-																	policy_node.positions.push(position_node);
-
-																	if (policy_node.positions.length >= position_cont) {
-
-																		policy_node.positions.sort(function(a, b) {
-																			return a.position_order - b.position_order;
-																		});
-																		policy.push(policy_node);
-																		//logger.debug("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
-																		if (policy.length >= policy_cont) {
-																			//logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
-																			policy.sort(function(a, b) {
-																				return a.rule_order - b.rule_order;
-																			});
-																			AllDone(null, policy);
-																		}
-																	}
-
-																});
-														}
-
+													position_node.ipobjs.sort(function(a, b) {
+														return a.position_order - b.position_order;
 													});
 
-													callback2();
+													policy_node.positions.push(position_node);
 
-												}, //Fin de bucle Positions                                
-												function(err) {
-													//logger.debug("J=" + j + " ---------- FINAL BUCLE 2 --------");
-													//logger.debug('iterating2 done   CONT=' + policy_cont);
-													//                                            if (err)
-													//                                                callback2(err, null);
-													//                                            else
-													//                                                callback2(null, policy);
+													if (policy_node.positions.length >= position_cont) {
 
-													//logger.debug("añadiendo POLICY NODE");
-													//policy.push(policy_node);
-													//logger.debug("LENGHT E2: " + policy.length);
-													if (policy.length >= policy_cont) {
-														//logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=" + i + " - J=" + j + " - K=" + k);
+														policy_node.positions.sort(function(a, b) {
+															return a.position_order - b.position_order;
+														});
+														policy.push(policy_node);
+														//logger.debug("------------------Añadiendo POLICY_NODE  en Regla:" + rule_id + "  Position:" + row_position.id);
+														if (policy.length >= policy_cont) {
+															//logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 3----------------");
+															policy.sort(function(a, b) {
+																return a.rule_order - b.rule_order;
+															});
+															resolve(policy);
+														}
 													}
+
 												});
-
-
-											//logger.debug(policy);
-
-
 										}
-										//Get Error
-										else {
-											logger.debug("ERROR getPolicy_positionsType: " + error);
-										}
+
 									});
 
-									callback1();
+									callback2();
 
-
-								}, //Fin de bucle Reglas                    
+								}, //Fin de bucle Positions                                
 								function(err) {
-									//logger.debug("---------- FINAL BUCLE 1 --------");
-								});
-						} else {
-							//NO existe regla
-							logger.debug("NO HAY REGLAS");
-							AllDone("", null);
-						}
+									//logger.debug("J=" + j + " ---------- FINAL BUCLE 2 --------");
+									//logger.debug('iterating2 done   CONT=' + policy_cont);
+									//                                            if (err)
+									//                                                callback2(err, null);
+									//                                            else
+									//                                                callback2(null, policy);
 
-					}
+									//logger.debug("añadiendo POLICY NODE");
+									//policy.push(policy_node);
+									//logger.debug("LENGHT E2: " + policy.length);
+									if (policy.length >= policy_cont) {
+										//logger.debug("-------------------- HEMOS LLLEGADO aL FINAL BUCLE 2   con I=" + i + " - J=" + j + " - K=" + k);
+									}
+								});
+
+
+							//logger.debug(policy);
+
+
+						}
+						//Get Error
+						else {
+							logger.debug("ERROR getPolicy_positionsType: " + error);
+						}
+					});
+
+					callback1();
+
+
+				}, //Fin de bucle Reglas                    
+				function(err) {
+					//logger.debug("---------- FINAL BUCLE 1 --------");
 				});
-			}
 		});
 	});
 };

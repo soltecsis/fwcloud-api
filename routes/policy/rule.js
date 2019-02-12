@@ -84,23 +84,24 @@ async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type */
-router.put('/type/get', (req, res) => {
-	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, "", (error, data) => {
-		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-		api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	});
+router.put('/type/get', async (req, res) => {
+	try {
+		const policy = await Policy_rModel.getPolicy_rs_type(req);
+		api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/get', (req, res) => {
-	Policy_rModel.getPolicy_rs_type(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, (error, data) => {
+router.put('/get', async (req, res) => {
+	try {
+		const policy = await Policy_rModel.getPolicy_rs_type(req);
 		//If exists policy_r get data
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		if (policy && policy.length > 0)
+			api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	});
+			api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
@@ -339,257 +340,5 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 		});
 	});
 }
-
-/*function ruleMove(firewall, rule, pasteOnRuleId, pasteOffset, inc) {
-	return new Promise((resolve, reject) => {
-		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
-			if (error) return reject(error);
-
-			if (pasteOnRule && pasteOnRule.length > 0) {
-				logger.debug("---->POLICY DESTINO Id: " + pasteOnRuleId + " GROUP:" + pasteOnRule[0].idgroup + "  ORDER: " + pasteOnRule[0].rule_order + "  MAX ORDER: " + pasteOnRule[0].max_order + "  MIN ORDER: " + pasteOnRule[0].min_order + "  OFFSET: " + pasteOffset);
-				if ((pasteOnRule[0].rule_order === pasteOnRule[0].max_order && pasteOffset > 0 && pasteOnRuleId === rule)) {
-
-					reject("MAX ORDER " + pasteOnRule[0].max_order + " REACHED POLICY Id: " + rule);
-				} else if ((pasteOnRule[0].rule_order === pasteOnRule[0].min_order && pasteOffset < 0 && pasteOnRuleId === rule)) {
-
-					reject("MIN ORDER " + pasteOnRule[0].min_order + "  REACHED POLICY Id: " + rule);
-				} else {
-					//Get Group Next Rule                    
-					Policy_rModel.getPolicy_r_DestGroup(firewall, pasteOffset, pasteOnRule[0].rule_order, pasteOnRule[0].type, (error, dataG) => {
-						if (error) return reject(error);
-
-						Policy_rModel.getPolicy_r(firewall, rule, (error, data) => {
-							if (error) return reject(error);							
-
-							//If exists policy_r get data
-							if (data && data.length > 0) {
-								let old_order = data[0].rule_order;
-								let new_order = pasteOnRule[0].rule_order + (inc * pasteOffset);
-								var idgroupDest = data[0].idgroup;
-								//If exists policy_r get data
-								if (dataG && dataG.length > 0) {
-									idgroupDest = dataG[0].idgroup;
-								}
-
-								logger.debug("ENCONTRADA POLICY Id: " + rule + "  ORDER: " + old_order + " --> NEW ORDER:" + new_order + " NEW Group:" + idgroupDest);
-								logger.debug("IDGROUP DEST: " + idgroupDest + "  IDGROUP RULE:" + data[0].idgroup);
-								if (idgroupDest === data[0].idgroup) {
-									Policy_rModel.updatePolicy_r_order(firewall, data[0].type, rule, new_order, old_order, idgroupDest, (error, data) => {
-										if (error) return reject(error);
-										//If saved policy_r saved ok, get data
-										if (data && data.result) {
-											resolve(data);
-										} else {
-											reject("ERROR updating order");
-										}
-									});
-								} else {
-									Policy_rModel.updatePolicy_r_Group(firewall, null, idgroupDest, rule, function(error, data) {
-										if (error)
-											reject("Error Orderning");
-										else {
-											//If saved policy_r saved ok, get data
-											if (data && data.result) {
-												resolve(data);
-											} else {
-												reject("ERROR updating Group");
-											}
-										}
-									});
-								}
-							} else {
-								reject("NOT FOUND POLICY Id: " + rule);
-							}
-						});
-					});
-				}
-			} else {
-				reject("NOT FOUND POLICY Id: " + rule);
-			}
-		});
-	});
-}*/
-
-
-
-/* Get all policy_rs by firewall and group*/
-/*router.get('/:idfirewall/group/:idgroup', function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var idgroup = req.params.idgroup;
-	Policy_rModel.getPolicy_rs(idfirewall, idgroup, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});*/
-
-
-/* Get all policy_rs by firewall and type */
-/*router.get('/full/:idfirewall/type/:type', function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var rule = "";
-	var fwcloud = req.body.fwcloud;
-	logger.debug("MOSTRANDO FULL POLICY para firewall: " + idfirewall + "  TYPE:" + type);
-	Policy_rModel.getPolicy_rs_type_full(fwcloud, idfirewall, type, rule)
-			.then(data =>
-			{
-				//If exists policy_r get data
-				if (data && data.length > 0)
-				{
-					api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-				//Get Error
-				else
-				{
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			})
-			.catch(e => {
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			});
-});*/
-
-
-
-/* Get  policy_r by id and  by Id */
-/*router.get('/:idfirewall/:id', function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var id = req.params.id;
-	Policy_rModel.getPolicy_r(idfirewall, id, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});*/
-
-/* Get all policy_rs by nombre and by firewall*/
-/*router.get('/:idfirewall/group/:idgroup/name/:name', function (req, res)
-{
-	var idfirewall = req.params.idfirewall;
-	var name = req.params.name;
-	var idgroup = req.params.idgroup;
-	Policy_rModel.getPolicy_rName(idfirewall, idgroup, name, function (error, data)
-	{
-		//If exists policy_r get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});*/
-
-
-
-/* Update ORDER of the policy_r that exist */
-/*router.put('/policy-r/order/:idfirewall/:type/:id/:old_order/:new_order', 
-utilsModel.disableFirewallCompileStatus, 
-(req, res) => {
-	//Save data into object
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var id = req.params.id;
-	var new_order = req.params.new_order;
-	var old_order = req.params.old_order;
-	Policy_rModel.updatePolicy_r_order(idfirewall, type, id, new_order, old_order, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY ORDER', error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r saved ok, get data
-			if (data && data.result)
-			{
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ORDER UPDATED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else
-			{
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating', 'POLICY', error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});*/
-
-/* Update APPLY_TO de policy_r that exist */
-/*router.put('/policy-r/applyto/:idfirewall/:type/:id/:idcluster/:fwapplyto', 
-utilsModel.disableFirewallCompileStatus, 
-(req, res) => {
-	//Save data into object
-	var idfirewall = req.params.idfirewall;
-	var type = req.params.type;
-	var id = req.params.id;
-	var idcluster = req.params.idcluster;
-	var fwapplyto = req.params.fwapplyto;
-
-	Policy_rModel.updatePolicy_r_applyto(req.session.user_id, req.body.fwcloud, idfirewall, type, id, idcluster, fwapplyto, function (error, data)
-	{
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'SQL ERRROR', 'POLICY APPLYTO', error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r saved ok, get data
-			if (data && data.result)
-			{
-				var accessData = {sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.params.idfirewall, rule: id};
-				Policy_rModel.compilePolicy_r(accessData, function (error, datac) {});
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'APPLYTO UPDATED OK', 'POLICY', null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else
-			{
-				api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error updating APPLYTO', 'POLICY', error, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});*/
 
 module.exports = router;
