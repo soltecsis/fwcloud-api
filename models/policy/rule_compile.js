@@ -313,8 +313,8 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {        
-	Policy_rModel.getPolicy_rs_type_full(cloud, fw, type, rule)
+RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule, callback) => {        
+	Policy_rModel.getPolicy_rs_type_full(fwcloud, firewall, type, rule)
 	.then(data => {
 		if (!data) {
 			callback({"Msg": "Rule data not found."},null);
@@ -467,7 +467,7 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 		//Save compilation
 		var policy_cData = {
 			rule: rule,
-			firewall: fw,
+			firewall: firewall,
 			rule_compiled: cs,
 			status_compiled: 1
 		};
@@ -484,15 +484,15 @@ RuleCompileModel.rule_compile = (cloud, fw, type, rule, callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get the rule compilation string or compile it if this string is not uptodate.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.get = (cloud, fw, type, rule) => {
+RuleCompileModel.get = (fwcloud, firewall, type, rule) => {
 	return new Promise((resolve,reject) => { 
-		Policy_cModel.getPolicy_c(cloud, fw, rule, (error, data) => {
+		Policy_cModel.getPolicy_c(fwcloud, firewall, rule, (error, data) => {
 			if (error) return reject(error);
 			if (data && data.length > 0) {
 				if (data[0].c_status_recompile === 0)
 					resolve(data[0].c_compiled);
 				else {
-					RuleCompileModel.rule_compile(cloud, fw, type, rule, (error,data) => {
+					RuleCompileModel.rule_compile(fwcloud, firewall, type, rule, (error,data) => {
 						if (error) return reject(error)
 						resolve(data);
 					});
