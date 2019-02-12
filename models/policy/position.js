@@ -44,7 +44,7 @@ policy_positionModel.getPolicy_positionsType = function (p_type, callback) {
 policy_positionModel.getPolicy_positionsTypePro = function (data) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error) retun reject(error);
+			if (error) return reject(error);
 			
 			var sql = `SELECT ${data.fwcloud} as fwcloud,${data.firewall} as firewall,${data.id} as rule, P.* 
 				FROM ${tableModel} P WHERE P.policy_type=${data.type} ORDER BY P.position_order`;

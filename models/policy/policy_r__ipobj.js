@@ -76,7 +76,7 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (posi
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
-			
+
 			//SELECT ALL IPOBJ UNDER a POSITION
 			let sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
 				' FROM ' + tableModel + ' P ' +
@@ -117,6 +117,11 @@ policy_r__ipobjModel.getPolicy_r__ipobjs_interfaces_positionPro = function (posi
 				' FROM ' + tableModel + ' P ' +
 				' inner join interface I on I.id=P.interface ' +
 				' inner join ipobj O on O.interface=I.id ' +
+				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
+				' UNION ' + //SELECT INTERFACES in  POSITION I
+				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type ' +
+				' FROM policy_r__interface P ' +
+				' inner join interface I on I.id=P.interface ' +
 				' WHERE rule=' + connection.escape(position.rule) + ' AND position=' + connection.escape(position.id) +
 				' ORDER BY position_order';
 
