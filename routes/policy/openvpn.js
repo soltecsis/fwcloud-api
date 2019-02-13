@@ -14,10 +14,10 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		// Verify that the OpenVPN configuration is of client type.
-		if (req.body.type!==1)
+		if (req.openvpn.type!==1)
 			throw (new Error('Only OpenVPN client configurations allowed'));
 
-		if (!(await checkOpenvpnPosition(req.dbCon,req.body.position)))
+		if (!(await policyOpenvpnModel.checkOpenvpnPosition(req.dbCon,req.body.position)))
 			throw (new Error('OpenVPN not allowed in this position'));
 
 		await policyOpenvpnModel.insertInRule(req);

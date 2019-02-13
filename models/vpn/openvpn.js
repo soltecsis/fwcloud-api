@@ -182,11 +182,29 @@ openvpnModel.getCRTData = file => {
   });
 };
 
-openvpnModel.getOpenvpnClients = (dbCon,openvpn) => {
+// Get data of an OpenVPN server clients.
+openvpnModel.getOpenvpnClients = (dbCon, openvpn) => {
 	return new Promise((resolve, reject) => {
     let sql = `select VPN.id,CRT.cn from openvpn VPN 
       inner join crt CRT on CRT.id=VPN.crt
       where openvpn=${openvpn}`;
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
+// Get OpenVPN client configuration data.
+openvpnModel.getOpenvpnInfo = (dbCon, fwcloud, openvpn, type) => {
+	return new Promise((resolve, reject) => {
+    let sql = `select F.fwcloud,VPN.*,CRT.cn,CA.cn as CA_cn,O.address from openvpn VPN 
+      inner join crt CRT on CRT.id=VPN.crt
+      inner join ca CA on CA.id=CRT.ca
+      inner join firewall F on F.id=VPN.firewall
+      inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
+      inner join ipobj O on O.id=OPT.ipobj
+      where F.fwcloud=${fwcloud} and VPN.id=${openvpn} ${(type===1)?`and OPT.name='ifconfig-push'`:``}`;
     dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve(result);

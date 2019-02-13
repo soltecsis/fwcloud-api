@@ -6,6 +6,7 @@ var policyPositionModel = {};
 const IpobjModel = require('../../models/ipobj/ipobj');
 const Ipobj_gModel = require('../../models/ipobj/group');
 const InterfaceModel = require('../../models/interface/interface');
+const openvpnModel = require('../../models/vpn/openvpn');
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -123,12 +124,15 @@ policyPositionModel.getRulePositionData = position => {
 
 			let sql = `SELECT rule, ipobj, ipobj_g, interface, position, position_order, negate, "O" as type 
 				FROM policy_r__ipobj WHERE rule=${position.rule} AND position=${position.id}
+
 				UNION SELECT rule, interface, 0, 0, position, position_order, negate, "I" as type 
-				FROM policy_r__interface WHERE rule=${position.rule}  AND position=${position.id}
+				FROM policy_r__interface WHERE rule=${position.rule} AND position=${position.id}
+
 				UNION SELECT rule, openvpn, 0, 0, position, position_order, negate, "VPN" as type 
-				FROM policy_r__openvpn WHERE rule=${position.rule}  AND position=${position.id}
+				FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
+
 				UNION SELECT rule, prefix, 0, 0, position, position_order, negate, "PRE" as type 
-				FROM policy_r__prefix WHERE rule=${position.rule}  AND position=${position.id}
+				FROM policy_r__prefix WHERE rule=${position.rule} AND position=${position.id}
 				ORDER BY position_order`;
 			
 			dbCon.query(sql, async (error, items) => {
@@ -143,16 +147,22 @@ policyPositionModel.getRulePositionData = position => {
 					position_node.ipobjs = new Array();
 
 					for (let item of items) {
+						let data = {};
 						if (item.ipobj>0 && item.type==='O') // IPOBJ
 						  data = await IpobjModel.getIpobj(dbCon, position.fwcloud, item.ipobj);
 						else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
 							data = await Ipobj_gModel.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g)
-						else if (item.interface > 0 || item.type === 'I') // Network interface.
-							data = await InterfaceModel.getInterface(position.fwcloud,(item.type==='I')?item.ipobj:item.interface);
+						else if (item.interface>0 || item.type==='I') // Network interface.
+							data = await InterfaceModel.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
+						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
+							data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
+						else data = null;
 
-						var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.negate, item.type);
-						// Add new object node to positions array.
-						position_node.ipobjs.push(ipobj_node);
+						if (data) {
+							var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.negate, item.type);
+							// Add new object node to positions array.
+							position_node.ipobjs.push(ipobj_node);
+						}
 					}
 		
 					resolve(position_node);

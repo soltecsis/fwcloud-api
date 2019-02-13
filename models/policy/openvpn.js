@@ -10,7 +10,6 @@ policyOpenvpnModel.insertInRule = req => {
 		var policyOpenvpn = {
 			rule: req.body.rule,
 			openvpn: req.body.openvpn,
-			negate: req.body.negate,
 			position: req.body.position,
 			position_order: req.body.position_order
 		};

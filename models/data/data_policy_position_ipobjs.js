@@ -50,6 +50,10 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		}
 	} else if (type === 'G') {
 		this.type = data.type;
+	} else if (type === 'VPN') {
+		this.type = 311;
+		this.name = data.cn;
+		this.address = data.address;
 	}
 };
 

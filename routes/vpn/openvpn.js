@@ -187,6 +187,18 @@ router.put('/ip/get', async(req, res) => {
 
 
 /**
+ * Get OpenVPN configuration metadata.
+ */
+router.put('/info/get', async(req, res) => {
+	try {
+		const data = await openvpnModel.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
+		api_resp.getJson(data, api_resp.ACR_OK, 'OpenVPN info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+
+/**
  * Delete OpenVPN configuration.
  */
 router.put('/del',
