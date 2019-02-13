@@ -34,18 +34,12 @@ ipobj_gModel.getIpobj_gs = function (fwcloud, callback) {
 
 
 //Get ipobj_g by  id
-ipobj_gModel.getIpobj_g = function (fwcloud, id, callback) {
-	db.get(function (error, connection) {
-			if (error)
-					callback(error, null);
-			var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND  (fwcloud= ' + connection.escape(fwcloud) + ' OR fwcloud is null) ';
-			connection.query(sql, function (error, row) {
-					if (error)
-							callback(error, null);
-					else {
-							callback(null, row);
-					}
-			});
+ipobj_gModel.getIpobj_g = (dbCon, fwcloud, id) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`SELECT * FROM ${tableModel} WHERE id=${id} AND (fwcloud=${fwcloud} OR fwcloud is null)`, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
 	});
 };
 

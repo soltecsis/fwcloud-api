@@ -150,51 +150,23 @@ interfaceModel.getInterfaceHost = function (idhost, fwcloud, id, callback) {
 };
 
 //Get interface by  id and interface
-interfaceModel.getInterface = function (idfirewall, fwcloud, id, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT I.*,' +
-			' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud, ' +
-			' F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name, ' +
-			' J.id as host_id, J.name as host_name ' +
-			' FROM ' + tableModel + ' I ' +
-			' left join interface__ipobj O on O.interface=I.id ' +
-			' left join ipobj J ON J.id=O.ipobj ' +
-			' left join firewall F on F.id=I.firewall ' +
-			' left join cluster C on C.id=F.cluster ' +
-			' WHERE I.id = ' + connection.escape(id);
-		connection.query(sql, function (error, row) {
-			if (error) {
-				logger.debug("ERROR getinterface: ", error, "\n", sql);
-				callback(error, null);
-			} else
-				callback(null, row);
-		});
-	});
-};
-
-//Get interface by  id and interface
-interfaceModel.getInterfacePro = function (idfirewall, fwcloud, id) {
+interfaceModel.getInterface = (fwcloud, id) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
-					' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
-					' FROM ' + tableModel + ' I ' +
-					' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type ' +
-					' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
-					' left join interface__ipobj O on O.interface=I.id ' +
-					' left join ipobj J ON J.id=O.ipobj ' +
-					' left join firewall F on F.id=I.firewall ' +
-					' WHERE I.id = ' + connection.escape(id);
-			//' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-			connection.query(sql, function (error, row) {
-				if (error)
-					reject(error);
-				else
-					resolve(row);
+		db.get((error, dbCon) => {
+			if (error) return reject(error);
+			var sql = 'SELECT I.*,' +
+				' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud, ' +
+				' F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name, ' +
+				' J.id as host_id, J.name as host_name ' +
+				' FROM ' + tableModel + ' I ' +
+				' left join interface__ipobj O on O.interface=I.id ' +
+				' left join ipobj J ON J.id=O.ipobj ' +
+				' left join firewall F on F.id=I.firewall ' +
+				' left join cluster C on C.id=F.cluster ' +
+				' WHERE I.id = ' + id;
+			dbCon.query(sql, (error, row) => {
+				if (error) return reject(error);
+				resolve(row);
 			});
 		});
 	});

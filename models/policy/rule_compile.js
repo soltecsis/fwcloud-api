@@ -314,7 +314,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule, callback) => {        
-	Policy_rModel.getPolicy_rs_type_full(fwcloud, firewall, type, rule)
+	Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule)
 	.then(data => {
 		if (!data) {
 			callback({"Msg": "Rule data not found."},null);

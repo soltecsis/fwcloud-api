@@ -39,14 +39,14 @@ router.put('/fw/full/get', (req, res) => {
 });
 
 /* Get  interface by id and  by firewall*/
-router.put('/fw/get', (req, res) => {
-	InterfaceModel.getInterface(req.body.firewall, req.body.fwcloud, req.body.id, (error, data) => {
-		//If exists interface get data
+router.put('/fw/get', async (req, res) => {
+	try {
+		const data = await InterfaceModel.getInterface(req.body.fwcloud, req.body.id);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
 			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	});
+	} catch(error) { api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR', objModel, null, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

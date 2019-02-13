@@ -86,8 +86,7 @@ async (req, res) => {
 /* Get all policy_rs by firewall and type */
 router.put('/type/get', async (req, res) => {
 	try {
-		//const policy = await Policy_rModel.getPolicy_rs_type_OLD(req);
-		const policy = await Policy_rModel.getPolicy_rs_type_full(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const policy = await Policy_rModel.getPolicyData(req);
 		api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -96,7 +95,7 @@ router.put('/type/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/get', async (req, res) => {
 	try {
-		const policy = await Policy_rModel.getPolicy_rs_type(req);
+		const policy = await Policy_rModel.getPolicyData(req);
 		//If exists policy_r get data
 		if (policy && policy.length > 0)
 			api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
@@ -109,7 +108,7 @@ router.put('/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/full/get', async (req, res) => {
 	try { 
-		const data = await Policy_rModel.getPolicy_rs_type_full(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const data = await Policy_rModel.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 		else
