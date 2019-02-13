@@ -86,7 +86,8 @@ async (req, res) => {
 /* Get all policy_rs by firewall and type */
 router.put('/type/get', async (req, res) => {
 	try {
-		const policy = await Policy_rModel.getPolicy_rs_type(req);
+		//const policy = await Policy_rModel.getPolicy_rs_type_OLD(req);
+		const policy = await Policy_rModel.getPolicy_rs_type_full(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
