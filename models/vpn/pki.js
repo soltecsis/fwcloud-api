@@ -306,7 +306,7 @@ pkiModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_name,prefix_i
 	return new Promise((resolve, reject) => {
     // Move all affected nodes into the new prefix container node.
     const prefix = dbCon.escape(prefix_name).slice(1,-1);
-    let sql =`SELECT CRT.id,SUBSTRING(cn,${prefix.length+1},255) as sufix FROM crt CRT
+    let sql =`SELECT VPN.id,SUBSTRING(cn,${prefix.length+1},255) as sufix FROM crt CRT
       INNER JOIN openvpn VPN on VPN.crt=CRT.id
       WHERE VPN.openvpn=${openvpn_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
     dbCon.query(sql, async (error, result) => {
