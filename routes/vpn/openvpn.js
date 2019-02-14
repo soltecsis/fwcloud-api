@@ -192,7 +192,7 @@ router.put('/ip/get', async(req, res) => {
 router.put('/info/get', async(req, res) => {
 	try {
 		const data = await openvpnModel.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
-		api_resp.getJson(data, api_resp.ACR_OK, 'OpenVPN info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(data[0], api_resp.ACR_OK, 'OpenVPN info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
