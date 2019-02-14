@@ -30,5 +30,28 @@ policyOpenvpnModel.checkOpenvpnPosition = (dbCon,position) => {
 };
 
 
+policyOpenvpnModel.checkExistsInPosition = (dbCon,rule,openvpn,position) => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT rule FROM ${tableModel}
+			WHERE rule=${rule} AND openvpn=${openvpn} AND position=${position}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve((rows.length>0)?1:0);
+		});
+	});
+};
+
+
+policyOpenvpnModel.moveToNewPosition = req => {
+	return new Promise((resolve, reject) => {
+		let sql = `UPDATE ${tableModel} SET rule=${req.body.new_rule}, position=${req.body.new_position}, negate=${req.body.negate}
+			WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 //Export the object
 module.exports = policyOpenvpnModel;

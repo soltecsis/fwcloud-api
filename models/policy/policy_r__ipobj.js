@@ -583,44 +583,26 @@ function getNegateRulePosition(rule, position, callback) {
 		});
 	});
 }
-policy_r__ipobjModel.getTypePositions = function (position, new_position, callback) {
+policy_r__ipobjModel.getPositionsContent = (dbCon, position, new_position) => {
+	return new Promise(async (resolve, reject) => {
+		dbCon.query(`SELECT id, content FROM policy_position WHERE id=${position}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length !== 1) reject(new Error('Policy position not found'));
+			let content1 = result[0].content;
 
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql1 = 'SELECT id, content FROM policy_position  WHERE id = ' + connection.escape(position);
-		var sql2 = 'SELECT id, content FROM policy_position  WHERE id = ' + connection.escape(new_position);
-		//logger.debug('SQL: ' + sql1);
-		connection.query(sql1, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				var content1;
-				if (rows.length > 0) {
-					content1 = rows[0].content;
-				}
+			dbCon.query(`SELECT id, content FROM policy_position WHERE id=${new_position}`, (error, result) => {
+				if (error) return reject(error);
+				if (result.length !== 1) reject(new Error('Policy position not found'));
+				let content2 = result[0].content;
 
-				connection.query(sql2, function (error, rows2) {
-					if (error)
-						callback(error, null);
-					else {
-						var content2;
-						if (rows2.length > 0) {
-							content2 = rows2[0].content;
-						}
-
-						logger.debug('Position: ' + position + '  Content: ' + content1 + '  New Position: ' + new_position + '  Content: ' + content2);
-						callback(null, {"content1": content1, "content2": content2});
-					}
-				});
-			}
+				resolve({"content1": content1, "content2": content2});
+			});
 		});
 	});
 };
+
 //Remove policy_r__ipobj 
 policy_r__ipobjModel.deletePolicy_r__ipobj = function (rule, ipobj, ipobj_g, interface, position, position_order, callback) {
-
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
