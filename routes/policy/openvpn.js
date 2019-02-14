@@ -43,7 +43,7 @@ async (req, res) => {
 			throw(new Error('OpenVPN configuration already exists in destination rule position'));
 
 		// Get content of positions.
-		const content = policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
+		const content = await policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
 		if (content.content1!=='O' || content.content2!=='O')
 			throw(new Error('Invalid positions content'));
 

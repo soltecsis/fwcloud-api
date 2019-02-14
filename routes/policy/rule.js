@@ -2,8 +2,10 @@ var express = require('express');
 var router = express.Router();
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_gModel = require('../../models/policy/policy_g');
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+const policyOpenvpnModel = require('../../models/policy/openvpn');
+const policyPrefixModel = require('../../models/policy/prefix');
 var db = require('../../db.js');
 var utilsModel = require("../../utils/utils.js");
 var api_resp = require('../../utils/api_response');
@@ -214,7 +216,7 @@ async (req, res) => {
 	try {
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 		for (let rule of req.body.rulesIds)
-			pasteOnRuleId = await ruleCopy(req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+			pasteOnRuleId = await ruleCopy(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error copying rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -238,7 +240,7 @@ async (req, res) => {
 	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
-function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
+function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise((resolve, reject) => {
 		// Get rule data of rule over which we are running the copy action (up or down of this rule).
 		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
@@ -273,21 +275,18 @@ function ruleCopy(firewall, rule, pasteOnRuleId, pasteOffset) {
 								type: copyRule[0].type
 							};
 							newRuleId = await Policy_rModel.insertPolicy_r(policy_rData);
-						} catch(error) { return reject(error) }
 
-						if (newRuleId) {
 							//DUPLICATE RULE POSITONS O (OBJECTS)
-							Policy_r__ipobjModel.duplicatePolicy_r__ipobj(rule, newRuleId, (error, data_dup) => {
-								if (error) return reject(new Error("Error Creating POLICY O POSITIONS from Id: " + rule));
-								if (data_dup && data_dup.result) {
-									//DUPLICATE RULE POSITONS I (INTERFACES)
-									Policy_r__interfaceModel.duplicatePolicy_r__interface(rule, newRuleId, (error, data_dup) => {
-										if (error) return reject(new Error("Error Creating POLICY I POSITIONS from Id: " + rule));
-										resolve(newRuleId);
-									});
-								} else return reject(new Error("Error duplicating objects from Id: " + rule));
-							});
-						} else return reject(new Error('Inserting new rule'));
+							await policy_r__ipobjModel.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
+							//DUPLICATE RULE POSITONS I (INTERFACES)
+							await policy_r__interfaceModel.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
+							//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
+							await policyOpenvpnModel.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
+							//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
+							await policyPrefixModel.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+
+							resolve(newRuleId);
+						} catch(error) { return reject(error) }
 					} else return reject(new Error('Rule not found'));
 				});
 			} else return reject(new Error('Rule not found'));

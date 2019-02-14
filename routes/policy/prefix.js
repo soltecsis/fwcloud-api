@@ -10,27 +10,23 @@ const utilsModel = require("../../utils/utils.js");
 
 var objModel = "OpenVPN in Rule";
 
-/* Create New policy_r__openvpn */
+/* Create New policy_r__prefix */
 router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		// Verify that the OpenVPN configuration is of client type.
-		if (req.openvpn.type!==1)
-			throw (new Error('Only OpenVPN client configurations allowed'));
-
-		if (!(await policyPrefixModel.checkOpenvpnPosition(req.dbCon,req.body.position)))
-			throw (new Error('OpenVPN not allowed in this position'));
+		if (!(await policyPrefixModel.checkPrefixPosition(req.dbCon,req.body.position)))
+			throw (new Error('CRT prefix not allowed in this position'));
 
 		await policyPrefixModel.insertInRule(req);
 		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR inserting OpenVPN in rule', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR inserting CRT prefix in rule', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
-/* Update POSITION policy_r__openvpn that exist */
+/* Update POSITION policy_r__prefix that exist */
 router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
@@ -39,11 +35,11 @@ async (req, res) => {
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
 
-		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
+		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.new_position))
 			throw(new Error('OpenVPN configuration already exists in destination rule position'));
 
 		// Get content of positions.
-		const content = policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
+		const content = await policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
 		if (content.content1!=='O' || content.content2!=='O')
 			throw(new Error('Invalid positions content'));
 
@@ -62,7 +58,7 @@ utilsModel.disableFirewallCompileStatus,
 });
 
 
-/* Remove policy_r__openvpn */
+/* Remove policy_r__prefix */
 router.put("/del",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {

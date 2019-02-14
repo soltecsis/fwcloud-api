@@ -296,7 +296,6 @@ policy_r__ipobjModel.clonePolicy_r__ipobj = function (policy_r__ipobjData) {
 
 policy_r__ipobjModel.cloneInsertPolicy_r__ipobj = function (p_ipobjData) {
 	return new Promise((resolve, reject) => {
-
 		db.get(function (error, connection) {
 			if (error)
 				reject(error);
@@ -317,23 +316,14 @@ policy_r__ipobjModel.cloneInsertPolicy_r__ipobj = function (p_ipobjData) {
 	});
 };
 //Duplicate policy_r__ipobj RULES
-policy_r__ipobjModel.duplicatePolicy_r__ipobj = function (rule, new_rule, callback) {
-
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'INSERT INTO  ' + tableModel + ' (rule, ipobj, ipobj_g, interface, position, position_order, negate) ' +
-				'(SELECT ' + connection.escape(new_rule) + ', ipobj, ipobj_g, interface, position, position_order, negate ' +
-				'from ' + tableModel + ' where rule=' + connection.escape(rule) + ' order by  position, position_order)';
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(error);
-				logger.debug(sql);
-				callback(error, null);
-			} else {
-				callback(null, {"result": true});
-			}
+policy_r__ipobjModel.duplicatePolicy_r__ipobj = (dbCon, rule, new_rule) => {
+	return new Promise((resolve, reject) => {
+		let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order, negate)
+			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order, negate 
+			from ${tableModel} where rule=${rule} order by  position, position_order)`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

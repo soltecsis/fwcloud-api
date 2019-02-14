@@ -276,6 +276,19 @@ pkiModel.getPrefixes = (dbCon,ca) => {
   });
 };
 
+// Get prefix info.
+pkiModel.getPrefixInfo = (dbCon, fwcloud, prefix, type) => {
+	return new Promise((resolve, reject) => {
+    let sql = `select CA.fwcloud,PRE.*,CA.cn from prefix PRE 
+      inner join ca CA on CA.id=PRE.ca
+      where CA.fwcloud=${fwcloud} and PRE.id=${prefix}`;
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
 // Fill prefix node with matching entries.
 pkiModel.fillPrefixNodeCA = (dbCon,fwcloud,ca,name,parent,node) => {
 	return new Promise((resolve, reject) => {

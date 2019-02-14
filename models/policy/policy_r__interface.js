@@ -89,7 +89,6 @@ policy_r__interfaceModel.insertPolicy_r__interface = (idfirewall, policy_r__inte
 //Clone policy_r__interface
 policy_r__interfaceModel.clonePolicy_r__interface = function(policy_r__interfaceData) {
 	return new Promise((resolve, reject) => {
-
 		var p_interfaceData = {
 			rule: policy_r__interfaceData.newrule,
 			interface: policy_r__interfaceData.newInterface,
@@ -119,28 +118,14 @@ policy_r__interfaceModel.clonePolicy_r__interface = function(policy_r__interface
 };
 
 //Duplicate policy_r__interface RULES
-policy_r__interfaceModel.duplicatePolicy_r__interface = function(rule, new_rule, callback) {
-
-
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'INSERT INTO  ' + tableModel + ' (rule,  interface, position,position_order, negate) ' +
-			'(SELECT ' + connection.escape(new_rule) + ', interface, position, position_order, negate ' +
-			'from ' + tableModel + ' where rule=' + connection.escape(rule) + ' order by  position, position_order)';
-
-		connection.query(sql, function(error, result) {
-			if (error) {
-				logger.debug(error);
-				logger.debug(sql);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					callback(null, { "result": true });
-				} else {
-					callback(null, { "result": false });
-				}
-			}
+policy_r__interfaceModel.duplicatePolicy_r__interface = (dbCon, rule, new_rule) => {
+	return new Promise((resolve, reject) => {
+		let sql = `INSERT INTO ${tableModel} (rule, interface, position,position_order, negate)
+			(SELECT ${new_rule}, interface, position, position_order, negate
+			from ${tableModel} where rule=${rule} order by  position, position_order)`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
