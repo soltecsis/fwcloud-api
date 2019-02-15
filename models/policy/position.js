@@ -58,50 +58,59 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, dbCon) {
 			if (error) return reject(error);
+			
 			//SELECT ALL IPOBJ UNDER a POSITION
-			let sql = 'SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-				' FROM policy_r__ipobj P ' +
-				' inner join ipobj O on O.id=P.ipobj ' +
-				' WHERE rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' AND O.type<>8 ' +
-				' UNION ' + //SELECT IPOBJ UNDER HOST/INTERFACE
-				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-				' FROM policy_r__ipobj P ' +
-				' inner join ipobj O on O.id=P.ipobj ' +
-				' inner join interface__ipobj II on II.ipobj=O.id ' +
-				' inner join interface I on I.id=II.interface ' +
-				' inner join ipobj OF on OF.interface=I.id ' +
-				' WHERE rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' AND O.type=8 ' +
-				' UNION ' + //SELECT IPOBJ UNDER GROUP (NOT HOSTS)
-				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-				' FROM policy_r__ipobj P ' +
-				' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
-				' inner join ipobj O on O.id=G.ipobj ' +
-				' WHERE O.type<>8 AND rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' UNION ' + //SELECT IPOBJ UNDER HOST IN GROUP 
-				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall,  rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type ' +
-				' FROM policy_r__ipobj P ' +
-				' inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g ' +
-				' inner join ipobj O on O.id=G.ipobj ' +
-				' inner join interface__ipobj II on II.ipobj=O.id ' +
-				' inner join interface I on I.id=II.interface ' +
-				' inner join ipobj OF on OF.interface=I.id ' +
-				' WHERE O.type=8 AND rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' UNION ' + //SELECT INTERFACES in  POSITION I
-				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type ' +
-				' FROM policy_r__interface P ' +
-				' inner join interface I on I.id=P.interface ' +
-				' WHERE rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' UNION ' + //SELECT IPOBJ UNDER INTERFACE POSITION O
-				' SELECT ' + position.fwcloud + ' as fwcloud, ' + position.firewall + ' as firewall, rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type ' +
-				' FROM policy_r__ipobj P ' +
-				' inner join interface I on I.id=P.interface ' +
-				' inner join ipobj O on O.interface=I.id ' +
-				' WHERE rule=' + dbCon.escape(position.rule) + ' AND position=' + dbCon.escape(position.id) +
-				' ORDER BY position_order';
+			let sql=`SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
+				P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join ipobj O on O.id=P.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} AND O.type<>8 ` +
+			
+				//SELECT IPOBJ UNDER HOST/INTERFACE
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
+				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join ipobj O on O.id=P.ipobj
+				inner join interface__ipobj II on II.ipobj=O.id
+				inner join interface I on I.id=II.interface
+				inner join ipobj OF on OF.interface=I.id
+				WHERE rule=${position.rule} AND position=${position.id} AND O.type=8 ` +
+				
+				//SELECT IPOBJ UNDER GROUP (NOT HOSTS)
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g
+				inner join ipobj O on O.id=G.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} AND O.type<>8 ` +
+				
+				//SELECT IPOBJ UNDER HOST IN GROUP 
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g
+				inner join ipobj O on O.id=G.ipobj
+				inner join interface__ipobj II on II.ipobj=O.id
+				inner join interface I on I.id=II.interface
+				inner join ipobj OF on OF.interface=I.id
+				WHERE rule=${position.rule} AND position=${position.id} AND O.type=8 ` +
+				
+				//SELECT INTERFACES in  POSITION I
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
+				rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type
+				FROM policy_r__interface P
+				inner join interface I on I.id=P.interface
+				WHERE rule=${position.rule} AND position=${position.id} ` +
+				
+				//SELECT IPOBJ UNDER INTERFACE POSITION O
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join interface I on I.id=P.interface
+				inner join ipobj O on O.interface=I.id
+				WHERE rule=${position.rule} AND position=${position.id}
+				ORDER BY position_order`;
 
-			//logger.debug("BUSCANDO OBJETOS EN POSITION: ", position.name, "  -> ", sql);
 			dbCon.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 

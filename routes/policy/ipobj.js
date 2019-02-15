@@ -31,7 +31,7 @@ async (req, res) => {
 	try {
 		const found = await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData);
 		if (found)
-		 return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
 		 const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0);
 			//If saved policy_r__ipobj Get data
@@ -93,7 +93,7 @@ async (req, res) => {
 		await policy_cModel.deletePolicy_c(firewall, new_rule);
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
-			throw(new Error('Object already exists in this rule position'));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		// Get positions content.
 		const data = await 	policy_r__ipobjModel.getPositionsContent(req.dbCon, position, new_position);
