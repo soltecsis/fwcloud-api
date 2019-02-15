@@ -8,6 +8,7 @@ const fwcTreemodel = require('../../models/tree/tree');
 const sshTools = require('../../utils/ssh');
 const socketTools = require('../../utils/socket');
 const firewallModel = require('../../models/firewall/firewall');
+const policyOpenvpnModel = require('../../models/policy/openvpn');
 const fs = require('fs');
 const ip = require('ip');
 
@@ -467,24 +468,30 @@ openvpnModel.freeVpnIP = req => {
   });
 };
 
-openvpnModel.searchOpenvpnInRules = (dbCon,fwcloud,openvpn) => {
-	return new Promise((resolve, reject) => {
-    // For each ipobj referenced by the OpenVPN configuration options, verify that it is not being used in any firewall rule.
-    let sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
-      inner join ipobj OBJ on OBJ.id=OPT.ipobj
-      where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
-    dbCon.query(sql, async (error, result) => {
-      if (error) return reject(error);
+openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let search = {};
+      search.result = false;
+      search.restrictions ={};
 
-      try {
-        for (let ipobj of result) {
-          const data = await ipobjModel.searchIpobjUsage(fwcloud, ipobj.id, ipobj.type, 1); // 1 = Search only in rules.
-          if (data.result) return resolve(data);
-        }         
-      } catch(error) { reject(error) }
-
-      resolve({result: false});
-    });
+      /* Verify that the OpenVPN configuration is not used in any
+          - Rule (table policy_r__openvpn)
+          - IPBOJ group.
+          - CRT prefix used in a rule or group.
+      */
+      search.restrictions.OpenvpnInRules = await policyOpenvpnModel.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
+      //search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
+      //search.restrictions.OpenvpnInPrefix = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+      
+      for (let key in search.restrictions) {
+        if (search.restrictions[key].length > 0) {
+          search.result = true;
+          break;
+        }
+      }
+      resolve(search);
+    } catch(error) { reject(error) }
   });
 };
 
@@ -498,7 +505,7 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
 
       try {
         for (let openvpn of result) {
-          const data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,openvpn.id);
+          const data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,openvpn.id);
           if (data.result) {
             // OpenVPN config IP object found in rules of other firewall.
             if (data.restrictions.IpobjInRules.length > 0) {

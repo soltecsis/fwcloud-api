@@ -96,8 +96,8 @@ restrictedCheck.openvpn = async (req, res, next) => {
 	try {
 		let data = await openvpnModel.searchOpenvpnChilds(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		
-		data = await openvpnModel.searchOpenvpnInRules(req.dbCon,req.body.fwcloud,req.body.openvpn);
+	
+		data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		
 		next();
@@ -123,8 +123,9 @@ restrictedCheck.crt = async (req, res, next) => {
 
 restrictedCheck.prefix = async (req, res, next) => {
 	try {
-		//let data = await pkiModel.searchPrefixInPolicy(req.dbCon,req.body.fwcloud,req.body.crt);
-		//if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		let data = await pkiModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		
 		next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };

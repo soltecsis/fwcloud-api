@@ -78,5 +78,19 @@ policyPrefixModel.duplicatePolicy_r__prefix = (dbCon, rule, new_rule) => {
 	});
 };
 
+policyPrefixModel.searchPrefixInRule = (dbCon,fwcloud,prefix) => {
+	return new Promise((resolve, reject) => {
+		var sql = `select * from policy_r__prefix P
+			inner join policy_r R on R.id=P.rule
+			inner join firewall F on F.id=R.firewall
+			where F.fwcloud=${fwcloud} and openvpn=${prefix}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
+
+
 //Export the object
 module.exports = policyPrefixModel;

@@ -78,5 +78,32 @@ policyOpenvpnModel.duplicatePolicy_r__openvpn = (dbCon, rule, new_rule) => {
 	});
 };
 
+
+policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+		var sql = `select * from policy_r__openvpn P
+			inner join policy_r R on R.id=P.rule
+			inner join firewall F on F.id=R.firewall
+			where F.fwcloud=${fwcloud} and openvpn=${openvpn}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
+
+policyOpenvpnModel.searchOpenvpnInGroup = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+//		var sql = `select * from policy_r__openvpn P
+//			inner join policy_r R on R.id=P.rule
+//			inner join firewall F on FW.id=R.firewall
+//			where F.fwcloud=${fwcloud} and openvpn=${openvpn}`;
+//		dbCon.query(sql, (error, rows) => {
+//			if (error) return reject(error);
+//			resolve(rows);
+//		});
+	});
+};
+
 //Export the object
 module.exports = policyOpenvpnModel;

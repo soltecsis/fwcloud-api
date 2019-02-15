@@ -4,6 +4,7 @@ var pkiModel = {};
 var config = require('../../config/config');
 const fwcTreeModel = require('../../models/tree/tree');
 const openvpnModel = require('../../models/vpn/openvpn');
+const policyPrefixModel = require('../../models/policy/prefix');
 const spawn = require('child-process-promise').spawn;
 const readline = require('readline');
 const fs = require('fs');
@@ -440,6 +441,31 @@ pkiModel.deleteCrtPrefix = req => {
       if (error) return reject(error);
       resolve();
     });
+  });
+};
+
+pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let search = {};
+      search.result = false;
+      search.restrictions ={};
+
+      /* Verify that the OpenVPN configuration is not used in any
+          - Rule (table policy_r__prefix)
+          - IPBOJ group.
+      */
+      search.restrictions.PrefixInRules = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
+      //search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
+      
+      for (let key in search.restrictions) {
+        if (search.restrictions[key].length > 0) {
+          search.result = true;
+          break;
+        }
+      }
+      resolve(search);
+    } catch(error) { reject(error) }
   });
 };
 

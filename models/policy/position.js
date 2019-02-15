@@ -108,8 +108,28 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				FROM policy_r__ipobj P
 				inner join interface I on I.id=P.interface
 				inner join ipobj O on O.interface=I.id
-				WHERE rule=${position.rule} AND position=${position.id}
-				ORDER BY position_order`;
+				WHERE rule=${position.rule} AND position=${position.id} ` +
+				
+				//SELECT IPOBJ UNDER OPENVPN POSITION O
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				FROM policy_r__openvpn P
+				inner join openvpn_opt OPT on OPT.openvpn=P.openvpn
+				inner join ipobj O on O.id=OPT.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} AND OPT.name='ifconfig-push' ` +
+
+				//SELECT IPOBJ UNDER OPENVPN PREFIX POSITION O
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				FROM policy_r__prefix P
+				inner join openvpn VPN on VPN.openvpn=P.openvpn
+				inner join crt CRT on CRT.id=VPN.crt
+				inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+				inner join ipobj O on O.id=OPT.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} 
+				AND CRT.type=1 AND CRT.cn like CONCAT(P.prefix,'%') AND OPT.name='ifconfig-push' ` +
+
+				`ORDER BY position_order`;
 
 			dbCon.query(sql, async (error, rows) => {
 				if (error) return reject(error);
