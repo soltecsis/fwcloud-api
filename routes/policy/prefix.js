@@ -15,6 +15,9 @@ router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		if (req.openpvpn.type !== 2) // OpenVPN configuration with server certificate.
+			throw (new Error('OpenVPN configuration must have a server certificate'));
+
 		if (!(await policyPrefixModel.checkPrefixPosition(req.dbCon,req.body.position)))
 			throw (new Error('CRT prefix not allowed in this position'));
 

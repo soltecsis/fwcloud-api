@@ -143,7 +143,7 @@ ipobjModel.getIpobj = (dbCon,fwcloud,id) => {
 		var sql = `SELECT I.* FROM ${tableModel} I
 			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 
-		dbCon.query(sql, (error, rows) => {
+		dbCon.query(sql, async (error, rows) => {
 			if (error) return reject(error);
 
 			if (rows.length > 0) {
@@ -153,9 +153,10 @@ ipobjModel.getIpobj = (dbCon,fwcloud,id) => {
 						resolve(datahost);
 					});
 				} else if (rows[0].type===5 && rows[0].interface!=null) { // Address that is part of an interface.
-					ipobjModel.addressParentsData(dbCon, rows[0])
-					.then(() => resolve(rows))
-					.catch(error => reject(error));
+					try {
+						await ipobjModel.addressParentsData(dbCon, rows[0]);
+						resolve(rows);
+					} catch(error) { return reject(error) }
 				} else
 					resolve(rows);
 			} else

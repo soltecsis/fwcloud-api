@@ -9,20 +9,14 @@ schema.validate = req => {
 		var schema = Joi.object().keys({
 			fwcloud: sharedSch.id,
 			firewall: sharedSch.id,
-			rule: sharedSch.id
+			rule: sharedSch.id,
+			prefix: sharedSch.id,
+			openpvn: sharedSch.id,
+			position: sharedSch.rule_position,
+			position_order: sharedSch.u16bits
 		});
 
-		// 'prefix' is not used in the negate route
-		if (req.url !== '/policy/prefix/negate')
-			schema = schema.append({ prefix: sharedSch.id });
-
-		if (req.method === 'PUT' && req.url === '/policy/prefix/negate')
-			schema = schema.append({ position: sharedSch.rule_position, negate: sharedSch._0_1 });
-		else if (req.method === 'POST' || req.method === 'PUT') {
-			schema = schema.append({
-				position: sharedSch.rule_position,
-				position_order: sharedSch.u16bits
-			});
+		if (req.method === 'POST' || req.method === 'PUT') {
 			if (req.method === 'PUT' && req.url === '/policy/prefix/move')
 				schema = schema.append({ new_rule: sharedSch.id, new_position: sharedSch.rule_position, new_order: sharedSch.u16bits });
 			else if (req.method === 'PUT' && req.url === '/policy/prefix/order')

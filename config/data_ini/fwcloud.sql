@@ -1476,6 +1476,7 @@ DROP TABLE IF EXISTS `policy_r__prefix`;
 CREATE TABLE `policy_r__prefix` (
   `rule` int(11) NOT NULL,
   `prefix` int(11) NOT NULL,
+  `openvpn` int(11) NOT NULL,
   `position` int(11) NOT NULL,
   `negate` tinyint(1) NOT NULL DEFAULT '0',
   `position_order` int(11) DEFAULT NULL,
@@ -1483,9 +1484,11 @@ CREATE TABLE `policy_r__prefix` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`rule`,`prefix`,`position`),
+  PRIMARY KEY (`rule`,`prefix`,`position`,`openvpn`),
   KEY `idx_prefix` (`prefix`),
   KEY `idx_position` (`position`),
+  KEY `idx_openvpn` (`openvpn`),
+  CONSTRAINT `fk_policy_r__prefix-openvpn` FOREIGN KEY (`openvpn`) REFERENCES `openvpn` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_policy_r__prefix-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_policy_r__prefix-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_policy_r__prefix-prefix` FOREIGN KEY (`prefix`) REFERENCES `prefix` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
@@ -1921,4 +1924,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-02-12 11:52:35
+-- Dump completed on 2019-02-15  9:49:29

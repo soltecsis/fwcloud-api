@@ -154,16 +154,16 @@ interfaceModel.getInterface = (fwcloud, id) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, dbCon) => {
 			if (error) return reject(error);
-			var sql = 'SELECT I.*,' +
-				' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud, ' +
-				' F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name, ' +
-				' J.id as host_id, J.name as host_name ' +
-				' FROM ' + tableModel + ' I ' +
-				' left join interface__ipobj O on O.interface=I.id ' +
-				' left join ipobj J ON J.id=O.ipobj ' +
-				' left join firewall F on F.id=I.firewall ' +
-				' left join cluster C on C.id=F.cluster ' +
-				' WHERE I.id = ' + id;
+			var sql = `SELECT I.*,
+				IF(I.interface_type=10, F.fwcloud , J.fwcloud) as fwcloud,
+				F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name,
+				J.id as host_id, J.name as host_name
+				FROM ${tableModel} I
+				left join interface__ipobj O on O.interface=I.id
+				left join ipobj J ON J.id=O.ipobj
+				left join firewall F on F.id=I.firewall
+				left join cluster C on C.id=F.cluster
+				WHERE I.id=${id}`;
 			dbCon.query(sql, (error, row) => {
 				if (error) return reject(error);
 				resolve(row);

@@ -152,9 +152,11 @@ policyPositionModel.getRulePositionData = position => {
 						if (item.ipobj>0 && item.type==='O') // IPOBJ
 						  data = await IpobjModel.getIpobj(dbCon, position.fwcloud, item.ipobj);
 						else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
-							data = await Ipobj_gModel.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g)
-						else if (item.interface>0 || item.type==='I') // Network interface.
+							data = await Ipobj_gModel.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g);
+						else if (item.interface>0 || item.type==='I') { // Network interface.
 							data = await InterfaceModel.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
+							item.type='I'; // We need this when we create the data_policy_position_ipobjs object.
+						}
 						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
 							data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
 						else if (item.ipobj>0 && item.type==='PRE') // OPENVPN PREFIXES
