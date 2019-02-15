@@ -453,7 +453,6 @@ pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
 
       /* Verify that the OpenVPN configuration is not used in any
           - Rule (table policy_r__prefix)
-          - IPBOJ group.
       */
       search.restrictions.PrefixInRules = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
       //search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
