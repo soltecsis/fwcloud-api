@@ -140,7 +140,10 @@ router.put('/', async(req, res) => {
 			await policy_cModel.deletePolicy_c(rule.firewall, rule.id);
 			await firewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3")
 		}
+		
 		// The same for the rules that have groups that have this OpenVPN configuration.
+		// PENDING!!!!!!!!
+		
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
