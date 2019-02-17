@@ -52,9 +52,8 @@ const openvpnModel = require('../../models/vpn/openvpn');
 const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policy_cModel = require('../../models/policy/policy_c');
 
-const fwc_treeModel = require('../../models/tree/tree');
+const fwcTreeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
-const fwcTreemodel = require('../../models/tree/tree');
 const pkiModel = require('../../models/vpn/pki');
 const ipobjModel = require('../../models/ipobj/ipobj');
 const firewallModel = require('../../models/firewall/firewall');
@@ -103,7 +102,7 @@ router.post('/', async(req, res) => {
 		// Create the OpenVPN configuration node in the tree.
 		let nodeId;
 		if (req.tree_node.node_type === 'OPN') // This will be an OpenVPN server configuration.
-			nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
+			nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
 			await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.crt.ca);
@@ -220,8 +219,13 @@ async(req, res) => {
 		await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
 		// Delete the openvpn node from the tree.
-		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type === 1 ? 311 : 312));
-
+		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type === 1 ? 311 : 312));
+		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
+			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
+			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
+			await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.openvpn.ca);
+		}
+	
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
