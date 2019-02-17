@@ -49,12 +49,15 @@ var objModel = 'OpenVPN';
  * @type ../../models/vpn/openvpn
  */
 const openvpnModel = require('../../models/vpn/openvpn');
+const policyOpenvpnModel = require('../../models/policy/openvpn');
+const policy_cModel = require('../../models/policy/policy_c');
 
 const fwc_treeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcTreemodel = require('../../models/tree/tree');
 const pkiModel = require('../../models/vpn/pki');
 const ipobjModel = require('../../models/ipobj/ipobj');
+const firewallModel = require('../../models/firewall/firewall');
 
 
 /**
@@ -131,6 +134,14 @@ router.put('/', async(req, res) => {
 
 		// Update the status flag for the OpenVPN configuration.
 		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+
+		// Update the compile flag of the rules using this OpenVPN configuration.
+		const rules = await policyOpenvpnModel.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		for (let rule of rules) {
+			await policy_cModel.deletePolicy_c(rule.firewall, rule.id);
+			await firewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3")
+		}
+		// The same for the rules that have groups that have this OpenVPN configuration.
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

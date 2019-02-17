@@ -239,6 +239,22 @@ pkiModel.searchCAHasCRTs = (dbCon,fwcloud,ca) => {
   });
 };
 
+pkiModel.searchCAHasPrefixes = (dbCon,fwcloud,ca) => {
+	return new Promise((resolve, reject) => {
+    let sql = `SELECT P.id FROM prefix P
+      INNER JOIN ca CA ON CA.id=P.ca
+      WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
+    dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result.length > 0)
+        resolve({result: true, restrictions: { caHasPrefixes: true}});
+      else
+        resolve({result: false});
+    });
+  });
+};
+
 pkiModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
 	return new Promise((resolve, reject) => {
     let sql = `SELECT VPN.id FROM openvpn VPN
