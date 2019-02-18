@@ -15,6 +15,8 @@ var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
 var Policy_gModel = require('../../models/policy/policy_g');
+var policyOpenvpnModel = require('../../models/policy/openvpn');
+var policyPrefixModel = require('../../models/policy/prefix');
 
 var logger = require('log4js').getLogger("app");
 
@@ -654,49 +656,35 @@ policy_rModel.deletePolicy_rPro = function(data) {
 
 
 //Remove policy_r with id to remove
-policy_rModel.deletePolicy_r = function(idfirewall, id) {
+policy_rModel.deletePolicy_r = (firewall, rule) => {
 	return new Promise((resolve, reject) => {
-		db.get(function(error, connection) {
-			if (error)
-				reject(error);
-			var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-			//logger.debug(sqlExists);
+		db.get((error, dbCon) => {
+			if (error) return reject(error);
 
-			connection.query(sqlExists, function(error, row) {
-				//If exists Id from policy_r to remove
-				if (row && row.length > 0) {
-					var rule_order = row[0].rule_order;
-					logger.debug("DELETING RULE: " + id + "  Firewall: " + idfirewall + "  ORDER: " + rule_order);
-					//DELETE FROM policy_r__ipobj
-					Policy_r__ipobjModel.deletePolicy_r__All(id, function(error, data) {
-						if (error)
-							reject(error);
-						else {
-							//DELETE FROM policy_r__interface
-							Policy_r__interfaceModel.deletePolicy_r__All(id, function(error, data) {
-								if (error)
-									reject(error);
-								else {
-									//DELETE POLICY_C compilation
-									Policy_cModel.deletePolicy_c(idfirewall, id)
-										.then(() => {
-											var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-											connection.query(sql, function(error, result) {
-												if (error) return reject(error);
-												if (result.affectedRows > 0) {
-													resolve({ "result": true, "msg": "deleted" });
-												} else
-													resolve({ "result": false, "msg": "notExist" });
-											});
-										})
-										.catch(error => reject(error));
-								}
-							});
-						}
+			//DELETE FROM policy_r__ipobj
+			Policy_r__ipobjModel.deletePolicy_r__All(rule, (error, data) => {
+				if (error) return reject(error);
+				//DELETE FROM policy_r__interface
+				Policy_r__interfaceModel.deletePolicy_r__All(rule, async (error, data) => {
+					if (error) return reject(error);
+					
+					try {
+						await policyOpenvpnModel.deleteFromRule(dbCon,rule);
+						await policyPrefixModel.deleteFromRule(dbCon,rule);
+						//DELETE POLICY_C compilation
+						await Policy_cModel.deletePolicy_c(firewall, rule);
+					} catch(error) { return reject(error) }
+
+					// DELETE FULE
+					dbCon.query(`DELETE FROM ${tableModel} WHERE id=${rule} AND firewall=${firewall}`, (error, result) => {
+						if (error) return reject(error);
+
+						if (result.affectedRows > 0) {
+							resolve({ "result": true, "msg": "deleted" });
+						} else
+							resolve({ "result": false, "msg": "notExist" });
 					});
-				} else {
-					resolve({ "result": false, "msg": "notExist" });
-				}
+				});
 			});
 		});
 	});

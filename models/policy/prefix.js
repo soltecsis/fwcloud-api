@@ -31,7 +31,7 @@ policyPrefixModel.checkPrefixPosition = (dbCon,position) => {
 };
 
 
-policyPrefixModel.checkExistsInPosition = (dbCon,rule,prefix,position) => {
+policyPrefixModel.checkExistsInPosition = (dbCon,rule,prefix,openvpn,position) => {
 	return new Promise((resolve, reject) => {
 		let sql = `SELECT rule FROM ${tableModel}
 			WHERE rule=${rule} AND prefix=${prefix} AND openvpn=${openvpn} AND position=${position}`;
@@ -46,7 +46,7 @@ policyPrefixModel.checkExistsInPosition = (dbCon,rule,prefix,position) => {
 policyPrefixModel.moveToNewPosition = req => {
 	return new Promise((resolve, reject) => {
 		let sql = `UPDATE ${tableModel} SET rule=${req.body.new_rule}, position=${req.body.new_position}
-			WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND openvpn=${openvpn} AND position=${req.body.position}`;
+			WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
 		req.dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
 			resolve();
@@ -55,10 +55,19 @@ policyPrefixModel.moveToNewPosition = req => {
 };
 
 
-policyPrefixModel.deleteFromRule = req => {
+policyPrefixModel.deleteFromRulePosition = req => {
 	return new Promise((resolve, reject) => {
-		let sql = `DELETE FROM ${tableModel} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND openvpn=${openvpn} AND position=${req.body.position}`;
+		let sql = `DELETE FROM ${tableModel} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
 		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
+policyPrefixModel.deleteFromRule = (dbCon,rule) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DELETE FROM ${tableModel} WHERE rule=${rule}`, (error, rows) => {
 			if (error) return reject(error);
 			resolve();
 		});

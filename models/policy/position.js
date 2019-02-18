@@ -118,16 +118,40 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				inner join ipobj O on O.id=OPT.ipobj
 				WHERE rule=${position.rule} AND position=${position.id} AND OPT.name='ifconfig-push' ` +
 
+				//SELECT IPOBJ UNDER OPENVPN IN GROUP 
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj, P.ipobj_g, -1 as interface, position, position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join openvpn__ipobj_g G on G.ipobj_g=P.ipobj_g
+				inner join openvpn VPN on VPN.id=G.openvpn
+				inner join openvpn_opt OPT on OPT.openvpn=G.openvpn
+				inner join ipobj O on O.id=OPT.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} AND OPT.name='ifconfig-push' ` +
+				
 				//SELECT IPOBJ UNDER OPENVPN PREFIX POSITION O
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
 				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
 				FROM policy_r__prefix P
+				inner join prefix PRE on PRE.id=P.prefix
 				inner join openvpn VPN on VPN.openvpn=P.openvpn
 				inner join crt CRT on CRT.id=VPN.crt
 				inner join openvpn_opt OPT on OPT.openvpn=VPN.id
 				inner join ipobj O on O.id=OPT.ipobj
 				WHERE rule=${position.rule} AND position=${position.id} 
-				AND CRT.type=1 AND CRT.cn like CONCAT(P.prefix,'%') AND OPT.name='ifconfig-push' ` +
+				AND CRT.type=1 AND CRT.cn like CONCAT(PRE.name,'%') AND OPT.name='ifconfig-push' ` +
+
+				//SELECT IPOBJ UNDER OPENVPN PREFIX IN GROUP
+				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				FROM policy_r__ipobj P
+				inner join prefix__ipobj_g G on G.ipobj_g=P.ipobj_g
+				inner join prefix PRE on PRE.id=G.prefix
+				inner join openvpn VPN on VPN.openvpn=G.openvpn
+				inner join crt CRT on CRT.id=VPN.crt
+				inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+				inner join ipobj O on O.id=OPT.ipobj
+				WHERE rule=${position.rule} AND position=${position.id} 
+				AND CRT.type=1 AND CRT.cn like CONCAT(PRE.name,'%') AND OPT.name='ifconfig-push' ` +
 
 				`ORDER BY position_order`;
 

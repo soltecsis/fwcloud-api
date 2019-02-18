@@ -64,6 +64,15 @@ policyOpenvpnModel.deleteFromRule = req => {
 	});
 };
 
+policyOpenvpnModel.deleteFromRule = (dbCon,rule) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DELETE FROM ${tableModel} WHERE rule=${rule}`, (error, rows) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 
 //Duplicate policy_r__openvpn RULES
 policyOpenvpnModel.duplicatePolicy_r__openvpn = (dbCon, rule, new_rule) => {

@@ -35,7 +35,7 @@ async (req, res) => {
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
 
-		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.new_position))
+		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.openvpn,req.body.new_position))
 			throw(new Error('OpenVPN configuration already exists in destination rule position'));
 
 		// Get content of positions.
@@ -63,7 +63,7 @@ router.put("/del",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
-		await policyPrefixModel.deleteFromRule(req);
+		await policyPrefixModel.deleteFromRulePosition(req);
 		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

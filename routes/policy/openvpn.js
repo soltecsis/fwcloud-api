@@ -67,7 +67,7 @@ router.put("/del",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
-		await policyOpenvpnModel.deleteFromRule(req);
+		await policyOpenvpnModel.deleteFromRulePosition(req);
 		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

@@ -13,7 +13,9 @@ var router = express.Router();
 var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn');
+const pkiModel = require('../../models/vpn/pki');
 var Ipobj_gModel = require('../../models/ipobj/group');
+const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var api_resp = require('../../utils/api_response');
@@ -161,7 +163,7 @@ router.put("/addto", async (req, res) => {
 		}
 		else if (req.body.node_type === 'PRE') {
 			await pkiModel.addPrefixToGroup(req);
-			dataIpobj = await pkiModel.getPrefixInfo(dbCon,fwcloud,obj.id);
+			dataIpobj = await pkiModel.getPrefixInfo(req.dbCon,req.body.fwcloud,req.body.ipobj);
 			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('CRT prefix not found'))
 			dataIpobj[0].type = 400;
 		}
@@ -175,6 +177,9 @@ router.put("/addto", async (req, res) => {
 		//(dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type)
 		await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,dataIpobj[0].name,req.body.node_parent,req.body.node_type,req.body.ipobj,dataIpobj[0].type);
 
+		// Invalidate the policy compilation of all affected rules.
+		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
+
 		// Update affected firewalls status.
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
@@ -187,12 +192,15 @@ router.put("/delfrom", async (req, res) => {
 	try {
 		if (req.body.obj_type===311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
-		else if (req.body.obj_type===311) // CRT PREFIX CONTAINER
-			await pkiModel.removeFromGroup(req);
+		else if (req.body.obj_type===400) // CRT PREFIX CONTAINER
+			await pkiModel.removePrefixFromGroup(req);
 		else 
 			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 		
 		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
+
+		// Invalidate the policy compilation of all affected rules.
+		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);

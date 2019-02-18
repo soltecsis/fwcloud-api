@@ -171,5 +171,19 @@ policy_cModel.deleteFullFirewallPolicy_c = function (fw) {
 	});
 };
 
+//Remove all policy compilation for a group.
+policy_cModel.deleteFullGroupPolicy_c = (dbCon, group) => {
+	return new Promise((resolve, reject) => {
+		let sql = `DELETE C.* FROM ${tableModel} C
+			INNER JOIN policy_r R ON R.id=C.rule
+			INNER JOIN policy_r__ipobj G ON G.rule=R.id
+			WHERE G.ipobj_g=${group}`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 //Export the object
 module.exports = policy_cModel;

@@ -73,8 +73,40 @@ accessCtrl.check = async(req, res, next) => {
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT Prefix ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
+		// Check access to the rule indicated by req.body.rule o req.body.new_rule.
+		if (req.body.rule) {
+			if (!(await checkPolicyRuleAccess(req,req.body.rule)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+		}
+		if (req.body.new_rule) {
+			if (!(await checkPolicyRuleAccess(req,req.body.new_rule)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+		}
+		if (req.body.rulesIds) {
+			for (let rule of req.body.rulesIds) {
+				if (!(await checkPolicyRuleAccess(req,rule)))
+					return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+			}	
+		}
+
 		next()
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+// Check access to certificate.
+function checkPolicyRuleAccess(req, rule) {
+	return new Promise((resolve, reject) => {
+	 let sql = `select R.id FROM policy_r R
+			INNER JOIN firewall F ON F.id=R.firewall
+			INNER JOIN fwcloud C ON C.id=F.fwcloud
+			WHERE R.id=${rule} AND F.id=${req.body.firewall} and C.id=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length!==1) return resolve(false);
+
+			resolve(true);
+		});
+	});
 };
 
 // Check access to CA.

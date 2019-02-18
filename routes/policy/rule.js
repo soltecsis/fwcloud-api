@@ -121,33 +121,16 @@ router.put('/full/get', async (req, res) => {
 
 /* Remove policy_r */
 router.put("/del",
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		//Id from policy_r to remove
-		removeRules(req.body.firewall, req.body.rulesIds)
-			.then(r => api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp)))
-			.catch(error => api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
-	});
-async function removeRules(idfirewall, rulesIds) {
-	for (let rule of rulesIds) {
-		await ruleRemove(idfirewall, rule)
-			.then(r => logger.debug("OK RESULT DELETE: " + r))
-			.catch(err => logger.debug("ERROR Result: " + err));
-	}
-}
+utilsModel.disableFirewallCompileStatus,
+async (req, res) => {
+	try {
+		for (let rule of req.body.rulesIds) {
+			await Policy_rModel.deletePolicy_r(req.body.firewall, rule);
+		}
 
-function ruleRemove(idfirewall, rule) {
-	return new Promise((resolve, reject) => {
-		Policy_rModel.deletePolicy_r(idfirewall, rule)
-			.then(data => {
-				if (data && data.result)
-					resolve(api_resp.ACR_DELETED_OK);
-				else
-					resolve(api_resp.ACR_NOTEXIST);
-			})
-			.catch(error => reject(error));
-	});
-}
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'DELETING RULES', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
 
 /* Update Active policy_r  */

@@ -1649,11 +1649,14 @@ DROP TABLE IF EXISTS `prefix__ipobj_g`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `prefix__ipobj_g` (
   `prefix` int(11) NOT NULL,
+  `openvpn` int(11) NOT NULL,
   `ipobj_g` int(11) NOT NULL,
-  PRIMARY KEY (`prefix`,`ipobj_g`),
+  PRIMARY KEY (`prefix`,`ipobj_g`,`openvpn`),
   KEY `idx_prefix` (`prefix`),
   KEY `idx_ipobj_g` (`ipobj_g`),
+  KEY `idx_openvpn` (`openvpn`),
   CONSTRAINT `fk_prefix__ipobj_g-ipobj_g` FOREIGN KEY (`ipobj_g`) REFERENCES `ipobj_g` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_prefix__ipobj_g-openvpn` FOREIGN KEY (`openvpn`) REFERENCES `openvpn` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_prefix__ipobj_g-prefix` FOREIGN KEY (`prefix`) REFERENCES `prefix` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1978,4 +1981,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-02-18 11:02:33
+-- Dump completed on 2019-02-18 19:32:45
