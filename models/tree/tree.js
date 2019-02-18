@@ -972,29 +972,13 @@ fwcTreeModel.updateFwc_Tree_OBJ = (req, ipobjData) => {
 
 
 //Remove NODE FROM GROUP with id_obj to remove
-fwcTreeModel.deleteFwc_TreeGroupChild = function (iduser, fwcloud, id_parent, id_group, id_obj, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT * FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
-		connection.query(sqlExists, function (error, row) {
-			//If exists Id from ipobj to remove
-			if (row) {
-				db.get(function (error, connection) {
-					var sql = 'DELETE T.* FROM ' + tableModel + ' T INNER JOIN ' + tableModel + ' T2 ON  T.id_parent=T2.id WHERE T.fwcloud = ' + connection.escape(fwcloud) + ' AND T.id_obj = ' + connection.escape(id_obj) + ' AND T2.id_obj = ' + connection.escape(id_group);
-					//logger.debug(sql);
-					connection.query(sql, function (error, result) {
-						if (error) {
-							logger.debug(sql);
-							callback(error, null);
-						} else {
-							callback(null, {"result": true, "msg": "deleted"});
-						}
-					});
-				});
-			} else {
-				callback(null, {"result": false});
-			}
+fwcTreeModel.deleteFwc_TreeGroupChild = (dbCon, fwcloud, id_group, id_obj) => {
+	return new Promise((resolve, reject) => {
+		let sql = `DELETE T.* FROM ${tableModel} T INNER JOIN ${tableModel} T2 ON T.id_parent=T2.id 
+			WHERE T.fwcloud=${fwcloud} AND T.id_obj=${id_obj} AND T2.id_obj=${id_group}`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

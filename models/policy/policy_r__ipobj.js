@@ -844,36 +844,8 @@ policy_r__ipobjModel.checkIpobjInRule = function (ipobj, type, fwcloud, callback
 		});
 	});
 };
-//check if IPOBJ GROUP  Exists in any rule
-policy_r__ipobjModel.checkGroupInRule = function (ipobj_g, fwcloud, callback) {
 
-	logger.debug("CHECK DELETING  GROUP:" + ipobj_g + "  fwcloud:" + fwcloud);
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
-				' INNER JOIN  ipobj_g G on G.id=O.ipobj_g ' +
-				' WHERE O.ipobj_g=' + connection.escape(ipobj_g) + ' AND F.fwcloud=' + connection.escape(fwcloud);
-		connection.query(sql, function (error, rows) {
-			if (!error) {
-				if (rows.length > 0) {
-					if (rows[0].n > 0) {
-						msg = "ALERT DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES";
-						logger.debug(msg);
-						//Devolvemos FALSE con mensaje de restricciones y dejamos borrar
-						callback(null, {"result": false, "msg": msg});
-					} else {
-						msg = "OK DELETING ipobj FROM GROUP IN RULE:" + ipobj_g + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " RULES";
-						logger.debug(msg);
-						callback(null, {"result": false, "msg": msg});
-					}
-				} else
-					callback(null, {"result": false, "msg": ""});
-			} else
-				callback(null, {"result": false, "msg": ""});
-		});
-	});
-};
+
 //check if INTERFACE Exists in any rule 'O' POSITIONS
 policy_r__ipobjModel.checkInterfaceInRule = function (interface, type, fwcloud, callback) {
 

@@ -10,8 +10,6 @@
 var express = require('express');
 var router = express.Router();
 
-var logger = require('log4js').getLogger("app");
-
 var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn');
@@ -24,8 +22,6 @@ var objModel = 'GROUP';
 
 /* Create New ipobj_g */
 router.post("/", (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
 	var node_parent = req.body.node_parent;
 	var node_order = req.body.node_order;
 	var node_type = req.body.node_type;
@@ -163,6 +159,11 @@ router.put("/addto", async (req, res) => {
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		}
+		else if (req.body.node_type === 'PRE') {
+			dataIpobj = await pkiModel.getPrefixInfo(dbCon,fwcloud,obj.id);
+			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('CRT prefix not found'))
+			dataIpobj[0].type = 400;
+		}
 		else {
 			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
 			dataIpobj = await	IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.ipobj);
@@ -178,48 +179,19 @@ router.put("/addto", async (req, res) => {
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 /* Remove ipobj__ipobjg */
-router.put("/delfrom", (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-	var node_parent = req.body.node_parent;
+router.put("/delfrom", async (req, res) => {
+	try {
+		await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
+		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
-	//Id from ipobj__ipobjg to remove
-	var ipobjg = req.body.ipobj_g;
-	var ipobj = req.body.ipobj;
-
-	Ipobj__ipobjgModel.deleteIpobj__ipobjg(fwcloud, ipobjg, ipobj, (error, data) => {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		else {
-			if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted") {
-				if (data.msg === "deleted") {
-					//DELETE FROM TREE
-					fwcTreeModel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function(error, data) {
-						if (data && data.result) {
-							logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
-							fwcTreeModel.orderTreeNode(fwcloud, node_parent, (error, data) => {
-								// Update affected firewalls status.
-								FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.params.ipobjg, -1, -1, "|3")
-									.then(() => { return FirewallModel.getFirewallStatusNotZero(fwcloud, null) })
-									.then(not_zero_status_fws =>
-										api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK ' + data.alert, objModel, null, jsonResp => res.status(200).json(jsonResp)))
-									.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)));
-							});
-						} else
-							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
-					});
-				} else if (data.msg === "Restricted")
-					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			} else
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		}
-	});
+		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");
+		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

@@ -24,7 +24,7 @@ schema.validate = req => {
 			else if (req.url === '/ipobj/group/addto')
 				schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.name, ipobj_g: sharedSch.id, ipobj: sharedSch.id });
 			else if (req.url === '/ipobj/group/delfrom')
-				schema = schema.append({ node_parent: sharedSch.id.optional(), ipobj_g: sharedSch.id, ipobj: sharedSch.id });
+				schema = schema.append({ node_type: sharedSch.name, ipobj_g: sharedSch.id, ipobj: sharedSch.id });
 		} else return reject(new Error('Request method not accepted'));
 
 

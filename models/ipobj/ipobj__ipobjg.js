@@ -32,47 +32,14 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = req => {
 
 //FALTA comprobar si el Grupo está en alguna Regla
 //Remove ipobj__ipobjg with id to remove
-ipobj__ipobjgModel.deleteIpobj__ipobjg = function (fwcloud,ipobj_g, ipobj, callback) {
-	//CHECK IPOBJ OR GROUP IN RULE
-	Policy_r__ipobjModel.checkGroupInRule(ipobj_g,  fwcloud, function (error, data) {
-		if (error) {
-			callback(error, null);
-		} else {
-			logger.debug(data);
-			if (!data.result) {
-				db.get(function (error, connection) {
-					if (error)
-						callback(error, null);
-					var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
-					
-					connection.query(sqlExists, function (error, row) {
-						//If exists Id from ipobj__ipobjg to remove
-						if (row.length>0) {
-							db.get(function (error, connection) {
-								var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g) + ' AND ipobj=' + connection.escape(ipobj);
-								
-								connection.query(sql, function (error, result) {
-									if (error) {
-										logger.debug("ERROR SQL:" , error);
-										callback(error, null);
-									} else {
-										
-										if (result.affectedRows > 0)
-											callback(null, {"result": true, "msg": "deleted", "alert": data.msg });
-										else
-											callback(null, {"result": false, "msg": "notExist"});
-									}
-								});
-							});
-						} else {
-							callback(null, {"result": false, "msg": "notExist"});
-						}
-					});
-				});
-			}
-			else
-				callback(null, {"msg": "Restricted"});
-		}
+ipobj__ipobjgModel.deleteIpobj__ipobjg = (dbCon, ipobj_g, ipobj) => {
+	return new Promise((resolve, reject) => {
+		let sql = `DELETE FROM ${tableModel} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;
+		
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
 	});
 };
 
