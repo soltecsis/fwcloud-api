@@ -160,6 +160,7 @@ router.put("/addto", async (req, res) => {
 			dataIpobj[0].type = 311;
 		}
 		else if (req.body.node_type === 'PRE') {
+			await pkiModel.addPrefixToGroup(req);
 			dataIpobj = await pkiModel.getPrefixInfo(dbCon,fwcloud,obj.id);
 			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('CRT prefix not found'))
 			dataIpobj[0].type = 400;
@@ -174,7 +175,6 @@ router.put("/addto", async (req, res) => {
 		//(dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type)
 		await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,dataIpobj[0].name,req.body.node_parent,req.body.node_type,req.body.ipobj,dataIpobj[0].type);
 
-		//await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, NodeData);
 		// Update affected firewalls status.
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
@@ -185,7 +185,13 @@ router.put("/addto", async (req, res) => {
 /* Remove ipobj__ipobjg */
 router.put("/delfrom", async (req, res) => {
 	try {
-		await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
+		if (req.body.obj_type===311) // OPENVPN CLI
+			await openvpnModel.removeFromGroup(req);
+		else if (req.body.obj_type===311) // CRT PREFIX CONTAINER
+			await pkiModel.removeFromGroup(req);
+		else 
+			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
+		
 		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");

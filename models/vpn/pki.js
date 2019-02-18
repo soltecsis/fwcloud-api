@@ -484,6 +484,25 @@ pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
   });
 };
 
+pkiModel.addPrefixToGroup = req => {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`INSERT INTO prefix__ipobj_g values(${req.body.ipobj},${req.body.ipobj_g})`,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
+pkiModel.removePrefixFromGroup = req => {
+	return new Promise((resolve, reject) => {
+    let sql = `DELETE FROM prefix__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND prefix=${req.body.ipobj}`;		
+		req.dbCon.query(sql,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
 
 //Export the object
 module.exports = pkiModel;

@@ -34,8 +34,7 @@ ipobj__ipobjgModel.insertIpobj__ipobjg = req => {
 //Remove ipobj__ipobjg with id to remove
 ipobj__ipobjgModel.deleteIpobj__ipobjg = (dbCon, ipobj_g, ipobj) => {
 	return new Promise((resolve, reject) => {
-		let sql = `DELETE FROM ${tableModel} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;
-		
+		let sql = `DELETE FROM ${tableModel} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;		
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve();

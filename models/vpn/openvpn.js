@@ -568,5 +568,15 @@ openvpnModel.addToGroup = req => {
   });
 };
 
+openvpnModel.removeFromGroup = req => {
+	return new Promise((resolve, reject) => {
+    let sql = `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND openvpn=${req.body.ipobj}`;		
+		req.dbCon.query(sql,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
 //Export the object
 module.exports = openvpnModel;
