@@ -16,24 +16,19 @@ var logger = require('log4js').getLogger("app");
 
 
 //Add new ipobj__ipobjg
-ipobj__ipobjgModel.insertIpobj__ipobjg = function (ipobj__ipobjgData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', ipobj__ipobjgData, function (error, result) {
-			if (error) {
-				logger.error(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					//devolvemos la última id insertada
-					callback(null, {"insertId": result.insertId});
-				} else
-					callback(error, null);
-			}
+ipobj__ipobjgModel.insertIpobj__ipobjg = req => {
+	return new Promise((resolve, reject) => {
+		var ipobj__ipobjgData = {
+			ipobj_g: req.body.ipobj_g,
+			ipobj: req.body.ipobj
+		};
+		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, ipobj__ipobjgData, (error, result) => {
+			if (error) return reject(error);
+			resolve(result.insertId);
 		});
 	});
 };
+
 
 //FALTA comprobar si el Grupo está en alguna Regla
 //Remove ipobj__ipobjg with id to remove

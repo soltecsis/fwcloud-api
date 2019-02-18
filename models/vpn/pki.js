@@ -294,7 +294,7 @@ pkiModel.getPrefixes = (dbCon,ca) => {
 };
 
 // Get prefix info.
-pkiModel.getPrefixInfo = (dbCon, fwcloud, prefix, type) => {
+pkiModel.getPrefixInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
     let sql = `select CA.fwcloud,PRE.*,CA.cn from prefix PRE 
       inner join ca CA on CA.id=PRE.ca

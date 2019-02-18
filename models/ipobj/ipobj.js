@@ -588,33 +588,6 @@ function getIpobjData(row) {
 	});
 }
 
-/**
- * Get ipobj by id and Group
- * 
- * @method getIpobjGroup
- * 
- * @param {Integer} fwcloud FwCloud identifier
- * @param {Integer} idgroup id Group identifier
- * @param {Integer} id id ipobj identifier
- * 
- * @return {ROW} Returns ROW Data from Ipobj
- * */
-ipobjModel.getIpobjGroup = function (fwcloud, idgroup, id, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
-		var innergroup = ' T INNER JOIN ipobj__ipobjg G on G.ipobj=T.id ';
-		var sql = 'SELECT * FROM ' + tableModel + innergroup + ' WHERE id = ' + connection.escape(id) + ' AND G.ipobj_g=' + connection.escape(idgroup) + ' AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ';
-
-		connection.query(sql, function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows[0]);
-		});
-	});
-};
 
 
 ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) => {

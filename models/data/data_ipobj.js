@@ -1,7 +1,7 @@
 //Create New objet with data ipobj
 function ipobjs_Data(data) {
     this.id = data.id;
-    this.name = data.name;
+    this.name = (data.name?data.name:data.cn);
     this.type = data.type;
     this.fwcloud = data.fwcloud;
     this.interface = data.interface;

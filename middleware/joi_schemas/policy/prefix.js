@@ -11,7 +11,7 @@ schema.validate = req => {
 			firewall: sharedSch.id,
 			rule: sharedSch.id,
 			prefix: sharedSch.id,
-			openpvn: sharedSch.id,
+			openvpn: sharedSch.id,
 			position: sharedSch.rule_position,
 			position_order: sharedSch.u16bits
 		});

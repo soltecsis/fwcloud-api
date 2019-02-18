@@ -1,6 +1,8 @@
 var db = require('../../db.js');
 //var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var IpobjModel = require('./ipobj');
+var openvpnModel = require('../../models/vpn/openvpn');
+var pkiModel = require('../../models/vpn/pki');
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -44,80 +46,52 @@ ipobj_gModel.getIpobj_g = (dbCon, fwcloud, id) => {
 };
 
 //Get ipobj_g by  id AND ALL IPOBjs
-ipobj_gModel.getIpobj_g_Full = function (fwcloud, id, AllDone) {
-	var groups = [];
-	var group_cont = 0;
-	var ipobjs_cont = 0;
+ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT G.*, T.id id_node, T.id_parent id_parent_node FROM ${tableModel} G
+			inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=${fwcloud} OR T.fwcloud IS NULL)
+			WHERE (G.fwcloud=${fwcloud} OR G.fwcloud is null) AND G.id=${gid}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			if (rows.length === 0) return reject('Grupo no encontrado');
 
-	db.get(function (error, connection) {
-			if (error) return callback(error, null);
+			let groups = [];
+			let group_data = new ipobj_g_Data(rows[0]);
+			group_data.ipobjs = new Array();
 
-			var sqlId = '';
-			if (id !== '')
-					sqlId = ' AND G.id = ' + connection.escape(id);
-			var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableModel + ' G ' +
-				'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + fwcloud + ' OR T.fwcloud IS NULL) ' +
-				' WHERE  (G.fwcloud= ' + fwcloud + ' OR G.fwcloud is null) ' + sqlId;
-			connection.query(sql, function (error, rows) {
-					if (error)
-							callback(error, null);
-					else if (rows.length > 0) {
-							group_cont = rows.length;
-							var row = rows[0];
-							asyncMod.map(rows, function (row, callback1) {
+			sql = `select id, name, 'O' as type from ipobj O
+				inner join ipobj__ipobjg R on R.ipobj=O.id
+				where R.ipobj_g=${gid}
+				
+				UNION select O.id, C.cn as name, 'VPN' as type from openvpn O
+				inner join openvpn__ipobj_g R on R.openvpn=O.id
+				inner join crt C on C.id=O.crt
+				where R.ipobj_g=${gid}
 
-									var group_node = new ipobj_g_Data(row);
+				UNION select id, name, 'PRE' as type from prefix O
+				inner join prefix__ipobj_g R on R.prefix=O.id
+				where R.ipobj_g=${gid}
+				order by name`;
+			dbCon.query(sql, async (error, rows) => {
+				if (error) return reject(error);
 
-									logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
-									var idgroup = row.id;
-									group_node.ipobjs = new Array();
-									//GET ALL GROUP OBJECTs
-									IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
-											if (data_ipobjs.length > 0) {
-													ipobjs_cont = data_ipobjs.length;
+				let ipobj_node;
+				for(let obj of rows) {
+					try {
+						if (obj.type === 'O')
+							ipobj_node = new ipobj_Data((await IpobjModel.getIpobj(dbCon,fwcloud,obj.id))[0]);
+						else if (obj.type === 'VPN')
+							ipobj_node = new ipobj_Data((await openvpnModel.getOpenvpnInfo(dbCon,fwcloud,obj.id,1))[0]);
+						else if (obj.type === 'PRE')
+							ipobj_node = new ipobj_Data((await pkiModel.getPrefixInfo(dbCon,fwcloud,obj.id))[0]);
+						group_data.ipobjs.push(ipobj_node);
+					} catch(error) { return reject(error) }
+				}
 
-													asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
-															//GET OBJECTS
-															logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
-
-															var ipobj_node = new ipobj_Data(data_ipobj);
-															//Añadimos ipobj a array Grupo
-															group_node.ipobjs.push(ipobj_node);
-															callback2();
-													}, //Fin de bucle de IPOBJS
-																	function (err) {
-
-																			if (group_node.ipobjs.length >= ipobjs_cont) {
-																					groups.push(group_node);
-																					if (groups.length >= group_cont) {
-																							AllDone(null, groups);
-																					}
-
-
-																			}
-																	}
-													);
-											} else {
-													groups.push(group_node);
-													if (groups.length >= group_cont) {
-															AllDone(null, groups);
-													}
-											}
-									}
-									);
-									callback1();
-							}, //Fin de bucle de GROUPS
-											function (err) {
-													if (groups.length >= group_cont) {
-
-															AllDone(null, groups);
-													}
-											}
-							);
-					} else {
-							AllDone("", null);
-					}
+				groups.push(group_data);
+				resolve(groups);
 			});
+		});
 	});
 };
 

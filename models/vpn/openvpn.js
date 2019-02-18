@@ -199,7 +199,8 @@ openvpnModel.getOpenvpnClients = (dbCon, openvpn) => {
 // Get OpenVPN client configuration data.
 openvpnModel.getOpenvpnInfo = (dbCon, fwcloud, openvpn, type) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select F.fwcloud,VPN.*,CRT.cn,CA.cn as CA_cn,O.address ${(type===2)?`,O.netmask`:``} from openvpn VPN 
+    let sql = `select F.fwcloud,VPN.*,CRT.cn,CA.cn as CA_cn,O.address ${(type===2)?`,O.netmask`:``}, ${(type===1)?`311`:`312`} as type
+      from openvpn VPN 
       inner join crt CRT on CRT.id=VPN.crt
       inner join ca CA on CA.id=CRT.ca
       inner join firewall F on F.id=VPN.firewall
@@ -554,6 +555,15 @@ openvpnModel.getOpenvpnStatusNotZero = (req, data) => {
       if (error) return reject(error);
       data.openvpn_status = rows;
       resolve(data);
+    });
+  });
+};
+
+openvpnModel.addToGroup = req => {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`INSERT INTO openvpn__ipobj_g values(${req.body.ipobj},${req.body.ipobj_g})`,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
     });
   });
 };

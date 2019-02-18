@@ -14,8 +14,9 @@ var logger = require('log4js').getLogger("app");
 
 var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
+const openvpnModel = require('../../models/vpn/openvpn');
 var Ipobj_gModel = require('../../models/ipobj/group');
-var fwcTreemodel = require('../../models/tree/tree');
+var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var api_resp = require('../../utils/api_response');
 const restrictedCheck = require('../../middleware/restricted');
@@ -50,7 +51,7 @@ router.post("/", (req, res) => {
 				ipobj_gData.id = id;
 				//INSERT IN TREE
 				try {
-					const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
+					const node_id = await fwcTreeModel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
 					var dataresp = { "insertId": id, "TreeinsertId": node_id };
 					api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 				} catch(error) { return api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -76,23 +77,21 @@ router.put('/', async (req, res) => {
 
 	try {
 		await Ipobj_gModel.updateIpobj_g(req, ipobj_gData);
-		await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobj_gData);
+		await fwcTreeModel.updateFwc_Tree_OBJ(req, ipobj_gData);
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
 /* Get  ipobj_g by id */
-router.put('/get', (req, res) => {
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-	Ipobj_gModel.getIpobj_g_Full(fwcloud, id, (error, data) => {
-		//If exists ipobj_g get data
+router.put('/get', async (req, res) => {
+	try {
+		const data = await Ipobj_gModel.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
 			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	});
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 /* Remove ipobj_g */
@@ -108,8 +107,8 @@ router.put("/del",
 				if (data.msg === "deleted") {
 					//DELETE FROM TREE
 					try {
-						await fwcTreemodel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
-						await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
+						await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
+						await fwcTreeModel.deleteObjFromTree(fwcloud, id, type);
 						api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 					} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) } 
 				} else if (data.msg === "Restricted") {
@@ -147,66 +146,39 @@ router.put('/restricted',
 
 
 /* Create New ipobj__ipobjg */
-router.put("/addto", (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-	var node_parent = req.body.node_parent;
-	var node_order = req.body.node_order;
-	var node_type = req.body.node_type;
+router.put("/addto", async (req, res) => {
+	try {
+		// ATENCION: 
+		// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
+		// interfaz a un grupo de objetos IP, por el momento.
+		if (req.body.node_type === "IFF" || req.body.node_type === "IFH") 
+			throw(new Error('It is not possible to add network interfaces to IP objects groups'))
 
-	//Create New object with data ipobj__ipobjg
-	var ipobj__ipobjgData = {
-		ipobj_g: req.body.ipobj_g,
-		ipobj: req.body.ipobj
-	};
-
-	// ATENCION: 
-	// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
-	// interfaz a un grupo de objetos IP, por el momento.
-	if (req.params.node_type === "IFF" || req.params.node_type === "IFH") {
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'It is not possible to add network interfaces to IP objects groups.', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		return;
-	}
-
-	Ipobj__ipobjgModel.insertIpobj__ipobjg(ipobj__ipobjgData, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved ipobj__ipobjg Get data
-			if (data && data.insertId > 0) {
-				logger.debug("NEW IPOBJ IN GROUP: " + ipobj__ipobjgData.ipobj_g + "  IPOBJ:" + ipobj__ipobjgData.ipobj);
-				//Search IPOBJ Data
-				IpobjModel.getIpobjGroup(fwcloud, ipobj__ipobjgData.ipobj_g, ipobj__ipobjgData.ipobj, async (error, dataIpobj) => {
-					//If exists ipobj get data
-					if (typeof dataIpobj !== 'undefined') {
-
-						var NodeData = {
-							id: ipobj__ipobjgData.ipobj,
-							name: dataIpobj.name,
-							type: dataIpobj.type,
-							comment: dataIpobj.comment
-						};
-
-						try {
-							//INSERT IN TREE
-							await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, NodeData);
-							// Update affected firewalls status.
-							await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
-							const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
-							api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-						} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-					}
-					//Get Error
-					else
-						api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				});
-
-			} else
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		// Insert object in group.
+		let dataIpobj;
+		if (req.body.node_type === 'OCL') {
+			await openvpnModel.addToGroup(req);
+			dataIpobj = await openvpnModel.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.ipobj,1);
+			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('OpenVPN configuration not found'))
+			dataIpobj[0].name = dataIpobj[0].cn;
+			dataIpobj[0].type = 311;
 		}
-	});
+		else {
+			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
+			dataIpobj = await	IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.ipobj);
+			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('Ipobj not found'))
+		}
+
+		//INSERT IN TREE
+		//(dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type)
+		await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,dataIpobj[0].name,req.body.node_parent,req.body.node_type,req.body.ipobj,dataIpobj[0].type);
+
+		//await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, NodeData);
+		// Update affected firewalls status.
+		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 /* Remove ipobj__ipobjg */
@@ -226,10 +198,10 @@ router.put("/delfrom", (req, res) => {
 			if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted") {
 				if (data.msg === "deleted") {
 					//DELETE FROM TREE
-					fwcTreemodel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function(error, data) {
+					fwcTreeModel.deleteFwc_TreeGroupChild(iduser, fwcloud, node_parent, ipobjg, ipobj, function(error, data) {
 						if (data && data.result) {
 							logger.debug("IPOBJ GROUP NODE TREE DELETED. GO TO ORDER");
-							fwcTreemodel.orderTreeNode(fwcloud, node_parent, (error, data) => {
+							fwcTreeModel.orderTreeNode(fwcloud, node_parent, (error, data) => {
 								// Update affected firewalls status.
 								FirewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, req.params.ipobjg, -1, -1, "|3")
 									.then(() => { return FirewallModel.getFirewallStatusNotZero(fwcloud, null) })

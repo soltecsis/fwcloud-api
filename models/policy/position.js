@@ -189,7 +189,7 @@ policyPositionModel.getRulePositionData = position => {
 						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
 							data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
 						else if (item.ipobj>0 && item.type==='PRE') // OPENVPN PREFIXES
-							data = await pkiModel.getPrefixInfo(dbCon, position.fwcloud, item.ipobj,1);
+							data = await pkiModel.getPrefixInfo(dbCon, position.fwcloud, item.ipobj);
 						else data = null;
 
 						if (data) {
