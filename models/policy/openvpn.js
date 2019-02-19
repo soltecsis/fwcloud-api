@@ -54,7 +54,7 @@ policyOpenvpnModel.moveToNewPosition = req => {
 };
 
 
-policyOpenvpnModel.deleteFromRule = req => {
+policyOpenvpnModel.deleteFromRulePosition = req => {
 	return new Promise((resolve, reject) => {
 		let sql = `DELETE FROM ${tableModel} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
 		req.dbCon.query(sql, (error, rows) => {
