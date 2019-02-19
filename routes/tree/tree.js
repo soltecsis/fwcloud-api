@@ -6,8 +6,8 @@ var Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/node.js");
 var api_resp = require('../../utils/api_response');
 var FirewallModel = require('../../models/firewall/firewall');
-const pkiModel = require('../../models/vpn/pki');
-const openvpnModel = require('../../models/vpn/openvpn');
+const pkiCAModel = require('../../models/vpn/pki/ca');
+const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 var objModel = 'FWC TREE';
 
 
@@ -20,7 +20,7 @@ router.put('/firewalls/get', async (req, res) => {
 		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
 		await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await openvpnModel.getOpenvpnStatusNotZero(req,tree);
-		await pkiModel.storePkiInfo(req,tree);
+		await pkiCAModel.storePkiInfo(req,tree);
 		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -63,7 +63,7 @@ router.put('/ca/get', async (req, res) => {
 		var root_node = new fwc_tree_node(node_data);
 		var tree = new Tree(root_node);
 		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
-		await pkiModel.getCAStatusNotZero(req,tree);
+		await pkiCAModel.getCAStatusNotZero(req,tree);
 		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }	
 });

@@ -5,7 +5,7 @@ const fwcTreeRepairModel = require('../../models/tree/repair');
 const api_resp = require('../../utils/api_response');
 const socketTools = require('../../utils/socket');
 const fwcTreemodel = require('../../models/tree/tree');
-const pkiModel = require('../../models/vpn/pki');
+const pkiCAModel = require('../../models/vpn/pki/ca');
 
 var objModel = 'FWC TREE REPAIR';
 
@@ -42,9 +42,9 @@ router.put('/', async (req, res) =>{
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
         socketTools.msg('<font color="blue">Applying CRT prefixes.</font>\n');
-        const ca_list = await pkiModel.getCAlist(req.dbCon,req.body.fwcloud);
+        const ca_list = await pkiCAModel.getCAlist(req.dbCon,req.body.fwcloud);
         for (let ca of ca_list)
-          await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,ca.id);
+          await pkiCAModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,ca.id);
         break;
       }
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.

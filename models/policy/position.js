@@ -6,8 +6,8 @@ var policyPositionModel = {};
 const IpobjModel = require('../../models/ipobj/ipobj');
 const Ipobj_gModel = require('../../models/ipobj/group');
 const InterfaceModel = require('../../models/interface/interface');
-const openvpnModel = require('../../models/vpn/openvpn');
-const pkiModel = require('../../models/vpn/pki');
+const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+const pkiCAModel = require('../vpn/pki/ca');
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -213,7 +213,7 @@ policyPositionModel.getRulePositionData = position => {
 						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
 							data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
 						else if (item.ipobj>0 && item.type==='PRE') // OPENVPN PREFIXES
-							data = await pkiModel.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.rule, item.ipobj, item.ipobj_g);
+							data = await pkiCAModel.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.rule, item.ipobj, item.ipobj_g);
 						else data = null;
 
 						if (data) {

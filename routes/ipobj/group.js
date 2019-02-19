@@ -12,8 +12,8 @@ var router = express.Router();
 
 var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
-const openvpnModel = require('../../models/vpn/openvpn');
-const pkiModel = require('../../models/vpn/pki');
+const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+const pkiCAModel = require('../../models/vpn/pki/ca');
 var Ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
@@ -162,8 +162,8 @@ router.put("/addto", async (req, res) => {
 			dataIpobj[0].type = 311;
 		}
 		else if (req.body.node_type === 'PRE') {
-			await pkiModel.addPrefixToGroup(req);
-			dataIpobj = await pkiModel.getPrefixInfo(req.dbCon,req.body.fwcloud,req.body.ipobj);
+			await pkiCAModel.addPrefixToGroup(req);
+			dataIpobj = await pkiCAModel.getPrefixInfo(req.dbCon,req.body.fwcloud,req.body.ipobj);
 			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('CRT prefix not found'))
 			dataIpobj[0].type = 400;
 		}
@@ -193,7 +193,7 @@ router.put("/delfrom", async (req, res) => {
 		if (req.body.obj_type===311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
 		else if (req.body.obj_type===400) // CRT PREFIX CONTAINER
-			await pkiModel.removePrefixFromGroup(req);
+			await pkiCAModel.removePrefixFromGroup(req);
 		else 
 			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 		

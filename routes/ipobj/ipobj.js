@@ -71,7 +71,7 @@ var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
-const openvpnModel = require('../../models/vpn/openvpn');
+const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO

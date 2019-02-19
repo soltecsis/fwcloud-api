@@ -1,14 +1,14 @@
 //create object
 var openvpnModel = {};
 
-const config = require('../../config/config');
-const ipobjModel = require('../ipobj/ipobj');
+const config = require('../../../config/config');
+const ipobjModel = require('../../ipobj/ipobj');
 const readline = require('readline');
-const fwcTreemodel = require('../../models/tree/tree');
-const sshTools = require('../../utils/ssh');
-const socketTools = require('../../utils/socket');
-const firewallModel = require('../../models/firewall/firewall');
-const policyOpenvpnModel = require('../../models/policy/openvpn');
+const fwcTreemodel = require('../../../models/tree/tree');
+const sshTools = require('../../../utils/ssh');
+const socketTools = require('../../../utils/socket');
+const firewallModel = require('../../../models/firewall/firewall');
+const policyOpenvpnModel = require('../../../models/policy/openvpn');
 const fs = require('fs');
 const ip = require('ip');
 
