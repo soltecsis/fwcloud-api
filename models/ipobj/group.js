@@ -2,7 +2,7 @@ var db = require('../../db.js');
 //var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var IpobjModel = require('./ipobj');
 var openvpnModel = require('../../models/vpn/openvpn/openvpn');
-var pkiModel = require('../vpn/pki/ca');
+var pkiPrefixModel = require('../vpn/pki/prefix');
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -83,7 +83,7 @@ ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 						else if (obj.type === 'VPN')
 							ipobj_node = new ipobj_Data((await openvpnModel.getOpenvpnInfo(dbCon,fwcloud,obj.id,1))[0]);
 						else if (obj.type === 'PRE')
-							ipobj_node = new ipobj_Data((await pkiModel.getPrefixInfo(dbCon,fwcloud,obj.id))[0]);
+							ipobj_node = new ipobj_Data((await pkiPrefixModel.getPrefixInfo(dbCon,fwcloud,obj.id))[0]);
 						group_data.ipobjs.push(ipobj_node);
 					} catch(error) { return reject(error) }
 				}

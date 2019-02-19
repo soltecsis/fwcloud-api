@@ -54,7 +54,7 @@ const policy_cModel = require('../../../models/policy/policy_c');
 
 const fwcTreeModel = require('../../../models/tree/tree');
 const restrictedCheck = require('../../../middleware/restricted');
-const pkiModel = require('../../../models/vpn/pki/ca');
+const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const ipobjModel = require('../../../models/ipobj/ipobj');
 const firewallModel = require('../../../models/firewall/firewall');
 
@@ -105,7 +105,7 @@ router.post('/', async(req, res) => {
 			nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
-			await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.crt.ca);
+			await pkiCRTModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.crt.ca);
 		}
 
 		api_resp.getJson({ insertId: cfg, TreeinsertId: nodeId }, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -226,7 +226,7 @@ async(req, res) => {
 		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
 			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
 			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
-			await pkiModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.openvpn.ca);
+			await pkiCRTModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.openvpn.ca);
 		}
 	
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -245,7 +245,7 @@ router.put('/restricted',
 router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
@@ -275,7 +275,7 @@ router.put('/uninstall',
 restrictedCheck.openvpn,
 async(req, res) => {
 	try {
-		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
@@ -300,7 +300,7 @@ async(req, res) => {
  */
 router.put('/ccdsync', async(req, res) => {
 	try {
-		const crt = await pkiModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw (new Error('This is not an OpenVPN server configuration'));
 

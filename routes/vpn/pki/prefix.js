@@ -3,22 +3,15 @@ var router = express.Router();
 
 var api_resp = require('../../../utils/api_response');
 
-const objModel = 'CRT';
+const objModel = 'PREFIX';
 
 const pkiModel = require('../../../models/vpn/pki/ca');
-const fwcTreeModel = require('../../../models/tree/tree');
-const config = require('../../../config/config');
-const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
-
-
-
-
 
 /**
  * Create a new crt prefix container.
  */
-router.post('/crt/prefix', async (req, res) => {
+router.post('/prefix', async (req, res) => {
 	try {
     // Verify that we are not creating a prefix that already exists for the same CA.
 		if (await pkiModel.existsCrtPrefix(req)) 
@@ -38,7 +31,7 @@ router.post('/crt/prefix', async (req, res) => {
 /**
  * Modify a CRT prefix container.
  */
-router.put('/crt/prefix', async (req, res) => {
+router.put('/prefix', async (req, res) => {
 	try {
 		// Verify that the new prefix name doesn't already exists.
 		req.body.ca = req.prefix.ca;
@@ -59,7 +52,7 @@ router.put('/crt/prefix', async (req, res) => {
 /**
  * Delete a CRT prefix container.
  */
-router.put('/crt/prefix/del', 
+router.put('/prefix/del', 
 restrictedCheck.prefix,
 async (req, res) => {
 	try {
@@ -75,7 +68,7 @@ async (req, res) => {
 
 
 // API call for check deleting restrictions.
-router.put('/crt/prefix/restricted',
+router.put('/prefix/restricted',
 	restrictedCheck.prefix,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 

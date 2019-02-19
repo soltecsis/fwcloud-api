@@ -1,9 +1,9 @@
 //create object
 var pkiPrefixModel = {};
 
-const fwcTreeModel = require('../../tree/tree');
-const openvpnModel = require('../../models/vpn/openvpn');
-const policyPrefixModel = require('../../policy/prefix');
+const fwcTreeModel = require('../../../models/tree/tree');
+const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
+const policyPrefixModel = require('../../../models/policy/prefix');
 
 // Validate new prefix container.
 pkiPrefixModel.existsCrtPrefix = req => {

@@ -1,15 +1,6 @@
 //create object
 var pkiCRTModel = {};
 
-var config = require('../../../config/config');
-const fwcTreeModel = require('../../tree/tree');
-const openvpnModel = require('../../models/vpn/openvpn');
-const policyPrefixModel = require('../../policy/prefix');
-const spawn = require('child-process-promise').spawn;
-const readline = require('readline');
-const fs = require('fs');
-
-
 
 // Insert new certificate in the database.
 pkiCRTModel.createCRT = req => {
