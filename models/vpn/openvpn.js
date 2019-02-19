@@ -484,7 +484,7 @@ openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
       search.restrictions.OpenvpnInRule = await policyOpenvpnModel.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
       search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
       search.restrictions.LastOpenvpnInPrefixInRule = await policyOpenvpnModel.searchLastOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn); 
-      //search.restrictions.LastOpenvpnInPrefixInGroup = await policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
+      search.restrictions.LastOpenvpnInPrefixInGroup = await policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {

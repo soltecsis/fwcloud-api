@@ -128,7 +128,7 @@ policyOpenvpnModel.getConfigsUnderOpenvpnPrefix = (dbCon,openvpn_server_id,prefi
 
 policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-		// Fisrt get all the OpenVPN prefixes to which the openvpn configuration belongs.
+		// Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
 		var sql = `select P.rule,P.prefix,P.openvpn,PRE.name from policy_r__prefix P
 			inner join prefix PRE on PRE.id=P.prefix
 			inner join openvpn VPN on VPN.openvpn=P.openvpn
@@ -142,7 +142,8 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 			try {
 				for(let row of rows) {
 					let data = await policyOpenvpnModel.getConfigsUnderOpenvpnPrefix(dbCon,row.openvpn,row.name);
-					if (data.length===1)
+					// We are the last OpenVPN client config in the prefix used in and openvpn server and in a rule.
+					if (data.length===1 && data[0].id===openvpn) 
 						result.push(row);
 				}
 			} catch(error) { return reject(error) }
@@ -154,16 +155,30 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 
 policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-/*		var sql = `select * from openvpn__ipobj_g P
-			inner join ipobj_g G on G.id=P.ipobj_g
-			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
-		dbCon.query(sql, (error, rows) => {
+		// Fisrt get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
+		var sql = `select P.prefix,P.openvpn,PRE.name from prefix__ipobj_g P
+			inner join prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=P.openvpn
+			inner join crt CRT on CRT.id=VPN.crt
+			inner join ca CA on CA.id=CRT.ca
+			where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+		dbCon.query(sql, async (error, rows) => {
 			if (error) return reject(error);
-			resolve(rows);
-		});*/
-		resolve();
+
+			let result = [];
+			try {
+				for(let row of rows) {
+					let data = await policyOpenvpnModel.getConfigsUnderOpenvpnPrefix(dbCon,row.openvpn,row.name);
+					// We are the last OpenVPN client config in the prefix used in and openvpn server and in a rule.
+					if (data.length===1 && data[0].id===openvpn) 
+						result.push(row);
+				}
+			} catch(error) { return reject(error) }
+
+			resolve(result);
+		});
 	});
 };
-
+	
 //Export the object
 module.exports = policyOpenvpnModel;

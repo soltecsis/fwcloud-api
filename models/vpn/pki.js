@@ -474,7 +474,7 @@ pkiModel.deleteCrtPrefix = req => {
   });
 };
 
-pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix,openvpn) => {
+pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
 	return new Promise(async (resolve, reject) => {
     try {
       let search = {};
@@ -485,8 +485,8 @@ pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix,openvpn) => {
           - Rule (table policy_r__prefix)
           - IPOBJ Group
       */
-      search.restrictions.PrefixInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix,openvpn);
-      search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix,openvpn); 
+      search.restrictions.PrefixInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
+      search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {
@@ -501,7 +501,12 @@ pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix,openvpn) => {
 
 pkiModel.addPrefixToGroup = req => {
 	return new Promise((resolve, reject) => {
-		req.dbCon.query(`INSERT INTO prefix__ipobj_g values(${req.body.ipobj},${req.body.ipobj_g})`,(error, result) => {
+    const data = {
+      prefix: req.body.ipobj,
+      openvpn: req.body.openvpn,
+      ipobj_g: req.body.ipobj_g
+    }
+		req.dbCon.query(`INSERT INTO prefix__ipobj_g SET ?`,data,(error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
     });
@@ -510,7 +515,8 @@ pkiModel.addPrefixToGroup = req => {
 
 pkiModel.removePrefixFromGroup = req => {
 	return new Promise((resolve, reject) => {
-    let sql = `DELETE FROM prefix__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND prefix=${req.body.ipobj}`;		
+    let sql = `DELETE FROM prefix__ipobj_g 
+      WHERE prefix=${req.body.ipobj} AND openvpn=${req.body.openvpn} AND ipobj_g=${req.body.ipobj_g}`;		
 		req.dbCon.query(sql,(error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
