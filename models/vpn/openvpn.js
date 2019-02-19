@@ -479,12 +479,12 @@ openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
       /* Verify that the OpenVPN configuration is not used in any
           - Rule (table policy_r__openvpn)
           - IPBOJ group.
-          - OpenVPN is in a CRT prefix used in a rule or group.
+          - OpenVPN is the last in a CRT prefix used in a rule or group.
       */
       search.restrictions.OpenvpnInRule = await policyOpenvpnModel.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
       search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
-      search.restrictions.OpenvpnInPrefixInRule = await policyOpenvpnModel.searchOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn); 
-      search.restrictions.OpenvpnInPrefixInGroup = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
+      search.restrictions.LastOpenvpnInPrefixInRule = await policyOpenvpnModel.searchLastOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn); 
+      //search.restrictions.LastOpenvpnInPrefixInGroup = await policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {

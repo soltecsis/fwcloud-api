@@ -113,11 +113,12 @@ policyOpenvpnModel.searchOpenvpnInGroup = (dbCon,fwcloud,openvpn) => {
 	});
 };
 
-policyOpenvpnModel.searchOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
+policyOpenvpnModel.getConfigsUnderOpenvpnPrefix = (dbCon,openvpn_server_id,prefix_name) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select * from policy_r__prefix P
-			inner join prefix PRE on PRE.id=P.prefix
-			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
+		// Get all OpenVPN client configs under an openvpn configuration server whose CRT common name matches the prefix name.
+		var sql = `select VPN.id from openvpn VPN
+			inner join crt CRT on CRT.id=VPN.crt
+			where VPN.openvpn=${openvpn_server_id} and CRT.type=1 and CRT.cn like CONCAT(${dbCon.escape(prefix_name)},'%')`;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
 			resolve(rows);
@@ -125,7 +126,33 @@ policyOpenvpnModel.searchOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
 	});
 };
 
-policyOpenvpnModel.searchOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
+policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+		// Fisrt get all the OpenVPN prefixes to which the openvpn configuration belongs.
+		var sql = `select P.rule,P.prefix,P.openvpn,PRE.name from policy_r__prefix P
+			inner join prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=P.openvpn
+			inner join crt CRT on CRT.id=VPN.crt
+			inner join ca CA on CA.id=CRT.ca
+			where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+		dbCon.query(sql, async (error, rows) => {
+			if (error) return reject(error);
+
+			let result = [];
+			try {
+				for(let row of rows) {
+					let data = await policyOpenvpnModel.getConfigsUnderOpenvpnPrefix(dbCon,row.openvpn,row.name);
+					if (data.length===1)
+						result.push(row);
+				}
+			} catch(error) { return reject(error) }
+
+			resolve(result);
+		});
+	});
+};
+
+policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 /*		var sql = `select * from openvpn__ipobj_g P
 			inner join ipobj_g G on G.id=P.ipobj_g
@@ -134,6 +161,7 @@ policyOpenvpnModel.searchOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 			if (error) return reject(error);
 			resolve(rows);
 		});*/
+		resolve();
 	});
 };
 
