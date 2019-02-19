@@ -306,6 +306,20 @@ pkiModel.getPrefixInfo = (dbCon, fwcloud, prefix) => {
   });
 };
 
+// Get information about a prefix used in an OpenVPN configuration.
+pkiModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, rule, prefix, openvpn) => {
+	return new Promise((resolve, reject) => {
+    let sql = `select CA.fwcloud,P.*,PRE.name,CA.cn from policy_r__prefix P
+      inner join prefix PRE on PRE.id=P.prefix 
+      inner join ca CA on CA.id=PRE.ca
+      where CA.fwcloud=${fwcloud} and P.rule=${rule} and P.prefix=${prefix} and P.openvpn=${openvpn}`;
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
 // Fill prefix node with matching entries.
 pkiModel.fillPrefixNodeCA = (dbCon,fwcloud,ca,name,parent,node) => {
 	return new Promise((resolve, reject) => {

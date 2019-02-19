@@ -103,14 +103,13 @@ policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
 
 policyOpenvpnModel.searchOpenvpnInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-//		var sql = `select * from policy_r__openvpn P
-//			inner join policy_r R on R.id=P.rule
-//			inner join firewall F on FW.id=R.firewall
-//			where F.fwcloud=${fwcloud} and openvpn=${openvpn}`;
-//		dbCon.query(sql, (error, rows) => {
-//			if (error) return reject(error);
-//			resolve(rows);
-//		});
+		var sql = `select * from openvpn__ipobj_g P
+			inner join ipobj_g G on G.id=P.ipobj_g
+			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
 	});
 };
 
