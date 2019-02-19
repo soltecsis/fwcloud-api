@@ -113,5 +113,29 @@ policyOpenvpnModel.searchOpenvpnInGroup = (dbCon,fwcloud,openvpn) => {
 	});
 };
 
+policyOpenvpnModel.searchOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+		var sql = `select * from policy_r__prefix P
+			inner join prefix PRE on PRE.id=P.prefix
+			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
+
+policyOpenvpnModel.searchOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+/*		var sql = `select * from openvpn__ipobj_g P
+			inner join ipobj_g G on G.id=P.ipobj_g
+			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});*/
+	});
+};
+
 //Export the object
 module.exports = policyOpenvpnModel;

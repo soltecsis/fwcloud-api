@@ -485,7 +485,7 @@ pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix,openvpn) => {
           - Rule (table policy_r__prefix)
           - IPOBJ Group
       */
-      search.restrictions.PrefixInRules = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix,openvpn);
+      search.restrictions.PrefixInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix,openvpn);
       search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix,openvpn); 
       
       for (let key in search.restrictions) {
