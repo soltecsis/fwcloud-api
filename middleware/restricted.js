@@ -127,7 +127,7 @@ restrictedCheck.crt = async (req, res, next) => {
 
 restrictedCheck.prefix = async (req, res, next) => {
 	try {
-		let data = await pkiModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		let data = await pkiModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix,req.body.openvpn);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		
 		next();

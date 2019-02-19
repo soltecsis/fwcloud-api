@@ -460,18 +460,19 @@ pkiModel.deleteCrtPrefix = req => {
   });
 };
 
-pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
+pkiModel.searchPrefixUsage = (dbCon,fwcloud,prefix,openvpn) => {
 	return new Promise(async (resolve, reject) => {
     try {
       let search = {};
       search.result = false;
       search.restrictions ={};
 
-      /* Verify that the OpenVPN configuration is not used in any
+      /* Verify that the CRT prefix is not used in any
           - Rule (table policy_r__prefix)
+          - IPOBJ Group
       */
-      search.restrictions.PrefixInRules = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
-      //search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
+      search.restrictions.PrefixInRules = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix,openvpn);
+      search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix,openvpn); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {

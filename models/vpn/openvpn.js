@@ -482,7 +482,7 @@ openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
           - CRT prefix used in a rule or group.
       */
       search.restrictions.OpenvpnInRules = await policyOpenvpnModel.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
-      //search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
+      search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
       //search.restrictions.OpenvpnInPrefix = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
       
       for (let key in search.restrictions) {

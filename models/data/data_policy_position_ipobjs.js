@@ -54,6 +54,8 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.type = 311;
 		this.name = data.cn;
 		this.address = data.address;
+	} else if (type === 'PRE') {
+		this.type = 400;
 	}
 };
 
