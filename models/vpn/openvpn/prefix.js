@@ -86,14 +86,14 @@ openvpnPrefixModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_nam
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
-      if (result.length === 0) return resolve(); // If no prefix match then do nothing.
-
       try {
         // Create the prefix and OpenVPN client configuration nodes.
-        let node_id = await fwcTreeModel.newNode(dbCon,fwcloud,prefix_name,parent,'PRE',prefix_id,400);
+        let node_id = await fwcTreeModel.newNode(dbCon,fwcloud,prefix_name,parent,'PRO',prefix_id,401);
         for (let row of result)
           await fwcTreeModel.newNode(dbCon,fwcloud,row.sufix,node_id,'OCL',row.id,311);
       } catch(error) { return reject(error) }
+
+      if (result.length === 0) return resolve();
 
       // Remove from OpenVPN server node the nodes that match de prefix.
       sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=311 AND name LIKE '${prefix}%'`;
@@ -104,7 +104,6 @@ openvpnPrefixModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_nam
     });
   });
 };
-
 
 
 // Apply OpenVPN server prefixes to tree node.
@@ -121,7 +120,7 @@ openvpnPrefixModel.applyOpenVPNPrefixes = (dbCon,fwcloud,openvpn_srv) => {
       for (let openvpn_cli of openvpn_cli_list)
         await fwcTreeModel.newNode(dbCon,fwcloud,openvpn_cli.cn,node_id,'OCL',openvpn_cli.id,311);
 
-      // Create the nodes for all not empty prefixes.
+      // Create the nodes for all the prefixes.
       const prefix_list = await openvpnPrefixModel.getPrefixes(dbCon,openvpn_srv);
       for (let prefix of prefix_list)
         await openvpnPrefixModel.fillPrefixNodeOpenVPN(dbCon,fwcloud,openvpn_srv,prefix.name,prefix.id,node_id);
@@ -131,23 +130,6 @@ openvpnPrefixModel.applyOpenVPNPrefixes = (dbCon,fwcloud,openvpn_srv) => {
   });
 };
 
-
-openvpnPrefixModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
-	return new Promise((resolve, reject) => {
-    let sql = `SELECT VPN.id FROM openvpn VPN
-      INNER JOIN crt CRT ON CRT.id=VPN.crt
-      INNER JOIN ca CA ON CA.id=CRT.ca
-      WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
-    dbCon.query(sql, async (error, result) => {
-      if (error) return reject(error);
-
-      if (result.length > 0)
-        resolve({result: true, restrictions: { crtUsedInOpenvpn: true}});
-      else
-        resolve({result: false});
-    });
-  });
-};
 
 openvpnPrefixModel.addPrefixToGroup = req => {
 	return new Promise((resolve, reject) => {

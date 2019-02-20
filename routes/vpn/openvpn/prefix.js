@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
 		await openvpnPrefixModel.createPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req,req.body.openvpn);
+		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 
 		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
