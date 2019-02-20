@@ -1593,10 +1593,10 @@ CREATE TABLE `policy_r__openvpn_prefix` (
   PRIMARY KEY (`rule`,`prefix`,`position`),
   KEY `idx_position` (`position`),
   KEY `idx_rule` (`rule`),
-  KEY `fk_policy_r__prefix-openvpn_prefix_idx` (`prefix`),
-  CONSTRAINT `fk_policy_r__prefix-openvpn_prefix` FOREIGN KEY (`prefix`) REFERENCES `openvpn_prefix` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_policy_r__prefix-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_policy_r__prefix-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `idx_prefix` (`prefix`),
+  CONSTRAINT `fk_policy_r__openvpn_prefix-openvpn_prefix` FOREIGN KEY (`prefix`) REFERENCES `openvpn_prefix` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_policy_r__openvpn_prefix-policy_position` FOREIGN KEY (`position`) REFERENCES `policy_position` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_policy_r__openvpn_prefix-policy_r` FOREIGN KEY (`rule`) REFERENCES `policy_r` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1617,7 +1617,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__prefix_AFTER_INSERT` AFTER INSERT ON `policy_r__openvpn_prefix` FOR EACH ROW
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__openvpn_prefix_AFTER_INSERT` AFTER INSERT ON `policy_r__openvpn_prefix` FOR EACH ROW
 BEGIN
 	call update__rule_ts(NEW.rule);
 END */;;
@@ -1635,7 +1635,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__prefix_AFTER_UPDATE` AFTER UPDATE ON `policy_r__openvpn_prefix` FOR EACH ROW
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__openvpn_prefix_AFTER_UPDATE` AFTER UPDATE ON `policy_r__openvpn_prefix` FOR EACH ROW
 BEGIN
 	call update__rule_ts(NEW.rule);
 END */;;
@@ -1653,7 +1653,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__prefix_AFTER_DELETE` AFTER DELETE ON `policy_r__openvpn_prefix` FOR EACH ROW
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `fwcloud`.`policy_r__openvpn_prefix_AFTER_DELETE` AFTER DELETE ON `policy_r__openvpn_prefix` FOR EACH ROW
 BEGIN
 	call update__rule_ts(OLD.rule);
 END */;;

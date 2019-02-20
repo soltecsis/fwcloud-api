@@ -6,7 +6,6 @@ var api_resp = require('../../../utils/api_response');
 const objModel = 'CRT PREFIX';
 
 const pkiPrefixModel = require('../../../models/vpn/pki/prefix');
-const restrictedCheck = require('../../../middleware/restricted');
 
 /**
  * Create a new crt prefix container.
@@ -15,7 +14,7 @@ router.post('/', async (req, res) => {
 	try {
     // Verify that we are not creating a prefix that already exists for the same CA.
 		if (await pkiPrefixModel.existsCrtPrefix(req)) 
-			throw (new Error('Prefix name already exists'));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'CRT prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
    	// Create the tree node.
 		await pkiPrefixModel.createCrtPrefix(req);
@@ -36,7 +35,7 @@ router.put('/', async (req, res) => {
 		// Verify that the new prefix name doesn't already exists.
 		req.body.ca = req.prefix.ca;
 		if (await pkiPrefixModel.existsCrtPrefix(req,req.prefix.ca)) 
-			throw (new Error('Prefix name already exists'));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'CRT prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
    	// Modify the prefix name.
 		await pkiPrefixModel.modifyCrtPrefix(req);

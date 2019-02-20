@@ -129,7 +129,7 @@ policyOpenvpnModel.getConfigsUnderOpenvpnPrefix = (dbCon,openvpn_server_id,prefi
 policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
-		var sql = `select P.rule,P.prefix,P.openvpn,PRE.name from policy_r__prefix P
+		var sql = `select P.rule,P.prefix,P.openvpn,PRE.name from policy_r__openvpn_prefix P
 			inner join prefix PRE on PRE.id=P.prefix
 			inner join openvpn VPN on VPN.openvpn=P.openvpn
 			inner join crt CRT on CRT.id=VPN.crt
@@ -156,7 +156,7 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
-		var sql = `select P.prefix,P.openvpn,PRE.name from prefix__ipobj_g P
+		var sql = `select P.prefix,P.openvpn,PRE.name from openvpn_prefix__ipobj_g P
 			inner join prefix PRE on PRE.id=P.prefix
 			inner join openvpn VPN on VPN.openvpn=P.openvpn
 			inner join crt CRT on CRT.id=VPN.crt

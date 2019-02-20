@@ -1,10 +1,10 @@
 //create object
 var policyPrefixModel = {};
 
-var tableModel = "policy_r__prefix";
+var tableModel = "policy_r__openvpn_prefix";
 
 
-//Add new policy_r__prefix
+//Add new policy_r__openvpn_prefix
 policyPrefixModel.insertInRule = req => {
 	return new Promise(async (resolve, reject) => {
 		var policyPrefix = {
@@ -74,7 +74,7 @@ policyPrefixModel.deleteFromRule = (dbCon,rule) => {
 	});
 };
 
-//Duplicate policy_r__prefix RULES
+//Duplicate policy_r__openvpn_prefix RULES
 policyPrefixModel.duplicatePolicy_r__prefix = (dbCon, rule, new_rule) => {
 	return new Promise((resolve, reject) => {
 		let sql = `INSERT INTO ${tableModel} (rule, prefix, openvpn, position, position_order, negate)
@@ -89,7 +89,7 @@ policyPrefixModel.duplicatePolicy_r__prefix = (dbCon, rule, new_rule) => {
 
 policyPrefixModel.searchPrefixInRule = (dbCon,fwcloud,prefix) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select * from policy_r__prefix P
+		var sql = `select * from policy_r__openvpn_prefix P
 			inner join policy_r R on R.id=P.rule
 			inner join firewall F on F.id=R.firewall
 			where F.fwcloud=${fwcloud} and P.prefix=${prefix}`;

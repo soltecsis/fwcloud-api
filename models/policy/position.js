@@ -131,7 +131,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				//SELECT IPOBJ UNDER OPENVPN PREFIX POSITION O
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
 				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
-				FROM policy_r__prefix P
+				FROM policy_r__openvpn_prefix P
 				inner join prefix PRE on PRE.id=P.prefix
 				inner join openvpn VPN on VPN.openvpn=P.openvpn
 				inner join crt CRT on CRT.id=VPN.crt
@@ -186,7 +186,7 @@ policyPositionModel.getRulePositionData = position => {
 				FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
 
 				UNION SELECT rule, prefix, openvpn, 0, position, position_order, negate, "PRE" as type 
-				FROM policy_r__prefix WHERE rule=${position.rule} AND position=${position.id}
+				FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
 				ORDER BY position_order`;
 			
 			dbCon.query(sql, async (error, items) => {

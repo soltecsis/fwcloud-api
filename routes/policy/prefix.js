@@ -10,7 +10,7 @@ const utilsModel = require("../../utils/utils.js");
 
 var objModel = "OpenVPN in Rule";
 
-/* Create New policy_r__prefix */
+/* Create New policy_r__openvpn_prefix */
 router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
@@ -26,7 +26,7 @@ async (req, res) => {
 });
 
 
-/* Update POSITION policy_r__prefix that exist */
+/* Update POSITION policy_r__openvpn_prefix that exist */
 router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
@@ -58,7 +58,7 @@ utilsModel.disableFirewallCompileStatus,
 });
 
 
-/* Remove policy_r__prefix */
+/* Remove policy_r__openvpn_prefix */
 router.put("/del",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {

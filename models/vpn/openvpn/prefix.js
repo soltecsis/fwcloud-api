@@ -17,7 +17,7 @@ openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
 // Get information about a prefix used in an OpenVPN configuration.
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, rule, prefix, openvpn) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select CA.fwcloud,P.*,PRE.name,CA.cn from policy_r__prefix_openvpn P
+    let sql = `select CA.fwcloud,P.*,PRE.name,CA.cn from policy_r__openvpn_prefix_openvpn P
       inner join prefix PRE on PRE.id=P.prefix 
       inner join ca CA on CA.id=PRE.ca
       where CA.fwcloud=${fwcloud} and P.rule=${rule} and P.prefix=${prefix} and P.openvpn=${openvpn}`;
