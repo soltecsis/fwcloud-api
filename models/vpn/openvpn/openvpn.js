@@ -214,12 +214,12 @@ openvpnModel.getOpenvpnInfo = (dbCon, fwcloud, openvpn, type) => {
   });
 };
 
-openvpnModel.getOpenvpnServersByCA = (dbCon,ca) => {
+openvpnModel.getOpenvpnServersByCloud = (dbCon,fwcloud) => {
 	return new Promise((resolve, reject) => {
     let sql = `select VPN.id,CRT.cn from openvpn VPN 
       inner join crt CRT on CRT.id=VPN.crt
       inner join ca CA on CA.id=CRT.ca
-      where CA.id=${ca} and CRT.type=2`; // 2 = Server certificate.
+      where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
     dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve(result);

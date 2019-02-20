@@ -3,8 +3,16 @@ var openvpnPrefixModel = {};
 
 const fwcTreeModel = require('../../../models/tree/tree');
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
-const policyPrefixModel = require('../../../models/policy/prefix');
-const pkiCRTModel = require('../../../models/vpn/pki/crt');
+
+// Get all prefixes for the indicated CA.
+openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`SELECT id,name FROM openvpn_prefix WHERE openvpn=${openvpn}`, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
 
 // Get information about a prefix used in an OpenVPN configuration.
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, rule, prefix, openvpn) => {
@@ -52,28 +60,24 @@ openvpnPrefixModel.fillPrefixNodeOpenVPN = (dbCon,fwcloud,openvpn_ser,prefix_nam
 
 
 
-// Apply CRT prefix to tree node.
-openvpnPrefixModel.applyCrtPrefixesOpenVPN = (dbCon,fwcloud,ca) => {
+// Apply OpenVPN server prefixes to tree node.
+openvpnPrefixModel.applyOpenVPNPrefixes = (dbCon,fwcloud,openvpn_srv) => {
 	return new Promise(async (resolve, reject) => {
     try {
-      // Search all openvpn server configurations for this CA.
-      const openvpn_ser_list = await openvpnModel.getOpenvpnServersByCA(dbCon,ca);
-      for (let openvpn_ser of openvpn_ser_list) {
-        let node = await fwcTreeModel.getNodeInfo(dbCon,fwcloud,'OSR',openvpn_ser.id);
-        let node_id = node[0].id;
-        // Remove all nodes under the OpenVPN server configuration node.
-        await fwcTreeModel.deleteNodesUnderMe(dbCon,fwcloud,node_id);
+      let node = await fwcTreeModel.getNodeInfo(dbCon,fwcloud,'OSR',openvpn_srv);
+      let node_id = node[0].id;
+      // Remove all nodes under the OpenVPN server configuration node.
+      await fwcTreeModel.deleteNodesUnderMe(dbCon,fwcloud,node_id);
 
-        // Create all OpenVPN client config nodes.
-        let openvpn_cli_list = await openvpnModel.getOpenvpnClients(dbCon,openvpn_ser.id);
-        for (let openvpn_cli of openvpn_cli_list)
-          await fwcTreeModel.newNode(dbCon,fwcloud,openvpn_cli.cn,node_id,'OCL',openvpn_cli.id,311);
+      // Create all OpenVPN client config nodes.
+      let openvpn_cli_list = await openvpnModel.getOpenvpnClients(dbCon,openvpn_srv);
+      for (let openvpn_cli of openvpn_cli_list)
+        await fwcTreeModel.newNode(dbCon,fwcloud,openvpn_cli.cn,node_id,'OCL',openvpn_cli.id,311);
 
-        // Create the nodes for all not empty prefixes.
-        const prefix_list = await pkiPrefixModel.getPrefixes(dbCon,ca);
-        for (let prefix of prefix_list)
-          await pkiPrefixModel.fillPrefixNodeOpenVPN(dbCon,fwcloud,openvpn_ser.id,prefix.name,prefix.id,node_id);
-      }
+      // Create the nodes for all not empty prefixes.
+      const prefix_list = await openvpnPrefixModel.getPrefixes(dbCon,openvpn_srv);
+      for (let prefix of prefix_list)
+        await openvpnPrefixModel.fillPrefixNodeOpenVPN(dbCon,fwcloud,openvpn_srv,prefix.name,prefix.id,node_id);
 
       resolve();
     } catch(error) { return reject(error) }
@@ -97,9 +101,6 @@ openvpnPrefixModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
     });
   });
 };
-
-
-
 
 
 //Export the object

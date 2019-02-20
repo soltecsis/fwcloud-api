@@ -5,7 +5,7 @@ const fwcTreeRepairModel = require('../../models/tree/repair');
 const api_resp = require('../../utils/api_response');
 const socketTools = require('../../utils/socket');
 const fwcTreemodel = require('../../models/tree/tree');
-const pkiCAModel = require('../../models/vpn/pki/ca');
+const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 
 var objModel = 'FWC TREE REPAIR';
 
@@ -41,10 +41,12 @@ router.put('/', async (req, res) =>{
         socketTools.msg('<font color="blue">Checking firewalls and clusters tree.</font>\n');
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
-        socketTools.msg('<font color="blue">Applying CRT prefixes.</font>\n');
-        const ca_list = await pkiCAModel.getCAlist(req.dbCon,req.body.fwcloud);
-        for (let ca of ca_list)
-          await pkiCAModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,ca.id);
+        socketTools.msg('<font color="blue">Applying OpenVPN server prefixes.</font>\n');
+        const openvpn_srv_list = await openvpnModel.getOpenvpnServersByCloud(dbCon,req.body.fwcloud);
+        for (let openvpn_srv of openvpn_srv_list) {
+          socketTools.msg(`OpenVPN server: ${openvpn_srv.cn}\n`);
+          await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv);
+        }
         break;
       }
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.

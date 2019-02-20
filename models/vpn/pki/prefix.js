@@ -15,7 +15,7 @@ pkiPrefixModel.existsCrtPrefix = req => {
   });
 };
 
-// Gest all prefixes for the indicated CA.
+// Get all prefixes for the indicated CA.
 pkiPrefixModel.getPrefixes = (dbCon,ca) => {
 	return new Promise((resolve, reject) => {
     dbCon.query(`SELECT id,name FROM ca_prefix WHERE ca=${ca}`, (error, result) => {

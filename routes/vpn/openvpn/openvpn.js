@@ -55,6 +55,7 @@ const policy_cModel = require('../../../models/policy/policy_c');
 const fwcTreeModel = require('../../../models/tree/tree');
 const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
+const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
 const firewallModel = require('../../../models/firewall/firewall');
 
@@ -105,7 +106,7 @@ router.post('/', async(req, res) => {
 			nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
-			await pkiCRTModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.crt.ca);
+			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		}
 
 		api_resp.getJson({ insertId: cfg, TreeinsertId: nodeId }, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -226,7 +227,7 @@ async(req, res) => {
 		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
 			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
 			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
-			await pkiCRTModel.applyCrtPrefixesOpenVPN(req.dbCon,req.body.fwcloud,req.openvpn.ca);
+			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		}
 	
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
