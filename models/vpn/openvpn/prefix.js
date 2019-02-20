@@ -4,6 +4,53 @@ var openvpnPrefixModel = {};
 const fwcTreeModel = require('../../../models/tree/tree');
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
 
+// Validate new prefix container.
+openvpnPrefixModel.existsPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`SELECT id FROM openvpn_prefix WHERE openvpn=${req.body.openvpn} AND name=${req.dbCon.escape(req.body.name)}`, (error, result) => {
+      if (error) return reject(error);
+      resolve((result.length>0) ? true : false);
+    });
+  });
+};
+
+// Add new prefix container.
+openvpnPrefixModel.createPrefix = req => {
+	return new Promise((resolve, reject) => {
+    const prefixData = {
+      id: null,
+      name: req.body.name,
+      openvpn: req.body.openvpn
+    };
+    req.dbCon.query(`INSERT INTO openvpn_prefix SET ?`, prefixData, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
+
+
+// Modify a CRT Prefix container.
+openvpnPrefixModel.modifyCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`UPDATE openvpn_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
+
+// Delete CRT Prefix container.
+openvpnPrefixModel.deleteCrtPrefix = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`DELETE from openvpn_prefix WHERE id=${req.body.prefix}`, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+    });
+  });
+};
+
+
 // Get all prefixes for the indicated CA.
 openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
 	return new Promise((resolve, reject) => {

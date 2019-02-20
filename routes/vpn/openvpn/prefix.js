@@ -13,15 +13,19 @@ const restrictedCheck = require('../../../middleware/restricted');
  */
 router.post('/', async (req, res) => {
 	try {
+		// We can only create prefixes for OpenVPN server configurations.
+		if (req.openvpn.type!==2)
+			throw(new Error('Prefixes can only be created over server OpenVPN configurations'));
+
     // Verify that we are not creating a prefix that already exists for the same CA.
-		if (await pkiModel.existsCrtPrefix(req)) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'CRT prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (await openvpnPrefixModel.existsPrefix(req)) 
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
    	// Create the tree node.
-		await pkiModel.createCrtPrefix(req);
+		await openvpnPrefixModel.createPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await pkiModel.applyCrtPrefixes(req,req.body.ca);
+		await openvpnPrefixModel.applyOpenVPNPrefixes(req,req.body.openvpn);
 
 		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -35,14 +39,14 @@ router.put('/', async (req, res) => {
 	try {
 		// Verify that the new prefix name doesn't already exists.
 		req.body.ca = req.prefix.ca;
-		if (await pkiModel.existsCrtPrefix(req,req.prefix.ca)) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'CRT prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (await openvpnPrefixModel.existsPrefix(req,req.prefix.ca)) 
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
    	// Modify the prefix name.
-		await pkiModel.modifyCrtPrefix(req);
+		await openvpnPrefixModel.modifyPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await pkiModel.applyCrtPrefixes(req,req.prefix.ca);
+		await openvpnPrefixModel.applyOpenVPNPrefixes(req,req.prefix.ca);
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'UPDATE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -57,10 +61,10 @@ restrictedCheck.openvpn_prefix,
 async (req, res) => {
 	try {
 		// Delete prefix.
-		await pkiModel.deleteCrtPrefix(req);
+		await openvpnPrefixModel.deletePrefix(req);
 
 		// Regenerate prefixes.
-		await pkiModel.applyCrtPrefixes(req,req.prefix.ca);
+		await openvpnPrefixModel.applyOpenVPNPrefixes(req,req.prefix.ca);
 	
 		api_resp.getJson(null, api_resp.ACR_OK, 'REMOVED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
