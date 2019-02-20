@@ -1,42 +1,14 @@
 var schema = {};
 module.exports = schema;
 
-const Joi = require('joi');
-const sharedSch = require('../shared');
- 
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    var schema = Joi.object().keys({ fwcloud: sharedSch.id });
-
-    if (req.method==="POST" && req.url==='/vpn/pki/crt/prefix') {
-      schema = schema.append({ ca: sharedSch.id, name: sharedSch.name });
-    }
-    else if (req.method==="POST") {
-      schema = schema.append({ 
-        cn: sharedSch.cn,
-        days: sharedSch.days,
-        node_id: sharedSch.id,
-        comment: sharedSch.comment,
-        socketid: sharedSch.socketio_id.optional()
-      });
-      if (req.url==='/vpn/pki/crt')
-        schema = schema.append({ type: sharedSch.crt_type, ca: sharedSch.id });
-    }
-    else if (req.method==="PUT") {
-      if (req.url==='/vpn/pki/crt/get' || req.url==='/vpn/pki/crt/del' || req.url==='/vpn/pki/crt/restricted')
-        schema = schema.append({ crt: sharedSch.id });
-      else if (req.url==='/vpn/pki/ca/get' || req.url==='/vpn/pki/ca/del' || req.url==='/vpn/pki/ca/restricted')
-        schema = schema.append({ ca: sharedSch.id });
-      else if (req.url==='/vpn/pki/crt/prefix' || req.url==='/vpn/pki/crt/prefix/del' || req.url==='/vpn/pki/crt/prefix/restricted') {
-        schema = schema.append({ prefix: sharedSch.id });
-        if (req.url==='/vpn/pki/crt/prefix')
-          schema = schema.append({ name: sharedSch.name });
-      }
-    } else return reject(new Error('Request method not accepted'));
-
+    const item = req.url.split('/');
+    if (item[3]==='ca' || item[3]==='crt' || item[3]==='prefix')
     try {
-      await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
-      resolve();
-    } catch(error) { return reject(error) } 
+      return resolve (await require(`./${item[2]}/${item[3]}`).validate(req));
+    } catch(error) { return reject(error) }
+  
+    return reject(new Error('Request method not accepted'));
   });
 };

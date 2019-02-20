@@ -181,7 +181,7 @@ pkiCAModel.searchCAHasCRTs = (dbCon,fwcloud,ca) => {
 
 pkiCAModel.searchCAHasPrefixes = (dbCon,fwcloud,ca) => {
 	return new Promise((resolve, reject) => {
-    let sql = `SELECT P.id FROM prefix P
+    let sql = `SELECT P.id FROM ca_prefix P
       INNER JOIN ca CA ON CA.id=P.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
     dbCon.query(sql, async (error, result) => {
@@ -194,25 +194,6 @@ pkiCAModel.searchCAHasPrefixes = (dbCon,fwcloud,ca) => {
     });
   });
 };
-
-pkiCAModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
-	return new Promise((resolve, reject) => {
-    let sql = `SELECT VPN.id FROM openvpn VPN
-      INNER JOIN crt CRT ON CRT.id=VPN.crt
-      INNER JOIN ca CA ON CA.id=CRT.ca
-      WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
-    dbCon.query(sql, async (error, result) => {
-      if (error) return reject(error);
-
-      if (result.length > 0)
-        resolve({result: true, restrictions: { crtUsedInOpenvpn: true}});
-      else
-        resolve({result: false});
-    });
-  });
-};
-
-
 
 
 //Export the object

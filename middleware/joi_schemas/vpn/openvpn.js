@@ -5,7 +5,16 @@ const Joi = require('joi');
 const sharedSch = require('../shared');
 
 schema.validate = req => {
-	return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const item = req.url.split('/');
+    if (item[3]==='prefix') {
+			try {
+				return resolve (await require(`./${item[2]}/${item[3]}`).validate(req));
+			} catch(error) { return reject(error) }
+		}
+	
+		if (item[3]) return reject(new Error('Request method not accepted'));
+
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
 		var schemaPar = Joi.object().keys({

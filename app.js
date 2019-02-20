@@ -203,7 +203,7 @@ app.use('/tree/repair', tree_repair);
 app.use('/vpn/pki/ca', vpn_pki_ca);
 app.use('/vpn/pki/crt', vpn_pki_crt);
 app.use('/vpn/pki/prefix', vpn_pki_prefix);
-app.use('/vpn/openvpn/openvpn', vpn_openvpn);
+app.use('/vpn/openvpn', vpn_openvpn);
 app.use('/vpn/openvpn/prefix', vpn_openvpn_prefix);
 //app.use('/interface__ipobj', interface__ipobj);
 //app.use('/user__firewall', user__firewall);
