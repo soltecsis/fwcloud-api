@@ -102,7 +102,7 @@ policyPrefixModel.searchPrefixInRule = (dbCon,fwcloud,prefix) => {
 
 policyPrefixModel.searchPrefixInGroup = (dbCon,fwcloud,prefix) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select * from prefix__ipobj_g P
+		var sql = `select * from openvpn_prefix__ipobj_g P
 			inner join ipobj_g G on G.id=P.ipobj_g
 			where G.fwcloud=${fwcloud} and P.prefix=${prefix}`;
 		dbCon.query(sql, (error, rows) => {

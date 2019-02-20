@@ -68,8 +68,8 @@ ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 				inner join crt C on C.id=O.crt
 				where R.ipobj_g=${gid}
 
-				UNION select id, name, 'PRE' as type from prefix O
-				inner join prefix__ipobj_g R on R.prefix=O.id
+				UNION select id, name, 'PRE' as type from openvpn_prefix O
+				inner join openvpn_prefix__ipobj_g R on R.prefix=O.id
 				where R.ipobj_g=${gid}
 				order by name`;
 			dbCon.query(sql, async (error, rows) => {

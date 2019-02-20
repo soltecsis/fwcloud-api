@@ -132,8 +132,8 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
 				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
 				FROM policy_r__openvpn_prefix P
-				inner join prefix PRE on PRE.id=P.prefix
-				inner join openvpn VPN on VPN.openvpn=P.openvpn
+				inner join openvpn_prefix PRE on PRE.id=P.prefix
+				inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 				inner join crt CRT on CRT.id=VPN.crt
 				inner join openvpn_opt OPT on OPT.openvpn=VPN.id
 				inner join ipobj O on O.id=OPT.ipobj
@@ -144,9 +144,9 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
 				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
 				FROM policy_r__ipobj P
-				inner join prefix__ipobj_g G on G.ipobj_g=P.ipobj_g
-				inner join prefix PRE on PRE.id=G.prefix
-				inner join openvpn VPN on VPN.openvpn=G.openvpn
+				inner join openvpn_prefix__ipobj_g G on G.ipobj_g=P.ipobj_g
+				inner join openvpn_prefix PRE on PRE.id=G.prefix
+				inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 				inner join crt CRT on CRT.id=VPN.crt
 				inner join openvpn_opt OPT on OPT.openvpn=VPN.id
 				inner join ipobj O on O.id=OPT.ipobj
@@ -185,7 +185,7 @@ policyPositionModel.getRulePositionData = position => {
 				UNION SELECT rule, openvpn, 0, 0, position, position_order, negate, "VPN" as type 
 				FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
 
-				UNION SELECT rule, prefix, openvpn, 0, position, position_order, negate, "PRE" as type 
+				UNION SELECT rule, prefix, 0, 0, position, position_order, negate, "PRE" as type 
 				FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
 				ORDER BY position_order`;
 			
