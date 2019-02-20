@@ -164,8 +164,8 @@ router.put("/addto", async (req, res) => {
 		else if (req.body.node_type === 'PRE') {
 			await pkiCAModel.addPrefixToGroup(req);
 			dataIpobj = await pkiCAModel.getPrefixInfo(req.dbCon,req.body.fwcloud,req.body.ipobj);
-			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('CRT prefix not found'))
-			dataIpobj[0].type = 400;
+			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('OpenVPN prefix not found'))
+			dataIpobj[0].type = 401;
 		}
 		else {
 			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
@@ -192,7 +192,7 @@ router.put("/delfrom", async (req, res) => {
 	try {
 		if (req.body.obj_type===311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
-		else if (req.body.obj_type===400) // CRT PREFIX CONTAINER
+		else if (req.body.obj_type===401) // OpenVPN PREFIX
 			await pkiCAModel.removePrefixFromGroup(req);
 		else 
 			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);

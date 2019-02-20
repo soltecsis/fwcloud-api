@@ -17,7 +17,7 @@ schema.validate = req => {
 			if (req.method === 'PUT') schema = schema.append({ id: sharedSch.id });
 			else if (req.method === 'POST') schema = schema.append({ node_parent: sharedSch.id, node_order: sharedSch.id, node_type: sharedSch.name });
 		} else if (req.method === 'PUT') {
-			if (req.url === '/ipobj/group/get')
+			if (req.url==='/ipobj/group/get' || req.url==='/ipobj/group/where')
 				schema = schema.append({ id: sharedSch.id });
 			else if (req.url === '/ipobj/group/del' || req.url === '/ipobj/group/restricted')
 				schema = schema.append({ id: sharedSch.id, type: sharedSch.group_type });
@@ -27,16 +27,14 @@ schema.validate = req => {
 					node_order: sharedSch.id, 
 					node_type: sharedSch.name, 
 					ipobj_g: sharedSch.id, 
-					ipobj: sharedSch.id,
-					openvpn: sharedSch.id.optional() // Necessary for management of CRT prefixes in groups.
+					ipobj: sharedSch.id
 				});
 			}
 			else if (req.url === '/ipobj/group/delfrom') {
 				schema = schema.append({ 
 					obj_type: sharedSch.id, 
 					ipobj_g: sharedSch.id, 
-					ipobj: sharedSch.id,
-					openvpn: sharedSch.id.optional() // Necessary for management of CRT prefixes in groups.
+					ipobj: sharedSch.id
 				});
 			}
 		} else return reject(new Error('Request method not accepted'));
