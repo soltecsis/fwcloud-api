@@ -31,7 +31,7 @@ openvpnPrefixModel.createPrefix = req => {
 
 
 // Modify a CRT Prefix container.
-openvpnPrefixModel.modifyCrtPrefix = req => {
+openvpnPrefixModel.modifyPrefix = req => {
 	return new Promise((resolve, reject) => {
     req.dbCon.query(`UPDATE openvpn_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
       if (error) return reject(error);
@@ -41,7 +41,7 @@ openvpnPrefixModel.modifyCrtPrefix = req => {
 };
 
 // Delete CRT Prefix container.
-openvpnPrefixModel.deleteCrtPrefix = req => {
+openvpnPrefixModel.deletePrefix = req => {
 	return new Promise((resolve, reject) => {
     req.dbCon.query(`DELETE from openvpn_prefix WHERE id=${req.body.prefix}`, (error, result) => {
       if (error) return reject(error);
