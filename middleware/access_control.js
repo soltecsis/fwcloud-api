@@ -69,7 +69,7 @@ accessCtrl.check = async(req, res, next) => {
 
 		// Check access to the CRT prefix indicated in req.body.prefix.
 		if (req.body.prefix) {
-			if (!(await checkCRTPrefixAccess(req)))
+			if (!(await checkPrefixAccess(req)))
 				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT Prefix ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
 		}
 
@@ -173,11 +173,23 @@ function checkOpenVPNAccess(req) {
 
 
 // Check access to CRT Prefix.
-function checkCRTPrefixAccess(req) {
+function checkPrefixAccess(req) {
 	return new Promise((resolve, reject) => {
-		let sql = `select CA.fwcloud,P.* FROM prefix P
-			INNER JOIN ca CA ON CA.id=P.ca
-			WHERE P.id=${req.body.prefix}`;
+		let sql;
+		const item = req.url.split('/');
+    if (item[1]==='vpn' && item[2]==='pki' && item[3]==='prefix') {
+			sql = `select CA.fwcloud,P.* FROM ca_prefix P
+				INNER JOIN ca CA ON CA.id=P.ca
+				WHERE P.id=${req.body.prefix}`;
+		}
+    else if (item[1]==='vpn' && item[2]==='openvpn' && item[3]==='prefix') {
+			sql = `select FW.fwcloud,P.* FROM openvpn_prefix P
+				INNER JOIN openvpn VPN ON VPN.id=P.openvpn
+				INNER JOIN firewall FW ON FW.id=VPN.firewall
+				WHERE P.id=${req.body.prefix}`;
+		}
+		else resolve(false);
+
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
@@ -185,7 +197,7 @@ function checkCRTPrefixAccess(req) {
 			// We have already verified that the user has access to the fwcloud indicated in req.body.fwcloud.
 			if (result.length!==1 || req.body.fwcloud!==result[0].fwcloud) return resolve(false);
 
-			// Store the crt info for use in the API call processing.
+			// Store the prefix info for use in the API call processing.
 			req.prefix = result[0];
 
 			resolve(true);

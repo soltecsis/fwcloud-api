@@ -2,7 +2,6 @@
 var pkiPrefixModel = {};
 
 const fwcTreeModel = require('../../../models/tree/tree');
-const policyPrefixModel = require('../../../models/policy/prefix');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 
 // Validate new prefix container.
@@ -63,7 +62,6 @@ pkiPrefixModel.fillPrefixNodeCA = (dbCon,fwcloud,ca,name,parent,node) => {
   });
 };
 
-
 // Apply CRT prefix to tree node.
 pkiPrefixModel.applyCrtPrefixes = (req,ca) => {
 	return new Promise(async (resolve, reject) => {
@@ -93,7 +91,6 @@ pkiPrefixModel.applyCrtPrefixes = (req,ca) => {
     } catch(error) { return reject(error) }
   });
 };
-
 
 // Add new prefix container.
 pkiPrefixModel.createCrtPrefix = req => {
@@ -130,55 +127,6 @@ pkiPrefixModel.deleteCrtPrefix = req => {
   });
 };
 
-pkiPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
-	return new Promise(async (resolve, reject) => {
-    try {
-      let search = {};
-      search.result = false;
-      search.restrictions ={};
-
-      /* Verify that the CRT prefix is not used in any
-          - Rule (table policy_r__prefix)
-          - IPOBJ Group
-      */
-      search.restrictions.PrefixInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
-      search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
-      
-      for (let key in search.restrictions) {
-        if (search.restrictions[key].length > 0) {
-          search.result = true;
-          break;
-        }
-      }
-      resolve(search);
-    } catch(error) { reject(error) }
-  });
-};
-
-pkiPrefixModel.addPrefixToGroup = req => {
-	return new Promise((resolve, reject) => {
-    const data = {
-      prefix: req.body.ipobj,
-      openvpn: req.body.openvpn,
-      ipobj_g: req.body.ipobj_g
-    }
-		req.dbCon.query(`INSERT INTO ca_prefix__ipobj_g SET ?`,data,(error, result) => {
-      if (error) return reject(error);
-      resolve(result.insertId);
-    });
-  });
-};
-
-pkiPrefixModel.removePrefixFromGroup = req => {
-	return new Promise((resolve, reject) => {
-    let sql = `DELETE FROM ca_prefix__ipobj_g 
-      WHERE prefix=${req.body.ipobj} AND openvpn=${req.body.openvpn} AND ipobj_g=${req.body.ipobj_g}`;		
-		req.dbCon.query(sql,(error, result) => {
-      if (error) return reject(error);
-      resolve(result.insertId);
-    });
-  });
-};
 
 //Export the object
 module.exports = pkiPrefixModel;

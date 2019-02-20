@@ -102,6 +102,32 @@ openvpnPrefixModel.searchCRTInOpenvpn = (dbCon,fwcloud,crt) => {
   });
 };
 
+openvpnPrefixModel.addPrefixToGroup = req => {
+	return new Promise((resolve, reject) => {
+    const data = {
+      prefix: req.body.ipobj,
+      openvpn: req.body.openvpn,
+      ipobj_g: req.body.ipobj_g
+    }
+		req.dbCon.query(`INSERT INTO openvpn_prefix__ipobj_g SET ?`,data,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
+openvpnPrefixModel.removePrefixFromGroup = req => {
+	return new Promise((resolve, reject) => {
+    let sql = `DELETE FROM openvpn_prefix__ipobj_g 
+      WHERE prefix=${req.body.ipobj} AND openvpn=${req.body.openvpn} AND ipobj_g=${req.body.ipobj_g}`;		
+		req.dbCon.query(sql,(error, result) => {
+      if (error) return reject(error);
+      resolve(result.insertId);
+    });
+  });
+};
+
+
 
 //Export the object
 module.exports = openvpnPrefixModel;

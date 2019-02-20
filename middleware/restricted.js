@@ -9,6 +9,7 @@ var interfaceModel = require('../models/interface/interface');
 var ipobjModel = require('../models/ipobj/ipobj');
 var ipobj_gModel = require('../models/ipobj/group');
 const pkiCAModel = require('../models/vpn/pki/ca');
+const pkiPrefixModel = require('../models/vpn/pki/prefix');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../models/vpn/openvpn/openvpn');
 
@@ -122,15 +123,6 @@ restrictedCheck.crt = async (req, res, next) => {
 	try {
 		let data = await pkiCAModel.searchCRTInOpenvpn(req.dbCon,req.body.fwcloud,req.body.crt);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
-};
-
-restrictedCheck.ca_prefix = async (req, res, next) => {
-	try {
-		let data = await pkiCAModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix,req.body.openvpn);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		
 		next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
