@@ -54,6 +54,17 @@ router.put('/', async (req, res) => {
 
 
 /**
+ * Get OpenVPN configuration metadata.
+ */
+router.put('/info/get', async(req, res) => {
+	try {
+		const data = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
+		api_resp.getJson(data, api_resp.ACR_OK, 'OpenVPN sever prefix info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN server prefix info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
  * Delete a CRT prefix container.
  */
 router.put('/del', 

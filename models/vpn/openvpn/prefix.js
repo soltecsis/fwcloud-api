@@ -61,16 +61,22 @@ openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
   });
 };
 
-// Get information about a prefix used in an OpenVPN configuration.
-openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, rule, prefix, openvpn) => {
+// Get information about a prefix used in an OpenVPN server configuration.
+openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select CA.fwcloud,P.*,PRE.name,CA.cn from policy_r__openvpn_prefix_openvpn P
-      inner join prefix PRE on PRE.id=P.prefix 
-      inner join ca CA on CA.id=PRE.ca
-      where CA.fwcloud=${fwcloud} and P.rule=${rule} and P.prefix=${prefix} and P.openvpn=${openvpn}`;
-    dbCon.query(sql, (error, result) => {
+    let sql = `select P.*,F.name as fw_name,F.cluster,CRT.cn from openvpn_prefix P
+      IF(fw.cluster is null,fw.cluster,(select name from cluster where id=fw.cluster)) as cluster_name 
+      inner join openvpn VPN on VPN.id=P.openvpn
+      inner join crt CRT on CRT.id=VPN.crt
+      inner join firewal FW on FW.id=VPN.firewall 
+      where FW.fwcloud=${fwcloud} P.prefix=${prefix}`;
+    dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
-      resolve(result);
+
+      try {
+        result[0].openvpn_clients = await openvpnModel.getOpenvpnClients(dbCon,result[0].id);
+      } catch(error) { return reject(error) }
+      resolve(result[0]);
     });
   });
 };
