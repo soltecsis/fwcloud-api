@@ -9,12 +9,12 @@ schema.validate = req => {
     var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
     if (req.method==="POST") {
-      schema = schema.append({ ca: sharedSch.id, name: sharedSch.name });
+      schema = schema.append({ ca: sharedSch.id, name: sharedSch.cn });
     }
     else if (req.method==="PUT") {
       schema = schema.append({ prefix: sharedSch.id });
       if (req.url==='/vpn/pki/prefix')
-        schema = schema.append({ name: sharedSch.name });
+        schema = schema.append({ name: sharedSch.cn });
     } else return reject(new Error('Request method not accepted'));
 
     try {

@@ -61,21 +61,40 @@ openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
   });
 };
 
+// Get all prefixes for the indicated CA.
+openvpnPrefixModel.getOpenvpnClientesUnderPrefix = (dbCon,openvpn,prefix_name) => {
+	return new Promise((resolve, reject) => {
+    let sql = `select VPN.id from openvpn VPN 
+      inner join crt CRT on CRT.id=VPN.crt
+      where openvpn=${openvpn} and CRT.cn LIKE '${prefix_name}%'`;
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
+
 // Get information about a prefix used in an OpenVPN server configuration.
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select P.*,F.name as fw_name,F.cluster,CRT.cn from openvpn_prefix P
-      IF(fw.cluster is null,fw.cluster,(select name from cluster where id=fw.cluster)) as cluster_name 
+    let sql = `select P.*,FW.name as fw_name,CRT.cn,CA.cn as ca_cn,
+      IF(FW.cluster is null,FW.cluster,(select name from cluster where id=FW.cluster)) as cluster_name 
+      from openvpn_prefix P
       inner join openvpn VPN on VPN.id=P.openvpn
       inner join crt CRT on CRT.id=VPN.crt
-      inner join firewal FW on FW.id=VPN.firewall 
-      where FW.fwcloud=${fwcloud} P.prefix=${prefix}`;
+      inner join ca CA on CA.id=CRT.ca
+      inner join firewall FW on FW.id=VPN.firewall 
+      where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
+      result[0].openvpn_clients = [];
       try {
-        result[0].openvpn_clients = await openvpnModel.getOpenvpnClients(dbCon,result[0].id);
+        let openvpn_clients = await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(dbCon,result[0].openvpn,result[0].name);
+        for(let openvpn_client of openvpn_clients)
+          result[0].openvpn_clients.push((await openvpnModel.getOpenvpnInfo(dbCon,fwcloud,openvpn_client.id,1))[0]);
       } catch(error) { return reject(error) }
+      
       resolve(result[0]);
     });
   });
