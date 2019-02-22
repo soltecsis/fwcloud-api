@@ -129,9 +129,9 @@ policyOpenvpnModel.getConfigsUnderOpenvpnPrefix = (dbCon,openvpn_server_id,prefi
 policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
-		var sql = `select P.rule,P.prefix,P.openvpn,PRE.name from policy_r__openvpn_prefix P
-			inner join prefix PRE on PRE.id=P.prefix
-			inner join openvpn VPN on VPN.openvpn=P.openvpn
+		var sql = `select P.rule,P.prefix,PRE.openvpn,PRE.name from policy_r__openvpn_prefix P
+			inner join openvpn_prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 			inner join crt CRT on CRT.id=VPN.crt
 			inner join ca CA on CA.id=CRT.ca
 			where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
@@ -156,9 +156,9 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
-		var sql = `select P.prefix,P.openvpn,PRE.name from openvpn_prefix__ipobj_g P
-			inner join prefix PRE on PRE.id=P.prefix
-			inner join openvpn VPN on VPN.openvpn=P.openvpn
+		var sql = `select P.prefix,PRE.openvpn,PRE.name from openvpn_prefix__ipobj_g P
+			inner join openvpn_prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 			inner join crt CRT on CRT.id=VPN.crt
 			inner join ca CA on CA.id=CRT.ca
 			where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;

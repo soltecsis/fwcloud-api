@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
 		// Apply the new CRT prefix container.
 		await pkiPrefixModel.applyCrtPrefixes(req,req.body.ca);
 
-		api_resp.getJson(id, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson({insertId: id}, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 

@@ -31,7 +31,7 @@ router.post('/', async(req, res) => {
 		// Apply prefixes to the newly created certificate.
 		await pkiPrefixModel.applyCrtPrefixes(req,req.body.ca);
 
-		api_resp.getJson(id, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson({insertId: id}, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
