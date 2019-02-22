@@ -95,7 +95,7 @@ openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
           result[0].openvpn_clients.push((await openvpnModel.getOpenvpnInfo(dbCon,fwcloud,openvpn_client.id,1))[0]);
       } catch(error) { return reject(error) }
       
-      resolve(result[0]);
+      resolve(result);
     });
   });
 };

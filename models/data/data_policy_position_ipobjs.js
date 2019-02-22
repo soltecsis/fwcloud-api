@@ -55,7 +55,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.name = data.cn;
 		this.address = data.address;
 	} else if (type === 'PRE') {
-		this.type = 400;
+		this.type = 401;
 		this.id = data.prefix;
 		this.openvpn = data.openvpn;
 	}

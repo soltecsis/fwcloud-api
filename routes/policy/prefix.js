@@ -16,13 +16,13 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		if (!(await policyPrefixModel.checkPrefixPosition(req.dbCon,req.body.position)))
-			throw (new Error('CRT prefix not allowed in this position'));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN server prefix name already exists in this rule position', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		await policyPrefixModel.insertInRule(req);
 		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR inserting CRT prefix in rule', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR inserting OpenVPN server prefix in rule', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
