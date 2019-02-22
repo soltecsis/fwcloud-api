@@ -113,5 +113,31 @@ policyPrefixModel.searchPrefixInGroup = (dbCon,fwcloud,prefix) => {
 };
 
 
+policyPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let search = {};
+      search.result = false;
+      search.restrictions ={};
+
+      /* Verify that the OpenVPN server prefix is not used in any
+          - Rule (table policy_r__openvpn_prefix)
+          - IPBOJ group.
+      */
+      search.restrictions.OpenvpnInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
+      search.restrictions.OpenvpnInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
+      
+      for (let key in search.restrictions) {
+        if (search.restrictions[key].length > 0) {
+          search.result = true;
+          break;
+        }
+      }
+      resolve(search);
+    } catch(error) { reject(error) }
+  });
+};
+
+
 //Export the object
 module.exports = policyPrefixModel;

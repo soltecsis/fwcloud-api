@@ -13,7 +13,7 @@ schema.validate = req => {
     }
     else if (req.method==="PUT") {
       schema = schema.append({ prefix: sharedSch.id });
-      if (req.url==='/vpn/pki/prefix')
+      if (req.url==='/vpn/openvpn/prefix')
         schema = schema.append({ name: sharedSch.cn });
     } else return reject(new Error('Request method not accepted'));
 

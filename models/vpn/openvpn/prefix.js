@@ -5,9 +5,9 @@ const fwcTreeModel = require('../../../models/tree/tree');
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
 
 // Validate new prefix container.
-openvpnPrefixModel.existsPrefix = req => {
+openvpnPrefixModel.existsPrefix = (dbCon,openvpn,name) => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query(`SELECT id FROM openvpn_prefix WHERE openvpn=${req.body.openvpn} AND name=${req.dbCon.escape(req.body.name)}`, (error, result) => {
+    dbCon.query(`SELECT id FROM openvpn_prefix WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`, (error, result) => {
       if (error) return reject(error);
       resolve((result.length>0) ? true : false);
     });
@@ -24,7 +24,7 @@ openvpnPrefixModel.createPrefix = req => {
     };
     req.dbCon.query(`INSERT INTO openvpn_prefix SET ?`, prefixData, (error, result) => {
       if (error) return reject(error);
-      resolve();
+      resolve(result.insertId);
     });
   });
 };

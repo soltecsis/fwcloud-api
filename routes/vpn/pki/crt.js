@@ -20,10 +20,10 @@ const restrictedCheck = require('../../../middleware/restricted');
 router.post('/', async(req, res) => {
 	try {
 		// Check that the tree node in which we will create a new node for the CA is a valid node for it.
-		if (req.tree_node.node_type !== 'CA' && req.tree_node.node_type !== 'FD') throw (new Error('Bad node tree type'));
+		if (req.tree_node.node_type !== 'CA' && req.tree_node.node_type !== 'PRE') throw (new Error('Bad node tree type'));
 
 		// Add the new certificate to the database.
-		await pkiCRTModel.createCRT(req);
+		const id = await pkiCRTModel.createCRT(req);
 
 		req.caId = req.body.ca;
 		await pkiCAModel.runEasyRsaCmd(req, (req.body.type===1) ? 'build-client-full' : 'build-server-full');
@@ -31,7 +31,7 @@ router.post('/', async(req, res) => {
 		// Apply prefixes to the newly created certificate.
 		await pkiPrefixModel.applyCrtPrefixes(req,req.body.ca);
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		api_resp.getJson(id, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 

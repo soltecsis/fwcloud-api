@@ -102,7 +102,7 @@ pkiPrefixModel.createCrtPrefix = req => {
     };
     req.dbCon.query(`INSERT INTO ca_prefix SET ?`, prefixData, (error, result) => {
       if (error) return reject(error);
-      resolve();
+      resolve(result.insertId);
     });
   });
 };
