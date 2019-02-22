@@ -182,7 +182,7 @@ function checkPrefixAccess(req) {
 				INNER JOIN ca CA ON CA.id=P.ca
 				WHERE P.id=${req.body.prefix}`;
 		}
-    else if (item[1]==='vpn' && item[2]==='openvpn' && item[3]==='prefix') {
+    else if ((item[1]==='vpn' && item[2]==='openvpn' && item[3]==='prefix') || (item[1]==='policy' && item[2]==='prefix')) {
 			sql = `select FW.fwcloud,P.* FROM openvpn_prefix P
 				INNER JOIN openvpn VPN ON VPN.id=P.openvpn
 				INNER JOIN firewall FW ON FW.id=VPN.firewall
