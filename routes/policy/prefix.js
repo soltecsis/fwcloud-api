@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
+const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 const policyPrefixModel = require('../../models/policy/prefix');
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
@@ -15,6 +16,9 @@ router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 		if (!(await policyPrefixModel.checkPrefixPosition(req.dbCon,req.body.position)))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN server prefix name already exists in this rule position', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
@@ -30,18 +34,21 @@ async (req, res) => {
 router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	try { 
-		// Invalidate compilation of the affected rules.
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
-
+	try {
+		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		
 		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.openvpn,req.body.new_position))
-			throw(new Error('OpenVPN configuration already exists in destination rule position'));
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN server prefix name already exists in this rule position', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		// Get content of positions.
 		const content = await policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
 		if (content.content1!=='O' || content.content2!=='O')
 			throw(new Error('Invalid positions content'));
+
+		// Invalidate compilation of the affected rules.
+		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
+		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
 
 		// Move OpenVPN configuration object to the new position.
 		const data = await policyPrefixModel.moveToNewPosition(req);

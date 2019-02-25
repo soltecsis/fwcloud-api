@@ -222,12 +222,13 @@ async(req, res) => {
 		// Delete the configuration from de database.
 		await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
-		// Delete the openvpn node from the tree.
-		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, (req.openvpn.type === 1 ? 311 : 312));
 		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
 			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
 			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
-			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
+			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.openvpn.openvpn);
+		} else { // Server OpenVPN configuration.
+			// Delete the openvpn node from the tree.
+			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
 		}
 	
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));

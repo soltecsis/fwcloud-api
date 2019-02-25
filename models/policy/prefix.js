@@ -123,8 +123,8 @@ policyPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
           - Rule (table policy_r__openvpn_prefix)
           - IPBOJ group.
       */
-      search.restrictions.OpenvpnInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
-      search.restrictions.OpenvpnInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
+      search.restrictions.PrefixInRule = await policyPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
+      search.restrictions.PrefixInGroup = await policyPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {

@@ -7,7 +7,10 @@ var objModel = 'OpenvpnPrefix';
 
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const policyPrefixModel = require('../../../models/policy/prefix');
+const policy_cModel = require('../../../models/policy/policy_c');
 const restrictedCheck = require('../../../middleware/restricted');
+const Policy_r__ipobjModel = require('../../../models/policy/policy_r__ipobj');
+
 
 /**
  * Create a new crt prefix container.
@@ -42,6 +45,28 @@ router.put('/', async (req, res) => {
 		req.body.ca = req.prefix.ca;
 		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.prefix.openvpn,req.body.name))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
+		// If we modify a prefix used in a rule or group, and the new prefix name has no openvpn clients, then don't allow it.
+		const search = await policyPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		if (search.result && (await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
+			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to leave empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
+		// Invalidate the compilation of the rules that use this prefix.
+		for(let rule of search.restrictions.PrefixInRule) {
+			await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
+			await FirewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
+		}
+
+		// Invalidate the compilation of the rules that use a group that use this prefix.
+		for(let group of search.restrictions.PrefixInGroup) {
+			// Search rules that use the group.
+			const groupInRules = await Policy_r__ipobjModel.searchGroupInRule(group.group,req.body.fwcloud);
+			// Invalidate rules compilation.
+			for(let rule of groupInRules) {
+				await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
+				await FirewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
+			}
+		}
 
    	// Modify the prefix name.
 		await openvpnPrefixModel.modifyPrefix(req);

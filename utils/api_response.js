@@ -154,6 +154,14 @@ respModel.ACR_CONFIRM_ASK = 'ACR_CONFIRM_ASK';
 respModel.ACR_ALREADY_EXISTS = 'ACR_ALREADY_EXISTS';
 
 /**
+ * Property ACR_EMPTY_CONTAINER
+ *
+ * @property ACR_EMPTY_CONTAINER
+ * @type String
+ */
+respModel.ACR_EMPTY_CONTAINER = 'ACR_EMPTY_CONTAINER';
+
+/**
  * Property Logger to manage App logs
  *
  * @attribute logger
