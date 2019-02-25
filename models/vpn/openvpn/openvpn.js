@@ -199,14 +199,17 @@ openvpnModel.getOpenvpnClients = (dbCon, openvpn) => {
 // Get OpenVPN client configuration data.
 openvpnModel.getOpenvpnInfo = (dbCon, fwcloud, openvpn, type) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select F.fwcloud,VPN.*,CRT.cn,CA.cn as CA_cn,O.address ${(type===2)?`,O.netmask`:``}, ${(type===1)?`311`:`312`} as type
+    let sql = `select VPN.*, FW.fwcloud, FW.name as firewall_name, CRT.cn, CA.cn as CA_cn, O.address,
+      IF(FW.cluster is null,FW.cluster,(select name from cluster where id=FW.cluster)) as cluster_name,
+      IF(VPN.openvpn is null,VPN.openvpn,(select crt.cn from openvpn inner join crt on crt.id=openvpn.crt where openvpn.id=VPN.openvpn)) as openvpn_server_cn
+      ${(type===2)?`,O.netmask`:``}, ${(type===1)?`311`:`312`} as type
       from openvpn VPN 
       inner join crt CRT on CRT.id=VPN.crt
       inner join ca CA on CA.id=CRT.ca
-      inner join firewall F on F.id=VPN.firewall
+      inner join firewall FW on FW.id=VPN.firewall
       inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
       inner join ipobj O on O.id=OPT.ipobj
-      where F.fwcloud=${fwcloud} and VPN.id=${openvpn} ${(type===1)?`and OPT.name='ifconfig-push'`:``}`;
+      where FW.fwcloud=${fwcloud} and VPN.id=${openvpn} ${(type===1)?`and OPT.name='ifconfig-push'`:``}`;
     dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve(result);

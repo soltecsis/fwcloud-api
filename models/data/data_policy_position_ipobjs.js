@@ -57,6 +57,9 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 	} else if (type === 'PRE') {
 		this.type = 401;
 		this.openvpn = data.openvpn;
+		this.firewall_name = data.firewall_name;
+		this.cluster_name = data.cluster_name;
+		this.cn = data.cn;
 	}
 };
 

@@ -77,7 +77,7 @@ openvpnPrefixModel.getOpenvpnClientesUnderPrefix = (dbCon,openvpn,prefix_name) =
 // Get information about a prefix used in an OpenVPN server configuration.
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select P.*,FW.name as fw_name,CRT.cn,CA.cn as ca_cn,
+    let sql = `select P.*,FW.name as firewall_name,CRT.cn,CA.cn as ca_cn,
       IF(FW.cluster is null,FW.cluster,(select name from cluster where id=FW.cluster)) as cluster_name 
       from openvpn_prefix P
       inner join openvpn VPN on VPN.id=P.openvpn
