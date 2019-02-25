@@ -240,6 +240,17 @@ router.put('/restricted',
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 
+	router.put('/where', async (req, res) => {
+		try {
+			const data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
+			if (data && data.result)
+				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	});
+	
+
 /**
  * Install OpenVPN configuration in the destination firewall.
  */

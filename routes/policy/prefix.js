@@ -8,7 +8,7 @@ const policy_cModel = require('../../models/policy/policy_c');
 const api_resp = require('../../utils/api_response');
 const utilsModel = require("../../utils/utils.js");
 
-var objModel = "OpenVPN in Rule";
+var objModel = "OpenVPN server prefix in Rule";
 
 /* Create New policy_r__openvpn_prefix */
 router.post("/",

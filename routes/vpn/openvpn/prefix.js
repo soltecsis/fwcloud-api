@@ -6,6 +6,7 @@ var api_resp = require('../../../utils/api_response');
 var objModel = 'OpenvpnPrefix';
 
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
+const policyPrefixModel = require('../../../models/policy/prefix');
 const restrictedCheck = require('../../../middleware/restricted');
 
 /**
@@ -87,5 +88,15 @@ router.put('/restricted',
 	restrictedCheck.openvpn_prefix,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
+
+router.put('/where', async (req, res) => {
+	try {
+		const data = await policyPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		if (data && data.result)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
 module.exports = router;
