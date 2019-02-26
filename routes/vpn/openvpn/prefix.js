@@ -9,7 +9,7 @@ const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const policyPrefixModel = require('../../../models/policy/prefix');
 const policy_cModel = require('../../../models/policy/policy_c');
 const restrictedCheck = require('../../../middleware/restricted');
-const Policy_r__ipobjModel = require('../../../models/policy/policy_r__ipobj');
+const firewallModel = require('../../../models/firewall/firewall');
 
 
 /**
@@ -54,18 +54,15 @@ router.put('/', async (req, res) => {
 		// Invalidate the compilation of the rules that use this prefix.
 		for(let rule of search.restrictions.PrefixInRule) {
 			await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
-			await FirewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
+			await firewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
 		}
 
 		// Invalidate the compilation of the rules that use a group that use this prefix.
 		for(let group of search.restrictions.PrefixInGroup) {
-			// Search rules that use the group.
-			const groupInRules = await Policy_r__ipobjModel.searchGroupInRule(group.group,req.body.fwcloud);
-			// Invalidate rules compilation.
-			for(let rule of groupInRules) {
-				await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
-				await FirewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
-			}
+			// Invalidate the policy compilation of all affected rules.
+			await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, group.id);
+			// Update affected firewalls status.
+			await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, group.id, -1, -1, "|3");
 		}
 
    	// Modify the prefix name.

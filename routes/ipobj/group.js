@@ -13,7 +13,7 @@ var router = express.Router();
 var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-const pkiCAModel = require('../../models/vpn/pki/ca');
+const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var Ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
@@ -94,37 +94,15 @@ router.put('/get', async (req, res) => {
 
 /* Remove ipobj_g */
 router.put("/del",
-	restrictedCheck.ipobj_group,
-	(req, res) => {
-		var fwcloud = req.body.fwcloud;
-		var id = req.body.id;
-		var type = req.body.type;
-
-		Ipobj_gModel.deleteIpobj_g(fwcloud, id, type, async (error, data) => {
-			if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted") {
-				if (data.msg === "deleted") {
-					//DELETE FROM TREE
-					try {
-						await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
-						await fwcTreeModel.deleteObjFromTree(fwcloud, id, type);
-						api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-					} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) } 
-				} else if (data.msg === "Restricted") {
-					api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'GROUP restricted to delete', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else {
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'GROUP not found', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			} else {
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	});
+restrictedCheck.ipobj_group,
+async (req, res) => {
+	try {
+		await Ipobj_gModel.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
+		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) } 
+});
 
 /* Search where is used Group  */
 router.put('/where', async (req, res) => {
@@ -161,9 +139,13 @@ router.put("/addto", async (req, res) => {
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		}
-		else if (req.body.node_type === 'PRE') {
-			await pkiCAModel.addPrefixToGroup(req);
-			dataIpobj = await pkiCAModel.getPrefixInfo(req.dbCon,req.body.fwcloud,req.body.ipobj);
+		else if (req.body.node_type === 'PRO') {
+			// Don't allow adding an empty OpenVPN server prefix to a group.
+			if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+				return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to add empty prefixes to a group', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
+			await openvpnPrefixModel.addPrefixToGroup(req);
+			dataIpobj = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
 			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('OpenVPN prefix not found'))
 			dataIpobj[0].type = 401;
 		}
@@ -174,7 +156,6 @@ router.put("/addto", async (req, res) => {
 		}
 
 		//INSERT IN TREE
-		//(dbCon,fwcloud,name,id_parent,node_type,id_obj,obj_type)
 		await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,dataIpobj[0].name,req.body.node_parent,req.body.node_type,req.body.ipobj,dataIpobj[0].type);
 
 		// Invalidate the policy compilation of all affected rules.
@@ -182,6 +163,7 @@ router.put("/addto", async (req, res) => {
 
 		// Update affected firewalls status.
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -193,7 +175,7 @@ router.put("/delfrom", async (req, res) => {
 		if (req.body.obj_type===311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
 		else if (req.body.obj_type===401) // OpenVPN PREFIX
-			await pkiCAModel.removePrefixFromGroup(req);
+			await openvpnPrefixModel.removePrefixFromGroup(req);
 		else 
 			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 		

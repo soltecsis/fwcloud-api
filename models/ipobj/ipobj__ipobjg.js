@@ -10,11 +10,6 @@ module.exports = ipobj__ipobjgModel;
 var tableModel = "ipobj__ipobjg";
 
 
-var logger = require('log4js').getLogger("app");
-
-
-
-
 //Add new ipobj__ipobjg
 ipobj__ipobjgModel.insertIpobj__ipobjg = req => {
 	return new Promise((resolve, reject) => {
@@ -43,19 +38,20 @@ ipobj__ipobjgModel.deleteIpobj__ipobjg = (dbCon, ipobj_g, ipobj) => {
 };
 
 //Remove ipobj__ipobjg with id to remove
-ipobj__ipobjgModel.deleteIpobj__ipobjgAll = function (ipobj_g, callback) {
-	db.get(function (error, connection) {
+ipobj__ipobjgModel.deleteIpobj__ipobjgAll = (dbCon, ipobj_g) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DELETE FROM ${tableModel} WHERE ipobj_g=${ipobj_g}`, (error, result) => {
+			if (error) return reject(error);
+			
+			dbCon.query(`DELETE FROM openvpn_prefix__ipobj_g WHERE ipobj_g=${ipobj_g}`, (error, result) => {
+				if (error) return reject(error);
 
-		var sql = 'DELETE FROM ' + tableModel + ' WHERE ipobj_g = ' + connection.escape(ipobj_g);
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, {"result": true, "msg": "deleted"});
-			}
+				dbCon.query(`DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${ipobj_g}`, (error, result) => {
+					if (error) return reject(error);
+					resolve();
+				});
+			});
 		});
-
-
 	});
 };
 

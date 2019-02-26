@@ -2,7 +2,7 @@ var db = require('../../db.js');
 //var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var IpobjModel = require('./ipobj');
 var openvpnModel = require('../../models/vpn/openvpn/openvpn');
-var pkiPrefixModel = require('../vpn/pki/prefix');
+var openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -68,7 +68,7 @@ ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 				inner join crt C on C.id=O.crt
 				where R.ipobj_g=${gid}
 
-				UNION select id, name, 'PRE' as type from openvpn_prefix O
+				UNION select id, name, 'PRO' as type from openvpn_prefix O
 				inner join openvpn_prefix__ipobj_g R on R.prefix=O.id
 				where R.ipobj_g=${gid}
 				order by name`;
@@ -82,8 +82,8 @@ ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 							ipobj_node = new ipobj_Data((await IpobjModel.getIpobj(dbCon,fwcloud,obj.id))[0]);
 						else if (obj.type === 'VPN')
 							ipobj_node = new ipobj_Data((await openvpnModel.getOpenvpnInfo(dbCon,fwcloud,obj.id,1))[0]);
-						else if (obj.type === 'PRE')
-							ipobj_node = new ipobj_Data((await pkiPrefixModel.getPrefixInfo(dbCon,fwcloud,obj.id))[0]);
+						else if (obj.type === 'PRO')
+							ipobj_node = new ipobj_Data((await openvpnPrefixModel.getPrefixOpenvpnInfo(dbCon,fwcloud,obj.id))[0]);
 						group_data.ipobjs.push(ipobj_node);
 					} catch(error) { return reject(error) }
 				}
@@ -254,44 +254,18 @@ ipobj_gModel.updateIpobj_g = (req, ipobj_gData) => {
 	});
 };
 //Remove ipobj_g with id to remove
-ipobj_gModel.deleteIpobj_g = function (fwcloud, id, type, callback) {
+ipobj_gModel.deleteIpobj_g = (dbCon, fwcloud, id, type) => {
+	return new Promise(async (resolve, reject) => {
+		// FIRST DELETE CHILDREN
+		try {
+			await Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(dbCon, id);
+		} catch(error) { return reject(error) }
 
-		db.get(function (error, connection) {
-				if (error)
-						callback(error, null);
-				var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-				connection.query(sqlExists, function (error, row) {
-						//If exists Id from ipobj_g to remove
-						if (row) {
-								db.get(function (error, connection) {
-										//DELETE CHILDREN
-										Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(id, function (error, data) {
-												if (error) {
-														logger.error(error);
-														callback(error, null);
-												} else {
-														var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND type=' + connection.escape(type);
-														connection.query(sql, function (error, result) {
-																if (error) {
-																		logger.error(error);
-																		callback(error, null);
-																} else {
-																		if (result.affectedRows > 0)
-																				callback(null, {"result": true, "msg": "deleted"});
-																		else
-																				callback(null, {"result": false, "msg": "notExist"});
-																}
-														});
-												}
-										});
-								});
-						} else {
-								callback(null, {"result": false, "msg": "notExist"});
-						}
-				});
+		dbCon.query(`DELETE FROM ${tableModel} WHERE id=${id} AND fwcloud=${fwcloud} AND type=${type}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
-
-
+	});
 };
 //Export the object
 module.exports = ipobj_gModel;

@@ -77,8 +77,8 @@ openvpnPrefixModel.getOpenvpnClientesUnderPrefix = (dbCon,openvpn,prefix_name) =
 // Get information about a prefix used in an OpenVPN server configuration.
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select P.*,FW.name as firewall_name,CRT.cn,CA.cn as ca_cn,
-      IF(FW.cluster is null,FW.cluster,(select name from cluster where id=FW.cluster)) as cluster_name 
+    let sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
+      IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
       from openvpn_prefix P
       inner join openvpn VPN on VPN.id=P.openvpn
       inner join crt CRT on CRT.id=VPN.crt
@@ -160,7 +160,6 @@ openvpnPrefixModel.addPrefixToGroup = req => {
 	return new Promise((resolve, reject) => {
     const data = {
       prefix: req.body.ipobj,
-      openvpn: req.body.openvpn,
       ipobj_g: req.body.ipobj_g
     }
 		req.dbCon.query(`INSERT INTO openvpn_prefix__ipobj_g SET ?`,data,(error, result) => {
@@ -173,14 +172,13 @@ openvpnPrefixModel.addPrefixToGroup = req => {
 openvpnPrefixModel.removePrefixFromGroup = req => {
 	return new Promise((resolve, reject) => {
     let sql = `DELETE FROM openvpn_prefix__ipobj_g 
-      WHERE prefix=${req.body.ipobj} AND openvpn=${req.body.openvpn} AND ipobj_g=${req.body.ipobj_g}`;		
+      WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;		
 		req.dbCon.query(sql,(error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
     });
   });
 };
-
 
 
 //Export the object
