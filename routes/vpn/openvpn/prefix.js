@@ -60,16 +60,16 @@ router.put('/', async (req, res) => {
 		// Invalidate the compilation of the rules that use a group that use this prefix.
 		for(let group of search.restrictions.PrefixInGroup) {
 			// Invalidate the policy compilation of all affected rules.
-			await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, group.id);
+			await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, group.ipobj_g);
 			// Update affected firewalls status.
-			await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, group.id, -1, -1, "|3");
+			await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, group.ipobj_g, -1, -1, "|3");
 		}
 
    	// Modify the prefix name.
 		await openvpnPrefixModel.modifyPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);
+		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'UPDATE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
