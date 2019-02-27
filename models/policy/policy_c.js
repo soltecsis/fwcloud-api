@@ -6,6 +6,7 @@ var policy_cModel = {};
 var tableModel = "policy_c";
 var tableModelPolicy = "policy_r";
 
+const firewallModel = require('../../models/firewall/firewall');
 
 var logger = require('log4js').getLogger("app");
 
@@ -182,6 +183,34 @@ policy_cModel.deleteFullGroupPolicy_c = (dbCon, group) => {
 			if (error) return reject(error);
 			resolve();
 		});
+	});
+};
+
+//Remove policy compilation for the indicated rules.
+policy_cModel.deleteRulesCompilation = (fwcloud, rules) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			for (let rule of rules) {
+				await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
+				await firewallModel.updateFirewallStatus(fwcloud,rule.firewall,"|3");
+			}
+			resolve();
+		} catch(error) { reject(error) }
+	});
+};
+
+//Remove policy compilation for rules that use the indicated group.
+policy_cModel.deleteGroupsInRulesCompilation = (dbCon, fwcloud, groups) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			for(let group of groups) {
+				// Invalidate the policy compilation of all affected rules.
+				await policy_cModel.deleteFullGroupPolicy_c(dbCon, group.ipobj_g);
+				// Update affected firewalls status.
+				await firewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, group.ipobj_g, -1, -1, "|3");
+			}
+			resolve();
+		} catch(error) { reject(error) }
 	});
 };
 

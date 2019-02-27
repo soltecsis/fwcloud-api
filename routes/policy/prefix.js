@@ -6,6 +6,7 @@ const policyPrefixModel = require('../../models/policy/prefix');
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
+const firewallModel = require('../../models/firewall/firewall');
 const api_resp = require('../../utils/api_response');
 const utilsModel = require("../../utils/utils.js");
 
@@ -49,6 +50,7 @@ async (req, res) => {
 		// Invalidate compilation of the affected rules.
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
+		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		// Move OpenVPN configuration object to the new position.
 		const data = await policyPrefixModel.moveToNewPosition(req);

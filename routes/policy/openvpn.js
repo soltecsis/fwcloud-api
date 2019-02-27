@@ -5,6 +5,7 @@ const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
+const firewallModel = require('../../models/firewall/firewall');
 const api_resp = require('../../utils/api_response');
 const utilsModel = require("../../utils/utils.js");
 
@@ -38,6 +39,7 @@ async (req, res) => {
 		// Invalidate compilation of the affected rules.
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
 		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
+		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await policyOpenvpnModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
 			throw(new Error('OpenVPN configuration already exists in destination rule position'));

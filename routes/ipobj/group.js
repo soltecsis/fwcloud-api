@@ -160,7 +160,6 @@ router.put("/addto", async (req, res) => {
 
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
-
 		// Update affected firewalls status.
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
@@ -183,8 +182,8 @@ router.put("/delfrom", async (req, res) => {
 
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
-
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");
+
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

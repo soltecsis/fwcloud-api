@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
 
 
 /**
- * Modify a CRT prefix container.
+ * Modify an OpenVPN client prefix container.
  */
 router.put('/', async (req, res) => {
 	try {
@@ -52,18 +52,10 @@ router.put('/', async (req, res) => {
 			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to leave empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		// Invalidate the compilation of the rules that use this prefix.
-		for(let rule of search.restrictions.PrefixInRule) {
-			await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
-			await firewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3");
-		}
+		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,search.restrictions.PrefixInRule);
 
 		// Invalidate the compilation of the rules that use a group that use this prefix.
-		for(let group of search.restrictions.PrefixInGroup) {
-			// Invalidate the policy compilation of all affected rules.
-			await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, group.ipobj_g);
-			// Update affected firewalls status.
-			await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, group.ipobj_g, -1, -1, "|3");
-		}
+		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,search.restrictions.PrefixInGroup);
 
    	// Modify the prefix name.
 		await openvpnPrefixModel.modifyPrefix(req);

@@ -57,7 +57,6 @@ const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
-const firewallModel = require('../../../models/firewall/firewall');
 
 
 /**
@@ -109,6 +108,14 @@ router.post('/', async(req, res) => {
 			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		}
 
+		// Invalidate the compilation of the rules that use a prefix that use this new OpenVPN configuration.
+		let rules = await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,cfg);
+		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+
+		// Invalidate the compilation of the rules that use a group that contains a prefix that use this new OpenVPN configuration.
+		let groups = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,cfg);
+		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
+
 		api_resp.getJson({ insertId: cfg, TreeinsertId: nodeId }, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -119,6 +126,18 @@ router.post('/', async(req, res) => {
  */
 router.put('/', async(req, res) => {
 	try {
+		// Invalidate the compilation of the rules using this OpenVPN configuration.
+		let rules = await policyOpenvpnModel.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		// Invalidate the compilation of the rules that use a prefix that use this OpenVPN configuration.
+		rules = rules.concat(await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn));
+		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+		
+		// Invalidate the compilation of the rules that use a group that use this OpenVPN configuration.
+		let groups = await policyOpenvpnModel.searchOpenvpnInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		// Invalidate the compilation of the rules that use a group that contains a prefix that use this OpenVPN configuration.
+		groups = groups.concat(await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn));
+		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon, req.body.fwcloud,groups);
+
 		await openvpnModel.updateCfg(req);
 
 		// First remove all the current configuration options.
@@ -135,22 +154,6 @@ router.put('/', async(req, res) => {
 		// Update the status flag for the OpenVPN configuration.
 		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
-		// Invalidate the compilation of the rules using this OpenVPN configuration.
-		const rules = await policyOpenvpnModel.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		for (let rule of rules) {
-			await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
-			await firewallModel.updateFirewallStatus(req.body.fwcloud,rule.firewall,"|3")
-		}
-		
-		// Invalidate the compilation of the rules that use a group that use this prefix.
-		const groups = await policyOpenvpnModel.searchOpenvpnInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		for(let group of groups) {
-			// Invalidate the policy compilation of all affected rules.
-			await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, group.ipobj_g);
-			// Update affected firewalls status.
-			await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, group.ipobj_g, -1, -1, "|3");
-		}
-		
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
@@ -224,6 +227,14 @@ router.put('/del',
 restrictedCheck.openvpn,
 async(req, res) => {
 	try {
+		// Invalidate the compilation of the rules that use a prefix that use this removed OpenVPN configuration.
+		let rules = await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+
+		// Invalidate the compilation of the rules that use a group that contains a prefix that use this removed OpenVPN configuration.
+		let groups = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
+		
 		// Delete the configuration from de database.
 		await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
@@ -235,7 +246,7 @@ async(req, res) => {
 			// Delete the openvpn node from the tree.
 			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
 		}
-	
+
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

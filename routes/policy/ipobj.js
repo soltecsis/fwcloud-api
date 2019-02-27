@@ -4,6 +4,7 @@ const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
+const firewallModel = require('../../models/firewall/firewall');
 const api_resp = require('../../utils/api_response');
 
 var logger = require('log4js').getLogger("app");
@@ -91,6 +92,7 @@ async (req, res) => {
 		// Invalidate compilation of the affected rules.
 		await policy_cModel.deletePolicy_c(firewall, rule);
 		await policy_cModel.deletePolicy_c(firewall, new_rule);
+		await firewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));

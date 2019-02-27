@@ -179,6 +179,39 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) =>
 		});
 	});
 };
-	
+
+policyOpenvpnModel.searchOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+		// Get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
+		var sql = `select R.firewall,P.rule from policy_r__openvpn_prefix P
+			inner join openvpn_prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
+			inner join crt CRT on CRT.id=VPN.crt
+			inner join policy_r R on R.id=P.rule
+			inner join firewall F on F.id=R.firewall
+			where F.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+		dbCon.query(sql, async (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
+		});
+	});
+};
+
+policyOpenvpnModel.searchOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
+	return new Promise((resolve, reject) => {
+		// Get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
+		var sql = `select P.ipobj_g from openvpn_prefix__ipobj_g P
+			inner join openvpn_prefix PRE on PRE.id=P.prefix
+			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
+			inner join crt CRT on CRT.id=VPN.crt
+			inner join ca CA on CA.id=CRT.ca
+			where CA.fwcloud=${fwcloud} and VPN.id=${openvpn} and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%')`;
+		dbCon.query(sql, async (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
+		});
+	});
+};
+
 //Export the object
 module.exports = policyOpenvpnModel;
