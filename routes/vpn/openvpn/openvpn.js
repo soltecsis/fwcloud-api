@@ -57,6 +57,7 @@ const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
+const socketTools = require('../../../utils/socket');
 
 
 /**
@@ -281,12 +282,12 @@ router.put('/install', async(req, res) => {
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
-			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1);
+			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw(new Error('Empty install dir or install name'));
-			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2);
+			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2,true);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -343,7 +344,7 @@ router.put('/ccdsync', async(req, res) => {
 
 		for (let client of clients) {
 			let cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
-			await openvpnModel.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1);
+			await openvpnModel.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1,false);
 
 			// Update the status flag for the OpenVPN configuration.
 			await openvpnModel.updateOpenvpnStatus(req.dbCon,client.id,"&~1");

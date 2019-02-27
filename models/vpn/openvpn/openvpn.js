@@ -301,7 +301,7 @@ openvpnModel.dumpCfg = (dbCon,fwcloud,openvpn) => {
 };
 
 
-openvpnModel.installCfg = (req,cfg,dir,name,type) => {
+openvpnModel.installCfg = (req,cfg,dir,name,type,close_socketio) => {
 	return new Promise(async (resolve, reject) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
@@ -332,7 +332,7 @@ openvpnModel.installCfg = (req,cfg,dir,name,type) => {
       else // Server certificate.
 			  await sshTools.runCommand(fwData.SSHconn,`sudo chmod 600 ${dir}/${name}`);
 
-      socketTools.msgEnd();
+      if (close_socketio) socketTools.msgEnd();
       resolve();
     } catch(error) { 
       socketTools.msg(`ERROR: ${error}\n`);
@@ -381,14 +381,13 @@ openvpnModel.ccdCompare = (req,dir,clients) => {
             break;
           }
         }
-        if (!found) notFoundList += `${file} `;
+        if (!found) notFoundList += `${file}\n`;
       }
 
       if (notFoundList) {
-        socketTools.msg(`<strong><font color="orange">
-            WARNING: Found files in the directory '${dir}' without OpenVPN config file:\n
-            ${notFoundList}
-          </font></strong>\n\n`);
+        socketTools.msg(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config file:
+          ${notFoundList}
+          </font></strong>`);
       }
       else
         socketTools.msg(`Ok.\n\n`);
