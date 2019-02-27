@@ -1,5 +1,7 @@
 const fwcTreeModel = require('./tree');
 const socketTools = require('../../utils/socket');
+const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+
 
 //create object
 var fwc_treeRepairModel = {};
@@ -376,6 +378,16 @@ fwc_treeRepairModel.checkNonStdIPObj = (node_id,node_type,ipobj_type) => {
 
       try {
         for (let ipobj of ipobjs) {
+          // Verify that the ipobj is not part of an OpenVPN configuration.
+          if (ipobj_type === 5) { // ADDRESS
+            if (await openvpnModel.searchIPObjInOpenvpnOpt(dbCon,ipobj.id,'ifconfig-push'))
+              continue;
+          }
+          else if (ipobj_type === 7) { // NETWORK
+            if (await openvpnModel.searchIPObjInOpenvpnOpt(dbCon,ipobj.id,'server'))
+              continue;
+          }
+
           await fwcTreeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj_type);
         }
         resolve();

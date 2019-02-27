@@ -549,6 +549,16 @@ openvpnModel.searchOpenvpnChilds = (dbCon,fwcloud,openvpn) => {
 };
 
 
+openvpnModel.searchIPObjInOpenvpnOpt = (dbCon,ipobj,name) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`select openvpn from openvpn_opt where ipobj=${ipobj} and name=${dbCon.escape(name)}`, (error, result) => {
+      if (error) return reject(error);      
+      resolve((result.length<1) ? false : true);
+    });
+  });
+};
+
+
 // Get the ID of all OpenVPN configurations who's status field is not zero.
 openvpnModel.getOpenvpnStatusNotZero = (req, data) => {
 	return new Promise((resolve, reject) => {
