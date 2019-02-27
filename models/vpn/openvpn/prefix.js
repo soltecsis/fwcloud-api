@@ -78,7 +78,7 @@ openvpnPrefixModel.getOpenvpnClientesUnderPrefix = (dbCon,openvpn,prefix_name) =
 openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
 	return new Promise((resolve, reject) => {
     let sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
-      IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
+      IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name, 401 as type
       from openvpn_prefix P
       inner join openvpn VPN on VPN.id=P.openvpn
       inner join crt CRT on CRT.id=VPN.crt

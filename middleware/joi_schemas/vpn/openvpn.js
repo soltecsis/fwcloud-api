@@ -152,7 +152,7 @@ schema.validate = req => {
 			else if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 
 					|| req.url==='/vpn/openvpn/ip/get' || req.url==='/vpn/openvpn/ipobj/get'
 					|| req.url==='/vpn/openvpn/restricted' || req.url==='/vpn/openvpn/file/get'
-					|| req.url==='/vpn/openvpn/info/get') {
+					|| req.url==='/vpn/openvpn/info/get' || req.url==='/vpn/openvpn/where') {
 				schema = schema.append({ openvpn: sharedSch.id });
 			}
 		} else return reject(new Error('Request method not accepted'));
