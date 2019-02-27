@@ -385,7 +385,7 @@ openvpnModel.ccdCompare = (req,dir,clients) => {
       }
 
       if (notFoundList) {
-        socketTools.msg(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config file:
+        socketTools.msg(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config:
           ${notFoundList}
           </font></strong>`);
       }
