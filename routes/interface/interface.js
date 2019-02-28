@@ -197,7 +197,6 @@ router.put('/fw/del',
 restrictedCheck.interface,
 (req, res) => {
 	//Id from interface to remove
-	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var idfirewall = req.body.firewall;
 	var idInterface = req.body.id;
@@ -249,7 +248,6 @@ router.put("/host/del",
 	});
 
 
-//FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
 /* Search where is used interface  */
 router.put('/where', async (req, res) => {
 	try {
@@ -259,36 +257,6 @@ router.put('/where', async (req, res) => {
 		else
 			api_resp.getJson(null, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-});
-
-
-
-
-//FALTA CONTROL de ACCESO a FIREWALLS de FWCLOUD
-/* Search where is used interface in RULES  */
-router.put('/where/rules', (req, res) => {
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-	var type = req.body.type;
-
-	InterfaceModel.searchInterfaceInrulesPro(id, type, fwcloud, '')
-		.then(data => {
-			if (data && data.result) {
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		})
-		.catch(error => {
-			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-
-		});
 });
 
 

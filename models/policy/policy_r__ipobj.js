@@ -1042,7 +1042,7 @@ policy_r__ipobjModel.searchInterfaceInRule = (interface, type, fwcloud, firewall
 				'inner join policy_type PT on PT.id=R.type ' +
 				'inner join fwcloud C on C.id=F.fwcloud ' +
 				' WHERE O.interface=' +interface+ ' AND I.interface_type=' + type + ' AND C.id=' + fwcloud;
-			if (diff_firewall !== '')
+			if (diff_firewall)
 				sql += ' AND  F.id<>' + connection.escape(diff_firewall);
 			else if (firewall !== null) {
 				sql += ' AND F.id=' + connection.escape(firewall);

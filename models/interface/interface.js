@@ -324,8 +324,8 @@ interfaceModel.searchInterface = (id, type, fwcloud) => {
 			if (data && data.length > 0) {
 				try {
 					search.restrictions = {};
-					search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null); //SEARCH INTERFACE IN RULES I POSITIONS
-					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null); //SEARCH INTERFACE IN RULES O POSITIONS
+					search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null, null); //SEARCH INTERFACE IN RULES I POSITIONS
+					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, null); //SEARCH INTERFACE IN RULES O POSITIONS
 					search.restrictions.InterfaceInFirewalls = await interfaceModel.searchInterfaceInFirewalls(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 					search.restrictions.InterfaceInHosts = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 		
