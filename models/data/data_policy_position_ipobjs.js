@@ -66,6 +66,7 @@ function policy_position_ipobjs_data(data, order, negate, type) {
 		this.cluster_id = data.cluster_id;
 		this.cluster_name = data.cluster_name;
 		this.cn = data.cn;
+		this.installDate = data.installed_at;
 	}
 };
 

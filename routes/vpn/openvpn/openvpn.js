@@ -293,6 +293,9 @@ router.put('/install', async(req, res) => {
 		// Update the status flag for the OpenVPN configuration.
 		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
 
+		// Update the install date.
+		await openvpnModel.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
+
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });

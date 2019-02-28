@@ -412,6 +412,15 @@ openvpnModel.updateOpenvpnStatus = (dbCon, openvpn, status_action) => {
   });
 };
 
+openvpnModel.updateOpenvpnInstallDate = (dbCon, openvpn) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error, result) => {
+      if (error) return reject(error);
+      resolve({"result": true});
+    });
+  });
+};
+
 openvpnModel.updateOpenvpnStatusIPOBJ = (req, ipobj, status_action) => {
 	return new Promise((resolve, reject) => {
     var sql=`UPDATE openvpn VPN
