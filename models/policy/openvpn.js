@@ -90,12 +90,14 @@ policyOpenvpnModel.duplicatePolicy_r__openvpn = (dbCon, rule, new_rule) => {
 
 policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, R.id as rule_id, P.position as rule_position_id,
+		var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, R.id as rule_id, 
+			O.position as rule_position_id, P.name rule_position_name,
 			FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
-		  from policy_r__openvpn P
-			inner join policy_r R on R.id=P.rule
+		  from policy_r__openvpn O
+			inner join policy_r R on R.id=O.rule
 			inner join firewall FW on FW.id=R.firewall
-			where FW.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
+			inner join policy_position P on P.id=O.position
+			where FW.fwcloud=${fwcloud} and O.openvpn=${openvpn}`;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
 			resolve(rows);
