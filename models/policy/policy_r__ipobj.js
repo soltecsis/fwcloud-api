@@ -1005,18 +1005,19 @@ policy_r__ipobjModel.searchIpobjInRule = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name, ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__ipobj O ' +
-				'INNER JOIN policy_r R on R.id=O.rule  ' +
-				'INNER JOIN firewall F on F.id=R.firewall  ' +
-				'INNER JOIN  ipobj I on I.id=O.ipobj ' +
-				'inner join ipobj_type T on T.id=I.type ' +
-				'inner join policy_position P on P.id=O.position ' +
-				'inner join policy_type PT on PT.id=R.type ' +
-				'inner join fwcloud C on C.id=F.fwcloud ' +
-				' WHERE O.ipobj=' + ipobj + ' AND I.type=' + type + ' AND F.fwcloud=' + fwcloud;
+			var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				INNER JOIN  ipobj I on I.id=O.ipobj
+				inner join ipobj_type T on T.id=I.type
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE O.ipobj=${ipobj} AND I.type=${type} AND F.fwcloud=${fwcloud}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
@@ -1061,20 +1062,21 @@ policy_r__ipobjModel.searchIpobjGroupInRule = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,   ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__ipobj O ' +
-				'INNER JOIN policy_r R on R.id=O.rule  ' +
-				'INNER JOIN firewall F on F.id=R.firewall  ' +
-				'INNER JOIN ipobj__ipobjg G ON G.ipobj_g=O.ipobj_g ' +
-				'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
-				'INNER JOIN  ipobj I on I.id=G.ipobj ' +
-				'inner join ipobj_type T on T.id=GR.type ' +
-				'inner join policy_position P on P.id=O.position ' +
-				'inner join policy_type PT on PT.id=R.type ' +
-				'inner join fwcloud C on C.id=F.fwcloud ' +
-				' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND F.fwcloud=' + fwcloud;
+			var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				INNER JOIN ipobj__ipobjg G ON G.ipobj_g=O.ipobj_g
+				INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g
+				INNER JOIN  ipobj I on I.id=G.ipobj
+				inner join ipobj_type T on T.id=GR.type
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE I.id=${ipobj} AND I.type=${type} AND F.fwcloud=${fwcloud}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
@@ -1088,20 +1090,21 @@ policy_r__ipobjModel.searchIpobjInGroupInRule = (idg, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment  ' +
-				'FROM policy_r__ipobj O  ' +
-				'INNER JOIN policy_r R on R.id=O.rule   ' +
-				'INNER JOIN firewall F on F.id=R.firewall   ' +
-				'INNER JOIN  ipobj I on I.id=O.ipobj ' +
-				'INNER JOIN ipobj__ipobjg G ON G.ipobj=I.id ' +
-				'INNER JOIN ipobj_g GR ON GR.id= G.ipobj_g ' +
-				'inner join ipobj_type T on T.id=I.type  ' +
-				'inner join policy_position P on P.id=O.position  ' +
-				'inner join policy_type PT on PT.id=R.type  ' +
-				'inner join fwcloud C on C.id=F.fwcloud  ' +
-				' WHERE GR.id=' + idg + ' AND F.fwcloud=' + fwcloud;
+			var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				INNER JOIN  ipobj I on I.id=O.ipobj
+				INNER JOIN ipobj__ipobjg G ON G.ipobj=I.id
+				INNER JOIN ipobj_g GR ON GR.id= G.ipobj_g
+				inner join ipobj_type T on T.id=I.type
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE GR.id=${idg} AND F.fwcloud=${fwcloud}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
@@ -1115,18 +1118,19 @@ policy_r__ipobjModel.searchGroupInRule = (idg, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment  ' +
-				'FROM policy_r__ipobj O  ' +
-				'INNER JOIN policy_r R on R.id=O.rule   ' +
-				'INNER JOIN firewall F on F.id=R.firewall   ' +
-				'INNER JOIN ipobj_g GR ON GR.id=O.ipobj_g  ' +
-				'inner join ipobj_type T on T.id=GR.type  ' +
-				'inner join policy_position P on P.id=O.position  ' +
-				'inner join policy_type PT on PT.id=R.type  ' +
-				'inner join fwcloud C on C.id=F.fwcloud  ' +
-				' WHERE GR.id=' + idg + ' AND F.fwcloud=' + fwcloud;
+			var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				INNER JOIN ipobj_g GR ON GR.id=O.ipobj_g
+				inner join ipobj_type T on T.id=GR.type
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE GR.id=${idg} AND F.fwcloud=${fwcloud}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
