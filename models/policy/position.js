@@ -185,7 +185,7 @@ policyPositionModel.getRulePositionData = position => {
 				UNION SELECT rule, openvpn, 0, 0, position, position_order, negate, "VPN" as type 
 				FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
 
-				UNION SELECT rule, prefix, 0, 0, position, position_order, negate, "PRE" as type 
+				UNION SELECT rule, prefix, 0, 0, position, position_order, negate, "PRO" as type 
 				FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
 				ORDER BY position_order`;
 			
@@ -212,7 +212,7 @@ policyPositionModel.getRulePositionData = position => {
 						}
 						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
 							data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
-						else if (item.ipobj>0 && item.type==='PRE') // OPENVPN PREFIXES
+						else if (item.ipobj>0 && item.type==='PRO') // OPENVPN PREFIXES
 							data = await openvpnPrefixModel.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
 						else data = null;
 

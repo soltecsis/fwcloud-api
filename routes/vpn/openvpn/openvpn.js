@@ -301,9 +301,7 @@ router.put('/install', async(req, res) => {
 /**
  * Uninstall OpenVPN configuration from the destination firewall.
  */
-router.put('/uninstall', 
-restrictedCheck.openvpn,
-async(req, res) => {
+router.put('/uninstall', async(req, res) => {
 	try {
 		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
 
@@ -318,6 +316,9 @@ async(req, res) => {
 				throw(new Error('Empty install dir or install name'));
 			await openvpnModel.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name);
 		}
+
+		// Update the status flag for the OpenVPN configuration.
+		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
 		api_resp.getJson(null, api_resp.ACR_OK, 'OpenVPN configuration uninstalled', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error uninstalling OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

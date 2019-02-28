@@ -309,9 +309,9 @@ openvpnModel.installCfg = (req,cfg,dir,name,type,close_socketio) => {
       const fwData = await firewallModel.getFirewallSSH(req);
 
       if (type===1) // Client certificarte
-        socketTools.msg(`Uploading CCD configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
+        socketTools.msg(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`);
       else // Server certificate.
-        socketTools.msg(`Uploading OpenVPN configuration file '${name}' to: (${fwData.SSHconn.host})\n`);
+        socketTools.msg(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`);
       await sshTools.uploadStringToFile(fwData.SSHconn,cfg,name);
 
       const existsDir = await sshTools.runCommand(fwData.SSHconn,`if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
@@ -349,7 +349,7 @@ openvpnModel.uninstallCfg = (req,dir,name) => {
     try {
       const fwData = await firewallModel.getFirewallSSH(req);
 
-      socketTools.msg(`Removing OpenVPN configuration file '${name}' from: (${fwData.SSHconn.host})\n`);
+      socketTools.msg(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`);
       await sshTools.runCommand(fwData.SSHconn,`sudo rm -f "${dir}/${name}"`);
 
       socketTools.msgEnd();
