@@ -1030,22 +1030,23 @@ policy_r__ipobjModel.searchInterfaceInRule = (interface, type, fwcloud, firewall
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name, ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__ipobj O ' +
-				'INNER JOIN policy_r R on R.id=O.rule  ' +
-				'INNER JOIN firewall F on F.id=R.firewall  ' +
-				'INNER JOIN  interface I on I.id=O.interface ' +
-				'inner join ipobj_type T on T.id=I.interface_type ' +
-				'inner join policy_position P on P.id=O.position ' +
-				'inner join policy_type PT on PT.id=R.type ' +
-				'inner join fwcloud C on C.id=F.fwcloud ' +
-				' WHERE O.interface=' +interface+ ' AND I.interface_type=' + type + ' AND C.id=' + fwcloud;
+			var sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				INNER JOIN  interface I on I.id=O.interface
+				inner join ipobj_type T on T.id=I.interface_type
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE O.interface=${interface} AND I.interface_type=${type} AND C.id=${fwcloud}`;
 			if (diff_firewall)
-				sql += ' AND  F.id<>' + connection.escape(diff_firewall);
+				sql += ` AND F.id<>${diff_firewall}`;
 			else if (firewall !== null) {
-				sql += ' AND F.id=' + connection.escape(firewall);
+				sql += ` AND F.id=${firewall}`;
 			}
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
