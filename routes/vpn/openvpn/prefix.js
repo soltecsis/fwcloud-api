@@ -6,10 +6,8 @@ var api_resp = require('../../../utils/api_response');
 var objModel = 'OpenvpnPrefix';
 
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
-const policyPrefixModel = require('../../../models/policy/prefix');
 const policy_cModel = require('../../../models/policy/policy_c');
 const restrictedCheck = require('../../../middleware/restricted');
-const firewallModel = require('../../../models/firewall/firewall');
 
 
 /**
@@ -47,7 +45,7 @@ router.put('/', async (req, res) => {
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		// If we modify a prefix used in a rule or group, and the new prefix name has no openvpn clients, then don't allow it.
-		const search = await policyPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const search = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (search.result && (await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
 			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to leave empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
@@ -105,7 +103,7 @@ router.put('/restricted',
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await policyPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else

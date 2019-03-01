@@ -181,6 +181,103 @@ openvpnPrefixModel.removePrefixFromGroup = req => {
 };
 
 
+
+openvpnPrefixModel.searchPrefixInRule = (dbCon,fwcloud,prefix) => {
+	return new Promise((resolve, reject) => {
+		var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, R.id as rule_id, R.type rule_type, 401 as obj_type_id,
+			PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
+			FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
+		 	from policy_r__openvpn_prefix O
+			inner join policy_r R on R.id=O.rule
+			inner join firewall FW on FW.id=R.firewall
+			inner join policy_position P on P.id=O.position
+			inner join policy_type PT on PT.id=R.type
+			where FW.fwcloud=${fwcloud} and O.prefix=${prefix}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
+
+openvpnPrefixModel.searchPrefixInGroup = (dbCon,fwcloud,prefix) => {
+	return new Promise((resolve, reject) => {
+		var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name from openvpn_prefix__ipobj_g P
+			inner join ipobj_g G on G.id=P.ipobj_g
+			where G.fwcloud=${fwcloud} and P.prefix=${prefix}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
+
+
+openvpnPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let search = {};
+      search.result = false;
+      search.restrictions ={};
+
+      /* Verify that the OpenVPN server prefix is not used in any
+          - Rule (table policy_r__openvpn_prefix)
+          - IPBOJ group.
+      */
+      search.restrictions.PrefixInRule = await openvpnPrefixModel.searchPrefixInRule(dbCon,fwcloud,prefix);
+      search.restrictions.PrefixInGroup = await openvpnPrefixModel.searchPrefixInGroup(dbCon,fwcloud,prefix); 
+      
+      for (let key in search.restrictions) {
+        if (search.restrictions[key].length > 0) {
+          search.result = true;
+          break;
+        }
+      }
+      resolve(search);
+    } catch(error) { reject(error) }
+  });
+};
+
+
+openvpnPrefixModel.searchPrefixInrulesOtherFirewall = req => {
+	return new Promise((resolve, reject) => {
+    // First get all firewalls prefixes for OpenVPN configurations.
+    let sql = `select P.id from openvpn_prefix P
+      inner join openvpn VPN on VPN.id=P.openvpn
+      where VPN.firewall=${req.body.firewall}`;
+
+    req.dbCon.query(sql, async (error, result) => {
+      if (error) return reject(error);
+
+      let answer = {};
+			answer.restrictions = {};
+			answer.restrictions.PrefixInRule = [];
+			answer.restrictions.PrefixInGroup = [];
+
+      try {
+        for (let prefix of result) {
+          const data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,prefix.id);
+          if (data.result) {
+            // OpenVPN prefix found in rules of other firewall.
+            if (data.restrictions.PrefixInRule.length > 0) {
+              for (let rule of data.restrictions.PrefixInRule) {
+                if (rule.firewall_id != req.body.firewall)
+                  answer.restrictions.PrefixInRule.push(prefix);
+              }
+            }
+            // OpenVPN prefix found in a group.
+            else if (data.restrictions.PrefixInGroup.length>0)
+              answer.restrictions.PrefixInGroup = answer.restrictions.PrefixInGroup.concat(data.restrictions.PrefixInGroup);
+          }
+        }
+      } catch(error) { reject(error) }
+
+      resolve(answer);
+    });
+  });
+};
+
+
 //Export the object
 module.exports = openvpnPrefixModel;
 

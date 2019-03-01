@@ -516,25 +516,30 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
     req.dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
+      let answer = {};
+			answer.restrictions = {};
+			answer.restrictions.OpenvpnInRule = [];
+			answer.restrictions.OpenvpnInGroup = [];
+
       try {
         for (let openvpn of result) {
           const data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,openvpn.id);
           if (data.result) {
-            // OpenVPN config IP object found in rules of other firewall.
-            if (data.restrictions.IpobjInRules.length > 0) {
-              for (let rule of data.restrictions.IpobjInRules) {
+            // OpenVPN config found in rules of other firewall.
+            if (data.restrictions.OpenvpnInRule.length > 0) {
+              for (let rule of data.restrictions.OpenvpnInRule) {
                 if (rule.firewall_id != req.body.firewall)
-                  return resolve(data);
+                  answer.restrictions.OpenvpnInRule.push(rule);
               }
             }
-            // OpenVPN config IP object found in a group.
-            else if (data.restrictions.IpobjInGroup.length>0)
-              return resolve(data);
+            // OpenVPN config found in a group.
+            else if (data.restrictions.OpenvpnInGroup.length>0)
+              answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
           }
         }
       } catch(error) { reject(error) }
 
-      resolve({result: false});
+      resolve(answer);
     });
   });
 };

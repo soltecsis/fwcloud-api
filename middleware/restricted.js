@@ -11,7 +11,7 @@ var ipobj_gModel = require('../models/ipobj/group');
 const pkiCAModel = require('../models/vpn/pki/ca');
 const pkiCRTModel = require('../models/vpn/pki/crt');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
-const policyPrefixModel = require('../models/policy/prefix');
+const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
@@ -129,7 +129,7 @@ restrictedCheck.crt = async (req, res, next) => {
 
 restrictedCheck.openvpn_prefix = async (req, res, next) => {
 	try {
-		let data = await policyPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		
 		next();

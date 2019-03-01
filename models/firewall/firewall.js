@@ -31,6 +31,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 var interfaceModel = require('../../models/interface/interface');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
@@ -1103,15 +1104,20 @@ firewallModel.searchFirewallRestrictions = req => {
 			if (req.body.cluster)
 				req.body.firewall = await firewallModel.getMasterFirewallId(req.body.fwcloud, req.body.cluster);
 
+      /* Verify that the nex firewall/cluster objets are not been used in any rule of other firewall:
+          - Interfaces and address of interface.
+          - OpenVPN configuration.
+					- OpenVPN prefix configuration.
+					
+				Verify too that these objects are not being used in any group.
+      */
 			const r1 = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
-		  // For each OpenVPN configuration of the firewall, check that its ipobjs are not being used in other firewalls.
 			const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
-		  // For each OpenVPN prefix of the firewall, check that its ipobjs are not being used in other firewalls.
-			//const r3 = await prefixModel.searchOpenvpnInrulesOtherFirewall(req);
+			const r3 = await openvpnPrefixModel.searchPrefixInrulesOtherFirewall(req);
 
 			if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
 			if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
-			//if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
+			if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {

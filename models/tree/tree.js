@@ -395,9 +395,9 @@ fwcTreeModel.createStdObjectsTree = (dbCon, node_id, node_type, ipobj_type) => {
 // Create nodes under group.
 fwcTreeModel.createGroupNodes = (dbCon, fwcloud, node_id, group) => {
 	return new Promise((resolve, reject) => {
-		let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg OG
-			INNER JOIN ipobj O ON O.id=OG.ipobj
-			WHERE OG.ipobj_g=${group}`;
+		let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg G
+			INNER JOIN ipobj O ON O.id=G.ipobj
+			WHERE G.ipobj_g=${group}`;
 		dbCon.query(sql, async (error, ipobjs) => {
 			if (error) return reject(error);
 
@@ -416,8 +416,33 @@ fwcTreeModel.createGroupNodes = (dbCon, fwcloud, node_id, group) => {
 					else if (ipobj.type===9) node_type='ONS';
 					await fwcTreeModel.newNode(dbCon,fwcloud,ipobj.name,node_id,node_type,ipobj.id,ipobj.type);
 				}
-				resolve();
 			} catch(error) { return reject(error) }
+
+			sql = `SELECT VPN.id,CRT.cn FROM openvpn__ipobj_g G
+				INNER JOIN openvpn VPN ON VPN.id=G.openvpn
+				INNER JOIN crt CRT ON CRT.id=VPN.crt
+				WHERE G.ipobj_g=${group}`;
+			dbCon.query(sql, async (error, openvpns) => {
+				if (error) return reject(error);
+
+				try {
+					for (let openvpn of openvpns)
+						await fwcTreeModel.newNode(dbCon,fwcloud,openvpn.cn,node_id,'OCL',openvpn.id,311);
+				} catch(error) { return reject(error) }
+ 
+				sql = `SELECT P.id,P.name FROM openvpn_prefix__ipobj_g G
+					INNER JOIN openvpn_prefix P ON P.id=G.prefix
+					WHERE G.ipobj_g=${group}`;
+				dbCon.query(sql, async (error, prefixes) => {
+					if (error) return reject(error);
+
+					try {
+						for (let prefix of prefixes)
+							await fwcTreeModel.newNode(dbCon,fwcloud,prefix.name,node_id,'PRO',prefix.id,401);
+					}	catch(error) { return reject(error) }
+ 					resolve();
+				});
+			});
 		});
 	});
 };
