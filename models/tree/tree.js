@@ -903,46 +903,25 @@ fwcTreeModel.updateFwc_Tree = function (nodeTreeData, callback) {
 };
 
 //Update NODE from FIREWALL UPDATE
-fwcTreeModel.updateFwc_Tree_Firewall = function (iduser, fwcloud, FwData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET name =' + connection.escape(FwData.name) +
-			' WHERE id_obj=' + FwData.id + ' AND fwcloud=' + fwcloud + ' AND node_type="FW"';
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(sql);
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0)
-					callback(null, {"result": true});
-				else
-					callback(null, {"result": false});
-			}
+fwcTreeModel.updateFwc_Tree_Firewall = (dbCon, fwcloud, FwData) => {
+	return new Promise((resolve, reject) => {
+		var sql = `UPDATE ${tableModel} SET name=${dbCon.escape(FwData.name)}
+			WHERE id_obj=${FwData.id} AND fwcloud=${fwcloud} AND node_type='FW'`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
 
 //Update NODE from CLUSTER UPDATE
-fwcTreeModel.updateFwc_Tree_Cluster = function (iduser, fwcloud, Data, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET ' +
-				' name=' + connection.escape(Data.name) +
-				' WHERE id_obj=' + Data.id + ' AND fwcloud=' + fwcloud + ' AND node_type="CL"';
-		connection.query(sql, function (error, result) {
-			if (error) {
-				logger.debug(sql);
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0)
-					callback(null, {"result": true});
-				else
-					callback(null, {"result": false});
-			}
+fwcTreeModel.updateFwc_Tree_Cluster = (dbCon, fwcloud, Data) => {
+	return new Promise((resolve, reject) => {
+		var sql = `UPDATE ${tableModel} SET name=${dbCon.escape(Data.name)}
+			WHERE id_obj=${Data.id} AND fwcloud=${fwcloud} AND node_type='CL'`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

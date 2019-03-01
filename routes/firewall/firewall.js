@@ -413,7 +413,7 @@ router.post('/', async(req, res) => {
  *         ]
  *       };
  */
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
 	//Save firewall data into objet    
 	var firewallData = {
 		id: req.body.firewall,
@@ -432,75 +432,30 @@ router.put('/', (req, res) => {
 		options: req.body.options
 	};
 
-	//logger.debug(firewallData);
-	Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall)
-		.then(() => FirewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3"))
-		.then(() => FirewallModel.checkBodyFirewall(firewallData, false))
-		.then(result => {
-			firewallData = result;
-			//encript username and password
-			utilsModel.encrypt(firewallData.install_user)
-				.then(data => {
-					logger.debug("SSHUSER: " + firewallData.install_user + "   ENCRYPTED: " + data);
-					firewallData.install_user = data;
-				})
-				.then(utilsModel.encrypt(firewallData.install_pass)
-					.then(data => {
-						logger.debug("SSPASS: " + firewallData.install_pass + "   ENCRYPTED: " + data);
-						firewallData.install_pass = data;
-					}))
-				.then(() => {
-					logger.debug("SAVING DATA NODE CLUSTER. SAVE USER_PASS:", firewallData.save_user_pass);
-					if (!firewallData.save_user_pass) {
-						firewallData.install_user = '';
-						firewallData.install_pass = '';
-					}
+	try {
+		await Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall);
+		await FirewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
+		let firewallData = FirewallModel.checkBodyFirewall(firewallData, false);
 
-					FirewallModel.updateFirewall(req.session.user_id, firewallData, function(error, data) {
-						//Saved ok
-						if (data && data.result) {
-							FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster)
-								.then(() => {
-									//////////////////////////////////
-									//UPDATE FIREWALL NODE STRUCTURE                                    
-									fwcTreemodel.updateFwc_Tree_Firewall(req.session.user_id, req.body.fwcloud, firewallData, function(error, data) {
-										if (error)
-											api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-												res.status(200).json(jsonResp);
-											});
-										else if (data && data.result)
-											api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-												res.status(200).json(jsonResp);
-											});
-										else
-											api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-												res.status(200).json(jsonResp);
-											});
-									});
-								})
-								.catch(error => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
-						} else {
-							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						}
-					});
+		//encript username and password
+		let data = await utilsModel.encrypt(firewallData.install_user)
+		firewallData.install_user = data;
+		data = utilsModel.encrypt(firewallData.install_pass);
+		firewallData.install_pass = data;
+		if (!firewallData.save_user_pass) {
+			firewallData.install_user = '';
+			firewallData.install_pass = '';
+		}
 
-				})
-				.catch(e => {
-					logger.debug(e);
-					api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				});
+		data = await FirewallModel.updateFirewall(req.dbCon, req.session.user_id, firewallData);
+		await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
 
-		})
-		.catch(e => {
-			logger.error("ERROR UPDATING FIREWALL: ", e);
-			api_resp.getJson(null, api_resp.ACR_ERROR, e, objModel, e, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		});
+		//////////////////////////////////
+		//UPDATE FIREWALL NODE STRUCTURE                                    
+		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
+
+		api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

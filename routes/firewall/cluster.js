@@ -361,11 +361,10 @@ router.put('/clone', (req, res) => {
 
 
 /* cluster update */
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
 	var fwcloud = req.body.fwcloud;
 
 	var JsonData = req.body;
-	logger.debug("JSON RECIBIDO: ", JsonData);
 	//new objet with Cluster data
 	var clusterData = {
 		id: JsonData.clusterData.cluster,
@@ -375,15 +374,13 @@ router.put('/', (req, res) => {
 		options: JsonData.clusterData.options
 	};
 
-	FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id)
-		.then(masterFirewallID => Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID))
-		.then(() => ClusterModel.updateCluster(fwcloud, clusterData))
-		.then(() => {
-			fwcTreemodel.updateFwc_Tree_Cluster(req.session.user_id, req.body.fwcloud, clusterData, (error, dataT) => {
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			});
-		})
-		.catch(error => api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+	try {
+		const masterFirewallID = await FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
+		await Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID);
+		await ClusterModel.updateCluster(fwcloud, clusterData);
+		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
+		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 // API call for check deleting restrictions.

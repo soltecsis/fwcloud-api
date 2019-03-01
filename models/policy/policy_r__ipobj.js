@@ -1063,7 +1063,7 @@ policy_r__ipobjModel.searchIpobjGroupInRule = (ipobj, type, fwcloud) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 			var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
-				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order, R.type rule_type, PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM policy_r__ipobj O

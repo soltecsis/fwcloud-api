@@ -440,38 +440,31 @@ firewallModel.insertFirewall = function (iduser, firewallData) {
  *       callback(error, null);
  *       
  */
-firewallModel.updateFirewall = function (iduser, firewallData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+firewallModel.updateFirewall = function (dbCon, iduser, firewallData) {
+	return new Promise((resolve, reject) => {
 		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(iduser) +
-				' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
-		logger.debug(sqlExists);
-		connection.query(sqlExists, function (error, row) {
+				' AND U.id_user=' + dbCon.escape(iduser) +
+				' WHERE T.id = ' + dbCon.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+		dbCon.query(sqlExists, (error, row) => {
+			if (error) return reject(error);
+
 			if (row && row.length > 0) {
-				var sql = 'UPDATE ' + tableModel + ' SET name=' + connection.escape(firewallData.name) + ', ' +
-						'comment=' + connection.escape(firewallData.comment) + ', ' +
-						'install_user=' + connection.escape(firewallData.install_user) + ', ' +
-						'install_pass=' + connection.escape(firewallData.install_pass) + ', ' +
-						'save_user_pass=' + connection.escape(firewallData.save_user_pass) + ', ' +
-						'install_interface=' + connection.escape(firewallData.install_interface) + ', ' +
-						'install_ipobj=' + connection.escape(firewallData.install_ipobj) + ', ' +
-						'install_port=' + connection.escape(firewallData.install_port) + ', ' +
-						'by_user=' + connection.escape(iduser) + ', ' +
-						'options=' + connection.escape(firewallData.options) +
+				var sql = 'UPDATE ' + tableModel + ' SET name=' + dbCon.escape(firewallData.name) + ', ' +
+						'comment=' + dbCon.escape(firewallData.comment) + ', ' +
+						'install_user=' + dbCon.escape(firewallData.install_user) + ', ' +
+						'install_pass=' + dbCon.escape(firewallData.install_pass) + ', ' +
+						'save_user_pass=' + dbCon.escape(firewallData.save_user_pass) + ', ' +
+						'install_interface=' + dbCon.escape(firewallData.install_interface) + ', ' +
+						'install_ipobj=' + dbCon.escape(firewallData.install_ipobj) + ', ' +
+						'install_port=' + dbCon.escape(firewallData.install_port) + ', ' +
+						'by_user=' + dbCon.escape(iduser) + ', ' +
+						'options=' + dbCon.escape(firewallData.options) +
 						' WHERE id=' + firewallData.id;
-				logger.debug(sql);
-				connection.query(sql, function (error, result) {
-					if (error) {
-						callback(error, null);
-					} else {
-						callback(null, {"result": true});
-					}
+				dbCon.query(sql, function (error, result) {
+					if (error) return reject(error);
+					resolve(true);
 				});
-			} else {
-				callback(null, {"result": false});
-			}
+			} else resolve(false);
 		});
 	});
 };
