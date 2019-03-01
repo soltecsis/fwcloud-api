@@ -150,78 +150,38 @@ clusterModel.updateCluster = (fwcloud, clusterData) => {
 };
 
 //Remove cluster with id to remove
-clusterModel.deleteCluster = function (id, iduser, fwcloud, callback) {
-	var restrictions = false;
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-
+clusterModel.deleteCluster = (dbCon, cluster, iduser, fwcloud) => {
+	return new Promise((resolve, reject) => {
 		//BUCLE de FIREWALL en CLUSTER
-		var sqlfw = ' SELECT ' + iduser + ' as iduser, F.* ' +
-				' FROM firewall F ' +
-				' WHERE F.cluster=' + connection.escape(id) + ' AND F.fwcloud=' + connection.escape(fwcloud) +
-				' ORDER BY fwmaster desc';
-		connection.query(sqlfw, async (error, rowfw) => {
-			for (let row of rowfw) {
-				//Promise.all(rowfw.map(FirewallModel.deleteFirewallPro))
-				if (!restrictions) {
-					await FirewallModel.deleteFirewallPro(row)
-							.then(data => {
-								if (data.result) {
-									logger.debug("<<<<<<<<<<<<<<< FIREWALL DELETED FROM CLUSTER >>>>>>>>>>>>>>>");
-									logger.debug("FIREWALL: ", row.id, " - ", row.name);
-									logger.debug("DATA: ", data);
+		let sql = `SELECT ${iduser} as iduser, F.* FROM firewall F
+			WHERE F.cluster=${cluster} AND F.fwcloud=${fwcloud} ORDER BY fwmaster desc`;
+		dbCon.query(sql, async (error, fws) => {
+			if (error) return reject(error);
 
-
-								} else {
-									logger.debug("DETECTED RESTRICTIONS in FIREWALL: ", row.id, " - ", row.name);
-									restrictions = true;
-									//callback(null, {"result": false});
-								}
-							})
-							.catch(e => {
-								restrictions = true;
-							});
+			try {
+				for (let fw of fws) {
+					await FirewallModel.deleteFirewallPro(fw);
 				}
-			}
-			;
+			} catch(error) { return reject(error) }
 
-			if (!restrictions) {
-				logger.debug("------>>>> DELETING CLUSTER: ", id);
-				var sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableModel + ' T ' +
-						' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
-						' WHERE T.id = ' + connection.escape(id);
-				logger.debug("SQL DELETE CLUSTER: ", sqlExists);
-				connection.query(sqlExists, function (error, row) {
+			sql = `SELECT T.* , A.id as idnode FROM ${tableModel} T
+				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.obj_type=100
+				WHERE T.id=${cluster}`;
+			dbCon.query(sql, async (error, cluster) => {
+				if (error) return reject(error);
+
+				try {
 					//If exists Id from cluster to remove
-					if (row.length > 0) {
-						var dataNode = {id: row[0].idnode, fwcloud: fwcloud, iduser: iduser};
-						fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
-								.then(resp => {
-									db.get(function (error, connection) {
-										var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-										connection.query(sql, function (error, result) {
-											if (error) {
-												callback(error, null);
-											} else {
-												callback(null, {"result": true});
-											}
-										});
-									});
-								});
-					} else {
-						callback(null, {"result": false});
-					}
+					if (cluster.length > 0)
+						await fwcTreemodel.deleteFwc_TreeFullNode({id: cluster[0].idnode, fwcloud: fwcloud, iduser: iduser});
+				} catch(error) { return reject(error) }
+
+				dbCon.query(`DELETE FROM ${tableModel} WHERE id=${cluster[0].id}`, (error, result) => {
+					if (error) return reject(error);
+					resolve();
 				});
-
-			} else {
-				logger.debug("------>>>> FOUND RESTRICTIONS, CLUSTER NOT DELETED: ", id);
-				callback(null, {"result": false});
-			}
-
+			});
 		});
-
-
 	});
 };
 

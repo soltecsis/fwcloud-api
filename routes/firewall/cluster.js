@@ -390,14 +390,12 @@ router.put("/restricted",
 
 /* Remove cluster */
 router.put("/del",
-	restrictedCheck.firewall,
-	(req, res) => {
-		ClusterModel.deleteCluster(req.body.cluster, req.session.user_id, req.body.fwcloud, (error, data) => {
-			if (data && data.result)
-				api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		});
-	});
+restrictedCheck.firewall,
+async (req, res) => {
+	try {
+		await ClusterModel.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
 module.exports = router;

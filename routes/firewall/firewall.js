@@ -341,7 +341,8 @@ router.post('/', async(req, res) => {
 
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') throw(new Error('Bad node tree type'));
+		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
+			throw(new Error('Bad node tree type'));
 
 		firewallData = await FirewallModel.checkBodyFirewall(firewallData, true);
 
@@ -435,12 +436,12 @@ router.put('/', async (req, res) => {
 	try {
 		await Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall);
 		await FirewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
-		let firewallData = FirewallModel.checkBodyFirewall(firewallData, false);
+		await FirewallModel.checkBodyFirewall(firewallData, false);
 
 		//encript username and password
 		let data = await utilsModel.encrypt(firewallData.install_user)
 		firewallData.install_user = data;
-		data = utilsModel.encrypt(firewallData.install_pass);
+		data = await utilsModel.encrypt(firewallData.install_pass);
 		firewallData.install_pass = data;
 		if (!firewallData.save_user_pass) {
 			firewallData.install_user = '';

@@ -790,9 +790,6 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
 firewallModel.deleteFirewallPro = fwdata => {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const data = await interfaceModel.searchInterfaceInrulesOtherFirewall(fwdata.fwcloud, fwdata.id);
-			if (data.result) return resolve({"result": false, "msg": "Restricted", "restrictions": data});
-
 			await firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
 			resolve({"result": true, "msg": "Deleted", "restrictions": ""});
 		} catch(error) { return reject(error) }
@@ -1080,7 +1077,7 @@ firewallModel.getFirewallOptions = function (fwcloud, fw) {
 	});
 }
 
-firewallModel.getMasterFirewallId = function (fwcloud, cluster) {
+firewallModel.getMasterFirewallId = (fwcloud, cluster) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -1103,12 +1100,18 @@ firewallModel.searchFirewallRestrictions = req => {
 			search.result = false;
 			search.restrictions = {};
 
+			if (req.body.cluster)
+				req.body.firewall = await firewallModel.getMasterFirewallId(req.body.fwcloud, req.body.cluster);
+
 			const r1 = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
 		  // For each OpenVPN configuration of the firewall, check that its ipobjs are not being used in other firewalls.
 			const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
+		  // For each OpenVPN prefix of the firewall, check that its ipobjs are not being used in other firewalls.
+			//const r3 = await prefixModel.searchOpenvpnInrulesOtherFirewall(req);
 
 			if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
 			if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
+			//if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
