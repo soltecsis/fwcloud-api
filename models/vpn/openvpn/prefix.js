@@ -239,7 +239,7 @@ openvpnPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
 };
 
 
-openvpnPrefixModel.searchPrefixInrulesOtherFirewall = req => {
+openvpnPrefixModel.searchPrefixUsageOutOfThisFirewall = req => {
 	return new Promise((resolve, reject) => {
     // First get all firewalls prefixes for OpenVPN configurations.
     let sql = `select P.id from openvpn_prefix P
@@ -262,11 +262,12 @@ openvpnPrefixModel.searchPrefixInrulesOtherFirewall = req => {
             if (data.restrictions.PrefixInRule.length > 0) {
               for (let rule of data.restrictions.PrefixInRule) {
                 if (rule.firewall_id != req.body.firewall)
-                  answer.restrictions.PrefixInRule.push(prefix);
+                  answer.restrictions.PrefixInRule.push(rule);
               }
             }
+            
             // OpenVPN prefix found in a group.
-            else if (data.restrictions.PrefixInGroup.length>0)
+            if (data.restrictions.PrefixInGroup.length>0)
               answer.restrictions.PrefixInGroup = answer.restrictions.PrefixInGroup.concat(data.restrictions.PrefixInGroup);
           }
         }

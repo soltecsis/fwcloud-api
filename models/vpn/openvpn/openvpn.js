@@ -508,7 +508,7 @@ openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
   });
 };
 
-openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
+openvpnModel.searchOpenvpnUsageOutOfThisFirewall = req => {
 	return new Promise((resolve, reject) => {
     // First get all firewalls OpenVPN configurations.
     let sql = 'select id from openvpn where firewall='+req.body.firewall;
@@ -532,8 +532,9 @@ openvpnModel.searchOpenvpnInrulesOtherFirewall = req => {
                   answer.restrictions.OpenvpnInRule.push(rule);
               }
             }
+            
             // OpenVPN config found in a group.
-            else if (data.restrictions.OpenvpnInGroup.length>0)
+            if (data.restrictions.OpenvpnInGroup.length>0)
               answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
           }
         }

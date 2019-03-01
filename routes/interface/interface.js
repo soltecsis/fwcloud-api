@@ -15,16 +15,15 @@ var logger = require('log4js').getLogger("app");
 
 
 /* Get all interfaces by firewall*/
-router.put('/fw/all/get',
-	(req, res) => {
-		InterfaceModel.getInterfaces(req.body.firewall, req.body.fwcloud, (error, data) => {
-			//If exists interface get data
-			if (data && data.length > 0)
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else //Get Error
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		});
-	});
+router.put('/fw/all/get', async (req, res) => {
+	try {
+		let data = await InterfaceModel.getInterfaces(req.dbCon, req.body.firewall, req.body.fwcloud);
+		if (data && data.length > 0)
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		else //Get Error
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
@@ -46,7 +45,7 @@ router.put('/fw/get', async (req, res) => {
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
 			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR', objModel, null, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

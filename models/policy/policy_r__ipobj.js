@@ -1294,6 +1294,7 @@ policy_r__ipobjModel.searchIpobjInterfaces = (ipobj, type, fwcloud) => {
 		});
 	});
 };
+
 //check if Exist IPOBJS under INTERFACES  IN RULES 
 policy_r__ipobjModel.searchIpobjInterfacesInRules = (interface, type, fwcloud, firewall, diff_firewall) => {
 	return new Promise((resolve, reject) => {
@@ -1317,6 +1318,26 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = (interface, type, fwcloud, f
 				sql = sql + ' AND F.id<>' + connection.escape(diff_firewall);
 			else if (firewall !== null)
 				sql = sql + ' AND F.id=' + connection.escape(firewall);
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows);
+			});
+		});
+	});
+};
+
+//check if Exist IPOBJS under INTERFACES IN GROUPS
+policy_r__ipobjModel.searchIpobjInterfacesInGroups = (interface, type) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			var sql = `SELECT G.*, I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name
+				FROM ipobj__ipobjg O
+				INNER JOIN ipobj_g G ON G.id=O.ipobj_g
+				INNER JOIN ipobj I ON I.id=O.ipobj
+				INNER JOIN interface K on K.id=I.interface
+				inner join ipobj_type T on T.id=I.type
+				WHERE K.id=${interface} AND K.interface_type=${type}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);

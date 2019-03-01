@@ -1111,9 +1111,9 @@ firewallModel.searchFirewallRestrictions = req => {
 					
 				Verify too that these objects are not being used in any group.
       */
-			const r1 = await interfaceModel.searchInterfaceInrulesOtherFirewall(req.body.fwcloud, req.body.firewall);
-			const r2 = await openvpnModel.searchOpenvpnInrulesOtherFirewall(req);
-			const r3 = await openvpnPrefixModel.searchPrefixInrulesOtherFirewall(req);
+			const r1 = await interfaceModel.searchInterfaceUsageOutOfThisFirewall(req);
+			const r2 = await openvpnModel.searchOpenvpnUsageOutOfThisFirewall(req);
+			const r3 = await openvpnPrefixModel.searchPrefixUsageOutOfThisFirewall(req);
 
 			if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
 			if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
