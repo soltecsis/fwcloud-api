@@ -21,7 +21,7 @@ inputValidation.check = async(req, res, next) => {
 
 	try {
 		const item1 = req.url.split('/')[1];
-		await require('./joi_schemas/' + item1).validate(req);
+		await require(`./joi_schemas/${item1}`).validate(req);
 
 		// If we arrive here then input data has been sucessfully validated.  
 		next();
