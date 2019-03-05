@@ -139,9 +139,11 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
 		var sql = `select P.rule rule_id, P.prefix, PRE.openvpn, PRE.name, R.type rule_type,
-			PT.name rule_type_name, PP.name rule_position_name
+			PT.name rule_type_name, PP.name rule_position_name, R.firewall firewall_id, F.name firewall_name,
+			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 			from policy_r__openvpn_prefix P
 			inner join policy_r R on R.id=P.rule
+			inner join firewall F on F.id = R.firewall
 			inner join policy_position PP on PP.id=P.position
 			inner join policy_type PT on PT.id=R.type
 			inner join openvpn_prefix PRE on PRE.id=P.prefix

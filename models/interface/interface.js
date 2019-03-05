@@ -260,7 +260,7 @@ interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
 				if (data.result) {
 					answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(data.restrictions.InterfaceInRules_I);
 					answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(data.restrictions.InterfaceInRules_O);
-					answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(data.restrictions.IpobjInterfaceInRules);
+					answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(data.restrictions.IpobjInterfaceInRule);
 					answer.restrictions.IpobjInterfaceInGroup = answer.restrictions.IpobjInterfaceInGroup.concat(data.restrictions.IpobjInterfaceInGroup);
 				}
 			}
