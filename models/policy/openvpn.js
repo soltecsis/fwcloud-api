@@ -90,7 +90,9 @@ policyOpenvpnModel.duplicatePolicy_r__openvpn = (dbCon, rule, new_rule) => {
 
 policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, R.id as rule_id, R.type rule_type, 311 as obj_type_id,
+		var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
+			O.openvpn obj_id, CRT.cn obj_name,
+			R.id as rule_id, R.type rule_type, 311 as obj_type_id,
 			PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
 			FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
 		  from policy_r__openvpn O
@@ -98,6 +100,8 @@ policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
 			inner join firewall FW on FW.id=R.firewall
 			inner join policy_position P on P.id=O.position
 			inner join policy_type PT on PT.id=R.type
+			inner join openvpn VPN on VPN.id=O.openvpn
+			inner join crt CRT on CRT.id=VPN.crt
 			where FW.fwcloud=${fwcloud} and O.openvpn=${openvpn}`;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
@@ -134,7 +138,12 @@ policyOpenvpnModel.getConfigsUnderOpenvpnPrefix = (dbCon,openvpn_server_id,prefi
 policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
-		var sql = `select P.rule,P.prefix,PRE.openvpn,PRE.name from policy_r__openvpn_prefix P
+		var sql = `select P.rule rule_id, P.prefix, PRE.openvpn, PRE.name, R.type rule_type,
+			PT.name rule_type_name, PP.name rule_position_name
+			from policy_r__openvpn_prefix P
+			inner join policy_r R on R.id=P.rule
+			inner join policy_position PP on PP.id=P.position
+			inner join policy_type PT on PT.id=R.type
 			inner join openvpn_prefix PRE on PRE.id=P.prefix
 			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 			inner join crt CRT on CRT.id=VPN.crt
@@ -161,7 +170,9 @@ policyOpenvpnModel.searchLastOpenvpnInPrefixInRule = (dbCon,fwcloud,openvpn) => 
 policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
 		// Fisrt get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
-		var sql = `select P.prefix,PRE.openvpn,PRE.name from openvpn_prefix__ipobj_g P
+		var sql = `select P.prefix, PRE.openvpn, PRE.name, GR.id group_id, GR.name group_name
+			from openvpn_prefix__ipobj_g P
+			inner join ipobj_g GR on GR.id=P.ipobj_g
 			inner join openvpn_prefix PRE on PRE.id=P.prefix
 			inner join openvpn VPN on VPN.openvpn=PRE.openvpn
 			inner join crt CRT on CRT.id=VPN.crt
