@@ -250,6 +250,26 @@ interfaceModel.getInterfaceAddr = (dbCon,interface) => {
 	});
 };
 
+// Get all host addresses.
+interfaceModel.getHostAddr = (dbCon,host) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select interface from interface__ipobj where ipobj=${host}`, async (error, interfaces) => {
+			if (error) return reject(error);
+
+			let result = [];
+			try {
+				for (let interface of interfaces) {
+					result = result.concat(await interfaceModel.getInterfaceAddr(dbCon,interface.interface));
+				}
+			} catch(error) { return reject(error) }
+
+			resolve(result);
+		});
+	});
+};
+
+
+
 
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
 interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {

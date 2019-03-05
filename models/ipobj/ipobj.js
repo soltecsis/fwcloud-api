@@ -930,7 +930,7 @@ ipobjModel.checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
  }
  *      
  * */
-ipobjModel.searchIpobjUsage = (fwcloud, id, type, onlyInRules) => {
+ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let search = {};
@@ -940,12 +940,12 @@ ipobjModel.searchIpobjUsage = (fwcloud, id, type, onlyInRules) => {
 			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.GroupInRules = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
-			search.restrictions.InterfacesAboveIpobjInRules = await Policy_r__ipobjModel.searchInterfacesAboveIpobjInRule(id, type, fwcloud); //SEARCH INTERFACES ABOVE IPOBJ  IN RULES  'O'  POSITIONS
-			search.restrictions.IpobjInterfacesIpobjInRules = await Policy_r__ipobjModel.searchIpobjInterfacesIpobjInRule(id, type, fwcloud); //SEARCH IF IPOBJ UNDER INTERFACES UNDER IPOBJ HOST Has HOST IN RULES 'O' POSITIONS
-			
-			// Search for the ipobj in other places apart from the rules.
-			if (!onlyInRules) {
-				search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+
+			// Avoid leaving an interface used in a rule without address.
+			if (type===5) { // ADDRESS
+				search.restrictions.LastAddrInInterfaceInRule = await Policy_r__ipobjModel.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud); 
+				search.restrictions.LastAddrInHostInRule = await Policy_r__ipobjModel.searchLastAddrInHostInRule(dbCon, id, type, fwcloud); 
 			}
 
 			for (let key in search.restrictions) {

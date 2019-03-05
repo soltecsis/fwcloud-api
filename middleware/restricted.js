@@ -78,17 +78,8 @@ restrictedCheck.interface = async (req, res, next) => {
 
 restrictedCheck.ipobj = async (req, res, next) => {
 	try {
-		const data = await ipobjModel.searchIpobjUsage(req.body.fwcloud, req.body.id, req.body.type, 0); // 0 = Search in rules, openvpn, etc.
-		if (data.result) {
-			// We allow the removal of IP addresses of a network interface used in a rule, only if this
-			// network interface has more IP addresses.
-			if (data.restrictions.InterfacesAboveIpobjInRules.length > 0) {
-				const addr = await interfaceModel.getInterfaceAddr(req.dbCon,data.restrictions.InterfacesAboveIpobjInRules[0].interface);
-				if (addr.length < 2)
-					return next();
-			}
-			api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-		}
+		const data = await ipobjModel.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
 };
