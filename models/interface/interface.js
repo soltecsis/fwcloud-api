@@ -240,6 +240,16 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 	});
 };
 
+// Get interface address.
+interfaceModel.getInterfaceAddr = (dbCon,interface) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select id from ipobj where interface=${interface}`, (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
+		});
+	});
+};
+
 
 /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
 interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
