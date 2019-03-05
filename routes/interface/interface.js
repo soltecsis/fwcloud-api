@@ -17,7 +17,7 @@ var logger = require('log4js').getLogger("app");
 /* Get all interfaces by firewall*/
 router.put('/fw/all/get', async (req, res) => {
 	try {
-		let data = await InterfaceModel.getInterfaces(req.dbCon, req.body.firewall, req.body.fwcloud);
+		let data = await InterfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
 		if (data && data.length > 0)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else //Get Error
@@ -250,7 +250,7 @@ router.put("/host/del",
 /* Search where is used interface  */
 router.put('/where', async (req, res) => {
 	try {
-		const data = await InterfaceModel.searchInterface(req.body.id, req.body.type, req.body.fwcloud);
+		const data = await InterfaceModel.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
 		if (data && data.result)
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else

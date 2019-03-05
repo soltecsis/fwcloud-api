@@ -22,12 +22,11 @@ var tableModel = "interface";
 var logger = require('log4js').getLogger("app");
 
 //Get All interface by firewall
-interfaceModel.getInterfaces = (dbCon, firewall, fwcloud, callback) => {
+interfaceModel.getInterfaces = (dbCon, fwcloud, firewall) => {
 	return new Promise((resolve, reject) => {
-		let sql = `SELECT I.*, T.id id_node, T.id_parent id_parent_node, J.fwcloud FROM ${tableModel} I
-			inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.interface_type AND (T.fwcloud=${fwcloud} OR T.fwcloud IS NULL)
-			left join interface__ipobj O on O.interface=I.id left join ipobj J ON J.id=O.ipobj
-			WHERE I.firewall=${firewall}`;
+		let sql = `select I.* from ${tableModel} I
+			inner join firewall F on F.id=I.firewall
+			where I.firewall=${firewall} and F.fwcloud=${fwcloud}`;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
 			resolve(rows);
@@ -254,10 +253,10 @@ interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
 		answer.restrictions.IpobjInterfaceInGroup = [];
 	
 		try {
-			let interfaces = await interfaceModel.getInterfaces(req.dbCon, req.body.firewall, req.body.fwcloud);
+			let interfaces = await interfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
 			for (let interfaz of interfaces) {
 				// The last parameter of this functions indicates search out of hte indicated firewall.
-				const data = await interfaceModel.searchInterfaceInrulesPro(interfaz.id, interfaz.interface_type, req.body.fwcloud, req.body.firewall);
+				const data = await interfaceModel.searchInterfaceUsage(interfaz.id, interfaz.interface_type, req.body.fwcloud, req.body.firewall);
 				if (data.result) {
 					answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(data.restrictions.InterfaceInRules_I);
 					answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(data.restrictions.InterfaceInRules_O);
@@ -273,7 +272,7 @@ interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
 
 
 /* Search where is in RULES interface in OTHER FIREWALLS  */
-interfaceModel.searchInterfaceInrulesPro = (id, type, fwcloud, diff_firewall) => {
+interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 	return new Promise((resolve, reject) => {
 		//SEARCH INTERFACE DATA
 		interfaceModel.getInterface_data(id, type, async (error, data) => {
@@ -288,38 +287,9 @@ interfaceModel.searchInterfaceInrulesPro = (id, type, fwcloud, diff_firewall) =>
 					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
 					search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfacesInRules(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
 					search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfacesInGroups(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
-		
-					for (let key in search.restrictions) {
-						if (search.restrictions[key].length > 0) {
-							search.result = true;
-							break;
-						}
-					}
-					resolve(search);
-				} catch(error) { reject(error) }
-			} else resolve(search);
-		});
-	});
-};
-
-
-/* Search where is used interface  */
-interfaceModel.searchInterface = (id, type, fwcloud) => {
-	return new Promise((resolve, reject) => {
-		//SEARCH INTERFACE DATA
-		interfaceModel.getInterface_data(id, type, async (error, data) => {
-			if (error) return reject(error);
-
-			let search = {};
-			search.result = false;
-			if (data && data.length > 0) {
-				try {
-					search.restrictions = {};
-					search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null, null); //SEARCH INTERFACE IN RULES I POSITIONS
-					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, null); //SEARCH INTERFACE IN RULES O POSITIONS
 					search.restrictions.InterfaceInFirewalls = await interfaceModel.searchInterfaceInFirewalls(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 					search.restrictions.InterfaceInHosts = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
-		
+
 					for (let key in search.restrictions) {
 						if (search.restrictions[key].length > 0) {
 							search.result = true;
@@ -332,6 +302,7 @@ interfaceModel.searchInterface = (id, type, fwcloud) => {
 		});
 	});
 };
+
 
 //Search Interfaces in Firewalls
 interfaceModel.searchInterfaceInFirewalls = (interface, type, fwcloud) => {

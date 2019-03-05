@@ -1331,7 +1331,8 @@ policy_r__ipobjModel.searchIpobjInterfacesInGroups = (interface, type) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = `SELECT G.*, I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name
+			var sql = `SELECT G.*, I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+				G.id group_id, G.name group_name
 				FROM ipobj__ipobjg O
 				INNER JOIN ipobj_g G ON G.id=O.ipobj_g
 				INNER JOIN ipobj I ON I.id=O.ipobj

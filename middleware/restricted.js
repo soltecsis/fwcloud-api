@@ -69,7 +69,7 @@ restrictedCheck.interface = async (req, res, next) => {
 	//Check interface in RULE O POSITIONS
 	const type = (req.body.firewallhost) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
 	try {
-		const data = await interfaceModel.searchInterfaceInrulesPro(req.body.id, type, req.body.fwcloud, '');
+		const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
 		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
