@@ -32,11 +32,10 @@ async (req, res) => {
 
 	try {
 		// Don't allow to put in positions with O content interfaces without addresses and hosts without addresses.
-		//if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
-		//	return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty object containers into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (await policy_r__ipobjModel.emptyIpobjContainer(req.dbCon,policy_r__ipobjData))
+			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty object containers into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-		const found = await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData);
-		if (found)
+		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
 		 const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0);

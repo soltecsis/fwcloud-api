@@ -91,7 +91,7 @@ policy_r__ipobjModel.getPolicy_r__ipobj = function (rule, ipobj, ipobj_g, interf
 };
 
 //Verify that the object is not already present in the destination position. 
-policy_r__ipobjModel.checkExistsInPosition = function (policy_r__ipobjData) {
+policy_r__ipobjModel.checkExistsInPosition = (policy_r__ipobjData) => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
@@ -188,6 +188,19 @@ policy_r__ipobjModel.checkExistsInPosition = function (policy_r__ipobjData) {
 		});
 	});
 }
+
+
+//Verify that the object we are moving to the rule is not an empty object container.
+policy_r__ipobjModel.emptyIpobjContainer = (dbCon,data) => {
+	return new Promise((resolve, reject) => {
+		// First we need the object type and the content type of the rule position.
+		let sql = ``;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+		});
+	});
+}
+
 
 //Add new policy_r__ipobj 
 policy_r__ipobjModel.insertPolicy_r__ipobj = function (policy_r__ipobjData, set_negate) {
