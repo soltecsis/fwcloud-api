@@ -942,7 +942,7 @@ ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			if (type===8) { // HOST
-				search.restrictions.InterfazHostInRule = await Policy_r__ipobjModel.searchInterfazHostInRule(dbCon, fwcloud, id);
+				search.restrictions.InterfaceHostInRule = await Policy_r__ipobjModel.searchInterfaceHostInRule(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInRule = await Policy_r__ipobjModel.searchAddrHostInRule(dbCon, fwcloud, id);
 			}	
 
