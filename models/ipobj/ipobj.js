@@ -936,11 +936,15 @@ ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 			let search = {};
 			search.result = false;
 			search.restrictions ={};
-			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInRule = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
 			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
-			search.restrictions.GroupInRules = await Policy_r__ipobjModel.searchIpobjGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-			search.restrictions.InterfacesIpobjInRules = await Policy_r__ipobjModel.searchInterfacesIpobjHostInRule(id, type, fwcloud); //SEARCH INTERFACES UNDER IPOBJ HOST IN RULES  'O'  POSITIONS
+			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
+
+			if (type===8) { // HOST
+				search.restrictions.InterfazHostInRule = await Policy_r__ipobjModel.searchInterfazHostInRule(dbCon, fwcloud, id);
+				search.restrictions.AddrHostInRule = await Policy_r__ipobjModel.searchAddrHostInRule(dbCon, fwcloud, id);
+			}	
 
 			// Avoid leaving an interface used in a rule without address.
 			if (type===5) { // ADDRESS

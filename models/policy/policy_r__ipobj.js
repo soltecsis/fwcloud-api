@@ -1059,7 +1059,7 @@ policy_r__ipobjModel.searchInterfaceInRule = (interface, type, fwcloud, firewall
 };
 
 //check if IPOBJ Exists in GROUP and GROUP in any rule
-policy_r__ipobjModel.searchIpobjGroupInRule = (ipobj, type, fwcloud) => {
+policy_r__ipobjModel.searchIpobjInGroupInRule = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -1141,32 +1141,54 @@ policy_r__ipobjModel.searchGroupInRule = (idg, fwcloud) => {
 };
 
 //Search INTERFACES UNDER IPOBJ HOST that Exists in any rule
-policy_r__ipobjModel.searchInterfacesIpobjHostInRule = (ipobj, type, fwcloud) => {
+policy_r__ipobjModel.searchInterfazHostInRule = (dbCon, fwcloud, ipobj) => {
 	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
+		var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+			FROM policy_r__ipobj O
+			INNER JOIN interface K ON K.id=O.interface
+			INNER JOIN interface__ipobj J ON J.interface=K.id
+			INNER JOIN ipobj I ON I.id=J.ipobj
+			INNER JOIN policy_r R ON R.id=O.rule
+			INNER JOIN firewall F ON F.id=R.firewall
+			INNER JOIN ipobj_type T ON T.id=K.interface_type
+			INNER JOIN policy_position P ON P.id=O.position
+			INNER JOIN policy_type PT ON PT.id=R.type
+			INNER JOIN fwcloud C ON C.id=F.fwcloud
+			WHERE I.id=${ipobj} AND I.type=8 AND F.fwcloud=${fwcloud}`;
+		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			var sql = 'SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,    ' +
-				'O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
-				'FROM policy_r__ipobj O  ' +
-				'INNER JOIN interface K ON K.id = O.interface ' +
-				'INNER JOIN interface__ipobj J ON J.interface = K.id ' +
-				'INNER JOIN ipobj I ON I.id = J.ipobj         ' +
-				'INNER JOIN policy_r R ON R.id = O.rule ' +
-				'INNER JOIN firewall F ON F.id = R.firewall			 ' +
-				'INNER JOIN ipobj_type T ON T.id = K.interface_type ' +
-				'INNER JOIN policy_position P ON P.id = O.position ' +
-				'INNER JOIN policy_type PT ON PT.id = R.type ' +
-				'INNER JOIN fwcloud C ON C.id = F.fwcloud ' +
-				' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND F.fwcloud=' + fwcloud;
-			connection.query(sql, (error, rows) => {
-				if (error) return reject(error);
-				resolve(rows);
-			});
+			resolve(rows);
 		});
 	});
 };
 
+//Search ADDR UNDER IPOBJ HOST that Exists in any rule
+policy_r__ipobjModel.searchAddrHostInRule = (dbCon, fwcloud, ipobj) => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
+			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+			FROM policy_r__ipobj O
+			INNER JOIN interface K ON K.id=O.interface
+			INNER JOIN interface__ipobj J ON J.interface=K.id
+			INNER JOIN ipobj I ON I.id=J.ipobj
+			INNER JOIN policy_r R ON R.id=O.rule
+			INNER JOIN firewall F ON F.id=R.firewall
+			INNER JOIN ipobj_type T ON T.id=K.interface_type
+			INNER JOIN policy_position P ON P.id=O.position
+			INNER JOIN policy_type PT ON PT.id=R.type
+			INNER JOIN fwcloud C ON C.id=F.fwcloud
+			WHERE I.id=${ipobj} AND I.type=8 AND F.fwcloud=${fwcloud}`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};
 
 policy_r__ipobjModel.searchLastAddrInInterfaceInRule = (dbCon, ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
