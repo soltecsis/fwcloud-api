@@ -209,14 +209,15 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
 				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
 					let addr = await interfaceModel.getInterfaceAddr(dbCon,data.interface);
 					if (addr.length === 0) return resolve(true);
-				}
+				} 
 				else if (type===8) { // 8 = HOST
 					let addr = await interfaceModel.getHostAddr(dbCon,data.ipobj);
 					if (addr.length === 0) return resolve(true);
 				}
-
-				// 20 = GROUP OBJECTS, 21 = GROUP SERVICES
-
+				else if (type===20) { // 20 = GROUP OBJECTS
+				}
+				else if (type===21) { // 21 = GROUP SERVICES
+				}
 			} catch(error) { return reject(error) }
 			
 			resolve(false);
