@@ -29,7 +29,12 @@ async (req, res) => {
 
 	/* Before inserting the new IP object into the rule, verify that there is no container in the 
 	destination position that already contains it. */
+
 	try {
+		// Don't allow to put in positions with O content interfaces without addresses and hosts without addresses.
+		//if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+		//	return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty object containers into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 		const found = await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData);
 		if (found)
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
