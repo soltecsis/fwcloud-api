@@ -31,8 +31,8 @@ async (req, res) => {
 	destination position that already contains it. */
 
 	try {
-		// Don't allow to put in positions with O content interfaces without addresses and hosts without addresses.
-		if (await policy_r__ipobjModel.emptyIpobjContainer(req.dbCon,policy_r__ipobjData))
+		// Don't allow to put in positions with O content empty object containers (interfaces, hosts, groups, etc.)
+		if (await policy_r__ipobjModel.emptyIpobjContainerToObjectPosition(req.dbCon,policy_r__ipobjData))
 			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty object containers into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))

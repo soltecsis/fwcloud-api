@@ -190,13 +190,36 @@ policy_r__ipobjModel.checkExistsInPosition = (policy_r__ipobjData) => {
 }
 
 
-//Verify that the object we are moving to the rule is not an empty object container.
-policy_r__ipobjModel.emptyIpobjContainer = (dbCon,data) => {
+// Verify that the object we are moving to the rule is not an empty object container.
+policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
 	return new Promise((resolve, reject) => {
 		// First we need the object type and the content type of the rule position.
-		let sql = ``;
-		dbCon.query(sql, (error, rows) => {
+		let sql=`select content,
+			${(data.interface > 0) ? `(select type from interface where id=${data.interface})` : `(select type from ipobj where id=${data.ipobj})`} as type
+			from policy_position where id=${data.position}`;
+		dbCon.query(sql, async (error, rows) => {
 			if (error) return reject(error);
+
+			// We are not moving to a object (O) content position.
+			// We can move empty interfaces (without addresses) to a interface (I) content position.
+			if (rows[0].content !== 'O') return resolve(false);
+
+			try {
+				let type = parseInt(rows[0].type);
+				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
+					let addr = await interfaceModel.getInterfaceAddr(dbCon,data.interface);
+					if (addr.length === 0) return resolve(true);
+				}
+				else if (type===8) { // 8 = HOST
+					let addr = await interfaceModel.getHostAddr(dbCon,data.ipobj);
+					if (addr.length === 0) return resolve(true);
+				}
+
+				// 20 = GROUP OBJECTS, 21 = GROUP SERVICES
+
+			} catch(error) { return reject(error) }
+			
+			resolve(false);
 		});
 	});
 }
