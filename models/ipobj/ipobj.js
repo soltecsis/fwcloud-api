@@ -41,13 +41,6 @@ var db = require('../../db.js');
  */
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 /**
- * Property  to manage Interfaces in Rules
- *
- * @property Policy_r__interfaceModel
- * @type models.policy_r__interface
- */
-var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
-/**
  * Property manage async process
  *
  * @property async
@@ -102,7 +95,6 @@ var api_resp = require('../../utils/api_response');
 var Ipobj_gModel = require('./group');
 
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
-
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const isIp = require('is-ip');
@@ -937,13 +929,14 @@ ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 			search.result = false;
 			search.restrictions ={};
 			search.restrictions.IpobjInRule = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			if (type===8) { // HOST
 				search.restrictions.InterfaceHostInRule = await Policy_r__ipobjModel.searchInterfaceHostInRule(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInRule = await Policy_r__ipobjModel.searchAddrHostInRule(dbCon, fwcloud, id);
+				search.restrictions.AddrHostInGroup = await Ipobj__ipobjgModel.searchAddrHostInGroup(dbCon, fwcloud, id);
 			}	
 
 			// Avoid leaving an interface used in a rule without address.
@@ -1002,7 +995,7 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 			search.result = false;
 			search.restrictions = {};
 			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.IpobjInterfaces = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
@@ -1034,4 +1027,3 @@ ipobjModel.searchIpobjInOpenvpn = (ipobj, type, fwcloud) => {
 		});
 	});
 };
-

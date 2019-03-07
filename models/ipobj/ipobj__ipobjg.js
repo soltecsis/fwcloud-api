@@ -56,22 +56,41 @@ ipobj__ipobjgModel.deleteIpobj__ipobjgAll = (dbCon, ipobj_g) => {
 };
 
 //check if IPOBJ Exists in GROUP 
-ipobj__ipobjgModel.searchIpobjGroup = (ipobj, type, fwcloud) => {
+ipobj__ipobjgModel.searchIpobjInGroup = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-				'C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type ' +
-				'FROM ' + tableModel + ' G  ' +
-				'INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g ' +
-				'INNER JOIN  ipobj I on I.id=G.ipobj ' +
-				'inner join ipobj_type T on T.id=I.type ' +
-				'left join fwcloud C on C.id=I.fwcloud ' +
-				' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)';
+			var sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type
+				FROM ${tableModel} G
+				INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g
+				INNER JOIN  ipobj I on I.id=G.ipobj
+				inner join ipobj_type T on T.id=I.type
+				left join fwcloud C on C.id=I.fwcloud
+				WHERE I.id=${ipobj} AND I.type=${type} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
 			});
+		});
+	});
+};
+
+//check if addr host exists in a group 
+ipobj__ipobjgModel.searchAddrHostInGroup = (dbCon, fwcloud, host) => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+			C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type
+			FROM ${tableModel} G
+			INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g
+			INNER JOIN ipobj I on I.id=G.ipobj
+			inner join ipobj_type T on T.id=I.type
+			inner join fwcloud C on C.id=I.fwcloud
+			inner join interface__ipobj II on II.interface=I.interface
+			WHERE II.ipobj=${host} AND I.type=5 AND I.fwcloud=${fwcloud}`;
+	dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
 		});
 	});
 };
