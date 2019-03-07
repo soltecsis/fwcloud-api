@@ -1,6 +1,7 @@
 var db = require('../../db.js');
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
+//const groupModel = require('../../models/ipobj/group');
 
 //create object
 var policy_r__ipobjModel = {};
@@ -189,13 +190,30 @@ policy_r__ipobjModel.checkExistsInPosition = (policy_r__ipobjData) => {
 	});
 }
 
+//Check if group is empty.
+policy_r__ipobjModel.isGroupEmpty = (dbCon, group) => {
+	return new Promise((resolve, reject) => {
+		let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
+			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
+			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			if (result.length===0) return resolve(true);
+			resolve(false);
+		});
+	});
+};
+
 
 // Verify that the object we are moving to the rule is not an empty object container.
 policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
 	return new Promise((resolve, reject) => {
 		// First we need the object type and the content type of the rule position.
 		let sql=`select content,
-			${(data.interface > 0) ? `(select type from interface where id=${data.interface})` : `(select type from ipobj where id=${data.ipobj})`} as type
+			${(data.ipobj > 0) ? `(select type from ipobj where id=${data.ipobj}) as type` : ``}
+			${(data.interface > 0) ? `(select type from interface where id=${data.interface}) as type` : ``}
+			${(data.ipobj_g > 0) ? `(select type from ipobj_g where id=${data.ipobj_g}) as type` : ``}
 			from policy_position where id=${data.position}`;
 		dbCon.query(sql, async (error, rows) => {
 			if (error) return reject(error);
@@ -214,10 +232,8 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
 					let addr = await interfaceModel.getHostAddr(dbCon,data.ipobj);
 					if (addr.length === 0) return resolve(true);
 				}
-				else if (type===20) { // 20 = GROUP OBJECTS
-				}
-				else if (type===21) { // 21 = GROUP SERVICES
-				}
+				else if ((type===20 || type===21) && (await policy_r__ipobjModel.isGroupEmpty(dbCon,data.ipobj_g))) // 20 = GROUP OBJECTS, 21 = GROUP SERVICES
+					return resolve(true);
 			} catch(error) { return reject(error) }
 			
 			resolve(false);

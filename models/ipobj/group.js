@@ -6,13 +6,12 @@ var openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
-var Policy_r__ipobjModel = require('../policy/policy_r__ipobj');
+const Policy_r__ipobjModel = require('../policy/policy_r__ipobj');
 var Ipobj__ipobjgModel = require('./ipobj__ipobjg');
 
 //create object
 var ipobj_gModel = {};
 var tableModel = "ipobj_g";
-
 
 var logger = require('log4js').getLogger("app");
 
@@ -185,7 +184,7 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 			let search = {};
 			search.result = false;
 			search.restrictions = {};
-			search.restrictions.groupInRules = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.groupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -200,14 +199,14 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 
 
 /* Search where is used GROUP IN RULES AND MEMBERS */
-ipobj_gModel.searchGroupInRules = (id, fwcloud) => {
+ipobj_gModel.searchGroupUsage = (id, fwcloud) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let search = {};
 			search.result = false;
 			search.restrictions ={};
-			search.restrictions.groupInRules = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-			search.restrictions.ipobjInGroupInRules = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.ipobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.groupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -240,6 +239,7 @@ ipobj_gModel.insertIpobj_g = function (ipobj_gData, callback) {
 		});
 	});
 };
+
 //Update ipobj_g
 ipobj_gModel.updateIpobj_g = (req, ipobj_gData) => {
 	return new Promise((resolve, reject) => {
@@ -253,6 +253,7 @@ ipobj_gModel.updateIpobj_g = (req, ipobj_gData) => {
 		});
 	});
 };
+
 //Remove ipobj_g with id to remove
 ipobj_gModel.deleteIpobj_g = (dbCon, fwcloud, id, type) => {
 	return new Promise(async (resolve, reject) => {
@@ -267,5 +268,6 @@ ipobj_gModel.deleteIpobj_g = (dbCon, fwcloud, id, type) => {
 		});
 	});
 };
+
 //Export the object
 module.exports = ipobj_gModel;

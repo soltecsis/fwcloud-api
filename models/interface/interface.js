@@ -317,8 +317,8 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
 					search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfacesInRules(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
 					search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfacesInGroups(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
-					search.restrictions.InterfaceInFirewalls = await interfaceModel.searchInterfaceInFirewalls(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
-					search.restrictions.InterfaceInHosts = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
+					search.restrictions.InterfaceInFirewall = await interfaceModel.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
+					search.restrictions.InterfaceInHost = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 
 					for (let key in search.restrictions) {
 						if (search.restrictions[key].length > 0) {
@@ -335,7 +335,7 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 
 
 //Search Interfaces in Firewalls
-interfaceModel.searchInterfaceInFirewalls = (interface, type, fwcloud) => {
+interfaceModel.searchInterfaceInFirewall = (interface, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);

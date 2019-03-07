@@ -70,6 +70,18 @@ restrictedCheck.interface = async (req, res, next) => {
 	const type = (req.body.host) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
 	try {
 		const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
+
+		// Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost
+		data.result = false;
+		for (let key in data.restrictions) {
+			if (key==='InterfaceInFirewall' || key==='InterfaceInHost')
+				continue;
+			if (data.restrictions[key].length > 0) {
+				data.result = true;
+				break;
+			}
+		}
+
 		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -87,7 +99,7 @@ restrictedCheck.ipobj = async (req, res, next) => {
 
 restrictedCheck.ipobj_group = async (req, res, next) => {
 	try {
-		const data = await ipobj_gModel.searchGroupInRules(req.body.id, req.body.fwcloud);
+		const data = await ipobj_gModel.searchGroupUsage(req.body.id, req.body.fwcloud);
 		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
