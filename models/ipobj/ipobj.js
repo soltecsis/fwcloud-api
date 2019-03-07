@@ -96,6 +96,7 @@ var Ipobj_gModel = require('./group');
 
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+const interface__ipobjModel = require('../../models/interface/interface__ipobj');
 
 const isIp = require('is-ip');
 
@@ -735,8 +736,7 @@ ipobjModel.updateIpobj = (req, ipobjData) => {
  * */
 ipobjModel.deleteIpobj = (dbCon,fwcloud,id) => {
 	return new Promise((resolve, reject) => {
-		let sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + id + ' AND fwcloud=' + fwcloud;
-		dbCon.query(sql, (error, result) => {
+		dbCon.query(`DELETE FROM ${tableModel}  WHERE id=${id} AND fwcloud=${fwcloud}`, (error, result) => {
 			if (error) return reject(error);
 
 			if (result.affectedRows > 0)
@@ -747,29 +747,43 @@ ipobjModel.deleteIpobj = (dbCon,fwcloud,id) => {
 	});
 };
 
-//DELETE ALL IPOBJ UNDER INTERFACE
-ipobjModel.deleteIpobjInterface = function (data) {
+ipobjModel.deleteHost = (dbCon, fwcloud, host) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'DELETE FROM ' + tableModel + ' WHERE interface = ' + connection.escape(data.id);
+		let sql = `select II.interface as id from interface__ipobj II
+			inner join ipobj I on I.id=II.ipobj
+			where II.ipobj=${host} and I.fwcloud=${fwcloud}`;
+		dbCon.query(sql, async (error, interfaces) => {
+			if (error) return reject(error);
 
-			connection.query(sql, function (error, result) {
-				if (error) {
-					logger.debug(error);
-					reject(error);
-				} else {
-					if (result.affectedRows > 0) {
-						resolve({"result": true, "msg": "deleted"});
-					} else {
-						resolve({"result": false, "msg": "notExist"});
-					}
+			try {
+				// Delete all objects under this host.
+				for(let interface of interfaces) {
+					await interface__ipobjModel.deleteHostInterface(dbCon, host, interface.id);
+					await ipobjModel.deleteIpobjInterface(dbCon, interface.id);
+					await InterfaceModel.deleteInterfaceHOST(dbCon, interface.id);
 				}
-			});
+
+				// Delete host ipobj.
+				await ipobjModel.deleteIpobj(dbCon,fwcloud,host);
+			} catch(error) { return reject(error) }
+
+			resolve();
 		});
 	});
+};
 
+//DELETE ALL IPOBJ UNDER INTERFACE
+ipobjModel.deleteIpobjInterface = (dbCon, interface) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DELETE FROM ${tableModel} WHERE interface=${interface}`, (error, result) => {
+			if (error) return reject(error);
+
+			if (result.affectedRows > 0)
+				resolve({"result": true, "msg": "deleted"});
+			else
+				resolve({"result": false, "msg": "notExist"});
+		});
+	});
 };
 
 //UPDATE HOST IF IPOBJ IS UNDER 

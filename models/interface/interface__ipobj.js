@@ -194,6 +194,7 @@ function OrderList(new_order, interface, old_order) {
 }
 
 
+
 //Remove interface__ipobj with id to remove
 //FALTA BORRADO EN CASCADA 
 interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callback) {
@@ -230,6 +231,15 @@ interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callb
 	});
 };
 
+
+interface__ipobjModel.deleteHostInterface = (dbCon, host, interface) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DELETE FROM ${tableModel} WHERE interface=${interface} and ipobj=${host}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
 
 
 //Export the object

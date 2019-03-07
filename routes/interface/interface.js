@@ -228,23 +228,23 @@ restrictedCheck.interface,
 
 /* Remove host interface */
 router.put("/host/del",
-	restrictedCheck.interface,
-	(req, res) => {
-		Interface__ipobjModel.deleteInterface__ipobj(req.body.id, req.body.host, async (error, data) => {
-			if (data) {
-				if (data.msg === "deleted") {
-					try {
-						await IpobjModel.deleteIpobjInterface({ "id": req.body.id });
-						await InterfaceModel.deleteInterfaceHOST(req.body.id);
-						await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
-						api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-					} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-				} else if (data.msg === "notExist")
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			} else
-				api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		});
+restrictedCheck.interface,
+(req, res) => {
+	Interface__ipobjModel.deleteInterface__ipobj(req.body.id, req.body.host, async (error, data) => {
+		if (data) {
+			if (data.msg === "deleted") {
+				try {
+					await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
+					await InterfaceModel.deleteInterfaceHOST(req.dbCon, req.body.id);
+					await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
+					api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			} else if (data.msg === "notExist")
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		} else
+			api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	});
+});
 
 
 /* Search where is used interface  */

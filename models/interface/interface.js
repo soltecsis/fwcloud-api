@@ -563,14 +563,12 @@ interfaceModel.deleteInterface = function (fwcloud, idfirewall, id, type, callba
 };
 
 
-interfaceModel.deleteInterfaceHOST = function (interface) {
+interfaceModel.deleteInterfaceHOST = (dbCon, interface) => {
 	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
-			sql = 'DELETE FROM '+tableModel+' WHERE type=11 AND id='+connection.escape(interface);
-			connection.query(sql, (error, result) => {
-				if (error) return reject(error);
-				resolve("DONE");
-			});
+		sql = `DELETE FROM ${tableModel} WHERE type=11 AND id=${interface}`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
