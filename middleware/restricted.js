@@ -108,7 +108,7 @@ restrictedCheck.ipobj_group = async (req, res, next) => {
 
 restrictedCheck.openvpn = async (req, res, next) => {
 	try {
-		let data = await openvpnModel.searchOpenvpnChilds(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		let data = await openvpnModel.searchOpenvpnChild(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 	
 		data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);

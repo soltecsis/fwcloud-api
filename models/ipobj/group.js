@@ -184,7 +184,7 @@ ipobj_gModel.searchGroup = function (id, fwcloud, callback) {
 			let search = {};
 			search.result = false;
 			search.restrictions = {};
-			search.restrictions.groupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.GroupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {
@@ -205,8 +205,8 @@ ipobj_gModel.searchGroupUsage = (id, fwcloud) => {
 			let search = {};
 			search.result = false;
 			search.restrictions ={};
-			search.restrictions.ipobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-			search.restrictions.groupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.GroupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
 			for (let key in search.restrictions) {
 				if (search.restrictions[key].length > 0) {

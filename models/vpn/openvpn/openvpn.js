@@ -546,7 +546,7 @@ openvpnModel.searchOpenvpnUsageOutOfThisFirewall = req => {
 };
 
 
-openvpnModel.searchOpenvpnChilds = (dbCon,fwcloud,openvpn) => {
+openvpnModel.searchOpenvpnChild = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
     let sql = `SELECT VPN.id FROM openvpn VPN
       INNER JOIN firewall FW ON FW.id=VPN.firewall
@@ -555,7 +555,7 @@ openvpnModel.searchOpenvpnChilds = (dbCon,fwcloud,openvpn) => {
       if (error) return reject(error);
 
       if (result.length > 0)
-        resolve({result: true, restrictions: { openvpnHasChilds: true}});
+        resolve({result: true, restrictions: { OpenvpnHasChild: true}});
       else
         resolve({result: false});
     });
