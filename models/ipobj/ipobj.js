@@ -1008,9 +1008,9 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 			let search = {};
 			search.result = false;
 			search.restrictions = {};
-			search.restrictions.IpobjInRules = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
+			search.restrictions.IpobjInRule = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
 			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
-			search.restrictions.IpobjInterfaces = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
+			search.restrictions.IpobjInterface = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			for (let key in search.restrictions) {

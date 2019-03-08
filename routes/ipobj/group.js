@@ -14,12 +14,13 @@ var FirewallModel = require('../../models/firewall/firewall');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-var Ipobj_gModel = require('../../models/ipobj/group');
+const Ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var api_resp = require('../../utils/api_response');
 const restrictedCheck = require('../../middleware/restricted');
+const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var objModel = 'GROUP';
 
 /* Create New ipobj_g */
@@ -171,6 +172,13 @@ router.put("/addto", async (req, res) => {
 /* Remove ipobj__ipobjg */
 router.put("/delfrom", async (req, res) => {
 	try {
+		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
+		const search = await Policy_r__ipobjModel.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
+		if (search.length > 0) {
+			if ((await Ipobj_gModel.countGroupItems(req.dbCon,req.body.ipobj_g)) ===1)
+				return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'Group used in rule cannot be empty', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		}
+
 		if (req.body.obj_type===311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
 		else if (req.body.obj_type===401) // OpenVPN PREFIX

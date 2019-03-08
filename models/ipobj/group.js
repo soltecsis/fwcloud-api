@@ -44,6 +44,21 @@ ipobj_gModel.getIpobj_g = (dbCon, fwcloud, id) => {
 	});
 };
 
+//Count group items.
+ipobj_gModel.countGroupItems = (dbCon, group) => {
+	return new Promise((resolve, reject) => {
+		let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
+			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
+			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+
+			resolve(result.length);
+		});
+	});
+};
+
+
 //Get ipobj_g by  id AND ALL IPOBjs
 ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 	return new Promise((resolve, reject) => {

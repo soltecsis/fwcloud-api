@@ -2,8 +2,6 @@ var express = require('express');
 var router = express.Router();
 var InterfaceModel = require('../../models/interface/interface');
 var fwcTreemodel = require('../../models/tree/tree');
-var fwc_tree_node = require("../../models/tree/node.js");
-var utilsModel = require("../../utils/utils.js");
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
 var api_resp = require('../../utils/api_response');
@@ -194,56 +192,27 @@ router.put('/', (req, res) => {
 /* Remove firewall interface */
 router.put('/fw/del',
 restrictedCheck.interface,
-(req, res) => {
-	//Id from interface to remove
-	var fwcloud = req.body.fwcloud;
-	var idfirewall = req.body.firewall;
-	var idInterface = req.body.id;
-	var type = req.body.type;
-
-	InterfaceModel.deleteInterface(fwcloud, idfirewall, idInterface, type, async (error, data) => {
-		if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp));
-
-		if (data && data.msg === "deleted" || data.msg === "notExist" || data.msg === "Restricted") {
-			if (data.msg === "deleted") {
-
-				//DELETE FROM interface_ipobj (INTERFACE UNDER HOST)
-				//DELETE  ALL IPOBJ UNDER INTERFACE
-				try {
-					await Interface__ipobjModel.UpdateHOST(idInterface);
-					Interface__ipobjModel.deleteInterface__ipobj(idInterface, null, (error, data) => {});
-					//DELETE FROM TREE
-					await fwcTreemodel.deleteObjFromTree(fwcloud, idInterface, 10);
-					api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
-			} else if (data.msg === "Restricted")
-				api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'INTERFACE restricted to delete', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	});
+async (req, res) => {
+	try {
+		await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
+		await InterfaceModel.deleteInterfaceFW(req.dbCon, req.body.id);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
 });
 
 
 /* Remove host interface */
 router.put("/host/del",
 restrictedCheck.interface,
-(req, res) => {
-	Interface__ipobjModel.deleteInterface__ipobj(req.body.id, req.body.host, async (error, data) => {
-		if (data) {
-			if (data.msg === "deleted") {
-				try {
-					await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
-					await InterfaceModel.deleteInterfaceHOST(req.dbCon, req.body.id);
-					await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
-					api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-			} else if (data.msg === "notExist")
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else
-			api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	});
+async (req, res) => {
+	try {
+		await Interface__ipobjModel.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
+		await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
+		await InterfaceModel.deleteInterfaceHOST(req.dbCon, req.body.id);
+		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
+		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

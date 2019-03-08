@@ -188,48 +188,8 @@ function OrderList(new_order, interface, old_order) {
 				' WHERE interface = ' + connection.escape(interface) +
 				' AND interface_order>=' + order1 + ' AND interface_order<=' + order2;
 		connection.query(sql);
-
 	});
-
 }
-
-
-
-//Remove interface__ipobj with id to remove
-//FALTA BORRADO EN CASCADA 
-interface__ipobjModel.deleteInterface__ipobj = function (interface, ipobj, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlwhere = '';
-		if (interface !== null)
-			sqlwhere = ' interface =' + connection.escape(interface);
-		if (ipobj !== null) {
-			if (sqlwhere !== '')
-				sqlwhere = sqlwhere + ' AND ';
-			sqlwhere = sqlwhere + ' ipobj=' + connection.escape(ipobj);
-		}
-
-		var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE ' + sqlwhere;
-		connection.query(sqlExists, function (error, row) {
-			//If exists Id from interface__ipobj to remove
-			if (row) {
-				db.get(function (error, connection) {
-					var sql = 'DELETE FROM ' + tableModel + ' WHERE ' + sqlwhere;
-					connection.query(sql, function (error, result) {
-						if (error) {
-							callback(error, null);
-						} else {
-							callback(null, {"result": true, "msg": "deleted"});
-						}
-					});
-				});
-			} else {
-				callback(null, {"result": false, "msg": "notExist"});
-			}
-		});
-	});
-};
 
 
 interface__ipobjModel.deleteHostInterface = (dbCon, host, interface) => {
