@@ -85,7 +85,7 @@ restrictedCheck.openvpn_prefix,
 async (req, res) => {
 	try {
 		// Delete prefix.
-		await openvpnPrefixModel.deletePrefix(req);
+		await openvpnPrefixModel.deletePrefix(req.dbCon,req.body.prefix);
 
 		// Regenerate prefixes.
 		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);

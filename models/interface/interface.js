@@ -9,7 +9,6 @@ module.exports = interfaceModel;
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
-var utilsModel = require("../../utils/utils.js");
 var IpobjModel = require('../../models/ipobj/ipobj');
 
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
@@ -585,28 +584,19 @@ interfaceModel.deleteInterfaceHOST = (dbCon, interface) => {
 
 
 //Remove all IPOBJ UNDER INTERFACES UNDER FIREWALL
-interfaceModel.deleteInterfacesIpobjFirewall = function (fwcloud, idfirewall) {
+interfaceModel.deleteInterfacesIpobjFirewall = firewall => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'SELECT ' + fwcloud + ' as fwc, I.*   FROM ' + tableModel + ' I ' +
-					' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
+		db.get((error, dbCon) => {
+			if (error) return reject(error);
 
-			connection.query(sql, function (error, rows) {
-				if (error)
-					reject(error);
-				else {
-					logger.debug("-----> DELETING IPOBJ UNDER INTERFACE");
-					//Bucle por interfaces
-					Promise.all(rows.map(IpobjModel.deleteIpobjInterface))
-							.then(data => {
-								resolve(data);
-							})
-							.catch(e => {
-								reject(e);
-							});
-				}
+			dbCon.query(`select id from interface where firewall=${firewall}`, async (error, interfaces) => {
+				if (error) return reject(error);
+
+				try { 
+					for (let interface of interfaces)
+						await IpobjModel.deleteIpobjInterface(dbCon,interface.id);
+					resolve();
+				} catch(error) { reject(error) }
 			});
 		});
 	});
@@ -614,22 +604,19 @@ interfaceModel.deleteInterfacesIpobjFirewall = function (fwcloud, idfirewall) {
 
 
 //Remove ALL interface from Firewall
-interfaceModel.deleteInterfaceFirewall = function (fwcloud, idfirewall) {
+interfaceModel.deleteInterfaceFirewall = firewall => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			var sql = 'DELETE FROM ' + tableModel + ' WHERE firewall = ' + connection.escape(idfirewall);
-			connection.query(sql, function (error, result) {
-				if (error) {
-					logger.debug(error);
-					reject(error);
-				} else {
-					if (result.affectedRows > 0)
-						resolve({"result": true, "msg": "deleted"});
-					else
-						resolve({"result": false, "msg": "notExist"});
-				}
+			if (error) return reject(error);
+
+			var sql = `DELETE FROM ${tableModel} WHERE firewall=${firewall}`;
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				if (result.affectedRows > 0)
+					resolve({"result": true, "msg": "deleted"});
+				else
+					resolve({"result": false, "msg": "notExist"});
 			});
 		});
-
 	});
 };

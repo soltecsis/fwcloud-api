@@ -4,10 +4,12 @@ var openvpnPrefixModel = {};
 const fwcTreeModel = require('../../../models/tree/tree');
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
 
+const tableModel = 'openvpn_prefix';
+
 // Validate new prefix container.
 openvpnPrefixModel.existsPrefix = (dbCon,openvpn,name) => {
 	return new Promise((resolve, reject) => {
-    dbCon.query(`SELECT id FROM openvpn_prefix WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`, (error, result) => {
+    dbCon.query(`SELECT id FROM ${tableModel} WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`, (error, result) => {
       if (error) return reject(error);
       resolve((result.length>0) ? true : false);
     });
@@ -22,7 +24,7 @@ openvpnPrefixModel.createPrefix = req => {
       name: req.body.name,
       openvpn: req.body.openvpn
     };
-    req.dbCon.query(`INSERT INTO openvpn_prefix SET ?`, prefixData, (error, result) => {
+    req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, prefixData, (error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
     });
@@ -33,7 +35,7 @@ openvpnPrefixModel.createPrefix = req => {
 // Modify a CRT Prefix container.
 openvpnPrefixModel.modifyPrefix = req => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query(`UPDATE openvpn_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
+    req.dbCon.query(`UPDATE ${tableModel} SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
       if (error) return reject(error);
       resolve();
     });
@@ -41,20 +43,33 @@ openvpnPrefixModel.modifyPrefix = req => {
 };
 
 // Delete CRT Prefix container.
-openvpnPrefixModel.deletePrefix = req => {
+openvpnPrefixModel.deletePrefix = (dbCon,prefix) => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query(`DELETE from openvpn_prefix WHERE id=${req.body.prefix}`, (error, result) => {
+    dbCon.query(`DELETE from ${tableModel} WHERE id=${prefix}`, (error, result) => {
       if (error) return reject(error);
       resolve();
     });
   });
 };
 
+// Remove all prefixes under the indicated firewall.
+openvpnPrefixModel.deletePrefixAll = (dbCon,fwcloud,firewall) => {
+	return new Promise((resolve, reject) => {
+    let sql = `delete PRE from ${tableModel} as PRE
+      inner join openvpn VPN on VPN.id=PRE.openvpn
+      inner join firewall FW on FW.id=VPN.firewall
+      where FW.id=${firewall} and FW.fwcloud=${fwcloud}`;
+    dbCon.query(sql, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+};
 
-// Get all prefixes for the indicated CA.
+// Get all prefixes for the indicated openvpn.
 openvpnPrefixModel.getPrefixes = (dbCon,openvpn) => {
 	return new Promise((resolve, reject) => {
-    dbCon.query(`SELECT id,name FROM openvpn_prefix WHERE openvpn=${openvpn}`, (error, result) => {
+    dbCon.query(`SELECT id,name FROM ${tableModel} WHERE openvpn=${openvpn}`, (error, result) => {
       if (error) return reject(error);
       resolve(result);
     });
@@ -245,7 +260,7 @@ openvpnPrefixModel.searchPrefixUsage = (dbCon,fwcloud,prefix) => {
 openvpnPrefixModel.searchPrefixUsageOutOfThisFirewall = req => {
 	return new Promise((resolve, reject) => {
     // First get all firewalls prefixes for OpenVPN configurations.
-    let sql = `select P.id from openvpn_prefix P
+    let sql = `select P.id from ${tableModel} P
       inner join openvpn VPN on VPN.id=P.openvpn
       where VPN.firewall=${req.body.firewall}`;
 

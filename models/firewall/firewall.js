@@ -788,14 +788,7 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
 	});
 };
 
-firewallModel.deleteFirewallPro = fwdata => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			await firewallModel.deleteFirewall(fwdata.iduser, fwdata.fwcloud, fwdata.id)
-			resolve({"result": true, "msg": "Deleted", "restrictions": ""});
-		} catch(error) { return reject(error) }
-	});
-};
+
 /**
  * DELETE Firewall
  *  
@@ -831,24 +824,24 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
 					try {
-						await openvpnModel.delCfgAll(dbCon,fwcloud,firewall); // Remove all OpenVPN configurations for this firewall.
 						await Policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
-						await interfaceModel.deleteInterfacesIpobjFirewall(fwcloud, firewall); // DELETE IPOBJS UNDER INTERFACES
-						await interfaceModel.deleteInterfaceFirewall(fwcloud, firewall); //DELETE INTEFACES
+						await openvpnPrefixModel.deletePrefixAll(dbCon,fwcloud,firewall); // Remove all firewall openvpn prefixes.
+						await openvpnModel.delCfgAll(dbCon,fwcloud,firewall); // Remove all OpenVPN configurations for this firewall.
+						await interfaceModel.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
+						await interfaceModel.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
 						await User__firewallModel.deleteAllUser__firewall(firewall);//DELETE USERS_FIREWALL
 						await fwcTreemodel.deleteFwc_TreeFullNode({id: row[0].id, fwcloud: fwcloud, iduser: user}); //DELETE TREE NODES From firewall
 						await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud+'/'+firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
 
 						//DELETE FIREWALL from the database.
-						var sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + firewall;
-						dbCon.query(sql, (error, result) => {
+						dbCon.query(`DELETE FROM ${tableModel} WHERE id=${firewall}`, (error, result) => {
 							if (error) 
 								resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
 							else 
 								resolve({"result": true, "msg": "deleted"});
 						});
-					} catch(error) { resolve({"result": false, "msg": "ERROR: " + error}) }
-				}
+					} catch(error) { return reject(error) }
+				} else resolve({"result": false, "msg": "not found"});
 			});
 		});
 	});

@@ -7,9 +7,9 @@ module.exports = clusterModel;
 
 var tableModel = "cluster";
 
-var FirewallModel = require('../../models/firewall/firewall');
+var firewallModel = require('../../models/firewall/firewall');
 var fwcTreemodel = require('../tree/tree');
-var InterfaceModel = require('../../models/interface/interface');
+var interfaceModel = require('../../models/interface/interface');
 
 var logger = require('log4js').getLogger("app");
 
@@ -59,18 +59,18 @@ clusterModel.getClusterFullPro = (iduser, fwcloud, idcluster) => {
 				if (row && row.length > 0) {
 					var dataCluster = row[0];
 					//SEARCH FIREWALL NODES
-					FirewallModel.getFirewallCluster(iduser, idcluster, (error, dataFw) => {
+					firewallModel.getFirewallCluster(iduser, idcluster, (error, dataFw) => {
 						if (error) return reject(error);
 						//get data
 						if (dataFw && dataFw.length > 0)
 						{
 							dataCluster.nodes = dataFw;
 							//SEARCH INTERFACES FW-MASTER
-							FirewallModel.getFirewallClusterMaster(iduser, idcluster, (error, dataFwM) => {
+							firewallModel.getFirewallClusterMaster(iduser, idcluster, (error, dataFwM) => {
 								if (error) return reject(error);
 								if (dataFwM && dataFwM.length > 0) {
 									var idFwMaster = dataFwM[0].id;
-									InterfaceModel.getInterfacesFull(idFwMaster, fwcloud, (error, dataI) => {
+									interfaceModel.getInterfacesFull(idFwMaster, fwcloud, (error, dataI) => {
 										if (error) return reject(error);
 										if (dataI && dataI.length > 0) {
 											dataCluster.interfaces = dataI;
@@ -159,9 +159,8 @@ clusterModel.deleteCluster = (dbCon, cluster, iduser, fwcloud) => {
 			if (error) return reject(error);
 
 			try {
-				for (let fw of fws) {
-					await FirewallModel.deleteFirewallPro(fw);
-				}
+				for (let fw of fws)
+					await firewallModel.deleteFirewall(iduser, fwcloud, fw.id)
 			} catch(error) { return reject(error) }
 
 			sql = `SELECT T.* , A.id as idnode FROM ${tableModel} T

@@ -101,7 +101,11 @@ openvpnModel.delCfgAll = (dbCon,fwcloud,firewall) => {
 	return new Promise((resolve, reject) => {
     // Remove all the ipobj referenced by this OpenVPN configuration.
     // In the restrictions check we have already checked that it is possible to remove them.
-    let sql = 'select id from openvpn where firewall='+firewall;
+    // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way, 
+    // and the OpenVPN server is removed first, we will get a database foreign key constraint fails error.
+    let sql = `select VPN.id,CRT.type from openvpn VPN
+      inner join crt CRT on CRT.id=VPN.crt
+      where VPN.firewall=${firewall} order by CRT.type asc`;
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
 
