@@ -1066,7 +1066,7 @@ policy_r__ipobjModel.searchIpobjInRule = (ipobj, type, fwcloud) => {
 				FROM policy_r__ipobj O
 				INNER JOIN policy_r R on R.id=O.rule
 				INNER JOIN firewall F on F.id=R.firewall
-				INNER JOIN  ipobj I on I.id=O.ipobj
+				INNER JOIN ipobj I on I.id=O.ipobj
 				inner join ipobj_type T on T.id=I.type
 				inner join policy_position P on P.id=O.position
 				inner join policy_type PT on PT.id=R.type

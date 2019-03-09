@@ -1029,11 +1029,18 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 ipobjModel.searchIpobjInOpenvpn = (ipobj, type, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
-			if (error) return reject(error);
-			let sql='SELECT VPN.* FROM openvpn AS VPN' +
-				' INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id' +
-				' INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj' +
-				' WHERE OBJ.id=' + ipobj + ' AND OBJ.type=' + type + ' AND (OBJ.fwcloud=' + fwcloud + ' OR OBJ.fwcloud IS NULL)';
+			if (error) return reject(error);				
+						
+			let sql=`SELECT VPN.*, CRT.cn,
+				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM openvpn AS VPN
+				inner join crt CRT on CRT.id=VPN.crt
+				INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id
+				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+				INNER JOIN firewall F on F.id=VPN.firewall
+				inner join fwcloud C on C.id=F.fwcloud
+			 	WHERE OBJ.id=${ipobj} AND OBJ.type=${type} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				resolve(rows);
