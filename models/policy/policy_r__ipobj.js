@@ -1337,7 +1337,7 @@ policy_r__ipobjModel.searchIpobjInterfaces = (ipobj, type, fwcloud) => {
 };
 
 //check if Exist IPOBJS under INTERFACES  IN RULES 
-policy_r__ipobjModel.searchIpobjInterfacesInRules = (interface, type, fwcloud, firewall, diff_firewall) => {
+policy_r__ipobjModel.searchIpobjInterfaceInRule = (interface, type, fwcloud, firewall, diff_firewall) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -1368,7 +1368,7 @@ policy_r__ipobjModel.searchIpobjInterfacesInRules = (interface, type, fwcloud, f
 };
 
 //check if Exist IPOBJS under INTERFACES IN GROUPS
-policy_r__ipobjModel.searchIpobjInterfacesInGroups = (interface, type) => {
+policy_r__ipobjModel.searchIpobjInterfaceInGroup = (interface, type) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);

@@ -1048,3 +1048,30 @@ ipobjModel.searchIpobjInOpenvpn = (ipobj, type, fwcloud) => {
 		});
 	});
 };
+
+//check if interface iupobj exists in and OpenVPN configuration 
+ipobjModel.searchIpobjInterfaceInOpenvpn = (interface, fwcloud, diff_firewall) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);				
+						
+			let sql=`SELECT VPN.*, CRT.cn,
+				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM openvpn AS VPN
+				inner join crt CRT on CRT.id=VPN.crt
+				INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id
+				INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+				INNER JOIN firewall F on F.id=VPN.firewall
+				inner join fwcloud C on C.id=F.fwcloud
+				WHERE OBJ.interface=${interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
+				${diff_firewall ? `AND F.id<>${diff_firewall}`: ''}`;
+				 
+			connection.query(sql, (error, rows) => {
+				if (error) return reject(error);
+				resolve(rows);
+			});
+		});
+	});
+};
+

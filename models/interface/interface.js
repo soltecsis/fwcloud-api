@@ -314,8 +314,9 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 					search.restrictions ={};
 					search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES I POSITIONS
 					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
-					search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfacesInRules(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
-					search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfacesInGroups(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
+					search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
+					search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfaceInGroup(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
+					search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
 					search.restrictions.InterfaceInFirewall = await interfaceModel.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 					search.restrictions.InterfaceInHost = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 
