@@ -71,17 +71,19 @@ restrictedCheck.interface = async (req, res, next) => {
 	try {
 		const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
 
-		// Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost
-		data.result = false;
-		for (let key in data.restrictions) {
-			if (key==='InterfaceInFirewall' || key==='InterfaceInHost')
-				continue;
-			if (data.restrictions[key].length > 0) {
-				data.result = true;
-				break;
+		if (data.result) {
+			// Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost
+			data.result = false;
+			for (let key in data.restrictions) {
+				if (key==='InterfaceInFirewall' || key==='InterfaceInHost')
+					continue;
+				if (data.restrictions[key].length > 0) {
+					data.result = true;
+					break;
+				}
 			}
 		}
-
+		
 		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		else next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }

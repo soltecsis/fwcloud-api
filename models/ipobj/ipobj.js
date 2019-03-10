@@ -951,6 +951,7 @@ ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 				search.restrictions.InterfaceHostInRule = await Policy_r__ipobjModel.searchInterfaceHostInRule(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInRule = await Policy_r__ipobjModel.searchAddrHostInRule(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInGroup = await Ipobj__ipobjgModel.searchAddrHostInGroup(dbCon, fwcloud, id);
+				search.restrictions.AddrHostInOpenvpn = await ipobjModel.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
 			}	
 
 			// Avoid leaving an interface used in a rule without address.
@@ -1075,3 +1076,23 @@ ipobjModel.searchIpobjInterfaceInOpenvpn = (interface, fwcloud, diff_firewall) =
 	});
 };
 
+//check if interface iupobj exists in and OpenVPN configuration 
+ipobjModel.searchAddrHostInOpenvpn = (dbCon, fwcloud, host) => {
+	return new Promise((resolve, reject) => {
+		let sql=`SELECT VPN.*, CRT.cn,
+			C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
+			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+			FROM openvpn AS VPN
+			inner join crt CRT on CRT.id=VPN.crt
+			INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id
+			INNER JOIN ipobj OBJ on OBJ.id=OPT.ipobj
+			inner join interface__ipobj II on II.interface=OBJ.interface
+			INNER JOIN firewall F on F.id=VPN.firewall
+			inner join fwcloud C on C.id=F.fwcloud
+			WHERE II.ipobj=${host} AND F.fwcloud=${fwcloud}`;				 
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
+		});
+	});
+};

@@ -3,7 +3,6 @@ var duplicityCheck = {};
 //Export the object
 module.exports = duplicityCheck;
 
-var logger = require('log4js').getLogger("app");
 var api_resp = require('../utils/api_response');
 
 // Middleware for avoid ipobj duplicities.

@@ -280,6 +280,7 @@ interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
 		answer.restrictions.InterfaceInRules_O = [];
 		answer.restrictions.IpobjInterfaceInRule = [];
 		answer.restrictions.IpobjInterfaceInGroup = [];
+		answer.restrictions.IpobjInterfaceInOpenvpn = [];
 	
 		try {
 			let interfaces = await interfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
@@ -291,6 +292,7 @@ interfaceModel.searchInterfaceUsageOutOfThisFirewall = req => {
 					answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(data.restrictions.InterfaceInRules_O);
 					answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(data.restrictions.IpobjInterfaceInRule);
 					answer.restrictions.IpobjInterfaceInGroup = answer.restrictions.IpobjInterfaceInGroup.concat(data.restrictions.IpobjInterfaceInGroup);
+					answer.restrictions.IpobjInterfaceInOpenvpn = answer.restrictions.IpobjInterfaceInOpenvpn.concat(data.restrictions.IpobjInterfaceInOpenvpn);
 				}
 			}
 		} catch(error) { return reject(error) }
