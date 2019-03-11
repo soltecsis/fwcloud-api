@@ -242,7 +242,7 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 // Get interface address.
 interfaceModel.getInterfaceAddr = (dbCon,interface) => {
 	return new Promise((resolve, reject) => {
-		dbCon.query(`select id from ipobj where interface=${interface}`, (error, result) => {
+		dbCon.query(`select id,interface from ipobj where interface=${interface}`, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
 		});
@@ -313,7 +313,7 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 			search.result = false;
 			if (data && data.length > 0) {
 				try {
-					search.restrictions ={};
+					search.restrictions = {};
 					search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES I POSITIONS
 					search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
 					search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
@@ -321,6 +321,7 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 					search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
 					search.restrictions.InterfaceInFirewall = await interfaceModel.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 					search.restrictions.InterfaceInHost = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
+					search.restrictions.LastInterfaceWitAddrInHostInRule = await IpobjModel.searchLastInterfaceWitAddrInHostInRule(id, fwcloud);
 
 					for (let key in search.restrictions) {
 						if (search.restrictions[key].length > 0) {

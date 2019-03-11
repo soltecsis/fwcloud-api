@@ -1096,3 +1096,47 @@ ipobjModel.searchAddrHostInOpenvpn = (dbCon, fwcloud, host) => {
 		});
 	});
 };
+
+
+ipobjModel.searchLastInterfaceWitAddrInHostInRule = (interface, fwcloud) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, dbCon) => {
+			if (error) return reject(error);				
+			
+			// If this is a host interface, get data for the rules in with the host is beig used.
+			let sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name,
+				O.rule rule_id, R.rule_order,R.type rule_type,  PT.name rule_type_name,O.position rule_position_id, P.name rule_position_name,R.comment rule_comment,
+				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
+				FROM policy_r__ipobj O
+				INNER JOIN ipobj I ON I.id=O.ipobj
+				inner join interface__ipobj II on II.ipobj=I.id
+				inner join ipobj_type T on T.id=I.type
+				INNER JOIN policy_r R on R.id=O.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				inner join fwcloud C on C.id=F.fwcloud
+				inner join policy_position P on P.id=O.position
+				inner join policy_type PT on PT.id=R.type				
+				where II.interface=${interface} AND I.type=8 AND F.fwcloud=${fwcloud}`;
+				 
+			dbCon.query(sql, async (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length === 0) return resolve(rows);
+
+				try {
+					let host = rows[0].obj_id;
+					// Get all host addresses.
+					let all_host_addr = await InterfaceModel.getHostAddr(dbCon,host);
+					for(let addr of all_host_addr) {
+						// If one of the host addresses hast a different interface, then we are not removing 
+						// the last host interface with IP addresses.
+						if (addr.interface != interface) return resolve([]);
+					}
+				} catch(error) { return reject(error) }
+	
+				resolve(rows);
+			});
+		});
+	});
+};
+
