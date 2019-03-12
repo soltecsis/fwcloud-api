@@ -321,7 +321,7 @@ interfaceModel.searchInterfaceUsage = (id, type, fwcloud, diff_firewall) => {
 					search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
 					search.restrictions.InterfaceInFirewall = await interfaceModel.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 					search.restrictions.InterfaceInHost = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
-					search.restrictions.LastInterfaceWitAddrInHostInRule = await IpobjModel.searchLastInterfaceWitAddrInHostInRule(id, fwcloud);
+					search.restrictions.LastInterfaceWithAddrInHostInRule = await IpobjModel.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
 
 					for (let key in search.restrictions) {
 						if (search.restrictions[key].length > 0) {

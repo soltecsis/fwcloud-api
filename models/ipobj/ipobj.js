@@ -1098,7 +1098,7 @@ ipobjModel.searchAddrHostInOpenvpn = (dbCon, fwcloud, host) => {
 };
 
 
-ipobjModel.searchLastInterfaceWitAddrInHostInRule = (interface, fwcloud) => {
+ipobjModel.searchLastInterfaceWithAddrInHostInRule = (interface, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, dbCon) => {
 			if (error) return reject(error);				
