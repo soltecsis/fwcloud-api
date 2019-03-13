@@ -203,8 +203,8 @@ openvpnModel.getOpenvpnClients = (dbCon, openvpn) => {
 // Get OpenVPN client configuration data.
 openvpnModel.getOpenvpnInfo = (dbCon, fwcloud, openvpn, type) => {
 	return new Promise((resolve, reject) => {
-    let sql = `select VPN.*, FW.fwcloud, FW.name as firewall_name, CRT.cn, CA.cn as CA_cn, O.address,
-      IF(FW.cluster is null,FW.cluster,(select name from cluster where id=FW.cluster)) as cluster_name,
+    let sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
+      IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
       IF(VPN.openvpn is null,VPN.openvpn,(select crt.cn from openvpn inner join crt on crt.id=openvpn.crt where openvpn.id=VPN.openvpn)) as openvpn_server_cn
       ${(type===2)?`,O.netmask`:``}, ${(type===1)?`311`:`312`} as type
       from openvpn VPN 
