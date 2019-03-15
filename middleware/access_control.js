@@ -76,16 +76,16 @@ accessCtrl.check = async(req, res, next) => {
 		// Check access to the rule indicated by req.body.rule o req.body.new_rule.
 		if (req.body.rule) {
 			if (!(await checkPolicyRuleAccess(req,req.body.rule)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
 		}
 		if (req.body.new_rule) {
 			if (!(await checkPolicyRuleAccess(req,req.body.new_rule)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
 		}
 		if (req.body.rulesIds) {
 			for (let rule of req.body.rulesIds) {
 				if (!(await checkPolicyRuleAccess(req,rule)))
-					return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+					return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
 			}	
 		}
 

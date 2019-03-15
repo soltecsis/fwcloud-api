@@ -42,6 +42,23 @@ policyPositionModel.getPolicyPositionsByType = (dbCon,type) => {
 	});
 };
 
+
+//Get policy_position by  type
+policyPositionModel.checkPolicyRulePosition = (dbCon,rule,position) => {
+	return new Promise((resolve, reject) => {
+		let sql = `select PP.id from ${tableModel} PP
+			inner join policy_r R on R.type=PP.policy_type
+			where R.id=${rule} and PP.id=${position}`;
+
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve(result.length===1 ? true : false);
+		});
+	});
+};
+
+
+
 function getNegateStatus(dbCon,rule, position) {
 	return new Promise((resolve, reject) => {
 		let sql = `SELECT count(negate) as neg FROM policy_r__ipobj

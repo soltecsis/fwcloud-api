@@ -6,6 +6,7 @@ var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policyPrefixModel = require('../../models/policy/prefix');
+const policyPositionModel = require('../../models/policy/position');
 var db = require('../../db.js');
 var utilsModel = require("../../utils/utils.js");
 var api_resp = require('../../utils/api_response');
@@ -230,7 +231,9 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		// Verify that the route position id is correct for the policy type of the rule.
-
+		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,req.body.position)))
+			throw(new Error('Policy position not found for this rule type')) ;
+		
 		// Negate the rule position adding the rule position id to the negate list.
 
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE POSITION NEGATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
