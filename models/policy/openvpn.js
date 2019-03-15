@@ -112,7 +112,11 @@ policyOpenvpnModel.searchOpenvpnInRule = (dbCon,fwcloud,openvpn) => {
 
 policyOpenvpnModel.searchOpenvpnInGroup = (dbCon,fwcloud,openvpn) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name from openvpn__ipobj_g P
+		var sql = `select P.*, P.ipobj_g group_id, G.name group_name,
+			311 obj_type_id, CRT.cn obj_name
+			from openvpn__ipobj_g P
+			inner join openvpn VPN on VPN.id=P.openvpn			
+			inner join crt CRT on CRT.id=VPN.crt
 			inner join ipobj_g G on G.id=P.ipobj_g
 			where G.fwcloud=${fwcloud} and P.openvpn=${openvpn}`;
 		dbCon.query(sql, (error, rows) => {

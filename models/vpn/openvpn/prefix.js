@@ -220,7 +220,10 @@ openvpnPrefixModel.searchPrefixInRule = (dbCon,fwcloud,prefix) => {
 
 openvpnPrefixModel.searchPrefixInGroup = (dbCon,fwcloud,prefix) => {
 	return new Promise((resolve, reject) => {
-		var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name from openvpn_prefix__ipobj_g P
+    var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name,
+      401 obj_type_id, PRE.name obj_name
+      from openvpn_prefix__ipobj_g P
+      inner join openvpn_prefix PRE on PRE.id=P.prefix
 			inner join ipobj_g G on G.id=P.ipobj_g
 			where G.fwcloud=${fwcloud} and P.prefix=${prefix}`;
 		dbCon.query(sql, (error, rows) => {
