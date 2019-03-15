@@ -1226,12 +1226,12 @@ CREATE TABLE `policy_r` (
   `type` tinyint(1) DEFAULT NULL COMMENT 'rule type:  I, O, F, N',
   `style` varchar(50) CHARACTER SET utf8 DEFAULT NULL,
   `fw_apply_to` int(11) DEFAULT NULL,
+  `negate` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `mark` int(11) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  `interface_negate` tinyint(1) NOT NULL DEFAULT '0',
-  `fw_ref` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_policy_r_type_idx` (`type`),
   KEY `idx_idgroup` (`idgroup`),
@@ -2002,4 +2002,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-02-20  9:36:54
+-- Dump completed on 2019-03-15 12:25:31

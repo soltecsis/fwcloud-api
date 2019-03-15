@@ -317,8 +317,7 @@ policy_rModel.clonePolicy = function(rowData) {
 				comment: rowData.comment,
 				type: rowData.type,
 				style: rowData.style,
-				fw_apply_to: rowData.fw_apply_to,
-				fw_ref: rowData.firewall
+				fw_apply_to: rowData.fw_apply_to
 			};
 
 			var newRule;
