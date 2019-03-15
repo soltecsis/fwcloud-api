@@ -223,6 +223,21 @@ async (req, res) => {
 	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
+
+/* Negate policy rule position */
+router.put('/negate',
+utilsModel.disableFirewallCompileStatus,
+async (req, res) => {
+	try {
+		// Verify that the route position id is correct for the policy type of the rule.
+
+		// Negate the rule position adding the rule position id to the negate list.
+
+		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE POSITION NEGATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error negating rule position', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
 function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise((resolve, reject) => {
 		// Get rule data of rule over which we are running the copy action (up or down of this rule).
