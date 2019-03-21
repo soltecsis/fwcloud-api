@@ -58,7 +58,6 @@ policyPositionModel.checkPolicyRulePosition = (dbCon,rule,position) => {
 };
 
 
-
 function getNegateStatus(dbCon,rule, position) {
 	return new Promise((resolve, reject) => {
 		let sql = `SELECT count(negate) as neg FROM policy_r__ipobj

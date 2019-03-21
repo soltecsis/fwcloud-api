@@ -31,8 +31,8 @@ schema.validate = req => {
 				schema = schema.append({ type: sharedSch.policy_type });
 			else if (req.url === '/policy/rule/get')
 				schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
-			else if (req.url === '/policy/rule/negate')
-				schema = schema.append({ rule: sharedSch.id, position: sharedSch.rule_position, negate: sharedSch._0_1 });
+			else if (req.url==='/policy/rule/position/negate' || req.url==='/policy/rule/position/allow')
+				schema = schema.append({ rule: sharedSch.id, position: sharedSch.rule_position });
 			else if (req.url === '/policy/rule/del')
 				schema = schema.append({ rulesIds: Joi.array().items(sharedSch.id) });
 			else if (req.url === '/policy/rule/active')

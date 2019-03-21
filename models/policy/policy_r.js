@@ -770,3 +770,62 @@ policy_rModel.repointApplyTo = function(rowData) {
 		});
 	});
 };
+
+//Negate rule position.
+policy_rModel.negateRulePosition = req => {
+	return new Promise((resolve, reject) => {
+		let sql = `select negate from ${tableModel} where id=${req.body.rule} and firewall=${req.body.firewall}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length!==1) return reject(new Error('Firewall rule not found'));
+			
+			let negate;
+			if (!(result[0].negate))
+				negate = `${req.body.position}`;
+			else {
+				let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
+				// If the position that we want negate is already in the list, don't add again to the list.
+				for (position of negate_position_list) {
+					if (position === req.body.position) return resolve();
+				}
+				negate =`${result[0].negate} ${req.body.position}`;
+			}
+
+			sql = `update ${tableModel} set negate=${req.dbCon.escape(negate)} 
+				where id=${req.body.rule} and firewall=${req.body.firewall}`;
+			req.dbCon.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve();
+			});
+		});
+	});
+};
+
+//Allow rule position.
+policy_rModel.allowRulePosition = req => {
+	return new Promise((resolve, reject) => {
+		let sql = `select negate from ${tableModel} where id=${req.body.rule} and firewall=${req.body.firewall}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length!==1) return reject(new Error('Firewall rule not found'));
+
+			// Rule position negated list is empty.
+			if (!(result[0].negate)) return resolve();
+
+			let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
+			let new_negate_position_list = [];
+			for (position of negate_position_list) {
+				if (position !== req.body.position)
+					new_negate_position_list.push(position);
+			}
+			negate = (new_negate_position_list.length===0) ? null : new_negate_position_list.join(' ');
+
+			sql = `update ${tableModel} set negate=${req.dbCon.escape(negate)} 
+				where id=${req.body.rule} and firewall=${req.body.firewall}`;
+			req.dbCon.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve();
+			});
+		});
+	});
+};
