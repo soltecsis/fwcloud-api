@@ -64,82 +64,67 @@ policy_cModel.getPolicy_cs_type = function (fwcloud, idfirewall, type, callback)
 
 
 //Get policy_c by  id and firewall
-policy_cModel.getPolicy_c = function (fwcloud, idfirewall, rule, callback) {
-	db.get((error, connection) => {
-		if (error) return callback(error, null);
+policy_cModel.getPolicy_c = (fwcloud, firewall, rule) => {
+	return new Promise(async (resolve,reject) => { 
+		db.get((error, dbCon) => {
+			if (error) return reject(error);
 
-		var sql = 'SELECT R.id,R.rule_order,  ' + 
-				' ((R.updated_at>=C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
-				' R.comment, R.fw_apply_to, IFNULL(FC.name , F.name) as firewall_name ' +
-				' FROM ' + tableModelPolicy + ' R LEFT JOIN ' + tableModel + ' C ON R.id=C.rule ' + 
-				' INNER JOIN firewall F on F.id=R.firewall ' + 
-				' LEFT JOIN firewall FC on FC.id=R.fw_apply_to ' +
-				' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.id=' + connection.escape(rule) + 
-				' AND F.fwcloud=' +  connection.escape(fwcloud) ;
-		
-		connection.query(sql, (error, row) => {
-			if (error) return callback(error, null);
-			callback(null, row);
+			var sql = `SELECT R.id,R.rule_order,
+				((R.updated_at>=C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled,
+				R.comment, R.fw_apply_to, IFNULL(FC.name , F.name) as firewall_name
+				FROM ${tableModelPolicy} R LEFT JOIN ${tableModel} C ON R.id=C.rule
+				INNER JOIN firewall F on F.id=R.firewall
+				LEFT JOIN firewall FC on FC.id=R.fw_apply_to
+				WHERE R.firewall=${firewall} AND R.id=${rule}	AND F.fwcloud=${fwcloud}`;
+			
+			dbCon.query(sql, (error, row) => {
+				if (error) return reject(error);
+				resolve(row);
+			});
 		});
 	});
 };
 
 
 //Add new policy_c from user
-policy_cModel.insertPolicy_c = function (policy_cData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT * FROM ' + tableModel + '  WHERE rule = ' + connection.escape(policy_cData.rule) + ' AND firewall=' + connection.escape(policy_cData.firewall);
-		connection.query(sqlExists, function (error, row) {
-			if (row && row.length > 0) {
-				policy_cModel.updatePolicy_c(policy_cData, function (error, data)
-				{
-					if (error) {
-						callback(error, null);
-					}
-					else{
-						callback(null, {"insertId": policy_cData.id});
-					}
-				});
-				callback(null, {"insertId": policy_cData.id});
-			} else {
-				sqlInsert = 'INSERT INTO ' + tableModel + ' SET rule=' + policy_cData.rule + ', firewall=' + policy_cData.firewall + 
-						", rule_compiled=" + connection.escape(policy_cData.rule_compiled) + ", status_compiled=" + connection.escape(policy_cData.status_compiled) +
-						", updated_at=CURRENT_TIMESTAMP";
-				
-				connection.query(sqlInsert, function (error, result) {
-					if (error) {
-						callback(error, null);
-					} else {
-						//devolvemos la última id insertada
-						logger.debug("CREADA nueva RULE COMPILED: " + result.insertId);
-						callback(null, {"insertId": result.insertId});
-					}
-				});
-			}
+policy_cModel.insertPolicy_c = (policy_cData) => {
+	return new Promise((resolve,reject) => { 
+		db.get((error, dbCon) => {
+			if (error) return reject(error);
+			
+			let sqlExists = `SELECT * FROM ${tableModel} WHERE rule=${policy_cData.rule} AND firewall=${policy_cData.firewall}`;
+			dbCon.query(sqlExists, async (error, row) => {
+				if (row && row.length > 0) {
+					try {
+						await policy_cModel.updatePolicy_c(dbCpon,policy_cData);
+					} catch(error) { return reject(error) }
+				} else {
+					let sqlInsert = `INSERT INTO ${tableModel} SET rule=${policy_cData.rule}, firewall=${policy_cData.firewall}, 
+					rule_compiled=${dbCon.escape(policy_cData.rule_compiled)}, status_compiled=${dbCon.escape(policy_cData.status_compiled)},
+					updated_at=CURRENT_TIMESTAMP`;
+					
+					dbCon.query(sqlInsert, (error, result) => {
+						if (error) return reject(error);
+					});
+				}
+				resolve();
+			});
 		});
 	});
 };
 
 //Update policy_c 
-policy_cModel.updatePolicy_c = function (policy_cData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
+policy_cModel.updatePolicy_c = (dbCon, policy_cData) => {
+	return new Promise((resolve, reject) => {
 		var sql = 'UPDATE ' + tableModel + ' SET rule_compiled = ' + connection.escape(policy_cData.rule_compiled) + ',' +
 				'firewall = ' + connection.escape(policy_cData.firewall) + ',' +
 				'status_compiled = ' + connection.escape(policy_cData.status_compiled) + ', ' +
 				'updated_at=CURRENT_TIMESTAMP ' + 
 				' WHERE rule = ' + policy_cData.rule;
 		
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, {"result": true});
-			}
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

@@ -313,171 +313,171 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule, callback) => {        
-	Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule)
-	.then(data => {
-		if (!data) {
-			callback({"Msg": "Rule data not found."},null);
-			return;
-		}
-
-		const policy_type = data[0].type;
-		if (!policy_type || 
-				(policy_type!==POLICY_TYPE_INPUT && policy_type!==POLICY_TYPE_OUTPUT && policy_type!==POLICY_TYPE_FORWARD
-				 && policy_type!==POLICY_TYPE_SNAT && policy_type!==POLICY_TYPE_DNAT)) {
-			callback({"Msg": "Invalid policy type."},null);
-			return;
-		}
-
-		var cs = "$IPTABLES "; // Compile string.
-		var after_log_action = log_chain = acc_chain = cs_trail = statefull = table = action = "";
-
-		if (policy_type === 4) { // SNAT
-			table = "-t nat";
-			cs += table+" -A POSTROUTING ";
-			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
-				return;
-		}
-		else if (policy_type === 5) { // DNAT
-			table = "-t nat";
-			cs += table+" -A PREROUTING ";
-			if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
-				return;
-		}
-		else { // Filter policy
-			if (data.length != 1 || !(data[0].positions)
-					|| !(data[0].positions[0].position_objs) || !(data[0].positions[1].position_objs) || !(data[0].positions[2].position_objs)
-					|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
-				callback({"Msg": "Bad rule data."},null);
-				return;
-			}
-			cs += "-A " + POLICY_TYPE[policy_type] + " ";
-			action = ACTION[data[0].action];
-			if (action==="ACCEPT") {
-				if (data[0].options & 0x0001) // Statefull rule.
-					statefull ="-m state --state NEW ";
-				else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
-					statefull ="-m state --state NEW ";
-			}
-			else if (action==="ACCOUNTING") {
-				acc_chain = "FWCRULE"+rule+".ACC"; 
-				action = acc_chain; 
-			}
-
-			// If log all rules option is enabled or log option for this rule is enabled.
-			if ((data[0].firewall_options & 0x0010) || (data[0].options & 0x0004)) {
-				log_chain = "FWCRULE"+rule+".LOG";
-				if (!acc_chain) {
-					after_log_action = action;
-					action = log_chain;
-				} else
-					after_log_action = "RETURN";
-			}		
-		}
-
-		cs_trail = statefull+"-j "+action+"\n";
+RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => { 
+	return new Promise(async (resolve,reject) => { 
 		
-		const position_items = RuleCompileModel.pre_compile(data);
-		
-		// Rule compilation process.
-		if (position_items.length === 0) // No conditions rule.
-			cs += cs_trail;
-		else if (position_items.length===1 && !(position_items[0].negate)) { // One condition rule and no negated position.
-			if (position_items[0].str.length === 1) // Only one item in the condition.
-				cs += position_items[0].str[0] + " " + cs_trail;
-			else { // Multiple items in the condition.
-				var cs1 = cs;
-				cs = "";
-				for (var i = 0; i < position_items[0].str.length; i++)
-					cs += cs1 + position_items[0].str[i] + " " + cs_trail;
+		let data;
+		try {
+			data = await Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule);
+			if (!data) return reject(new Error('Rule data not found'));
+
+			const policy_type = data[0].type;
+			if (!policy_type || 
+					(policy_type!==POLICY_TYPE_INPUT && policy_type!==POLICY_TYPE_OUTPUT && policy_type!==POLICY_TYPE_FORWARD
+					&& policy_type!==POLICY_TYPE_SNAT && policy_type!==POLICY_TYPE_DNAT)) {
+				return reject('Invalid policy type');
 			}
-		} else { // Multiple condition rules or one condition rule with the condition (position) negated.
-			for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
-				// We have the position_items array ordered by arrays length.
-				if (position_items[i].str.length===1 && !(position_items[i].negate))
-					cs += position_items[i].str[0]+" ";
-				else {
-					chain_name = "FWCRULE"+rule+".CH"+chain_number;
-					// If we are in the first condition and it is not negated.
-					if (i===0 && !(position_items[i].negate)) {
-						var cs1 = cs;
-						cs = "";
-						for (var j = 0; j < position_items[0].str.length; j++)
-							cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
-					} else {
-						if (!(position_items[i].negate)) {
-							// If we are at the end of the array, the next chain will be the rule action.
-							chain_next = (i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
-						} else { // If the position is negated.
-							chain_next = "RETURN";
-						}
 
-						cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
-						for (j = 0; j < position_items[i].str.length; j++) {
-							cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
-						}
-						chain_number++;
+			var cs = "$IPTABLES "; // Compile string.
+			var after_log_action = log_chain = acc_chain = cs_trail = statefull = table = action = "";
 
-						if (position_items[i].negate)
-							cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
+			if (policy_type === 4) { // SNAT
+				table = "-t nat";
+				cs += table+" -A POSTROUTING ";
+				if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
+					return;
+			}
+			else if (policy_type === 5) { // DNAT
+				table = "-t nat";
+				cs += table+" -A PREROUTING ";
+				if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
+					return;
+			}
+			else { // Filter policy
+				if (data.length != 1 || !(data[0].positions)
+						|| !(data[0].positions[0].position_objs) || !(data[0].positions[1].position_objs) || !(data[0].positions[2].position_objs)
+						|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
+					return reject({"Bad rule data");
+					return;
+				}
+				cs += "-A " + POLICY_TYPE[policy_type] + " ";
+				action = ACTION[data[0].action];
+				if (action==="ACCEPT") {
+					if (data[0].options & 0x0001) // Statefull rule.
+						statefull ="-m state --state NEW ";
+					else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
+						statefull ="-m state --state NEW ";
+				}
+				else if (action==="ACCOUNTING") {
+					acc_chain = "FWCRULE"+rule+".ACC"; 
+					action = acc_chain; 
+				}
+
+				// If log all rules option is enabled or log option for this rule is enabled.
+				if ((data[0].firewall_options & 0x0010) || (data[0].options & 0x0004)) {
+					log_chain = "FWCRULE"+rule+".LOG";
+					if (!acc_chain) {
+						after_log_action = action;
+						action = log_chain;
+					} else
+						after_log_action = "RETURN";
+				}		
+			}
+
+			cs_trail = statefull+"-j "+action+"\n";
+			
+			const position_items = RuleCompileModel.pre_compile(data);
+			
+			// Rule compilation process.
+			if (position_items.length === 0) // No conditions rule.
+				cs += cs_trail;
+			else if (position_items.length===1 && !(position_items[0].negate)) { // One condition rule and no negated position.
+				if (position_items[0].str.length === 1) // Only one item in the condition.
+					cs += position_items[0].str[0] + " " + cs_trail;
+				else { // Multiple items in the condition.
+					var cs1 = cs;
+					cs = "";
+					for (var i = 0; i < position_items[0].str.length; i++)
+						cs += cs1 + position_items[0].str[i] + " " + cs_trail;
+				}
+			} else { // Multiple condition rules or one condition rule with the condition (position) negated.
+				for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
+					// We have the position_items array ordered by arrays length.
+					if (position_items[i].str.length===1 && !(position_items[i].negate))
+						cs += position_items[i].str[0]+" ";
+					else {
+						chain_name = "FWCRULE"+rule+".CH"+chain_number;
+						// If we are in the first condition and it is not negated.
+						if (i===0 && !(position_items[i].negate)) {
+							var cs1 = cs;
+							cs = "";
+							for (var j = 0; j < position_items[0].str.length; j++)
+								cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
+						} else {
+							if (!(position_items[i].negate)) {
+								// If we are at the end of the array, the next chain will be the rule action.
+								chain_next = (i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
+							} else { // If the position is negated.
+								chain_next = "RETURN";
+							}
+
+							cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
+							for (j = 0; j < position_items[i].str.length; j++) {
+								cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
+							}
+							chain_number++;
+
+							if (position_items[i].negate)
+								cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
+						}
 					}
+				}
+
+				// If we have not used IPTABLES user defined chains.
+				if (chain_number === 1)
+					cs += cs_trail;
+			}
+
+			// If we are using UDP or TCP ports in translated service position for NAT rules, 
+			// make sure that the -p tcp or -p udp is included in the compilation string.
+			if ((policy_type===4 || policy_type===5) && data[0].positions[5].position_objs.length===1) { // SNAT or DNAT
+				var substr="";
+				if (data[0].positions[5].position_objs[0].protocol===6) // TCP
+					substr += " -p tcp ";
+				else if (data[0].positions[5].position_objs[0].protocol===17) // UDP
+					substr += " -p udp ";
+					
+				if(cs.indexOf(substr) === -1) {
+					if (policy_type===4)  // SNAT
+						cs = cs.replace(/-A POSTROUTING/g,"-A POSTROUTING"+substr);
+					else // DNAT
+						cs = cs.replace(/-A PREROUTING/g,"-A PREROUTING"+substr);
 				}
 			}
 
-			// If we have not used IPTABLES user defined chains.
-			if (chain_number === 1)
-				cs += cs_trail;
-		}
-
-		// If we are using UDP or TCP ports in translated service position for NAT rules, 
-		// make sure that the -p tcp or -p udp is included in the compilation string.
-		if ((policy_type===4 || policy_type===5) && data[0].positions[5].position_objs.length===1) { // SNAT or DNAT
-			var substr="";
-			if (data[0].positions[5].position_objs[0].protocol===6) // TCP
-			 	substr += " -p tcp ";
-			else if (data[0].positions[5].position_objs[0].protocol===17) // UDP
-				substr += " -p udp ";
-				 
-			if(cs.indexOf(substr) === -1) {
-				if (policy_type===4)  // SNAT
-					cs = cs.replace(/-A POSTROUTING/g,"-A POSTROUTING"+substr);
-				else // DNAT
-				  cs = cs.replace(/-A PREROUTING/g,"-A PREROUTING"+substr);
+			// Accounting and logging is not allowed with SNAT and DNAT chains.
+			if (policy_type!==4 && policy_type!==5) {
+				if (acc_chain) {
+					cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
+				}
+				if (log_chain) {
+					cs = "$IPTABLES -N "+log_chain+"\n" +
+						"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
+						"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n" + cs;
+				}
 			}
-		}
 
-		// Accounting and logging is not allowed with SNAT and DNAT chains.
-		if (policy_type!==4 && policy_type!==5) {
-			if (acc_chain) {
-				cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
-			}
-			if (log_chain) {
-				cs = "$IPTABLES -N "+log_chain+"\n" +
-					"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
-					"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n" + cs;
-			}
-		}
+			// Apply rule only to the selected firewall.
+			if (data[0].fw_apply_to && data[0].firewall_name)
+				cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs+"fi\n";		
+			
+			cs = cs.replace(/  +/g,' ');
 
-		// Apply rule only to the selected firewall.
-		if (data[0].fw_apply_to && data[0].firewall_name)
-			cs = "if [ \"$HOSTNAME\" = \""+data[0].firewall_name+"\" ]; then\n"+cs+"fi\n";		
-		
-		cs = cs.replace(/  +/g,' ');
+			//Save compilation
+			var policy_cData = {
+				rule: rule,
+				firewall: firewall,
+				rule_compiled: cs,
+				status_compiled: 1
+			};
 
-		//Save compilation
-		var policy_cData = {
-			rule: rule,
-			firewall: firewall,
-			rule_compiled: cs,
-			status_compiled: 1
-		};
+			// Store compilation string in the database
+			await Policy_cModel.insertPolicy_c(policy_cData);
 
-		Policy_cModel.insertPolicy_c(policy_cData, (error, data) => { 
-			/* We don't worry about if the rule compilation string is stored fine in the database. */ });
 
-		callback(null,cs);
-	})
-	.catch(error => callback(error,null));
+			resolve(cs);
+		} catch(error) { return reject(error) }
+	});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -485,22 +485,19 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule, callback) => {
 /* Get the rule compilation string or compile it if this string is not uptodate.
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.get = (fwcloud, firewall, type, rule) => {
-	return new Promise((resolve,reject) => { 
-		Policy_cModel.getPolicy_c(fwcloud, firewall, rule, (error, data) => {
-			if (error) return reject(error);
+	return new Promise(async (resolve,reject) => { 
+		try {
+			let data = await Policy_cModel.getPolicy_c(fwcloud, firewall, rule);
 			if (data && data.length > 0) {
 				if (data[0].c_status_recompile === 0)
 					resolve(data[0].c_compiled);
-				else {
-					RuleCompileModel.rule_compile(fwcloud, firewall, type, rule, (error,data) => {
-						if (error) return reject(error)
-						resolve(data);
-					});
-				}
+				else
+					resolve(await RuleCompileModel.rule_compile(fwcloud, firewall, type, rule));
 			}
 			else
 				resolve("");
-		});
+
+		} catch(error) { reject(error) }
 	});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
