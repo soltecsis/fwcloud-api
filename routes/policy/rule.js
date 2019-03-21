@@ -225,8 +225,8 @@ async (req, res) => {
 });
 
 
-/* Negate policy rule position */
-router.put('/position/negate',
+/* Negate/allow policy rule position */
+router.put(['/position/negate','/position/allow'],
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
@@ -234,29 +234,18 @@ async (req, res) => {
 		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,req.body.position)))
 			throw(new Error('Policy position not found for this rule type')) ;
 		
-		// Negate the rule position adding the rule position id to the negate list.
-		await Policy_rModel.negateRulePosition(req);
+		if (req.url==='/position/negate')
+			await Policy_rModel.negateRulePosition(req); // Negate the rule position adding the rule position id to the negate list.
+		else
+			await Policy_rModel.allowRulePosition(req);
+
+		// Recompile the rule.
+		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: req.body.rule };
+		Policy_rModel.compilePolicy_r(accessData, (error, datac) => {});
 
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE POSITION NEGATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error negating rule position', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
 });
-
-/* Enable policy rule position */
-router.put('/position/allow',
-utilsModel.disableFirewallCompileStatus,
-async (req, res) => {
-	try {
-		// Verify that the route position id is correct for the policy type of the rule.
-		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,req.body.position)))
-			throw(new Error('Policy position not found for this rule type')) ;
-		
-		// Allow the rule position adding the rule position id to the negate list.
-		await Policy_rModel.allowRulePosition(req);
-
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE POSITION ALLOWED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error allowing rule position', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
-});
-
 
 function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	return new Promise((resolve, reject) => {

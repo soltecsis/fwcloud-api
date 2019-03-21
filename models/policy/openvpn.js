@@ -77,8 +77,8 @@ policyOpenvpnModel.deleteFromRule = (dbCon,rule) => {
 //Duplicate policy_r__openvpn RULES
 policyOpenvpnModel.duplicatePolicy_r__openvpn = (dbCon, rule, new_rule) => {
 	return new Promise((resolve, reject) => {
-		let sql = `INSERT INTO ${tableModel} (rule, openvpn, position,position_order, negate)
-			(SELECT ${new_rule}, openvpn, position, position_order, negate
+		let sql = `INSERT INTO ${tableModel} (rule, openvpn, position,position_order)
+			(SELECT ${new_rule}, openvpn, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);

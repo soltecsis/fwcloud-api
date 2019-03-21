@@ -38,7 +38,7 @@ async (req, res) => {
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		
-		 const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0);
+		 const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 			//If saved policy_r__ipobj Get data
 			if (data && data.result) {
 				if (data.result && data.allowed) {
@@ -147,7 +147,7 @@ async (req, res) => {
 
 			var data;
 			try {
-				data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0);
+				data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 			} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
 
 			//If saved policy_r__ipobj Get data
@@ -233,38 +233,6 @@ router.put('/get', (req, res) => {
 			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		else
 			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	});
-});
-
-
-/* Update NEGATE policy_r__ipobj that exist */
-/* Update ALL IPOBJ/POLICY_R TO new NEGATE satus*/
-router.put('/negate',
-utilsModel.disableFirewallCompileStatus,
-(req, res) => {
-	var rule = req.body.rule;
-	var position = req.body.position;
-	var negate = req.body.negate;
-
-	policy_r__ipobjModel.updatePolicy_r__ipobj_negate(rule, position, negate, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r__ipobj saved ok, get data
-			if (data && data.result) {
-				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-				policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
 	});
 });
 

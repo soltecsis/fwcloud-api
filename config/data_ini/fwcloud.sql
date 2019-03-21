@@ -1314,7 +1314,6 @@ CREATE TABLE `policy_r__interface` (
   `rule` int(11) NOT NULL,
   `interface` int(11) NOT NULL,
   `position` int(11) NOT NULL,
-  `negate` tinyint(1) NOT NULL DEFAULT '0',
   `position_order` int(11) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1495,7 +1494,6 @@ CREATE TABLE `policy_r__openvpn` (
   `rule` int(11) NOT NULL,
   `openvpn` int(11) NOT NULL,
   `position` int(11) NOT NULL,
-  `negate` tinyint(1) NOT NULL DEFAULT '0',
   `position_order` int(11) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1584,7 +1582,6 @@ CREATE TABLE `policy_r__openvpn_prefix` (
   `rule` int(11) NOT NULL,
   `prefix` int(11) NOT NULL,
   `position` int(11) NOT NULL,
-  `negate` tinyint(1) NOT NULL DEFAULT '0',
   `position_order` int(11) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -2002,4 +1999,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-15 12:25:31
+-- Dump completed on 2019-03-21 13:00:07

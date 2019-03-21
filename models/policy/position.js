@@ -58,17 +58,6 @@ policyPositionModel.checkPolicyRulePosition = (dbCon,rule,position) => {
 };
 
 
-function getNegateStatus(dbCon,rule, position) {
-	return new Promise((resolve, reject) => {
-		let sql = `SELECT count(negate) as neg FROM policy_r__ipobj
-			WHERE rule=${rule} AND position=${position} AND negate=1`;
-		dbCon.query(sql, (error, rows) => {
-			if (error) return reject(error);
-				resolve((rows[0].neg>0)?1:0);
-		});
-	});
-};
-
 //Get object information for the position. Grops, hosts, interfaces, etc. will be breakdown to leaf nodes information.
 policyPositionModel.getRulePositionDataDetailed = position => {
 	return new Promise((resolve, reject) => {
@@ -77,14 +66,14 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 			
 			//SELECT ALL IPOBJ UNDER a POSITION
 			let sql=`SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
-				P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				P.rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join ipobj O on O.id=P.ipobj
 				WHERE rule=${position.rule} AND position=${position.id} AND O.type<>8 ` +
 			
 				//SELECT IPOBJ UNDER HOST/INTERFACE
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
-				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join ipobj O on O.id=P.ipobj
 				inner join interface__ipobj II on II.ipobj=O.id
@@ -94,7 +83,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				
 				//SELECT IPOBJ UNDER GROUP (NOT HOSTS)
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				rule, O.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g
 				inner join ipobj O on O.id=G.ipobj
@@ -102,7 +91,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				
 				//SELECT IPOBJ UNDER HOST IN GROUP 
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, negate, "O" as type
+				rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g
 				inner join ipobj O on O.id=G.ipobj
@@ -113,14 +102,14 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				
 				//SELECT INTERFACES in  POSITION I
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
-				rule, -1,-1,I.id as interface,position,position_order, negate, "I" as type
+				rule, -1,-1,I.id as interface,position,position_order, "I" as type
 				FROM policy_r__interface P
 				inner join interface I on I.id=P.interface
 				WHERE rule=${position.rule} AND position=${position.id} ` +
 				
 				//SELECT IPOBJ UNDER INTERFACE POSITION O
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join interface I on I.id=P.interface
 				inner join ipobj O on O.interface=I.id
@@ -128,7 +117,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				
 				//SELECT IPOBJ UNDER OPENVPN POSITION O
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, "O" as type
 				FROM policy_r__openvpn P
 				inner join openvpn_opt OPT on OPT.openvpn=P.openvpn
 				inner join ipobj O on O.id=OPT.ipobj
@@ -136,7 +125,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 
 				//SELECT IPOBJ UNDER OPENVPN IN GROUP 
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj, P.ipobj_g, -1 as interface, position, position_order, negate, "O" as type
+				rule, O.id as ipobj, P.ipobj_g, -1 as interface, position, position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join openvpn__ipobj_g G on G.ipobj_g=P.ipobj_g
 				inner join openvpn VPN on VPN.id=G.openvpn
@@ -146,7 +135,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				
 				//SELECT IPOBJ UNDER OPENVPN PREFIX POSITION O
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, "O" as type
 				FROM policy_r__openvpn_prefix P
 				inner join openvpn_prefix PRE on PRE.id=P.prefix
 				inner join openvpn VPN on VPN.openvpn=PRE.openvpn
@@ -158,7 +147,7 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 
 				//SELECT IPOBJ UNDER OPENVPN PREFIX IN GROUP
 				`UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-				rule, O.id as ipobj,-1,-1 as interface,position,position_order, negate, "O" as type
+				rule, O.id as ipobj,-1,-1 as interface,position,position_order, "O" as type
 				FROM policy_r__ipobj P
 				inner join openvpn_prefix__ipobj_g G on G.ipobj_g=P.ipobj_g
 				inner join openvpn_prefix PRE on PRE.id=G.prefix
@@ -175,9 +164,8 @@ policyPositionModel.getRulePositionDataDetailed = position => {
 				if (error) return reject(error);
 
 				try {
-					const negate =  await getNegateStatus(dbCon, position.rule, position.id);
-					const dataI = position.ipobjs = await Promise.all(rows.map(IpobjModel.getFinalIpobjPro));
-					resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "negate": negate, "position_objs": dataI});
+					position.ipobjs = await Promise.all(rows.map(IpobjModel.getFinalIpobjPro));
+					resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "position_objs": position.ipobjs});
 				}	catch(error) { reject(error) }
 			});
 		});

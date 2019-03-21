@@ -92,7 +92,6 @@ policy_r__interfaceModel.clonePolicy_r__interface = function(policy_r__interface
 		var p_interfaceData = {
 			rule: policy_r__interfaceData.newrule,
 			interface: policy_r__interfaceData.newInterface,
-			negate: policy_r__interfaceData.negate,
 			position: policy_r__interfaceData.position,
 			position_order: policy_r__interfaceData.position_order
 		};
@@ -120,8 +119,8 @@ policy_r__interfaceModel.clonePolicy_r__interface = function(policy_r__interface
 //Duplicate policy_r__interface RULES
 policy_r__interfaceModel.duplicatePolicy_r__interface = (dbCon, rule, new_rule) => {
 	return new Promise((resolve, reject) => {
-		let sql = `INSERT INTO ${tableModel} (rule, interface, position,position_order, negate)
-			(SELECT ${new_rule}, interface, position, position_order, negate
+		let sql = `INSERT INTO ${tableModel} (rule, interface, position,position_order)
+			(SELECT ${new_rule}, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
@@ -146,7 +145,6 @@ policy_r__interfaceModel.updatePolicy_r__interface = function(idfirewall, rule, 
 					if (error)
 						callback(error, null);
 					var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
-						'negate = ' + connection.escape(policy_r__interfaceData.negate) +
 						' WHERE rule = ' + policy_r__interfaceData.rule + ' AND  interface = ' + policy_r__interfaceData.interface;
 
 					connection.query(sql, function(error, result) {
@@ -177,68 +175,37 @@ policy_r__interfaceModel.updatePolicy_r__interface_position = function(idfirewal
 		} else {
 			allowed = data;
 			if (allowed) {
-				getNegateRulePosition(new_rule, new_position, function(error, data) {
-					if (error) {
-						logger.debug("ERROR : ", error);
-					} else {
-						negate = data;
-						db.get(function(error, connection) {
-							if (error)
-								callback(error, null);
+				db.get(function(error, connection) {
+					if (error) return callback(error, null);
 
+					var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(new_position) + ',' +
+						'rule = ' + connection.escape(new_rule) + ', ' +
+						'position_order = ' + connection.escape(new_order) + ' ' +
+						' WHERE rule = ' + rule + ' AND  interface = ' + interface + ' AND position=' + connection.escape(old_position);
+					connection.query(sql, function(error, result) {
+						if (error) {
+							callback(error, null);
+						} else {
+							if (result.affectedRows > 0) {
+								//Order New position
+								OrderList(new_order, new_rule, new_position, 999999, interface);
 
-							var sql = 'UPDATE ' + tableModel + ' SET position = ' + connection.escape(new_position) + ',' +
-								'negate = ' + connection.escape(negate) + ', ' +
-								'rule = ' + connection.escape(new_rule) + ', ' +
-								'position_order = ' + connection.escape(new_order) + ' ' +
-								' WHERE rule = ' + rule + ' AND  interface = ' + interface + ' AND position=' + connection.escape(old_position);
-							logger.debug(sql);
-							connection.query(sql, function(error, result) {
-								if (error) {
-									callback(error, null);
-								} else {
-									if (result.affectedRows > 0) {
-										//Order New position
-										OrderList(new_order, new_rule, new_position, 999999, interface);
+								logger.debug("ORDENANDO OLD POSITION");
+								logger.debug(result);
+								//Order OLD position
+								OrderList(999999, rule, old_position, old_position_order, interface);
 
-										logger.debug("ORDENANDO OLD POSITION");
-										logger.debug(result);
-										//Order OLD position
-										OrderList(999999, rule, old_position, old_position_order, interface);
-
-										callback(null, { "result": true, "allowed": 1 });
-									} else {
-										callback(null, { "result": false, "allowed": 1 });
-									}
-								}
-							});
-						});
-					}
+								callback(null, { "result": true, "allowed": 1 });
+							} else {
+								callback(null, { "result": false, "allowed": 1 });
+							}
+						}
+					});
 				});
 			} else {
 				callback(null, { "result": false, "allowed": 0 });
 			}
 		}
-	});
-};
-
-//Update NEGATE policy_r__interface for all interface in the rule
-policy_r__interfaceModel.updatePolicy_r__interface_negate = function(rule, position, negate, callback) {
-
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET ' +
-			' negate = ' + connection.escape(negate) + ' ' +
-			' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position);
-
-		connection.query(sql, function(error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, { "result": true });
-			}
-		});
 	});
 };
 
@@ -306,34 +273,8 @@ function checkInterfacePosition(idfirewall, rule, id, position, callback) {
 	});
 }
 
-function getNegateRulePosition(rule, position, callback) {
-
-	var Nneg = 0;
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT count(negate) as neg FROM ' + tableModel +
-			' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
-			' AND negate=1';
-		logger.debug('SQL: ' + sql);
-		connection.query(sql, function(error, rows) {
-			if (error)
-				callback(error, null);
-			else {
-				Nneg = rows[0].neg;
-				logger.debug('Nneg 1: ' + Nneg);
-				if (Nneg > 0)
-					callback(null, 1);
-				else
-					callback(null, 0);
-			}
-		});
-	});
-}
-
 //Remove policy_r__interface with id to remove
 policy_r__interfaceModel.deletePolicy_r__interface = function(rule, interface, position, old_order, callback) {
-
 	db.get(function(error, connection) {
 		if (error)
 			callback(error, null);

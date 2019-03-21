@@ -19,7 +19,6 @@ async (req, res) => {
 	var policy_r__interfaceData = {
 		rule: req.body.rule,
 		interface: req.body.interface,
-		negate: req.body.negate,
 		position: req.body.position,
 		position_order: req.body.position_order
 	};
@@ -88,7 +87,6 @@ async(req, res) => {
 			var policy_r__interfaceData = {
 				rule: new_rule,
 				interface: interface,
-				negate: 0,
 				position: new_position,
 				position_order: new_order
 			};
@@ -137,37 +135,6 @@ utilsModel.disableFirewallCompileStatus,
 			if (data && data.result) {
 				policy_rModel.compilePolicy_r(rule, function(error, datac) {});
 				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
-	});
-});
-
-
-/* Update NEGATE de policy_r__interface that exist */
-router.put('/negate',
-utilsModel.disableFirewallCompileStatus,
-(req, res) => {
-	var rule = req.body.rule;
-	var interface = req.body.interface;
-	var negate = req.body.negate;
-	var position = req.body.position;
-
-	policy_r__interfaceModel.updatePolicy_r__interface_negate(rule, position, negate, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r__interface saved ok, get data
-			if (data && data.result) {
-				policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET NEGATED OK', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			} else {

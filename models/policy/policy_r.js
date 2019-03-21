@@ -233,7 +233,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			policy_rData.comment = 'Allow useful ICMP.';
 			policy_rData.rule_order = 2;
 			policy_r__ipobjData.rule = await policy_rModel.insertPolicy_r(policy_rData);
-			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData, 0);
+			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 
 			// Now create the catch all rule.
 			policy_rData.comment = 'Catch-all rule.';
