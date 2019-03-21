@@ -12,13 +12,7 @@ schema.validate = req => {
 			rule: sharedSch.id
 		});
 
-		// 'openvpn' is not used in the negate route
-		if (req.url !== '/policy/openvpn/negate')
-			schema = schema.append({ openvpn: sharedSch.id });
-
-		if (req.method === 'PUT' && req.url === '/policy/openvpn/negate')
-			schema = schema.append({ position: sharedSch.rule_position, negate: sharedSch._0_1 });
-		else if (req.method === 'POST' || req.method === 'PUT') {
+		if (req.method === 'POST' || req.method === 'PUT') {
 			schema = schema.append({
 				position: sharedSch.rule_position,
 				position_order: sharedSch.u16bits

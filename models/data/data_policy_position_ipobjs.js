@@ -1,10 +1,9 @@
 
 //Create New objet with data policy_r
-function policy_position_ipobjs_data(data, order, negate, type) {
+function policy_position_ipobjs_data(data, order, type) {
 	this.id = data.id;
 	this.name = data.name;
 	this.position_order = order;
-	this.negate = negate;
 	this.fwcloud = data.fwcloud;
 	this.comment = data.comment;
 

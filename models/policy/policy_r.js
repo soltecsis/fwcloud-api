@@ -207,7 +207,6 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 		var policy_r__interfaceData = {
 			rule: null,
 			interface: loInterfaceId,
-			negate: 0,
 			position: 20,
 			position_order: 1
 		};

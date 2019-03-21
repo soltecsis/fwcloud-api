@@ -180,16 +180,16 @@ policyPositionModel.getRulePositionData = position => {
 
 			var position_node = new data_policy_positions(position);
 
-			let sql = `SELECT rule, ipobj, ipobj_g, interface, position, position_order, negate, "O" as type 
+			let sql = `SELECT rule, ipobj, ipobj_g, interface, position, position_order, "O" as type 
 				FROM policy_r__ipobj WHERE rule=${position.rule} AND position=${position.id}
 
-				UNION SELECT rule, interface, 0, 0, position, position_order, negate, "I" as type 
+				UNION SELECT rule, interface, 0, 0, position, position_order, "I" as type 
 				FROM policy_r__interface WHERE rule=${position.rule} AND position=${position.id}
 
-				UNION SELECT rule, openvpn, 0, 0, position, position_order, negate, "VPN" as type 
+				UNION SELECT rule, openvpn, 0, 0, position, position_order, "VPN" as type 
 				FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
 
-				UNION SELECT rule, prefix, 0, 0, position, position_order, negate, "PRO" as type 
+				UNION SELECT rule, prefix, 0, 0, position, position_order, "PRO" as type 
 				FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
 				ORDER BY position_order`;
 			
@@ -221,7 +221,7 @@ policyPositionModel.getRulePositionData = position => {
 						else data = null;
 
 						if (data) {
-							var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.negate, item.type);
+							var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.type);
 							// Add new object node to positions array.
 							position_node.ipobjs.push(ipobj_node);
 						}

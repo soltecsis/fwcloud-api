@@ -211,15 +211,10 @@ ipobjModel.addressParentsData = (connection,addr) => {
 ipobjModel.getIpobjPro = function (position_ipobj) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			if (position_ipobj.negate === undefined)
-				position_ipobj.negate = 0;
-
-			//logger.debug("IPOBJ: ", position_ipobj);
+			if (error) return reject(error);
 
 			//SELECT IPOBJ DATA UNDER POSITION
-			var sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*, T.id id_node, T.id_parent id_parent_node ' +
+			var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node ' +
 					' FROM ' + tableModel + ' I ' +
 					' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR T.fwcloud IS NULL)' +
 					' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
@@ -239,7 +234,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 									.then(interfacesHost => {
 
 										//RETURN IPOBJ HOST DATA                                                                            
-										var hostdata = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+										var hostdata = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, 'O');
 										hostdata.interfaces = interfacesHost;
 
 										resolve(hostdata);
@@ -249,7 +244,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 									});
 						} else {
 							//RETURN IPOBJ DATA
-							var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, 'O');
+							var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, 'O');
 							//logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
 							resolve(ipobj);
 						}
@@ -258,7 +253,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 						InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
 								.then(dataInt => {
 									logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
-									//var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, position_ipobj.negate, 'I');
+									//var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
 									//RETURN INTERFACE DATA
 									resolve(dataInt);
 								})
@@ -272,7 +267,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 								.then(ipobjsGroup => {
 									logger.debug("-------------------------> FINAL de GROUP : " + position_ipobj.ipobj_g + " ----");
 									//RETURN IPOBJ GROUP DATA                                                                            
-									var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, position_ipobj.negate, 'G');
+									var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, 'G');
 									groupdata.ipobjs = ipobjsGroup;
 									resolve(groupdata);
 								})
@@ -295,21 +290,17 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 ipobjModel.getFinalIpobjPro = function (position_ipobj) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			if (position_ipobj.negate === undefined)
-				position_ipobj.negate = 0;
+			if (error) return reject(error);
 
-			//logger.debug("IPOBJ: ", position_ipobj);
 			var sql = "";
 
 			if (position_ipobj.type === "O") {
 				//SELECT IPOBJ DATA UNDER POSITION
-				sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
+				sql = 'SELECT I.*' +
 						' FROM ' + tableModel + ' I ' +
 						' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 			} else {
-				sql = 'SELECT ' + position_ipobj.negate + ' as negate,  I.*' +
+				sql = 'SELECT I.*' +
 						' FROM interface I ' +
 						' WHERE I.id = ' + connection.escape(position_ipobj.interface);
 			}
@@ -320,7 +311,7 @@ ipobjModel.getFinalIpobjPro = function (position_ipobj) {
 				} else {
 					if (row.length > 0) {
 						//RETURN IPOBJ DATA
-						var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.negate, position_ipobj.type);
+						var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.type);
 						//logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
 						resolve(ipobj);
 

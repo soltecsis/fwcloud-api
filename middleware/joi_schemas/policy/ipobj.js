@@ -12,9 +12,7 @@ schema.validate = req => {
       rule: sharedSch.id
     });
 
-    if (req.method==='PUT' && req.url==='/policy/ipobj/negate')
-      schema = schema.append({ position: sharedSch.rule_position, negate: sharedSch._0_1 });
-    else if (req.method==='POST' || req.method==='PUT') {
+   if (req.method==='POST' || req.method==='PUT') {
       schema = schema.append({
         ipobj: sharedSch.id.allow(-1),
         ipobj_g: sharedSch.id.allow(-1),
@@ -32,7 +30,7 @@ schema.validate = req => {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
 
       // Semantic validation.
-      if (req.method==='POST' || (req.method==='PUT' && req.url!=='/policy/ipobj/negate')) {
+      if (req.method==='POST') {
         if ((req.body.ipobj===-1 && req.body.ipobj_g===-1 && req.body.interface===-1)
             || (req.body.ipobj!==-1 && (req.body.ipobj_g!==-1 || req.body.interface!==-1))
             || (req.body.ipobj_g!==-1 && (req.body.ipobj!==-1 || req.body.interface!==-1))

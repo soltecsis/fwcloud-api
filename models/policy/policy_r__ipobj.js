@@ -281,8 +281,7 @@ policy_r__ipobjModel.clonePolicy_r__ipobj = function (policy_r__ipobjData) {
 			ipobj_g: policy_r__ipobjData.ipobj_g,
 			interface: policy_r__ipobjData.interface,
 			position: policy_r__ipobjData.position,
-			position_order: policy_r__ipobjData.position_order,
-			negate: policy_r__ipobjData.negate
+			position_order: policy_r__ipobjData.position_order
 		};
 		db.get(function (error, connection) {
 			if (error)
@@ -363,8 +362,8 @@ policy_r__ipobjModel.cloneInsertPolicy_r__ipobj = function (p_ipobjData) {
 //Duplicate policy_r__ipobj RULES
 policy_r__ipobjModel.duplicatePolicy_r__ipobj = (dbCon, rule, new_rule) => {
 	return new Promise((resolve, reject) => {
-		let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order, negate)
-			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order, negate 
+		let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
+			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
@@ -383,7 +382,6 @@ policy_r__ipobjModel.updatePolicy_r__ipobj = function (rule, ipobj, ipobj_g, int
 		} else {
 			allowed = data;
 			if (allowed) {
-				logger.debug("RULE: " + policy_r__ipobjData.rule, +"  Position: " + policy_r__ipobjData.position + "  NEGATE: " + negate);
 				db.get(function (error, connection) {
 					if (error)
 						callback(error, null);

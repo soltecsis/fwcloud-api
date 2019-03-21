@@ -205,7 +205,7 @@ interfaceModel.getInterfaceFullPro = function (idfirewall, fwcloud, id) {
 											//dataI.ipobjs = dataO;
 											//logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
 											//resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
-											var interface = new data_policy_position_ipobjs(row[0], 0, 0, 'I');
+											var interface = new data_policy_position_ipobjs(row[0], 0, 'I');
 											interface.ipobjs = dataO;
 											resolve(interface);
 											//resolve(dataO);
