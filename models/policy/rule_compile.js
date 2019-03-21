@@ -347,8 +347,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 				if (data.length != 1 || !(data[0].positions)
 						|| !(data[0].positions[0].position_objs) || !(data[0].positions[1].position_objs) || !(data[0].positions[2].position_objs)
 						|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
-					return reject({"Bad rule data");
-					return;
+					return reject("Bad rule data");
 				}
 				cs += "-A " + POLICY_TYPE[policy_type] + " ";
 				action = ACTION[data[0].action];
