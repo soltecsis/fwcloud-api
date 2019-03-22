@@ -9,6 +9,7 @@ schema.validate = req => {
 		var schema = Joi.object().keys({
 			fwcloud: sharedSch.id,
 			firewall: sharedSch.id,
+			openvpn: sharedSch.id,
 			rule: sharedSch.id
 		});
 
