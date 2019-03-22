@@ -38,22 +38,19 @@ load_modules() {
   done
 }
 
-reset_iptables_v4() {
-  $IPTABLES -P OUTPUT  DROP
-  $IPTABLES -P INPUT   DROP
-  $IPTABLES -P FORWARD DROP
+reset_iptables_v4() { 
+  $IPTABLES -P OUTPUT DROP 
+  $IPTABLES -P INPUT DROP 
+  $IPTABLES -P FORWARD DROP 
 
-  $IPTABLES --flush
-  $IPTABLES -X
-  $IPTABLES --flush
-  $IPTABLES --flush FORWARD
-  $IPTABLES --flush INPUT
-  $IPTABLES --flush OUTPUT
-  $IPTABLES --table nat --flush
-  $IPTABLES --table nat --delete-chain
-  $IPTABLES --table mangle --flush
-  $IPTABLES --table mangle --delete-chain
-  $IPTABLES --delete-chain
+  cat /proc/net/ip_tables_names | while read table; do 
+    $IPTABLES -t $table -L -n | while read c chain rest; do 
+      if test "X$c" = "XChain" ; then 
+        $IPTABLES -t $table -F $chain 
+      fi 
+    done 
+    $IPTABLES -t $table -X 
+  done 
 }
 
 reset_iptables_v6() {

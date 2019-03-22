@@ -276,7 +276,7 @@ openvpnModel.dumpCfg = (dbCon,fwcloud,openvpn) => {
                   cfg_line += ' '+opt.arg;
               }
               else if (ipobj.type===9) { // DNS Name
-                cfg_line += ' '+ipobj.address;
+                cfg_line += ' '+ipobj.name;
                 if (opt.name==='remote')
                   cfg_line += ' '+opt.arg;
               }

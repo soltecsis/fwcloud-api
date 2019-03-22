@@ -108,13 +108,19 @@ async (req, res) => {
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 
 	if (content1 === content2) { //SAME POSITION
-		policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, (error, data) => {
+		policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data) {
 				if (data.result) {
 					policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
 					accessData.rule = new_rule;
 					policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+
+					// If after the move we have empty rule positions, then remove them from the negate position list.
+					try {
+						await policy_rModel.allowEmptyRulePositions(req);
+					} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+
 					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
 						res.status(200).json(jsonResp);
 					});
@@ -154,11 +160,17 @@ async (req, res) => {
 			if (data) {
 				if (data.result) {
 					//Delete position 'I'
-					policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, function(error, data) {
+					policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
 							policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
 							accessData.rule = new_rule;
 							policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+
+							// If after the move we have empty rule positions, then remove them from the negate position list.
+							try {
+								await policy_rModel.allowEmptyRulePositions(req);
+							} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+
 							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
 								res.status(200).json(jsonResp);
 							});
@@ -249,11 +261,17 @@ utilsModel.disableFirewallCompileStatus,
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 
-	policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, function(error, data) {
+	policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, async (error, data) => {
 		if (data && data.result) {
 			if (data.msg === "deleted") {
 				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
 				policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+
+				// If after the delete we have empty rule positions, then remove them from the negate position list.
+				try {
+					await policy_rModel.allowEmptyRulePositions(req);
+				} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+				
 				api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});

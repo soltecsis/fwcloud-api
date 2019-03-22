@@ -123,6 +123,7 @@ policy_rModel.getPolicy_r = function(idfirewall, id, callback) {
 		});
 	});
 };
+
 //Get policy_r by  id  
 policy_rModel.getPolicy_r_id = function(id, callback) {
 	db.get(function(error, connection) {
@@ -141,6 +142,21 @@ policy_rModel.getPolicy_r_id = function(id, callback) {
 		});
 	});
 };
+
+//Get rule type for a rule
+policy_rModel.getPolicyRuleType = (dbCon, fwcloud, firewall, rule) => {
+	return new Promise((resolve, reject) => {
+			let sql = `SELECT R.type FROM ${tableModel} R
+				inner join firewall F on F.id=R.firewall
+				WHERE F.fwcloud=${fwcloud} and R.firewall=${firewall} AND R.id=${rule}`;
+
+			dbCon.query(sql, async (error, result) => {
+				if (error) return reject(error);
+				resolve(result[0].type)
+			});
+		});
+};
+
 
 //Get policy_r  GROUP by  NEXT or Previous RULE
 policy_rModel.getPolicy_r_DestGroup = function(idfirewall, offset, order, type, callback) {
@@ -415,39 +431,6 @@ policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
 	});
 };
 
-//Update ORDER de policy_r 
-policy_rModel.updatePolicy_r_order = function(idfirewall, type, id, new_order, old_order, idgroup, callback) {
-	Policy_typeModel.getPolicy_type(type, function(error, data_types) {
-		if (error)
-			callback(error, null);
-		else {
-			if (data_types.length > 0)
-				type = data_types[0].id;
-			else
-				type = 1;
-			db.get(function(error, connection) {
-				if (error)
-					callback(error, null);
-				var sql = 'UPDATE ' + tableModel + ' SET ' +
-					'rule_order = ' + connection.escape(new_order) + ', ' +
-					'idgroup = ' + connection.escape(idgroup) + ' ' +
-					' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall) + ' AND type=' + connection.escape(type);
-				//' AND rule_order=' + connection.escape(old_order);
-
-				connection.query(sql, function(error, result) {
-					if (error) {
-						callback(error, null);
-					} else {
-						if (result.affectedRows > 0) {
-							callback(null, { "result": true });
-						} else
-							callback(null, { "result": false });
-					}
-				});
-			});
-		}
-	});
-};
 
 //Update policy_r from user
 policy_rModel.updatePolicy_r_Group = function(firewall, oldgroup, newgroup, id, callback) {
@@ -771,28 +754,27 @@ policy_rModel.repointApplyTo = function(rowData) {
 };
 
 //Negate rule position.
-policy_rModel.negateRulePosition = req => {
+policy_rModel.negateRulePosition = (dbCon, firewall, rule, position) => {
 	return new Promise((resolve, reject) => {
-		let sql = `select negate from ${tableModel} where id=${req.body.rule} and firewall=${req.body.firewall}`;
-		req.dbCon.query(sql, (error, result) => {
+		let sql = `select negate from ${tableModel} where id=${rule} and firewall=${firewall}`;
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			if (result.length!==1) return reject(new Error('Firewall rule not found'));
 			
 			let negate;
 			if (!(result[0].negate))
-				negate = `${req.body.position}`;
+				negate = `${position}`;
 			else {
 				let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
 				// If the position that we want negate is already in the list, don't add again to the list.
-				for (position of negate_position_list) {
-					if (position === req.body.position) return resolve();
+				for (pos of negate_position_list) {
+					if (pos === position) return resolve();
 				}
-				negate =`${result[0].negate} ${req.body.position}`;
+				negate =`${result[0].negate} ${position}`;
 			}
 
-			sql = `update ${tableModel} set negate=${req.dbCon.escape(negate)} 
-				where id=${req.body.rule} and firewall=${req.body.firewall}`;
-			req.dbCon.query(sql, (error, result) => {
+			sql = `update ${tableModel} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
+			dbCon.query(sql, (error, result) => {
 				if (error) return reject(error);
 				resolve();
 			});
@@ -801,10 +783,10 @@ policy_rModel.negateRulePosition = req => {
 };
 
 //Allow rule position.
-policy_rModel.allowRulePosition = req => {
+policy_rModel.allowRulePosition = (dbCon, firewall, rule, position) => {
 	return new Promise((resolve, reject) => {
-		let sql = `select negate from ${tableModel} where id=${req.body.rule} and firewall=${req.body.firewall}`;
-		req.dbCon.query(sql, (error, result) => {
+		let sql = `select negate from ${tableModel} where id=${rule} and firewall=${firewall}`;
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			if (result.length!==1) return reject(new Error('Firewall rule not found'));
 
@@ -813,18 +795,33 @@ policy_rModel.allowRulePosition = req => {
 
 			let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
 			let new_negate_position_list = [];
-			for (position of negate_position_list) {
-				if (position !== req.body.position)
-					new_negate_position_list.push(position);
+			for (pos of negate_position_list) {
+				if (pos !== position)
+					new_negate_position_list.push(pos);
 			}
 			negate = (new_negate_position_list.length===0) ? null : new_negate_position_list.join(' ');
 
-			sql = `update ${tableModel} set negate=${req.dbCon.escape(negate)} 
-				where id=${req.body.rule} and firewall=${req.body.firewall}`;
-			req.dbCon.query(sql, (error, result) => {
+			sql = `update ${tableModel} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
+			dbCon.query(sql, (error, result) => {
 				if (error) return reject(error);
 				resolve();
 			});
 		});
+	});
+};
+
+//Allow all positions of a rule that are empty.
+policy_rModel.allowEmptyRulePositions = req => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			req.body.type = await policy_rModel.getPolicyRuleType(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
+			let data = await policy_rModel.getPolicyData(req);
+			for (pos of data[0].positions) {
+				if (pos.ipobjs.length===0)
+					await policy_rModel.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
+			}
+		} catch(error) { return reject(error) }
+
+		resolve();
 	});
 };

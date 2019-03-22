@@ -230,14 +230,25 @@ router.put(['/position/negate','/position/allow'],
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
+		const position = req.body.position;
+
 		// Verify that the route position id is correct for the policy type of the rule.
-		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,req.body.position)))
-			throw(new Error('Policy position not found for this rule type')) ;
+		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,position)))
+			throw(new Error('Policy position not found for this rule type'));
+
+		/* 
+		| 14 | Translated Source      |
+		| 16 | Translated Service     |
+		| 34 | Translated Destination |
+		| 35 | Translated Service     |
+		*/
+		if (position===14 || position===16 || position===34 || position===35)
+			throw(new Error('This kind of position can not be negated'));
 		
 		if (req.url==='/position/negate')
-			await Policy_rModel.negateRulePosition(req); // Negate the rule position adding the rule position id to the negate list.
+			await Policy_rModel.negateRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Negate the rule position adding the rule position id to the negate list.
 		else
-			await Policy_rModel.allowRulePosition(req);
+			await Policy_rModel.allowRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Allow the rule position.
 
 		// Recompile the rule.
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: req.body.rule };
