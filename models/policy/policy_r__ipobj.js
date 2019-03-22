@@ -449,7 +449,6 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position_order = function (rule, ipob
 //Update policy_r__ipobj POSITION
 //When Update position we order New and Old POSITION
 policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, callback) {
-
 	//Check if IPOBJ TYPE is ALLOWED in this Position    
 	checkIpobjPosition(new_rule, ipobj, ipobj_g, interface, new_position, function (error, data) {
 		if (error) {
@@ -463,7 +462,7 @@ policy_r__ipobjModel.updatePolicy_r__ipobj_position = function (rule, ipobj, ipo
 					var sql = 'UPDATE ' + tableModel + ' SET ' +
 							'rule = ' + connection.escape(new_rule) + ', ' +
 							'position = ' + connection.escape(new_position) + ', ' +
-							'position_order = ' + connection.escape(new_order) + ', ' +
+							'position_order = ' + connection.escape(new_order) + ' ' +
 							' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
 							' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
 							' AND interface=' + connection.escape(interface);

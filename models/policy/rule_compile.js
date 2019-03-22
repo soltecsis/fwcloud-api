@@ -48,9 +48,23 @@ const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_sd = (dir, sd) => {
+RuleCompileModel.isPositionNegated = (negate, position) => {
+	if (!negate) return false;
+
+	let negate_position_list = negate.split(' ').map(val => { return parseInt(val) });
+	// If the position that we want negate is already in the list, don't add again to the list.
+	for (pos of negate_position_list) {
+		if (pos === position) return true;
+	}
+
+	return false;
+};
+/*----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+RuleCompileModel.pre_compile_sd = (dir, sd, negate) => {
 	var items = {
-		'negate' : ((sd.length>0) ? sd[0].negate : 0),
+		'negate' : negate,
 		'str': []
 	};
 
@@ -68,9 +82,9 @@ RuleCompileModel.pre_compile_sd = (dir, sd) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_if = (dir, ifs) => {
+RuleCompileModel.pre_compile_if = (dir, ifs, negate) => {
 	var items = {
-		'negate' : ((ifs.length>0) ? ifs[0].negate : 0),
+		'negate' : negate,
 		'str': []
 	};
 
@@ -85,9 +99,9 @@ RuleCompileModel.pre_compile_if = (dir, ifs) => {
 // Agrupate services position by protocol number (TCP, UDP, ICMP, etc.) 
 // Returns an array of strings with the services agrupated by protocol.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_svc = (sep,svc) => {
+RuleCompileModel.pre_compile_svc = (sep, svc, negate) => {
 	var items = {
-		'negate' : ((svc.length>0) ? svc[0].negate : 0),
+		'negate' : negate,
 		'str': []
 	};
 	var tcp = udp = imcp = tmp = "";
@@ -209,11 +223,11 @@ RuleCompileModel.pre_compile_svc = (sep,svc) => {
 // This function will return an array of arrays of strings. 
 // Each array will contain the precompiled strings for the items of each rule position.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile = (data) => {
-	var position_items = [];
-	const policy_type = data[0].type;
-	var items, src_position, dst_position, svc_position;
-	var i, j, p;
+RuleCompileModel.pre_compile = rule => {
+	let position_items = [];
+	const policy_type = rule.type;
+	let items, src_position, dst_position, svc_position, dir, objs, negated;
+	let i, j, p;
 
 	if (policy_type === POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
 	else { src_position=1; dst_position=2; svc_position=3;}
@@ -222,15 +236,37 @@ RuleCompileModel.pre_compile = (data) => {
 	// WARNING: The order of creation of the arrays is important for optimization!!!!
 	// The positions first in the array will be used first in the conditions.
 	// INTERFACE IN / OUT
-	if (items=RuleCompileModel.pre_compile_if(((policy_type===POLICY_TYPE_OUTPUT || policy_type===POLICY_TYPE_SNAT) ? "-o " : "-i "), data[0].positions[0].position_objs)) position_items.push(items);
+	dir = (policy_type===POLICY_TYPE_OUTPUT || policy_type===POLICY_TYPE_SNAT) ? "-o " : "-i ";
+	objs = rule.positions[0].position_objs;
+	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[0].id);
+	if (items=RuleCompileModel.pre_compile_if(dir, objs, negated)) 
+		position_items.push(items);
+
 	// INTERFACE OUT
-	if (policy_type===POLICY_TYPE_FORWARD && (items=RuleCompileModel.pre_compile_if("-o ", data[0].positions[1].position_objs))) position_items.push(items);
+	if (policy_type===POLICY_TYPE_FORWARD) {
+		objs = rule.positions[1].position_objs;
+		negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[1].id);
+		if (items=RuleCompileModel.pre_compile_if("-o ", objs, negated)) 
+			position_items.push(items);
+	} 
+
 	// SERVICE
-	if (items=RuleCompileModel.pre_compile_svc(":",data[0].positions[svc_position].position_objs)) position_items.push(items);
+	objs = rule.positions[svc_position].position_objs;
+	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[svc_position].id);
+	if (items=RuleCompileModel.pre_compile_svc(":", objs, negated)) 
+		position_items.push(items);
+
 	// SOURCE
-	if (items=RuleCompileModel.pre_compile_sd("-s ", data[0].positions[src_position].position_objs)) position_items.push(items);
+	objs = rule.positions[src_position].position_objs;
+	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[src_position].id);
+	if (items=RuleCompileModel.pre_compile_sd("-s ", objs, negated)) 
+		position_items.push(items);
+
 	// DESTINATION
-	if (items=RuleCompileModel.pre_compile_sd("-d ", data[0].positions[dst_position].position_objs)) position_items.push(items);
+	objs = rule.positions[dst_position].position_objs;
+	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[dst_position].id);
+	if (items=RuleCompileModel.pre_compile_sd("-d ", objs, negated)) 
+		position_items.push(items);
 
 	// Order the resulting array by number of strings into each array.
 	if (position_items.length < 2) // Don't need ordering.
@@ -245,10 +281,11 @@ RuleCompileModel.pre_compile = (data) => {
 		position_items[p] = tmp;
 	}
 
-	// If we have negated positions and not negated positions, then move the negated positions to the end of the array.
-	if (position_items.length === 1) // Don't need it.
+	// If we have only one item, no further process is required.
+	if (position_items.length === 1)
 		return position_items;
 	
+	// If we have negated positions and not negated positions, then move the negated positions to the end of the array.
 	var position_items_not_negate = [];
 	var position_items_negate = [];
 	for (i = 0; i < position_items.length; i++) {
@@ -265,31 +302,22 @@ RuleCompileModel.pre_compile = (data) => {
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
-  try {
-		if (trans_addr.length>1 || trans_port.length>1) {
-			callback({"Msg": "Translated fields must contain a maximum of one item."},null);			
-			return null;
-		}
+	return new Promise((resolve,reject) => { 
+		if (trans_addr.length>1 || trans_port.length>1) 
+			return reject(new Error('Translated fields must contain a maximum of one item'));			
 
 		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length===0) {
-			if (trans_port.length===0)
-				return "MASQUERADE";
-			callback({"Msg": "For SNAT 'Translated Service' must be empty if 'Translated Source' is empty."},null);
-			return null;
+			if (trans_port.length===0) return resolve ('MASQUERADE');
+			return reject(new Error("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
 		}
 
 		// For DNAT the translated destination is mandatory.
-		if (policy_type===POLICY_TYPE_DNAT && trans_addr.length===0) {
-			callback({"Msg": "For DNAT 'Translated Destination' is mandatory."},null);
-			return null;
-		}
+		if (policy_type===POLICY_TYPE_DNAT && trans_addr.length===0)
+			return reject(new Error("For DNAT 'Translated Destination' is mandatory"));
 	
 		// Only TCP and UDP protocols are allowed for the translated service position.
 		if (trans_port.length===1 && trans_port[0].protocol!==6 && trans_port[0].protocol!==17)
-		{
-			callback({"Msg": "For 'Translated Service' only protocols TCP and UDP are allowed."},null);
-			return null;
-		}
+			return reject(new Error("For 'Translated Service' only protocols TCP and UDP are allowed"));
 	
 		var action = "";
 		if (policy_type===POLICY_TYPE_SNAT)
@@ -298,15 +326,12 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 			action = "DNAT --to-destination "
 
 		if (trans_addr.length === 1) 
-			action += (RuleCompileModel.pre_compile_sd("",trans_addr)).str[0];
+			action += (RuleCompileModel.pre_compile_sd("",trans_addr,false)).str[0];
 		if (trans_port.length === 1) 
-			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port)).str[0];
+			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false)).str[0];
 
-		return action;
-  } catch (e) {        
-		callback(e,null);
-    return null;	
-  }
+		resolve(action);
+	});
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -315,7 +340,6 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => { 
 	return new Promise(async (resolve,reject) => { 
-		
 		let data;
 		try {
 			data = await Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule);
@@ -334,14 +358,12 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			if (policy_type === 4) { // SNAT
 				table = "-t nat";
 				cs += table+" -A POSTROUTING ";
-				if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
-					return;
+				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
 			}
 			else if (policy_type === 5) { // DNAT
 				table = "-t nat";
 				cs += table+" -A PREROUTING ";
-				if (!(action=RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,callback)))
-					return;
+				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
 			}
 			else { // Filter policy
 				if (data.length != 1 || !(data[0].positions)
@@ -375,7 +397,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 
 			cs_trail = statefull+"-j "+action+"\n";
 			
-			const position_items = RuleCompileModel.pre_compile(data);
+			const position_items = RuleCompileModel.pre_compile(data[0]);
 			
 			// Rule compilation process.
 			if (position_items.length === 0) // No conditions rule.
@@ -472,7 +494,6 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 
 			// Store compilation string in the database
 			await Policy_cModel.insertPolicy_c(policy_cData);
-
 
 			resolve(cs);
 		} catch(error) { return reject(error) }
