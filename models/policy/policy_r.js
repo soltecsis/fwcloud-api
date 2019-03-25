@@ -217,6 +217,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			options: 0,
 			comment: '',
 			type: 0,
+			special: 0,
 			style: null
 		};
 
@@ -237,36 +238,75 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 		};
 
 		try {
-			// Generate the default INPUT policy.
+			/**************************************/
+			/* Generate the default INPUT policy. */
+			/**************************************/
 			policy_rData.type = 1;
-			policy_rData.comment = 'Allow all incoming traffic from self host.';
 			policy_rData.action = 1;
+
+			// By defalt we create statefull firewalls.
+			policy_rData.special = 1;
+			policy_rData.comment = 'Stateful firewall rule.';
+			await policy_rModel.insertPolicy_r(policy_rData);
+
+			// Allow all incoming traffic from self host.
+			policy_rData.special = 0;
+			policy_rData.rule_order = 2;
+			policy_rData.comment = 'Allow all incoming traffic from self host.';
 			policy_r__interfaceData.rule = await policy_rModel.insertPolicy_r(policy_rData);
 			await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
 			// Allow useful ICMP traffic.
+			policy_rData.rule_order = 3;
 			policy_rData.comment = 'Allow useful ICMP.';
-			policy_rData.rule_order = 2;
 			policy_r__ipobjData.rule = await policy_rModel.insertPolicy_r(policy_rData);
 			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 
 			// Now create the catch all rule.
-			policy_rData.comment = 'Catch-all rule.';
 			policy_rData.action = 2;
-			policy_rData.rule_order = 3;
-			await policy_rModel.insertPolicy_r(policy_rData);
-
-			// Generate the default FORWARD policy. 
-			policy_rData.type = 3;
+			policy_rData.rule_order = 4;
 			policy_rData.comment = 'Catch-all rule.';
+			await policy_rModel.insertPolicy_r(policy_rData);
+			/**************************************/
+
+
+			/****************************************/
+			/* Generate the default FORWARD policy. */
+			/****************************************/
+			policy_rData.type = 3;
+
+			// By defalt we create statefull firewalls.
+			policy_rData.special = 1;
 			policy_rData.rule_order = 1;
+			policy_rData.action = 1;
+			policy_rData.comment = 'Stateful firewall rule.';
+			await policy_rModel.insertPolicy_r(policy_rData);
+			
+			policy_rData.special = 0;
+			policy_rData.rule_order = 2;
+			policy_rData.action = 2;
+			policy_rData.comment = 'Catch-all rule.';
+			await policy_rModel.insertPolicy_r(policy_rData);
+			/****************************************/
+
+
+			/***************************************/
+			/* Generate the default OUTPUT policy. */
+			/***************************************/
+			policy_rData.type = 2;
+			policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
+
+			// By defalt we create statefull firewalls.
+			policy_rData.special = 1;
+			policy_rData.rule_order = 1;
+			policy_rData.comment = 'Stateful firewall rule.';
 			await policy_rModel.insertPolicy_r(policy_rData);
 
-			// Generate the default OUTPUT policy. 
-			policy_rData.type = 2;
+			policy_rData.special = 0;
+			policy_rData.rule_order = 2;
 			policy_rData.comment = 'Allow all outgoing traffic.';
-			policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
 			await policy_rModel.insertPolicy_r(policy_rData);
+			/***************************************/
 
 			resolve();
 		} catch(error) { return reject(error) }

@@ -371,17 +371,23 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 						|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
 					return reject("Bad rule data");
 				}
+
 				cs += "-A " + POLICY_TYPE[policy_type] + " ";
-				action = ACTION[data[0].action];
-				if (action==="ACCEPT") {
-					if (data[0].options & 0x0001) // Statefull rule.
-						statefull ="-m state --state NEW ";
-					else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
-						statefull ="-m state --state NEW ";
-				}
-				else if (action==="ACCOUNTING") {
-					acc_chain = "FWCRULE"+rule+".ACC"; 
-					action = acc_chain; 
+
+				if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
+					action = "ACCEPT";
+				else {
+					action = ACTION[data[0].action];
+					if (action==="ACCEPT") {
+						if (data[0].options & 0x0001) // Stateful rule.
+							statefull ="-m state --state NEW ";
+						else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
+							statefull ="-m state --state NEW ";
+					}
+					else if (action==="ACCOUNTING") {
+						acc_chain = "FWCRULE"+rule+".ACC"; 
+						action = acc_chain; 
+					}
 				}
 
 				// If log all rules option is enabled or log option for this rule is enabled.
@@ -395,7 +401,10 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 				}		
 			}
 
-			cs_trail = statefull+"-j "+action+"\n";
+			if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
+				cs_trail = "-m state --state ESTABLISHED,RELATED -j "+action+"\n";
+			else
+				cs_trail = statefull+"-j "+action+"\n";
 			
 			const position_items = RuleCompileModel.pre_compile(data[0]);
 			

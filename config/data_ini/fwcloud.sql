@@ -853,6 +853,34 @@ LOCK TABLES `ipobj_type__routing_position` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `label`
+--
+
+DROP TABLE IF EXISTS `label`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `label` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` int(11) unsigned NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_by` int(11) NOT NULL DEFAULT '0',
+  `updated_by` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `label`
+--
+
+LOCK TABLES `label` WRITE;
+/*!40000 ALTER TABLE `label` DISABLE KEYS */;
+/*!40000 ALTER TABLE `label` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `openvpn`
 --
 
@@ -1227,7 +1255,8 @@ CREATE TABLE `policy_r` (
   `style` varchar(50) CHARACTER SET utf8 DEFAULT NULL,
   `fw_apply_to` int(11) DEFAULT NULL,
   `negate` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `mark` int(11) NOT NULL DEFAULT '0',
+  `label` int(11) DEFAULT NULL,
+  `special` int(11) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
@@ -1236,7 +1265,9 @@ CREATE TABLE `policy_r` (
   KEY `fk_policy_r_type_idx` (`type`),
   KEY `idx_idgroup` (`idgroup`),
   KEY `idx_firewall` (`firewall`),
+  KEY `idx_mark` (`label`),
   CONSTRAINT `fk_policy_r-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
+  CONSTRAINT `fk_policy_r-label` FOREIGN KEY (`label`) REFERENCES `label` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_policy_r-policy_g` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`),
   CONSTRAINT `fk_policy_r-policy_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -1892,7 +1923,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,1,'fwcadmin','info@soltecsis.com',1,'$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',NULL,0,0,NULL,'xfcfpXzo7pMKfwvftsaSD7fOYYTUTvVh_3Ssia0qyXyRzUfaBJ4Mr',NULL,'','1',NULL,'2018-12-31 00:00:00','2018-12-31 00:00:00',0,0,'');
+INSERT INTO `user` VALUES (1,1,'fwcadmin','info@soltecsis.com',1,'$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',NULL,0,0,NULL,'jl8q-fKQNEAwji3QmpLk64uWXiqneVLE_rM2TiVBBY8DBHJnyFpVv',NULL,'','1',NULL,'2018-12-31 00:00:00','2019-03-25 10:14:00',0,0,'');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1999,4 +2030,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-21 13:00:07
+-- Dump completed on 2019-03-25 10:30:53

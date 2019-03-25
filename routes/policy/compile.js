@@ -110,13 +110,8 @@ router.put('/', (req, res) => {
 				"log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
 				"policy_load() {\n");
 			
-			if (data.options & 0x0001) { // Statefull firewall
-				stream.write("# Statefull firewall.\n" +
-					"$IPTABLES -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-					"$IPTABLES -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n" +
-					"$IPTABLES -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT\n");
+			if (data.options & 0x0001) // Statefull firewall
 				socketTools.msg("<strong>--- STATEFUL FIREWALL ---</strong>\n\n");
-			}
 			else
 				socketTools.msg("<strong>--- STATELESS FIREWALL ---</strong>\n\n");
 			

@@ -389,8 +389,8 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
 firewallModel.insertFirewall = function (iduser, firewallData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(error);
+			if (error) return reject(error);
+			
 			connection.query('INSERT INTO ' + tableModel + ' SET ?', firewallData, function (error, result) {
 				if (error) {
 					logger.debug("SQL ERROR INSERT: ", error);
