@@ -865,3 +865,25 @@ policy_rModel.allowEmptyRulePositions = req => {
 		resolve();
 	});
 };
+
+// Check special rules for stateful firewalls.
+policy_rModel.checkStatefulRules = (dbCon, firewall, options) => {
+	return new Promise(async (resolve, reject) => {
+		//If this a stateful cluster verify that the stateful special rules exists.
+		// Or remove them if this is not a stateful firewall cluster.
+		if (options & 0x0001) { // Statefull firewall
+			let sql = `select id from ${tableModel} where firewall=${firewall} and special=1`;
+			dbCon.query(sql, (error, result) => {
+				if (error) return reject(error);
+				//If this a stateful cluster verify that the stateful special rules exists.
+				// Or remove them if this is not a stateful firewall cluster.
+				resolve();
+			});
+		} else { // Stateless firewall
+			dbCon.query(`delete from ${tableModel} where firewall=${firewall} and special=1`, (error, result) => {
+				if (error) return reject(error);
+				resolve();
+			});
+		}
+	});
+};

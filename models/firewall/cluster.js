@@ -127,23 +127,18 @@ clusterModel.insertCluster = function (clusterData, callback) {
 };
 
 //Update cluster
-clusterModel.updateCluster = (fwcloud, clusterData) => {
+clusterModel.updateCluster = (dbCon, fwcloud, clusterData) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
+		let sql = `UPDATE ${tableModel} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}
+			WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 
-			let sql = 'UPDATE ' + tableModel + ' SET name=' + connection.escape(clusterData.name) + ', ' +
-				' comment=' + connection.escape(clusterData.comment) +
-				' WHERE id=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
-			connection.query(sql, function (error, result) {
+			sql = `UPDATE firewall SET status=status|3, options=${clusterData.options}
+				WHERE cluster=${clusterData.id} AND fwcloud=${fwcloud}`;
+			dbCon.query(sql, (error, result) => {
 				if (error) return reject(error);
-
-				sql = 'UPDATE firewall SET status=status|3,options=' + connection.escape(clusterData.options)+
-				' WHERE cluster=' + connection.escape(clusterData.id) + ' AND fwcloud=' + connection.escape(fwcloud);
-				connection.query(sql, function (error, result) {
-					if (error) return reject(error);
-					resolve();                
-				});
+				resolve();                
 			});
 		});
 	});

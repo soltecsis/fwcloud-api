@@ -362,22 +362,25 @@ router.put('/clone', (req, res) => {
 
 /* cluster update */
 router.put('/', async (req, res) => {
-	var fwcloud = req.body.fwcloud;
-
 	var JsonData = req.body;
 	//new objet with Cluster data
 	var clusterData = {
 		id: JsonData.clusterData.cluster,
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
-		fwcloud: fwcloud,
+		fwcloud: req.body.fwcloud,
 		options: JsonData.clusterData.options
 	};
 
 	try {
 		const masterFirewallID = await FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
 		await Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID);
-		await ClusterModel.updateCluster(fwcloud, clusterData);
+		await ClusterModel.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
+
+		// If this a stateful cluster verify that the stateful special rules exists.
+		// Or remove them if this is not a stateful firewall cluster.
+		await Policy_rModel.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
+
 		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
 		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
