@@ -89,11 +89,30 @@ accessCtrl.check = async(req, res, next) => {
 			}	
 		}
 
+		// Check access to the iptables mark indicated by req.body.mark parameter.
+		if (req.body.mark) {
+			if (!(await checkIptablesMarkAccess(req)))
+				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Iptables mark ACCESS NOT ALLOWED', 'Iptables Mark', null, jsonResp => res.status(200).json(jsonResp));
+		}
+		
 		next()
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
 };
 
-// Check access to certificate.
+// Check access to iptables mark object.
+function checkIptablesMarkAccess(req) {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`select id form mark where id=${req.body.mark} and fwcloud=${req.body.fwcloud}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length!==1) return resolve(false);
+
+			resolve(true);
+		});
+	});
+};
+
+
+// Check access to firewall policy rule.
 function checkPolicyRuleAccess(req, rule) {
 	return new Promise((resolve, reject) => {
 	 let sql = `select R.id FROM policy_r R
