@@ -1,7 +1,7 @@
 const fwcTreeModel = require('./tree');
 const socketTools = require('../../utils/socket');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-
+const policy_rModel = require('../../models/policy/policy_r');
 
 //create object
 var fwc_treeRepairModel = {};
@@ -186,12 +186,14 @@ fwc_treeRepairModel.regenerateFirewallTree = (rootNode,firewall) => {
 // Check that all firewalls appear in the tree.
 fwc_treeRepairModel.checkFirewallsInTree = rootNode => {
 	return new Promise((resolve, reject) => {
-    let sql = 'SELECT id,name FROM firewall WHERE cluster is null AND fwcloud=' + dbCon.escape(fwcloud);
+    let sql = 'SELECT id,name,options FROM firewall WHERE cluster is null AND fwcloud=' + dbCon.escape(fwcloud);
     dbCon.query(sql, async (error, firewalls) => {
       if (error) return reject(error);
       try {
-        for(let firewall of firewalls)
+        for(let firewall of firewalls) {
           await fwc_treeRepairModel.regenerateFirewallTree(rootNode,firewall);
+          await policy_rModel.checkStatefulRules(dbCon, firewall.id, firewall.options);
+        }
       } catch(error) { return reject(error) };
       resolve();
     });
@@ -238,14 +240,16 @@ fwc_treeRepairModel.regenerateClusterTree = (rootNode,cluster) => {
 // Check that all clusters appear in the tree.
 fwc_treeRepairModel.checkClustersInTree = rootNode => {
 	return new Promise((resolve, reject) => {
-    let sql = 'SELECT C.id,C.name,F.id as fwmaster_id FROM cluster C ' +
+    let sql = 'SELECT C.id,C.name,F.id as fwmaster_id,F.options FROM cluster C ' +
       ' INNER JOIN firewall F on F.cluster=C.id ' +
       ' WHERE C.fwcloud=' + dbCon.escape(fwcloud) + ' AND F.fwmaster=1';
     dbCon.query(sql, async (error, clusters) => {
       if (error) return reject(error);
       try {
-        for(let cluster of clusters)
+        for(let cluster of clusters) {
           await fwc_treeRepairModel.regenerateClusterTree(rootNode,cluster);
+          await policy_rModel.checkStatefulRules(dbCon, cluster.fwmaster_id, cluster.options);
+        }
       } catch(error) { return reject(error) };
       resolve();
     });

@@ -451,6 +451,10 @@ router.put('/', async (req, res) => {
 		data = await FirewallModel.updateFirewall(req.dbCon, req.session.user_id, firewallData);
 		await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
 
+		// If this a stateful firewall verify that the stateful special rules exists.
+		// Or remove them if this is not a stateful firewall.
+		await Policy_rModel.checkStatefulRules(req.dbCon, req.body.firewall, req.body.options);
+
 		//////////////////////////////////
 		//UPDATE FIREWALL NODE STRUCTURE                                    
 		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);

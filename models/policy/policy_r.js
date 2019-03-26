@@ -869,17 +869,50 @@ policy_rModel.allowEmptyRulePositions = req => {
 // Check special rules for stateful firewalls.
 policy_rModel.checkStatefulRules = (dbCon, firewall, options) => {
 	return new Promise(async (resolve, reject) => {
-		//If this a stateful cluster verify that the stateful special rules exists.
-		// Or remove them if this is not a stateful firewall cluster.
+		// If this a stateful firewall verify that the stateful special rules exists.
 		if (options & 0x0001) { // Statefull firewall
 			let sql = `select id from ${tableModel} where firewall=${firewall} and special=1`;
-			dbCon.query(sql, (error, result) => {
+			dbCon.query(sql, async (error, result) => {
 				if (error) return reject(error);
-				//If this a stateful cluster verify that the stateful special rules exists.
-				// Or remove them if this is not a stateful firewall cluster.
+
+				if (result.length===0) { 
+					// If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
+					var policy_rData = {
+						id: null,
+						idgroup: null,
+						firewall: firewall,
+						rule_order: 1,
+						action: 1, // ACCEPT
+						time_start: null,
+						time_end: null,
+						active: 1,
+						options: 0,
+						comment: 'Stateful firewall rule.',
+						type: 1,
+						special: 1,
+						style: null
+					};					
+					try {
+						// INPUT
+						policy_rData.type = 1;
+						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+						await policy_rModel.insertPolicy_r(policy_rData);
+
+						// OUTPUT
+						policy_rData.type = 2;
+						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+						await policy_rModel.insertPolicy_r(policy_rData);
+
+						// FORWARD
+						policy_rData.type = 3;
+						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+						await policy_rModel.insertPolicy_r(policy_rData);
+					} catch(error) { return reject(error) }
+				}
 				resolve();
 			});
 		} else { // Stateless firewall
+			// Or remove them if this is not a stateful firewall.
 			dbCon.query(`delete from ${tableModel} where firewall=${firewall} and special=1`, (error, result) => {
 				if (error) return reject(error);
 				resolve();
