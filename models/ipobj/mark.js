@@ -1,8 +1,6 @@
 //create object
 var markModel = {};
 
-const fwcTreeModel = require('../../../models/tree/tree');
-
 const tableModel = 'mark';
 
 // Verify if the iptables mark exists for the indicated fwcloud.
@@ -19,7 +17,7 @@ markModel.existsMark = (dbCon,fwcloud,code) => {
 markModel.createMark = req => {
 	return new Promise((resolve, reject) => {
     const markData = {
-      id: req.body.mark,
+      fwcloud: req.body.fwcloud,
       code: req.body.code,
       name: req.body.name,
       comment: req.body.comment
@@ -30,3 +28,7 @@ markModel.createMark = req => {
     });
   });
 };
+
+//Export the object
+module.exports = markModel;
+

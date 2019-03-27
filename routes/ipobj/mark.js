@@ -5,7 +5,8 @@ var api_resp = require('../../utils/api_response');
 
 var objModel = 'IptablesMark';
 
-const markModel = require('../../models/vpn/openvpn/prefix');
+const markModel = require('../../models/ipobj/mark');
+const fwcTreeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 
 
@@ -18,7 +19,7 @@ router.post('/', async (req, res) => {
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
     // Verify that we are not creating an iptables mark that already exists for this fwcloud.
-		if (await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.mark)) 
+		if (await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.code)) 
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Iptables mark already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		// Create the new iptables mark for the indicated fwcloud.

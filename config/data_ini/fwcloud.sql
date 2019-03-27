@@ -860,7 +860,7 @@ DROP TABLE IF EXISTS `mark`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mark` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `code` int(11) NOT NULL,
   `fwcloud` int(11) NOT NULL,
   `name` varchar(255) CHARACTER SET utf8 NOT NULL,
@@ -2035,4 +2035,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-27 11:18:34
+-- Dump completed on 2019-03-27 11:37:57
