@@ -57,6 +57,17 @@ router.put('/', async (req, res) => {
 
 
 /**
+ * Get mark data.
+ */
+router.put('/get', async(req, res) => {
+	try {
+		const data = await markModel.getMark(req.dbCon,req.body.mark);
+		api_resp.getJson(data, api_resp.ACR_OK, 'Iptables mark info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting iptables mark info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
  * Delete an iptables mark.
  */
 router.put('/del', 

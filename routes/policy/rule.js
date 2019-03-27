@@ -62,7 +62,8 @@ async (req, res) => {
 		type: req.body.type,
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to,
-		options: req.body.options
+		options: req.body.options,
+		mark: req.body.mark
 	};
 
 	try {

@@ -51,6 +51,15 @@ markModel.deleteMark = (dbCon,mark) => {
   });
 };
 
+markModel.getMark = (dbCon,mark) => {
+	return new Promise((resolve, reject) => {
+    dbCon.query(`select from ${tableModel} WHERE id=${mark}`, (error, result) => {
+      if (error) return reject(error);
+      if (result.length!==1) return reject(new Error('Iptables mark not found'))
+      resolve(result[0]);
+    });
+  });
+};
 
 
 

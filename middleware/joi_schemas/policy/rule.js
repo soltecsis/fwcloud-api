@@ -12,7 +12,7 @@ schema.validate = req => {
 		});
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/policy/rule')) {
-			schema = schema.append({
+			schema = schema.append({ 
 				idgroup: sharedSch.id.allow(null).optional(),
 				rule_order: sharedSch.id.optional(),
 				action: sharedSch.rule_action.optional(),
@@ -23,7 +23,8 @@ schema.validate = req => {
 				comment: sharedSch.comment,
 				type: sharedSch.policy_type.optional(),
 				style: sharedSch.u16bits.optional(),
-				fw_apply_to: sharedSch.id.allow(null).optional()
+				fw_apply_to: sharedSch.id.allow(null).optional(),
+				mark: sharedSch.id.allow(null).optional()
 			});
 			if (req.method === 'PUT') schema = schema.append({ id: sharedSch.id });
 		} else if (req.method === 'PUT') {
