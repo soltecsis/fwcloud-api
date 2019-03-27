@@ -12,6 +12,7 @@ const pkiCAModel = require('../models/vpn/pki/ca');
 const pkiCRTModel = require('../models/vpn/pki/crt');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
+const markModel = require('../models/ipobj/mark');
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
@@ -144,6 +145,15 @@ restrictedCheck.crt = async (req, res, next) => {
 restrictedCheck.openvpn_prefix = async (req, res, next) => {
 	try {
 		let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+restrictedCheck.mark = async (req, res, next) => {
+	try {
+		let data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		
 		next();

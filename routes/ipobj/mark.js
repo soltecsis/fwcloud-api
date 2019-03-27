@@ -55,4 +55,19 @@ router.put('/', async (req, res) => {
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
+
+/**
+ * Delete an iptables mark.
+ */
+router.put('/del', 
+restrictedCheck.mark,
+async (req, res) => {
+	try {
+		// Delete iptables mark.
+		await markModel.deleteMark(req.dbCon,req.body.mark);
+
+		api_resp.getJson(null, api_resp.ACR_OK, 'REMOVED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting an iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
 module.exports = router;
