@@ -6,9 +6,9 @@ const fwcTreeModel = require('../../../models/tree/tree');
 const tableModel = 'mark';
 
 // Verify if the iptables mark exists for the indicated fwcloud.
-markModel.existsMark = (dbCon,fwcloud,mark) => {
+markModel.existsMark = (dbCon,fwcloud,code) => {
 	return new Promise((resolve, reject) => {
-    dbCon.query(`SELECT id FROM ${tableModel} WHERE mark=${mark} AND fwcloud=${fwcloud}`, (error, result) => {
+    dbCon.query(`SELECT id FROM ${tableModel} WHERE code=${code} AND fwcloud=${fwcloud}`, (error, result) => {
       if (error) return reject(error);
       resolve((result.length>0) ? true : false);
     });
@@ -20,6 +20,7 @@ markModel.createMark = req => {
 	return new Promise((resolve, reject) => {
     const markData = {
       id: req.body.mark,
+      code: req.body.code,
       name: req.body.name,
       comment: req.body.comment
     };

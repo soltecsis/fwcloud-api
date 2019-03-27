@@ -861,6 +861,7 @@ DROP TABLE IF EXISTS `mark`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mark` (
   `id` int(11) NOT NULL,
+  `code` int(11) NOT NULL,
   `fwcloud` int(11) NOT NULL,
   `name` varchar(255) CHARACTER SET utf8 NOT NULL,
   `comment` varchar(255) DEFAULT NULL,
@@ -868,7 +869,8 @@ CREATE TABLE `mark` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`,`fwcloud`),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_code_fwcloud` (`code`,`fwcloud`),
   KEY `idx_fwcloud` (`fwcloud`),
   CONSTRAINT `fk_mark-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -1258,19 +1260,19 @@ CREATE TABLE `policy_r` (
   `style` varchar(50) CHARACTER SET utf8 DEFAULT NULL,
   `fw_apply_to` int(11) DEFAULT NULL,
   `negate` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `label` int(11) DEFAULT NULL,
+  `mark` int(11) DEFAULT NULL,
   `special` int(11) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `fk_policy_r_type_idx` (`type`),
   KEY `idx_idgroup` (`idgroup`),
   KEY `idx_firewall` (`firewall`),
-  KEY `idx_mark` (`label`),
+  KEY `idx_type` (`type`),
+  KEY `idx_mark` (`mark`),
   CONSTRAINT `fk_policy_r-firewall` FOREIGN KEY (`firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_policy_r-label` FOREIGN KEY (`label`) REFERENCES `label` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_policy_r-mark` FOREIGN KEY (`mark`) REFERENCES `mark` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_policy_r-policy_g` FOREIGN KEY (`idgroup`) REFERENCES `policy_g` (`id`),
   CONSTRAINT `fk_policy_r-policy_type` FOREIGN KEY (`type`) REFERENCES `policy_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -2033,4 +2035,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-27 10:28:58
+-- Dump completed on 2019-03-27 11:18:34

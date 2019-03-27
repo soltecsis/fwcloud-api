@@ -102,7 +102,7 @@ accessCtrl.check = async(req, res, next) => {
 // Check access to iptables mark object.
 function checkIptablesMarkAccess(req) {
 	return new Promise((resolve, reject) => {
-		req.dbCon.query(`select id form mark where id=${req.body.mark} and fwcloud=${req.body.fwcloud}`, (error, result) => {
+		req.dbCon.query(`select id from mark where id=${req.body.mark} and fwcloud=${req.body.fwcloud}`, (error, result) => {
 			if (error) return reject(error);
 			if (result.length!==1) return resolve(false);
 

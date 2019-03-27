@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 
 
 /**
- * Modify an OpenVPN client prefix container.
+ * Modify an iptables mark.
  */
 router.put('/', async (req, res) => {
 	try {
