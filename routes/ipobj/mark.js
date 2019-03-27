@@ -70,4 +70,18 @@ async (req, res) => {
   } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting an iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
+// API call for check deleting restrictions.
+router.put('/restricted',
+	restrictedCheck.mark,
+	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+
+
+router.put('/where', async (req, res) => {
+	try {
+		const data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
+		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
 module.exports = router;
