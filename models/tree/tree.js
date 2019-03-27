@@ -306,7 +306,7 @@ fwcTreeModel.createObjectsTree = req => {
 			await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Hosts',ids.OBJECTS,'OIH',null,8);
 
 			// OBJECTS / Labels
-			ids.Labels = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Labels',ids.OBJECTS,'LBL',null,30);
+			ids.Labels = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Iptables Marks',ids.OBJECTS,'MRK',null,30);
 
 			// OBJECTS / Groups
 			ids.Groups = await fwcTreeModel.newNode(req.dbCon,req.body.fwcloud,'Groups',ids.OBJECTS,'OIG',null,20);

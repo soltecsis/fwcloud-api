@@ -73,7 +73,7 @@ router.put('/', async (req, res) =>{
         await fwcTreeRepairModel.checkHostObjects(rootNode);
 
         socketTools.msg('<font color="blue">Checking Labels objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.Labels,'LBL',30);
+        await fwcTreeRepairModel.checkNonStdIPObj(ids.Labels,'MRK',30);
 
         socketTools.msg('<font color="blue">Checking objects groups.</font>\n');
         await fwcTreeRepairModel.checkNonStdIPObjGroup(ids.Groups,'OIG',20);

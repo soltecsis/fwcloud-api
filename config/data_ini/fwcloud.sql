@@ -861,13 +861,16 @@ DROP TABLE IF EXISTS `mark`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mark` (
   `id` int(11) NOT NULL,
-  `code` int(11) unsigned NOT NULL,
+  `fwcloud` int(11) NOT NULL,
   `name` varchar(255) CHARACTER SET utf8 NOT NULL,
+  `comment` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`,`fwcloud`),
+  KEY `idx_fwcloud` (`fwcloud`),
+  CONSTRAINT `fk_mark-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2030,4 +2033,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-25 10:30:53
+-- Dump completed on 2019-03-27 10:28:58
