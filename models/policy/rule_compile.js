@@ -20,24 +20,6 @@ var Policy_rModel = require('../../models/policy/policy_r');
  */
 var Policy_cModel = require('../../models/policy/policy_c');
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- *
- */
-var logger = require('log4js').getLogger("compiler");
-
-
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- *
- */
-var api_resp = require('../../utils/api_response');
 
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
@@ -46,6 +28,7 @@ const POLICY_TYPE_SNAT = 4;
 const POLICY_TYPE_DNAT = 5;
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
+const MARK_CHAIN = ['', 'PREROUTING', 'OUTPUT', 'POSTROUTING'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.isPositionNegated = (negate, position) => {
@@ -335,6 +318,62 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 };
 /*----------------------------------------------------------------------------------------------------------------------*/
 
+
+/*----------------------------------------------------------------------------------------------------------------------*/
+RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,table,statefull,action) => {
+	// Rule compilation process.
+	if (position_items.length === 0) // No conditions rule.
+		cs += cs_trail;
+	else if (position_items.length===1 && !(position_items[0].negate)) { // One condition rule and no negated position.
+		if (position_items[0].str.length === 1) // Only one item in the condition.
+			cs += position_items[0].str[0] + " " + cs_trail;
+		else { // Multiple items in the condition.
+			var cs1 = cs;
+			cs = "";
+			for (var i = 0; i < position_items[0].str.length; i++)
+				cs += cs1 + position_items[0].str[i] + " " + cs_trail;
+		}
+	} else { // Multiple condition rules or one condition rule with the condition (position) negated.
+		for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
+			// We have the position_items array ordered by arrays length.
+			if (position_items[i].str.length===1 && !(position_items[i].negate))
+				cs += position_items[i].str[0]+" ";
+			else {
+				chain_name = "FWCRULE"+rule+".CH"+chain_number;
+				// If we are in the first condition and it is not negated.
+				if (i===0 && !(position_items[i].negate)) {
+					var cs1 = cs;
+					cs = "";
+					for (var j = 0; j < position_items[0].str.length; j++)
+						cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
+				} else {
+					if (!(position_items[i].negate)) {
+						// If we are at the end of the array, the next chain will be the rule action.
+						chain_next = (i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
+					} else { // If the position is negated.
+						chain_next = "RETURN";
+					}
+
+					cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
+					for (j = 0; j < position_items[i].str.length; j++) {
+						cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
+					}
+					chain_number++;
+
+					if (position_items[i].negate)
+						cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
+				}
+			}
+		}
+
+		// If we have not used IPTABLES user defined chains.
+		if (chain_number === 1)
+			cs += cs_trail;
+	}
+
+	return cs;
+};
+
 /*----------------------------------------------------------------------------------------------------------------------*/
 /* Get  policy_r by id and  by Id */
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -372,7 +411,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 					return reject("Bad rule data");
 				}
 
-				cs += "-A " + POLICY_TYPE[policy_type] + " ";
+				cs += `-A ${POLICY_TYPE[policy_type]} `;
 
 				if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
 					action = "ACCEPT";
@@ -408,55 +447,8 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			
 			const position_items = RuleCompileModel.pre_compile(data[0]);
 			
-			// Rule compilation process.
-			if (position_items.length === 0) // No conditions rule.
-				cs += cs_trail;
-			else if (position_items.length===1 && !(position_items[0].negate)) { // One condition rule and no negated position.
-				if (position_items[0].str.length === 1) // Only one item in the condition.
-					cs += position_items[0].str[0] + " " + cs_trail;
-				else { // Multiple items in the condition.
-					var cs1 = cs;
-					cs = "";
-					for (var i = 0; i < position_items[0].str.length; i++)
-						cs += cs1 + position_items[0].str[i] + " " + cs_trail;
-				}
-			} else { // Multiple condition rules or one condition rule with the condition (position) negated.
-				for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
-					// We have the position_items array ordered by arrays length.
-					if (position_items[i].str.length===1 && !(position_items[i].negate))
-						cs += position_items[i].str[0]+" ";
-					else {
-						chain_name = "FWCRULE"+rule+".CH"+chain_number;
-						// If we are in the first condition and it is not negated.
-						if (i===0 && !(position_items[i].negate)) {
-							var cs1 = cs;
-							cs = "";
-							for (var j = 0; j < position_items[0].str.length; j++)
-								cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
-						} else {
-							if (!(position_items[i].negate)) {
-								// If we are at the end of the array, the next chain will be the rule action.
-								chain_next = (i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+(chain_number+1);
-							} else { // If the position is negated.
-								chain_next = "RETURN";
-							}
-
-							cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
-							for (j = 0; j < position_items[i].str.length; j++) {
-								cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
-							}
-							chain_number++;
-
-							if (position_items[i].negate)
-								cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
-						}
-					}
-				}
-
-				// If we have not used IPTABLES user defined chains.
-				if (chain_number === 1)
-					cs += cs_trail;
-			}
+			// Generate the compilation string.
+			cs = RuleCompileModel.generate_compilation_string(rule,position_items,cs,cs_trail,table,statefull,action);
 
 			// If we are using UDP or TCP ports in translated service position for NAT rules, 
 			// make sure that the -p tcp or -p udp is included in the compilation string.
@@ -475,15 +467,29 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 				}
 			}
 
-			// Accounting and logging is not allowed with SNAT and DNAT chains.
+			// Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
 			if (policy_type!==4 && policy_type!==5) {
 				if (acc_chain) {
 					cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
 				}
+
 				if (log_chain) {
 					cs = "$IPTABLES -N "+log_chain+"\n" +
 						"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
 						"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n" + cs;
+				}
+
+				if (data[0].mark_code) {
+					cs += `$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `;
+					action = `MARK ${data[0].mark_code}`;
+					cs_trail = `-j ${action}\n`
+					table = '-t mangle';
+					cs = RuleCompileModel.generate_compilation_string(`${rule}-M1`,position_items,cs,cs_trail,table,statefull,action);
+
+					cs += `$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `;
+					action = `CONNMARK --save-mark`;
+					cs_trail = `-j ${action}\n`
+					cs = RuleCompileModel.generate_compilation_string(`${rule}-M2`,position_items,cs,cs_trail,table,statefull,action);
 				}
 			}
 

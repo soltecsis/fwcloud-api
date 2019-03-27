@@ -78,7 +78,8 @@ policy_rModel.getPolicyDataDetailed = (fwcloud, firewall, type, rule) => {
 				F.name as firewall_name,
 				F.options as firewall_options,
 				C.updated_at as c_updated_at,
-				IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
+				IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled,
+				IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
 				FROM ${tableModel} P 
 				LEFT JOIN policy_g G ON G.id=P.idgroup 
 				LEFT JOIN policy_c C ON C.rule=P.id
@@ -920,3 +921,15 @@ policy_rModel.checkStatefulRules = (dbCon, firewall, options) => {
 		}
 	});
 };
+
+
+//Allow all positions of a rule that are empty.
+policy_rModel.firewallWithMarkRules = (dbCon,firewall) => {
+	return new Promise(async (resolve, reject) => {
+		dbCon.query(`select id from ${tableModel} where firewall=${firewall} and mark!=0`, (error, result) => {
+			if (error) return reject(error);
+			resolve((result.length>0) ? true : false);
+		});
+	});
+};
+
