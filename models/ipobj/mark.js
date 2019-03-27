@@ -56,7 +56,7 @@ markModel.getMark = (dbCon,mark) => {
     dbCon.query(`select * from ${tableModel} WHERE id=${mark}`, (error, result) => {
       if (error) return reject(error);
       if (result.length!==1) return reject(new Error('Iptables mark not found'))
-      resolve(result[0]);
+      resolve(result);
     });
   });
 };
