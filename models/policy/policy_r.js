@@ -45,11 +45,13 @@ policy_rModel.getPolicy_rs = function(idfirewall, idgroup, callback) {
 //Get All policy_r by firewall and type
 policy_rModel.getPolicyData = req => {
 	return new Promise((resolve, reject) => {
-		let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, C.updated_at as c_updated_at,
+		let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
+			C.updated_at as c_updated_at, M.code as mark_coke, M.name as mark_name,
 			IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
 			FROM ${tableModel} P
 			LEFT JOIN policy_g G ON G.id=P.idgroup
 			LEFT JOIN policy_c C ON C.rule=P.id
+			LEFT JOIN mark M ON M.id=P.mark
 			WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
 			${(req.body.rule)?` AND P.id=${req.body.rule}`:``} ORDER BY P.rule_order`;
 
