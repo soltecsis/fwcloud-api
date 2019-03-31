@@ -11,6 +11,8 @@ sharedSchema.joiValidationOptions = { convert: false, presence: 'required' };
 
 sharedSchema.id = Joi.number().integer().min(1);
 
+sharedSchema.mark_id = Joi.number().integer().min(0);
+
 sharedSchema.username = Joi.string().alphanum().min(3).max(32);
 sharedSchema.password = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
 

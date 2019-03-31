@@ -24,29 +24,29 @@ var logger = require('log4js').getLogger("app");
 //Get All policy_r by firewall and group
 policy_rModel.getPolicy_rs = function(idfirewall, idgroup, callback) {
 
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var whereGroup = '';
-		if (idgroup !== '') {
-			whereGroup = ' AND idgroup=' + connection.escape(idgroup);
-		}
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + whereGroup + ' ORDER BY rule_order';
-		connection.query(sql, function(error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
-		});
-	});
+    db.get(function(error, connection) {
+        if (error)
+            callback(error, null);
+        var whereGroup = '';
+        if (idgroup !== '') {
+            whereGroup = ' AND idgroup=' + connection.escape(idgroup);
+        }
+        var sql = 'SELECT * FROM ' + tableModel + ' WHERE firewall=' + connection.escape(idfirewall) + whereGroup + ' ORDER BY rule_order';
+        connection.query(sql, function(error, rows) {
+            if (error)
+                callback(error, null);
+            else
+                callback(null, rows);
+        });
+    });
 };
 
 
 //Get All policy_r by firewall and type
 policy_rModel.getPolicyData = req => {
-	return new Promise((resolve, reject) => {
-		let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
-			C.updated_at as c_updated_at, M.code as mark_coke, M.name as mark_name,
+        return new Promise((resolve, reject) => {
+                    let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
+			C.updated_at as c_updated_at, M.code as mark_code, M.name as mark_name,
 			IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
 			FROM ${tableModel} P
 			LEFT JOIN policy_g G ON G.id=P.idgroup
@@ -464,6 +464,7 @@ policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
 		if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
 		if (policy_rData.comment) sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
 		if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
+		if (policy_rData.mark !== undefined && policy_rData.mark !== null) sql += 'mark=' + policy_rData.mark + ',';
 		if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
 		sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
@@ -934,4 +935,3 @@ policy_rModel.firewallWithMarkRules = (dbCon,firewall) => {
 		});
 	});
 };
-
