@@ -464,7 +464,7 @@ policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
 		if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
 		if (policy_rData.comment) sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
 		if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
-		if (policy_rData.mark !== undefined && policy_rData.mark !== null) sql += 'mark=' + policy_rData.mark + ',';
+		if (typeof policy_rData.mark !== 'undefined') sql += 'mark=' + policy_rData.mark + ',';
 		if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
 		sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 

@@ -63,7 +63,7 @@ async (req, res) => {
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to,
 		options: req.body.options,
-		mark: req.body.mark
+		mark: (req.body.mark===0) ? null : req.body.mark
 	};
 
 	try {
