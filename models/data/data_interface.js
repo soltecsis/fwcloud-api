@@ -4,8 +4,8 @@ function interfaces_Data(data) {
     this.id = data.id;
     this.firewall = data.firewall;
     this.name = data.name;
-    this.labelname = data.labelName;
-    this.type = data.type;
+    this.labelName = data.labelName;
+    this.type = +data.type;
     this.securityLevel = data.securityLevel;
     this.interface_type = data.interface_type;
     this.comment = data.comment;
