@@ -375,8 +375,11 @@ fwc_treeRepairModel.checkHostObjects = rootNode => {
 // Regenerate non standard IP objects for this cloud.
 fwc_treeRepairModel.checkNonStdIPObj = (node_id,node_type,ipobj_type) => {
 	return new Promise((resolve, reject) => {
-    let sql = `SELECT id,name,type FROM ipobj 
-      WHERE fwcloud=${fwcloud} AND type=${ipobj_type} AND interface is null`;
+    let sql ='';
+    if (ipobj_type===30) // Iptables marks
+      sql = `SELECT id,name FROM mark WHERE fwcloud=${fwcloud}`;
+    else
+      sql = `SELECT id,name FROM ipobj WHERE fwcloud=${fwcloud} AND type=${ipobj_type} AND interface is null`;
     dbCon.query(sql, async (error, ipobjs) => {
       if (error) return reject(error);
 
