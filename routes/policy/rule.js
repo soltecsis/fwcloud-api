@@ -66,6 +66,10 @@ async (req, res) => {
 		mark: (req.body.mark===0) ? null : req.body.mark
 	};
 
+	// Only allow Iptables marks in INPUT, OUTPUT and FORWARD policy.
+	if (policy_rData.mark && policy_rData.type>3)
+		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Iptables marks only allowed in INPUT, OUTPUT and FORWARD policy', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+
 	try {
 		await Policy_rModel.updatePolicy_r(req.dbCon, policy_rData);
 	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }

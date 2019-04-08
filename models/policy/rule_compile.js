@@ -28,7 +28,8 @@ const POLICY_TYPE_SNAT = 4;
 const POLICY_TYPE_DNAT = 5;
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
-const MARK_CHAIN = ['', 'PREROUTING', 'OUTPUT', 'POSTROUTING'];
+//const MARK_CHAIN = ['', 'PREROUTING', 'OUTPUT', 'POSTROUTING'];
+const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 RuleCompileModel.isPositionNegated = (negate, position) => {
@@ -320,7 +321,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,table,statefull,action) => {
+RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,table,stateful,action) => {
 	// Rule compilation process.
 	if (position_items.length === 0) // No conditions rule.
 		cs += cs_trail;
@@ -345,7 +346,7 @@ RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,
 					var cs1 = cs;
 					cs = "";
 					for (var j = 0; j < position_items[0].str.length; j++)
-						cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+statefull+" -j "+chain_name+"\n" : " ");
+						cs += cs1+position_items[0].str[j]+((j < (position_items[0].str.length - 1)) ? " "+stateful+" -j "+chain_name+"\n" : " ");
 				} else {
 					if (!(position_items[i].negate)) {
 						// If we are at the end of the array, the next chain will be the rule action.
@@ -354,7 +355,7 @@ RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,
 						chain_next = "RETURN";
 					}
 
-					cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? statefull+" -j "+chain_name+"\n" : "");
+					cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? stateful+" -j "+chain_name+"\n" : "");
 					for (j = 0; j < position_items[i].str.length; j++) {
 						cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
 					}
@@ -392,7 +393,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			}
 
 			var cs = "$IPTABLES "; // Compile string.
-			var after_log_action = log_chain = acc_chain = cs_trail = statefull = table = action = "";
+			var after_log_action = log_chain = acc_chain = cs_trail = stateful = table = action = "";
 
 			if (policy_type === 4) { // SNAT
 				table = "-t nat";
@@ -419,9 +420,9 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 					action = ACTION[data[0].action];
 					if (action==="ACCEPT") {
 						if (data[0].options & 0x0001) // Stateful rule.
-							statefull ="-m state --state NEW ";
+							stateful ="-m state --state NEW ";
 						else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
-							statefull ="-m state --state NEW ";
+							stateful ="-m state --state NEW ";
 					}
 					else if (action==="ACCOUNTING") {
 						acc_chain = "FWCRULE"+rule+".ACC"; 
@@ -441,14 +442,14 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			}
 
 			if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
-				cs_trail = "-m state --state ESTABLISHED,RELATED -j "+action+"\n";
+				cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
 			else
-				cs_trail = statefull+"-j "+action+"\n";
+				cs_trail = `${stateful} -j ${action}\n`;
 			
 			const position_items = RuleCompileModel.pre_compile(data[0]);
 			
 			// Generate the compilation string.
-			cs = RuleCompileModel.generate_compilation_string(rule,position_items,cs,cs_trail,table,statefull,action);
+			cs = RuleCompileModel.generate_compilation_string(rule,position_items,cs,cs_trail,table,stateful,action);
 
 			// If we are using UDP or TCP ports in translated service position for NAT rules, 
 			// make sure that the -p tcp or -p udp is included in the compilation string.
@@ -468,7 +469,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			}
 
 			// Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-			if (policy_type!==4 && policy_type!==5) {
+			if (policy_type<=3) {
 				if (acc_chain) {
 					cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
 				}
@@ -480,16 +481,15 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 				}
 
 				if (data[0].mark_code) {
-					cs += `$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `;
-					action = `MARK ${data[0].mark_code}`;
-					cs_trail = `-j ${action}\n`
 					table = '-t mangle';
-					cs = RuleCompileModel.generate_compilation_string(`${rule}-M1`,position_items,cs,cs_trail,table,statefull,action);
 
-					cs += `$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `;
+					action = `MARK --set-mark ${data[0].mark_code}`;
+					cs_trail = `${stateful} -j ${action}\n`
+					cs += RuleCompileModel.generate_compilation_string(`${rule}-M1`,position_items,`$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action);
+
 					action = `CONNMARK --save-mark`;
-					cs_trail = `-j ${action}\n`
-					cs = RuleCompileModel.generate_compilation_string(`${rule}-M2`,position_items,cs,cs_trail,table,statefull,action);
+					cs_trail = `${stateful} -j ${action}\n`
+					cs += RuleCompileModel.generate_compilation_string(`${rule}-M2`,position_items,`$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action);
 				}
 			}
 
