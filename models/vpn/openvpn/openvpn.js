@@ -610,5 +610,24 @@ openvpnModel.removeFromGroup = req => {
   });
 };
 
+
+openvpnModel.getStatusFile = (req,status_file_path) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const fwData = await firewallModel.getFirewallSSH(req);
+      
+      let data = await sshTools.runCommand(fwData.SSHconn,`sudo cat "${status_file_path}"`);
+      // Remove the first line ()
+      let lines = data.split('\n');
+      if (lines[0].startsWith('[sudo] password for ')) 
+        lines.splice(0,1);
+      // join the array back into a single string
+      data = lines.join('\n');
+
+      resolve(data);
+    } catch(error) { reject(error) }
+  });
+};
+
 //Export the object
 module.exports = openvpnModel;

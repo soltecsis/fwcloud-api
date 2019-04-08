@@ -57,7 +57,6 @@ const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
-const socketTools = require('../../../utils/socket');
 
 
 /**
@@ -338,10 +337,9 @@ router.put('/ccdsync', async(req, res) => {
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw (new Error('This is not an OpenVPN server configuration'));
 
-		// Obtain de configuration directory in the client-config-dir configuration option of the opevpn
+		// Obtain the configuration directory in the client-config-dir configuration option of the OpenVPN
 		// server configuration.
-		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
-		const client_config_dir = openvpn_opt.arg;
+		const client_config_dir = (await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir')).arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
 		const clients = await openvpnModel.getOpenvpnClients(req.dbCon,req.body.openvpn);
@@ -361,5 +359,25 @@ router.put('/ccdsync', async(req, res) => {
 		api_resp.getJson(null, api_resp.ACR_OK, 'CCD configuration files installed', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error installing CCD configuration files', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
+
+
+/**
+ * Get the OpenVPN server status log file.
+ */
+router.put('/status/get', async(req, res) => {
+	try {
+		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
+			throw (new Error('This is not an OpenVPN server configuration'));
+
+		// Obtain the status log file option of the OpeVPN server configuration.
+		const status_file_path = (await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'status')).arg;
+
+		const data = await openvpnModel.getStatusFile(req,status_file_path);
+
+		api_resp.getJson(data, api_resp.ACR_OK, 'OpenVPN status file', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN status file', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
 
 module.exports = router;
