@@ -57,6 +57,7 @@ const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
+const interfaceModel = require('../../../models/interface/interface');
 
 
 /**
@@ -115,6 +116,31 @@ router.post('/', async(req, res) => {
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this new OpenVPN configuration.
 		let groups = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,cfg);
 		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
+
+		// If we are creaing an OpenVPN server configuration, then create the VPN virtual network interface with its assigned IP.
+		if (req.crt.type===2) { // 1=Client certificate, 2=Server certificate.
+			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,cfg,'dev');
+			if (openvpn_opt) {
+				// Create the OpenVPN server network interface.
+				const interfaceData = {
+					id: null,
+					firewall: req.body.firewall,
+					name: openvpn_opt.arg,
+					labelName: '',
+					type: 10,
+					interface_type: 10,
+					comment: '',
+					mac: ''
+				};
+				const insertId = await interfaceModel.insertInterface(req.dbCon, interfaceData);
+				if (insertId) {
+					const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon,req.body.fwcloud,req.body.firewall,'FDI')
+					if (interfaces_node) {
+						nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, openvpn_opt.arg, interfaces_node.id, 'IFF', insertId, 10);
+					}
+				}
+			}
+		}
 
 		api_resp.getJson({ insertId: cfg, TreeinsertId: nodeId }, api_resp.ACR_OK, 'OpenVPN configuration created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating OpenVPN configuration', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -281,6 +307,7 @@ router.put('/install', async(req, res) => {
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			if (!openvpn_opt) throw(new Error(`OpenVPN 'client-config-dir' option not found`));
 			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true);
 		}
 		else { // Server certificate
@@ -311,6 +338,7 @@ router.put('/uninstall', async(req, res) => {
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			if (!openvpn_opt) throw(new Error(`OpenVPN 'client-config-dir' option not found`));
 			await openvpnModel.uninstallCfg(req,openvpn_opt.arg,crt.cn);
 		}
 		else { // Server certificate
@@ -339,7 +367,9 @@ router.put('/ccdsync', async(req, res) => {
 
 		// Obtain the configuration directory in the client-config-dir configuration option of the OpenVPN
 		// server configuration.
-		const client_config_dir = (await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir')).arg;
+		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
+		if (!openvpn_opt) throw(new Error(`OpenVPN 'client-config-dir' option not found`));
+		const client_config_dir = openvpn_opt.arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
 		const clients = await openvpnModel.getOpenvpnClients(req.dbCon,req.body.openvpn);
@@ -371,7 +401,9 @@ router.put('/status/get', async(req, res) => {
 			throw (new Error('This is not an OpenVPN server configuration'));
 
 		// Obtain the status log file option of the OpeVPN server configuration.
-		const status_file_path = (await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'status')).arg;
+		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'status');
+		if (!openvpn_opt) throw(new Error(`OpenVPN 'status' option not found`));
+		const status_file_path = openvpn_opt.arg;
 
 		const data = await openvpnModel.getStatusFile(req,status_file_path);
 

@@ -81,7 +81,7 @@ router.get('/interface__ipobj/:interface/:ipobj', (req, res) => {
 
 
 /* Create New interface__ipobj */
-router.post("/interface__ipobj/", (req, res) => {
+router.post("/interface__ipobj/", async (req, res) => {
 	//Create New objet with data interface__ipobj
 	var interface__ipobjData = {
 		interface: req.body.interface,
@@ -89,31 +89,11 @@ router.post("/interface__ipobj/", (req, res) => {
 		interface_order: req.body.interface_order
 	};
 
-	Interface__ipobjModel.UpdateHOST(req.body.interface)
-			.then(() => {
-				Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function (error, data)
-				{
-					if (error)
-						api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function (jsonResp) {
-							res.status(200).json(jsonResp);
-						});
-					else {
-						//If saved interface__ipobj Get data
-						if (data && data.result)
-						{
-							var dataresp = {"insertId": data.insertId};
-							api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						} else
-						{
-							api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						}
-					}
-				});
-			});
+	try {
+		await Interface__ipobjModel.UpdateHOST(req.body.interface);
+		insertId = await Interface__ipobjModel.insertInterface__ipobj(req.dbCon, interface__ipobjData);
+		api_resp.getJson({"insertId": insertId}, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
+	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 /* Update interface__ipobj that exist */

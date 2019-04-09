@@ -81,18 +81,11 @@ interface__ipobjModel.getInterface__ipobj_hosts = (interface, fwcloud) => {
 };
 
 //Add new interface__ipobj 
-interface__ipobjModel.insertInterface__ipobj = function (interface__ipobjData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', interface__ipobjData, function (error, result) {
-			if (error) {
-				//throw error;
-				callback(error, null);
-			} else {
-				//devolvemos la última id insertada
-				callback(null, {"result": true, "insertId": result.insertId});
-			}
+interface__ipobjModel.insertInterface__ipobj = (dbCon, interface__ipobjData) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`INSERT INTO ${tableModel} SET ?`, interface__ipobjData, (error, result) => {
+			if (error) return reject(error);
+			resolve(result.affectedRows>0 ? result.insertId: null);
 		});
 	});
 };

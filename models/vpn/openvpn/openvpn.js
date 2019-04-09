@@ -153,9 +153,7 @@ openvpnModel.getOptData = (dbCon,openvpn,name) => {
     let sql = 'select * from openvpn_opt where openvpn='+openvpn+' and name='+dbCon.escape(name);
     dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
-      if (result.length<1) return reject(new Error('OpenVPN option not found'))
-
-      resolve(result[0]);
+      resolve(result.length===0 ? null : result[0]);
     });
   });
 };

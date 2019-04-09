@@ -360,21 +360,11 @@ interfaceModel.searchInterfaceInFirewall = (interface, type, fwcloud) => {
 
 
 //Add new interface from user
-interfaceModel.insertInterface = function (interfaceData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', interfaceData, function (error, result) {
-			if (error) {
-				logger.debug(error);
-				callback(error, null);
-			} else {
-				if (result.affectedRows > 0) {
-					//devolvemos la última id insertada
-					callback(null, {"insertId": result.insertId});
-				} else
-					callback(null, {"insertId": 0});
-			}
+interfaceModel.insertInterface = (dbCon, interfaceData) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`INSERT INTO ${tableModel} SET ?`, interfaceData, (error, result) => {
+			if (error) return reject(error);
+			resolve(result.affectedRows>0 ? result.insertId: null);
 		});
 	});
 };
@@ -485,9 +475,9 @@ interfaceModel.cloneFirewallInterfaces = function (iduser, fwcloud, idfirewall, 
 	});
 };
 
-interfaceModel.cloneInterface = function (rowData) {
+interfaceModel.cloneInterface = (rowData) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
+		db.get(async (error, dbCon) => {
 			if (error) return reject(error);
 
 			//CREATE NEW INTERFACE
@@ -502,30 +492,29 @@ interfaceModel.cloneInterface = function (rowData) {
 				comment: rowData.comment,
 				mac: rowData.mac,
 			};
-			interfaceModel.insertInterface(interfaceData, function (error, data) {
-				if (error) return resolve(false);
-				
-				var id_org = rowData.id;
-				var id_clon = data.insertId;
+			let id_org = rowData.id;
+			let id_clon;
+			try {
+				id_clon = await interfaceModel.insertInterface(dbCon,interfaceData);
+			}	catch(error) { return reject(error) }
+			
+			//SELECT ALL IPOBJ UNDER INTERFACE
+			sql = 'select ' + dbCon.escape(data.insertId) + ' as newinterface, O.*, ' +
+				dbCon.escape(rowData.org_name) + ' as org_name,' +
+				dbCon.escape(rowData.clon_name) + ' as clon_name' +
+				' from ipobj O ' +
+				' where O.interface=' + dbCon.escape(rowData.id);
+			dbCon.query(sql, (error, rows) => {
+				if (error) return reject(error);
 
-				//SELECT ALL IPOBJ UNDER INTERFACE
-				sql = 'select ' + connection.escape(data.insertId) + ' as newinterface, O.*, ' +
-					connection.escape(rowData.org_name) + ' as org_name,' +
-					connection.escape(rowData.clon_name) + ' as clon_name' +
-					' from ipobj O ' +
-					' where O.interface=' + connection.escape(rowData.id);
-				connection.query(sql, (error, rows) => {
-					if (error) return reject(error);
-
-					for(var i=0; i<rows.length; i++) {
-						if (rows[i].name.indexOf(rows[i].org_name+":",0) === 0) 
-							rows[i].name = rows[i].name.replace(new RegExp("^"+rows[i].org_name+":"),rows[i].clon_name+":");
-					}
-					//Bucle por IPOBJS
-					Promise.all(rows.map(IpobjModel.cloneIpobj))
-					.then(data => resolve({"id_org": id_org, "id_clon": id_clon, "addr": data}))
-					.catch(e => reject(e));
-				});
+				for(var i=0; i<rows.length; i++) {
+					if (rows[i].name.indexOf(rows[i].org_name+":",0) === 0) 
+						rows[i].name = rows[i].name.replace(new RegExp("^"+rows[i].org_name+":"),rows[i].clon_name+":");
+				}
+				//Bucle por IPOBJS
+				Promise.all(rows.map(IpobjModel.cloneIpobj))
+				.then(data => resolve({"id_org": id_org, "id_clon": id_clon, "addr": data}))
+				.catch(e => reject(e));
 			});
 		});
 	});

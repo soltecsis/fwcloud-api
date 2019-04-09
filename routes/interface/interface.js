@@ -72,7 +72,7 @@ router.put('/host/get', (req, res) => {
 
 //FALTA COMPROBAR ACCESO FIREWALL
 /* Create New interface */
-router.post("/", async(req, res) => {
+router.post("/", async (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var node_parent = req.body.node_parent;
 	var node_order = req.body.node_order;
@@ -84,65 +84,44 @@ router.post("/", async(req, res) => {
 	try {
 		if (!(await fwcTreemodel.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host))))
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Inconsistent data between request and node tree', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (err) {
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error verifying consistency between request and node tree', objModel, err, jsonResp => res.status(200).json(jsonResp));
-	}
-
-	//Create New objet with data interface
-	var interfaceData = {
-		id: null,
-		firewall: req.body.firewall,
-		name: req.body.name,
-		labelName: req.body.labelName,
-		type: req.body.type,
-		interface_type: req.body.interface_type,
-		comment: req.body.comment,
-		mac: req.body.mac
-	};
-
-	InterfaceModel.insertInterface(interfaceData, async (error, data) => {
-		if (error) return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+	
+		//Create New objet with data interface
+		var interfaceData = {
+			id: null,
+			firewall: req.body.firewall,
+			name: req.body.name,
+			labelName: req.body.labelName,
+			type: req.body.type,
+			interface_type: req.body.interface_type,
+			comment: req.body.comment,
+			mac: req.body.mac
+		};
+		const insertId = await InterfaceModel.insertInterface(req.dbCon, interfaceData);
 
 		//If saved interface Get data
-		if (data && data.insertId > 0) {
-			if (host !== null) {
+		if (insertId && insertId>0) {
+			if (host) {
 				//INSERT INTERFACE UNDER IPOBJ HOST
 				//Create New objet with data interface__ipobj
 				var interface__ipobjData = {
-					interface: data.insertId,
+					interface: insertId,
 					ipobj: host,
 					interface_order: 1
 				};
 
-				Interface__ipobjModel.insertInterface__ipobj(interface__ipobjData, function(error, dataH) {
-					//If saved interface__ipobj Get data
-					if (dataH && dataH.result) {
-						Interface__ipobjModel.UpdateHOST(data.insertId)
-							.then(() => {});
-						logger.debug("NEW Interface:" + data.insertId + " UNDER HOST:" + host);
-					} else {
-						logger.debug(error);
-					}
-				});
-
+				const id2 = await Interface__ipobjModel.insertInterface__ipobj(req.dbCon, interface__ipobjData);
+				//If saved interface__ipobj Get data
+				if (id2 && id2>0)
+					await Interface__ipobjModel.UpdateHOST(id2);
 			}
-			var id = data.insertId;
-			logger.debug("NEW INTERFACE id:" + id + "  Type:" + interfaceData.interface_type + "  Name:" + interfaceData.name);
-			interfaceData.id = id;
-			interfaceData.type = interfaceData.interface_type;
 
-			try {
-				//INSERT IN TREE
-				const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
-				var dataresp = { "insertId": id, "TreeinsertId": node_id };
-				api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));	
-			} catch(error) { return api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-		} else {
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
+			//INSERT IN TREE
+			interfaceData.id = insertId;
+			interfaceData.type = interfaceData.interface_type;
+			const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
+			api_resp.getJson({ "insertId": insertId, "TreeinsertId": node_id }, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));	
+		} else { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating new network interface', objModel, error, jsonResp => res.status(200).json(jsonResp)) }	
 });
 
 //FALTA COMPROBAR ACCESO FIREWALL
