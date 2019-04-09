@@ -1128,8 +1128,8 @@ fwcTreeModel.getNodeUnderFirewall = (dbCon,fwcloud,firewall,node_type) => {
 	return new Promise((resolve, reject) => {
 		let sql = `SELECT T2.* FROM ${tableModel} T1
 			INNER JOIN ${tableModel} T2 ON T2.id_parent=T1.id
-			WHERE T1.fwcloud=${fwcloud} AND T1.id_obj=${firewall} AND (T1.node_type='FW' OR T1.node_type='CL')  
-			AND T2.node_type=${dbCon.escape(node_type)}`;
+			WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
+			AND T2.id_obj=${firewall} AND T2.node_type=${dbCon.escape(node_type)}`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result.length>0 ? result[0] : null);
