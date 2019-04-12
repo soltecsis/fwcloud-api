@@ -65,6 +65,7 @@ sshTools.runCommand = (SSHconn, cmd) => {
 	var conn = new Client();
 	var stdout_log = "";
 	var stderr_log ="";
+	let sudo_pass_sent = 0;
 
 	return new Promise((resolve,reject) => { 
 		conn.on('ready',() => {
@@ -80,8 +81,13 @@ sshTools.runCommand = (SSHconn, cmd) => {
 				}).on('data', data => {
 					//console.log('STDOUT: ' + data);
 					var str=""+data;
-					if (str==="[sudo] password for "+SSHconn.username+": ")
-						stream.write(SSHconn.password+"\n");
+					if (!sudo_pass_sent) {
+						let regex = new RegExp(`[sudo] .* ${SSHconn.username}: `);
+						if (str.match(regex)) {
+							stream.write(SSHconn.password+"\n");
+							sudo_pass_sent = 1;
+						}
+					}
 					stdout_log += data;
 				}).stderr.on('data', data => {
 					//console.log('STDERR: ' + data);
