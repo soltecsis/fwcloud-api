@@ -82,7 +82,7 @@ sshTools.runCommand = (SSHconn, cmd) => {
 					//console.log('STDOUT: ' + data);
 					var str=""+data;
 					if (!sudo_pass_sent) {
-						let regex = new RegExp(`[sudo] .* ${SSHconn.username}: `);
+						let regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
 						if (str.match(regex)) {
 							stream.write(SSHconn.password+"\n");
 							sudo_pass_sent = 1;
