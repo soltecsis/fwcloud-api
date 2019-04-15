@@ -333,7 +333,7 @@ CREATE TABLE `fwc_tree_node_types` (
 
 LOCK TABLES `fwc_tree_node_types` WRITE;
 /*!40000 ALTER TABLE `fwc_tree_node_types` DISABLE KEYS */;
-INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('MRK',30,'IPTables marks',NULL,2),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('PRE',NULL,'CRT prefix folder',NULL,2),('PRO',NULL,'OpenVPN server prefix',NULL,2),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2);
+INSERT INTO `fwc_tree_node_types` VALUES ('CA',NULL,'CA',NULL,2),('CL',NULL,'Cluster',NULL,1),('CRT',NULL,'Certificate',NULL,2),('FCA',NULL,'Folder CA',NULL,2),('FCF',NULL,'Folder Cluster Firewalls',NULL,2),('FCR',NULL,'Folder CRT',NULL,2),('FD',NULL,'Folder',NULL,1),('FDC',NULL,'Folder Clusters',NULL,2),('FDF',NULL,'Folder Firewalls',NULL,2),('FDI',10,'Folder Interfaces',NULL,2),('FDO',NULL,'Folder Objects',NULL,1),('FDS',NULL,'Folder Services',NULL,1),('FDT',NULL,'Folder Times',NULL,1),('FP',NULL,'FILTER POLICIES',NULL,1),('FP6',NULL,'FILTER POLICIES IPv6',NULL,1),('FW',NULL,'Firewall',NULL,1),('IFF',10,'Interfaces Firewalls',NULL,2),('IFH',11,'Interfaces Host',NULL,2),('MRK',30,'IPTables marks',NULL,2),('ND6',NULL,'DNAT Rules IPv6',NULL,1),('NS6',NULL,'SNAT Rules IPv6',NULL,1),('NT',NULL,'NAT Rules',NULL,1),('NTD',NULL,'DNAT Rules',NULL,1),('NTS',NULL,'SNAT Rules',NULL,1),('OCL',311,'OpenVPN Config CLI',NULL,2),('OIA',5,'IP Address Objects',NULL,2),('OIG',20,'Objects Groups',NULL,2),('OIH',8,'IP Host Objects',NULL,2),('OIN',7,'IP Network Objects',NULL,2),('OIR',6,'IP Address Range Objects',NULL,2),('ONS',9,'DNS Names',NULL,2),('OPN',310,'OpenVPN Config',NULL,2),('OSR',312,'OpenVPN Config SRV',NULL,2),('PF',NULL,'Policy Forward Rules',NULL,1),('PF6',NULL,'Policy Forward Rules IPv6',NULL,1),('PI',NULL,'Policy IN Rules',NULL,1),('PI6',NULL,'Policy IN Rules IPv6',NULL,1),('PO',NULL,'Policy OUT Rules',NULL,1),('PO6',NULL,'Policy OUT Rules IPv6',NULL,1),('PRE',NULL,'CRT prefix folder',NULL,2),('PRO',NULL,'OpenVPN server prefix',NULL,2),('RR',NULL,'Routing rules',NULL,1),('SOC',0,'Services Customs',NULL,2),('SOG',21,'Services Groups',NULL,2),('SOI',1,'IP Service Objects',NULL,2),('SOM',3,'ICMP Service Objects',NULL,2),('SOT',2,'TCP Service Objects',NULL,2),('SOU',4,'UDP Service Objects',NULL,2),('STD',NULL,'Standard objects folder',NULL,2);
 /*!40000 ALTER TABLE `fwc_tree_node_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1705,7 +1705,7 @@ DROP TABLE IF EXISTS `policy_type`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `policy_type` (
   `id` tinyint(1) NOT NULL,
-  `type` varchar(1) NOT NULL,
+  `type` varchar(2) NOT NULL,
   `name` varchar(50) DEFAULT NULL,
   `type_order` tinyint(2) NOT NULL DEFAULT '1',
   `show_action` tinyint(1) NOT NULL DEFAULT '1',
@@ -1720,7 +1720,7 @@ CREATE TABLE `policy_type` (
 
 LOCK TABLES `policy_type` WRITE;
 /*!40000 ALTER TABLE `policy_type` DISABLE KEYS */;
-INSERT INTO `policy_type` VALUES (1,'I','Input',1,1),(2,'O','Output',2,1),(3,'F','Forward',3,1),(4,'S','SNAT',4,0),(5,'D','DNAT',5,0),(6,'R','Routing',6,1);
+INSERT INTO `policy_type` VALUES (1,'I','Input',1,1),(2,'O','Output',2,1),(3,'F','Forward',3,1),(4,'S','SNAT',4,0),(5,'D','DNAT',5,0),(6,'R','Routing',6,1),(61,'I6','Input IPv6',1,1),(62,'O6','Output IPv6',2,1),(63,'F6','Forward IPv6',3,1),(64,'S6','SNAT IPv6',4,0),(65,'D6','DNAT IPv6',5,0);
 /*!40000 ALTER TABLE `policy_type` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2035,4 +2035,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-03-27 11:37:57
+-- Dump completed on 2019-04-15 12:57:46
