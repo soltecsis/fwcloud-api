@@ -1233,7 +1233,7 @@ CREATE TABLE `policy_position` (
 
 LOCK TABLES `policy_position` WRITE;
 /*!40000 ALTER TABLE `policy_position` DISABLE KEYS */;
-INSERT INTO `policy_position` VALUES (1,'Source',1,2,'O',0),(2,'Destination',1,3,'O',0),(3,'Service',1,4,'O',0),(4,'Source',2,2,'O',0),(5,'Destination',2,3,'O',0),(6,'Service',2,4,'O',0),(7,'Source',3,3,'O',0),(8,'Destination',3,4,'O',0),(9,'Service',3,5,'O',0),(11,'Source',4,2,'O',0),(12,'Destination',4,3,'O',0),(13,'Service',4,4,'O',0),(14,'Translated Source',4,5,'O',1),(16,'Translated Service',4,6,'O',1),(20,'In',1,1,'I',0),(21,'Out',2,1,'I',0),(22,'In',3,1,'I',0),(24,'Out',4,1,'I',0),(25,'Out',3,2,'I',0),(30,'Source',5,2,'O',0),(31,'Destination',5,3,'O',0),(32,'Service',5,4,'O',0),(34,'Translated Destination',5,5,'O',1),(35,'Translated Service',5,6,'O',1),(36,'In',5,1,'I',0);
+INSERT INTO `policy_position` VALUES (1,'Source',1,2,'O',0),(2,'Destination',1,3,'O',0),(3,'Service',1,4,'O',0),(4,'Source',2,2,'O',0),(5,'Destination',2,3,'O',0),(6,'Service',2,4,'O',0),(7,'Source',3,3,'O',0),(8,'Destination',3,4,'O',0),(9,'Service',3,5,'O',0),(11,'Source',4,2,'O',0),(12,'Destination',4,3,'O',0),(13,'Service',4,4,'O',0),(14,'Translated Source',4,5,'O',1),(16,'Translated Service',4,6,'O',1),(20,'In',1,1,'I',0),(21,'Out',2,1,'I',0),(22,'In',3,1,'I',0),(24,'Out',4,1,'I',0),(25,'Out',3,2,'I',0),(30,'Source',5,2,'O',0),(31,'Destination',5,3,'O',0),(32,'Service',5,4,'O',0),(34,'Translated Destination',5,5,'O',1),(35,'Translated Service',5,6,'O',1),(36,'In',5,1,'I',0),(37,'Source',61,2,'O',0),(38,'Destination',61,3,'O',0),(39,'Service',61,4,'O',0),(40,'Source',62,2,'O',0),(41,'Destination',62,3,'O',0),(42,'Service',62,4,'O',0),(43,'Source',63,3,'O',0),(44,'Destination',63,4,'O',0),(45,'Service',63,5,'O',0),(46,'Source',64,2,'O',0),(47,'Destination',64,3,'O',0),(48,'Service',64,4,'O',0),(49,'Translated Source',64,5,'O',1),(50,'Translated Service',64,6,'O',1),(51,'In',61,1,'I',0),(52,'Out',62,1,'I',0),(53,'In',63,1,'I',0),(54,'Out',64,1,'I',0),(55,'Out',63,2,'I',0),(56,'Source',65,2,'O',0),(57,'Destination',65,3,'O',0),(58,'Service',65,4,'O',0),(59,'Translated Destination',65,5,'O',1),(60,'Translated Service',65,6,'O',1),(61,'In',65,1,'I',0);
 /*!40000 ALTER TABLE `policy_position` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2035,4 +2035,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-04-15 12:57:46
+-- Dump completed on 2019-04-18 17:44:46
