@@ -637,6 +637,14 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
 			let openvpn_opt = await openvpnModel.getOptData(req.dbCon,cfg,'dev');
 			if (openvpn_opt) {
         const interface_name = openvpn_opt.arg;
+
+        // If we already have an interface with the same name then do nothing.
+        const interfaces = await interfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
+        for (interface of  interfaces) {
+          if (interface.name===interface_name)
+            return resolve();
+        }
+
 				// Create the OpenVPN server network interface.
 				const interfaceData = {
 					id: null,
@@ -647,7 +655,8 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
 					interface_type: 10,
 					comment: '',
 					mac: ''
-				};
+        };
+        
 				const interfaceId = await interfaceModel.insertInterface(req.dbCon, interfaceData);
 				if (interfaceId) {
 					const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon,req.body.fwcloud,req.body.firewall,'FDI')
@@ -687,7 +696,7 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
                 };
         
                 const ipobjId = await ipobjModel.insertIpobj(req, ipobjData);
-                await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, nodeId, 'OIA', ipobjId, 5);
+                await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, `${interface_name} (${net.firstAddress})`, nodeId, 'OIA', ipobjId, 5);
               }
             }
 					}
