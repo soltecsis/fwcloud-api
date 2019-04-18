@@ -652,40 +652,43 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
 				if (interfaceId) {
 					const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon,req.body.fwcloud,req.body.firewall,'FDI')
 					if (interfaces_node) {
-						nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
+						const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
 
             // Create the network address for the new interface.
             openvpn_opt = await openvpnModel.getOptData(req.dbCon,cfg,'server');
-            if (openvpn_opt) {
-              const net_data = openvpn_opt.arg.split(' ');
-              const net = ip.subnet(net_data[0], net_data[1]);
-              const addr = ip.fromLong(ip.toLong(net.firstAddress)+1); // The first usable IP is for the OpenVPN server.
+            if (openvpn_opt && openvpn_opt.ipobj) {
+              // Get the ipobj data.
+              const ipobj = await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj);
+              if (ipobj.type===7) { // Network
+                const net = ip.subnet(ipobj.address, ipobj.netmask);
 
-              const ipobjData = {
-                id: null,
-                fwcloud: req.body.fwcloud,
-                interface: interfaceId,
-                name: interface_name,
-                type: 5,
-                protocol: null,
-                address: addr,
-                netmask: net_data[1],
-                diff_serv: null,
-                ip_version: 4,
-                icmp_code: null,
-                icmp_type: null,
-                tcp_flags_mask: null,
-                tcp_flags_settings: null,
-                range_start: null,
-                range_end: null,
-                source_port_start: 0,
-                source_port_end: 0,
-                destination_port_start: 0,
-                destination_port_end: 0,
-                options: null
-              };
-      
-              await interfaceModel.insertInterface(req.dbCon,ipobjData);
+                const ipobjData = {
+                  id: null,
+                  fwcloud: req.body.fwcloud,
+                  interface: interfaceId,
+                  name: interface_name,
+                  type: 5,
+                  protocol: null,
+                  address: net.firstAddress,
+                  netmask: ipobj.netmask,
+                  diff_serv: null,
+                  ip_version: 4,
+                  icmp_code: null,
+                  icmp_type: null,
+                  tcp_flags_mask: null,
+                  tcp_flags_settings: null,
+                  range_start: null,
+                  range_end: null,
+                  source_port_start: 0,
+                  source_port_end: 0,
+                  destination_port_start: 0,
+                  destination_port_end: 0,
+                  options: null
+                };
+        
+                const ipobjId = await ipobjModel.insertIpobj(req, ipobjData);
+                await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, nodeId, 'OIA', ipobjId, 5);
+              }
             }
 					}
 				}
