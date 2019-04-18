@@ -4,11 +4,12 @@ var openvpnModel = {};
 const config = require('../../../config/config');
 const ipobjModel = require('../../ipobj/ipobj');
 const readline = require('readline');
-const fwcTreemodel = require('../../../models/tree/tree');
+const fwcTreeModel = require('../../../models/tree/tree');
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 const firewallModel = require('../../../models/firewall/firewall');
 const policyOpenvpnModel = require('../../../models/policy/openvpn');
+const interfaceModel = require('../../../models/interface/interface');
 const fs = require('fs');
 const ip = require('ip');
 
@@ -87,7 +88,7 @@ openvpnModel.delCfg = (dbCon,fwcloud,openvpn) => {
             try {
               for (let ipobj of ipobj_list) {
                 await ipobjModel.deleteIpobj(dbCon,fwcloud,ipobj.id);
-                await fwcTreemodel.deleteObjFromTree(fwcloud,ipobj.id,ipobj.type);
+                await fwcTreeModel.deleteObjFromTree(fwcloud,ipobj.id,ipobj.type);
               }
             } catch(error) { return reject(error) }
       
@@ -625,6 +626,72 @@ openvpnModel.getStatusFile = (req,status_file_path) => {
       data = lines.join('\n');
 
       resolve(data);
+    } catch(error) { reject(error) }
+  });
+};
+
+
+openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
+	return new Promise(async (resolve, reject) => {
+    try {
+			let openvpn_opt = await openvpnModel.getOptData(req.dbCon,cfg,'dev');
+			if (openvpn_opt) {
+        const interface_name = openvpn_opt.arg;
+				// Create the OpenVPN server network interface.
+				const interfaceData = {
+					id: null,
+					firewall: req.body.firewall,
+					name: interface_name,
+					labelName: '',
+					type: 10,
+					interface_type: 10,
+					comment: '',
+					mac: ''
+				};
+				const interfaceId = await interfaceModel.insertInterface(req.dbCon, interfaceData);
+				if (interfaceId) {
+					const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon,req.body.fwcloud,req.body.firewall,'FDI')
+					if (interfaces_node) {
+						nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
+
+            // Create the network address for the new interface.
+            openvpn_opt = await openvpnModel.getOptData(req.dbCon,cfg,'server');
+            if (openvpn_opt) {
+              const net_data = openvpn_opt.arg.split(' ');
+              const net = ip.subnet(net_data[0], net_data[1]);
+              const addr = ip.fromLong(ip.toLong(net.firstAddress)+1); // The first usable IP is for the OpenVPN server.
+
+              const ipobjData = {
+                id: null,
+                fwcloud: req.body.fwcloud,
+                interface: interfaceId,
+                name: interface_name,
+                type: 5,
+                protocol: null,
+                address: addr,
+                netmask: net_data[1],
+                diff_serv: null,
+                ip_version: 4,
+                icmp_code: null,
+                icmp_type: null,
+                tcp_flags_mask: null,
+                tcp_flags_settings: null,
+                range_start: null,
+                range_end: null,
+                source_port_start: 0,
+                source_port_end: 0,
+                destination_port_start: 0,
+                destination_port_end: 0,
+                options: null
+              };
+      
+              await interfaceModel.insertInterface(req.dbCon,ipobjData);
+            }
+					}
+				}
+      }
+      
+      resolve();
     } catch(error) { reject(error) }
   });
 };

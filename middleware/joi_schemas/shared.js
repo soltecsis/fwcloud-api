@@ -35,7 +35,7 @@ sharedSchema.mac_addr = Joi.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]
 
 sharedSchema.interface_type = Joi.number().integer().valid([10, 11]);
 sharedSchema.group_type = Joi.number().integer().valid([20, 21]);
-sharedSchema.policy_type = Joi.number().integer().min(1).max(6);
+sharedSchema.policy_type = Joi.number().integer().valid([1,2,3,4,5,6,61,62,63,64,65]);
 
 sharedSchema.ipv4 = Joi.string().ip({ version: ['ipv4'], cidr: 'forbidden' });
 sharedSchema.ipv6 = Joi.string().ip({ version: ['ipv6'], cidr: 'forbidden' });
