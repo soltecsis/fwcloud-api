@@ -244,24 +244,31 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/**************************************/
 			/* Generate the default INPUT policy. */
 			/**************************************/
-			policy_rData.type = 1;
 			policy_rData.action = 1;
 
 			// By defalt we create statefull firewalls.
 			policy_rData.special = 1;
 			policy_rData.comment = 'Stateful firewall rule.';
+			policy_rData.type = 1; // INPUT IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 61; // INPUT IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 
 			// Allow all incoming traffic from self host.
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
 			policy_rData.comment = 'Allow all incoming traffic from self host.';
+			policy_rData.type = 1; // INPUT IPv4
+			policy_r__interfaceData.rule = await policy_rModel.insertPolicy_r(policy_rData);
+			await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+			policy_rData.type = 61; // INPUT IPv6
 			policy_r__interfaceData.rule = await policy_rModel.insertPolicy_r(policy_rData);
 			await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
 			// Allow useful ICMP traffic.
 			policy_rData.rule_order = 3;
 			policy_rData.comment = 'Allow useful ICMP.';
+			policy_rData.type = 1; // INPUT IPv4
 			policy_r__ipobjData.rule = await policy_rModel.insertPolicy_r(policy_rData);
 			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 
