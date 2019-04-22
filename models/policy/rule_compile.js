@@ -26,6 +26,11 @@ const POLICY_TYPE_OUTPUT = 2;
 const POLICY_TYPE_FORWARD = 3;
 const POLICY_TYPE_SNAT = 4;
 const POLICY_TYPE_DNAT = 5;
+const POLICY_TYPE_INPUT_IPv6 = 61;
+const POLICY_TYPE_OUTPUT_IPv6 = 62;
+const POLICY_TYPE_FORWARD_IPv6 = 63;
+const POLICY_TYPE_SNAT_IPv6 = 64;
+const POLICY_TYPE_DNAT_IPv6 = 65;
 const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 //const MARK_CHAIN = ['', 'PREROUTING', 'OUTPUT', 'POSTROUTING'];
@@ -385,22 +390,25 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			data = await Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule);
 			if (!data) return reject(new Error('Rule data not found'));
 
-			const policy_type = data[0].type;
+			let policy_type = data[0].type;
 			if (!policy_type || 
-					(policy_type!==POLICY_TYPE_INPUT && policy_type!==POLICY_TYPE_OUTPUT && policy_type!==POLICY_TYPE_FORWARD
-					&& policy_type!==POLICY_TYPE_SNAT && policy_type!==POLICY_TYPE_DNAT)) {
+					(policy_type!==POLICY_TYPE_INPUT && policy_type!==POLICY_TYPE_OUTPUT && policy_type!==POLICY_TYPE_FORWARD && policy_type!==POLICY_TYPE_SNAT && policy_type!==POLICY_TYPE_DNAT
+					&& policy_type!==POLICY_TYPE_INPUT_IPv6 && policy_type!==POLICY_TYPE_OUTPUT_IPv6 && policy_type!==POLICY_TYPE_FORWARD_IPv6 && policy_type!==POLICY_TYPE_SNAT_IPv6 && policy_type!==POLICY_TYPE_DNAT_IPv6)) {
 				return reject('Invalid policy type');
 			}
 
-			var cs = "$IPTABLES "; // Compile string.
-			var after_log_action = log_chain = acc_chain = cs_trail = stateful = table = action = "";
+			let cs = (policy_type<POLICY_TYPE_INPUT_IPv6) ? "$IPTABLES " : "$IP6TABLES "; // Compile string.
+			let after_log_action = log_chain = acc_chain = cs_trail = stateful = table = action = "";
 
-			if (policy_type === 4) { // SNAT
+			// Since now, all the compilation process for IPv6 is the same that the one for IPv4.
+			if (policy_type>=POLICY_TYPE_INPUT_IPv6) policy_type-=60;
+
+			if (policy_type===POLICY_TYPE_SNAT) { // SNAT
 				table = "-t nat";
 				cs += table+" -A POSTROUTING ";
 				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
 			}
-			else if (policy_type === 5) { // DNAT
+			else if (policy_type===POLICY_TYPE_DNAT) { // DNAT
 				table = "-t nat";
 				cs += table+" -A PREROUTING ";
 				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
@@ -408,7 +416,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			else { // Filter policy
 				if (data.length != 1 || !(data[0].positions)
 						|| !(data[0].positions[0].position_objs) || !(data[0].positions[1].position_objs) || !(data[0].positions[2].position_objs)
-						|| (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
+						|| (policy_type===POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
 					return reject("Bad rule data");
 				}
 
@@ -453,7 +461,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 
 			// If we are using UDP or TCP ports in translated service position for NAT rules, 
 			// make sure that the -p tcp or -p udp is included in the compilation string.
-			if ((policy_type===4 || policy_type===5) && data[0].positions[5].position_objs.length===1) { // SNAT or DNAT
+			if ((policy_type===POLICY_TYPE_SNAT || policy_type===POLICY_TYPE_DNAT) && data[0].positions[5].position_objs.length===1) { // SNAT or DNAT
 				var substr="";
 				if (data[0].positions[5].position_objs[0].protocol===6) // TCP
 					substr += " -p tcp ";
@@ -461,7 +469,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 					substr += " -p udp ";
 					
 				if(cs.indexOf(substr) === -1) {
-					if (policy_type===4)  // SNAT
+					if (policy_type===POLICY_TYPE_SNAT)  // SNAT
 						cs = cs.replace(/-A POSTROUTING/g,"-A POSTROUTING"+substr);
 					else // DNAT
 						cs = cs.replace(/-A PREROUTING/g,"-A PREROUTING"+substr);
@@ -469,7 +477,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			}
 
 			// Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-			if (policy_type<=3) {
+			if (policy_type<=POLICY_TYPE_FORWARD) {
 				if (acc_chain) {
 					cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
 				}
