@@ -44,7 +44,7 @@ sharedSchema.u8bits = Joi.number().integer().min(0).max(255);
 sharedSchema.u16bits = Joi.number().integer().min(0).max(65535);
 
 sharedSchema.rule_action = Joi.number().integer().min(1).max(5);
-sharedSchema.rule_position = Joi.number().integer().min(1).max(36);
+sharedSchema.rule_position = Joi.number().integer().min(1).max(61);
 
 sharedSchema.date = Joi.date().min(1).max(5);
 

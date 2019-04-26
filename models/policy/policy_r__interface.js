@@ -80,7 +80,7 @@ policy_r__interfaceModel.insertPolicy_r__interface = (idfirewall, policy_r__inte
 					});
 				});
 			} else {
-				callback(null, { "result": false, "allowed": "0" });
+				reject({ "result": false, "allowed": "0" });
 			}
 		});
 	});

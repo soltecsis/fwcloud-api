@@ -44,8 +44,8 @@ policy_rModel.getPolicy_rs = function(idfirewall, idgroup, callback) {
 
 //Get All policy_r by firewall and type
 policy_rModel.getPolicyData = req => {
-        return new Promise((resolve, reject) => {
-                    let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
+  return new Promise((resolve, reject) => {
+    let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
 			C.updated_at as c_updated_at, M.code as mark_code, M.name as mark_name,
 			IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
 			FROM ${tableModel} P
@@ -260,9 +260,11 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			policy_rData.comment = 'Allow all incoming traffic from self host.';
 			policy_rData.type = 1; // INPUT IPv4
 			policy_r__interfaceData.rule = await policy_rModel.insertPolicy_r(policy_rData);
+			policy_r__interfaceData.position = 20;
 			await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 			policy_rData.type = 61; // INPUT IPv6
 			policy_r__interfaceData.rule = await policy_rModel.insertPolicy_r(policy_rData);
+			policy_r__interfaceData.position = 51;
 			await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
 			// Allow useful ICMP traffic.
@@ -270,12 +272,20 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			policy_rData.comment = 'Allow useful ICMP.';
 			policy_rData.type = 1; // INPUT IPv4
 			policy_r__ipobjData.rule = await policy_rModel.insertPolicy_r(policy_rData);
+			policy_r__ipobjData.position = 3;
+			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+			policy_rData.type = 61; // INPUT IPv6
+			policy_r__ipobjData.rule = await policy_rModel.insertPolicy_r(policy_rData);
+			policy_r__ipobjData.position = 39;
 			await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 
 			// Now create the catch all rule.
 			policy_rData.action = 2;
 			policy_rData.rule_order = 4;
 			policy_rData.comment = 'Catch-all rule.';
+			policy_rData.type = 1; // INPUT IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 61; // INPUT IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 			/**************************************/
 
@@ -283,19 +293,23 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/****************************************/
 			/* Generate the default FORWARD policy. */
 			/****************************************/
-			policy_rData.type = 3;
-
 			// By defalt we create statefull firewalls.
 			policy_rData.special = 1;
 			policy_rData.rule_order = 1;
 			policy_rData.action = 1;
 			policy_rData.comment = 'Stateful firewall rule.';
+			policy_rData.type = 3; // FORWARD IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 63; // FORWARD IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 			
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
 			policy_rData.action = 2;
 			policy_rData.comment = 'Catch-all rule.';
+			policy_rData.type = 3; // FORWARD IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 63; // FORWARD IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 			/****************************************/
 
@@ -303,18 +317,23 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/***************************************/
 			/* Generate the default OUTPUT policy. */
 			/***************************************/
-			policy_rData.type = 2;
 			policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
 
 			// By defalt we create statefull firewalls.
 			policy_rData.special = 1;
 			policy_rData.rule_order = 1;
 			policy_rData.comment = 'Stateful firewall rule.';
+			policy_rData.type = 2; // OUTPUT IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 62; // OUTPUT IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
 			policy_rData.comment = 'Allow all outgoing traffic.';
+			policy_rData.type = 2; // OUTPUT IPv4
+			await policy_rModel.insertPolicy_r(policy_rData);
+			policy_rData.type = 62; // OUTPUT IPv6
 			await policy_rModel.insertPolicy_r(policy_rData);
 			/***************************************/
 
@@ -904,20 +923,10 @@ policy_rModel.checkStatefulRules = (dbCon, firewall, options) => {
 						style: null
 					};					
 					try {
-						// INPUT
-						policy_rData.type = 1;
-						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-						await policy_rModel.insertPolicy_r(policy_rData);
-
-						// OUTPUT
-						policy_rData.type = 2;
-						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-						await policy_rModel.insertPolicy_r(policy_rData);
-
-						// FORWARD
-						policy_rData.type = 3;
-						await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-						await policy_rModel.insertPolicy_r(policy_rData);
+						for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+							await policy_rModel.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+							await policy_rModel.insertPolicy_r(policy_rData);
+						}
 					} catch(error) { return reject(error) }
 				}
 				resolve();
