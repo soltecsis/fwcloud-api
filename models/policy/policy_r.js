@@ -206,7 +206,7 @@ policy_rModel.getPolicy_rName = function(idfirewall, idgroup, name, callback) {
 	});
 };
 
-policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
+policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId, options) => {
 	return new Promise(async (resolve, reject) => {
 		var policy_rData = {
 			id: null,
@@ -246,13 +246,14 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/**************************************/
 			policy_rData.action = 1;
 
-			// By defalt we create statefull firewalls.
-			policy_rData.special = 1;
-			policy_rData.comment = 'Stateful firewall rule.';
-			policy_rData.type = 1; // INPUT IPv4
-			await policy_rModel.insertPolicy_r(policy_rData);
-			policy_rData.type = 61; // INPUT IPv6
-			await policy_rModel.insertPolicy_r(policy_rData);
+			if (options & 0x0001) { // Statefull firewall
+				policy_rData.special = 1;
+				policy_rData.comment = 'Stateful firewall rule.';
+				policy_rData.type = 1; // INPUT IPv4
+				await policy_rModel.insertPolicy_r(policy_rData);
+				policy_rData.type = 61; // INPUT IPv6
+				await policy_rModel.insertPolicy_r(policy_rData);
+			}
 
 			// Allow all incoming traffic from self host.
 			policy_rData.special = 0;
@@ -293,15 +294,16 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/****************************************/
 			/* Generate the default FORWARD policy. */
 			/****************************************/
-			// By defalt we create statefull firewalls.
-			policy_rData.special = 1;
-			policy_rData.rule_order = 1;
-			policy_rData.action = 1;
-			policy_rData.comment = 'Stateful firewall rule.';
-			policy_rData.type = 3; // FORWARD IPv4
-			await policy_rModel.insertPolicy_r(policy_rData);
-			policy_rData.type = 63; // FORWARD IPv6
-			await policy_rModel.insertPolicy_r(policy_rData);
+			if (options & 0x0001) { // Statefull firewall
+				policy_rData.special = 1;
+				policy_rData.rule_order = 1;
+				policy_rData.action = 1;
+				policy_rData.comment = 'Stateful firewall rule.';
+				policy_rData.type = 3; // FORWARD IPv4
+				await policy_rModel.insertPolicy_r(policy_rData);
+				policy_rData.type = 63; // FORWARD IPv6
+				await policy_rModel.insertPolicy_r(policy_rData);
+			}
 			
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
@@ -319,14 +321,15 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId) => {
 			/***************************************/
 			policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
 
-			// By defalt we create statefull firewalls.
-			policy_rData.special = 1;
-			policy_rData.rule_order = 1;
-			policy_rData.comment = 'Stateful firewall rule.';
-			policy_rData.type = 2; // OUTPUT IPv4
-			await policy_rModel.insertPolicy_r(policy_rData);
-			policy_rData.type = 62; // OUTPUT IPv6
-			await policy_rModel.insertPolicy_r(policy_rData);
+			if (options & 0x0001) { // Statefull firewall
+				policy_rData.special = 1;
+				policy_rData.rule_order = 1;
+				policy_rData.comment = 'Stateful firewall rule.';
+				policy_rData.type = 2; // OUTPUT IPv4
+				await policy_rModel.insertPolicy_r(policy_rData);
+				policy_rData.type = 62; // OUTPUT IPv6
+				await policy_rModel.insertPolicy_r(policy_rData);
+			}
 
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;

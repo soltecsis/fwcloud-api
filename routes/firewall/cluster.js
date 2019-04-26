@@ -161,7 +161,7 @@ router.post('/', (req, res) => {
 							// Create the loop backup interface.
 							const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, idfirewall);
 							// Create the default policy rules.							
-							await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId);
+							await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
 							// Create the directory used for store firewall data.
 							await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 						}
