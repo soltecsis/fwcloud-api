@@ -326,7 +326,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,table,stateful,action) => {
+RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,table,stateful,action,iptables_cmd) => {
 	// Rule compilation process.
 	if (position_items.length === 0) // No conditions rule.
 		cs += cs_trail;
@@ -360,14 +360,14 @@ RuleCompileModel.generate_compilation_string = (rule,position_items,cs,cs_trail,
 						chain_next = "RETURN";
 					}
 
-					cs = "$IPTABLES "+table+" -N "+chain_name+"\n"+cs+((chain_number === 1) ? stateful+" -j "+chain_name+"\n" : "");
+					cs = `${iptables_cmd} ${table} -N ${chain_name}\n${cs}${((chain_number === 1) ? stateful+" -j "+chain_name+"\n" : "")}`;
 					for (j = 0; j < position_items[i].str.length; j++) {
-						cs += "$IPTABLES "+table+" -A "+chain_name+" "+position_items[i].str[j]+" -j "+chain_next+"\n";
+						cs += `${iptables_cmd} ${table} -A ${chain_name} ${position_items[i].str[j]} -j ${chain_next}\n`;
 					}
 					chain_number++;
 
 					if (position_items[i].negate)
-						cs += "$IPTABLES "+table+" -A "+chain_name+" -j "+((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)+"\n";
+						cs += `${iptables_cmd} ${table} -A ${chain_name} -j ${((i === ((position_items.length)-1)) ? action : "FWCRULE"+rule+".CH"+chain_number)}\n`;
 				}
 			}
 		}
@@ -397,7 +397,8 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 				return reject('Invalid policy type');
 			}
 
-			let cs = (policy_type<POLICY_TYPE_INPUT_IPv6) ? "$IPTABLES " : "$IP6TABLES "; // Compile string.
+			let iptables_cmd = (policy_type<POLICY_TYPE_INPUT_IPv6) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
+			let cs = `${iptables_cmd} `; // Compile string.
 			let after_log_action = log_chain = acc_chain = cs_trail = stateful = table = action = "";
 
 			// Since now, all the compilation process for IPv6 is the same that the one for IPv4.
@@ -457,7 +458,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			const position_items = RuleCompileModel.pre_compile(data[0]);
 			
 			// Generate the compilation string.
-			cs = RuleCompileModel.generate_compilation_string(rule,position_items,cs,cs_trail,table,stateful,action);
+			cs = RuleCompileModel.generate_compilation_string(rule,position_items,cs,cs_trail,table,stateful,action,iptables_cmd);
 
 			// If we are using UDP or TCP ports in translated service position for NAT rules, 
 			// make sure that the -p tcp or -p udp is included in the compilation string.
@@ -479,13 +480,16 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			// Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
 			if (policy_type<=POLICY_TYPE_FORWARD) {
 				if (acc_chain) {
-					cs = "$IPTABLES -N "+acc_chain+"\n" + "$IPTABLES -A "+acc_chain+" -j "+((log_chain) ? log_chain : "RETURN")+"\n" + cs;
+					cs = `${iptables_cmd} -N ${acc_chain}\n` +
+						`${iptables_cmd} -A ${acc_chain} -j ${(log_chain) ? log_chain : "RETURN"}\n` +
+						`${cs}`;
 				}
 
 				if (log_chain) {
-					cs = "$IPTABLES -N "+log_chain+"\n" +
-						"$IPTABLES -A "+log_chain+" -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID "+rule+" ["+after_log_action+"] \"\n" +
-						"$IPTABLES -A "+log_chain+" -j "+after_log_action+"\n" + cs;
+					cs = `${iptables_cmd} -N ${log_chain}\n` +
+						`${iptables_cmd} -A ${log_chain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${rule} [${after_log_action}] "\n` +
+						`${iptables_cmd} -A ${log_chain} -j ${after_log_action}\n` + 
+						`${cs}`;
 				}
 
 				if (data[0].mark_code) {
@@ -493,11 +497,11 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 
 					action = `MARK --set-mark ${data[0].mark_code}`;
 					cs_trail = `${stateful} -j ${action}\n`
-					cs += RuleCompileModel.generate_compilation_string(`${rule}-M1`,position_items,`$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action);
+					cs += RuleCompileModel.generate_compilation_string(`${rule}-M1`,position_items,`${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action,iptables_cmd);
 
 					action = `CONNMARK --save-mark`;
 					cs_trail = `${stateful} -j ${action}\n`
-					cs += RuleCompileModel.generate_compilation_string(`${rule}-M2`,position_items,`$IPTABLES -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action);
+					cs += RuleCompileModel.generate_compilation_string(`${rule}-M2`,position_items,`${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `,cs_trail,table,stateful,action,iptables_cmd);
 				}
 			}
 

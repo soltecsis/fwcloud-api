@@ -66,8 +66,9 @@ async (req, res) => {
 		mark: (req.body.mark===0) ? null : req.body.mark
 	};
 
-	// Only allow Iptables marks in INPUT, OUTPUT and FORWARD policy.
-	if (policy_rData.mark && policy_rData.type>3)
+	// Only allow Iptables marks in INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6 filter tables.
+	if (policy_rData.mark && policy_rData.type!==1 && policy_rData.type!==2 && policy_rData.type!==3
+			&& policy_rData.type!==61 && policy_rData.type!==62 && policy_rData.type!==63)
 		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Iptables marks only allowed in INPUT, OUTPUT and FORWARD policy', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
 
 	try {
