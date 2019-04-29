@@ -134,7 +134,7 @@ router.put('/', (req, res) => {
 
 			stream.write("\n\necho -e \"\\n***********************\\n* FILTER TABLE (IPv4) *\\n***********************\"\n");
 			socketTools.msg("<strong>FILTER TABLE (IPv4):</strong>\n");
-			stream.write("\n\necho -e \"\\nINPUT CHAIN\\n-----------\"\n");
+			stream.write("\n\necho -e \"INPUT CHAIN\\n-----------\"\n");
 			socketTools.msg("<strong>INPUT CHAIN:</strong>\n");
 			let cs = await PolicyScript.dump(req,1);
 
@@ -146,23 +146,24 @@ router.put('/', (req, res) => {
 			socketTools.msg("<strong>FORWARD CHAIN:</strong>\n");
 			cs = await PolicyScript.dump(req,3);
 
+			stream.write("\n\necho -e \"\\n********************\\n* NAT TABLE (IPv4) *\\n********************\"\n");
 			socketTools.msg("<strong>NAT TABLE (IPv4):</strong>\n");
-			stream.write(cs + "\n\necho -e \"\\nSNAT\\n----------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nSNAT\\n----\"\n");
 			socketTools.msg("<strong>SNAT:</strong>\n");
 			cs = await PolicyScript.dump(req,4);
 
-			stream.write(cs + "\n\necho -e \"\\nDNAT\\n----------\"\n");
+			stream.write(cs + "\n\necho -e \"\\nDNAT\\n----\"\n");
 			socketTools.msg("<strong>DNAT:</strong>\n");
 			cs = await PolicyScript.dump(req, 5);
 
 			stream.write(cs+"\n\n");
 
 
-			stream.write("\n\necho -e \"\\n***********************\\n* FILTER TABLE (IPv6) *\\n***********************\"\n");
+			stream.write("\n\necho -e \"\\n\n***********************\\n* FILTER TABLE (IPv6) *\\n***********************\"\n");
 			socketTools.msg("\n");
 			socketTools.msg("\n");
 			socketTools.msg("<strong>FILTER TABLE (IPv6):</strong>\n");
-			stream.write("\n\necho -e \"\\nINPUT CHAIN\\n-----------\"\n");
+			stream.write("\n\necho -e \"INPUT CHAIN\\n-----------\"\n");
 			socketTools.msg("<strong>INPUT CHAIN:</strong>\n");
 			cs = await PolicyScript.dump(req,61);
 
@@ -174,14 +175,14 @@ router.put('/', (req, res) => {
 			socketTools.msg("<strong>FORWARD CHAIN:</strong>\n");
 			cs = await PolicyScript.dump(req,63);
 
-			socketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
-			stream.write(cs + "\n\necho -e \"\\nSNAT\\n----------\"\n");
-			socketTools.msg("<strong>SNAT:</strong>\n");
-			cs = await PolicyScript.dump(req,64);
+			//socketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
+			//stream.write(cs + "\n\necho -e \"\\nSNAT\\n----\"\n");
+			//socketTools.msg("<strong>SNAT:</strong>\n");
+			//cs = await PolicyScript.dump(req,64);
 
-			stream.write(cs + "\n\necho -e \"\\nDNAT\\n----------\"\n");
-			socketTools.msg("<strong>DNAT:</strong>\n");
-			cs = await PolicyScript.dump(req, 65);
+			//stream.write(cs + "\n\necho -e \"\\nDNAT\\n----\"\n");
+			//socketTools.msg("<strong>DNAT:</strong>\n");
+			//cs = await PolicyScript.dump(req, 65);
 
 			stream.write(cs+"\n}\n\n");
 			
