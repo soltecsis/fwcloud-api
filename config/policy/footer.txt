@@ -36,7 +36,7 @@ case "$ACTION" in
     $IP6TABLES -P FORWARD ACCEPT
     ;;
 
-  reload)
+  restart|reload)
     $0 stop
     $0 start
     ;;
@@ -77,7 +77,7 @@ case "$ACTION" in
     ;;
 
   *)
-    echo "Usage $0 [start|stop|reload|block|status|install]"
+    echo "Usage $0 [start|stop|restart|reload|block|status|install]"
     ;;
 esac
 
