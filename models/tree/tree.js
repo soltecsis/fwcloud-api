@@ -659,8 +659,8 @@ fwcTreeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 					await fwcTreeModel.newNode(connection,fwcloud,'INPUT',id2,'PI6',clusters[0].fwmaster_id,null);
 					await fwcTreeModel.newNode(connection,fwcloud,'OUTPUT',id2,'PO6',clusters[0].fwmaster_id,null);
 					await fwcTreeModel.newNode(connection,fwcloud,'FORWARD',id2,'PF6',clusters[0].fwmaster_id,null);
-					await fwcTreeModel.newNode(connection,fwcloud,'SNAT',id2,'NS6',clusters[0].fwmaster_id,null);
-					await fwcTreeModel.newNode(connection,fwcloud,'DNAT',id2,'ND6',clusters[0].fwmaster_id,null);
+					//await fwcTreeModel.newNode(connection,fwcloud,'SNAT',id2,'NS6',clusters[0].fwmaster_id,null);
+					//await fwcTreeModel.newNode(connection,fwcloud,'DNAT',id2,'ND6',clusters[0].fwmaster_id,null);
 
 					id2 = await fwcTreeModel.newNode(connection,fwcloud,'Interfaces',id1,'FDI',clusters[0].fwmaster_id,10);
 					await fwcTreeModel.interfacesTree(connection,fwcloud,id2,clusters[0].fwmaster_id,'FW');
