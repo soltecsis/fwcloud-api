@@ -1331,10 +1331,14 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 				return reject(new Error('Incorrect policy type'));
 
 			if (data.ipobj>0) {
-				dbCon.query(`select ip_version from ipobj where id=${data.ipobj}`, (error, result) => {
+				dbCon.query(`select ip_version,type from ipobj where id=${data.ipobj}`, (error, result) => {
 					if (error) return reject(error);
 					if (result.length !== 1) return reject(new Error('Ipobj not found'));
 
+					let type = parseInt(result[0].type);
+					if (type!==5 && type!==6 && type!==7) //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
+						return resolve(true);
+					
 					if (parseInt(result[0].ip_version) === ip_version)
 						return resolve(true);
 					return resolve(false);
