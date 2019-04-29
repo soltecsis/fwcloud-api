@@ -1312,3 +1312,37 @@ policy_r__ipobjModel.searchIpobjInterfaceInGroup = (interface, type) => {
 		});
 	});
 };
+
+
+policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select type from policy_r where id=${data.rule}`, (error, result) => {
+			if (error) return reject(error);
+
+			if (result.length !== 1) return reject(new Error('Rule not found'));
+
+			let policy_type = parseInt(result[0].type);
+			let ip_version;
+			if (policy_type>=1 && policy_type<=5)
+				ip_version=4;
+			else if (policy_type>=61 && policy_type<=65)
+				ip_version=6;
+			else 
+				return reject(new Error('Incorrect policy type'));
+
+			if (data.ipobj>0) {
+				dbCon.query(`select ip_version from ipobj where id=${data.ipobj}`, (error, result) => {
+					if (error) return reject(error);
+					if (result.length !== 1) return reject(new Error('Ipobj not found'));
+
+					if (parseInt(result[0].ip_version) === ip_version)
+						return resolve(true);
+					return resolve(false);
+				});
+			}
+			else 
+				resolve(true);
+		});
+	});
+};
+

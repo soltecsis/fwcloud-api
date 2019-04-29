@@ -37,20 +37,25 @@ async (req, res) => {
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		
-		 const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
-			//If saved policy_r__ipobj Get data
-			if (data && data.result) {
-				if (data.result && data.allowed) {
-					var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: policy_r__ipobjData.rule };
-					policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-					api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				} else if (!data.allowed)
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
-				else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-			} else
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+
+		// Depending on the IP version of the policy_type of the rule we are working on, verify that we have root objects 
+		// of this IP version in the object that we are moving to this rule position.
+		if (!(await policy_r__ipobjModel.checkIpVersion(req.dbCon,policy_r__ipobjData)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad object IP version.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
+		const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+		//If saved policy_r__ipobj Get data
+		if (data && data.result) {
+			if (data.result && data.allowed) {
+				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: policy_r__ipobjData.rule };
+				policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+				api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			} else if (!data.allowed)
+				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
+			else
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		} else
+			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 

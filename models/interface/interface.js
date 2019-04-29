@@ -499,7 +499,7 @@ interfaceModel.cloneInterface = (rowData) => {
 			}	catch(error) { return reject(error) }
 			
 			//SELECT ALL IPOBJ UNDER INTERFACE
-			sql = 'select ' + dbCon.escape(data.insertId) + ' as newinterface, O.*, ' +
+			sql = 'select ' + dbCon.escape(rowData.insertId) + ' as newinterface, O.*, ' +
 				dbCon.escape(rowData.org_name) + ' as org_name,' +
 				dbCon.escape(rowData.clon_name) + ' as clon_name' +
 				' from ipobj O ' +

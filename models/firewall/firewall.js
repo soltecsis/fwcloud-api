@@ -575,8 +575,8 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 			connection.query(sqlExists, function (error, row) {
 				//NEW FIREWALL
 				if (row && row.length > 0) {
-					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,install_user,install_pass,save_user_pass,install_interface,install_ipobj,fwmaster,install_port,options) ' +
-					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, install_user, install_pass, save_user_pass, install_interface, install_ipobj, fwmaster, install_port, options ' +
+					var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options) ' +
+					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options ' +
 					' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 					connection.query(sql, function (error, result) {
 						if (error) {
