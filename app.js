@@ -141,7 +141,7 @@ app.use(accessCtrl.check);
 var db = require('./db');
 
 var user = require('./routes/user/user');
-//var customer = require('./routes/user/customer');
+var customer = require('./routes/user/customer');
 var fwcloud = require('./routes/fwcloud/fwcloud');
 var cluster = require('./routes/firewall/cluster');
 var firewall = require('./routes/firewall/firewall');
@@ -179,7 +179,7 @@ var vpn_openvpn_prefix = require('./routes/vpn/openvpn/prefix');
 
 //app.use('/', routes);
 app.use('/user', user);
-//app.use('/customer', customer);
+app.use('/customer', customer);
 app.use('/fwcloud', fwcloud);
 app.use('/cluster', cluster);
 app.use('/firewall', firewall);

@@ -1,64 +1,18 @@
 var express = require('express');
 var router = express.Router();
-var CustomerModel = require('../../models/user/customers');
+var customerModel = require('../../models/user/customers');
 var api_resp = require('../../utils/api_response');
 var objModel = 'CUSTOMER';
 
 
 
-/* Get all customers */
-router.get('/:iduser', function (req, res)
-{
-	CustomerModel.getCustomers(function (error, data)
-	{
-		//Get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
 
 /* New customer */
-router.post("/customer/:iduser", function (req, res)
-{
-	//New object with customer data
-	var customerData = {
-		id: null,
-		name: req.body.name,
-		email: req.body.email,
-		address: req.body.address,
-		cif: req.body.cif,
-		telephone: req.body.telephone,
-		web: req.body.web
-	};
-	CustomerModel.insertCustomer(customerData, function (error, data)
-	{
-		//Get info
-		if (data && data.insertId)
-		{
-			var dataresp = {"insertId": data.insertId};
-			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
+router.post('', async (req, res) => {
+	try {
+		await customerModel.insertCustomer(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'Customer created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 /* update customer */
@@ -66,7 +20,7 @@ router.put('/customer/:iduser', function (req, res)
 {
 	//Save customer data into object
 	var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
-	CustomerModel.updateCustomer(customerData, function (error, data)
+	customerModel.updateCustomer(customerData, function (error, data)
 	{
 		//saved ok
 		if (data && data.result)
@@ -90,7 +44,7 @@ router.get('/customer/:iduser/:id', function (req, res)
 
 	if (!isNaN(id))
 	{
-		CustomerModel.getCustomer(id, function (error, data)
+		customerModel.getCustomer(id, function (error, data)
 		{
 			//Get data
 			if (data && data.length > 0)
@@ -125,7 +79,7 @@ router.put("/del/customer/:iduser", function (req, res)
 {
 
 	var id = req.param('id');
-	CustomerModel.deleteCustomer(id, function (error, data)
+	customerModel.deleteCustomer(id, function (error, data)
 	{
 		if (data && data.result)
 		{
@@ -140,5 +94,30 @@ router.put("/del/customer/:iduser", function (req, res)
 		}
 	});
 });
+
+
+/* Get all customers */
+router.get('/:iduser', function (req, res)
+{
+	customerModel.getCustomers(function (error, data)
+	{
+		//Get data
+		if (data && data.length > 0)
+		{
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+		//Get error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
+
+
 
 module.exports = router;
