@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>public/bower_components/jquery/src/ajax/load.js - Documentation</title>
+    <title>Customer - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -33,95 +33,459 @@
 
 <div id="main">
     
-    <h1 class="page-title">public/bower_components/jquery/src/ajax/load.js</h1>
+    <h1 class="page-title">Customer</h1>
     
 
     
 
 
 
+
+<section>
+
+<header>
     
-    <section>
-        <article>
-            <pre class="prettyprint source linenums"><code>define( [
-	"../core",
-	"../core/stripAndCollapse",
-	"../core/parseHTML",
-	"../ajax",
-	"../traversing",
-	"../manipulation",
-	"../selector"
-], function( jQuery, stripAndCollapse ) {
+        
+            
+        
+    
+</header>
 
-"use strict";
+<article>
+    
+        <div class="container-overview">
+        
+            
+                <div class="description"><p>Module for routing customer requests
+<br>BASE ROUTE CALL: <b>/customer</b></p></div>
+            
 
-/**
- * Load a url into a page
- */
-jQuery.fn.load = function( url, params, callback ) {
-	var selector, type, response,
-		self = this,
-		off = url.indexOf( " " );
+            
+                
 
-	if ( off > -1 ) {
-		selector = stripAndCollapse( url.slice( off ) );
-		url = url.slice( 0, off );
-	}
 
-	// If it's a function
-	if ( jQuery.isFunction( params ) ) {
 
-		// We assume that it's the callback
-		callback = params;
-		params = undefined;
 
-	// Otherwise, build a param string
-	} else if ( params &amp;&amp; typeof params === "object" ) {
-		type = "POST";
-	}
+<dl class="details">
 
-	// If we have elements to modify, make the request
-	if ( self.length > 0 ) {
-		jQuery.ajax( {
-			url: url,
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="routes_user_customer.js.html">routes/user/customer.js</a>, <a href="routes_user_customer.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
 
-			// If "type" variable is undefined, then "GET" method will be used.
-			// Make value of this field explicit since
-			// user can override it through ajaxSetup method
-			type: type || "GET",
-			dataType: "html",
-			data: params
-		} ).done( function( responseText ) {
+    
 
-			// Save response for use in complete callback
-			response = arguments;
+    
 
-			self.html( selector ?
+    
 
-				// If a selector was specified, locate the right elements in a dummy div
-				// Exclude scripts to avoid IE 'Permission Denied' errors
-				jQuery( "&lt;div>" ).append( jQuery.parseHTML( responseText ) ).find( selector ) :
+    
 
-				// Otherwise use the full result
-				responseText );
+    
 
-		// If the request succeeds, this function gets "data", "status", "jqXHR"
-		// but they are ignored because response was set above.
-		// If it fails, this function gets "jqXHR", "status", "error"
-		} ).always( callback &amp;&amp; function( jqXHR, status ) {
-			self.each( function() {
-				callback.apply( this, response || [ jqXHR.responseText, status, jqXHR ] );
-			} );
-		} );
-	}
+    
 
-	return this;
-};
+    
 
-} );
-</code></pre>
-        </article>
-    </section>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id="~AddFirewall"><span class="type-signature">(inner) </span>AddFirewall<span class="signature">(id, iduser, cluster, name, comment<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {JSON}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="routes_user_customer.js.html">routes/user/customer.js</a>, <a href="routes_user_customer.js.html#line17">line 17</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>CREATE New customer</p>
+<blockquote>
+<p>ROUTE CALL:  <strong>/customer</strong><br>METHOD:  <strong>POST</strong></p>
+</blockquote>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>#### JSON RESPONSE OK:
+   
+      {"data" : [
+         { 
+          "insertId : ID,   // New customer identifier           
+         }
+        ]
+      };
+      
+#### JSON RESPONSE ERROR:
+   
+      {"data" : [
+         { 
+          "msg : ERROR,   //Text Error
+         }
+        ]
+      };</code></pre>
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>id</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Integer</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Firewall identifier (AUTO)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>iduser</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Integer</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>User identifier</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cluster</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Integer</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Cluster identifier</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Firewall Name</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>comment</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Firewall comment</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Returns Json result</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">JSON</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
 
 
 

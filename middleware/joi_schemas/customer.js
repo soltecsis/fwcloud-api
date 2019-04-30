@@ -8,15 +8,19 @@ schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
-		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/cluster')) {
+		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/customer')) {
 			schema = Joi.object().keys({
-				name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/),
 				email: Joi.string().email().optional(),
 				address: sharedSch.comment,
 				cif: Joi.string().alphanum().min(3).max(32).optional(),
 				telephone: Joi.string().alphanum().min(3).max(32).optional(),
 				web: sharedSch.comment
 			});
+
+			if (req.method === 'POST')
+				schema = schema.append({ customer: sharedSch.id.optional(),	name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/) });
+			else
+				schema = schema.append({ customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
 		} else if (req.method === 'PUT') {
 			schema = Joi.object().keys({ fwcloud: sharedSch.id });
 

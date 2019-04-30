@@ -23,11 +23,12 @@ accessCtrl.checkCustomer = async req => {
 
 accessCtrl.checkUser = async req => {
 	return new Promise((resolve, reject) => {
-		req.dbCon.query(`select id from mark where id=${req.body.mark} and fwcloud=${req.body.fwcloud}`, (error, result) => {
+		req.dbCon.query(`select role from user where id=${req.session.user_id}`, (error, result) => {
 			if (error) return reject(error);
 			if (result.length!==1) return resolve(false);
 
-			resolve(true);
+			// Role id 1 is for administrator users.
+			resolve(result[0].role==="1" ? true : false);
 		});
 	});
 }

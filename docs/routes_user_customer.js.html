@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>public/bower_components/jquery/src/ajax/load.js - Documentation</title>
+    <title>routes/user/customer.js - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -33,7 +33,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">public/bower_components/jquery/src/ajax/load.js</h1>
+    <h1 class="page-title">routes/user/customer.js</h1>
     
 
     
@@ -43,83 +43,174 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>define( [
-	"../core",
-	"../core/stripAndCollapse",
-	"../core/parseHTML",
-	"../ajax",
-	"../traversing",
-	"../manipulation",
-	"../selector"
-], function( jQuery, stripAndCollapse ) {
+            <pre class="prettyprint source linenums"><code>/**
+ * Module for routing customer requests
+ * &lt;br>BASE ROUTE CALL: &lt;b>/customer&lt;/b>
+ *
+ * @module Customer
+ * 
+ * 
+ */
 
-"use strict";
+var express = require('express');
+var router = express.Router();
+var customerModel = require('../../models/user/customers');
+var api_resp = require('../../utils/api_response');
+var objModel = 'CUSTOMER';
+
 
 /**
- * Load a url into a page
+ * CREATE New customer
+ * 
+ * 
+ * > ROUTE CALL:  __/customer__      
+ * > METHOD:  __POST__
+ * 
+ *
+ * @method AddFirewall
+ * 
+ * @param {Integer} id Firewall identifier (AUTO)
+ * @param {Integer} iduser User identifier
+ * @param {Integer} cluster Cluster identifier
+ * @param {String} name Firewall Name
+ * @param {String} [comment] Firewall comment
+ * 
+ * @return {JSON} Returns Json result
+ * @example 
+ * #### JSON RESPONSE OK:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "insertId : ID,   // New customer identifier           
+ *          }
+ *         ]
+ *       };
+ *       
+ * #### JSON RESPONSE ERROR:
+ *    
+ *       {"data" : [
+ *          { 
+ *           "msg : ERROR,   //Text Error
+ *          }
+ *         ]
+ *       };
  */
-jQuery.fn.load = function( url, params, callback ) {
-	var selector, type, response,
-		self = this,
-		off = url.indexOf( " " );
+router.post('', async (req, res) => {
+	try {
+		// Verify that don't already exists a customer with the id or name indicated as a parameter in the body request.
+		if (await customerModel.exists(req))
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		await customerModel.insert(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'Customer created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
 
-	if ( off > -1 ) {
-		selector = stripAndCollapse( url.slice( off ) );
-		url = url.slice( 0, off );
+/* update customer */
+router.put('/customer/:iduser', function (req, res)
+{
+	//Save customer data into object
+	var customerData = {id: req.param('id'), name: req.param('name'), email: req.param('email'), cif: req.param('cif'), address: req.param('address'), telephone: req.param('telephone'), web: req.param('web')};
+	customerModel.updateCustomer(customerData, function (error, data)
+	{
+		//saved ok
+		if (data &amp;&amp; data.result)
+		{
+			api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		} else
+		{
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
+
+/* Get customer by Id */
+router.get('/customer/:iduser/:id', function (req, res)
+{
+	var id = req.params.id;
+
+	if (!isNaN(id))
+	{
+		customerModel.getCustomer(id, function (error, data)
+		{
+			//Get data
+			if (data &amp;&amp; data.length > 0)
+			{
+				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+
+			}
+			//Get error
+			else
+			{
+				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+					res.status(200).json(jsonResp);
+				});
+			}
+		});
 	}
-
-	// If it's a function
-	if ( jQuery.isFunction( params ) ) {
-
-		// We assume that it's the callback
-		callback = params;
-		params = undefined;
-
-	// Otherwise, build a param string
-	} else if ( params &amp;&amp; typeof params === "object" ) {
-		type = "POST";
+	//id must be numeric
+	else
+	{
+		api_resp.getJson(null, api_resp.ACR_DATA_ERROR, '', objModel, null, function (jsonResp) {
+			res.status(200).json(jsonResp);
+		});
 	}
+});
 
-	// If we have elements to modify, make the request
-	if ( self.length > 0 ) {
-		jQuery.ajax( {
-			url: url,
 
-			// If "type" variable is undefined, then "GET" method will be used.
-			// Make value of this field explicit since
-			// user can override it through ajaxSetup method
-			type: type || "GET",
-			dataType: "html",
-			data: params
-		} ).done( function( responseText ) {
 
-			// Save response for use in complete callback
-			response = arguments;
+/* remove customer */
+router.put("/del/customer/:iduser", function (req, res)
+{
 
-			self.html( selector ?
+	var id = req.param('id');
+	customerModel.deleteCustomer(id, function (error, data)
+	{
+		if (data &amp;&amp; data.result)
+		{
+			api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		} else
+		{
+			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
 
-				// If a selector was specified, locate the right elements in a dummy div
-				// Exclude scripts to avoid IE 'Permission Denied' errors
-				jQuery( "&lt;div>" ).append( jQuery.parseHTML( responseText ) ).find( selector ) :
 
-				// Otherwise use the full result
-				responseText );
+/* Get all customers */
+router.get('/:iduser', function (req, res)
+{
+	customerModel.getCustomers(function (error, data)
+	{
+		//Get data
+		if (data &amp;&amp; data.length > 0)
+		{
+			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+		//Get error
+		else
+		{
+			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
+				res.status(200).json(jsonResp);
+			});
+		}
+	});
+});
 
-		// If the request succeeds, this function gets "data", "status", "jqXHR"
-		// but they are ignored because response was set above.
-		// If it fails, this function gets "jqXHR", "status", "error"
-		} ).always( callback &amp;&amp; function( jqXHR, status ) {
-			self.each( function() {
-				callback.apply( this, response || [ jqXHR.responseText, status, jqXHR ] );
-			} );
-		} );
-	}
 
-	return this;
-};
 
-} );
-</code></pre>
+module.exports = router;</code></pre>
         </article>
     </section>
 

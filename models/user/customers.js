@@ -3,11 +3,11 @@ var customerModel = {};
 var tableModel="customer";
 
 //Add new customer
-customerModel.insertCustomer = req => {
+customerModel.insert = req => {
 	return new Promise(async (resolve, reject) => {
 		//New object with customer data
 		var customerData = {
-			id: null,
+			id: req.body.customer,
 			name: req.body.name,
 			email: req.body.email,
 			address: req.body.address,
@@ -19,6 +19,61 @@ customerModel.insertCustomer = req => {
 		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, customerData, (error, result) => {			
 			if (error) return reject(error);
 			resolve(result.insertId);
+		});
+	});
+};
+
+
+customerModel.exists = req => {
+	return new Promise(async (resolve, reject) => {
+		// Make sure that we don't have another customer with the same name.
+		req.dbCon.query(`select id from ${tableModel} where name=${req.dbCon.escape(req.body.name)}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length>0) return resolve(true);
+
+			// If we have a customer id in the body, make sure that we don't have any other customer with the same id.
+			if (req.body.customer) {
+				req.dbCon.query(`select id from ${tableModel} where id=${req.body.customer}`, (error, result) => {
+					if (error) return reject(error);
+					if (result.length>0) return resolve(true);
+					resolve(false);
+				});
+			} else resolve(false);
+		});
+	});
+};
+
+
+//Update customer
+customerModel.update = req => {
+	return new Promise(async (resolve, reject) => {
+		let sql = `UPDATE ${tableModel} SET name=${req.db.escape(req.body.name)},
+			email=${req.db.escape(req.body.email)},
+			address=${req.db.escape(req.body.address)},
+			CIF=${req.db.escape(req.body.cif)},
+			telephone=${req.db.escape(req.body.telephone)},
+			web=${req.db.escape(req.body.web)}
+			WHERE id=${req.body.customer}`;
+		req.db.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
+
+
+
+//Get customer by  id
+customerModel.getCustomer = function (id, callback) {
+	db.get(function (error, connection) {
+		if (error) callback(error, null);
+		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
+		connection.query(sql, function (error, row) {
+			if (error)
+				callback(error, null);
+			else
+				callback(null, row);
 		});
 	});
 };
