@@ -175,14 +175,15 @@ router.put('/', (req, res) => {
 			socketTools.msg("<strong>FORWARD CHAIN:</strong>\n");
 			cs = await PolicyScript.dump(req,63);
 
-			//socketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
-			//stream.write(cs + "\n\necho -e \"\\nSNAT\\n----\"\n");
-			//socketTools.msg("<strong>SNAT:</strong>\n");
-			//cs = await PolicyScript.dump(req,64);
+			stream.write(cs + "\n\necho -e \"\\n********************\\n* NAT TABLE (IPv6) *\\n********************\"\n");
+			socketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
+			stream.write("\n\necho -e \"\\nSNAT\\n----\"\n");
+			socketTools.msg("<strong>SNAT:</strong>\n");
+			cs = await PolicyScript.dump(req,64);
 
-			//stream.write(cs + "\n\necho -e \"\\nDNAT\\n----\"\n");
-			//socketTools.msg("<strong>DNAT:</strong>\n");
-			//cs = await PolicyScript.dump(req, 65);
+			stream.write(cs + "\n\necho -e \"\\nDNAT\\n----\"\n");
+			socketTools.msg("<strong>DNAT:</strong>\n");
+			cs = await PolicyScript.dump(req, 65);
 
 			stream.write(cs+"\n}\n\n");
 			
