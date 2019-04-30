@@ -177,7 +177,7 @@ router.put('/', (req, res) => {
 
 			stream.write(cs + "\n\necho -e \"\\n********************\\n* NAT TABLE (IPv6) *\\n********************\"\n");
 			socketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
-			stream.write("\n\necho -e \"\\nSNAT\\n----\"\n");
+			stream.write("\n\necho -e \"SNAT\\n----\"\n");
 			socketTools.msg("<strong>SNAT:</strong>\n");
 			cs = await PolicyScript.dump(req,64);
 
