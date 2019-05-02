@@ -1,12 +1,24 @@
 {
-  "name": "nodeapi",
-  "version": "0.1.0",
+  "name": "FWCloud.net-API",
+  "version": "0.8.5",
+  "description": "Documentation for the RESTful API of the FWCloud.net project.",
   "private": true,
   "scripts": {
     "start": "node bin/www",
-    "generate-docs": "node_modules/.bin/jsdoc -c jsdoc.json"
+    "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
+    "generate-apidoc": "node_modules/.bin/apidoc -i routes/user -o apidoc/"
+  },
+  "apidoc": {
+    "title": "FWCloud.net API",
+    "url" : "https://api.fwcloud.net",
+    "template": {
+      "forceLanguage": "en",
+      "withCompare": false,
+      "withGenerator": false
+    }
   },
   "dependencies": {
+    "apidoc": "^0.17.7",
     "async": "^2.6.2",
     "bcrypt": "^3.0.4",
     "body-parser": "^1.18.3",

@@ -10,10 +10,9 @@ schema.validate = req => {
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/customer')) {
 			schema = Joi.object().keys({
+				addr: sharedSch.comment,
+				phone: sharedSch.comment,
 				email: Joi.string().email().optional(),
-				address: sharedSch.comment,
-				cif: Joi.string().alphanum().min(3).max(32).optional(),
-				telephone: Joi.string().alphanum().min(3).max(32).optional(),
 				web: sharedSch.comment
 			});
 

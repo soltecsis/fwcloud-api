@@ -8,11 +8,10 @@ customerModel.insert = req => {
 		//New object with customer data
 		var customerData = {
 			id: req.body.customer,
+			addr: req.body.address,
+			phone: req.body.telephone,
 			name: req.body.name,
 			email: req.body.email,
-			address: req.body.address,
-			cif: req.body.cif,
-			telephone: req.body.telephone,
 			web: req.body.web
 		};
 

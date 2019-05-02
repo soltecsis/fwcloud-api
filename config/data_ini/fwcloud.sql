@@ -151,9 +151,8 @@ DROP TABLE IF EXISTS `customer`;
 CREATE TABLE `customer` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `address` varchar(255) COLLATE utf8_unicode_ci,
-  `CIF` varchar(255) COLLATE utf8_unicode_ci,
-  `telephone` varchar(255) COLLATE utf8_unicode_ci,
+  `addr` varchar(255) COLLATE utf8_unicode_ci,
+  `phone` varchar(255) COLLATE utf8_unicode_ci,
   `email` varchar(255) COLLATE utf8_unicode_ci,
   `web` varchar(255) COLLATE utf8_unicode_ci,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -170,7 +169,7 @@ CREATE TABLE `customer` (
 
 LOCK TABLES `customer` WRITE;
 /*!40000 ALTER TABLE `customer` DISABLE KEYS */;
-INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca 7','B54368451','966 446 046','info@soltecsis.com','soltecsis.com','0000-00-00 00:00:00','0000-00-00 00:00:00',0,0);
+INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca,7 - 03590 Altea (Alicante) - Spain','+34 966 446 046','info@soltecsis.com','https://soltecsis.com',CURTIME(),CURTIME(),1,1);
 /*!40000 ALTER TABLE `customer` ENABLE KEYS */;
 UNLOCK TABLES;
 

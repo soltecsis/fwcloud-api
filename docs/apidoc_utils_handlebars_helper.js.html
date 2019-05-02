@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>apidoc/utils/handlebars_helper.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://fwcloud.net" target="_blank" class="menu-item" id="website_link" >FWCloud.net</a></h2><h3>Modules</h3><ul><li><a href="module-api_response.html">api_response</a><ul class='methods'><li data-type='method'><a href="module-api_response.html#~getJson">getJson</a></li><li data-type='method'><a href="module-api_response.html#~getMsgCodeResp">getMsgCodeResp</a></li></ul></li><li><a href="module-Cluster.html">Cluster</a><ul class='methods'><li data-type='method'><a href="module-Cluster.html#~getclusters">getclusters</a></li></ul></li><li><a href="module-Compile.html">Compile</a></li><li></li><li><a href="module-Customer.html">Customer</a><ul class='methods'><li data-type='method'><a href="module-Customer.html#~AddFirewall">AddFirewall</a></li></ul></li><li><a href="module-Firewall.html">Firewall</a><ul class='methods'><li data-type='method'><a href="module-Firewall.html#~AddFirewall">AddFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~DeleteFirewall">DeleteFirewall</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser">getFirewallByUser</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cloud">getFirewallByUser_and_Cloud</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Cluster">getFirewallByUser_and_Cluster</a></li><li data-type='method'><a href="module-Firewall.html#~getFirewallByUser_and_Id">getFirewallByUser_and_Id</a></li><li data-type='method'><a href="module-Firewall.html#~getLockedStatusFirewallByUser_and_ID_V2">getLockedStatusFirewallByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Firewall.html#~UpdateFirewall">UpdateFirewall</a></li></ul></li><li><a href="module-FirewallExport.html">FirewallExport</a></li><li><a href="module-Fwcloud.html">Fwcloud</a><ul class='methods'><li data-type='method'><a href="module-Fwcloud.html#~AddFwcloud">AddFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~DeleteFwcloud">DeleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~deleteFwcloud">deleteFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloud">getFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser">getFwcloudByUser</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudByUser_and_ID_V2">getFwcloudByUser_and_ID_V2</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedAccess">getFwcloudLockedAccess</a></li><li data-type='method'><a href="module-Fwcloud.html#~getFwcloudLockedTimeout">getFwcloudLockedTimeout</a></li><li data-type='method'><a href="module-Fwcloud.html#~getLockedStatusFwcloudByUser_and_ID">getLockedStatusFwcloudByUser_and_ID</a></li><li data-type='method'><a href="module-Fwcloud.html#~insertFwcloud">insertFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloud">updateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloud">UpdateFwcloud</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudLock">UpdateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudLock">updateFwcloudLock</a></li><li data-type='method'><a href="module-Fwcloud.html#~updateFwcloudUnlock">updateFwcloudUnlock</a></li><li data-type='method'><a href="module-Fwcloud.html#~UpdateFwcloudUnlock">UpdateFwcloudUnlock</a></li></ul></li><li></li><li><a href="module-ipobj%2520group.html">ipobj group</a></li><li><a href="module-Ipobjs.html">Ipobjs</a><ul class='methods'><li data-type='method'><a href="module-Ipobjs.html#~DeleteIpobj">DeleteIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~getIpobjById">getIpobjById</a></li><li data-type='method'><a href="module-Ipobjs.html#~NewIpobj">NewIpobj</a></li><li data-type='method'><a href="module-Ipobjs.html#~SearchIpobjWhereUsed">SearchIpobjWhereUsed</a></li><li data-type='method'><a href="module-Ipobjs.html#~UpdateIpobj">UpdateIpobj</a></li></ul></li><li><a href="module-OpenVPN.html">OpenVPN</a></li></ul><h3>Classes</h3><ul><li><a href="module-api_response.html#~respModel">respModel</a></li><li><a href="module-Cluster-ClusterRouter.html">ClusterRouter</a></li><li><a href="module-Compile-CompileRouter.html">CompileRouter</a></li><li><a href="module-FirewallExport-FirewallModel.html">FirewallModel</a></li><li><a href="module-Firewall-FirewallRouter.html">FirewallRouter</a></li><li><a href="module-Fwcloud.html#~FwcloudModel">FwcloudModel</a></li><li><a href="module-Fwcloud-FwcloudRouter.html">FwcloudRouter</a></li><li><a href="module-Ipobjs-IpobjsRouter.html">IpobjsRouter</a></li></ul><h3>Global</h3><ul><li><a href="global.html#arrayToRegexp">arrayToRegexp</a></li><li><a href="global.html#attachKeys">attachKeys</a></li><li><a href="global.html#escapeGroup">escapeGroup</a></li><li><a href="global.html#flags">flags</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#PATH_REGEXP">PATH_REGEXP</a></li><li><a href="global.html#pathToRegexp">pathToRegexp</a></li><li><a href="global.html#Policy_cModel">Policy_cModel</a></li><li><a href="global.html#Policy_rModel">Policy_rModel</a></li><li><a href="global.html#regexpToRegexp">regexpToRegexp</a></li><li><a href="global.html#replacePath">replacePath</a></li><li><a href="global.html#RuleCompile">RuleCompile</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">apidoc/utils/handlebars_helper.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define([
+    'locales',
+    'handlebars',
+    'diffMatchPatch'
+], function(locale, Handlebars, DiffMatchPatch) {
+
+    /**
+     * Return a text as markdown.
+     * Currently only a little helper to replace apidoc-inline Links (#Group:Name).
+     * Should be replaced with a full markdown lib.
+     * @param string text
+     */
+    Handlebars.registerHelper('markdown', function(text) {
+        if ( ! text ) {
+          return text;
+        }
+        text = text.replace(/((\[(.*?)\])?\(#)((.+?):(.+?))(\))/mg, function(match, p1, p2, p3, p4, p5, p6) {
+          var link = p3 || p5 + '/' + p6;
+          return '&lt;a href="#api-' + p5 + '-' + p6 + '">' + link + '&lt;/a>';
+        });
+        return text;
+    });
+
+    /**
+     * start/stop timer for simple performance check.
+     */
+    var timer;
+    Handlebars.registerHelper('startTimer', function(text) {
+        timer = new Date();
+        return '';
+    });
+
+    Handlebars.registerHelper('stopTimer', function(text) {
+        console.log(new Date() - timer);
+        return '';
+    });
+
+    /**
+     * Return localized Text.
+     * @param string text
+     */
+    Handlebars.registerHelper('__', function(text) {
+        return locale.__(text);
+    });
+
+    /**
+     * Console log.
+     * @param mixed obj
+     */
+    Handlebars.registerHelper('cl', function(obj) {
+        console.log(obj);
+        return '';
+    });
+
+    /**
+     * Replace underscore with space.
+     * @param string text
+     */
+    Handlebars.registerHelper('underscoreToSpace', function(text) {
+        return text.replace(/(_+)/g, ' ');
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('assign', function(name) {
+        if(arguments.length > 0) {
+            var type = typeof(arguments[1]);
+            var arg = null;
+            if(type === 'string' || type === 'number' || type === 'boolean') arg = arguments[1];
+            Handlebars.registerHelper(name, function() { return arg; });
+        }
+        return '';
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('nl2br', function(text) {
+        return _handlebarsNewlineToBreak(text);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('if_eq', function(context, options) {
+        var compare = context;
+        // Get length if context is an object
+        if (context instanceof Object &amp;&amp; ! (options.hash.compare instanceof Object))
+             compare = Object.keys(context).length;
+
+        if (compare === options.hash.compare)
+            return options.fn(this);
+
+        return options.inverse(this);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('if_gt', function(context, options) {
+        var compare = context;
+        // Get length if context is an object
+        if (context instanceof Object &amp;&amp; ! (options.hash.compare instanceof Object))
+             compare = Object.keys(context).length;
+
+        if(compare > options.hash.compare)
+            return options.fn(this);
+
+        return options.inverse(this);
+    });
+
+    /**
+     *
+     */
+    var templateCache = {};
+    Handlebars.registerHelper('subTemplate', function(name, sourceContext) {
+        if ( ! templateCache[name])
+            templateCache[name] = Handlebars.compile($('#template-' + name).html());
+
+        var template = templateCache[name];
+        var templateContext = $.extend({}, this, sourceContext.hash);
+        return new Handlebars.SafeString( template(templateContext) );
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('toLowerCase', function(value) {
+        return (value &amp;&amp; typeof value === 'string') ? value.toLowerCase() : '';
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('splitFill', function(value, splitChar, fillChar) {
+        var splits = value.split(splitChar);
+        return new Array(splits.length).join(fillChar) + splits[splits.length - 1];
+    });
+
+    /**
+     * Convert Newline to HTML-Break (nl2br).
+     *
+     * @param {String} text
+     * @returns {String}
+     */
+    function _handlebarsNewlineToBreak(text) {
+        return ('' + text).replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + '&lt;br>' + '$2');
+    }
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('each_compare_list_field', function(source, compare, options) {
+        var fieldName = options.hash.field;
+        var newSource = [];
+        if (source) {
+            source.forEach(function(entry) {
+                var values = entry;
+                values['key'] = entry[fieldName];
+                newSource.push(values);
+            });
+        }
+
+        var newCompare = [];
+        if (compare) {
+            compare.forEach(function(entry) {
+                var values = entry;
+                values['key'] = entry[fieldName];
+                newCompare.push(values);
+            });
+        }
+        return _handlebarsEachCompared('key', newSource, newCompare, options);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('each_compare_keys', function(source, compare, options) {
+        var newSource = [];
+        if (source) {
+            var sourceFields = Object.keys(source);
+            sourceFields.forEach(function(name) {
+                var values = {};
+                values['value'] = source[name];
+                values['key'] = name;
+                newSource.push(values);
+            });
+        }
+
+        var newCompare = [];
+        if (compare) {
+            var compareFields = Object.keys(compare);
+            compareFields.forEach(function(name) {
+                var values = {};
+                values['value'] = compare[name];
+                values['key'] = name;
+                newCompare.push(values);
+            });
+        }
+        return _handlebarsEachCompared('key', newSource, newCompare, options);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('each_compare_field', function(source, compare, options) {
+        return _handlebarsEachCompared('field', source, compare, options);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('each_compare_title', function(source, compare, options) {
+        return _handlebarsEachCompared('title', source, compare, options);
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('reformat', function(source, type){
+        if (type == 'json')
+            try {
+               return JSON.stringify(JSON.parse(source.trim()),null, "    ");
+            } catch(e) {
+
+            }
+        return source
+    });
+
+    /**
+     *
+     */
+    Handlebars.registerHelper('showDiff', function(source, compare, options) {
+        var ds = '';
+        if(source === compare) {
+            ds = source;
+        } else {
+            if( ! source)
+                return compare;
+
+            if( ! compare)
+                return source;
+
+            var d = diffMatchPatch.diff_main(compare, source);
+            diffMatchPatch.diff_cleanupSemantic(d);
+            ds = diffMatchPatch.diff_prettyHtml(d);
+            ds = ds.replace(/&amp;para;/gm, '');
+        }
+        if(options === 'nl2br')
+            ds = _handlebarsNewlineToBreak(ds);
+
+        return ds;
+    });
+
+    /**
+     *
+     */
+    function _handlebarsEachCompared(fieldname, source, compare, options)
+    {
+        var dataList = [];
+        var index = 0;
+        if(source) {
+            source.forEach(function(sourceEntry) {
+                var found = false;
+                if (compare) {
+                    compare.forEach(function(compareEntry) {
+                        if(sourceEntry[fieldname] === compareEntry[fieldname]) {
+                            var data = {
+                                typeSame: true,
+                                source: sourceEntry,
+                                compare: compareEntry,
+                                index: index
+                            };
+                            dataList.push(data);
+                            found = true;
+                            index++;
+                        }
+                    });
+                }
+                if ( ! found) {
+                    var data = {
+                        typeIns: true,
+                        source: sourceEntry,
+                        index: index
+                    };
+                    dataList.push(data);
+                    index++;
+                }
+            });
+        }
+
+        if (compare) {
+            compare.forEach(function(compareEntry) {
+                var found = false;
+                if (source) {
+                    source.forEach(function(sourceEntry) {
+                        if(sourceEntry[fieldname] === compareEntry[fieldname])
+                            found = true;
+                    });
+                }
+                if ( ! found) {
+                    var data = {
+                        typeDel: true,
+                        compare: compareEntry,
+                        index: index
+                    };
+                    dataList.push(data);
+                    index++;
+                }
+            });
+        }
+
+        var ret = '';
+        var length = dataList.length;
+        for (var index in dataList) {
+            if(index == (length - 1))
+                dataList[index]['_last'] = true;
+            ret = ret + options.fn(dataList[index]);
+        }
+        return ret;
+    }
+
+    var diffMatchPatch = new DiffMatchPatch();
+
+    /**
+     * Overwrite Colors
+     */
+    DiffMatchPatch.prototype.diff_prettyHtml = function(diffs) {
+      var html = [];
+      var pattern_amp = /&amp;/g;
+      var pattern_lt = /&lt;/g;
+      var pattern_gt = />/g;
+      var pattern_para = /\n/g;
+      for (var x = 0; x &lt; diffs.length; x++) {
+        var op = diffs[x][0];    // Operation (insert, delete, equal)
+        var data = diffs[x][1];  // Text of change.
+        var text = data.replace(pattern_amp, '&amp;amp;').replace(pattern_lt, '&amp;lt;')
+            .replace(pattern_gt, '&amp;gt;').replace(pattern_para, '&amp;para;&lt;br>');
+        switch (op) {
+          case DIFF_INSERT:
+            html[x] = '&lt;ins>' + text + '&lt;/ins>';
+            break;
+          case DIFF_DELETE:
+            html[x] = '&lt;del>' + text + '&lt;/del>';
+            break;
+          case DIFF_EQUAL:
+            html[x] = '&lt;span>' + text + '&lt;/span>';
+            break;
+        }
+      }
+      return html.join('');
+    };
+
+    // Exports
+    return Handlebars;
+});
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu May 02 2019 10:08:51 GMT+0200 (GMT+02:00) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/jquery-3.1.1.min.js"></script>
+
+<script src="scripts/search.js"></script>
+
+
+
+
+</body>
+</html>

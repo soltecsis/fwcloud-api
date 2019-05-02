@@ -15,40 +15,58 @@ var objModel = 'CUSTOMER';
 
 
 /**
- * CREATE New customer
+ * @api {POST} /customer New customer
+ * @apiName NewCustomer
+ * @apiGroup CUSTOMER
  * 
- * 
- * > ROUTE CALL:  __/customer__      
- * > METHOD:  __POST__
- * 
+ * @apiDescription Create new customer. Customers allow group users.
  *
- * @method AddFirewall
+ * @apiParam {Number} [customer] New customer id.
+ * <br>The API will check that don't exists another customer with this id.
+ * @apiParam {String} name Customer's name.
+ * <br>The API will check that don't exists another customer with the same name.
+ * @apiParam {String} [addr] Customer's address.
+ * @apiParam {String} [phone] Customer's telephone.
+ * @apiParam {String} [email] Customer's e-mail.
+ * @apiParam {String} [web] Customer's website.
  * 
- * @param {Integer} id Firewall identifier (AUTO)
- * @param {Integer} iduser User identifier
- * @param {Integer} cluster Cluster identifier
- * @param {String} name Firewall Name
- * @param {String} [comment] Firewall comment
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "insertId : ID,   // New customer identifier           
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "customer": 10,
+ *   "name": "SOLTECSIS, S.L.",
+ *   "addr": "C/Carrasca,7 - 03590 Altea (Alicante) - Spain",
+ *   "phone": "+34 966 446 046",
+ *   "email": "info@soltecsis.com",
+ *   "web": "https://soltecsis.com"
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": true,
+ *     "respCode": "ACR_OK",
+ *     "respCodeMsg": "Ok",
+ *     "respMsg": "Customer created",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": false,
+ *     "respCode": "ACR_ALREADY_EXISTS",
+ *     "respCodeMsg": "unknown error",
+ *     "respMsg": "Customer already exists",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
  */
 router.post('', async (req, res) => {
 	try {
@@ -62,40 +80,57 @@ router.post('', async (req, res) => {
 
 
 /**
- * UPDATE customer information
+ * @api {PUT} /customer Update customer
+ * @apiName UpdateCustomer
+ * @apiGroup CUSTOMER
  * 
- * 
- * > ROUTE CALL:  __/customer__      
- * > METHOD:  __PUT__
- * 
+ * @apiDescription Update customer's information.
  *
- * @method AddFirewall
+ * @apiParam {Number} [customer] Id of the customer that you want modify.
+ * @apiParam {String} name Customer's name.
+ * <br>The API will check that don't exists another customer with the same name.
+ * @apiParam {String} [addr] Customer's address.
+ * @apiParam {String} [phone] Customer's telephone.
+ * @apiParam {String} [email] Customer's e-mail.
+ * @apiParam {String} [web] Customer's website.
  * 
- * @param {Integer} customer Customer identifier
- * @param {Integer} iduser User identifier
- * @param {Integer} cluster Cluster identifier
- * @param {String} name Firewall Name
- * @param {String} [comment] Firewall comment
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "insertId : ID,   // New customer identifier           
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "customer": 10,
+ *   "name": "SOLTECSIS, S.L.",
+ *   "addr": "C/Carrasca,7 - 03590 Altea (Alicante) - Spain",
+ *   "phone": "+34 966 446 046",
+ *   "email": "info@soltecsis.com",
+ *   "web": "https://soltecsis.com"
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": true,
+ *     "respCode": "ACR_OK",
+ *     "respCodeMsg": "Ok",
+ *     "respMsg": "Customer updated",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": false,
+ *     "respCode": "ACR_ALREADY_EXISTS",
+ *     "respCodeMsg": "unknown error",
+ *     "respMsg": "Already exists a customer with the same name",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
  */
 router.put('', async (req, res) => {
 	try {
