@@ -38,7 +38,10 @@ sharedSchema.group_type = Joi.number().integer().valid([20, 21]);
 sharedSchema.policy_type = Joi.number().integer().valid([1,2,3,4,5,6,61,62,63,64,65]);
 
 sharedSchema.ipv4 = Joi.string().ip({ version: ['ipv4'], cidr: 'forbidden' });
+sharedSchema.ipv4_netmask_cidr = Joi.string().regex(/^(\/([0-9]|[1-2][0-9]|3[0-2]))$/);
+sharedSchema.ipv4_netmask = Joi.string().regex(/^(((255\.){3}(255|254|252|248|240|224|192|128|0+))|((255\.){2}(255|254|252|248|240|224|192|128|0+)\.0)|((255\.)(255|254|252|248|240|224|192|128|0+)(\.0+){2})|((255|254|252|248|240|224|192|128|0+)(\.0+){3}))$/);
 sharedSchema.ipv6 = Joi.string().ip({ version: ['ipv6'], cidr: 'forbidden' });
+sharedSchema.ipv6_netmask = Joi.string().regex(/^(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))$/);
 
 sharedSchema.u8bits = Joi.number().integer().min(0).max(255);
 sharedSchema.u16bits = Joi.number().integer().min(0).max(65535);

@@ -76,7 +76,7 @@ schema.validate = req => {
 					schema = schema.append({
 						ip_version: Joi.number().integer().valid([4, 6]),
 						address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
-						netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).allow('').optional()
+						netmask: Joi.alternatives().when('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr,sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask }).allow('').optional()
 					});
 					break;
 
@@ -92,7 +92,7 @@ schema.validate = req => {
 					schema = schema.append({
 						ip_version: Joi.number().integer().valid([4, 6]),
 						address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-						netmask: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
+						netmask: Joi.alternatives().when('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr,sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask })
 					});
 					break;
 

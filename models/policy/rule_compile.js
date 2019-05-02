@@ -61,7 +61,7 @@ RuleCompileModel.pre_compile_sd = (dir, sd, negate) => {
 		if (sd[i].type === 5) // Address
 			items.str.push(dir+sd[i].address);
 		else if (sd[i].type === 7) // Network
-			items.str.push(dir+sd[i].address+"/"+sd[i].netmask);
+			items.str.push(dir+sd[i].address+"/"+sd[i].netmask.replace('/',''));
 		else if (sd[i].type === 6) // Address range
 			items.str.push((dir!=="" ? ("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ")) : " ")+sd[i].range_start+"-"+sd[i].range_end);
 	}

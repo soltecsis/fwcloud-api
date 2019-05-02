@@ -23,6 +23,29 @@ userModel.getUserName = function (customer, username) {
 	});
 };
 
+
+//Update user confirmation_token
+userModel.updateUserCT = function (iduser, token, callback) {
+	return new Promise((resolve, reject) => {
+		db.get(function (error, connection) {
+			if (error)
+				reject(error);
+			var sql = 'UPDATE user SET ' +
+					' confirmation_token =  ' + connection.escape(token) +
+					' WHERE id = ' + connection.escape(iduser);
+			connection.query(sql, function (error, result) {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(true);
+				}
+			});
+		});
+	});
+};
+
+
+
 //Add new customer
 userModel.insert = req => {
 	return new Promise(async (resolve, reject) => {
