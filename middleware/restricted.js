@@ -3,16 +3,27 @@ var restrictedCheck = {};
 //Export the object
 module.exports = restrictedCheck;
 
-var api_resp = require('../utils/api_response');
-var firewallModel = require('../models/firewall/firewall');
-var interfaceModel = require('../models/interface/interface');
-var ipobjModel = require('../models/ipobj/ipobj');
-var ipobj_gModel = require('../models/ipobj/group');
+const api_resp = require('../utils/api_response');
+const customerModel = require('../models/user/customer');
+const firewallModel = require('../models/firewall/firewall');
+const interfaceModel = require('../models/interface/interface');
+const ipobjModel = require('../models/ipobj/ipobj');
+const ipobj_gModel = require('../models/ipobj/group');
 const pkiCAModel = require('../models/vpn/pki/ca');
 const pkiCRTModel = require('../models/vpn/pki/crt');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
 const markModel = require('../models/ipobj/mark');
+
+restrictedCheck.customer = async (req, res, next) => {
+	try {
+		let data = await customerModel.searchUsers(req);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		data = await customerModel.lastCustomer(req);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};
 
 
 restrictedCheck.fwcloud = (req, res, next) => {

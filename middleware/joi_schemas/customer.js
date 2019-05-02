@@ -25,6 +25,7 @@ schema.validate = req => {
 				schema = schema = Joi.object().keys({ customer: sharedSch.id.optional() });
 			else if (req.url === '/customer/del' || req.url === '/customer/restricted')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id });
+			else return reject(new Error('Request URL not accepted'));
 		} else return reject(new Error('Request method not accepted'));
 
 		try {

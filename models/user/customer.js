@@ -66,12 +66,49 @@ customerModel.update = req => {
 //Update customer
 customerModel.get = req => {
 	return new Promise(async (resolve, reject) => {
-		let sql = (req.body.customer) ? `select * from customer WHERE id=${req.body.customer}` : `select id,name from customer`;
+		let sql = (req.body.customer) ? `select * from ${tableModel} WHERE id=${req.body.customer}` : `select id,name from customer`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
 		});
 	});
+};
+
+
+customerModel.delete = req => {
+	return new Promise(async (resolve, reject) => {
+		req.dbCon.query(`delete from ${tableModel} where id=${req.body.customer}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
+
+customerModel.searchUsers = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`select count(*) as n from user where customer =${req.body.customer}`, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result[0].n > 0)
+        resolve({result: true, restrictions: { CustomerHasUsers: true}});
+      else
+        resolve({result: false});
+    });
+  });
+};
+
+customerModel.lastCustomer = req => {
+	return new Promise((resolve, reject) => {
+    req.dbCon.query(`select count(*) as n from ${tableModel}`, async (error, result) => {
+      if (error) return reject(error);
+
+      if (result[0].n < 2)
+        resolve({result: true, restrictions: { LastCustomer: true}});
+      else
+        resolve({result: false});
+    });
+  });
 };
 
 //Export the object
