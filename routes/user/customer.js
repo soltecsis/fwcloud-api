@@ -71,8 +71,10 @@ var objModel = 'CUSTOMER';
 router.post('', async (req, res) => {
 	try {
 		// Verify that don't already exists a customer with the id or name indicated as a parameter in the body request.
-		if (await customerModel.exists(req))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (req.body.customer && (await customerModel.existsId(req.dbCon,req.body.customer))) 
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer id already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (await customerModel.existsName(req.dbcon,req.body.name))
+			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		await customerModel.insert(req);
 		api_resp.getJson(null, api_resp.ACR_OK, 'Customer created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
@@ -134,12 +136,12 @@ router.post('', async (req, res) => {
  */
 router.put('', async (req, res) => {
 	try {
-		let customer_id_tmp = req.body.customer;
-		req.body.customer=null;
+		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 		// Verify that don't already exists a customer with same name indicated in the body request.
-		if (await customerModel.exists(req))
+		if (await customerModel.existsName(req.dbCon,req.body.name))
 			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Already exists a customer with the same name', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		req.body.customer = customer_id_tmp;
 
 		await customerModel.update(req);
 		api_resp.getJson(null, api_resp.ACR_OK, 'Customer updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -147,88 +149,58 @@ router.put('', async (req, res) => {
 });
 
 
+/**
+ * @api {PUT} /customer/get Get customer data
+ * @apiName GetCustomer
+ * @apiGroup CUSTOMER
+ * 
+ * @apiDescription Get customer data. 
+ *
+ * @apiParam {Number} [customer] Id of the customer.
+ * <br>If empty, the API will return the id and name for all the customers.
+ * <br>If it is not empty, it will return all the data for the indicated customer id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "customer": 10
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *     "response": {
+ *         "respStatus": true,
+ *         "respCode": "ACR_OK",
+ *         "respCodeMsg": "Ok",
+ *         "respMsg": "Customer data sent",
+ *         "errorCode": "",
+ *         "errorMsg": ""
+ *     },
+ *     "data": [
+ *         {
+ *             "id": 1,
+ *             "name": "SOLTECSIS, S.L.",
+ *             "addr": null,
+ *             "phone": null,
+ *             "email": "info@soltecsis.com",
+ *             "web": "https://soltecsis.com",
+ *             "created_at": "2019-05-02T09:13:35.000Z",
+ *             "updated_at": "2019-05-02T09:13:35.000Z",
+ *             "created_by": 0,
+ *             "updated_by": 0
+ *         }
+ *     ]
+ * }
+ */
+router.put('/get', async (req, res) => {
+	try {
+		if (req.body.customer && !(await customerModel.existsId(req.dbCon,req.body.customer)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-/* Get customer by Id */
-router.get('/customer/:iduser/:id', function (req, res)
-{
-	var id = req.params.id;
-
-	if (!isNaN(id))
-	{
-		customerModel.getCustomer(id, function (error, data)
-		{
-			//Get data
-			if (data && data.length > 0)
-			{
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-
-			}
-			//Get error
-			else
-			{
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		});
-	}
-	//id must be numeric
-	else
-	{
-		api_resp.getJson(null, api_resp.ACR_DATA_ERROR, '', objModel, null, function (jsonResp) {
-			res.status(200).json(jsonResp);
-		});
-	}
+		const data = await customerModel.get(req);
+		api_resp.getJson(data, api_resp.ACR_OK, 'Customer data sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting customer data', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
-
-
-
-/* remove customer */
-router.put("/del/customer/:iduser", function (req, res)
-{
-
-	var id = req.param('id');
-	customerModel.deleteCustomer(id, function (error, data)
-	{
-		if (data && data.result)
-		{
-			api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else
-		{
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
-
-/* Get all customers */
-router.get('/:iduser', function (req, res)
-{
-	customerModel.getCustomers(function (error, data)
-	{
-		//Get data
-		if (data && data.length > 0)
-		{
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get error
-		else
-		{
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function (jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
-});
-
 
 
 module.exports = router;

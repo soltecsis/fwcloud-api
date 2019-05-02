@@ -23,21 +23,23 @@ customerModel.insert = req => {
 };
 
 
-customerModel.exists = req => {
+customerModel.existsId = (dbCon, customer) => {
 	return new Promise(async (resolve, reject) => {
-		// Make sure that we don't have another customer with the same name.
-		req.dbCon.query(`select id from ${tableModel} where name=${req.dbCon.escape(req.body.name)}`, (error, result) => {
+		dbCon.query(`select id from ${tableModel} where id=${customer}`, (error, result) => {
 			if (error) return reject(error);
 			if (result.length>0) return resolve(true);
+			resolve(false);
+		});
+	});
+};
 
-			// If we have a customer id in the body, make sure that we don't have any other customer with the same id.
-			if (req.body.customer) {
-				req.dbCon.query(`select id from ${tableModel} where id=${req.body.customer}`, (error, result) => {
-					if (error) return reject(error);
-					if (result.length>0) return resolve(true);
-					resolve(false);
-				});
-			} else resolve(false);
+
+customerModel.existsName = (dbCon, name) => {
+	return new Promise(async (resolve, reject) => {
+		dbCon.query(`select id from ${tableModel} where name=${dbCon.escape(name)}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length>0) return resolve(true);
+			resolve(false);
 		});
 	});
 };
@@ -61,116 +63,13 @@ customerModel.update = req => {
 };
 
 
-
-
-//Get customer by  id
-customerModel.getCustomer = function (id, callback) {
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-
-
-//Get All customer
-customerModel.getCustomers = function (callback) {
-
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
-		});
-	});
-};
-
-
-
-
-
-//Get customer by  id
-customerModel.getCustomer = function (id, callback) {
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
-//Get customer by name
-customerModel.getCustomerName = function (name, callback) {
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE name like  "%' + connection.escape(name) + '%"';
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
 //Update customer
-customerModel.updateCustomer = function (customerData, callback) {
-
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(customerData.name) + ',' +
-			'email = ' + connection.escape(customerData.email) + ',' +
-			'address = ' + connection.escape(customerData.address) + ',' +
-			'CIF = ' + connection.escape(customerData.cif) + ',' +
-			'telephone = ' + connection.escape(customerData.telephone) + ',' +
-			'web = ' + connection.escape(customerData.web) + 
-			' WHERE id = ' + customerData.id;
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			}
-			else {
-				callback(null, { "result": true });
-			}
-		});
-	});
-};
-
-//Remove customer with id to remove
-customerModel.deleteCustomer = function (id, callback) {
-	db.get(function (error, connection) {
-		if (error) callback(error, null);
-		var sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-		connection.query(sqlExists, function (error, row) {
-			//If exists Id from customer to remove
-			if (row) {
-				db.get(function (error, connection) {
-					var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-					connection.query(sql, function (error, result) {
-						if (error) {
-							callback(error, null);
-						}
-						else {
-							callback(null, { "result": true });
-						}
-					});
-				});
-			}
-			else {
-				callback(null, { "result": false });
-			}
+customerModel.get = req => {
+	return new Promise(async (resolve, reject) => {
+		let sql = (req.body.customer) ? `select * from customer WHERE id=${req.body.customer}` : `select id,name from customer`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
 		});
 	});
 };

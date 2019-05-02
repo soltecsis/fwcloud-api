@@ -1,5 +1,45 @@
 define({ "api": [
   {
+    "type": "PUT",
+    "url": "/customer/get",
+    "title": "Get customer data",
+    "name": "GetCustomer",
+    "group": "CUSTOMER",
+    "description": "<p>Get customer data.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "customer",
+            "description": "<p>Id of the customer. <br>If empty, the API will return the id and name for all the customers. <br>If it is not empty, it will return all the data for the indicated customer id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n  \"customer\": 10\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n    \"response\": {\n        \"respStatus\": true,\n        \"respCode\": \"ACR_OK\",\n        \"respCodeMsg\": \"Ok\",\n        \"respMsg\": \"Customer data sent\",\n        \"errorCode\": \"\",\n        \"errorMsg\": \"\"\n    },\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"SOLTECSIS, S.L.\",\n            \"addr\": null,\n            \"phone\": null,\n            \"email\": \"info@soltecsis.com\",\n            \"web\": \"https://soltecsis.com\",\n            \"created_at\": \"2019-05-02T09:13:35.000Z\",\n            \"updated_at\": \"2019-05-02T09:13:35.000Z\",\n            \"created_by\": 0,\n            \"updated_by\": 0\n        }\n    ]\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/user/customer.js",
+    "groupTitle": "CUSTOMER"
+  },
+  {
     "type": "POST",
     "url": "/customer",
     "title": "New customer",
@@ -89,7 +129,7 @@ define({ "api": [
     "title": "Update customer",
     "name": "UpdateCustomer",
     "group": "CUSTOMER",
-    "description": "<p>Update customer information.</p>",
+    "description": "<p>Update customer's information.</p>",
     "parameter": {
       "fields": {
         "Parameter": [

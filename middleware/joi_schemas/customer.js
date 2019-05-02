@@ -21,12 +21,10 @@ schema.validate = req => {
 			else
 				schema = schema.append({ customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
 		} else if (req.method === 'PUT') {
-			schema = Joi.object().keys({ fwcloud: sharedSch.id });
-
-			if (req.url === '/customer/get' || req.url === '/customer/del')
-				schema = schema.append({ cluster: sharedSch.id });
-			else if (req.url === '/customer/restricted')
-				schema = schema.append({ firewall: sharedSch.id });
+			if (req.url === '/customer/get')
+				schema = schema = Joi.object().keys({ customer: sharedSch.id.optional() });
+			else if (req.url === '/customer/del' || req.url === '/customer/restricted')
+				schema = schema = Joi.object().keys({ customer: sharedSch.id });
 		} else return reject(new Error('Request method not accepted'));
 
 		try {
