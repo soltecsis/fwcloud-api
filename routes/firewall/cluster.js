@@ -339,7 +339,7 @@ router.put('/clone', (req, res) => {
 								await FirewallModel.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1);
 								//CLONE INTERFACES
 								let dataI = await InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
-								await Policy_rModel.cloneFirewallPolicy(iduser, fwcloud, oldFirewall, idNewFirewall, dataI);
+								await Policy_rModel.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 								await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							}
 						}

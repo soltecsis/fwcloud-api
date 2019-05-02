@@ -484,7 +484,7 @@ router.put('/clone', async (req, res) => {
 			const idNewFirewall = data.insertId;
 
 			const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
-			await Policy_rModel.cloneFirewallPolicy(req.session.user_idr, req.body.fwcloud, req.body.firewall, idNewFirewall, dataI);
+			await Policy_rModel.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
 			await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
