@@ -137,9 +137,13 @@ router.post('', async (req, res) => {
 		// Verify that exists the customer to which the new user will belong.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		await customerModel.insert(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'Customer created', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+		// Remember that in the access control middleware we have already verified that the logged user
+		// has the admin role. Then, we don't have to do it again.
+
+		await userModel.insert(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'User created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 

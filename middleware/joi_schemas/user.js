@@ -15,7 +15,7 @@ schema.validate = req => {
         password: sharedSch.password,
       });
     }
-		else if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/user')) {
+		else if (req.url==='/user' && (req.method==='POST' || req.method==='PUT')) {
 			schema = Joi.object().keys({
 				addr: sharedSch.comment,
 				phone: sharedSch.comment,

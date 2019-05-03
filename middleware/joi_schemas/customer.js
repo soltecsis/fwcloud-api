@@ -8,7 +8,7 @@ schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
-		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/customer')) {
+		if (req.url==='/customer' && (req.method==='PUT'|| req.method==='POST')) {
 			schema = Joi.object().keys({
 				addr: sharedSch.comment,
 				phone: sharedSch.comment,

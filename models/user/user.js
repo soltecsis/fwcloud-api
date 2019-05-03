@@ -51,7 +51,7 @@ userModel.insert = req => {
 	return new Promise(async (resolve, reject) => {
 		//New object with customer data
 		var customerData = {
-			id: req.body.customer,
+			id: null,
 			addr: req.body.address,
 			phone: req.body.telephone,
 			name: req.body.name,
