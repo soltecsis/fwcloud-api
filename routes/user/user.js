@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+const customerModel = require('../../models/user/customer');
 const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
 const api_resp = require('../../utils/api_response');
@@ -76,25 +77,31 @@ router.post('/logout',(req, res) => {
  * @apiName NewUser
  *  * @apiGroup USER
  * 
- * @apiDescription Create new customer. Customers allow group users.
+ * @apiDescription Create new user.
  *
- * @apiParam {Number} [customer] New customer id.
- * <\br>The API will check that don't exists another customer with this id.
- * @apiParam {String} name Customer's name.
- * <\br>The API will check that don't exists another customer with the same name.
- * @apiParam {String} [addr] Customer's address.
- * @apiParam {String} [phone] Customer's telephone.
- * @apiParam {String} [email] Customer's e-mail.
- * @apiParam {String} [web] Customer's website.
+ * @apiParam {Number} customer Customert id to which this user belongs to.
+ * <\br>The API will check that exists a customer with this id.
+ * @apiParam {String} name Full name of the owner of this user.
+ * @apiParam {String} [email] User's e-mail.
+ * @apiParam {String} username Username for login into the FWCloud.net web interface.
+ * @apiParam {String} password Username's password. 
+ * @apiParam {Number} role The role assigned to this user.
+ * <\br>1 = Admin. Full access.
+ * <\br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * @apiParam {Boolean} enabled If the user access is enabled or not.
+ * @apiParam {String} allowed_ip Comma separated list of IPs from which the user will be allowed to access to the
+ * FWCloud.net web interface.
  * 
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 10,
- *   "name": "SOLTECSIS, S.L.",
- *   "addr": "C/Carrasca,7 - 03590 Altea (Alicante) - Spain",
- *   "phone": "+34 966 446 046",
+ *   "name": "Mi Personal Name",
  *   "email": "info@soltecsis.com",
- *   "web": "https://soltecsis.com"
+ *   "username": "soltecsis",
+ *   "password": "mysecret",
+ *   "role": 1,
+ *   "enabled": true,
+ *   "allowed_ip": 10.99.4.10,192.168.1.1
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -104,7 +111,7 @@ router.post('/logout',(req, res) => {
  *     "respStatus": true,
  *     "respCode": "ACR_OK",
  *     "respCodeMsg": "Ok",
- *     "respMsg": "Customer created",
+ *     "respMsg": "User created",
  *     "errorCode": "",
  *     "errorMsg": ""
  *   },
@@ -127,11 +134,9 @@ router.post('/logout',(req, res) => {
  */
 router.post('', async (req, res) => {
 	try {
-		// Verify that don't already exists a customer with the id or name indicated as a parameter in the body request.
-		if (req.body.customer && (await customerModel.existsId(req.dbCon,req.body.customer))) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer id already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		if (await customerModel.existsName(req.dbCon,req.body.name))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Customer name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		// Verify that exists the customer to which the new user will belong.
+		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 		await customerModel.insert(req);
 		api_resp.getJson(null, api_resp.ACR_OK, 'Customer created', objModel, null, jsonResp => res.status(200).json(jsonResp));
 	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }

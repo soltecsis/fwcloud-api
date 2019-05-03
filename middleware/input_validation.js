@@ -21,6 +21,12 @@ inputValidation.check = async(req, res, next) => {
 
 	try {
 		const item1 = req.url.split('/')[1];
+		const item1_valid_list = [ 'user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 'ipobj', 'tree', 'vpn' ];
+		// Verify that item1 is in the valid list.
+		if (!item1_valid_list.includes(item1))
+			return api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Bad URL in API call', 'INPUT VALIDATION', null, jsonResp => res.status(200).json(jsonResp));
+
+		// Validate input.
 		await require(`./joi_schemas/${item1}`).validate(req);
 
 		// If we arrive here then input data has been sucessfully validated.  

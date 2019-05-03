@@ -22,9 +22,9 @@ schema.validate = req => {
 				schema = schema.append({ customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
 		} else if (req.method === 'PUT') {
 			if (req.url === '/customer/get')
-				schema = schema = Joi.object().keys({ customer: sharedSch.id.optional() });
+				schema = Joi.object().keys({ customer: sharedSch.id.optional() });
 			else if (req.url === '/customer/del' || req.url === '/customer/restricted')
-				schema = schema = Joi.object().keys({ customer: sharedSch.id });
+				schema = Joi.object().keys({ customer: sharedSch.id });
 			else return reject(new Error('Request URL not accepted'));
 		} else return reject(new Error('Request method not accepted'));
 

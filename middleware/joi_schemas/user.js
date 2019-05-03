@@ -15,7 +15,7 @@ schema.validate = req => {
         password: sharedSch.password,
       });
     }
-		else if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/customer')) {
+		else if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/user')) {
 			schema = Joi.object().keys({
 				addr: sharedSch.comment,
 				phone: sharedSch.comment,
@@ -24,13 +24,13 @@ schema.validate = req => {
 			});
 
 			if (req.method === 'POST')
-				schema = schema.append({ customer: sharedSch.id.optional(),	name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/) });
+				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/) });
 			else
 				schema = schema.append({ customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
 		} else if (req.method === 'PUT') {
-			if (req.url === '/customer/get')
+			if (req.url === '/user/get')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id.optional() });
-			else if (req.url === '/customer/del' || req.url === '/customer/restricted')
+			else if (req.url === '/user/del' || req.url === '/user/restricted')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id });
 			else return reject(new Error('Request URL not accepted'));
 		} else return reject(new Error('Request method not accepted'));
