@@ -58,3 +58,5 @@ sharedSchema.rule_clipboard_action = Joi.number().integer().valid([1, 2]);
 sharedSchema.socketio_id = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 
 sharedSchema.dns_name = Joi.string().regex(/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/);
+
+sharedSchema.role = Joi.number().integer().min(1).max(2);

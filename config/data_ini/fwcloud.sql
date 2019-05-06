@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.25, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.26, for Linux (x86_64)
 --
 -- Host: localhost    Database: fwcloud
 -- ------------------------------------------------------
--- Server version	5.7.25-0ubuntu0.16.04.2
+-- Server version	5.7.26-0ubuntu0.16.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -151,10 +151,10 @@ DROP TABLE IF EXISTS `customer`;
 CREATE TABLE `customer` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `addr` varchar(255) COLLATE utf8_unicode_ci,
-  `phone` varchar(255) COLLATE utf8_unicode_ci,
-  `email` varchar(255) COLLATE utf8_unicode_ci,
-  `web` varchar(255) COLLATE utf8_unicode_ci,
+  `addr` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `phone` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `web` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
@@ -169,7 +169,7 @@ CREATE TABLE `customer` (
 
 LOCK TABLES `customer` WRITE;
 /*!40000 ALTER TABLE `customer` DISABLE KEYS */;
-INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca,7 - 03590 Altea (Alicante) - Spain','+34 966 446 046','info@soltecsis.com','https://soltecsis.com',CURTIME(),CURTIME(),1,1);
+INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca,7 - 03590 Altea (Alicante) - Spain','+34 966 446 046','info@soltecsis.com','https://soltecsis.com','2019-05-06 10:22:12','2019-05-06 10:22:12',1,1);
 /*!40000 ALTER TABLE `customer` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1896,25 +1896,21 @@ DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `customer` int(11) DEFAULT NULL,
-  `username` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
   `email` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `username` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8 NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
-  `password` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `role` tinyint(1) NOT NULL DEFAULT '1',
+  `allowed_from` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
   `last_login` datetime DEFAULT NULL,
-  `locked` tinyint(1) NOT NULL DEFAULT '0',
-  `expired` tinyint(1) NOT NULL DEFAULT '0',
-  `expires_at` datetime DEFAULT NULL,
   `confirmation_token` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `password_requested_at` datetime DEFAULT NULL,
-  `allowed_ip` varchar(255) CHARACTER SET utf8 NOT NULL DEFAULT '*',
-  `role` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `name` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_by` int(11) NOT NULL DEFAULT '0',
   `updated_by` int(11) NOT NULL DEFAULT '0',
-  `last_access` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_customer_username` (`customer`,`username`),
   KEY `idx_customer` (`customer`),
   CONSTRAINT `fk_user-customer` FOREIGN KEY (`customer`) REFERENCES `customer` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -1926,74 +1922,35 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,1,'fwcadmin','info@soltecsis.com',1,'$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',NULL,0,0,NULL,'jl8q-fKQNEAwji3QmpLk64uWXiqneVLE_rM2TiVBBY8DBHJnyFpVv',NULL,'','1',NULL,'2018-12-31 00:00:00','2019-03-25 10:14:00',0,0,'');
+INSERT INTO `user` VALUES (1,1,'FWCloud admin user','info@soltecsis.com','fwcadmin','$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',1,1,NULL,NULL,'','2019-05-06 10:22:14','2019-05-06 10:22:14',1,1);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Table structure for table `user__cloud`
+-- Table structure for table `user__fwcloud`
 --
 
-DROP TABLE IF EXISTS `user__cloud`;
+DROP TABLE IF EXISTS `user__fwcloud`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `user__cloud` (
+CREATE TABLE `user__fwcloud` (
+  `user` int(11) NOT NULL,
   `fwcloud` int(11) NOT NULL,
-  `id_user` int(11) NOT NULL,
-  `allow_access` tinyint(1) NOT NULL DEFAULT '0',
-  `allow_edit` tinyint(1) NOT NULL DEFAULT '0',
-  `allow_admin` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_by` int(11) NOT NULL DEFAULT '0',
-  `updated_by` int(11) NOT NULL DEFAULT '0',
-  KEY `idx_fwcloud-id_user` (`fwcloud`,`id_user`) USING BTREE,
-  KEY `idx_id_user` (`id_user`),
-  CONSTRAINT `fk_user__cloud-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`),
-  CONSTRAINT `fk_user_cloud-user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
+  PRIMARY KEY (`user`,`fwcloud`),
+  KEY `idx_user` (`user`),
+  KEY `idx_fwcloud` (`fwcloud`),
+  CONSTRAINT `fk_user__fwcloud-fwcloud` FOREIGN KEY (`fwcloud`) REFERENCES `fwcloud` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_user__fwcloud-user` FOREIGN KEY (`user`) REFERENCES `user` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `user__cloud`
+-- Dumping data for table `user__fwcloud`
 --
 
-LOCK TABLES `user__cloud` WRITE;
-/*!40000 ALTER TABLE `user__cloud` DISABLE KEYS */;
-/*!40000 ALTER TABLE `user__cloud` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `user__firewall`
---
-
-DROP TABLE IF EXISTS `user__firewall`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `user__firewall` (
-  `id_firewall` int(11) NOT NULL,
-  `id_user` int(11) NOT NULL,
-  `allow_access` tinyint(1) NOT NULL DEFAULT '0',
-  `allow_edit` tinyint(1) NOT NULL DEFAULT '0',
-  `allow_admin` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_by` int(11) NOT NULL DEFAULT '0',
-  `updated_by` int(11) NOT NULL DEFAULT '0',
-  KEY `idx_id_firewall-id_user` (`id_firewall`,`id_user`) USING BTREE,
-  KEY `idx_id_user` (`id_user`),
-  CONSTRAINT `fk_user__firewall-firewall` FOREIGN KEY (`id_firewall`) REFERENCES `firewall` (`id`),
-  CONSTRAINT `fk_user__firewall-user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `user__firewall`
---
-
-LOCK TABLES `user__firewall` WRITE;
-/*!40000 ALTER TABLE `user__firewall` DISABLE KEYS */;
-/*!40000 ALTER TABLE `user__firewall` ENABLE KEYS */;
+LOCK TABLES `user__fwcloud` WRITE;
+/*!40000 ALTER TABLE `user__fwcloud` DISABLE KEYS */;
+/*!40000 ALTER TABLE `user__fwcloud` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -2033,4 +1990,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-04-18 17:44:46
+-- Dump completed on 2019-05-06 12:29:26

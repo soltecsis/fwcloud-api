@@ -427,62 +427,76 @@
   },
   {
     "type": "POST",
-    "url": "/customer",
-    "title": "New customer",
-    "name": "NewCustomer",
+    "url": "/user",
+    "title": "New user",
+    "name": "NewUser",
     "group": "USER",
-    "description": "<p>Create new customer. Customers allow group users.</p>",
+    "description": "<p>Create new user.</p>",
     "parameter": {
       "fields": {
         "Parameter": [
           {
             "group": "Parameter",
             "type": "Number",
-            "optional": true,
+            "optional": false,
             "field": "customer",
-            "description": "<p>New customer id. &lt;\\br&gt;The API will check that don't exists another customer with this id.</p>"
+            "description": "<p>Customert id to which this user belongs to. &lt;\\br&gt;The API will check that exists a customer with this id.</p>"
           },
           {
             "group": "Parameter",
             "type": "String",
             "optional": false,
             "field": "name",
-            "description": "<p>Customer's name. &lt;\\br&gt;The API will check that don't exists another customer with the same name.</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": true,
-            "field": "addr",
-            "description": "<p>Customer's address.</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": true,
-            "field": "phone",
-            "description": "<p>Customer's telephone.</p>"
+            "description": "<p>Full name of the owner of this user.</p>"
           },
           {
             "group": "Parameter",
             "type": "String",
             "optional": true,
             "field": "email",
-            "description": "<p>Customer's e-mail.</p>"
+            "description": "<p>User's e-mail.</p>"
           },
           {
             "group": "Parameter",
             "type": "String",
-            "optional": true,
-            "field": "web",
-            "description": "<p>Customer's website.</p>"
+            "optional": false,
+            "field": "username",
+            "description": "<p>Username for login into the FWCloud.net web interface.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "password",
+            "description": "<p>Username's password.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "role",
+            "description": "<p>The role assigned to this user. &lt;\\br&gt;1 = Admin. Full access. &lt;\\br&gt;2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Boolean",
+            "optional": false,
+            "field": "enabled",
+            "description": "<p>If the user access is enabled or not.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "allowed_ip",
+            "description": "<p>Comma separated list of IPs from which the user will be allowed to access to the FWCloud.net web interface.</p>"
           }
         ]
       },
       "examples": [
         {
           "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10,\n  \"name\": \"SOLTECSIS, S.L.\",\n  \"addr\": \"C/Carrasca,7 - 03590 Altea (Alicante) - Spain\",\n  \"phone\": \"+34 966 446 046\",\n  \"email\": \"info@soltecsis.com\",\n  \"web\": \"https://soltecsis.com\"\n}",
+          "content": "{\n  \"customer\": 10,\n  \"name\": \"Mi Personal Name\",\n  \"email\": \"info@soltecsis.com\",\n  \"username\": \"soltecsis\",\n  \"password\": \"mysecret\",\n  \"role\": 1,\n  \"enabled\": true,\n  \"allowed_ip\": 10.99.4.10,192.168.1.1\n}",
           "type": "json"
         }
       ]
@@ -491,7 +505,7 @@
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n  \"response\": {\n    \"respStatus\": true,\n    \"respCode\": \"ACR_OK\",\n    \"respCodeMsg\": \"Ok\",\n    \"respMsg\": \"Customer created\",\n    \"errorCode\": \"\",\n    \"errorMsg\": \"\"\n  },\n  \"data\": {}\n}",
+          "content": "HTTP/1.1 200 OK\n{\n  \"response\": {\n    \"respStatus\": true,\n    \"respCode\": \"ACR_OK\",\n    \"respCodeMsg\": \"Ok\",\n    \"respMsg\": \"User created\",\n    \"errorCode\": \"\",\n    \"errorMsg\": \"\"\n  },\n  \"data\": {}\n}",
           "type": "json"
         }
       ]

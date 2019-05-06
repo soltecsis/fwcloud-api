@@ -66,7 +66,7 @@ customerModel.update = req => {
 //Update customer
 customerModel.get = req => {
 	return new Promise(async (resolve, reject) => {
-		let sql = (req.body.customer) ? `select * from ${tableModel} WHERE id=${req.body.customer}` : `select id,name from customer`;
+		let sql = (req.body.customer) ? `select * from ${tableModel} WHERE id=${req.body.customer}` : `select id,name from ${tableModel}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);

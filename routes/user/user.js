@@ -85,23 +85,23 @@ router.post('/logout',(req, res) => {
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
  * @apiParam {String} password Username's password. 
+ * @apiParam {Number} enabled If the user access is enabled or not.
  * @apiParam {Number} role The role assigned to this user.
  * <\br>1 = Admin. Full access.
  * <\br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
- * @apiParam {Boolean} enabled If the user access is enabled or not.
- * @apiParam {String} allowed_ip Comma separated list of IPs from which the user will be allowed to access to the
+ * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
  * FWCloud.net web interface.
  * 
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 10,
- *   "name": "Mi Personal Name",
- *   "email": "info@soltecsis.com",
- *   "username": "soltecsis",
+ *   "name": "My Personal Name",
+ *   "email": "info@fwcloud.net",
+ *   "username": "fwcloud",
  *   "password": "mysecret",
+ *   "enabled": 1,
  *   "role": 1,
- *   "enabled": true,
- *   "allowed_ip": 10.99.4.10,192.168.1.1
+ *   "allowed_from": "10.99.4.10,192.168.1.1"
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -138,8 +138,12 @@ router.post('', async (req, res) => {
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
+		// Verify that for the indicated customer we don't have another user with the same username.
+		if (await userModel.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Username already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
 		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't have to do it again.
+		// has the admin role. Then, we don't have to check it again.
 
 		await userModel.insert(req);
 		api_resp.getJson(null, api_resp.ACR_OK, 'User created', objModel, null, jsonResp => res.status(200).json(jsonResp));
@@ -148,28 +152,36 @@ router.post('', async (req, res) => {
 
 
 /**
- * @api {PUT} /customer Update customer
- * @apiName UpdateCustomer
+ * @api {PUT} /user Update user
+ * @apiName UpdateUser
  *  * @apiGroup USER
  * 
- * @apiDescription Update customer's information.
+ * @apiDescription Update user's data.
  *
- * @apiParam {Number} [customer] Id of the customer that you want modify.
- * @apiParam {String} name Customer's name.
- * <\br>The API will check that don't exists another customer with the same name.
- * @apiParam {String} [addr] Customer's address.
- * @apiParam {String} [phone] Customer's telephone.
- * @apiParam {String} [email] Customer's e-mail.
- * @apiParam {String} [web] Customer's website.
+ * @apiParam {Number} user User id.
+ * @apiParam {Number} customer Customert id to which this user belongs to.
+ * <\br>The API will check that exists a customer with this id.
+ * @apiParam {String} name Full name of the owner of this user.
+ * @apiParam {String} [email] User's e-mail.
+ * @apiParam {String} username Username for login into the FWCloud.net web interface.
+ * @apiParam {String} password Username's password. 
+ * @apiParam {Number} enabled If the user access is enabled or not.
+ * @apiParam {Number} role The role assigned to this user.
+ * <\br>1 = Admin. Full access.
+ * <\br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
+ * FWCloud.net web interface.
  * 
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 10,
- *   "name": "SOLTECSIS, S.L.",
- *   "addr": "C/Carrasca,7 - 03590 Altea (Alicante) - Spain",
- *   "phone": "+34 966 446 046",
- *   "email": "info@soltecsis.com",
- *   "web": "https://soltecsis.com"
+ *   "name": "My Personal Name",
+ *   "email": "info@fwcloud.net",
+ *   "username": "fwcloud",
+ *   "password": "mysecret",
+ *   "enabled": 1,
+ *   "role": 1,
+ *   "allowed_from": "10.99.4.10,192.168.1.1"
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -179,7 +191,7 @@ router.post('', async (req, res) => {
  *     "respStatus": true,
  *     "respCode": "ACR_OK",
  *     "respCodeMsg": "Ok",
- *     "respMsg": "Customer updated",
+ *     "respMsg": "User updated",
  *     "errorCode": "",
  *     "errorMsg": ""
  *   },
@@ -193,7 +205,7 @@ router.post('', async (req, res) => {
  *     "respStatus": false,
  *     "respCode": "ACR_ALREADY_EXISTS",
  *     "respCodeMsg": "unknown error",
- *     "respMsg": "Already exists a customer with the same name",
+ *     "respMsg": "Already exists a customer with the same username",
  *     "errorCode": "",
  *     "errorMsg": ""
  *   },
@@ -202,33 +214,38 @@ router.post('', async (req, res) => {
  */
 router.put('', async (req, res) => {
 	try {
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
+		// Verify that the customer exists.
+		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-		// Verify that don't already exists a customer with same name indicated in the body request.
-		if (await customerModel.existsName(req.dbCon,req.body.name))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Already exists a customer with the same name', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		// Verify that the user exists and belongs to the indicated customer.
+		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'User not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-		await customerModel.update(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'Customer updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+
+		await userModel.update(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'User updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
+
 /**
- * @api {PUT} /customer/get Get customer data
- * @apiName GetCustomer
+ * @api {PUT} /user/get Get user data
+ * @apiName GetUser
  *  * @apiGroup USER
  * 
- * @apiDescription Get customer data. 
+ * @apiDescription Get user data. 
  *
- * @apiParam {Number} [customer] Id of the customer.
- * <\br>If empty, the API will return the id and name for all the customers.
- * <\br>If it is not empty, it will return all the data for the indicated customer id.
+ * @apiParam {Number} customer Id of the customer.
+ * @apiParam {Number} [user] Id of the user.
+ * <\br>If empty, the API will return the id and name for all the users of this customer..
+ * <\br>If it is not empty, it will return all the data for the indicated user.
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10
+ *   "customer": 10,
+ *   "user": 5
  * }
  *
  * @apiSuccessExample {json} Success-Response:

@@ -16,7 +16,7 @@ accessCtrl.hasLoggedUserAdminRole = async req => {
 			if (result.length!==1) return resolve(false);
 
 			// Role value of 1 is for admin users.
-			resolve(result[0].role==="1" ? true : false);
+			resolve(result[0].role===1 ? true : false);
 		});
 	});
 }
@@ -42,7 +42,7 @@ accessCtrl.check = async (req, res, next) => {
 
 
 	// Check access to customer and user creation functionality.
-	if (req.url.substring(0,9)==="/customer" || req.url.substring(0,5)==="/user") {
+	if (req.url.substring(0,5)==="/user" || req.url.substring(0,9)==="/customer") {
 	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
 			return next();
 		return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, "You are not an admin user", 'CUSTOMER/USER', null, jsonResp => res.status(200).json(jsonResp));

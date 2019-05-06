@@ -50,16 +50,19 @@ userModel.updateUserCT = function (iduser, token, callback) {
 userModel.insert = req => {
 	return new Promise(async (resolve, reject) => {
 		//New object with customer data
-		var customerData = {
+		var userData = {
 			id: null,
-			addr: req.body.address,
-			phone: req.body.telephone,
+			customer: req.body.customer,
 			name: req.body.name,
 			email: req.body.email,
-			web: req.body.web
+			username: req.body.username,
+			password: req.body.password,
+			enabled: req.body.enabled,
+			role: req.body.role,
+			allowed_from: req.body.allowed_from
 		};
 
-		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, customerData, (error, result) => {			
+		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, userData, (error, result) => {			
 			if (error) return reject(error);
 			resolve(result.insertId);
 		});
@@ -78,9 +81,19 @@ userModel.existsId = (dbCon, customer) => {
 };
 
 
-userModel.existsName = (dbCon, name) => {
+userModel.existsCustomerUserName = (dbCon, customer, username) => {
 	return new Promise(async (resolve, reject) => {
-		dbCon.query(`select id from ${tableModel} where name=${dbCon.escape(name)}`, (error, result) => {
+		dbCon.query(`select id from ${tableModel} where customer=${customer} and username=${dbCon.escape(username)}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length>0) return resolve(true);
+			resolve(false);
+		});
+	});
+};
+
+userModel.existsCustomerUserId = (dbCon, customer, user) => {
+	return new Promise(async (resolve, reject) => {
+		dbCon.query(`select id from ${tableModel} where customer=${customer} and id=${user}`, (error, result) => {
 			if (error) return reject(error);
 			if (result.length>0) return resolve(true);
 			resolve(false);
@@ -91,13 +104,15 @@ userModel.existsName = (dbCon, name) => {
 
 userModel.update = req => {
 	return new Promise(async (resolve, reject) => {
-		let sql = `UPDATE ${tableModel} SET name=${req.db.escape(req.body.name)},
+		let sql = `UPDATE ${tableModel} SET customer=${req.body.customer}
+			name=${req.db.escape(req.body.name)},
 			email=${req.db.escape(req.body.email)},
-			address=${req.db.escape(req.body.address)},
-			CIF=${req.db.escape(req.body.cif)},
-			telephone=${req.db.escape(req.body.telephone)},
-			web=${req.db.escape(req.body.web)}
-			WHERE id=${req.body.customer}`;
+			username=${req.db.escape(req.body.username)},
+			password=${req.db.escape(req.body.password)},
+			enabled=${req.body.enabled},
+			role=${req.body.role},
+			allowed_from=${req.db.escape(req.body.allowed_from)},
+			WHERE id=${req.body.user}`;
 		req.db.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve();
@@ -108,7 +123,12 @@ userModel.update = req => {
 
 userModel.get = req => {
 	return new Promise(async (resolve, reject) => {
-		let sql = (req.body.customer) ? `select * from ${tableModel} WHERE id=${req.body.customer}` : `select id,name from customer`;
+		let sql = '';
+		
+		if (req.body.customer && req.body.user)
+			sql = `select * from ${tableModel} WHERE customer=${req.body.customer} and id=${req.body.user}`;
+
+		(req.body.user) ? `select * from ${tableModel} WHERE id=${req.body.user}` : `select id,name from `;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
