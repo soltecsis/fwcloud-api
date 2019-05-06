@@ -32,7 +32,6 @@ var utilsModel = require("../../utils/utils.js");
 var interfaceModel = require('../../models/interface/interface');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-var User__firewallModel = require('../../models/user/user__firewall');
 var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
@@ -65,13 +64,12 @@ firewallModel.getFirewalls = (iduser, callback) => {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sql = 'SELECT T.* ' +
-				' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-				' FROM ' + tableModel +
-				' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ' +
-				' LEFT join interface I on I.id=T.install_interface ' +
-				' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-				' ORDER BY T.id';
+		var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip 
+			FROM {tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+			LEFT join interface I on I.id=T.install_interface
+			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
+			ORDER BY T.id`;
 		logger.debug(sql);
 		connection.query(sql, function (error, rows) {
 			if (error)
@@ -115,14 +113,13 @@ firewallModel.getFirewalls = (iduser, callback) => {
  */
 firewallModel.getFirewall = function (req) {
 	return new Promise((resolve, reject) => {
-		var sql = 'SELECT T.* ' +
-				' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-				' , M.id as id_fwmaster ' +
-				' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + req.session.user_id +
-				' LEFT join interface I on I.id=T.install_interface ' +
-				' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-				' LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1 ' +
-				' WHERE T.id = ' + req.body.firewall + ' AND T.fwcloud=' + req.body.fwcloud + '  AND U.allow_access=1';
+		var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip, M.id as id_fwmaster
+			FROM ${tableModel} T
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
+			LEFT join interface I on I.id=T.install_interface
+			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
+			LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1
+			WHERE T.id=${req.body.firewall} AND T.fwcloud=${req.body.fwcloud}`;
 		//logger.debug(sql);
 		req.dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
@@ -208,10 +205,9 @@ firewallModel.getFirewallAccess = accessData => {
 			if (error) return reject(error);
 			
 			//CHECK FIREWALL PERIMSSIONS
-			var sql = 'SELECT T.* FROM ' + tableModel + ' T ' +
-				' INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + accessData.iduser +
-				' WHERE T.id=' + accessData.firewall +
-				' AND T.fwcloud=' + accessData.fwcloud + ' AND U.allow_access=1 AND U.allow_edit=1';
+			var sql = `SELECT T.* FROM ${tableModel} T
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${accessData.iduser}
+				WHERE T.id=${accessData.firewall}	AND T.fwcloud=${accessData.fwcloud}`;
 			connection.query(sql, function (error, row) {
 				if (error) return reject(error);
 				
@@ -248,13 +244,12 @@ firewallModel.getFirewallAccess = accessData => {
 firewallModel.getFirewallCluster = function (iduser, idcluster, callback) {
 	db.get(function (error, connection) {
 		if (error) return callback(error, null);
-		var sql = 'SELECT T.* ' +
-			' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-			' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-			' LEFT join interface I on I.id=T.install_interface ' +
-			' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-			' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 ' +
-			' ORDER BY T.fwmaster desc, T.id';
+		var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
+			FROM ${tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+			LEFT join interface I on I.id=T.install_interface
+			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
+			WHERE cluster=${idcluster} ORDER BY T.fwmaster desc, T.id`;
 		connection.query(sql, function (error, rows) {
 			if (error)
 				callback(error, null);
@@ -286,12 +281,12 @@ firewallModel.getFirewallClusterMaster = function (iduser, idcluster, callback) 
 	db.get(function (error, connection) {
 			if (error)
 					callback(error, null);
-			var sql = 'SELECT T.* ' +
-							' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-							' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-							' LEFT join interface I on I.id=T.install_interface ' +
-							' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-							' WHERE cluster =  ' + connection.escape(idcluster) + '  AND U.allow_access=1 AND fwmaster=1';
+			var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
+				FROM ${tableModel} T 
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+				LEFT join interface I on I.id=T.install_interface
+				LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
+				WHERE cluster=${idcluster} AND fwmaster=1`;
 			connection.query(sql, function (error, rows) {
 					if (error)
 							callback(error, null);
@@ -336,12 +331,11 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sql = 'SELECT T.* ' +
-				' , I.name as interface_name, O.name as ip_name, O.address as ip ' +
-				' FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall AND U.id_user=' + connection.escape(iduser) +
-				' LEFT join interface I on I.id=T.install_interface ' +
-				' LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id ' +
-				' WHERE T.fwcloud =  ' + connection.escape(fwcloud) + '  AND U.allow_access=1 ';
+		var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
+			FROM ${tableModel} T INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+			LEFT join interface I on I.id=T.install_interface
+			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
+			WHERE T.fwcloud=${fwcloud}`;
 		logger.debug(sql);
 		connection.query(sql, function (error, rows) {
 			if (error)
@@ -386,33 +380,20 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
  *       callback(error, null);
  *       
  */
-firewallModel.insertFirewall = function (iduser, firewallData) {
+firewallModel.insertFirewall = (iduser, firewallData) => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
 			
-			connection.query('INSERT INTO ' + tableModel + ' SET ?', firewallData, function (error, result) {
-				if (error) {
-					logger.debug("SQL ERROR INSERT: ", error);
-					logger.debug("SQL ERROR Data: ", firewallData);
-					reject(error);
-				} else {
-					var fwid = result.insertId;
-					connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
-						if (error) {
-							logger.debug("SQL ERROR USER INSERT: ", error);
-							reject(error);
-						} else {
-							//devolvemos la última id insertada
-							//callback(null, {"insertId": fwid});
-							resolve({"insertId": fwid});
-						}
-					});
-				}
+			connection.query(`INSERT INTO ${tableModel} SET ?`, firewallData, (error, result) => {
+				if (error) return reject(error);
+				resolve({"insertId": result.insertId});
 			});
 		});
 	});
 };
+
+
 /**
  * UPDATE Firewall
  *  
@@ -443,9 +424,9 @@ firewallModel.insertFirewall = function (iduser, firewallData) {
  */
 firewallModel.updateFirewall = function (dbCon, iduser, firewallData) {
 	return new Promise((resolve, reject) => {
-		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + dbCon.escape(iduser) +
-				' WHERE T.id = ' + dbCon.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+		var sqlExists = `SELECT T.id FROM ${tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+			WHERE T.id=${firewallData.id}`;
 		dbCon.query(sqlExists, (error, row) => {
 			if (error) return reject(error);
 
@@ -569,9 +550,9 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
-			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-			' AND U.id_user=' + connection.escape(iduser) +
-			' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+			var sqlExists = `SELECT T.id FROM ${tableModel} T 
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+				WHERE T.id=${firewallData.id}`;
 			connection.query(sqlExists, function (error, row) {
 				//NEW FIREWALL
 				if (row && row.length > 0) {
@@ -579,19 +560,8 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 					' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options ' +
 					' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 					connection.query(sql, function (error, result) {
-						if (error) {
-							reject(error);
-						} else {
-							var fwid = result.insertId;
-							connection.query('INSERT INTO  user__firewall  SET id_firewall=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1', function (error, result) {
-								if (error) {
-									logger.debug("SQL ERROR USER INSERT: ", error);
-									reject(error);
-								} else {
-									resolve({"result": true, "insertId": fwid});                                    
-								}
-							});
-						}
+						if (error) return reject(error);
+						resolve({"result": true, "insertId": result.insertId});                                    
 					});
 				} else {
 					resolve({"result": false});
@@ -605,9 +575,9 @@ firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, f
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
-			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(iduser) +
-				' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+			var sqlExists = `SELECT T.id FROM ${tableModel} T 
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+				WHERE T.id=${idfirewall}`;
 			connection.query(sqlExists, (error, row) => {
 				if (error) return reject(error);
 				if (row && row.length > 0) {
@@ -638,9 +608,9 @@ firewallModel.updateFirewallCluster = function (firewallData) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
-			var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-					' AND U.id_user=' + connection.escape(firewallData.by_user) +
-					' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ';
+			var sqlExists = `SELECT T.id FROM ${tableModel} T 
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud	AND U.user=${firewallData.by_user}
+				WHERE T.id=${firewallData.id}`;
 			connection.query(sqlExists, (error, row) => {
 				if (error) return reject(error);
 				if (row && row.length > 0) {
@@ -707,10 +677,9 @@ firewallModel.updateFirewallLock = function (firewallData, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(firewallData.iduser) +
-				' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ' +
-				' AND (locked=0 OR (locked=1 AND locked_by=' + connection.escape(firewallData.iduser) + ')) ';
+		var sqlExists = `SELECT T.id FROM ${tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${firewallData.iduser}
+			WHERE T.id=${firewallData.id}	AND (locked=0 OR (locked=1 AND locked_by=${firewallData.iduser}))`;
 		connection.query(sqlExists, function (error, row) {
 
 			if (row && row.length > 0) {
@@ -763,10 +732,9 @@ firewallModel.updateFirewallUnlock = function (firewallData, callback) {
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
-		var sqlExists = 'SELECT T.id FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(firewallData.iduser) +
-				' WHERE T.id = ' + connection.escape(firewallData.id) + ' AND U.allow_access=1 AND U.allow_edit=1 ' +
-				' AND (locked=1 AND locked_by=' + connection.escape(firewallData.iduser) + ') ';
+		var sqlExists = `SELECT T.id FROM ${tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${firewallData.iduser}
+			WHERE T.id=${firewallData.id} AND (locked=1 AND locked_by=${firewallData.iduser})`;
 		connection.query(sqlExists, function (error, row) {
 
 			if (row && row.length > 0) {
@@ -829,7 +797,6 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 						await openvpnModel.delCfgAll(dbCon,fwcloud,firewall); // Remove all OpenVPN configurations for this firewall.
 						await interfaceModel.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
 						await interfaceModel.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
-						await User__firewallModel.deleteAllUser__firewall(firewall);//DELETE USERS_FIREWALL
 						await fwcTreemodel.deleteFwc_TreeFullNode({id: row[0].id, fwcloud: fwcloud, iduser: user}); //DELETE TREE NODES From firewall
 						await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud+'/'+firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
 
@@ -852,10 +819,10 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 		db.get(function (error, connection) {
 			if (error) return reject(error);
 
-			var sqlExists = 'SELECT T.*, A.id as idnode FROM ' + tableModel + ' T INNER JOIN user__firewall U ON T.id=U.id_firewall ' +
-				' AND U.id_user=' + connection.escape(iduser) +
-				' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.node_type="FW" ' +
-				' WHERE T.id = ' + connection.escape(idfirewall) + ' AND U.allow_access=1 AND U.allow_edit=1 AND T.cluster=' + connection.escape(cluster);
+			var sqlExists = `SELECT T.*, A.id as idnode FROM ${tableModel} T 
+				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
+				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.node_type="FW"
+				WHERE T.id=${idfirewall} AND T.cluster=${cluster}`;
 			connection.query(sqlExists, (error, row) => {
 				if (error) return reject(error);
 
@@ -910,39 +877,31 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 													if (rowT && rowT.length > 0) {
 														var iNodeCluster = rowT[0].id;
 														fwcTreemodel.updateIDOBJFwc_TreeFullNode(rowT[0])
-																.then(resp => {
-																	//DELETE USERS_FIREWALL
-																	User__firewallModel.deleteAllUser__firewall(idfirewall)
-																			.then(resp3 => {
-																				//DELETE TREE NODES From firewall
-																				var dataNode = {id: idNodeFirewall, fwcloud: fwcloud, iduser: iduser};
-																				logger.debug("----> DELETING TREE FOR NODE:", dataNode);
-																				fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
-																						.then(resp4 => {
-																							//DELETE FIREWALL
-																							var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
-																							connection.query(sql, function (error, result) {
-																								if (error) {
-																									resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
-																								} else {
+														.then(resp3 => {
+															//DELETE TREE NODES From firewall
+															var dataNode = {id: idNodeFirewall, fwcloud: fwcloud, iduser: iduser};
+															logger.debug("----> DELETING TREE FOR NODE:", dataNode);
+															fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
+																	.then(resp4 => {
+																		//DELETE FIREWALL
+																		var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(idfirewall);
+																		connection.query(sql, function (error, result) {
+																			if (error) {
+																				resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
+																			} else {
 
-																									resolve({"result": true, "msg": "deleted"});
-																								}
+																				resolve({"result": true, "msg": "deleted"});
+																			}
 
-																							});
-																						})
-																						.catch(e => {
-																							resolve({"result": false, "msg": "Error DELETE TREE NODES: " + e});
-																						});
-																			})
-																			.catch(e => {
-																				resolve({"result": false, "msg": "Error DELETE USERS: " + e});
-																			});
-
-																})
-																.catch(e => {
-																	resolve({"result": false, "msg": "ERROR: " + e});
-																});
+																		});
+																	})
+																	.catch(e => {
+																		resolve({"result": false, "msg": "Error DELETE TREE NODES: " + e});
+																	});
+														})
+														.catch(e => {
+															resolve({"result": false, "msg": "Error DELETE USERS: " + e});
+														});
 													} else {
 														resolve({"result": false, "msg": "NOT FOUND NODE CLUSTER"});
 													}
@@ -963,33 +922,26 @@ firewallModel.deleteFirewallFromCluster = (iduser, fwcloud, idfirewall, cluster)
 
 					} else {
 						logger.debug("DELETING FW SLAVE: " + idfirewall);
-						//DELETE USERS_FIREWALL
-						User__firewallModel.deleteAllUser__firewall(idfirewall)
-								.then(resp3 => {
-									//DELETE TREE NODES From firewall
-									var dataNode = {id: idNodeFirewall, fwcloud: fwcloud, iduser: iduser};
-									logger.debug("----> DELETING TREE FOR NODE:", dataNode);
-									fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
-											.then(resp4 => {
-												//DELETE FIREWALL
-												var sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + connection.escape(idfirewall);
-												connection.query(sql, function (error, result) {
-													if (error) {
-														resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
-													} else {
+						//DELETE TREE NODES From firewall
+						var dataNode = {id: idNodeFirewall, fwcloud: fwcloud, iduser: iduser};
+						logger.debug("----> DELETING TREE FOR NODE:", dataNode);
+						fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
+						.then(resp4 => {
+							//DELETE FIREWALL
+							var sql = 'DELETE FROM ' + tableModel + ' WHERE id=' + connection.escape(idfirewall);
+							connection.query(sql, function (error, result) {
+								if (error) {
+									resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
+								} else {
 
-														resolve({"result": true, "msg": "deleted"});
-													}
+									resolve({"result": true, "msg": "deleted"});
+								}
 
-												});
-											})
-											.catch(e => {
-												resolve({"result": false, "msg": "Error DELETE TREE NODES: " + e});
-											});
-								})
-								.catch(e => {
-									resolve({"result": false, "msg": "Error DELETE USERS: " + e});
-								});
+							});
+						})
+						.catch(e => {
+							resolve({"result": false, "msg": "Error DELETE TREE NODES: " + e});
+						});
 					}
 				}
 			});///

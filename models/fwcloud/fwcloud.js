@@ -63,13 +63,12 @@ var logger = require('log4js').getLogger("app");
  *           by_user	int(11)
  */
 fwcloudModel.getFwclouds = function (iduser, callback) {
-
 	db.get(function (error, connection) {
 		if (error)
 			callback(error, null);
 		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 ORDER BY C.name';
+				' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+				' WHERE U.user=' + connection.escape(iduser) + ' ORDER BY C.name';
 		logger.debug(sql);
 		connection.query(sql, function (error, rows) {
 			if (error)
@@ -112,8 +111,8 @@ fwcloudModel.getFwcloud = function (iduser, fwcloud, callback) {
 			callback(error, null);
 
 		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
+				' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+				' WHERE U.user=' + connection.escape(iduser) + ' AND C.id=' + connection.escape(fwcloud);
 		connection.query(sql, function (error, row) {
 			if (error)
 				callback(error, null);
@@ -143,8 +142,8 @@ fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
 			if (error)
 				reject(false);
 			var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-					' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-					' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1 AND C.id=' + connection.escape(fwcloud);
+					' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+					' WHERE U.user=' + connection.escape(iduser) + ' AND C.id=' + connection.escape(fwcloud);
 			connection.query(sql, function (error, row) {
 				if (error)
 					reject(false);
@@ -249,7 +248,7 @@ fwcloudModel.insertFwcloud = function (iduser, fwcloudData, callback) {
 				callback(error, null);
 			} else {
 				var fwid = result.insertId;
-				sqlinsert = 'INSERT INTO  user__cloud  SET fwcloud=' + connection.escape(fwid) + ' , id_user=' + connection.escape(iduser) + ' , allow_access=1, allow_edit=1';
+				sqlinsert = 'INSERT INTO  user__fwcloud  SET fwcloud=' + connection.escape(fwid) + ' , user=' + connection.escape(iduser);
 				connection.query(sqlinsert, function (error, result) {
 					if (error) {
 						logger.debug("SQL ERROR USER INSERT: ", error, "\n", sqlinsert);
@@ -349,17 +348,10 @@ fwcloudModel.updateFwcloudLock = function (fwcloudData) {
 
 					connection.query(sqlExists, function (error, row) {
 						if (row && row.length > 0) {
-							//Check if there are Firewalls in FWCloud with Access and Edit permissions
-							//var sqlExists = 'SELECT F.id FROM firewall F inner join ' + tableModel + ' C ON C.id=F.fwcloud ' +
-							//        ' INNER JOIN user__firewall U on U.id_firewall=F.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
-							//        ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
-							//        ' AND U.allow_access=1 AND U.allow_edit=1 ';
-							//        
 							//Check if there are FWCloud with Access and Edit permissions
 							var sqlExists = 'SELECT C.id FROM ' + tableModel + ' C ' +
-									' INNER JOIN user__cloud U on U.fwcloud=C.id AND U.id_user=' + connection.escape(fwcloudData.iduser) +
-									' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud) +
-									' AND U.allow_access=1 AND U.allow_edit=1 ';
+									' INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=' + connection.escape(fwcloudData.iduser) +
+									' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud);
 							logger.debug(sqlExists);
 							connection.query(sqlExists, function (error, row) {
 								if (row && row.length > 0) {
@@ -480,8 +472,8 @@ fwcloudModel.deleteFwcloud = (iduser, id, callback) => {
 		if (error)
 			callback(error, null);
 		var sqlExists = 'SELECT C.* FROM ' + tableModel + ' C ' +
-				' INNER JOIN user__cloud U ON C.id=U.fwcloud ' +
-				' WHERE U.id_user=' + connection.escape(iduser) + ' AND U.allow_access=1  AND C.id= ' + connection.escape(id);
+				' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+				' WHERE U.user=' + connection.escape(iduser) + ' AND C.id= ' + connection.escape(id);
 		logger.debug(sqlExists);
 		connection.query(sqlExists, function (error, row) {
 			//If exists Id from fwcloud to remove
@@ -490,7 +482,7 @@ fwcloudModel.deleteFwcloud = (iduser, id, callback) => {
 				fwcloudModel.EmptyFwcloudStandard(id)
 						.then(() => {
 							db.get(function (error, connection) {
-								var sql = 'DELETE FROM user__cloud WHERE fwcloud = ' + connection.escape(id);
+								var sql = 'DELETE FROM user__fwcloud WHERE fwcloud = ' + connection.escape(id);
 								connection.query(sql, function (error, result) {
 									if (error) {
 										callback(error, null);
