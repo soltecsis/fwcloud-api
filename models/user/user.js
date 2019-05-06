@@ -104,16 +104,16 @@ userModel.existsCustomerUserId = (dbCon, customer, user) => {
 
 userModel.update = req => {
 	return new Promise(async (resolve, reject) => {
-		let sql = `UPDATE ${tableModel} SET customer=${req.body.customer}
-			name=${req.db.escape(req.body.name)},
-			email=${req.db.escape(req.body.email)},
-			username=${req.db.escape(req.body.username)},
-			password=${req.db.escape(req.body.password)},
+		let sql = `UPDATE ${tableModel} SET customer=${req.body.customer},
+			name=${req.dbCon.escape(req.body.name)},
+			email=${req.dbCon.escape(req.body.email)},
+			username=${req.dbCon.escape(req.body.username)},
+			password=${req.dbCon.escape(req.body.password)},
 			enabled=${req.body.enabled},
 			role=${req.body.role},
-			allowed_from=${req.db.escape(req.body.allowed_from)},
+			allowed_from=${req.dbCon.escape(req.body.allowed_from)}
 			WHERE id=${req.body.user}`;
-		req.db.query(sql, (error, result) => {
+		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve();
 		});
@@ -126,9 +126,9 @@ userModel.get = req => {
 		let sql = '';
 		
 		if (req.body.user)
-			sql = `select * from ${tableModel} WHERE customer=${req.body.customer} and id=${req.body.user}`;
+			sql = `select * from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`;
 		else
-			sql = `select customer,id,name from ${tableModel} WHERE customer=${req.body.customer}`;
+			sql = `select id,customer,name from ${tableModel} where customer=${req.body.customer}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
@@ -139,7 +139,7 @@ userModel.get = req => {
 
 userModel.delete = req => {
 	return new Promise(async (resolve, reject) => {
-		req.dbCon.query(`delete from ${tableModel} where id=${req.body.customer}`, (error, result) => {
+		req.dbCon.query(`delete from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`, (error, result) => {
 			if (error) return reject(error);
 			resolve();
 		});
@@ -147,22 +147,9 @@ userModel.delete = req => {
 };
 
 
-userModel.searchUsers = req => {
+userModel.lastAdminUser = req => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query(`select count(*) as n from user where customer =${req.body.customer}`, async (error, result) => {
-      if (error) return reject(error);
-
-      if (result[0].n > 0)
-        resolve({result: true, restrictions: { CustomerHasUsers: true}});
-      else
-        resolve({result: false});
-    });
-  });
-};
-
-userModel.lastCustomer = req => {
-	return new Promise((resolve, reject) => {
-    req.dbCon.query(`select count(*) as n from ${tableModel}`, async (error, result) => {
+    req.dbCon.query(`select count(*) as n from ${tableModel} where role=1`, async (error, result) => {
       if (error) return reject(error);
 
       if (result[0].n < 2)

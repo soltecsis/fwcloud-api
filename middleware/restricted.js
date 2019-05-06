@@ -5,6 +5,7 @@ module.exports = restrictedCheck;
 
 const api_resp = require('../utils/api_response');
 const customerModel = require('../models/user/customer');
+const userModel = require('../models/user/user');
 const firewallModel = require('../models/firewall/firewall');
 const interfaceModel = require('../models/interface/interface');
 const ipobjModel = require('../models/ipobj/ipobj');
@@ -20,6 +21,15 @@ restrictedCheck.customer = async (req, res, next) => {
 		let data = await customerModel.searchUsers(req);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		data = await customerModel.lastCustomer(req);
+		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		next();
+	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+};
+
+
+restrictedCheck.user = async (req, res, next) => {
+	try {
+		const data = await userModel.lastAdminUser(req);
 		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
 		next();
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }

@@ -30,7 +30,7 @@ schema.validate = req => {
 			if (req.method === 'POST')
 				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/) });
 			else
-				schema = schema.append({ customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
+				schema = schema.append({ user: sharedSch.id, customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
 		} else if (req.method === 'PUT') {
 			if (req.url === '/user/get')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id.optional() });

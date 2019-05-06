@@ -237,7 +237,7 @@ router.put('', async (req, res) => {
  * 
  * @apiDescription Get user data. 
  *
- * @apiParam {Number} customer Id of the customer.
+ * @apiParam {Number} customer Id of the customer the user belongs to.
  * @apiParam {Number} [user] Id of the user.
  * <\br>If empty, the API will return the id and name for all the users of this customer..
  * <\br>If it is not empty, it will return all the data for the indicated user.
@@ -277,8 +277,13 @@ router.put('', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
+		// Verify that the customer exists.
+		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+
+		// Check that the user indicated in the requests exists and belongs to the customer send in the request body.
 		// req.body.customer is a mandatory parameter in Joi schema.
-		if (req.body.user && !(await customerModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+		if (req.body.user && !(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'User not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
 		const data = await userModel.get(req);
@@ -288,14 +293,15 @@ router.put('/get', async (req, res) => {
 
 
 /**
- * @api {PUT} /customer/del Delete customer
+ * @api {PUT} /user/del Delete user
  * @apiName DelCustomer
  *  * @apiGroup USER
  * 
- * @apiDescription Delete customer from the database. 
- * <\br>A middleware is used for verify that the customer has no users before allow the deletion.
+ * @apiDescription Delete user from the database. 
+ * <\br>A middleware is used for verify that this is not the last user with the admin role in the database.
  *
- * @apiParam {Number} customer Customer's id.
+ * @apiParam {Number} customer Id of the customer the user belongs to.
+ * @apiParam {Number} user Id of the user.
  * 
  * @apiParamExample {json} Request-Example:
  * {
@@ -309,7 +315,7 @@ router.put('/get', async (req, res) => {
  *         "respStatus": true,
  *         "respCode": "ACR_OK",
  *         "respCodeMsg": "Ok",
- *         "respMsg": "Customer deleted",
+ *         "respMsg": "User deleted",
  *         "errorCode": "",
  *         "errorMsg": ""
  *     },
@@ -317,30 +323,32 @@ router.put('/get', async (req, res) => {
  * }
  */
 router.put('/del', 
-restrictedCheck.customer,
+restrictedCheck.user,
 async (req, res) => {
 	try {
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
 			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-		const data = await customerModel.delete(req);
-		api_resp.getJson(data, api_resp.ACR_OK, 'Customer deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting customer', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		const data = await userModel.delete(req);
+		api_resp.getJson(data, api_resp.ACR_OK, 'User deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
 /**
- * @api {PUT} /customer/restricted Restrictions for customer deletion
- * @apiName DelCustomer
+ * @api {PUT} /user/restricted Restrictions for user deletion
+ * @apiName RestrictedUser
  *  * @apiGroup USER
  * 
- * @apiDescription Check that there are no restrictions for customer deletion.
+ * @apiDescription Check that there are no restrictions for user deletion.
  *
  * @apiParam {Number} customer Customer's id.
+ * @apiParam {Number} user User's id.
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10
+ *   "customer": 10,
+ *   "user": 5
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -377,7 +385,7 @@ async (req, res) => {
  * }
  */
 router.put('/restricted',
-	restrictedCheck.customer,
+	restrictedCheck.user,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
 module.exports = router;
