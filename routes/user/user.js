@@ -388,4 +388,86 @@ router.put('/restricted',
 	restrictedCheck.user,
 	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
 
+
+/**
+ * @api {POST} /user/fwcloud Allow a user access to a fwcloud.
+ * @apiName UserAccessFwcloud
+ *  * @apiGroup USER
+ * 
+ * @apiDescription Allow a user the access to a fwcloud.
+ *
+ * @apiParam {Number} user User's id.
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "user": 5,
+ *   "fwcloud": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": true,
+ *     "respCode": "ACR_OK",
+ *     "respCodeMsg": "Ok",
+ *     "respMsg": "FWCloud access created",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
+ */
+router.post('/fwcloud', async (req, res) => {
+	try {
+		// Remember that in the access control middleware we have already verified that the logged user
+		// has the admin role. Then, we don't have to check it again.
+
+		await userModel.allowFwcloudAccess(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'FWCloud access created', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating FWCloud access', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
+
+/**
+ * @api {PUT} /user/fwcloud/del Disable user access to a fwcloud.
+ * @apiName UserDisableFwcloud
+ *  * @apiGroup USER
+ * 
+ * @apiDescription Disable user access to a fwcloud.
+ *
+ * @apiParam {Number} user User's id.
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "user": 5,
+ *   "fwcloud": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "response": {
+ *     "respStatus": true,
+ *     "respCode": "ACR_OK",
+ *     "respCodeMsg": "Ok",
+ *     "respMsg": "FWCloud access disabled",
+ *     "errorCode": "",
+ *     "errorMsg": ""
+ *   },
+ *   "data": {}
+ * }
+ */
+router.put('/fwcloud/del', async (req, res) => {
+	try {
+		// Remember that in the access control middleware we have already verified that the logged user
+		// has the admin role. Then, we don't have to check it again.
+
+		await userModel.allowFwcloudAccess(req);
+		api_resp.getJson(null, api_resp.ACR_OK, 'FWCloud access disabled', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error disabling FWCloud access', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+});
+
 module.exports = router;

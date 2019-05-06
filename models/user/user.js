@@ -160,5 +160,24 @@ userModel.lastAdminUser = req => {
   });
 };
 
+
+userModel.allowFwcloudAccess = req => {
+	return new Promise(async (resolve, reject) => {
+		req.dbCon.query(`INSERT INTO user__fwcloud values(${req.body.user},${req.body.fwcloud})`,(error, result) => {			
+			if (error) return reject(error);
+			resolve(result.insertId);
+		});
+	});
+};
+
+userModel.disableFwcloudAccess = req => {
+	return new Promise(async (resolve, reject) => {
+		req.dbCon.query(`delete from user__fwcloud where user=${req.body.user} and fwcloud=${req.body.fwcloud})`,(error, result) => {			
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 //Export the object
 module.exports = userModel;
