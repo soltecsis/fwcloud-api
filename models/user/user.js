@@ -125,10 +125,10 @@ userModel.get = req => {
 	return new Promise(async (resolve, reject) => {
 		let sql = '';
 		
-		if (req.body.customer && req.body.user)
+		if (req.body.user)
 			sql = `select * from ${tableModel} WHERE customer=${req.body.customer} and id=${req.body.user}`;
-
-		(req.body.user) ? `select * from ${tableModel} WHERE id=${req.body.user}` : `select id,name from `;
+		else
+			sql = `select customer,id,name from ${tableModel} WHERE customer=${req.body.customer}`;
 		req.dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);

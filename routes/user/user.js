@@ -277,12 +277,13 @@ router.put('', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-		if (req.body.customer && !(await customerModel.existsId(req.dbCon,req.body.customer)))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		// req.body.customer is a mandatory parameter in Joi schema.
+		if (req.body.user && !(await customerModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+			return api_resp.getJson(null, api_resp.ACR_ERROR, 'User not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
 
-		const data = await customerModel.get(req);
-		api_resp.getJson(data, api_resp.ACR_OK, 'Customer data sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting customer data', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		const data = await userModel.get(req);
+		api_resp.getJson(data, api_resp.ACR_OK, 'User data sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
+	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting user data', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
 
