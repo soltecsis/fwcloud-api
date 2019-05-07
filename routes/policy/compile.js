@@ -32,22 +32,6 @@ var express = require('express');
  */
 var router = express.Router();
 
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- *
- */
-var logger = require('log4js').getLogger("compiler");
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- *
- */
-var api_resp = require('../../utils/api_response');
 
 /**
  * Property Model to manage compilation process
@@ -69,7 +53,7 @@ const config = require('../../config/config');
 const FirewallModel = require('../../models/firewall/firewall');
 const socketTools = require('../../utils/socket');
 const policy_rModel = require('../../models/policy/policy_r');
-
+const fwcError = require('../../utils/error_table');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/

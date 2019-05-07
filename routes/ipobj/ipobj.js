@@ -50,28 +50,14 @@ var IpobjModel = require('../../models/ipobj/ipobj');
  */
 var fwcTreemodel = require('../../models/tree/tree');
 
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- * 
- */
-var api_resp = require('../../utils/api_response');
-
-/**
- * Property to identify Data Object
- *
- * @property objModel
- * @type text
- */
-var objModel = 'IPOBJ';
 
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
 var FirewallModel = require('../../models/firewall/firewall');
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+const fwcError = require('../../utils/error_table');
+
 
 
 //FALTA CONTROLAR QUE EL IPOBJ SE INSERTA EN UN NODO PERMITIDO

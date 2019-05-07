@@ -4,11 +4,10 @@ var fwcTreemodel = require('../../models/tree/tree');
 //var Node = require("tree-node");
 var Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/node.js");
-var api_resp = require('../../utils/api_response');
 var FirewallModel = require('../../models/firewall/firewall');
 const pkiCAModel = require('../../models/vpn/pki/ca');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-var objModel = 'FWC TREE';
+const fwcError = require('../../utils/error_table');
 
 
 /* Get all fwc_tree NODE FIREWALL*/

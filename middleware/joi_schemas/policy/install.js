@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('../shared');
+const fwcError = require('../../../utils/error_table');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -14,7 +15,7 @@ schema.validate = req => {
       socketid: sharedSch.socketio_id.optional()
      });
     
-    if (req.method!=='POST' && req.url!=='/policy/install') return reject(new Error('Request method not accepted'));
+    if (req.method!=='POST' && req.url!=='/policy/install') return reject(fwcError.BAD_API_CALL);
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);

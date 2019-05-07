@@ -1,5 +1,6 @@
 var schema = {};
 module.exports = schema;
+const fwcError = require('../../utils/error_table');
 
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -11,6 +12,6 @@ schema.validate = req => {
       return resolve (await require('./'+item1+'/'+item2).validate(req));
     } catch(error) { return reject(error) }
   
-    return reject(new Error('Request method not accepted'));
+    return reject(fwcError.BAD_API_CALL);
   });
 };

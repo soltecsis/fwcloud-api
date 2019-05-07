@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('../../shared');
+const fwcError = require('../../../../utils/error_table');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -21,7 +22,7 @@ schema.validate = req => {
     }
     else if (req.method==="PUT") {
       schema = schema.append({ crt: sharedSch.id });
-    } else return reject(new Error('Request method not accepted'));
+    } else return reject(fwcError.BAD_API_CALL);
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);

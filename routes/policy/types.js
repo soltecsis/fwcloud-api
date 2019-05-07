@@ -1,11 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Policy_typeModel = require('../../models/policy/policy_type');
-var api_resp = require('../../utils/api_response');
-var objModel = 'POLICY TYPE';
-
-
-var logger = require('log4js').getLogger("app");
+const fwcError = require('../../utils/error_table');
 
 
 /* Get all policy_types*/

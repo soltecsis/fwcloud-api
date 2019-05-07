@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('../shared');
+const fwcError = require('../../../utils/error_table');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -24,7 +25,7 @@ schema.validate = req => {
         schema = schema.append({ new_rule: sharedSch.id, new_position: sharedSch.rule_position, new_order: sharedSch.u16bits });
       else if (req.method==='PUT' && req.url==='/policy/ipobj/order') 
         schema = schema.append({ new_order: sharedSch.u16bits });
-    } else return reject(new Error('Request method not accepted'));
+    } else return reject(fwcError.BAD_API_CALL);
 
     try {
       await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
@@ -35,7 +36,7 @@ schema.validate = req => {
             || (req.body.ipobj!==-1 && (req.body.ipobj_g!==-1 || req.body.interface!==-1))
             || (req.body.ipobj_g!==-1 && (req.body.ipobj!==-1 || req.body.interface!==-1))
             || (req.body.interface!==-1 && (req.body.ipobj!==-1 || req.body.ipobj_g!==-1)))
-          throw(new Error('Only one of ipob, ipobj_g and interface must different from -1'));
+          throw fwcError.ONLY_ONE_NOT_NEGATIVE;
       }
     
       resolve();

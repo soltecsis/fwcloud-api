@@ -1,12 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Routing_r__interfaceModel = require('../../models/routing/routing_r__interface');
-var api_resp = require('../../utils/api_response');
-var objModel='ROUTING INTERFACE';
-
-
-var logger = require('log4js').getLogger("app");
-var utilsModel = require("../../utils/utils.js");
+const fwcError = require('../../utils/error_table');
 
 
 /* Get all IPOBJ de una interface*/

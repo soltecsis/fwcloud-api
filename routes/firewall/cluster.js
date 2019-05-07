@@ -32,24 +32,6 @@ var express = require('express');
  */
 var router = express.Router();
 
-
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- * 
- */
-var api_resp = require('../../utils/api_response');
-
-/**
- * Property to identify Data Object
- *
- * @property objModel
- * @type text
- */
-var objModel = 'CLUSTER';
-
 /**
  * Property Model to manage Cluster Data
  *
@@ -68,6 +50,7 @@ var Policy_cModel = require('../../models/policy/policy_c');
 var FirewallModel = require('../../models/firewall/firewall');
 var InterfaceModel = require('../../models/interface/interface');
 const restrictedCheck = require('../../middleware/restricted');
+const fwcError = require('../../utils/error_table');
 
 
 /**
@@ -86,18 +69,10 @@ const restrictedCheck = require('../../middleware/restricted');
  */
 router.put('/all/get', (req, res) => {
 	ClusterModel.getClusters(function(error, data) {
-		//Get data
-		if (data && data.length > 0) {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//get error
-		else {
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -106,14 +81,12 @@ router.put('/all/get', (req, res) => {
 router.put('/get', (req, res) => {
 	ClusterModel.getClusterFullPro(req.session.user_id, req.body.fwcloud, req.body.cluster)
 		.then(data => {
-			//cluster ok
-			if (data)
-				api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			//Get error
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 		})
-		.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+		.catch(error => res.status(400).json(error) );
 });
 
 
@@ -131,7 +104,7 @@ router.post('/', (req, res) => {
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
 	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 
 	ClusterModel.insertCluster(clusterData, async(error, dataNewCluster) => {
 		//get cluster info
@@ -151,26 +124,22 @@ router.post('/', (req, res) => {
 					firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 					firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-					let data = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
-					if (data && data.insertId) {
-						var idfirewall = data.insertId;
+					let idfirewall = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
+					await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
 
-						await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
-
-						if (firewallData.fwmaster === 1) {
-							// Create the loop backup interface.
-							const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, idfirewall);
-							// Create the default policy rules.							
-							await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
-							// Create the directory used for store firewall data.
-							await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
-						}
+					if (firewallData.fwmaster === 1) {
+						// Create the loop backup interface.
+						const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, idfirewall);
+						// Create the default policy rules.							
+						await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
+						// Create the directory used for store firewall data.
+						await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 					}
 				}
 				await fwcTreemodel.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, idcluster);
-				api_resp.getJson(dataNewCluster, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			} catch (error) { api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-		} else api_resp.getJson(dataNewCluster, api_resp.ACR_ERROR, 'Error creating new cluster', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				res.status(200).json(dataNewCluster);
+			} catch (error) { res.status(400).json(error) }
+		} else res.status(400).json(error);
 	});
 });
 
@@ -183,7 +152,7 @@ router.put('/fwtocluster', async(req, res) => {
 
 	try {
 		firewallDataArry = await FirewallModel.getFirewall(req);
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch (error) { return res.status(400).json(error) }
 
 	if (firewallDataArry && firewallDataArry.length > 0) {
 		var firewallData = firewallDataArry[0];
@@ -197,15 +166,12 @@ router.put('/fwtocluster', async(req, res) => {
 		ClusterModel.insertCluster(clusterData, function(error, data) {
 			//get cluster info
 			if (data && data.insertId) {
-				var dataresp = { "insertId": data.insertId };
 				var idcluster = data.insertId;
 				//////////////////////////////////
 				//INSERT AND UPDATE CLUSTER NODE STRUCTURE
 				fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, function(error, dataTree) {
 					if (error)
-						api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
+						return res.status(400).json(error);
 					else if (dataTree && dataTree.result) {
 
 						//UPDATE CLUSTERS FIREWALL
@@ -216,16 +182,14 @@ router.put('/fwtocluster', async(req, res) => {
 
 						FirewallModel.updateFirewallCluster(firewallData)
 							.then(() => FirewallModel.updateFWMaster(iduser, fwcloud, idcluster, firewall, 1))
-							.then(() => api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-							.catch(error => api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+							.then(() => res.status(200).json(data))
+							.catch(error => res.status(400).json(error));
 					} else {
-						api_resp.getJson(data, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-							res.status(200).json(jsonResp);
-						});
+						res.status(400).json(error);
 					}
 				});
 			} else {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				res.status(400).json(error);
 			}
 		});
 	}
@@ -247,9 +211,7 @@ router.put('/clustertofw', (req, res) => {
 			fwcTreemodel.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, function(error, dataTree) {
 				logger.debug("DATATREE: ", dataTree);
 				if (error)
-					api_resp.getJson(dataTree, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
+					return res.status(400).json(error);
 				else if (dataTree && dataTree.result) {
 
 					//UPDATE CLUSTERS FIREWALL
@@ -267,21 +229,14 @@ router.put('/clustertofw', (req, res) => {
 							});
 						});
 					var resp = { "result": true, "insertId": firewallData.id };
-					api_resp.getJson(resp, api_resp.ACR_INSERTED_OK, 'CONVERT OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-
+					res.status(200).json(resp);
 				} else {
-					api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
+					res.status(400).json(fwcError.NOT_FOUND);
 				}
 			});
 
 		} else {
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Error', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
+			res.status(400).json(fwcError.NOT_FOUND);
 		}
 	});
 });
@@ -302,15 +257,15 @@ router.put('/clone', (req, res) => {
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
 	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 
 	FirewallModel.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
-		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+		if (error) return res.status(400).json(error);
 
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
 			ClusterModel.insertCluster(clusterData, async(error, data) => {
-				if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				if (error) return res.status(400).json(error);
 
 				//get cluster info
 				if (data && data.insertId) {
@@ -325,7 +280,6 @@ router.put('/clone', (req, res) => {
 
 							//CLONE FWMASTER
 							let data = await FirewallModel.cloneFirewall(iduser, firewallData);
-							if (!data || !data.result) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
 
 							idNewFirewall = data.insertId;
 							oldFirewall = firewallData.id;
@@ -351,8 +305,8 @@ router.put('/clone', (req, res) => {
 						await Policy_rModel.updateApplyToRules(newidcluster, fwNewMaster);
 
 						// If we arrive here all has gone fine.
-						api_resp.getJson(dataresp, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp))
-					} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+						res.status(200).json(dataresp);
+					} catch (error) { res.status(400).json(error) }
 				}
 			});
 		}
@@ -382,14 +336,12 @@ router.put('/', async (req, res) => {
 		await Policy_rModel.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
 
 		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'CLUSTER UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error updating cluster', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put("/restricted",
-	restrictedCheck.firewall,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.firewall, (req, res) => res.status(204).end());
 
 /* Remove cluster */
 router.put("/del",
@@ -397,8 +349,8 @@ restrictedCheck.firewall,
 async (req, res) => {
 	try {
 		await ClusterModel.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	}	catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

@@ -5,11 +5,9 @@ const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
 const firewallModel = require('../../models/firewall/firewall');
-const api_resp = require('../../utils/api_response');
+const fwcError = require('../../utils/error_table');
 
 var utilsModel = require("../../utils/utils.js");
-var objModel = "Interface in Rule";
-
 
 /* Create New policy_r__interface */
 router.post("/",

@@ -1,10 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-var api_resp = require('../../../utils/api_response');
-
-const objModel = 'CA';
-
+const fwcError = require('../../../utils/error_table');
 const pkiCAModel = require('../../../models/vpn/pki/ca');
 const fwcTreeModel = require('../../../models/tree/tree');
 const config = require('../../../config/config');

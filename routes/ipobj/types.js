@@ -1,8 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
-var api_resp = require('../../utils/api_response');
-var objModel = 'IPOBJ TYPE';
+const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_types */
 router.get('/', (req, res) => {

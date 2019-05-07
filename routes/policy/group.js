@@ -2,13 +2,11 @@ var express = require('express');
 var router = express.Router();
 var Policy_gModel = require('../../models/policy/policy_g');
 var Policy_rModel = require('../../models/policy/policy_r');
-var api_resp = require('../../utils/api_response');
-var objModel = 'POLICY GROUP';
 var db = require('../../db.js');
+const fwcError = require('../../utils/error_table');
 
 
 var logger = require('log4js').getLogger("app");
-var utilsModel = require("../../utils/utils.js");
 
 /* Create New policy_g */
 router.post('/', (req, res) => {

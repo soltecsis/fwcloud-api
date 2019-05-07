@@ -1,14 +1,11 @@
 var express = require('express');
 var router = express.Router();
 
-var api_resp = require('../../utils/api_response');
-
-var objModel = 'IptablesMark';
-
 const markModel = require('../../models/ipobj/mark');
 const fwcTreeModel = require('../../models/tree/tree');
 const policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');
+const fwcError = require('../../utils/error_table');
 
 
 /**

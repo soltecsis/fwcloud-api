@@ -1,9 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var policyPositionModel = require('../../models/policy/position');
-var api_resp = require('../../utils/api_response');
-
-var objModel = 'Policy Position';
+const fwcError = require('../../utils/error_table');
 
 /* Get all policy_positions by Type*/
 router.put('get', async (req, res) => {

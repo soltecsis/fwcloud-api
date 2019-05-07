@@ -4,12 +4,8 @@ var InterfaceModel = require('../../models/interface/interface');
 var fwcTreemodel = require('../../models/tree/tree');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
-var api_resp = require('../../utils/api_response');
 const restrictedCheck = require('../../middleware/restricted');
-var objModel = 'INTERFACE';
-
-
-var logger = require('log4js').getLogger("app");
+const fwcError = require('../../utils/error_table');
 
 
 /* Get all interfaces by firewall*/

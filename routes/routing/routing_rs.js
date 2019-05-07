@@ -1,12 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Routing_rModel = require('../../models/routing/routing_r');
-var api_resp = require('../../utils/api_response');
-var objModel='ROUTING';
-
-
-var logger = require('log4js').getLogger("app");
-var utilsModel = require("../../utils/utils.js");
+const fwcError = require('../../utils/error_table');
 
 
 /* Get all routing_rs by firewall and group*/

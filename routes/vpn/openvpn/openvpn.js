@@ -26,23 +26,6 @@ var router = express.Router();
 
 
 /**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- * 
- */
-var api_resp = require('../../../utils/api_response');
-
-/**
- * Property to identify Data Object
- *
- * @property objModel
- * @type text
- */
-var objModel = 'OpenVPN';
-
-/**
  * Property Model to manage OpenVPN Data
  *
  * @property ClusterModel
@@ -57,6 +40,7 @@ const restrictedCheck = require('../../../middleware/restricted');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
+const fwcError = require('../../../utils/error_table');
 
 
 /**

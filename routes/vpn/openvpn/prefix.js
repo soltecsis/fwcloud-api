@@ -1,10 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-var api_resp = require('../../../utils/api_response');
-
-var objModel = 'OpenvpnPrefix';
-
+const fwcError = require('../../../utils/error_table');
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const policy_cModel = require('../../../models/policy/policy_c');
 const restrictedCheck = require('../../../middleware/restricted');

@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('./shared');
+const fwcError = require('../../utils/error_table');
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
@@ -33,7 +34,7 @@ schema.validate = req => {
 			// Verify that this parameters, exists, is number and has the accepted values.
 			if (req.body.type === undefined || req.body.type === null ||
 					typeof req.body.type !== "number" || valid_types.findIndex(type => {return type == req.body.type;}) == -1)
-				return reject(new Error('Bad value in req.body.type'));
+				return reject(fwcError.BAD_BODY_TYPE);
 
 			switch (req.body.type) {
 				case 1: // IP
@@ -115,7 +116,7 @@ schema.validate = req => {
 				schema = schema.append({ id: sharedSch.id });
 			else if (req.url === '/ipobj/del' || req.url === '/ipobj/where' || req.url === '/ipobj/restricted')
 				schema = schema.append({ id: sharedSch.id, type: sharedSch.u8bits.valid(valid_types) });
-		} else return reject(new Error('Request method not accepted'));
+		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
 			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
@@ -123,9 +124,9 @@ schema.validate = req => {
 			// Semantic validation.
 			if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
 				if (req.body.source_port_start > req.body.source_port_end)
-					throw (new Error('Source port end must be greater or equal than source port start'));
+					throw fwcError.SCR_PORT_1;
 				if (req.body.destination_port_start > req.body.destination_port_end)
-					throw (new Error('Destination port end must be greater or equal than destination port start'));
+					throw fwcError.DST_PORT_1;
 			}
 
 			resolve();

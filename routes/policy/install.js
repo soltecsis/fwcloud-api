@@ -25,15 +25,6 @@ var express = require('express');
 var router = express.Router();
 
 /**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- *
- */
-var api_resp = require('../../utils/api_response');
-
-/**
  * Property Model to manage policy script generation and install process
  *
  * @property PolicyScript
@@ -41,6 +32,8 @@ var api_resp = require('../../utils/api_response');
  */
 var PolicyScript = require('../../models/policy/policy_script');
 var FirewallModel = require('../../models/firewall/firewall');
+const fwcError = require('../../utils/error_table');
+
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res) => {

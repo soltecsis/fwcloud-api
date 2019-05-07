@@ -1,8 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var fwcTreeFoldermodel = require('../../models/tree/folder');
-var api_resp = require('../../utils/api_response');
-var objModel = 'FWC TREE FOLDER';
+const fwcError = require('../../utils/error_table');
 
 
 /* Create new folder */

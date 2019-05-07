@@ -1,10 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-var api_resp = require('../../../utils/api_response');
-
-const objModel = 'CRT PREFIX';
-
+const fwcError = require('../../../utils/error_table');
 const pkiPrefixModel = require('../../../models/vpn/pki/prefix');
 
 /**

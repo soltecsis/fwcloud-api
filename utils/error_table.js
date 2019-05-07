@@ -13,9 +13,13 @@ var errorTable = {
   "BAD_API_CALL":         {"fwcErr": 2003, "msg": "Bad API call"},
   "BAD_API_DATA":         {"fwcErr": 2004, "msg": "Bad API call data"},
   "MODULE_NOT_FOUND":     {"fwcErr": 2005, "msg": "This Express route is not controlled in the input data validation process"},
+  "BAD_BODY_TYPE":        {"fwcErr": 2006, "msg": "Bad value in req.body.type"},
+  "SCR_PORT_1":           {"fwcErr": 2007, "msg": "Source port end must be greater or equal than source port start"},
+  "DST_PORT_1":           {"fwcErr": 2008, "msg": "Destination port end must be greater or equal than destination port start"},
+  "ONLY_ONE_NOT_NEGATIVE":{"fwcErr": 2010, "msg": "Only one of ipob, ipobj_g and interface must different from -1"},
 
   // Tree error codes.
-  "BAD_TREE_NODE_TYPE":   {"fwcErr": 2001, "msg": "Bad tree node type"},
+  "BAD_TREE_NODE_TYPE":   {"fwcErr": 3001, "msg": "Bad tree node type"},
 };
 
 //Export the object

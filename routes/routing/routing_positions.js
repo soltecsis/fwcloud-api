@@ -1,11 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Routing_positionModel = require('../../models/routing/routing_position');
-var api_resp = require('../../utils/api_response');
-var objModel='ROUTING POSITION';
-
-
-var logger = require('log4js').getLogger("app");
+const fwcError = require('../../utils/error_table');
 
 /* get data para crear nuevos */
 router.get('/routing-position', function (req, res)

@@ -9,10 +9,7 @@ const policyPrefixModel = require('../../models/policy/prefix');
 const policyPositionModel = require('../../models/policy/position');
 var db = require('../../db.js');
 var utilsModel = require("../../utils/utils.js");
-var api_resp = require('../../utils/api_response');
-//var FirewallModel = require('../../models/firewall/firewall');
-//var asyncMod = require('async');
-var objModel = 'POLICY';
+const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
 /* Create New policy_r */

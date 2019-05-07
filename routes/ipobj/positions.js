@@ -1,9 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Ipobj_type__policy_positionModel = require('../../models/ipobj/ipobj_type__policy_position');
-var api_resp = require('../../utils/api_response');
-var objModel = 'IPOBJ TYPE - POSITION';
-
+const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_type__policy_positions*/
 router.get('/policy', (req, res) => {

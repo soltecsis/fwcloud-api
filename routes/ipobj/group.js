@@ -18,10 +18,9 @@ const Ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
-var api_resp = require('../../utils/api_response');
 const restrictedCheck = require('../../middleware/restricted');
 const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var objModel = 'GROUP';
+const fwcError = require('../../utils/error_table');
 
 /* Create New ipobj_g */
 router.post("/", (req, res) => {

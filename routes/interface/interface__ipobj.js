@@ -1,14 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
-var api_resp = require('../../utils/api_response');
 var objModel = 'INTERFACE_IPOBJ';
+const fwcError = require('../../utils/error_table');
 
-var logger = require('log4js').getLogger("app");
-var utilsModel = require("../../utils/utils.js");
-
-
-//FALTA CONTROLAR ACCESO a FIREWALL
 
 /* Get all interface__ipobjs by interface*/
 router.get('/interface/:interface', (req, res) => {

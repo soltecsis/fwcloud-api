@@ -2,13 +2,11 @@ var express = require('express');
 var router = express.Router();
 
 const fwcTreeRepairModel = require('../../models/tree/repair');
-const api_resp = require('../../utils/api_response');
 const socketTools = require('../../utils/socket');
 const fwcTreemodel = require('../../models/tree/tree');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-
-var objModel = 'FWC TREE REPAIR';
+const fwcError = require('../../utils/error_table');
 
 
 /* Rpair tree */
