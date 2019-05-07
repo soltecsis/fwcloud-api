@@ -19,20 +19,20 @@ const markModel = require('../models/ipobj/mark');
 restrictedCheck.customer = async (req, res, next) => {
 	try {
 		let data = await customerModel.searchUsers(req);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(200).json(data);
 		data = await customerModel.lastCustomer(req);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(200).json(data);
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.user = async (req, res, next) => {
 	try {
 		const data = await userModel.lastAdminUser(req);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(200).json(data);
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 

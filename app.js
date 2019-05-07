@@ -8,7 +8,6 @@
 
 var express = require('express');
 var path = require('path');
-var favicon = require('serve-favicon');
 
 var log4js = require("log4js");
 const log4js_extend = require("log4js-extend");
@@ -54,10 +53,10 @@ app.use(bodyParser.urlencoded({extended: false}));
 // It's not a silver bullet, but it can help!
 app.use(helmet());
 
-// compress responses
+// Compress responses
 app.use(compression());
 
-//configuramos methodOverride
+// https://github.com/expressjs/method-override
 app.use(methodOverride((req, res) => {
 	if (req.body && typeof req.body === 'object' && '_method' in req.body) {
 		// look in urlencoded POST bodies and delete it
@@ -83,7 +82,6 @@ var corsOptions = {
 		}
 	}
 };
-
 app.use(cors(corsOptions));
 
 

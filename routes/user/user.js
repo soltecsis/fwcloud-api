@@ -5,35 +5,47 @@ const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
 const api_resp = require('../../utils/api_response');
 const objModel = 'USER';
-
-
+const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
-var logger = require('log4js').getLogger("app");
 
 
-//BLOQUEAR ACCESOS. SOLO ACCESO PARA ADMINISTRACION
-
-
-/*---------------------------------------------------------------------------*/
-/* AUTHENTICATION: Validate the user credentials and initialize data in the session file. */
-/*---------------------------------------------------------------------------*/
+/**
+ * @api {POST} /login Log into the API
+ * @apiName LoginUser
+ *  * @apiGroup USER
+ * 
+ * @apiDescription Validate the user credentials and initialize data in the session file.
+ *
+ * @apiParam {Number} customer Customert's id to which this user belongs to.
+ * @apiParam {String} username Username for login into the FWCloud.net web interface.
+ * @apiParam {String} password Username's password. 
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "customer": 1,
+ *   "username": "fwcadmin",
+ *   "password": "fwcadmin"
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 401 Unauthorized
+ * {
+ *   "fwcErr": 1001,
+ *   "msg": "Bad username or password"
+ * } 
+*/
 router.post('/login',async (req, res) => {
-  // Verify that we have all the required parameters for autenticate the user.
-  if (!req.body.customer || !req.body.username || !req.body.password) {
-		req.session.destroy(err => {} );
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad data', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
-		return;
-  }
-
-  logger.debug("LOGIN: customer="+req.body.customer+", user="+req.body.username);
-
+	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
+	// fields are mandatory.
 	try {
 		const data = await userModel.getUserName(req.body.customer, req.body.username);
 		if (data.length===0) {
 			req.session.destroy(err => {});
-			logger.debug("USER NOT FOUND: customer="+req.body.customer+", user="+req.body.username);
-			throw null;
+			throw fwcError.BAD_LOGIN;
 		}
 		
 		// Validate credentials.
@@ -50,25 +62,29 @@ router.post('/login',async (req, res) => {
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
-			api_resp.getJson({user_id: req.session.user_id}, api_resp.ACR_OK, 'User loged in.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(204).end();
 		} else {
 			req.session.destroy(err => {} );
-			logger.debug("INVALID PASSWORD: customer="+req.body.customer+", user="+req.body.username);
-			throw null;
+			throw errorTable.BAD_LOGIN;
 		}
-	} catch(error) {
-		api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid username or password.', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	} 
+	} catch(error) { res.status(401).json(error) }
 });
-/*---------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------*/
+
+/**
+ * @api {POST} /logout Log out the API
+ * @apiName LogoutUser
+ *  * @apiGroup USER
+ * 
+ * @apiDescription Close a previous created user session.
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 OK
+*/
 router.post('/logout',(req, res) => {
-  logger.debug("DESTROYING SESSION (customer_id: "+req.session.customer_id+", user_id: "+req.session.user_id+", username: "+req.session.username+")");
-  req.session.destroy(err => {});
-  api_resp.getJson(null, api_resp.ACR_OK, 'Session destroyed.', objModel, null, jsonResp => { res.status(200).json(jsonResp) });
+	req.session.destroy(err => {});
+	res.status(204).end();
 });
-/*---------------------------------------------------------------------------*/
 
 
 
@@ -105,49 +121,31 @@ router.post('/logout',(req, res) => {
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "response": {
- *     "respStatus": true,
- *     "respCode": "ACR_OK",
- *     "respCodeMsg": "Ok",
- *     "respMsg": "User created",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
- * }
+ * HTTP/1.1 204 No Content
  *
  * @apiErrorExample {json} Error-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 400 Bad Request
  * {
- *   "response": {
- *     "respStatus": false,
- *     "respCode": "ACR_ALREADY_EXISTS",
- *     "respCodeMsg": "unknown error",
- *     "respMsg": "Customer already exists",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
+ *   "fwcErr": 50008,
+ * 	 "msg":	"Already exists"
  * }
  */
 router.post('', async (req, res) => {
 	try {
 		// Verify that exists the customer to which the new user will belong.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.NOT_FOUND;
 
 		// Verify that for the indicated customer we don't have another user with the same username.
 		if (await userModel.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Username already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't have to check it again.
+		// has the admin role. Then, we don't need to check it again.
 
 		await userModel.insert(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'User created', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 
@@ -185,47 +183,28 @@ router.post('', async (req, res) => {
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "response": {
- *     "respStatus": true,
- *     "respCode": "ACR_OK",
- *     "respCodeMsg": "Ok",
- *     "respMsg": "User updated",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
- * }
+ * HTTP/1.1 204 No Content
  *
  * @apiErrorExample {json} Error-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 400 Bad Request
  * {
- *   "response": {
- *     "respStatus": false,
- *     "respCode": "ACR_ALREADY_EXISTS",
- *     "respCodeMsg": "unknown error",
- *     "respMsg": "Already exists a customer with the same username",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
+ *   "fwcErr": 50007,
+ * 	 "msg":	"Not found"
  * }
  */
 router.put('', async (req, res) => {
 	try {
 		// Verify that the customer exists.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		throw fwcError.NOT_FOUND ;
 
 		// Verify that the user exists and belongs to the indicated customer.
 		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'User not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-
+		throw fwcError.NOT_FOUND;
 
 		await userModel.update(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'User updated', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 
@@ -279,16 +258,16 @@ router.put('/get', async (req, res) => {
 	try {
 		// Verify that the customer exists.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.NOT_FOUND;
 
 		// Check that the user indicated in the requests exists and belongs to the customer send in the request body.
 		// req.body.customer is a mandatory parameter in Joi schema.
 		if (req.body.user && !(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'User not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.NOT_FOUND;
 
 		const data = await userModel.get(req);
-		api_resp.getJson(data, api_resp.ACR_OK, 'User data sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting user data', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch (error) { res.status(400).json(error) }
 });
 
 
@@ -327,11 +306,11 @@ restrictedCheck.user,
 async (req, res) => {
 	try {
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Customer not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.NOT_FOUND;
 
-		const data = await userModel.delete(req);
-		api_resp.getJson(data, api_resp.ACR_OK, 'User deleted', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting user', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		await userModel.delete(req);
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 
