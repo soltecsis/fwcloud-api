@@ -32,23 +32,6 @@ var express = require('express');
 var router = express.Router();
 
 /**
- * Property Model to manage API RESPONSE data: {{#crossLinkModule "api_response"}}{{/crossLinkModule}}
- *
- * @property api_resp
- * @type api_respModel
- * 
- */
-var api_resp = require('../../utils/api_response');
-
-/**
- * Property to identify Data Object
- *
- * @property objModel
- * @type text
- */
-var objModel = 'FWCLOUD';
-
-/**
  * Property Model to manage Fwcloud Data
  *
  * @property FwcloudModel
@@ -58,20 +41,10 @@ var objModel = 'FWCLOUD';
  */
 var FwcloudModel = require('../../models/fwcloud/fwcloud');
 
-/**
- * Property Logger to manage App logs
- *
- * @attribute logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
-
 var utilsModel = require("../../utils/utils.js");
 var fwcTreemodel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
-
 
 /**
  * Get Fwclouds by User
@@ -213,28 +186,15 @@ router.post('/', async (req, res) => {
  *         ]
  *       };
  */
-router.put('/', (req, res) => {
-	//Save fwcloud data into objet
-	var fwcloudData = { id: req.body.fwcloud, name: req.body.name, image: req.body.image, comment: req.body.comment, user: req.session.user_id };
-
-	FwcloudModel.updateFwcloud(fwcloudData, function(error, data) {
-		//Saved ok
-		if (data && data.result) {
-			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		} else {
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-	});
+router.put('/', async (req, res) => {
+	try {
+		await FwcloudModel.updateFwcloud(req);
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put("/restricted",
-	restrictedCheck.fwcloud,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.fwcloud, (req, res) => (req, res) => res.status(204).end());
 
 /**
  * DELETE fwcloud
@@ -272,17 +232,11 @@ router.put("/restricted",
 router.put("/del",
 	restrictedCheck.fwcloud,
 	async(req, res) => {
-		// Remove the fwcloud data dir.
 		try {
+			// Remove the fwcloud data dir.
 			await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-		} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing data directory', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
-
-		FwcloudModel.deleteFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-			if (data && data.result)
-				api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		});
+			await FwcloudModel.deleteFwcloud(req);
+		} catch (error) { res.status(400).json(error) }
 	});
 
 
@@ -320,7 +274,7 @@ router.put("/del",
  *         ]
  *       };
  */
-router.put('/lock', (req, res) => {
+/*router.put('/lock', (req, res) => {
 	//Save fwcloud data into objet
 	var fwcloudData = { fwcloud: req.body.fwcloud, iduser: req.session.user_id };
 
@@ -346,7 +300,7 @@ router.put('/lock', (req, res) => {
 		});
 
 
-});
+});*/
 
 /**
  * Unlock fwcloud status
@@ -382,7 +336,7 @@ router.put('/lock', (req, res) => {
  *         ]
  *       };
  */
-router.put('/unlock', (req, res) => {
+/*router.put('/unlock', (req, res) => {
 	//Save fwcloud data into objet
 	var fwcloudData = { id: req.body.fwcloud, iduser: req.session.user_id };
 	FwcloudModel.updateFwcloudUnlock(fwcloudData)
@@ -406,7 +360,8 @@ router.put('/unlock', (req, res) => {
 			});
 		});
 
-});
+});*/
+
 /* Get locked Status of fwcloud by Id */
 /**
  * Get Locked status of Fwcloud by ID and User
@@ -420,7 +375,7 @@ router.put('/unlock', (req, res) => {
  * 
  * @return {JSON} Returns Json Data from Fwcloud
  */
-router.get('/lock/get', (req, res) => {
+/*router.get('/lock/get', (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.params.fwcloud;
 	if (!isNaN(fwcloud)) {
@@ -451,6 +406,6 @@ router.get('/lock/get', (req, res) => {
 			res.status(200).json(jsonResp);
 		});
 	}
-});
+});*/
 
 module.exports = router;

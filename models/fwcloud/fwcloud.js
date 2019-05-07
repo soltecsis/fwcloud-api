@@ -37,6 +37,7 @@ var tableModel = "fwcloud";
 
 
 var logger = require('log4js').getLogger("app");
+const fwcError = require('../../utils/error_table');
 
 
 /**
@@ -282,22 +283,15 @@ fwcloudModel.insertFwcloud = req => {
  *       callback(error, null);
  *       
  */
-fwcloudModel.updateFwcloud = function (fwcloudData, callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'UPDATE ' + tableModel + ' SET name = ' + connection.escape(fwcloudData.name) +
-				' ,image = ' + connection.escape(fwcloudData.image) +
-				' ,comment = ' + connection.escape(fwcloudData.comment) +
-				' WHERE id = ' + fwcloudData.id;
-		logger.debug(sql);
-		connection.query(sql, function (error, result) {
-			if (error) {
-				callback(error, null);
-			} else {
-				callback(null, {"result": true});
-			}
+fwcloudModel.updateFwcloud = req => {
+	return new Promise((resolve, reject) => {
+		let sql = `UPDATE ${tableModel} SET name=${req.dbCon.escape(req.body.name)},
+			image=${req.dbCon.escape(req.body.image)},
+			comment=${req.dbCon.escape(fwcloudData.comment)}
+			WHERE id=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
@@ -461,45 +455,29 @@ fwcloudModel.updateFwcloudUnlock = function (fwcloudData, callback) {
  *       callback(null, {"result": false});
  *       
  */
-fwcloudModel.deleteFwcloud = (iduser, id, callback) => {
-	//El FWCLOUD DEBE ESTAR VACIO SIN FIREWALLS
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sqlExists = 'SELECT C.* FROM ' + tableModel + ' C ' +
-				' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
-				' WHERE U.user=' + connection.escape(iduser) + ' AND C.id= ' + connection.escape(id);
-		logger.debug(sqlExists);
-		connection.query(sqlExists, function (error, row) {
+fwcloudModel.deleteFwcloud = req => {
+	return new Promise((resolve, reject) => {
+		let sql = `SELECT C.* FROM ${tableModel} C
+			INNER JOIN user__fwcloud U ON C.id=U.fwcloud
+			WHERE U.user=${req.session.user_id} AND C.id=${req.body.fwcloud}`;
+		req.dbCon.query(sql, async (error, row) => {
+			if (error) return reject(error);
+
 			//If exists Id from fwcloud to remove
-			if (row && row.length > 0) {               
-				//DELETE OBJECTS FROM CLOUD
-				fwcloudModel.EmptyFwcloudStandard(id)
-						.then(() => {
-							db.get(function (error, connection) {
-								var sql = 'DELETE FROM user__fwcloud WHERE fwcloud = ' + connection.escape(id);
-								connection.query(sql, function (error, result) {
-									if (error) {
-										callback(error, null);
-									} else {
-										var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-										connection.query(sql, function (error, result) {
-											if (error) {
-												callback(error, null);
-											} else {
-												callback(null, {"result": true, "msg": "deleted"});
-											}
-										});
-									}
-								});
-							});
-						})
-						.catch(e => {
-							callback(null, {"result": false, "msg": "ERROR DELETING OBJECTS"});
-						});
-			} else {
-				callback(null, {"result": false});
-			}
+			if (row && row.length > 0) { 
+				try {
+					//DELETE ALL OBJECTS FROM CLOUD
+					await fwcloudModel.EmptyFwcloudStandard(req.body.fwcloud);
+				} catch(error) { return reject(error) }       
+
+				req.dbCon.query(`DELETE FROM user__fwcloud WHERE fwcloud=${req.body.fwcloud}`, (error, result) => {
+					if (error) return reject(error); 
+					connection.query(`DELETE FROM ${tableModel} WHERE id=${req.body.fwcloud}`, (error, result) => {
+						if (error) return reject(error);
+						resolve();
+					});
+				});
+			} else reject(fwcError.NOT_FOUND);
 		});
 	});
 };

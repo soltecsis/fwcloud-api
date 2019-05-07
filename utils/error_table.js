@@ -13,6 +13,9 @@ var errorTable = {
   "BAD_API_CALL":         {"fwcErr": 2003, "msg": "Bad API call"},
   "BAD_API_DATA":         {"fwcErr": 2004, "msg": "Bad API call data"},
   "MODULE_NOT_FOUND":     {"fwcErr": 2005, "msg": "This Express route is not controlled in the input data validation process"},
+
+  // Tree error codes.
+  "BAD_TREE_NODE_TYPE":   {"fwcErr": 2001, "msg": "Bad tree node type"},
 };
 
 //Export the object

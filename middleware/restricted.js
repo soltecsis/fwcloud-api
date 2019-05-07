@@ -41,13 +41,11 @@ restrictedCheck.fwcloud = (req, res, next) => {
 		(SELECT count(*) FROM cluster where fwcloud=${req.body.fwcloud}) as CC,
 		(SELECT count(*) FROM ca where fwcloud=${req.body.fwcloud}) as CCA`;
 	req.dbCon.query(sql, (error, row) => {
-		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+		if (error) return res.status(400).json(error);
 
-		if (row && row.length > 0) {
-			if (row[0].CF>0 || row[0].CC>0 || row[0].CCA>0) {
-				api_resp.getJson({"result": false, "count": row[0]}, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
-			} else next();
-		} else next();
+		if (row && row.length>0 && (row[0].CF>0 || row[0].CC>0 || row[0].CCA>0))
+			return res.status(403).json({"result": false, "count": row[0]});
+		next();
 	});
 };
 

@@ -69,27 +69,13 @@ var FirewallExport = require('../../models/firewall/export');
  */
 var FwcloudModel = require('../../models/fwcloud/fwcloud');
 
-/**
- * Property Logger to manage App logs
- *
- * @attribute logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
-
-
 var utilsModel = require("../../utils/utils.js");
-
 var fwcTreemodel = require('../../models/tree/tree');
-
 var InterfaceModel = require('../../models/interface/interface');
-
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
-
 const restrictedCheck = require('../../middleware/restricted');
-const config = require('../../config/config');
+const fwcError = require('../../utils/error_table');
 
 
 /**
@@ -125,18 +111,10 @@ const config = require('../../config/config');
  */
 router.put('/all/get', (req, res) => {
 	FirewallModel.getFirewalls(req.session.user_id, function(error, data) {
-		//Get data
-		if (data && data.length > 0) {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get error
-		else {
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -174,18 +152,10 @@ router.put('/all/get', (req, res) => {
  */
 router.put('/cloud/get', (req, res) => {
 	FirewallModel.getFirewallCloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-		//get data
-		if (data && data.length > 0) {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else {
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -226,10 +196,10 @@ router.put('/get', async (req, res) => {
 	try {
 		const data = await FirewallModel.getFirewall(req);
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -268,18 +238,10 @@ router.put('/get', async (req, res) => {
  */
 router.put('/cluster/get', (req, res) => {
 	FirewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, function(error, data) {
-		//get data
-		if (data && data.length > 0) {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
-		//Get Error
-		else {
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -342,7 +304,7 @@ router.post('/', async(req, res) => {
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
 		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
-			throw(new Error('Bad node tree type'));
+			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		firewallData = await FirewallModel.checkBodyFirewall(firewallData, true);
 
@@ -351,29 +313,27 @@ router.post('/', async(req, res) => {
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
 		let data = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
-		if (data && data.insertId) {
-			var dataresp = { "insertId": data.insertId };
-			var newFirewallId = data.insertId;
+		var dataresp = { "insertId": data.insertId };
+		var newFirewallId = data.insertId;
 
-			await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
+		await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
 
-			if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
-				// Create the loop backup interface.
-				const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
-				await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
-			}
+		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
+			// Create the loop backup interface.
+			const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
+			await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
+		}
 
-			if (!firewallData.cluster) // Create firewall tree.
-				await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
-			else // Create the new firewall node in the NODES node of the cluster.
-				await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
+		if (!firewallData.cluster) // Create firewall tree.
+			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
+		else // Create the new firewall node in the NODES node of the cluster.
+			await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
 
-			// Create the directory used for store firewall data.
-			await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
+		// Create the directory used for store firewall data.
+		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
 
-			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, "", jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Creating firewall', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(dataresp);
+	} catch (error) { res.status(400).json(error) }
 });
 
 
@@ -459,37 +419,36 @@ router.put('/', async (req, res) => {
 		//UPDATE FIREWALL NODE STRUCTURE                                    
 		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
 
-		api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp =>	res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 router.put('/clone', async (req, res) => {
-	// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-	if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad node tree type', objModel, null, jsonResp => res.status(200).json(jsonResp));
-
-	//Save firewall data into objet    
-	var firewallData = {
-		id: req.body.firewall,
-		name: req.body.name,
-		comment: req.body.comment,
-		fwcloud: req.body.fwcloud, //working cloud      
-		by_user: req.session.user_id //working user
-	};
-
 	try {
-		const data = await FirewallModel.cloneFirewall(req.session.user_id, firewallData);
-		if (data && data.result) {
-			const idNewFirewall = data.insertId;
+		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
+		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
+			throw fwcError.BAD_TREE_NODE_TYPE;
 
-			const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
-			await Policy_rModel.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
-			await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
-			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
-			api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'CLONED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, e, jsonResp => res.status(200).json(jsonResp)) }
+		//Save firewall data into objet    
+		var firewallData = {
+			id: req.body.firewall,
+			name: req.body.name,
+			comment: req.body.comment,
+			fwcloud: req.body.fwcloud, //working cloud      
+			by_user: req.session.user_id //working user
+		};
+
+		const data = await FirewallModel.cloneFirewall(req.session.user_id, firewallData);
+		const idNewFirewall = data.insertId;
+
+		const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
+		await Policy_rModel.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
+		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
+		await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
+
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -513,9 +472,9 @@ router.put('/accesslock/get', async (req, res) => {
 		const data = await FirewallModel.getFirewall(req);
 		if (data && data.length > 0) {
 			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
-			api_resp.getJson(resp, api_resp.ACR_OK, '', "", null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(resp);
 		}
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -523,7 +482,8 @@ router.put('/accesslock/get', async (req, res) => {
 router.put("/restricted",
 	restrictedCheck.firewall,
 	restrictedCheck.firewallApplyTo,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+	(req, res) => res.status(204).end()
+);
 
 
 /**
@@ -563,12 +523,9 @@ router.put('/del',
 	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
-			data = await FirewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
-			if (data && data.result)
-				api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} catch (error) { api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			await FirewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
+			res.status(204).end();
+		} catch (error) { res.status(400).json(error) }
 	});
 
 //DELETE FIREWALL FROM CLUSTER
@@ -580,11 +537,11 @@ restrictedCheck.firewallApplyTo,
 	FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
 	.then(data => {
 		if (data && data.result)
-			api_resp.getJson(data, api_resp.ACR_DELETED_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 	 	else
-			api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(data);
 	})
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+	.catch(error => res.status(400).json(error));
 });
 
 /**
@@ -594,9 +551,9 @@ restrictedCheck.firewallApplyTo,
 router.put('/export/get', (req, res) => {
 	FirewallExport.exportFirewall(req.body.firewall)
 		.then(data => {
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		})
-		.catch(err => api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, err, jsonResp => res.status(200).json(jsonResp)));
+		.catch(error => res.status(400).json(error));
 });
 
 module.exports = router;

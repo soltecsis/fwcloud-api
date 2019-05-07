@@ -36,6 +36,7 @@ var Policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
+const fwcError = require('../../utils/error_table');
 
 /**
  * Get Firewalls by User
@@ -563,9 +564,7 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 						if (error) return reject(error);
 						resolve({"result": true, "insertId": result.insertId});                                    
 					});
-				} else {
-					resolve({"result": false});
-				}
+				} else reject(fwcError.NOT_FOUND);
 			});
 		});
 	});
@@ -598,7 +597,7 @@ firewallModel.updateFWMaster = function (iduser, fwcloud, cluster, idfirewall, f
 							});
 						} else resolve({"result": true});
 					});
-				} else resolve({"result": false});
+				} else reject(fwcError.NOT_FOUND);
 			});
 		});
 	});
@@ -802,13 +801,11 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 
 						//DELETE FIREWALL from the database.
 						dbCon.query(`DELETE FROM ${tableModel} WHERE id=${firewall}`, (error, result) => {
-							if (error) 
-								resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
-							else 
-								resolve({"result": true, "msg": "deleted"});
+							if (error) return reject(error);
+							resolve();
 						});
 					} catch(error) { return reject(error) }
-				} else resolve({"result": false, "msg": "not found"});
+				} else reject(fwcError.NOT_FOUND);
 			});
 		});
 	});
