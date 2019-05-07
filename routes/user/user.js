@@ -3,8 +3,6 @@ var router = express.Router();
 const customerModel = require('../../models/user/customer');
 const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
-const api_resp = require('../../utils/api_response');
-const objModel = 'USER';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
@@ -65,7 +63,7 @@ router.post('/login',async (req, res) => {
 			res.status(204).end();
 		} else {
 			req.session.destroy(err => {} );
-			throw errorTable.BAD_LOGIN;
+			throw fwcError.BAD_LOGIN;
 		}
 	} catch(error) { res.status(401).json(error) }
 });
@@ -126,7 +124,7 @@ router.post('/logout',(req, res) => {
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
- *   "fwcErr": 50008,
+ *   "fwcErr": 1003,
  * 	 "msg":	"Already exists"
  * }
  */
@@ -188,7 +186,7 @@ router.post('', async (req, res) => {
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
- *   "fwcErr": 50007,
+ *   "fwcErr": 1002,
  * 	 "msg":	"Not found"
  * }
  */
@@ -196,11 +194,11 @@ router.put('', async (req, res) => {
 	try {
 		// Verify that the customer exists.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
-		throw fwcError.NOT_FOUND ;
+			throw fwcError.NOT_FOUND ;
 
 		// Verify that the user exists and belongs to the indicated customer.
 		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
-		throw fwcError.NOT_FOUND;
+			throw fwcError.NOT_FOUND;
 
 		await userModel.update(req);
 		res.status(204).end();
@@ -265,8 +263,7 @@ router.put('/get', async (req, res) => {
 		if (req.body.user && !(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			throw fwcError.NOT_FOUND;
 
-		const data = await userModel.get(req);
-		res.status(200).json(data);
+		res.status(200).json(await userModel.get(req));
 	} catch (error) { res.status(400).json(error) }
 });
 
@@ -356,10 +353,7 @@ async (req, res) => {
  *   }
  * } 
  */
-router.put('/restricted',
-	restrictedCheck.user,
-	(req, res) =>  res.status(204).end()
-);
+router.put('/restricted', restrictedCheck.user, (req, res) => res.status(204).end());
 
 
 /**

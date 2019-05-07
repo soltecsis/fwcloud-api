@@ -169,7 +169,7 @@ CREATE TABLE `customer` (
 
 LOCK TABLES `customer` WRITE;
 /*!40000 ALTER TABLE `customer` DISABLE KEYS */;
-INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca,7 - 03590 Altea (Alicante) - Spain','+34 966 446 046','info@soltecsis.com','https://soltecsis.com','2019-05-06 10:22:12','2019-05-06 10:22:12',1,1);
+INSERT INTO `customer` VALUES (1,'SOLTECSIS, S.L.','C/Carrasca, 7 - 03590 Altea (Alicante) - Spain','+34 966 446 046','info@soltecsis.com','https://soltecsis.com','2019-05-06 10:22:12','2019-05-06 10:22:12',1,1);
 /*!40000 ALTER TABLE `customer` ENABLE KEYS */;
 UNLOCK TABLES;
 

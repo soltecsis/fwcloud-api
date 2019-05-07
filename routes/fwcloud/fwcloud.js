@@ -68,10 +68,9 @@ var FwcloudModel = require('../../models/fwcloud/fwcloud');
 var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
-
 var fwcTreemodel = require('../../models/tree/tree');
-
 const restrictedCheck = require('../../middleware/restricted');
+const fwcError = require('../../utils/error_table');
 
 
 /**
@@ -104,9 +103,9 @@ const restrictedCheck = require('../../middleware/restricted');
 router.get('/all/get', (req, res) => {
 	FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
 		if (data && data.length > 0) //Get data
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else //Get error 
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -127,9 +126,9 @@ router.get('/all/get', (req, res) => {
 router.put('/get', (req, res) => {
 	FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (data && data.length > 0) //get fwcloud data
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else //get error
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -168,29 +167,14 @@ router.put('/get', (req, res) => {
  *         ]
  *       };
  */
-router.post('/', (req, res) => {
-	var fwcloudData = {
-		name: req.body.name,
-		image: req.body.image,
-		comment: req.body.comment
-	};
+router.post('/', async (req, res) => {
+	try {
+		req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
+		await fwcTreemodel.createAllTreeCloud(req);
+		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
-	FwcloudModel.insertFwcloud(req.session.user_id, fwcloudData, async(error, data) => {
-		if (data && data.insertId) {
-			logger.debug("insertFwcloud: ", data);
-			var dataresp = { "insertId": data.insertId };
-
-			//CREATE INITIAL STRUCTURE 
-			logger.debug(">>>>>>> CLOUD CREATED: ", data.insertId, " - ", fwcloudData.name);
-			try {
-				req.body.fwcloud = data.insertId;
-				await fwcTreemodel.createAllTreeCloud(req);
-				await utilsModel.createFwcloudDataDir(req.body.fwcloud);
-			} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating cloud', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
-
-			api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	});
+		res.status(200).json({"insertId": req.body.fwcloud});
+	} catch (error) { res.status(400).json(error); }
 });
 
 
@@ -285,7 +269,6 @@ router.put("/restricted",
  *         ]
  *       };
  */
-//FALTA CONTROLAR BORRADO EN CASCADA y PERMISOS 
 router.put("/del",
 	restrictedCheck.fwcloud,
 	async(req, res) => {
@@ -469,6 +452,5 @@ router.get('/lock/get', (req, res) => {
 		});
 	}
 });
-
 
 module.exports = router;

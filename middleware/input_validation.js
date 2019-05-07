@@ -18,7 +18,6 @@ inputValidation.check = async(req, res, next) => {
 	// Verify that item1 is in the valid list.
 	if (!item1_valid_list.includes(item1))
 		return res.status(404).json(fwcError.BAD_API_CALL);
-	
 
 	// URLs excluded of the input data validation process because don't have any data to be validated.
 	if ((req.method==='GET' && req.url==='/fwcloud/all/get') ||

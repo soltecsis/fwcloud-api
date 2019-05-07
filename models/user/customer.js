@@ -38,7 +38,7 @@ customerModel.existsName = (dbCon, name) => {
 	return new Promise(async (resolve, reject) => {
 		dbCon.query(`select id from ${tableModel} where name=${dbCon.escape(name)}`, (error, result) => {
 			if (error) return reject(error);
-			if (result.length>0) return resolve(true);
+			if (result.length>0) return resolve(result[0].id);
 			resolve(false);
 		});
 	});
@@ -50,9 +50,8 @@ customerModel.update = req => {
 	return new Promise(async (resolve, reject) => {
 		let sql = `UPDATE ${tableModel} SET name=${req.dbCon.escape(req.body.name)},
 			email=${req.dbCon.escape(req.body.email)},
-			address=${req.dbCon.escape(req.body.address)},
-			CIF=${req.dbCon.escape(req.body.cif)},
-			telephone=${req.dbCon.escape(req.body.telephone)},
+			addr=${req.dbCon.escape(req.body.address)},
+			phone=${req.dbCon.escape(req.body.telephone)},
 			web=${req.dbCon.escape(req.body.web)}
 			WHERE id=${req.body.customer}`;
 		req.dbCon.query(sql, (error, result) => {

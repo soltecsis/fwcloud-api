@@ -4,7 +4,6 @@ var confirmToken = {};
 module.exports = confirmToken;
 
 const randomString = require('random-string');
-const api_resp = require('../utils/api_response');
 const userModel = require('../models/user/user');
 
 confirmToken.check = async (req, res, next) => {
@@ -17,8 +16,8 @@ confirmToken.check = async (req, res, next) => {
     if (test.result) // Confirmation token successfully validated.
       next();
     else // Need confirmation, send new token
-      api_resp.getJson({"fwc_confirm_token": test.token}, api_resp.ACR_CONFIRM_ASK, 'Need to confirm action', 'ACTION', null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Checking confirmation token', 'CONFIRM TOKEN', error, jsonResp => res.status(200).json(jsonResp)) }
+      res.status(403).json({"fwc_confirm_token": test.token});
+  } catch(error) { res.status(400).json(error) }
 };
 
 //Check User CONFIRMATION TOKEN
@@ -31,7 +30,7 @@ confirmToken.validate = req => {
       try {
         if (row) {                        
           const dbCT = row[0].confirmation_token; // Confirmation token stored in the data base.
-          const reqCT = req.headers.x_fwc_confirm_token; // Confirmation token present in the request headers.
+          const reqCT = req.headers['x-fwc-confirm-token']; // Confirmation token present in the request headers.
           
           if (reqCT===undefined || reqCT!==dbCT) {
             //generate new token

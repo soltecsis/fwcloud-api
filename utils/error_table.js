@@ -1,13 +1,18 @@
 
 var errorTable = {
-  "NOT_ACCEPTED_METHOD":  {"fwcErr": 50001, "msg": "HTTP method not accepted by FWCloud.net API"},
-  "BODY_MUST_BE_EMPTY":   {"fwcErr": 50002, "msg": "Request body must be empty for GET method"},
-  "BAD_API_CALL":         {"fwcErr": 50003, "msg": "Bad API call"},
-  "BAD_API_DATA":         {"fwcErr": 50004, "msg": "Bad API call data"},
-  "MODULE_NOT_FOUND":     {"fwcErr": 50005, "msg": "This Express route is not controlled in the input data validation process"},
-  "BAD_LOGIN":            {"fwcErr": 50006, "msg": "Bad username or password"},
-  "NOT_FOUND":            {"fwcErr": 50007, "msg": "Not found"},
-  "ALREADY_EXISTS":       {"fwcErr": 50008, "msg": "Already exists"},
+  // Common error codes.
+  "BAD_LOGIN":            {"fwcErr": 1001, "msg": "Bad username or password"},
+  "NOT_FOUND":            {"fwcErr": 1002, "msg": "Not found"},
+  "ALREADY_EXISTS":       {"fwcErr": 1003, "msg": "Already exists"},
+  "ALREADY_EXISTS_ID":    {"fwcErr": 1004, "msg": "Already exists with the same id"},
+  "ALREADY_EXISTS_NAME":  {"fwcErr": 1005, "msg": "Already exists with the same name"},
+
+  // Input validation error codes.
+  "NOT_ACCEPTED_METHOD":  {"fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API"},
+  "BODY_MUST_BE_EMPTY":   {"fwcErr": 2002, "msg": "Request body must be empty for GET method"},
+  "BAD_API_CALL":         {"fwcErr": 2003, "msg": "Bad API call"},
+  "BAD_API_DATA":         {"fwcErr": 2004, "msg": "Bad API call data"},
+  "MODULE_NOT_FOUND":     {"fwcErr": 2005, "msg": "This Express route is not controlled in the input data validation process"},
 };
 
 //Export the object

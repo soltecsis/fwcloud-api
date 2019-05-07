@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('./shared');
+const fwcError = require('../../utils/error_table');
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -15,9 +16,10 @@ schema.validate = req => {
     if (req.method==='PUT') {
       if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del' || req.url==='/fwcloud/restricted')
         schema = Joi.object().keys({ fwcloud: sharedSch.id });
-      else
+      else if (req.url==='/fwcloud' || req.url==='/fwcloud/lock' || req.url==='/fwcloud/unlock' || req.url==='/fwcloud/lock/get')
         schema = schema.append({ fwcloud: sharedSch.id });
-    } else if (req.method!=='POST') return reject(new Error('Request method not accepted'));
+      else return reject(fwcError.BAD_API_CALL);
+    } else if (req.method!=='POST' && req.url!=='/fwcloud') return reject(fwcError.BAD_API_CALL);
 
 
     try {

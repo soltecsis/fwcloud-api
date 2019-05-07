@@ -187,8 +187,7 @@ fwcloudModel.getFwcloudAccess = function (iduser, fwcloud) {
 fwcloudModel.checkFwcloudLockTimeout = function (timeout, callback) {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
-			if (error)
-				reject(false);
+			if (error) return reject(false);
 			var sql = 'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' + tableModel + ' C WHERE C.locked=1 HAVING dif>' + timeout;
 			connection.query(sql, function (error, rows) {
 				if (error)
@@ -238,26 +237,22 @@ fwcloudModel.checkFwcloudLockTimeout = function (timeout, callback) {
  *       callback(error, null);
  *       
  */
-fwcloudModel.insertFwcloud = function (iduser, fwcloudData, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('INSERT INTO ' + tableModel + ' SET ?', fwcloudData, function (error, result) {
-			if (error) {
-				logger.debug("FWCLOUD ERROR: ", error);
-				callback(error, null);
-			} else {
-				var fwid = result.insertId;
-				sqlinsert = 'INSERT INTO  user__fwcloud  SET fwcloud=' + connection.escape(fwid) + ' , user=' + connection.escape(iduser);
-				connection.query(sqlinsert, function (error, result) {
-					if (error) {
-						logger.debug("SQL ERROR USER INSERT: ", error, "\n", sqlinsert);
-						callback(error, null);
-					} else {
-						callback(null, {"insertId": fwid});
-					}
-				});
-			}
+fwcloudModel.insertFwcloud = req => {
+	return new Promise((resolve, reject) => {
+		let fwcloudData = {
+			name: req.body.name,
+			image: req.body.image,
+			comment: req.body.comment
+		};
+		
+		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, fwcloudData, (error, result) => {
+			if (error) return reject(error);
+
+			let fwcloud = result.insertId;
+			connection.query(`INSERT INTO user__fwcloud SET fwcloud=${fwcloud}, user=${req.session.user_id}`, (error, result) => {
+				if (error) return reject(error);
+				resolve(fwcloud);
+			});
 		});
 	});
 };

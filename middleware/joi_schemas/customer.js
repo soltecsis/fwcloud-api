@@ -3,6 +3,7 @@ module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('./shared');
+const fwcError = require('../../utils/error_table');
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
@@ -25,8 +26,8 @@ schema.validate = req => {
 				schema = Joi.object().keys({ customer: sharedSch.id.optional() });
 			else if (req.url === '/customer/del' || req.url === '/customer/restricted')
 				schema = Joi.object().keys({ customer: sharedSch.id });
-			else return reject(new Error('Request URL not accepted'));
-		} else return reject(new Error('Request method not accepted'));
+			else return reject(fwcError.BAD_API_CALL);
+		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
 			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
