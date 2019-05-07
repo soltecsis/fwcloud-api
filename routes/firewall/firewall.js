@@ -32,23 +32,6 @@ var express = require('express');
 var router = express.Router();
 
 /**
- * Property Model to manage API RESPONSE data: {{#crossLinkModule "api_response"}}{{/crossLinkModule}}
- *
- * @property api_resp
- * @type api_respModel
- * 
- */
-var api_resp = require('../../utils/api_response');
-
-/**
- * Property to identify Data Object
- *
- * @property objModel
- * @type text
- */
-var objModel = 'FIREWALL';
-
-/**
  * Property Model to manage Firewall Data
  *
  * @property FirewallModel
