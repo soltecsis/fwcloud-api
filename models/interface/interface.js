@@ -364,7 +364,7 @@ interfaceModel.insertInterface = (dbCon, interfaceData) => {
 	return new Promise((resolve, reject) => {
 		dbCon.query(`INSERT INTO ${tableModel} SET ?`, interfaceData, (error, result) => {
 			if (error) return reject(error);
-			resolve(result.affectedRows>0 ? result.insertId: null);
+			resolve(result.affectedRows>0 ? result.insertId : null);
 		});
 	});
 };

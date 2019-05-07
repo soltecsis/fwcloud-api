@@ -13,21 +13,20 @@ router.put('/fw/all/get', async (req, res) => {
 	try {
 		let data = await InterfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else //Get Error
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', (req, res) => {
 	InterfaceModel.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
-		//If exists interface get data
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -36,37 +35,34 @@ router.put('/fw/get', async (req, res) => {
 	try {
 		const data = await InterfaceModel.getInterface(req.body.fwcloud, req.body.id);
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Get all interfaces by HOST*/
 router.put('/host/all/get', (req, res) => {
 	InterfaceModel.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
-		//If exists interface get data
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
 /* Get interface by id and HOST*/
 router.put('/host/get', (req, res) => {
 	InterfaceModel.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
-		//If exists interface get data
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
 
-//FALTA COMPROBAR ACCESO FIREWALL
 /* Create New interface */
 router.post("/", async (req, res) => {
 	var fwcloud = req.body.fwcloud;
@@ -79,7 +75,7 @@ router.post("/", async (req, res) => {
 	// Verify that the node tree information is consistent with the information in the request.
 	try {
 		if (!(await fwcTreemodel.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host))))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Inconsistent data between request and node tree', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 	
 		//Create New objet with data interface
 		var interfaceData = {
@@ -115,15 +111,13 @@ router.post("/", async (req, res) => {
 			interfaceData.id = insertId;
 			interfaceData.type = interfaceData.interface_type;
 			const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
-			api_resp.getJson({ "insertId": insertId, "TreeinsertId": node_id }, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));	
-		} else { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating new network interface', objModel, error, jsonResp => res.status(200).json(jsonResp)) }	
+			res.status(200).json({ "insertId": insertId, "TreeinsertId": node_id });
+		} else { return res.status(400).end() }
+	} catch (error) { res.status(400).json(error) }	
 });
 
-//FALTA COMPROBAR ACCESO FIREWALL
 /* Update interface that exist */
 router.put('/', (req, res) => {
-	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	//Save data into object
 	var interfaceData = {
@@ -138,29 +132,17 @@ router.put('/', (req, res) => {
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
 		InterfaceModel.updateInterface(interfaceData, async (error, data) => {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error Updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			else {
-				//If saved interface saved ok, get data
-				if (data && data.result) {
-					try {
-						await Interface__ipobjModel.UpdateHOST(interfaceData.id);
-						await fwcTreemodel.updateFwc_Tree_OBJ(req, interfaceData);
-						api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-					} catch(error) { return api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, null, jsonResp => res.status(200).json(jsonResp)) }
-				} else {
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error updating Interface', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			}
+			if (error) return res.status(400).json(error);
+			//If saved interface saved ok, get data
+			if (data && data.result) {
+				try {
+					await Interface__ipobjModel.UpdateHOST(interfaceData.id);
+					await fwcTreemodel.updateFwc_Tree_OBJ(req, interfaceData);
+					res.status(204).end();
+				} catch(error) { res.status(400).json(error) }
+			} else res.status(400).end();
 		});
-	} else
-		api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, null, function(jsonResp) {
-			res.status(200).json(jsonResp);
-		});
+	} else res.status(400).end();
 });
 
 
@@ -172,8 +154,8 @@ async (req, res) => {
 		await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
 		await InterfaceModel.deleteInterfaceFW(req.dbCon, req.body.id);
 		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)); }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -186,8 +168,8 @@ async (req, res) => {
 		await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
 		await InterfaceModel.deleteInterfaceHOST(req.dbCon, req.body.id);
 		await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'INTERFACE DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -195,17 +177,15 @@ async (req, res) => {
 router.put('/where', async (req, res) => {
 	try {
 		const data = await InterfaceModel.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
-		if (data && data.result)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		if (data && data.length > 0)
+			res.status(200).json(data);
 		else
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 // API call for check deleting restrictions.
-router.put("/restricted",
-	restrictedCheck.interface,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(204).end());
 
 module.exports = router;

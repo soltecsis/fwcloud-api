@@ -167,14 +167,7 @@ var vpn_pki_crt = require('./routes/vpn/pki/crt');
 var vpn_pki_prefix = require('./routes/vpn/pki/prefix');
 var vpn_openvpn = require('./routes/vpn/openvpn/openvpn');
 var vpn_openvpn_prefix = require('./routes/vpn/openvpn/prefix');
-//var interface__ipobj = require('./routes/interface/interface__ipobj');
-//var routing_gs = require('./routes/routing/routing_gs');
-//var routing_rs = require('./routes/routing/routing_rs');
-//var routing_r__ipobjs = require('./routes/routing/routing_r__ipobjs');
-//var routing_r__interfaces = require('./routes/routing/routing_r__interfaces');
-//var ipobj_type__routing_positions = require('./routes/ipobj/ipobj_type__routing_positions');
 
-//app.use('/', routes);
 app.use('/user', user);
 app.use('/customer', customer);
 app.use('/fwcloud', fwcloud);
@@ -204,12 +197,6 @@ app.use('/vpn/pki/crt', vpn_pki_crt);
 app.use('/vpn/pki/prefix', vpn_pki_prefix);
 app.use('/vpn/openvpn', vpn_openvpn);
 app.use('/vpn/openvpn/prefix', vpn_openvpn_prefix);
-//app.use('/interface__ipobj', interface__ipobj);
-//app.use('/routing-gs', routing_gs);
-//app.use('/routing-rs', routing_rs);
-//app.use('/routing-r__ipobjs', routing_r__ipobjs);
-//app.use('/routing-r__interfaces', routing_r__interfaces);
-//app.use('/ipobj-types__routing_positions', ipobj_type__routing_positions);
 
 
 // Connect to MySQL on start
