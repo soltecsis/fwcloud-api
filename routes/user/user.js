@@ -344,28 +344,22 @@ async (req, res) => {
  *     "data": {}
  * }
  * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ *
  * @apiErrorExample {json} Error-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 403 Forbidden
  * {
- *    "response": {
- *        "respStatus": false,
- *        "respCode": "ACR_RESTRICTED",
- *        "respCodeMsg": "null restricted",
- *        "respMsg": "RESTRICTED",
- *        "errorCode": "",
- *        "errorMsg": ""
- *    },
- *    "data": {
- *        "result": true,
- *        "restrictions": {
- *            "CustomerHasUsers": true
- *        }
- *    }
- * }
+ *   "result": true,
+ *   "restrictions": {
+ *     "CustomerHasUsers": true
+ *   }
+ * } 
  */
 router.put('/restricted',
 	restrictedCheck.user,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+	(req, res) =>  res.status(204).end()
+);
 
 
 /**
@@ -385,18 +379,7 @@ router.put('/restricted',
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "response": {
- *     "respStatus": true,
- *     "respCode": "ACR_OK",
- *     "respCodeMsg": "Ok",
- *     "respMsg": "FWCloud access created",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
- * }
+ * HTTP/1.1 204 No Content
  */
 router.post('/fwcloud', async (req, res) => {
 	try {
@@ -404,8 +387,8 @@ router.post('/fwcloud', async (req, res) => {
 		// has the admin role. Then, we don't have to check it again.
 
 		await userModel.allowFwcloudAccess(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'FWCloud access created', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating FWCloud access', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 
@@ -426,18 +409,7 @@ router.post('/fwcloud', async (req, res) => {
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "response": {
- *     "respStatus": true,
- *     "respCode": "ACR_OK",
- *     "respCodeMsg": "Ok",
- *     "respMsg": "FWCloud access disabled",
- *     "errorCode": "",
- *     "errorMsg": ""
- *   },
- *   "data": {}
- * }
+ * HTTP/1.1 204 No Content
  */
 router.put('/fwcloud/del', async (req, res) => {
 	try {
@@ -445,8 +417,8 @@ router.put('/fwcloud/del', async (req, res) => {
 		// has the admin role. Then, we don't have to check it again.
 
 		await userModel.allowFwcloudAccess(req);
-		api_resp.getJson(null, api_resp.ACR_OK, 'FWCloud access disabled', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error disabling FWCloud access', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
 });
 
 module.exports = router;

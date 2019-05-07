@@ -19,9 +19,9 @@ const markModel = require('../models/ipobj/mark');
 restrictedCheck.customer = async (req, res, next) => {
 	try {
 		let data = await customerModel.searchUsers(req);
-		if (data.result) return res.status(200).json(data);
+		if (data.result) return res.status(403).json(data);
 		data = await customerModel.lastCustomer(req);
-		if (data.result) return res.status(200).json(data);
+		if (data.result) return res.status(403).json(data);
 		next();
 	} catch(error) { res.status(400).json(error) }
 };
@@ -30,7 +30,7 @@ restrictedCheck.customer = async (req, res, next) => {
 restrictedCheck.user = async (req, res, next) => {
 	try {
 		const data = await userModel.lastAdminUser(req);
-		if (data.result) return res.status(200).json(data);
+		if (data.result) return res.status(403).json(data);
 		next();
 	} catch(error) { res.status(400).json(error) }
 };
