@@ -12,7 +12,6 @@ module.exports = utilsModel;
 var logger = require('log4js').getLogger("app");
 var FirewallModel = require('../models/firewall/firewall');
 const config = require('../config/config');
-var api_resp = require('./api_response');
 var crypto = require('crypto');
 const db = require('../db');
 const fs = require('fs');
@@ -60,7 +59,7 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 		firewall=req.body.rulesData.firewall;
 	FirewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
 	.then(() => next())
-	.catch(error => api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating firewall status', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)));
+	.catch(error => res.status(400).json(error));
 };
 
 utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {

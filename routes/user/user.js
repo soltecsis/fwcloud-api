@@ -1,30 +1,3 @@
-/*
-return res.status(400).json(error);
-
-res.status(400).json(fwcError.NOT_FOUND);
-
-res.status(200).json(data);
-
-res.status(204).end();
-
-    if (data && data.length > 0)
-      res.status(200).json(data);
-    else
-			res.status(400).json(fwcError.NOT_FOUND);
-	} catch(error) { res.status(400).json(error) }
-
-		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
-
-		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
-
-
-router.put('/restricted', restrictedCheck.user, (req, res) => res.status(204).end());
-*/
-
-
-
 var express = require('express');
 var router = express.Router();
 const customerModel = require('../../models/user/customer');

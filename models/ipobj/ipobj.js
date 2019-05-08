@@ -83,15 +83,6 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  * @type models.ipobj__ipobjg
  */
 
-/**
- * Property Model to manage API RESPONSE data
- *
- * @property api_resp
- * @type ../../models/api_response
- * 
- */
-var api_resp = require('../../utils/api_response');
-
 var Ipobj_gModel = require('./group');
 
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');

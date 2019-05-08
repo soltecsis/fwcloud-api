@@ -3,7 +3,6 @@ var restrictedCheck = {};
 //Export the object
 module.exports = restrictedCheck;
 
-const api_resp = require('../utils/api_response');
 const customerModel = require('../models/user/customer');
 const userModel = require('../models/user/user');
 const firewallModel = require('../models/firewall/firewall');
@@ -53,9 +52,9 @@ restrictedCheck.fwcloud = (req, res, next) => {
 restrictedCheck.firewall = async (req, res, next) => {
 	try {
 		const data = await firewallModel.searchFirewallRestrictions(req);
-		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) res.status(403).json(data);
 		else next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
@@ -63,7 +62,7 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 	// Is this firewall part of a cluster?
 	let sql = 'SELECT cluster from firewall where id=' + req.body.fwcloud + ' AND fwcloud=' + req.body.fwcloud;
 	req.dbCon.query(sql, function(error, result) {
-		if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+		if (error) return res.status(400).json(error);
 		if (result && result.length === 0) return next(); // No, it is not part of a cluster.
 
 		// If it is part of a cluster then look if it appears in the apply to column of a rule of the cluster.
@@ -72,12 +71,12 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 			' AND F.cluster=' + result[0].cluster +
 			' AND F.fwcloud=' + req.body.fwcloud;
 		req.dbCon.query(sql, function(error, row) {
-			if (error) return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp));
+			if (error) return res.status(400).json(error);
 
 			if (row && row.length > 0) {
 				if (row[0].cont > 0) {
 					const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
-					api_resp.getJson(restricted, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+					res.status(403).json(restricted);
 				} else next();
 			} else next();
 		});
@@ -104,77 +103,77 @@ restrictedCheck.interface = async (req, res, next) => {
 			}
 		}
 		
-		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) res.status(403).json(data);
 		else next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ipobj = async (req, res, next) => {
 	try {
 		const data = await ipobjModel.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
-		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) res.status(403).json(data);
 		else next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ipobj_group = async (req, res, next) => {
 	try {
 		const data = await ipobj_gModel.searchGroupUsage(req.body.id, req.body.fwcloud);
-		if (data.result) api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) res.status(403).json(data);
 		else next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.openvpn = async (req, res, next) => {
 	try {
 		let data = await openvpnModel.searchOpenvpnChild(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 	
 		data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 		
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ca = async (req, res, next) => {
 	try {
 		let data = await pkiCAModel.searchCAHasCRTs(req.dbCon,req.body.fwcloud,req.body.ca);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 
 		data = await pkiCAModel.searchCAHasPrefixes(req.dbCon,req.body.fwcloud,req.body.ca);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 restrictedCheck.crt = async (req, res, next) => {
 	try {
 		let data = await pkiCRTModel.searchCRTInOpenvpn(req.dbCon,req.body.fwcloud,req.body.crt);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 restrictedCheck.openvpn_prefix = async (req, res, next) => {
 	try {
 		let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 		
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 restrictedCheck.mark = async (req, res, next) => {
 	try {
 		let data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
-		if (data.result) return api_resp.getJson(data, api_resp.ACR_RESTRICTED, 'RESTRICTED', null, null, jsonResp => res.status(200).json(jsonResp));
+		if (data.result) return res.status(403).json(data);
 		
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', null, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
