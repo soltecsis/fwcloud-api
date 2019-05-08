@@ -136,10 +136,7 @@ function ruleRemove(idfirewall, idgroup, rule) {
 	return new Promise((resolve, reject) => {
 		Policy_rModel.updatePolicy_r_Group(idfirewall, idgroup, null, rule, (error, data) => {
 			if (error) return reject(error);
-			if (data && data.result)
-				resolve(api_resp.ACR_DELETED_OK);
-			else
-				resolve(api_resp.ACR_NOTEXIST);
+			resolve();
 		});
 	});
 }

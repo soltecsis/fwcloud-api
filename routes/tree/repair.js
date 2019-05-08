@@ -21,7 +21,7 @@ router.put('/', async (req, res) =>{
     else if (req.body.type==='FDS')
       socketTools.msg('<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
     else
-      return api_resp.getJson(null, api_resp.ACR_ERROR, 'Invalid tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+      throw fwcError.BAD_TREE_NODE_TYPE;
     
     await fwcTreeRepairModel.initData(req);
 
@@ -102,11 +102,11 @@ router.put('/', async (req, res) =>{
     }
 
     socketTools.msgEnd();
-    api_resp.getJson(null, api_resp.ACR_OK, 'REPAIR PROCESS COMPLETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
+    res.status(204).end();
   } catch(error) { 
     socketTools.msg(`\nERROR: ${error}\n`);
 		socketTools.msgEnd();
-    api_resp.getJson(null, api_resp.ACR_ERROR, 'Error repairing tree', objModel, error, jsonResp => res.status(200).json(jsonResp)) 
+    res.status(400).json(error);
   }
 });
 

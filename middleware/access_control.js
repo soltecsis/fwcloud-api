@@ -3,9 +3,9 @@ var accessCtrl = {};
 //Export the object
 module.exports = accessCtrl;
 
-const api_resp = require('../utils/api_response');
 const FwcloudModel = require('../models/fwcloud/fwcloud');
 const FirewallModel = require('../models/firewall/firewall');
+const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
 
 
@@ -45,7 +45,7 @@ accessCtrl.check = async (req, res, next) => {
 	if (req.url.substring(0,5)==="/user" || req.url.substring(0,9)==="/customer") {
 	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
 			return next();
-		return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, "You are not an admin user", 'CUSTOMER/USER', null, jsonResp => res.status(200).json(jsonResp));
+		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 		
 	// Next access control for fwcloud API functions.
@@ -63,63 +63,63 @@ accessCtrl.check = async (req, res, next) => {
 		if (req.body.firewall) {
 			const accessData = { iduser: req.session.user_id, fwcloud: req.body.fwcloud, firewall: req.body.firewall };
 			if (!(await FirewallModel.getFirewallAccess(accessData)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'FIREWALL ACCESS NOT ALLOWED', 'FIREWALL', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_FIREWALL;
 		}
 
 		// Check access to the tree node indicated in req.body.node_id.
 		if (req.body.node_id) {
 			if (!(await checkTreeNodeAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'TREE NODE ACCESS NOT ALLOWED', 'TREE', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_TREE_NODE;
 		}
 
 		// Check access to the CA indicated in req.body.ca.
 		if (req.body.ca) {
 			if (!(await checkCAAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CA ACCESS NOT ALLOWED', 'CA', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_CA;
 		}
 
 		// Check access to the crt indicated in req.body.crt.
 		if (req.body.crt) {
 			if (!(await checkCrtAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT ACCESS NOT ALLOWED', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_CRT;
 		}
 
 		// Check access to the openvpn indicated in req.body.openvpn.
 		if (req.body.openvpn) {
 			if (!(await checkOpenVPNAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'OpenVPN ACCESS NOT ALLOWED', 'OpenVPN', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_OPENVPN;
 		}
 
 		// Check access to the CRT prefix indicated in req.body.prefix.
 		if (req.body.prefix) {
 			if (!(await checkPrefixAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'CRT Prefix ACCESS NOT ALLOWED', 'CRT Prefix', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_CRT_PREFIX;
 		}
 
 		// Check access to the rule indicated by req.body.rule o req.body.new_rule.
 		if (req.body.rule) {
 			if (!(await checkPolicyRuleAccess(req,req.body.rule)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_POLICY_RULE;
 		}
 		if (req.body.new_rule) {
 			if (!(await checkPolicyRuleAccess(req,req.body.new_rule)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_POLICY_RULE;
 		}
 		if (req.body.rulesIds) {
 			for (let rule of req.body.rulesIds) {
 				if (!(await checkPolicyRuleAccess(req,rule)))
-					return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Policy rule ACCESS NOT ALLOWED', 'Policy Rule', null, jsonResp => res.status(200).json(jsonResp));
+					throw fwcError.ACC_POLICY_RULE;
 			}	
 		}
 
 		// Check access to the iptables mark indicated by req.body.mark parameter.
 		if (req.body.mark) {
 			if (!(await checkIptablesMarkAccess(req)))
-				return api_resp.getJson(null, api_resp.ACR_ACCESS_ERROR, 'Iptables mark ACCESS NOT ALLOWED', 'Iptables Mark', null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.ACC_IPTABLES_MARK;
 		}
 		
 		next()
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR IN ACCESS CONTROL', 'ACCESS CONTROL', error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 };
 
 // Check access to iptables mark object.

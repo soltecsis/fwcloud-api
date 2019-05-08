@@ -90,7 +90,6 @@ logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
 
 var FwcloudModel = require('./models/fwcloud/fwcloud');
 var utilsModel = require("./utils/utils.js");
-var api_resp = require('./utils/api_response');
 
 
 /*--------------------------------------------------------------------------------------*/
@@ -120,7 +119,7 @@ app.use(async (req, res, next) => {
 	try {
 		req.dbCon = await utilsModel.getDbConnection();
 		next();
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Cannot get database access object', null, error, jsonResp => res.status(400).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 });
 
 if (config.get('confirmation_token')) {

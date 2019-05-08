@@ -53,7 +53,7 @@ async (req, res) => {
 			else
 				throw fwcError.NOT_FOUND;
 		}
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { res.status(400).json(error) }
 });
 
 

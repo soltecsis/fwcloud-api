@@ -8,6 +8,9 @@ var errorTable = {
   "ALREADY_EXISTS_NAME":  {"fwcErr": 1005, "msg": "Already exists with the same name"},
   "NOT_ALLOWED":          {"fwcErr": 1006, "msg": "Not allowed"},
   "BAD_POSITION":         {"fwcErr": 1007, "msg": "Bad position"},
+  "NOT_ADMIN_USER":       {"fwcErr": 1008, "msg": "You are not an admin user"},
+  "SESSION_EXPIRED":      {"fwcErr": 1009, "msg": "Session expired"},
+  "SESSION_BAD":          {"fwcErr": 1010, "msg": "Invalid session"},
 
   // Input validation error codes.
   "NOT_ACCEPTED_METHOD":  {"fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API"},
@@ -32,6 +35,20 @@ var errorTable = {
 
   // VPN.
   "VPN_ONLY_CLI":         {"fwcErr": 6001, "msg": "Only OpenVPN client configurations allowed"},
+  "VPN_NOT_CLI":          {"fwcErr": 6002, "msg": "This is not an OpenVPN client configuration"},
+  "VPN_NOT_SER":          {"fwcErr": 6003, "msg": "This is not an OpenVPN server configuration"},
+  "VPN_NOT_FOUND_CFGDIR": {"fwcErr": 6004, "msg": "OpenVPN 'client-config-dir' option not found"},
+  "VPN_NOT_FOUND_STATUS": {"fwcErr": 6005, "msg": "OpenVPN 'status' option not found"},
+
+  // Access control error codes.
+  "ACC_FIREWALL":         {"fwcErr": 7001, "msg": "Firewall access not allowed"},
+  "ACC_TREE_NODE":        {"fwcErr": 7002, "msg": "Tree node access not allowed"},
+  "ACC_CA":               {"fwcErr": 7003, "msg": "CA access not allowed"},
+  "ACC_CRT":              {"fwcErr": 7004, "msg": "CRT access not allowed"},
+  "ACC_OPENVPN":          {"fwcErr": 7005, "msg": "OpenVPN access not allowed"},
+  "ACC_CRT_PREFIX":       {"fwcErr": 7006, "msg": "CRT prefix access not allowed"},
+  "ACC_POLICY_RULE":      {"fwcErr": 7007, "msg": "Policy rule access not allowed"},
+  "ACC_IPTABLES_MARK":    {"fwcErr": 7008, "msg": "IPTables mark access not allowed"},
 };
 
 //Export the object

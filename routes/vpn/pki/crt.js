@@ -17,7 +17,8 @@ const restrictedCheck = require('../../../middleware/restricted');
 router.post('/', async(req, res) => {
 	try {
 		// Check that the tree node in which we will create a new node for the CA is a valid node for it.
-		if (req.tree_node.node_type !== 'CA' && req.tree_node.node_type !== 'PRE') throw (new Error('Bad node tree type'));
+		if (req.tree_node.node_type !== 'CA' && req.tree_node.node_type !== 'PRE') 
+			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		// Add the new certificate to the database.
 		const id = await pkiCRTModel.createCRT(req);
@@ -28,14 +29,14 @@ router.post('/', async(req, res) => {
 		// Apply prefixes to the newly created certificate.
 		await pkiPrefixModel.applyCrtPrefixes(req,req.body.ca);
 
-		api_resp.getJson({insertId: id}, api_resp.ACR_OK, 'CERTIFICATE CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json({insertId: id});
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Get certificate information */
 router.put('/get', (req, res) => {
 	// We have already obtained the CA information in the access control middleware.
-	api_resp.getJson(req.crt, api_resp.ACR_OK, '', 'CRT', null, jsonResp => res.status(200).json(jsonResp));
+	res.status(200).json(req.crt);
 });
 
 /**
@@ -60,13 +61,11 @@ async(req, res) => {
 		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
 
 		// Answer to the API request.
-		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CRT', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-	restrictedCheck.crt,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.crt, (req, res) => res.status(204).end());
 
 module.exports = router;

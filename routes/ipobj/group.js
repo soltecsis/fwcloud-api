@@ -48,7 +48,7 @@ router.post("/", (req, res) => {
 				const node_id = await fwcTreeModel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
 				var dataresp = { "insertId": id, "TreeinsertId": node_id };
 				res.status(200).json(dataresp);
-			} catch(error) { return api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			} catch(error) { res.status(400).json(error) }
 		} else res.status(400).json(fwcError.NOT_FOUND);
 	});
 });

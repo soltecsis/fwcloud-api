@@ -3,7 +3,7 @@ var duplicityCheck = {};
 //Export the object
 module.exports = duplicityCheck;
 
-var api_resp = require('../utils/api_response');
+const fwcError = require('../utils/error_table');
 
 // Middleware for avoid ipobj duplicities.
 duplicityCheck.ipobj = (req, res, next) => {
@@ -49,7 +49,7 @@ duplicityCheck.ipobj = (req, res, next) => {
 		if (error) return next();
 
 		if (rows.length>0)
-			api_resp.getJson(rows, api_resp.ACR_ALREADY_EXISTS, 'Duplicated IP Object.', null, null, jsonResp => res.status(200).json(jsonResp));
+			res.status(400).json(fwcError.ALREADY_EXISTS);
 		else
 			next();
 	});

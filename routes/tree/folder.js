@@ -5,7 +5,7 @@ const fwcError = require('../../utils/error_table');
 
 
 /* Create new folder */
-router.post("/", (req, res) =>{
+router.post('/', async (req, res) =>{
 	var nodeData = {
 		id: null,
 		name: req.body.name,
@@ -16,30 +16,33 @@ router.post("/", (req, res) =>{
 		fwcloud: req.body.fwcloud
 	};
 
-	fwcTreeFoldermodel.createFolderNode(nodeData)
-	.then(data => api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+	try {
+		res.status(200).json(await fwcTreeFoldermodel.createFolderNode(nodeData)); 
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Rename folder */
-router.put("/", (req, res) =>{
-	fwcTreeFoldermodel.renameFolderNode(req.body.fwcloud,req.body.id,req.body.old_name,req.body.new_name)
-	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'RENAMED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error renaming folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+router.put('/', async (req, res) =>{
+	try {
+		await fwcTreeFoldermodel.renameFolderNode(req.body.fwcloud,req.body.id,req.body.old_name,req.body.new_name);
+		res.status(204).end(); 
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Delete folder */
-router.put("/del", (req, res) =>{
-	fwcTreeFoldermodel.deleteFolderNode(req.body.fwcloud,req.body.id)
-	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+router.put('/del', async (req, res) =>{
+	try {
+		await fwcTreeFoldermodel.deleteFolderNode(req.body.fwcloud,req.body.id);
+		res.status(204).end(); 
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Drop to folder */
-router.put("/drop", (req, res) =>{
-	fwcTreeFoldermodel.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst)
-	.then(() => api_resp.getJson(null, api_resp.ACR_OK, 'MOVED INTO FOLDER OK', objModel, null, jsonResp => res.status(200).json(jsonResp)))
-	.catch(error => api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving to folder', objModel, error, jsonResp => res.status(200).json(jsonResp)));
+router.put('/drop', async (req, res) =>{
+	try {
+		await fwcTreeFoldermodel.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst);
+		res.status(204).end(); 
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

@@ -15,7 +15,8 @@ const restrictedCheck = require('../../../middleware/restricted');
 router.post('/', async(req, res) => {
 	try {
 		// Check that the tree node in which we will create a new node for the CA is a valid node for it.
-		if (req.tree_node.node_type !== 'FCA' && req.tree_node.node_type !== 'FD') throw (new Error('Bad node tree type'));
+		if (req.tree_node.node_type !== 'FCA' && req.tree_node.node_type !== 'FD')
+			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		// Add the new CA to the database.
 		req.caId = await pkiCAModel.createCA(req);
@@ -36,15 +37,15 @@ router.post('/', async(req, res) => {
 		// Create new CA tree node.
 		const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
 
-		api_resp.getJson({ insertId: req.caId, TreeinsertId: nodeId }, api_resp.ACR_OK, 'CERTIFICATION AUTHORITY CREATED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json({insertId: req.caId, TreeinsertId: nodeId});
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Get CA information */
 router.put('/get', (req, res) => {
 	// We have already obtained the CA information in the access control middleware.
-	api_resp.getJson(req.ca, api_resp.ACR_OK, '', 'CA', null, jsonResp => res.status(200).json(jsonResp));
+	res.status(200).json(req.ca);
 });
 
 
@@ -65,13 +66,11 @@ async(req, res) => {
 		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
 
 		// Answer to the API request.
-		api_resp.getJson(null, api_resp.ACR_OK, 'CERTIFICATE DELETED', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting CA', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-	restrictedCheck.ca,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.ca, (req, res) => res.status(204).end());
 
 module.exports = router;

@@ -20,8 +20,8 @@ router.put('/firewalls/get', async (req, res) => {
 		await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await openvpnModel.getOpenvpnStatusNotZero(req,tree);
 		await pkiCAModel.storePkiInfo(req,tree);
-		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(tree);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -35,8 +35,8 @@ router.put('/objects/get', async (req, res) => {
 		var tree = new Tree(root_node);
 		await fwcTreemodel.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
 		await fwcTreemodel.stdFoldersFirst(tree);
-		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(tree);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -50,8 +50,8 @@ router.put('/services/get', async (req, res) => {
 		var tree = new Tree(root_node);
 		await fwcTreemodel.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
 		await fwcTreemodel.stdFoldersFirst(tree);
-		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }	
+		res.status(200).json(tree);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -63,8 +63,8 @@ router.put('/ca/get', async (req, res) => {
 		var tree = new Tree(root_node);
 		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
 		await pkiCAModel.getCAStatusNotZero(req,tree);
-		api_resp.getJson(tree, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }	
+		res.status(200).json(tree);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -72,11 +72,11 @@ router.put('/ca/get', async (req, res) => {
 router.put('/node/get', async (req, res) => {
 	try {
 		const data = await fwcTreemodel.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type,req.body.id_obj);
-		if (data.length>0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 

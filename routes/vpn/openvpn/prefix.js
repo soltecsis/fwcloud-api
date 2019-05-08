@@ -14,11 +14,11 @@ router.post('/', async (req, res) => {
 	try {
 		// We can only create prefixes for OpenVPN server configurations.
 		if (req.openvpn.type!==2)
-			throw(new Error('Prefixes can only be created over server OpenVPN configurations'));
+			throw fwcError.VPN_NOT_SER;
 
     // Verify that we are not creating a prefix that already exists for the same CA.
 		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.body.openvpn,req.body.name)) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
    	// Create the tree node.
 		const id = await openvpnPrefixModel.createPrefix(req);
@@ -26,8 +26,8 @@ router.post('/', async (req, res) => {
 		// Apply the new CRT prefix container.
 		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 
-		api_resp.getJson({insertId: id}, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json({insertId: id});
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -39,12 +39,12 @@ router.put('/', async (req, res) => {
 		// Verify that the new prefix name doesn't already exists.
 		req.body.ca = req.prefix.ca;
 		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.prefix.openvpn,req.body.name))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'OpenVPN prefix name already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// If we modify a prefix used in a rule or group, and the new prefix name has no openvpn clients, then don't allow it.
 		const search = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (search.result && (await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
-			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to leave empty prefixes into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		// Invalidate the compilation of the rules that use this prefix.
 		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,search.restrictions.PrefixInRule);
@@ -58,8 +58,8 @@ router.put('/', async (req, res) => {
 		// Apply the new CRT prefix container.
 		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'UPDATE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -69,8 +69,8 @@ router.put('/', async (req, res) => {
 router.put('/info/get', async(req, res) => {
 	try {
 		const data = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
-		api_resp.getJson(data[0], api_resp.ACR_OK, 'OpenVPN sever prefix info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting OpenVPN server prefix info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data[0]);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -87,22 +87,20 @@ async (req, res) => {
 		// Regenerate prefixes.
 		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);
 	
-		api_resp.getJson(null, api_resp.ACR_OK, 'REMOVED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error removing prefix container', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-	restrictedCheck.openvpn_prefix,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.status(204).end());
 
 
 router.put('/where', async (req, res) => {
 	try {
 		const data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
-		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;
