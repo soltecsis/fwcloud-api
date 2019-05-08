@@ -8,11 +8,11 @@ router.put('get', async (req, res) => {
 	try {
 		const data = await policyPositionModel.getPolicyPositionsByType(req.dbCon,req.body.type);
 		//If exists policy_position get data
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR', objModel, null, jsonResp => res.status(200).json(jsonResp)) }
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

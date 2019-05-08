@@ -35,9 +35,8 @@ async (req, res) => {
 
 	try {
 		await Policy_rModel.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
-		const insertId = await Policy_rModel.insertPolicy_r(policy_rData);
-		api_resp.getJson(insertId, api_resp.ACR_INSERTED_OK, 'ISERT OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error inserting', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(await Policy_rModel.insertPolicy_r(policy_rData));
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Update policy_r that exist */
@@ -63,14 +62,14 @@ async (req, res) => {
 		mark: (req.body.mark===0) ? null : req.body.mark
 	};
 
-	// Only allow Iptables marks in INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6 filter tables.
-	if (policy_rData.mark && policy_rData.type!==1 && policy_rData.type!==2 && policy_rData.type!==3
-			&& policy_rData.type!==61 && policy_rData.type!==62 && policy_rData.type!==63)
-		return api_resp.getJson(null, api_resp.ACR_ERROR, 'Iptables marks only allowed in INPUT, OUTPUT and FORWARD policy', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-
 	try {
+		// Only allow Iptables marks in INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6 filter tables.
+		if (policy_rData.mark && policy_rData.type!==1 && policy_rData.type!==2 && policy_rData.type!==3
+			&& policy_rData.type!==61 && policy_rData.type!==62 && policy_rData.type!==63)
+		throw fwcError.NOT_ALLOWED;
+
 		await Policy_rModel.updatePolicy_r(req.dbCon, policy_rData);
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return res.status(400).json(error) }
 
 	// Recompile rule.
 	var accessData = {
@@ -81,10 +80,8 @@ async (req, res) => {
 		rule: policy_rData.id
 	};
 	Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
-		if (error)
-			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error compiling rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(datac, api_resp.ACR_UPDATED_OK, 'UPDATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
+		if (error) return res.status(400).json(error);
+		res.status(200).json(datac);
 	});
 });
 
@@ -93,8 +90,8 @@ async (req, res) => {
 router.put('/type/get', async (req, res) => {
 	try {
 		const policy = await Policy_rModel.getPolicyData(req);
-		api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(policy);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -103,11 +100,9 @@ router.put('/get', async (req, res) => {
 	try {
 		const policy = await Policy_rModel.getPolicyData(req);
 		//If exists policy_r get data
-		if (policy && policy.length > 0)
-			api_resp.getJson(policy, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		if (policy && policy.length > 0) return res.status(200).json(policy);
+		throw fwcError.NOT_FOUND;
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -115,11 +110,9 @@ router.put('/get', async (req, res) => {
 router.put('/full/get', async (req, res) => {
 	try { 
 		const data = await Policy_rModel.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Policy not found', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting policy', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		if (data && data.length > 0) return res.status(200).json(data);
+		throw fwcError.NOT_FOUND;
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -132,68 +125,64 @@ async (req, res) => {
 			await Policy_rModel.deletePolicy_r(req.body.firewall, rule);
 		}
 
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	}	catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'DELETING RULES', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Update Active policy_r  */
 router.put('/active',
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		//Save data into object
-		var idfirewall = req.body.firewall;
-		var type = req.body.type;
-		var active = req.body.active;
-		var rulesIds = req.body.rulesIds;
-		if (active !== 1)
-			active = 0;
-		db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function() {
-			db.startTXcon(function() {
-				for (var rule of rulesIds) {
-					Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function(error, data) {
-						if (error)
-							logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-						if (data && data.result) {
-							logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-						} else
-							logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-					});
-				}
-				db.endTXcon(function() {});
-			});
-			api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'ACTIVE STATUS UPDATED OK', 'POLICY', null, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
+	//Save data into object
+	var idfirewall = req.body.firewall;
+	var type = req.body.type;
+	var active = req.body.active;
+	var rulesIds = req.body.rulesIds;
+	if (active !== 1)
+		active = 0;
+	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function() {
+		db.startTXcon(function() {
+			for (var rule of rulesIds) {
+				Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function(error, data) {
+					if (error)
+						logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+					if (data && data.result) {
+						logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+					} else
+						logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
+				});
+			}
+			db.endTXcon(function() {});
 		});
+		res.status(204).end();
 	});
+});
 
 
 /* Update Style policy_r  */
 router.put('/style',
-	utilsModel.disableFirewallCompileStatus,
-	(req, res) => {
-		var style = req.body.style;
-		var rulesIds = req.body.rulesIds;
-		db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
-			db.startTXcon(function() {
-				for (var rule of rulesIds) {
-					Policy_rModel.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
-						if (error)
-							logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
-						if (data && data.result) {
-							logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-						} else
-							logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-					});
-				}
-				db.endTXcon(function() {});
-			});
-		});
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE UPDATED OK', 'POLICY', null, function(jsonResp) {
-			res.status(200).json(jsonResp);
+utilsModel.disableFirewallCompileStatus,
+(req, res) => {
+	var style = req.body.style;
+	var rulesIds = req.body.rulesIds;
+	db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
+		db.startTXcon(function() {
+			for (var rule of rulesIds) {
+				Policy_rModel.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
+					if (error)
+						logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
+					if (data && data.result) {
+						logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+					} else
+						logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
+				});
+			}
+			db.endTXcon(function() {});
 		});
 	});
+	res.status(204).end();
+});
 
 
 /* Copy RULES */
@@ -204,8 +193,8 @@ async (req, res) => {
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 		for (let rule of req.body.rulesIds)
 			pasteOnRuleId = await ruleCopy(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE COPIED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error copying rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Move RULES */
@@ -222,9 +211,8 @@ async (req, res) => {
 		for (let rule of req.body.rulesIds)
 			pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'MOVED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-		
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error moving rule', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -237,16 +225,16 @@ async (req, res) => {
 
 		// Verify that the route position id is correct for the policy type of the rule.
 		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,position)))
-			throw(new Error('Policy position not found for this rule type'));
+			throw fwcError.NOT_FOUND;
 
-		/* 
+		/* This kind of position can not be negated:
 		| 14 | Translated Source      |
 		| 16 | Translated Service     |
 		| 34 | Translated Destination |
 		| 35 | Translated Service     |
 		*/
 		if (position===14 || position===16 || position===34 || position===35)
-			throw(new Error('This kind of position can not be negated'));
+			throw fwcError.NOT_ALLOWED;
 		
 		if (req.url==='/position/negate')
 			await Policy_rModel.negateRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Negate the rule position adding the rule position id to the negate list.
@@ -257,8 +245,8 @@ async (req, res) => {
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: req.body.rule };
 		Policy_rModel.compilePolicy_r(accessData, (error, datac) => {});
 
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'RULE POSITION NEGATED OK', 'POLICY', null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error negating rule position', 'POLICY', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
@@ -308,9 +296,9 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 
 							resolve(newRuleId);
 						} catch(error) { return reject(error) }
-					} else return reject(new Error('Rule not found'));
+					} else return reject(fwcError.NOT_FOUND);
 				});
-			} else return reject(new Error('Rule not found'));
+			} else return reject(fwcError.NOT_FOUND);
 		});
 	});
 }
@@ -350,9 +338,9 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 
 							resolve(rule);
 						} catch(error) { return reject(error) }
-					} else return reject(new Error('Rule not found'));
+					} else return reject(fwcError.NOT_FOUND);
 				});
-			} else return reject(new Error('Rule not found'));
+			} else return reject(fwcError.NOT_FOUND);
 		});
 	});
 }

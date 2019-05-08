@@ -63,8 +63,8 @@ router.put('/rule', async (req, res) => {
 	try {
   	/* The get method of the RuleCompile model returns a promise. */
   	const data = await RuleCompile.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
-		api_resp.getJson({"result": true, "cs": data}, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(error, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json({"result": true, "cs": data});
+	} catch(error) { res.status(400).json(error) }
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -181,13 +181,13 @@ router.put('/', (req, res) => {
 			// Update firewall status flags.
 			await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~1");
 			socketTools.msgEnd();
-			api_resp.getJson(null, api_resp.ACR_OK, '', 'COMPILE', null, jsonResp => res.status(200).json(jsonResp));
+			res.status(204).end();
 		} catch(error) { 
 			socketTools.msg(`\nERROR: ${error}\n`);
 			socketTools.msgEnd();
-			api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)) 
+			res.status(400).json(error);		
 		}
-	}).on('error', error => api_resp.getJson(null, api_resp.ACR_ERROR, '', 'COMPILE', error, jsonResp => res.status(200).json(jsonResp)))
+	}).on('error', error => res.status(400).json(error))
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 

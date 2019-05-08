@@ -27,15 +27,14 @@ async (req, res) => {
 		if (data && data.result) {
 			if (data.result) {
 				policy_rModel.compilePolicy_r(policy_r__interfaceData.rule, (error, datac) => {});
-				api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				res.status(200).json(data);
 			} else if (!data.allowed)
-				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.NOT_ALLOWED;
 			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		} else
-			api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, ' INTERFACE not allowed in this position', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-});
+				throw fwcError.NOT_FOUND;
+			} else throw fwcError.NOT_ALLOWED;
+		} catch(error) { res.status(400).json(error) }
+	});
 
 
 /* Update POSITION policy_r__interface that exist */
@@ -63,7 +62,7 @@ async(req, res) => {
 		const data = await 	policy_r__ipobjModel.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return res.status(400).json(error) }
 
 	if (content1 === content2) { //SAME POSITION
 		policy_r__interfaceModel.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
@@ -76,13 +75,13 @@ async(req, res) => {
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
 						await policy_rModel.allowEmptyRulePositions(req);
-					} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+					} catch(error) { return res.status(400).json(error) }
 
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+					res.status(200).json(data);
 				} else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
-				} else api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-			} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					return res.status(400).json(fwcError.NOT_ALLOWED);
+				} else return res.status(400).json(fwcError.NOT_FOUND);
+			} else return res.status(400).json(error);
 		});
 	} else { //DIFFERENTS POSITIONS
 		if (content1 === 'O' && content2 === 'I') {
@@ -98,7 +97,7 @@ async(req, res) => {
 			var data;
 			try {
 				data = await policy_r__interfaceModel.insertPolicy_r__interface(firewall, policy_r__interfaceData);
-			} catch(error) { return api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			} catch(error) { return res.status(400).json(error) }
 			//If saved policy_r__interface Get data
 			if (data) {
 				if (data.result) {
@@ -111,15 +110,15 @@ async(req, res) => {
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
 								await policy_rModel.allowEmptyRulePositions(req);
-							} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+							} catch(error) { return res.status(400).json(error) }
 
-							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-						} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+							res.status(200).json(data);
+						} else return res.status(400).json(error);
 					});
 				} else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'INTERFACE not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
-				} else api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'INTERFACE not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-			} else api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+					return res.status(400).json(fwcError.NOT_ALLOWED);
+				} else return res.status(400).json(fwcError.NOT_FOUND);
+			} else return res.status(400).json(error);
 		}
 	}
 });
@@ -136,23 +135,12 @@ utilsModel.disableFirewallCompileStatus,
 	var new_order = req.body.new_order;
 
 	policy_r__interfaceModel.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r__interface saved ok, get data
-			if (data && data.result) {
-				policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+		if (error) return res.status(400).json(error);
+		//If saved policy_r__interface saved ok, get data
+		if (data && data.result) {
+			policy_rModel.compilePolicy_r(rule, function(error, datac) {});
+			res.status(200).json(data);
+		} else res.status(400).json(error);
 	});
 });
 
@@ -175,13 +163,12 @@ utilsModel.disableFirewallCompileStatus,
 				// If after the delete we have empty rule positions, then remove them from the negate position list.
 				try {
 					await policy_rModel.allowEmptyRulePositions(req);
-				} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+				} catch(error) { return res.status(400).json(error) }
 
-				api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			} else if (data.msg === "notExist")
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		} else
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				res.status(200).json(data);
+			} else if (data.msg === "notExist") res.status(400).json(fwcError.NOT_FOUND);
+			else res.status(400).json(error);
+		} else res.status(400).json(error);
 	});
 });
 

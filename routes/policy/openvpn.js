@@ -16,16 +16,16 @@ async (req, res) => {
 	try {
 		// Verify that the OpenVPN configuration is of client type.
 		if (req.openvpn.type!==1)
-			throw (new Error('Only OpenVPN client configurations allowed'));
+			throw fwcError.VPN_ONLY_CLI;
 
 		if (!(await policyOpenvpnModel.checkOpenvpnPosition(req.dbCon,req.body.position)))
-			throw (new Error('OpenVPN not allowed in this position'));
+			throw fwcError.NOT_ALLOWED;
 
 		await policyOpenvpnModel.insertInRule(req);
 		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
 
-		api_resp.getJson(null, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(error, api_resp.ACR_ERROR, 'ERROR inserting OpenVPN in rule', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -40,36 +40,33 @@ async (req, res) => {
 		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await policyOpenvpnModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
-			throw(new Error('OpenVPN configuration already exists in destination rule position'));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Get content of positions.
 		const content = await policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
 		if (content.content1!=='O' || content.content2!=='O')
-			throw(new Error('Invalid positions content'));
+			throw fwcError.BAD_POSITION;
 
 		// Move OpenVPN configuration object to the new position.
 		const data = await policyOpenvpnModel.moveToNewPosition(req);
 
-		api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Update ORDER de policy_r__interface that exist */
-router.put('/order',
-utilsModel.disableFirewallCompileStatus,
-(req, res) => {
-});
+router.put('/order', utilsModel.disableFirewallCompileStatus, (req, res) => {});
 
 
 /* Remove policy_r__openvpn */
-router.put("/del",
+router.put('/del',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
 		await policyOpenvpnModel.deleteFromRulePosition(req);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

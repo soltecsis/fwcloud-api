@@ -13,32 +13,20 @@ router.post('/', (req, res) => {
 	var JsonCopyData = req.body;
 
 	Policy_gModel.insertPolicy_g(JsonCopyData, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_g Get data
-			if (data && data.insertId) {
-				if (JsonCopyData.rulesIds.length > 0) {
-					var idGroup = data.insertId;
-					//Add rules to group
-					for (var rule of JsonCopyData.rulesIds) {
-						Policy_rModel.updatePolicy_r_Group(JsonCopyData.firewall, null, idGroup, rule, function(error, data) {
-							logger.debug("ADDED to Group " + idGroup + " POLICY: " + rule);
-						});
-					}
+		if (error) return res.status(400).json(error);
+		//If saved policy_g Get data
+		if (data && data.insertId) {
+			if (JsonCopyData.rulesIds.length > 0) {
+				var idGroup = data.insertId;
+				//Add rules to group
+				for (var rule of JsonCopyData.rulesIds) {
+					Policy_rModel.updatePolicy_r_Group(JsonCopyData.firewall, null, idGroup, rule, function(error, data) {
+						logger.debug("ADDED to Group " + idGroup + " POLICY: " + rule);
+					});
 				}
-				var dataresp = { "insertId": data.insertId };
-				api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
 			}
-		}
+			res.status(200).json({ "insertId": data.insertId });
+		} else res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -55,15 +43,12 @@ router.put('/', (req, res) => {
 	};
 
 	Policy_gModel.updatePolicy_g(policy_gData, (error, data) => {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		else {
-			//If saved policy_g saved ok, get data
-			if (data && data.result)
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		}
+		if (error) return res.status(400).json(error);
+		//If saved policy_g saved ok, get data
+		if (data && data.result)
+			res.status(204).end();
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -89,9 +74,7 @@ router.put('/style', (req, res) => {
 			db.endTXcon(function() {});
 		});
 	});
-	api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'STYLE GROUP UPDATED OK', 'POLICY', null, function(jsonResp) {
-		res.status(200).json(jsonResp);
-	});
+	res.status(204).end();
 });
 
 
@@ -100,22 +83,12 @@ router.put('/name', (req, res) => {
 	//Save data into object
 	var policy_gData = { id: req.body.id, name: req.body.name };
 	Policy_gModel.updatePolicy_g_name(policy_gData, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_g saved ok, get data
-			if (data && data.result) {
-				api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'GROUP NAME UPDATED OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+		if (error) return res.status(400).json(error);
+		//If saved policy_g saved ok, get data
+		if (data && data.result)
+			res.status(204).end();
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -130,21 +103,11 @@ router.put("/del", (req, res) => {
 	Policy_rModel.updatePolicy_r_GroupAll(idfirewall, id, function(error, data) {
 		logger.debug("Removed all Policy from Group " + id);
 		Policy_gModel.deletePolicy_g(idfirewall, id, function(error, data) {
-			if (error)
-				api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			else {
-				if (data && data.result) {
-					api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else {
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'not found', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				}
-			}
+			if (error) return res.status(400).json(error);
+			if (data && data.result)
+				res.status(204).end();
+			else
+				res.status(400).json(fwcError.NOT_FOUND);
 		});
 	});
 });
@@ -155,8 +118,8 @@ router.put("/rules/del", async(req, res) => {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
 		await Policy_gModel.deleteIfEmptyPolicy_g(req.dbCon, req.body.firewall, req.body.id);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'DELETED OK', 'POLICY GROUP', null, jsonResp => res.status(200).json(jsonResp))
-	} catch (error) { api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'not found', 'POLICY GROUP', error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 async function removeRules(idfirewall, idgroup, rulesIds) {

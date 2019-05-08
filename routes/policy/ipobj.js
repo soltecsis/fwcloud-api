@@ -31,15 +31,15 @@ async (req, res) => {
 	try {
 		// Don't allow to put in positions with O content empty object containers (interfaces, hosts, groups, etc.)
 		if (await policy_r__ipobjModel.emptyIpobjContainerToObjectPosition(req.dbCon,policy_r__ipobjData))
-			return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to put empty object containers into rule positions', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Depending on the IP version of the policy_type of the rule we are working on, verify that we have root objects 
 		// of this IP version in the object that we are moving to this rule position.
 		if (!(await policy_r__ipobjModel.checkIpVersion(req.dbCon,policy_r__ipobjData)))
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad object IP version.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.IPOBJ_BAD_IP_VERSION;
 
 		const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
 		//If saved policy_r__ipobj Get data
@@ -47,13 +47,12 @@ async (req, res) => {
 			if (data.result && data.allowed) {
 				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: policy_r__ipobjData.rule };
 				policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-				api_resp.getJson(data, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				res.status(200).json(data);
 			} else if (!data.allowed)
-				api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.NOT_ALLOWED;
 			else
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-		} else
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.NOT_FOUND;
+		}
 	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
 });
 
@@ -102,13 +101,13 @@ async (req, res) => {
 		await firewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Object already exists in this rule position.', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Get positions content.
 		const data = await 	policy_r__ipobjModel.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
-	} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+	} catch(error) { return res.status(400).json(error) }
 
 	if (content1 === content2) { //SAME POSITION
 		policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
@@ -122,24 +121,12 @@ async (req, res) => {
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
 						await policy_rModel.allowEmptyRulePositions(req);
-					} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+					} catch(error) { return res.status(400).json(error) }
 
-					api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
+					res.status(200).json(data);
+				} else if (!data.allowed) return res.status(400).json(fwcError.NOT_ALLOWED);
+				else return res.status(400).json(fwcError.NOT_FOUND);
+			} else return res.status(400).json(error);
 		});
 	} else { //DIFFERENTS POSITIONS
 		if (content1 === 'I' && content2 === 'O') {
@@ -157,7 +144,7 @@ async (req, res) => {
 			var data;
 			try {
 				data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
-			} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+			} catch(error) { return res.status(400).json(error) }
 
 			//If saved policy_r__ipobj Get data
 			if (data) {
@@ -172,36 +159,15 @@ async (req, res) => {
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
 								await policy_rModel.allowEmptyRulePositions(req);
-							} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+							} catch(error) { return res.status(400).json(error) }
 
-							api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, function(jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						} else {
-							api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-								res.status(200).json(jsonResp);
-							});
-						}
+							res.status(200).json(data);
+						} else return res.status(400).json(error);
 					});
-				} else if (!data.allowed) {
-					api_resp.getJson(data, api_resp.ACR_NOT_ALLOWED, 'IPOBJ not allowed in this position', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-				} else
-					api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, function(jsonResp) {
-						res.status(200).json(jsonResp);
-					});
-
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		} else {
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating, content diffetents', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+				} else if (!data.allowed) return res.status(400).json(fwcError.NOT_ALLOWED);
+				else return res.status(400).json(fwcError.NOT_FOUND);
+			} else return res.status(400).json(error);
+		} else return res.status(400).json(fwcError.NOT_ALLOWED);
 	}
 });
 
@@ -218,24 +184,14 @@ utilsModel.disableFirewallCompileStatus,
 	var new_order = req.body.new_order;
 
 	policy_r__ipobjModel.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, function(error, data) {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved policy_r__ipobj saved ok, get data
-			if (data && data.result) {
-				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-				policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
-				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'SET ORDER OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else {
-				api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+		if (error) return res.status(400).json(error);
+		//If saved policy_r__ipobj saved ok, get data
+		if (data && data.result) {
+			var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
+			policy_rModel.compilePolicy_r(accessData, function(error, datac) {});
+			res.status(200).json(data);
+		} else 
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -244,10 +200,10 @@ utilsModel.disableFirewallCompileStatus,
 router.put('/get', (req, res) => {
 	policy_r__ipobjModel.getPolicy_r__ipobjs(req.body.rule, (error, data) => {
 		//If exists policy_r__ipobj get data
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -273,21 +229,12 @@ utilsModel.disableFirewallCompileStatus,
 				// If after the delete we have empty rule positions, then remove them from the negate position list.
 				try {
 					await policy_rModel.allowEmptyRulePositions(req);
-				} catch(error) { return api_resp.getJson(null, api_resp.ACR_ERROR, '', '', error, jsonResp => res.status(200).json(jsonResp)) }
+				} catch(error) { return res.status(400).json(error) }
 				
-				api_resp.getJson(data, api_resp.ACR_DELETED_OK, 'DELETE OK', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			} else if (data.msg === "notExist") {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		} else {
-			api_resp.getJson(data, api_resp.ACR_DATA_ERROR, 'Error updating', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		}
+				res.status(200).json(data);
+			} else if (data.msg === "notExist") 
+				res.status(400).json(fwcError.NOT_FOUND);
+		} else res.status(400).json(error);
 	});
 });
 

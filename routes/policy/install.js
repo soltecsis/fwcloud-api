@@ -43,8 +43,8 @@ router.post('/', async (req, res) => {
     await PolicyScript.install(req,data.SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
     await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     
-    api_resp.getJson(null, api_resp.ACR_OK,'','POLICY_INSTALL', null,jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(error,api_resp.ACR_ERROR,'','POLICY_INSTALL', error,jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
