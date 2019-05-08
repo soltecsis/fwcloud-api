@@ -20,6 +20,12 @@ var errorTable = {
 
   // Tree error codes.
   "BAD_TREE_NODE_TYPE":   {"fwcErr": 3001, "msg": "Bad tree node type"},
+
+  // Interface error codes.
+  "IF_TO_IPOBJ_GROUP":    {"fwcErr": 4001, "msg": "It is not possible to add network interfaces to IP objects groups"},
+
+  // Ipobj.
+  "IPOBJ_EMPTY_CONTAINER":{"fwcErr": 1006, "msg": "Empty ipobj container"},
 };
 
 //Export the object

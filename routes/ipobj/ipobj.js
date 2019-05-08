@@ -178,8 +178,8 @@ async (req, res) => {
 			dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
 		}
 
-		api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error inserting IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(dataresp);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -296,8 +296,8 @@ async (req, res) => {
 
 		await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 
-		api_resp.getJson(data_return, api_resp.ACR_UPDATED_OK, 'IPOBJ UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	}	catch(error) { api_resp.getJson(null, api_resp.ACR_DATA_ERROR, 'Error updating IPOBJ', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data_return);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -320,11 +320,11 @@ async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.id);
-		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(null, api_resp.ACR_NOTEXIST, 'IPOBJ not found', objModel, error, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -372,7 +372,7 @@ router.put('/get', async (req, res) => {
  *      "data": {}
  *      };
  */
-router.put("/del", 
+router.put('/del', 
 restrictedCheck.ipobj,  
 async (req, res) => {
 	var fwcloud = req.body.fwcloud;
@@ -393,8 +393,8 @@ async (req, res) => {
 		//DELETE FROM TREE
 		await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
-		api_resp.getJson(not_zero_status_fws, api_resp.ACR_DELETED_OK, 'IPOBJ DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, '', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+    res.status(200).json(not_zero_status_fws);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -417,16 +417,15 @@ async (req, res) => {
 router.put('/where', async (req, res) => {
 	try {
 		const data = await IpobjModel.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
-		if (data && data.result)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-restrictedCheck.ipobj,
-(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp =>res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.ipobj, (req, res) => res.status(204).end());
+
 
 module.exports = router;

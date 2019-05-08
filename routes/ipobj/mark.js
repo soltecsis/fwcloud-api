@@ -14,11 +14,11 @@ const fwcError = require('../../utils/error_table');
 router.post('/', async (req, res) => {
 	try {
 		if (req.tree_node.node_type !== 'MRK')
-			return api_resp.getJson(null, api_resp.ACR_ERROR, 'Bad tree node type', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.BAD_TREE_NODE_TYPE;
 
     // Verify that we are not creating an iptables mark that already exists for this fwcloud.
 		if (await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.code)) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Iptables mark already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Create the new iptables mark for the indicated fwcloud.
 		const id = await markModel.createMark(req);
@@ -26,8 +26,8 @@ router.post('/', async (req, res) => {
 		// Create the iptables mark node in the ipobj tree.
 		let nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.name, req.body.node_id, 'MRK', id, 30);
 
-		api_resp.getJson({insertId: id, TreeinsertId: nodeId}, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error creating iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json({insertId: id, TreeinsertId: nodeId});
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -39,7 +39,7 @@ router.put('/', async (req, res) => {
 		// Verify that we the new iptables mark doesn't already exists for this fwcloud.
 		const existsId = await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.code);
 		if (existsId && existsId!==req.body.mark) 
-			return api_resp.getJson(null, api_resp.ACR_ALREADY_EXISTS, 'Iptables mark already exists', objModel, null, jsonResp => res.status(200).json(jsonResp));
+			throw fwcError.ALREADY_EXISTS;
 
 		// Invalidate the compilation of the rules that use this mark.
 		const search = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
@@ -48,8 +48,8 @@ router.put('/', async (req, res) => {
    	// Modify the mark data.
 		await markModel.modifyMark(req);
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'UPDATE OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error modifying iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -59,8 +59,8 @@ router.put('/', async (req, res) => {
 router.put('/get', async(req, res) => {
 	try {
 		const data = await markModel.getMark(req.dbCon,req.body.mark);
-		api_resp.getJson(data, api_resp.ACR_OK, 'Iptables mark info sent', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch (error) { return api_resp.getJson(null, api_resp.ACR_ERROR, 'Error getting iptables mark info', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
@@ -74,22 +74,20 @@ async (req, res) => {
 		// Delete iptables mark.
 		await markModel.deleteMark(req.dbCon,req.body.mark);
 
-		api_resp.getJson(null, api_resp.ACR_OK, 'REMOVED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-  } catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error deleting an iptables mark', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-	restrictedCheck.mark,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.mark, (req, res) => res.status(204).end());
 
 
 router.put('/where', async (req, res) => {
 	try {
 		const data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
-		api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

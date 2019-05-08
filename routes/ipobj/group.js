@@ -38,27 +38,18 @@ router.post("/", (req, res) => {
 	};
 
 	Ipobj_gModel.insertIpobj_g(ipobj_gData, async (error, data) => {
-		if (error)
-			api_resp.getJson(data, api_resp.ACR_ERROR, '', objModel, error, function(jsonResp) {
-				res.status(200).json(jsonResp);
-			});
-		else {
-			//If saved ipobj_g Get data
-			if (data && data.insertId > 0) {
-				var id = data.insertId;
-				ipobj_gData.id = id;
-				//INSERT IN TREE
-				try {
-					const node_id = await fwcTreeModel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
-					var dataresp = { "insertId": id, "TreeinsertId": node_id };
-					api_resp.getJson(dataresp, api_resp.ACR_INSERTED_OK, 'IPOBJ INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-				} catch(error) { return api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
-			} else {
-				api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, function(jsonResp) {
-					res.status(200).json(jsonResp);
-				});
-			}
-		}
+		if (error) return res.status(400).json(error);
+		//If saved ipobj_g Get data
+		if (data && data.insertId > 0) {
+			var id = data.insertId;
+			ipobj_gData.id = id;
+			//INSERT IN TREE
+			try {
+				const node_id = await fwcTreeModel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
+				var dataresp = { "insertId": id, "TreeinsertId": node_id };
+				res.status(200).json(dataresp);
+			} catch(error) { return api_resp.getJson(data, api_resp.ACR_NOTEXIST, 'Error inserting', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		} else res.status(400).json(fwcError.NOT_FOUND);
 	});
 });
 
@@ -76,8 +67,8 @@ router.put('/', async (req, res) => {
 	try {
 		await Ipobj_gModel.updateIpobj_g(req, ipobj_gData);
 		await fwcTreeModel.updateFwc_Tree_OBJ(req, ipobj_gData);
-		api_resp.getJson(null, api_resp.ACR_UPDATED_OK, 'UPDATED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error updating', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(204).end();
+	} catch(error) { return res.status(400).json(error) }
 });
 
 
@@ -86,10 +77,10 @@ router.put('/get', async (req, res) => {
 	try {
 		const data = await Ipobj_gModel.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length > 0)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
+		  res.status(200).json(data);
 		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, ' not found', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { return res.status(400).json(error)	}
 });
 
 /* Remove ipobj_g */
@@ -100,59 +91,57 @@ async (req, res) => {
 		await Ipobj_gModel.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
 		await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
 		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
-		api_resp.getJson(null, api_resp.ACR_DELETED_OK, 'GROUP DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(data, api_resp.ACR_ERROR, 'Error deleting', objModel, error, jsonResp => res.status(200).json(jsonResp)) } 
+		res.status(204).end();
+	} catch(error) { return res.status(400).json(error) } 
 });
 
 /* Search where is used Group  */
 router.put('/where', async (req, res) => {
 	try {
 		const data = await Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
-		if (data && data.result)
-			api_resp.getJson(data, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-		else
-			api_resp.getJson(data, api_resp.ACR_NOTEXIST, '', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'Error', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+    if (data && data.length > 0)
+      res.status(200).json(data);
+    else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put('/restricted',
-	restrictedCheck.ipobj_group,
-	(req, res) => api_resp.getJson(null, api_resp.ACR_OK, '', objModel, null, jsonResp => res.status(200).json(jsonResp)));
+router.put('/restricted', restrictedCheck.ipobj_group, (req, res) => res.status(204).end());
 
 
 /* Create New ipobj__ipobjg */
-router.put("/addto", async (req, res) => {
+router.put('/addto', async (req, res) => {
 	try {
 		// ATENCION: 
 		// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
 		// interfaz a un grupo de objetos IP, por el momento.
 		if (req.body.node_type === "IFF" || req.body.node_type === "IFH") 
-			throw(new Error('It is not possible to add network interfaces to IP objects groups'))
+			throw fwcError.IF_TO_IPOBJ_GROUP;
 
 		// Insert object in group.
 		let dataIpobj;
 		if (req.body.node_type === 'OCL') {
 			await openvpnModel.addToGroup(req);
 			dataIpobj = await openvpnModel.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.ipobj,1);
-			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('OpenVPN configuration not found'))
-			dataIpobj[0].name = dataIpobj[0].cn;
+			if (!dataIpobj || dataIpobj.length!==1) throw fwcError.NOT_FOUND;
+ 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		}
 		else if (req.body.node_type === 'PRO') {
 			// Don't allow adding an empty OpenVPN server prefix to a group.
 			if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
-				return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'It is not possible to add empty prefixes to a group', objModel, null, jsonResp => res.status(200).json(jsonResp));
-
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+		
 			await openvpnPrefixModel.addPrefixToGroup(req);
 			dataIpobj = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
-			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('OpenVPN prefix not found'))
+			if (!dataIpobj || dataIpobj.length!==1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
 		}
 		else {
 			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
 			dataIpobj = await	IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.ipobj);
-			if (!dataIpobj || dataIpobj.length!==1) throw(new Error('Ipobj not found'))
+			if (!dataIpobj || dataIpobj.length!==1) throw fwcError.NOT_FOUND;
 		}
 
 		//INSERT IN TREE
@@ -164,18 +153,18 @@ router.put("/addto", async (req, res) => {
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
-		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'INSERTED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(not_zero_status_fws);
+	} catch(error) { res.status(400).json(error) }
 });
 
 /* Remove ipobj__ipobjg */
-router.put("/delfrom", async (req, res) => {
+router.put('/delfrom', async (req, res) => {
 	try {
 		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
 		const search = await Policy_r__ipobjModel.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
 		if (search.length > 0) {
 			if ((await Ipobj_gModel.countGroupItems(req.dbCon,req.body.ipobj_g)) ===1)
-				return api_resp.getJson(null, api_resp.ACR_EMPTY_CONTAINER, 'Group used in rule cannot be empty', objModel, null, jsonResp => res.status(200).json(jsonResp));
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		}
 
 		if (req.body.obj_type===311) // OPENVPN CLI
@@ -192,8 +181,8 @@ router.put("/delfrom", async (req, res) => {
 		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");
 
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
-		api_resp.getJson(not_zero_status_fws, api_resp.ACR_INSERTED_OK, 'DELETED OK', objModel, null, jsonResp => res.status(200).json(jsonResp));
-	} catch(error) { api_resp.getJson(null, api_resp.ACR_ERROR, 'ERROR', objModel, error, jsonResp => res.status(200).json(jsonResp)) }
+		res.status(200).json(not_zero_status_fws);
+	} catch(error) { res.status(400).json(error) }
 });
 
 
