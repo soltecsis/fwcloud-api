@@ -203,7 +203,7 @@ router.put('/get', (req, res) => {
     if (data && data.length > 0)
       res.status(200).json(data);
     else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 

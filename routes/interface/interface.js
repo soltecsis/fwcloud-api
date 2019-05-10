@@ -15,7 +15,7 @@ router.put('/fw/all/get', async (req, res) => {
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -23,10 +23,12 @@ router.put('/fw/all/get', async (req, res) => {
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', (req, res) => {
 	InterfaceModel.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
+		if (error) return res.status(400).json(error);
+
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
@@ -45,16 +47,20 @@ router.put('/fw/get', async (req, res) => {
 /* Get all interfaces by HOST*/
 router.put('/host/all/get', (req, res) => {
 	InterfaceModel.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
+		if (error) return res.status(400).json(error);
+
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
 /* Get interface by id and HOST*/
 router.put('/host/get', (req, res) => {
 	InterfaceModel.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
+		if (error) return res.status(400).json(error);
+
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
@@ -180,7 +186,7 @@ router.put('/where', async (req, res) => {
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

@@ -6,10 +6,12 @@ const fwcError = require('../../utils/error_table');
 /* Get all ipobj_types */
 router.get('/', (req, res) => {
 	Ipobj_typeModel.getIpobj_types((error, data) => {
-    if (data && data.length > 0)
-      res.status(200).json(data);
-    else
-			res.status(400).json(fwcError.NOT_FOUND);
+		if (error) return res.status(400).json(error);
+
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(204).end();
 	});
 });
 

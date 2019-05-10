@@ -86,7 +86,7 @@ router.put('/get', async (req, res) => {
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(204).end();
+			res.status(400).json(fwcError.NOT_FOUND);
 	} catch(error) { res.status(400).json(error) }
 });
 

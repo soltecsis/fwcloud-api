@@ -100,8 +100,10 @@ router.put('/get', async (req, res) => {
 	try {
 		const policy = await Policy_rModel.getPolicyData(req);
 		//If exists policy_r get data
-		if (policy && policy.length > 0) return res.status(200).json(policy);
-		throw fwcError.NOT_FOUND;
+		if (policy && policy.length > 0) 
+			res.status(200).json(policy);
+		else
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -110,8 +112,10 @@ router.put('/get', async (req, res) => {
 router.put('/full/get', async (req, res) => {
 	try { 
 		const data = await Policy_rModel.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
-		if (data && data.length > 0) return res.status(200).json(data);
-		throw fwcError.NOT_FOUND;
+		if (data && data.length > 0) 
+			res.status(200).json(data);
+		else
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

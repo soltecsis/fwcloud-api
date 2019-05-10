@@ -99,7 +99,10 @@ router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.stat
 router.put('/where', async (req, res) => {
 	try {
 		const data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
-		res.status(200).json(data);
+		if (data.result)
+			res.status(200).json(data);
+		else
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

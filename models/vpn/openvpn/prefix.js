@@ -3,6 +3,7 @@ var openvpnPrefixModel = {};
 
 const fwcTreeModel = require('../../../models/tree/tree');
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
+const fwcError = require('../../../utils/error_table');
 
 const tableModel = 'openvpn_prefix';
 
@@ -102,6 +103,7 @@ openvpnPrefixModel.getPrefixOpenvpnInfo = (dbCon, fwcloud, prefix) => {
       where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
     dbCon.query(sql, async (error, result) => {
       if (error) return reject(error);
+      if (result.length===0) return reject(fwcError.NOT_FOUND);
 
       result[0].openvpn_clients = [];
       try {

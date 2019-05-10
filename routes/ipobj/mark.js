@@ -86,7 +86,10 @@ router.put('/restricted', restrictedCheck.mark, (req, res) => res.status(204).en
 router.put('/where', async (req, res) => {
 	try {
 		const data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
-		res.status(200).json(data);
+		if (data.result)
+			res.status(200).json(data);
+		else
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
