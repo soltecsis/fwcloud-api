@@ -74,12 +74,12 @@ const fwcError = require('../../utils/error_table');
  * 
  */
 router.get('/all/get', (req, res) => {
-	FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
-		if (data && data.length > 0) //Get data
-			res.status(200).json(data);
-		else //Get error 
-			res.status(400).json(fwcError.NOT_FOUND);
-	});
+    FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
+        if (data && data.length > 0) //Get data
+            res.status(200).json(data);
+        else //Get error 
+            res.status(400).json(fwcError.NOT_FOUND);
+    });
 });
 
 /* Get fwcloud by Id */
@@ -97,12 +97,12 @@ router.get('/all/get', (req, res) => {
  * @return {JSON} Returns Json Data from Fwcloud
  */
 router.put('/get', (req, res) => {
-	FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-		if (data && data.length > 0) //get fwcloud data
-			res.status(200).json(data);
-		else //get error
-			res.status(400).json(fwcError.NOT_FOUND);
-	});
+    FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+        if (data && data.length > 0) //get fwcloud data
+            res.status(200).json(data);
+        else //get error
+            res.status(400).json(fwcError.NOT_FOUND);
+    });
 });
 
 
@@ -140,14 +140,14 @@ router.put('/get', (req, res) => {
  *         ]
  *       };
  */
-router.post('/', async (req, res) => {
-	try {
-		req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
-		await fwcTreemodel.createAllTreeCloud(req);
-		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
+router.post('/', async(req, res) => {
+    try {
+        req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
+        await fwcTreemodel.createAllTreeCloud(req);
+        await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
-		res.status(200).json({"insertId": req.body.fwcloud});
-	} catch (error) { res.status(400).json(error); }
+        res.status(200).json({ "insertId": req.body.fwcloud });
+    } catch (error) { res.status(400).json(error); }
 });
 
 
@@ -186,15 +186,15 @@ router.post('/', async (req, res) => {
  *         ]
  *       };
  */
-router.put('/', async (req, res) => {
-	try {
-		await FwcloudModel.updateFwcloud(req);
-		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+router.put('/', async(req, res) => {
+    try {
+        await FwcloudModel.updateFwcloud(req);
+        res.status(204).end();
+    } catch (error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
-router.put('/restricted', restrictedCheck.fwcloud, (req, res) => (req, res) => res.status(204).end());
+router.put('/restricted', restrictedCheck.fwcloud, (req, res) => res.status(204).end());
 
 /**
  * DELETE fwcloud
@@ -230,14 +230,16 @@ router.put('/restricted', restrictedCheck.fwcloud, (req, res) => (req, res) => r
  *       };
  */
 router.put("/del",
-	restrictedCheck.fwcloud,
-	async(req, res) => {
-		try {
-			// Remove the fwcloud data dir.
-			await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-			await FwcloudModel.deleteFwcloud(req);
-		} catch (error) { res.status(400).json(error) }
-	});
+    restrictedCheck.fwcloud,
+    async(req, res) => {
+        try {
+            // Remove the fwcloud data dir.
+            await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
+            await FwcloudModel.deleteFwcloud(req);
+
+            res.status(204).end();
+        } catch (error) { res.status(400).json(error) }
+    });
 
 
 /**
