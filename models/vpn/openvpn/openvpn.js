@@ -10,6 +10,7 @@ const socketTools = require('../../../utils/socket');
 const firewallModel = require('../../../models/firewall/firewall');
 const policyOpenvpnModel = require('../../../models/policy/openvpn');
 const interfaceModel = require('../../../models/interface/interface');
+const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
 
@@ -450,7 +451,7 @@ openvpnModel.freeVpnIP = req => {
       if (error) return reject(error);
 
       // If we have no VPN LAN we can not give any free IP.
-      if (result.length===0) return reject(new Error('OpenVPN LAN not found'));
+      if (result.length===0) return reject(fwcError.other('OpenVPN LAN not found'));
 
       // net will contain information about the VPN network.
       const netmask = result[0].netmask;
@@ -479,7 +480,7 @@ openvpnModel.freeVpnIP = req => {
           if (!found) 
             return resolve({'ip': ip.fromLong(freeIPLong), 'netmask': netmask});
         }
-        reject(new Error('There are no free VPN IPs'));
+        reject(fwcError.other('There are no free VPN IPs'));
       });
     });
   });

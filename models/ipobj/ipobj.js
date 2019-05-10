@@ -88,6 +88,7 @@ var Ipobj_gModel = require('./group');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 const interface__ipobjModel = require('../../models/interface/interface__ipobj');
+const fwcError = require('../../utils/error_table');
 
 const isIp = require('is-ip');
 
@@ -166,7 +167,7 @@ ipobjModel.addressParentsData = (connection,addr) => {
 			' where I.id=' + connection.escape(addr.interface);
 		connection.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			if (rows.length!=1) return reject(new Error('Interface not found'));
+			if (rows.length!=1) return reject(fwcError.NOT_FOUND);
 			
 			if (rows[0].cluster_id) {
 				addr.cluster_id = rows[0].cluster_id;
@@ -570,7 +571,7 @@ ipobjModel.getIpobjInfo = (dbCon,fwcloud,ipobj) => {
 		const sql = 'SELECT * FROM ipobj WHERE fwcloud='+fwcloud+' AND id='+ipobj;
 		dbCon.query(sql, function (error, result) {
 			if (error) return	reject(error);
-			if (result.length < 1) return reject(new Error('IP object not found'))
+			if (result.length < 1) return reject(fwcError.NOT_FOUND);
 
 			resolve(result[0]);
 		});

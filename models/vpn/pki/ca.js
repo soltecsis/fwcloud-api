@@ -2,6 +2,7 @@
 var pkiCAModel = {};
 
 var config = require('../../../config/config');
+const fwcError = require('../../../utils/error_table');
 const spawn = require('child-process-promise').spawn;
 const readline = require('readline');
 const fs = require('fs');
@@ -29,7 +30,7 @@ pkiCAModel.deleteCA = req => {
     // Verify that the CA can be deleted.
     req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca='+req.body.ca, (error, result) => {
       if (error) return reject(error);
-      if (result[0].n > 0) return reject(new Error('This CA can not be removed because it still has certificates'));
+      if (result[0].n > 0) return reject(fwcError.other('This CA can not be removed because it still has certificates'));
 
       req.dbCon.query('DELETE FROM ca WHERE id='+req.body.ca, (error, result) => {
         if (error) return reject(error);

@@ -2,6 +2,7 @@ const fwcTreeModel = require('./tree');
 const socketTools = require('../../utils/socket');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const policy_rModel = require('../../models/policy/policy_r');
+const fwcError = require('../../utils/error_table');
 
 //create object
 var fwc_treeRepairModel = {};
@@ -65,7 +66,7 @@ fwc_treeRepairModel.checkRootNodes = () => {
       
       // Verify that we have found all nodes.
       if (!firewalls_found || !objects_found || !services_found || !ca_found)
-        return reject(new Error('Not found all root nodes'));
+        return reject(fwcError.other('Not found all root nodes'));
 
       // The properties id_obj and obj_type must be null. If not we can repair it.
       if (update_obj_to_null) {
@@ -344,7 +345,7 @@ fwc_treeRepairModel.checkHostObjects = rootNode => {
       ' AND node_type="OIH" AND id_obj IS NULL and obj_type=8';
     dbCon.query(sql, (error, nodes) => {
       if (error) return reject(error);
-      if (nodes.length!==1) return reject(new Error('Hosts node not found'));
+      if (nodes.length!==1) return reject(fwcError.other('Hosts node not found'));
 
       // Clear the hosts node removing all child nodes.
       sql = 'SELECT id FROM ' + tableModel +

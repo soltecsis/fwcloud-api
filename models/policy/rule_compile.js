@@ -20,6 +20,8 @@ var Policy_rModel = require('../../models/policy/policy_r');
  */
 var Policy_cModel = require('../../models/policy/policy_c');
 
+var fwcError = require('../../utils/error_table');
+
 
 const POLICY_TYPE_INPUT = 1;
 const POLICY_TYPE_OUTPUT = 2;
@@ -293,20 +295,20 @@ RuleCompileModel.pre_compile = rule => {
 RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 	return new Promise((resolve,reject) => { 
 		if (trans_addr.length>1 || trans_port.length>1) 
-			return reject(new Error('Translated fields must contain a maximum of one item'));			
+			return reject(fwcError.other('Translated fields must contain a maximum of one item'));			
 
 		if (policy_type===POLICY_TYPE_SNAT && trans_addr.length===0) {
 			if (trans_port.length===0) return resolve ('MASQUERADE');
-			return reject(new Error("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
+			return reject(fwcError.other("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
 		}
 
 		// For DNAT the translated destination is mandatory.
 		if (policy_type===POLICY_TYPE_DNAT && trans_addr.length===0)
-			return reject(new Error("For DNAT 'Translated Destination' is mandatory"));
+			return reject(fwcError.other("For DNAT 'Translated Destination' is mandatory"));
 	
 		// Only TCP and UDP protocols are allowed for the translated service position.
 		if (trans_port.length===1 && trans_port[0].protocol!==6 && trans_port[0].protocol!==17)
-			return reject(new Error("For 'Translated Service' only protocols TCP and UDP are allowed"));
+			return reject(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
 	
 		var action = "";
 		if (policy_type===POLICY_TYPE_SNAT)
@@ -388,7 +390,7 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 		let data;
 		try {
 			data = await Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule);
-			if (!data) return reject(new Error('Rule data not found'));
+			if (!data) return reject(fwcError.other('Rule data not found'));
 
 			let policy_type = data[0].type;
 			if (!policy_type || 

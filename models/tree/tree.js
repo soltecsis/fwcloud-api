@@ -1,6 +1,6 @@
 var db = require('../../db.js');
+const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
-
 
 //create object
 var fwcTreeModel = {};
@@ -28,8 +28,8 @@ fwcTreeModel.getRootNodeByType = (req, type) => {
 
 		req.dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			if (rows.lenght === 0) return reject(new Error(`Root node of type '${type}' not found`));
-			if (rows.lenght > 1) return reject(new Error(`Found more than one root nodes of type '${type}'`));
+			if (rows.lenght === 0) return reject(fwcError.other(`Root node of type '${type}' not found`));
+			if (rows.lenght > 1) return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
 			resolve(rows[0]);
 		});
 	});
@@ -506,7 +506,7 @@ fwcTreeModel.interfacesTree = (connection, fwcloud, nodeId, ownerId, ownerType) 
 				' WHERE IO.ipobj=' + connection.escape(ownerId) + ' AND I.interface_type=11';
 			obj_type=11;
 		}
-		else return reject(new Error('Invalid owner type'));
+		else return reject(fwcError.other('Invalid owner type'));
 
 		connection.query(sql, async (error, interfaces) => {
 			if (error) return reject(error);
@@ -576,7 +576,7 @@ fwcTreeModel.insertFwc_Tree_New_firewall = (fwcloud, nodeId, firewallId) => {
 			let sql = 'SELECT name FROM firewall WHERE id='+firewallId+' AND fwcloud='+fwcloud;
 			connection.query(sql, async (error, firewalls) => {
 				if (error) return reject(error);
-				if (firewalls.length!==1) return reject(new Error('Firewall with id '+firewallId+' not found'));
+				if (firewalls.length!==1) return reject(fwcError.other('Firewall with id '+firewallId+' not found'));
 
 				try {
 					// Create root firewall node
@@ -621,7 +621,7 @@ fwcTreeModel.insertFwc_Tree_New_cluster_firewall = (fwcloud, clusterId, firewall
 				' AND fwcloud=' + connection.escape(fwcloud) + ' AND node_type="FCF"';
 			connection.query(sql, async (error, nodes) => {
 				if (error) return reject(error);
-				if (nodes.length!==1) return reject(new Error('Node NODES not found'));
+				if (nodes.length!==1) return reject(fwcError.other('Node NODES not found'));
 
 				await fwcTreeModel.newNode(connection,fwcloud,firewallName,nodes[0].id,'FW',firewallId,0);
 				resolve();
@@ -642,7 +642,7 @@ fwcTreeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 				' WHERE C.id=' + clusterId + ' AND C.fwcloud=' + fwcloud + ' AND F.fwmaster=1';
 			connection.query(sql, async (error, clusters) => {
 				if (error) return reject(error);
-				if (clusters.length!==1) return reject(new Error('Cluster with id '+clusterId+' not found'));
+				if (clusters.length!==1) return reject(fwcError.other('Cluster with id '+clusterId+' not found'));
 
 				try {
 					// Create root cluster node
@@ -676,7 +676,7 @@ fwcTreeModel.insertFwc_Tree_New_cluster = (fwcloud, nodeId, clusterId) => {
 					sql ='SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
 					connection.query(sql, async (error, firewalls) => {
 						if (error) return reject(error);
-						if (firewalls.length===0) return reject(new Error('No firewalls found for cluster with id '+clusters[0].id));
+						if (firewalls.length===0) return reject(fwcError.other('No firewalls found for cluster with id '+clusters[0].id));
 
 						for(let firewall of firewalls) 
 							await fwcTreeModel.newNode(connection,fwcloud,firewall.name,id2,'FW',firewall.id,0);
@@ -704,7 +704,7 @@ fwcTreeModel.updateFwc_Tree_convert_firewall_cluster = (fwcloud, node_id, idclus
 				if (error) return AllDone(error, null);
 
 				if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
-					return AllDone(new Error('Bad folder type'), null);
+					return AllDone(fwcError.other('Bad folder type'), null);
 
 				//For each node Select Objects by  type
 				if (rows) {
@@ -813,7 +813,7 @@ fwcTreeModel.updateFwc_Tree_convert_cluster_firewall = (fwcloud, node_id, idclus
 				if (error) return AllDone(error, null);
 
 				if (rows[0].node_type!='FDF' && rows[0].node_type!='FD') 
-					return AllDone(new Error('Bad folder type'), null);
+					return AllDone(fwcError.other('Bad folder type'), null);
 
 				//For each node Select Objects by  type
 				if (rows && rows.length > 0) {

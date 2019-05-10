@@ -17,6 +17,7 @@ var Policy_cModel = require('../../models/policy/policy_c');
 var Policy_gModel = require('../../models/policy/policy_g');
 var policyOpenvpnModel = require('../../models/policy/openvpn');
 var policyPrefixModel = require('../../models/policy/prefix');
+const fwcError = require('../../utils/error_table');
 
 var logger = require('log4js').getLogger("app");
 
@@ -672,7 +673,7 @@ policy_rModel.makeAfterRuleOrderGap = (firewall, type, rule) => {
 						if (error) return reject(error);
 						resolve(free_rule_order);
 					});
-				} else return reject(new Error('Rule not found'))
+				} else return reject(fwcError.other('Rule not found'))
 			});
 		});
 	});
@@ -848,7 +849,7 @@ policy_rModel.negateRulePosition = (dbCon, firewall, rule, position) => {
 		let sql = `select negate from ${tableModel} where id=${rule} and firewall=${firewall}`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return reject(new Error('Firewall rule not found'));
+			if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
 			
 			let negate;
 			if (!(result[0].negate))
@@ -877,7 +878,7 @@ policy_rModel.allowRulePosition = (dbCon, firewall, rule, position) => {
 		let sql = `select negate from ${tableModel} where id=${rule} and firewall=${firewall}`;
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return reject(new Error('Firewall rule not found'));
+			if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
 
 			// Rule position negated list is empty.
 			if (!(result[0].negate)) return resolve();

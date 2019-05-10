@@ -1,20 +1,6 @@
 var db = require('../../db.js');
-/**
- * Module to manage Firewalls export process
- *
- * @module FirewallExport
- * 
- * @requires db
- * 
- */
+const fwcError = require('../../utils/error_table');
 
-/**
- * Class to manage firewalls data
- *
- * @class FirewallModel
- * @uses db
- * 
- */
 var firewallExport = {};
 //Export the object
 module.exports = firewallExport;
@@ -157,7 +143,7 @@ firewallExport.exportFirewall = id => {
 			let sql = 'select * from firewall where id=' + connection.escape(id);
 			connection.query(sql, async (error, firewallData) => {
 				if (error) return reject(error);
-				if (firewallData.length!==1) return reject(new Error('Firewall not found'));
+				if (firewallData.length!==1) return reject(fwcError.NOT_FOUND);
 
 				try {
 					firewallData[0].interfaces = await exportInterfaces(connection,id);

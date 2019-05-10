@@ -177,7 +177,7 @@ firewallModel.getFirewallSSH = function (req) {
 
 			// If we have no user or password for the ssh connection, then error.
 			if (!SSHconn.username || !SSHconn.password)
-				throw(new Error('User or password for the SSH connection not found'));
+				throw(fwcError.other('User or password for the SSH connection not found'));
 
 			data.SSHconn = SSHconn;
 			resolve(data);
@@ -1013,7 +1013,7 @@ firewallModel.getFirewallOptions = function (fwcloud, fw) {
 			' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(fw);
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
-				if (rows.length !== 1) return reject(new Error('Firewall not found'));
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 				resolve(rows[0].options);
 			});
 		});
@@ -1029,7 +1029,7 @@ firewallModel.getMasterFirewallId = (fwcloud, cluster) => {
 			' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND cluster=' + connection.escape(cluster) + ' AND fwmaster=1';
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
-				if (rows.length !== 1) return reject(new Error('Firewall not found'));
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 				resolve(rows[0].id);
 			});
 		});

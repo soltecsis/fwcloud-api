@@ -51,5 +51,10 @@ var errorTable = {
   "ACC_IPTABLES_MARK":    {"fwcErr": 7008, "msg": "IPTables mark access not allowed"},
 };
 
+errorTable.other = msg => {
+  return  {"fwcErr": 999999, "msg": msg};
+};
+
+
 //Export the object
 module.exports = errorTable;

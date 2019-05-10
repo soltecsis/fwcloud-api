@@ -1,6 +1,7 @@
 var db = require('../../db.js');
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
+const fwcError = require('../../utils/error_table');
 //const groupModel = require('../../models/ipobj/group');
 
 //create object
@@ -556,12 +557,12 @@ policy_r__ipobjModel.getPositionsContent = (dbCon, position, new_position) => {
 	return new Promise(async (resolve, reject) => {
 		dbCon.query(`SELECT id, content FROM policy_position WHERE id=${position}`, (error, result) => {
 			if (error) return reject(error);
-			if (result.length !== 1) reject(new Error('Policy position not found'));
+			if (result.length !== 1) reject(fwcError.NOT_FOUND);
 			let content1 = result[0].content;
 
 			dbCon.query(`SELECT id, content FROM policy_position WHERE id=${new_position}`, (error, result) => {
 				if (error) return reject(error);
-				if (result.length !== 1) reject(new Error('Policy position not found'));
+				if (result.length !== 1) reject(fwcError.NOT_FOUND);
 				let content2 = result[0].content;
 
 				resolve({"content1": content1, "content2": content2});
@@ -1319,7 +1320,7 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 		dbCon.query(`select type from policy_r where id=${data.rule}`, (error, result) => {
 			if (error) return reject(error);
 
-			if (result.length !== 1) return reject(new Error('Rule not found'));
+			if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
 			let policy_type = parseInt(result[0].type);
 			let ip_version;
@@ -1328,12 +1329,12 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 			else if (policy_type>=61 && policy_type<=65)
 				ip_version=6;
 			else 
-				return reject(new Error('Incorrect policy type'));
+				return reject(fwcError.other('Incorrect policy type'));
 
 			if (data.ipobj>0) {
 				dbCon.query(`select ip_version,type from ipobj where id=${data.ipobj}`, (error, result) => {
 					if (error) return reject(error);
-					if (result.length !== 1) return reject(new Error('Ipobj not found'));
+					if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
 					let type = parseInt(result[0].type);
 					if (type!==5 && type!==6 && type!==7) //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK

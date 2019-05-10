@@ -1,4 +1,5 @@
 var db = require('../../db.js');
+const fwcError = require('../../utils/error_table');
 
 //create object
 var fwc_treeFolderModel = {};
@@ -18,14 +19,14 @@ fwc_treeFolderModel.createFolderNode = nodeData => {
 				' WHERE fwcloud=' + nodeData.fwcloud + ' AND id=' + nodeData.id_parent; 
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
-				if (result.length !== 1) return reject(new Error('Parent node tree not found'));
+				if (result.length !== 1) return reject(fwcError.other('Parent node tree not found'));
 				if (result[0].node_type!=='FDF' && result[0].node_type!=='FD') 
-					return reject(new Error('Can not create folders under this node type'));
+					return reject(fwcError.other('Can not create folders under this node type'));
 
 				connection.query('INSERT INTO ' + tableModel + ' SET ?', nodeData, (error, result) => {
 					if (error) return reject(error);
 					// Return the las inserted id.
-					(result.insertId) ?	resolve({"insertId": result.insertId}) : reject(new Error('Node tree not created'));
+					(result.insertId) ?	resolve({"insertId": result.insertId}) : reject(fwcError.other('Node tree not created'));
 				});
 			});
 		});
@@ -42,9 +43,9 @@ fwc_treeFolderModel.deleteFolderNode = (fwcloud,id) => {
 				' FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id; 
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
-				if (result.length!==1) return reject(new Error('Node tree not found'));
-				if (result[0].node_type!=='FD') return reject(new Error('This node is not a folder'));
-				if (result[0].childs!==0) return reject(new Error('This folder node is not empty')); 
+				if (result.length!==1) return reject(fwcError.NOT_FOUND);
+				if (result[0].node_type!=='FD') return reject(fwcError.other('This node is not a folder'));
+				if (result[0].childs!==0) return reject(fwcError.other('This folder node is not empty')); 
 
 				sql = 'DELETE FROM ' + tableModel + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
 				connection.query(sql, (error, result) => {
@@ -66,8 +67,8 @@ fwc_treeFolderModel.renameFolderNode = (fwcloud,id,old_name,new_name) => {
 				' WHERE fwcloud=' + fwcloud + ' AND id=' + id + ' AND name=' + connection.escape(old_name); 
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
-				if (result.length!==1) return reject(new Error('Node tree not found'));
-				if (result[0].node_type!=='FD') return reject(new Error('This node is not a folder'));
+				if (result.length!==1) return reject(fwcError.NOT_FOUND);
+				if (result[0].node_type!=='FD') return reject(fwcError.other('This node is not a folder'));
 
 				sql = 'UPDATE ' + tableModel +
 					' SET name=' + connection.escape(new_name) +
@@ -88,8 +89,8 @@ fwc_treeFolderModel.getParentId = (connection,fwcloud,id) => {
 			' WHERE id=' + id + ' AND fwcloud=' + fwcloud; 
 		connection.query(sql, (error, result) => {
 			if (error) return reject(error);
-			if (result.length!==1) return reject(new Error('Node not found'));
-			if (result[0].node_type!=='FD' && result[0].node_type!=='FDF') return reject(new Error('This node is not a folder'));
+			if (result.length!==1) return reject(fwcError.NOT_FOUND);
+			if (result[0].node_type!=='FD' && result[0].node_type!=='FDF') return reject(fwcError.other('This node is not a folder'));
 
 			resolve(result[0].id_parent);
 		});
@@ -99,7 +100,7 @@ fwc_treeFolderModel.getParentId = (connection,fwcloud,id) => {
 //Move node into folder
 fwc_treeFolderModel.moveToFolder = (fwcloud,src,dst) => {
 	return new Promise((resolve, reject) => {
-		if (src === dst) return reject(new Error('Source and destination nodes are the same'));
+		if (src === dst) return reject(fwcError.other('Source and destination nodes are the same'));
 		db.get((error, connection) => {
 			if (error) return reject(error);
 			// Verify that folder node exists and that the node that is being droped into can be moved.
@@ -109,19 +110,19 @@ fwc_treeFolderModel.moveToFolder = (fwcloud,src,dst) => {
 				' AND T2.fwcloud=' + fwcloud + ' AND T2.id=' + dst; 
 			connection.query(sql, async (error, result) => {
 				if (error) return reject(error);
-				if (result.length!==1) return reject(new Error('Node not found'));
-				if (result[0].src_type!=='FD' && result[0].src_type!=='FW' && result[0].src_type!=='CL') return reject(new Error('Source node type is not valid'));
-				if (result[0].dst_type!=='FD' && result[0].dst_type!=='FDF') return reject(new Error('Destination folder is not valid'));
-				if (result[0].id_parent_src === dst) return reject(new Error('Source is already into destination'));
+				if (result.length!==1) return reject(fwcError.NOT_FOUND);
+				if (result[0].src_type!=='FD' && result[0].src_type!=='FW' && result[0].src_type!=='CL') return reject(fwcError.other('Source node type is not valid'));
+				if (result[0].dst_type!=='FD' && result[0].dst_type!=='FDF') return reject(fwcError.other('Destination folder is not valid'));
+				if (result[0].id_parent_src === dst) return reject(fwcError.other('Source is already into destination'));
 
 				// Verify that source node is not an ascensor of destination node.
 				let parent_id = result[0].id_parent_dst;
 				let max_deep = 100;
 				while(parent_id!=null) {
 					try {
-						if (parent_id === src) return reject(new Error('Source node is ancestor of destination node'));
+						if (parent_id === src) return reject(fwcError.other('Source node is ancestor of destination node'));
 						parent_id = await fwc_treeFolderModel.getParentId(connection,fwcloud,parent_id);
-						if (--max_deep < 1) return reject(new Error('Max deep level reached'));
+						if (--max_deep < 1) return reject(fwcError.other('Max deep level reached'));
 					} catch(error) { return reject(error); }
 				}
 

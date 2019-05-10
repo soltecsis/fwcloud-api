@@ -1,3 +1,5 @@
+const fwcError = require('../../utils/error_table');
+
 //create object
 var markModel = {};
 
@@ -55,7 +57,7 @@ markModel.getMark = (dbCon,mark) => {
 	return new Promise((resolve, reject) => {
     dbCon.query(`select * from ${tableModel} WHERE id=${mark}`, (error, result) => {
       if (error) return reject(error);
-      if (result.length!==1) return reject(new Error('Iptables mark not found'))
+      if (result.length!==1) return reject(fwcError.NOT_FOUND);
       resolve(result);
     });
   });

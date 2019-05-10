@@ -1,6 +1,8 @@
 //create object
 var pkiCRTModel = {};
 
+const fwcError = require('../../../utils/error_table')
+
 
 // Insert new certificate in the database.
 pkiCRTModel.createCRT = req => {
@@ -25,7 +27,7 @@ pkiCRTModel.deleteCRT = req => {
     // Verify that the CA can be deleted.
     req.dbCon.query('SELECT count(*) AS n FROM openvpn WHERE crt='+req.body.crt, (error, result) => {
       if (error) return reject(error);
-      if (result[0].n > 0) return reject(new Error('This certificate can not be removed because it is used in a OpenVPN setup'));
+      if (result[0].n > 0) return reject(fwcError.other('This certificate can not be removed because it is used in a OpenVPN setup'));
 
       req.dbCon.query('DELETE FROM crt WHERE id='+req.body.crt, (error, result) => {
         if (error) return reject(error);
@@ -40,7 +42,7 @@ pkiCRTModel.getCRTdata = (dbCon,crt) => {
 	return new Promise((resolve, reject) => {
     dbCon.query('SELECT * FROM crt WHERE id='+crt, (error, result) => {
       if (error) return reject(error);
-      if (result.length!==1) return reject(new Error('CRT not found'));
+      if (result.length!==1) return reject(fwcError.NOT_FOUND);
 
       resolve(result[0]);
     });

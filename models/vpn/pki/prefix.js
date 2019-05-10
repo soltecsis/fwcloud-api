@@ -3,6 +3,7 @@ var pkiPrefixModel = {};
 
 const fwcTreeModel = require('../../../models/tree/tree');
 const pkiCRTModel = require('../../../models/vpn/pki/crt');
+const fwcError = require('../../../utils/error_table');
 
 // Validate new prefix container.
 pkiPrefixModel.existsCrtPrefix = req => {
@@ -69,7 +70,7 @@ pkiPrefixModel.applyCrtPrefixes = (req,ca) => {
    		// Search for the CA node tree.
       let node = await fwcTreeModel.getNodeInfo(req.dbCon,req.body.fwcloud,'CA',ca);
       if (node.length !== 1)
-        throw (new Error(`Found ${node.length} CA nodes, awaited 1`));
+        throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
       let node_id = node[0].id;
 
       // Remove all nodes under the CA node.
