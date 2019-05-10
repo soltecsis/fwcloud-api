@@ -93,11 +93,13 @@ const fwcError = require('../../utils/error_table');
  * 
  */
 router.put('/all/get', (req, res) => {
-	FirewallModel.getFirewalls(req.session.user_id, function(error, data) {
+	FirewallModel.getFirewalls(req.session.user_id, (error, data) => {
+		if (error) return res.status(400).json(error);
+		
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
@@ -135,10 +137,12 @@ router.put('/all/get', (req, res) => {
  */
 router.put('/cloud/get', (req, res) => {
 	FirewallModel.getFirewallCloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+		if (error) return res.status(400).json(error);
+		
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
@@ -181,7 +185,7 @@ router.put('/get', async (req, res) => {
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -220,11 +224,13 @@ router.put('/get', async (req, res) => {
  * 
  */
 router.put('/cluster/get', (req, res) => {
-	FirewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, function(error, data) {
+	FirewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
+		if (error) return res.status(400).json(error);
+		
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
@@ -515,28 +521,26 @@ router.put('/del',
 router.put('/delfromcluster',
 restrictedCheck.firewall,
 restrictedCheck.firewallApplyTo,
-(req, res) => {
+async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
-	FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster)
-	.then(data => {
+	try {
+		const data = await FirewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster);
 		if (data && data.result)
 			res.status(200).json(data);
 	 	else
-			res.status(400).json(data);
-	})
-	.catch(error => res.status(400).json(error));
+			res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 /**
  * Get firewall export
  * 
  */
-router.put('/export/get', (req, res) => {
-	FirewallExport.exportFirewall(req.body.firewall)
-		.then(data => {
-			res.status(200).json(data);
-		})
-		.catch(error => res.status(400).json(error));
+router.put('/export/get', async (req, res) => {
+	try {
+		const data = FirewallExport.exportFirewall(req.body.firewall);
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

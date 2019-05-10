@@ -68,25 +68,26 @@ const fwcError = require('../../utils/error_table');
  * @return {Boolean} Returns true on success
  */
 router.put('/all/get', (req, res) => {
-	ClusterModel.getClusters(function(error, data) {
+	ClusterModel.getClusters((error, data) => {
+		if (error) return res.status(400).json(error);
+		
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
+			res.status(204).end();
 	});
 });
 
 
 /* Get FULL cluster by Id */
-router.put('/get', (req, res) => {
-	ClusterModel.getClusterFullPro(req.session.user_id, req.body.fwcloud, req.body.cluster)
-		.then(data => {
-			if (data && data.length > 0)
+router.put('/get', async (req, res) => {
+	try {
+		const data = await ClusterModel.getClusterFullPro(req.session.user_id, req.body.fwcloud, req.body.cluster);
+		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
-			res.status(400).json(fwcError.NOT_FOUND);
-		})
-		.catch(error => res.status(400).json(error) );
+			res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
