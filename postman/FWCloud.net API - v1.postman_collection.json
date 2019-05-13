@@ -1,0 +1,2437 @@
+{
+	"info": {
+		"_postman_id": "147af2b8-0059-47e0-bc9d-6ab0146f7182",
+		"name": "FWCloud.net API - v1",
+		"description": "Description of the collection.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"item": [
+				{
+					"name": "Syntax",
+					"item": [
+						{
+							"name": "Customer must be a number",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"const response = pm.response.json();",
+											"",
+											"pm.test(\"Joi validation error\", function () {",
+											"    pm.expect(response.isJoi).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Error message\", function () {",
+											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be a number\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer\": \"badCustomer\",\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/user/login",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"user",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Customer must be integer greater than 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"const response = pm.response.json();",
+											"",
+											"pm.test(\"Joi validation error\", function () {",
+											"    pm.expect(response.isJoi).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Error message\", function () {",
+											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be larger than or equal to 1\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer\": 0,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/user/login",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"user",
+										"login"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "Bad customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    let err = {",
+									"        \"fwcErr\": 1001,",
+									"        \"msg\": \"Bad username or password\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						},
+						"description": "Description of the bad customer request."
+					},
+					"response": []
+				},
+				{
+					"name": "Bad username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    let err = {",
+									"        \"fwcErr\": 1001,",
+									"        \"msg\": \"Bad username or password\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"badUser\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bad password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    let err = {",
+									"        \"fwcErr\": 1001,",
+									"        \"msg\": \"Bad username or password\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"badPass\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bad customer, username and password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    let err = {",
+									"        \"fwcErr\": 1001,",
+									"        \"msg\": \"Bad username or password\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"username\": \"badUser\",\n    \"password\": \"badPass\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login ok",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Customer",
+			"item": [
+				{
+					"name": "New customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"    ",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"value": "{{fwc_confirm_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New customer (existes same id)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err ={",
+									"        \"fwcErr\": 1004,",
+									"        \"msg\": \"Already exists with the same id\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New customer (existes same name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err ={",
+									"        \"fwcErr\": 1005,",
+									"        \"msg\": \"Already exists with the same name\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    console.log(response);",
+									"    pm.expect(response.id).to.eql(2);",
+									"    pm.expect(response.name).to.eql(\"FWCloud.net\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get customers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    // Check that the customer FWCloud.net exists in the returned array.",
+									"    const response = pm.response.json();",
+									"    let search_customer;",
+									"    for (let customer of response) {",
+									"        if (customer.name === \"FWCloud.net\")",
+									"            search_customer = customer; ",
+									"    }",
+									"    pm.expect(search_customer.id).to.eql(2);",
+									"    pm.expect(search_customer.name).to.eql(\"FWCloud.net\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get customer (not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 3\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://www.fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update customer (verify updated data)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.id).to.eql(2);",
+									"    pm.expect(response.name).to.eql(\"FWCloud.net\");",
+									"    pm.expect(response.web).to.eql(\"https://www.fwcloud.net\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update customer (not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 3,\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://www.fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update customer (exists same name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err ={",
+									"        \"fwcErr\": 1005,",
+									"        \"msg\": \"Already exists with the same name\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"SOLTECSIS, S.L.\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://www.fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete customer (not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 3\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete customer (restricted: last customer)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Restrictions\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"result\": true,",
+									"        \"restrictions\": {",
+									"            \"CustomerHasUsers\": true",
+									"        }",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"    ",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"FWCloud.net\",\n    \"addr\": \"C/Carrasca, 7 - 03590 Altea (Alicante) - Spain\",\n    \"phone\": \"+34 966 446 046\",\n    \"email\": \"info@fwcloud.net\",\n    \"web\": \"https://fwcloud.net\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/customer",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"customer"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "New user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"    ",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"My Personal Name\",\n    \"email\": \"info@fwcloud.net\",\n    \"username\": \"fwcusr\",\n    \"password\": \"mysecret\",\n    \"enabled\": 1,\n    \"role\": 1,\n    \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New user (customer not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err ={",
+									"         \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 3,\n    \"name\": \"My Personal Name\",\n    \"email\": \"info@fwcloud.net\",\n    \"username\": \"fwcusr\",\n    \"password\": \"mysecret\",\n    \"enabled\": 1,\n    \"role\": 1,\n    \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New user (already exists)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err ={",
+									"        \"fwcErr\": 1003,",
+									"        \"msg\": \"Already exists\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"name\": \"My Personal Name\",\n    \"email\": \"info@fwcloud.net\",\n    \"username\": \"fwcusr\",\n    \"password\": \"mysecret\",\n    \"enabled\": 1,\n    \"role\": 1,\n    \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.id).to.eql(2);",
+									"    pm.expect(response.username).to.eql(\"fwcusr\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    // Check that the customer FWCloud.net exists in the returned array.",
+									"    const response = pm.response.json();",
+									"    let search_user;",
+									"    for (let user of response) {",
+									"        if (user.name === \"My Personal Name\")",
+									"            search_user = user; ",
+									"    }",
+									"    pm.expect(search_user.id).to.eql(2);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user (not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 2,\n    \"name\": \"My Personal Name\",\n    \"email\": \"info@fwcloud.net\",\n    \"username\": \"fwcusr\",\n    \"password\": \"mysecret\",\n    \"enabled\": 1,\n    \"role\": 1,\n    \"allowed_from\": \"10.9.8.7\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update user (verify updated data)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.id).to.eql(2);",
+									"    pm.expect(response.username).to.eql(\"fwcusr\");",
+									"    pm.expect(response.allowed_from).to.eql(\"10.9.8.7\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete user (not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 3\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"user\": 2\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete user (restricted: last admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Restrictions\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"result\": true,",
+									"        \"restrictions\": {",
+									"            \"LastAdminUser\": true",
+									"        }",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"user\": 1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"del"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "FWCloud",
+			"item": [
+				{
+					"name": "Create several fwclouds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"var fwclouds = pm.environment.get(\"fwclouds\");",
+									"if (fwclouds && fwclouds.length>0) {",
+									"    pm.test(\"Status code is 200\", function () {",
+									"        pm.response.to.have.status(200);",
+									"    });",
+									"",
+									"    //pm.test(\"Data received\", function () {",
+									"    //    const response = pm.response.json();",
+									"    //    pm.expect(response.insertId).to.eql(1);",
+									"    //});",
+									"    ",
+									"    pm.globals.unset(\"fwc_confirm_token\");",
+									"",
+									"    postman.setNextRequest(pm.info.requestId);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									"var fwclouds = pm.environment.get(\"fwclouds\");",
+									"if (!fwclouds) {",
+									" fwclouds = [\"\",\"FWCloud-01\",\"\",\"FWCloud-02\",\"\",\"FWCloud-03\",\"\",\"FWCloud-04\",\"\",\"FWCloud-05\"];",
+									"}",
+									"console.log(fwclouds);",
+									"",
+									"pm.environment.set(\"fwcloud_name\",fwclouds.shift());",
+									"pm.environment.set(\"fwclouds\",fwclouds);",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{fwcloud_name}}\",\n    \"image\": \"\",\n    \"comment\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/fwcloud",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"fwcloud"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update fwcloud",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": 1,\n    \"name\": \"MyFWCloud\",\n    \"image\": \"\",\n    \"comment\": \"My first FWCloud.\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/fwcloud",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"fwcloud"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Logout",
+			"item": [
+				{
+					"name": "Logout ok",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-token",
+								"value": "{{fwc_confirm_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/logout",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout (invalid session)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1010,",
+									"        \"msg\": \"Invalid session\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/logout",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "cad3f418-582c-495b-8698-68019a787ecd",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "5eda15be-7302-4296-bc71-8fc00c7dd27f",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "6c2b2b3a-3e39-40a4-85e4-26324905155d",
+			"key": "apiURL",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"id": "fdf550c0-57d5-4d75-a1e7-2d1af50d61ab",
+			"key": "Origin",
+			"value": "http://webtest.fwcloud.net",
+			"type": "string"
+		}
+	]
+}

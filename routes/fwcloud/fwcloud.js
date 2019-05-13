@@ -46,6 +46,77 @@ var fwcTreemodel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
+
+/**
+ * @api {POST} /fwcloud New fwcloud
+ * @apiName NewFwcloud
+ *  * @apiGroup FWCLOUD
+ * 
+ * @apiDescription Create a new FWCloud.<br>
+ * One FWCloud is an agrupation of logical IP objects.
+ *
+ * @apiParam {String} name FWCloud's name.
+ * @apiParam {String} image Image vinculated to this FWCloud..
+ * @apiParam {String} comment FWCloud's comment. 
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "name": "FWCloud-01",
+ *   "image": "",
+ *   "comment": "My first FWCloud."
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "insertId": 1
+ * } 
+ */
+router.post('/', async(req, res) => {
+	try {
+		req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
+		await fwcTreemodel.createAllTreeCloud(req);
+		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
+
+		res.status(200).json({ "insertId": req.body.fwcloud });
+	} catch (error) { res.status(400).json(error); }
+});
+
+
+/**
+ * @api {PUT} /fwcloud Update fwcloud
+ * @apiName UpdateFwcloud
+ *  * @apiGroup FWCLOUD
+ * 
+ * @apiDescription Update FWCloud information.
+ *
+ * @apiParam {Number} fwcloud Id of the FWCloud that we want modify.
+ * @apiParam {String} name FWCloud's name.
+ * @apiParam {String} image Image vinculated to this FWCloud..
+ * @apiParam {String} comment FWCloud's comment. 
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "id": 1,
+ *   "name": "MyFWCloud",
+ *   "image": "",
+ *   "comment": "My first FWCloud."
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "insertId": 1
+ * } 
+ */
+router.put('/', async(req, res) => {
+	try {
+		await FwcloudModel.updateFwcloud(req);
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
+});
+
+
 /**
  * Get Fwclouds by User
  * 
@@ -110,92 +181,8 @@ router.put('/get', (req, res) => {
 });
 
 
-/**
- * CREATE New fwcloud
- * 
- * 
- * > ROUTE CALL:  __/fwcloud/fwcloud__      
- * > METHOD:  __POST__
- * 
- *
- * @method AddFwcloud
- * 
- * @param {Integer} id Fwcloud identifier (AUTO)
- * @param {String} name Fwcloud Name
- * @param {String} [comment] Fwcloud comment
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "insertId : ID,   //fwcloud identifier           
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-router.post('/', async(req, res) => {
-	try {
-		req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
-		await fwcTreemodel.createAllTreeCloud(req);
-		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
-
-		res.status(200).json({ "insertId": req.body.fwcloud });
-	} catch (error) { res.status(400).json(error); }
-});
 
 
-/**
- * UPDATE fwcloud
- * 
- * 
- * > ROUTE CALL:  __/fwcloud/fwcloud__      
- * > METHOD:  __PUT__
- * 
- *
- * @method UpdateFwcloud
- * 
- * @param {Integer} id Fwcloud identifier
- * @optional
- * @param {Integer} iduser User identifier 
- * @param {String} name Fwcloud Name
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-router.put('/', async(req, res) => {
-	try {
-		await FwcloudModel.updateFwcloud(req);
-		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
-});
 
 // API call for check deleting restrictions.
 router.put('/restricted', restrictedCheck.fwcloud, (req, res) => res.status(204).end());
