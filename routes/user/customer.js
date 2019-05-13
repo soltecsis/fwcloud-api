@@ -13,9 +13,9 @@ const fwcError = require('../../utils/error_table');
  * @apiDescription Create new customer. Customers allow group users.
  *
  * @apiParam {Number} [customer] New customer's id.
- * <\br>The API will check that don't exists another customer with this id.
+ * <br>The API will check that don't exists another customer with this id.
  * @apiParam {String} name Customer's name.
- * <\br>The API will check that don't exists another customer with the same name.
+ * <br>The API will check that don't exists another customer with the same name.
  * @apiParam {String} [addr] Customer's address.
  * @apiParam {String} [phone] Customer's telephone.
  * @apiParam {String} [email] Customer's e-mail.
@@ -24,11 +24,11 @@ const fwcError = require('../../utils/error_table');
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 1,
- *   "name": "SOLTECSIS, S.L.",
- *   "addr": "C/Carrasca,7 - 03590 Altea (Alicante) - Spain",
+ *   "name": "FWCloud.net",
+ *   "addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
  *   "phone": "+34 966 446 046",
- *   "email": "info@soltecsis.com",
- *   "web": "https://soltecsis.com"
+ *   "email": "info@fwcloud.net",
+ *   "web": "https://fwcloud.net"
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -72,7 +72,7 @@ router.post('', async (req, res) => {
  *
  * @apiParam {Number} [customer] Id of the customer that you want modify.
  * @apiParam {String} name Customer's name.
- * <\br>The API will check that don't exists another customer with the same name.
+ * <br>The API will check that don't exists another customer with the same name.
  * @apiParam {String} [addr] Customer's address.
  * @apiParam {String} [phone] Customer's telephone.
  * @apiParam {String} [email] Customer's e-mail.
@@ -80,12 +80,12 @@ router.post('', async (req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 1,
- *   "name": "SOLTECSIS, S.L.",
+ *   "customer": 2,
+ *   "name": "FWCloud.net",
  *   "addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
  *   "phone": "+34 966 446 046",
- *   "email": "info@soltecsis.com",
- *   "web": "https://soltecsis.com"
+ *   "email": "info@fwcloud.net",
+ *   "web": "https://www.fwcloud.net"
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -128,11 +128,32 @@ router.put('', async (req, res) => {
  * @apiDescription Get customer data. 
  *
  * @apiParam {Number} [customer] Id of the customer.
- * <\br>If empty, the API will return the id and name for all the customers.
- * <\br>If it is not empty, it will return all the data for the indicated customer id.
+ * <br>If empty, the API will return an array with the id and name for all the customers.
+ * <br>If it is not empty, it will return a json object with all the data for the indicated customer id.
+ *
+ * @apiParamExample {json} Request-Example:
+ * {
+ * 	"customer": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 2,
+ *    "name": "FWCloud.net",
+ *    "addr": "C/Carrasca, 7 - 03590 Altea (Alicante) - Spain",
+ *    "phone": "+34 966 446 046",
+ *    "email": "info@fwcloud.net",
+ *    "web": "https://fwcloud.net",
+ *    "created_at": "2019-05-13T10:40:36.000Z",
+ *    "updated_at": "2019-05-13T10:40:36.000Z",
+ *    "created_by": 0,
+ *    "updated_by": 0
+ * }
  * 
  * @apiParamExample {json} Request-Example:
- *
+ * {
+ * }
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * [
@@ -143,10 +164,6 @@ router.put('', async (req, res) => {
  *    {
  *        "id": 2,
  *        "name": "FWCloud.net"
- *    },
- *    {
- *        "id": 1001,
- *        "name": "SOLTECSIS 2, S.L."
  *    }
  * ]
  * 
@@ -162,7 +179,8 @@ router.put('/get', async (req, res) => {
 		if (req.body.customer && !(await customerModel.existsId(req.dbCon,req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
-		res.status(200).json(await customerModel.get(req));
+		const data = await customerModel.get(req);
+		res.status(200).json(req.body.customer ? data[0] : data);
 	} catch (error) { res.status(400).json(error) }
 });
 
@@ -173,7 +191,7 @@ router.put('/get', async (req, res) => {
  * @apiGroup CUSTOMER
  * 
  * @apiDescription Delete customer from the database. 
- * <\br>A middleware is used for verify that the customer has no users before allow the deletion.
+ * <br>A middleware is used for verify that the customer has no users before allow the deletion.
  *
  * @apiParam {Number} customer Customer's id.
  * 

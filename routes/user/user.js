@@ -27,7 +27,7 @@ var bcrypt = require('bcrypt');
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 204 No Content
  *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 401 Unauthorized
@@ -94,15 +94,15 @@ router.post('/logout',(req, res) => {
  * @apiDescription Create new user.
  *
  * @apiParam {Number} customer Customert id to which this user belongs to.
- * <\br>The API will check that exists a customer with this id.
+ * <br>The API will check that exists a customer with this id.
  * @apiParam {String} name Full name of the owner of this user.
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
  * @apiParam {String} password Username's password. 
  * @apiParam {Number} enabled If the user access is enabled or not.
  * @apiParam {Number} role The role assigned to this user.
- * <\br>1 = Admin. Full access.
- * <\br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * <br>1 = Admin. Full access.
+ * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
  * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
  * FWCloud.net web interface.
  * 
@@ -156,15 +156,15 @@ router.post('', async (req, res) => {
  *
  * @apiParam {Number} user User id.
  * @apiParam {Number} customer Customert id to which this user belongs to.
- * <\br>The API will check that exists a customer with this id.
+ * <br>The API will check that exists a customer with this id.
  * @apiParam {String} name Full name of the owner of this user.
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
  * @apiParam {String} password Username's password. 
  * @apiParam {Number} enabled If the user access is enabled or not.
  * @apiParam {Number} role The role assigned to this user.
- * <\br>1 = Admin. Full access.
- * <\br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * <br>1 = Admin. Full access.
+ * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
  * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
  * FWCloud.net web interface.
  * 
@@ -216,8 +216,8 @@ router.put('', async (req, res) => {
  *
  * @apiParam {Number} customer Id of the customer the user belongs to.
  * @apiParam {Number} [user] Id of the user.
- * <\br>If empty, the API will return the id and name for all the users of this customer..
- * <\br>If it is not empty, it will return all the data for the indicated user.
+ * <br>If empty, the API will return the id and name for all the users of this customer..
+ * <br>If it is not empty, it will return all the data for the indicated user.
  * 
  * @apiParamExample {json} Request-Example:
  * {
@@ -274,7 +274,7 @@ router.put('/get', async (req, res) => {
  *  * @apiGroup USER
  * 
  * @apiDescription Delete user from the database. 
- * <\br>A middleware is used for verify that this is not the last user with the admin role in the database.
+ * <br>A middleware is used for verify that this is not the last user with the admin role in the database.
  *
  * @apiParam {Number} customer Id of the customer the user belongs to.
  * @apiParam {Number} user Id of the user.
@@ -410,7 +410,7 @@ router.put('/fwcloud/del', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await userModel.allowFwcloudAccess(req);
+		await userModel.disableFwcloudAccess(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });

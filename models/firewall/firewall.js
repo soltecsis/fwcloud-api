@@ -381,14 +381,14 @@ firewallModel.getFirewallCloud = function (iduser, fwcloud, callback) {
  *       callback(error, null);
  *       
  */
-firewallModel.insertFirewall = (iduser, firewallData) => {
+firewallModel.insertFirewall = firewallData => {
 	return new Promise((resolve, reject) => {
 		db.get(function (error, connection) {
 			if (error) return reject(error);
 			
 			connection.query(`INSERT INTO ${tableModel} SET ?`, firewallData, (error, result) => {
 				if (error) return reject(error);
-				resolve({"insertId": result.insertId});
+				resolve(result.insertId);
 			});
 		});
 	});
