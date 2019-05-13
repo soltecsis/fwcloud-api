@@ -16,164 +16,166 @@ const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
 const markModel = require('../models/ipobj/mark');
 
 restrictedCheck.customer = async(req, res, next) => {
-    try {
-        let data = await customerModel.searchUsers(req);
-        if (data.result) return res.status(403).json(data);
-        data = await customerModel.lastCustomer(req);
-        if (data.result) return res.status(403).json(data);
-        next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		let data = await customerModel.searchUsers(req);
+		if (data.result) return res.status(403).json(data);
+		data = await customerModel.lastCustomer(req);
+		if (data.result) return res.status(403).json(data);
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.user = async(req, res, next) => {
-    try {
-        const data = await userModel.lastAdminUser(req);
-        if (data.result) return res.status(403).json(data);
-        next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		if (await userModel.isAdmin(req)) {
+			const data = await userModel.lastAdminUser(req);
+			if (data.result) return res.status(403).json(data);
+		}
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
-    var sql = `Select (SELECT count(*) FROM firewall where fwcloud=${req.body.fwcloud} AND cluster is null) as CF,
+	var sql = `Select (SELECT count(*) FROM firewall where fwcloud=${req.body.fwcloud} AND cluster is null) as CF,
 		(SELECT count(*) FROM cluster where fwcloud=${req.body.fwcloud}) as CC,
 		(SELECT count(*) FROM ca where fwcloud=${req.body.fwcloud}) as CCA`;
-    req.dbCon.query(sql, (error, row) => {
-        if (error) return res.status(400).json(error);
+	req.dbCon.query(sql, (error, row) => {
+		if (error) return res.status(400).json(error);
 
-        if (row && row.length > 0 && (row[0].CF > 0 || row[0].CC > 0 || row[0].CCA > 0))
-            return res.status(403).json({ "count": row[0] });
-        next();
-    });
+		if (row && row.length > 0 && (row[0].CF > 0 || row[0].CC > 0 || row[0].CCA > 0))
+			return res.status(403).json({ "count": row[0] });
+		next();
+	});
 };
 
 
 restrictedCheck.firewall = async(req, res, next) => {
-    try {
-        const data = await firewallModel.searchFirewallRestrictions(req);
-        if (data.result) res.status(403).json(data);
-        else next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		const data = await firewallModel.searchFirewallRestrictions(req);
+		if (data.result) res.status(403).json(data);
+		else next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.firewallApplyTo = (req, res, next) => {
-    // Is this firewall part of a cluster?
-    let sql = 'SELECT cluster from firewall where id=' + req.body.fwcloud + ' AND fwcloud=' + req.body.fwcloud;
-    req.dbCon.query(sql, function(error, result) {
-        if (error) return res.status(400).json(error);
-        if (result && result.length === 0) return next(); // No, it is not part of a cluster.
+	// Is this firewall part of a cluster?
+	let sql = 'SELECT cluster from firewall where id=' + req.body.fwcloud + ' AND fwcloud=' + req.body.fwcloud;
+	req.dbCon.query(sql, function(error, result) {
+		if (error) return res.status(400).json(error);
+		if (result && result.length === 0) return next(); // No, it is not part of a cluster.
 
-        // If it is part of a cluster then look if it appears in the apply to column of a rule of the cluster.
-        sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
-            ' where fw_apply_to=' + req.body.firewall +
-            ' AND F.cluster=' + result[0].cluster +
-            ' AND F.fwcloud=' + req.body.fwcloud;
-        req.dbCon.query(sql, function(error, row) {
-            if (error) return res.status(400).json(error);
+		// If it is part of a cluster then look if it appears in the apply to column of a rule of the cluster.
+		sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
+			' where fw_apply_to=' + req.body.firewall +
+			' AND F.cluster=' + result[0].cluster +
+			' AND F.fwcloud=' + req.body.fwcloud;
+		req.dbCon.query(sql, function(error, row) {
+			if (error) return res.status(400).json(error);
 
-            if (row && row.length > 0) {
-                if (row[0].cont > 0) {
-                    const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
-                    res.status(403).json(restricted);
-                } else next();
-            } else next();
-        });
-    });
+			if (row && row.length > 0) {
+				if (row[0].cont > 0) {
+					const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
+					res.status(403).json(restricted);
+				} else next();
+			} else next();
+		});
+	});
 };
 
 
 restrictedCheck.interface = async(req, res, next) => {
-    //Check interface in RULE O POSITIONS
-    const type = (req.body.host) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
-    try {
-        const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
+	//Check interface in RULE O POSITIONS
+	const type = (req.body.host) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
+	try {
+		const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
 
-        if (data.result) {
-            // Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost
-            data.result = false;
-            for (let key in data.restrictions) {
-                if (key === 'InterfaceInFirewall' || key === 'InterfaceInHost')
-                    continue;
-                if (data.restrictions[key].length > 0) {
-                    data.result = true;
-                    break;
-                }
-            }
-        }
+		if (data.result) {
+			// Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost
+			data.result = false;
+			for (let key in data.restrictions) {
+				if (key === 'InterfaceInFirewall' || key === 'InterfaceInHost')
+					continue;
+				if (data.restrictions[key].length > 0) {
+					data.result = true;
+					break;
+				}
+			}
+		}
 
-        if (data.result) res.status(403).json(data);
-        else next();
-    } catch (error) { res.status(400).json(error) }
+		if (data.result) res.status(403).json(data);
+		else next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ipobj = async(req, res, next) => {
-    try {
-        const data = await ipobjModel.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
-        if (data.result) res.status(403).json(data);
-        else next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		const data = await ipobjModel.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		if (data.result) res.status(403).json(data);
+		else next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ipobj_group = async(req, res, next) => {
-    try {
-        const data = await ipobj_gModel.searchGroupUsage(req.body.id, req.body.fwcloud);
-        if (data.result) res.status(403).json(data);
-        else next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		const data = await ipobj_gModel.searchGroupUsage(req.body.id, req.body.fwcloud);
+		if (data.result) res.status(403).json(data);
+		else next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.openvpn = async(req, res, next) => {
-    try {
-        let data = await openvpnModel.searchOpenvpnChild(req.dbCon, req.body.fwcloud, req.body.openvpn);
-        if (data.result) return res.status(403).json(data);
+	try {
+		let data = await openvpnModel.searchOpenvpnChild(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		if (data.result) return res.status(403).json(data);
 
-        data = await openvpnModel.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn);
-        if (data.result) return res.status(403).json(data);
+		data = await openvpnModel.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		if (data.result) return res.status(403).json(data);
 
-        next();
-    } catch (error) { res.status(400).json(error) }
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 
 restrictedCheck.ca = async(req, res, next) => {
-    try {
-        let data = await pkiCAModel.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
-        if (data.result) return res.status(403).json(data);
+	try {
+		let data = await pkiCAModel.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
+		if (data.result) return res.status(403).json(data);
 
-        data = await pkiCAModel.searchCAHasPrefixes(req.dbCon, req.body.fwcloud, req.body.ca);
-        if (data.result) return res.status(403).json(data);
+		data = await pkiCAModel.searchCAHasPrefixes(req.dbCon, req.body.fwcloud, req.body.ca);
+		if (data.result) return res.status(403).json(data);
 
-        next();
-    } catch (error) { res.status(400).json(error) }
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 restrictedCheck.crt = async(req, res, next) => {
-    try {
-        let data = await pkiCRTModel.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
-        if (data.result) return res.status(403).json(data);
-        next();
-    } catch (error) { res.status(400).json(error) }
+	try {
+		let data = await pkiCRTModel.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
+		if (data.result) return res.status(403).json(data);
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 restrictedCheck.openvpn_prefix = async(req, res, next) => {
-    try {
-        let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
-        if (data.result) return res.status(403).json(data);
+	try {
+		let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
+		if (data.result) return res.status(403).json(data);
 
-        next();
-    } catch (error) { res.status(400).json(error) }
+		next();
+	} catch (error) { res.status(400).json(error) }
 };
 
 restrictedCheck.mark = async(req, res, next) => {
-    try {
-        let data = await markModel.searchMarkUsage(req.dbCon, req.body.fwcloud, req.body.mark);
-        if (data.result) return res.status(403).json(data);
+	try {
+		let data = await markModel.searchMarkUsage(req.dbCon, req.body.fwcloud, req.body.mark);
+		if (data.result) return res.status(403).json(data);
 
-        next();
-    } catch (error) { res.status(400).json(error) }
+		next();
+	} catch (error) { res.status(400).json(error) }
 };

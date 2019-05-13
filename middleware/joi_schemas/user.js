@@ -42,7 +42,7 @@ schema.validate = req => {
 			if (req.url === '/user/get')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id.optional() });
 			else if (req.url === '/user/del' || req.url === '/user/restricted')
-				schema = schema = Joi.object().keys({ customer: sharedSch.id });
+				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id });
 			else return reject(fwcError.BAD_API_CALL);
 		} else return reject(fwcError.BAD_API_CALL);
 

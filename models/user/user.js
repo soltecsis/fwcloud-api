@@ -3,6 +3,8 @@ var userModel = {};
 var tableModel="user";
 
 var db = require('../../db.js');
+const fwcError = require('../../utils/error_table');
+
 
 //Get user by  username
 userModel.getUserName = function (customer, username) {
@@ -70,17 +72,6 @@ userModel.insert = req => {
 };
 
 
-userModel.existsId = (dbCon, customer) => {
-	return new Promise(async (resolve, reject) => {
-		dbCon.query(`select id from ${tableModel} where id=${customer}`, (error, result) => {
-			if (error) return reject(error);
-			if (result.length>0) return resolve(true);
-			resolve(false);
-		});
-	});
-};
-
-
 userModel.existsCustomerUserName = (dbCon, customer, username) => {
 	return new Promise(async (resolve, reject) => {
 		dbCon.query(`select id from ${tableModel} where customer=${customer} and username=${dbCon.escape(username)}`, (error, result) => {
@@ -97,6 +88,17 @@ userModel.existsCustomerUserId = (dbCon, customer, user) => {
 			if (error) return reject(error);
 			if (result.length>0) return resolve(true);
 			resolve(false);
+		});
+	});
+};
+
+userModel.isAdmin = req => {
+	return new Promise(async (resolve, reject) => {
+		req.dbCon.query(`select role from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length===0) return reject(fwcError.NOT_FOUND);
+
+			resolve(result[0].role===1 ? true : false);
 		});
 	});
 };
@@ -153,7 +155,7 @@ userModel.lastAdminUser = req => {
       if (error) return reject(error);
 
       if (result[0].n < 2)
-        resolve({result: true, restrictions: { LastCustomer: true}});
+        resolve({result: true, restrictions: { LastAdminUser: true}});
       else
         resolve({result: false});
     });

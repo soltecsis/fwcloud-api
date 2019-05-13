@@ -91,10 +91,11 @@ router.post('/logout',(req, res) => {
  * @apiName NewUser
  *  * @apiGroup USER
  * 
- * @apiDescription Create new user.
+ * @apiDescription Create new user.<br>
  *
  * @apiParam {Number} customer Customert id to which this user belongs to.
- * <br>The API will check that exists a customer with this id.
+ * <br>The API will check that exists a customer with this id. If the customer don't exists a not found error will 
+ * be generated.
  * @apiParam {String} name Full name of the owner of this user.
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
@@ -108,10 +109,10 @@ router.post('/logout',(req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10,
+ *   "customer": 2,
  *   "name": "My Personal Name",
  *   "email": "info@fwcloud.net",
- *   "username": "fwcloud",
+ *   "username": "fwcusr",
  *   "password": "mysecret",
  *   "enabled": 1,
  *   "role": 1,
@@ -121,6 +122,13 @@ router.post('/logout',(req, res) => {
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 No Content
  *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
+ * }
+ * 
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
@@ -154,7 +162,7 @@ router.post('', async (req, res) => {
  * 
  * @apiDescription Update user's data.
  *
- * @apiParam {Number} user User id.
+ * @apiParam {Number} user User's id.
  * @apiParam {Number} customer Customert id to which this user belongs to.
  * <br>The API will check that exists a customer with this id.
  * @apiParam {String} name Full name of the owner of this user.
@@ -170,7 +178,7 @@ router.post('', async (req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10,
+ *   "customer": 2,
  *   "name": "My Personal Name",
  *   "email": "info@fwcloud.net",
  *   "username": "fwcloud",
@@ -221,35 +229,35 @@ router.put('', async (req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10,
- *   "user": 5
+ *   "customer": 2,
+ *   "user": 1
  * }
  *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * {
- *     "response": {
- *         "respStatus": true,
- *         "respCode": "ACR_OK",
- *         "respCodeMsg": "Ok",
- *         "respMsg": "Customer data sent",
- *         "errorCode": "",
- *         "errorMsg": ""
- *     },
- *     "data": [
- *         {
- *             "id": 1,
- *             "name": "SOLTECSIS, S.L.",
- *             "addr": null,
- *             "phone": null,
- *             "email": "info@soltecsis.com",
- *             "web": "https://soltecsis.com",
- *             "created_at": "2019-05-02T09:13:35.000Z",
- *             "updated_at": "2019-05-02T09:13:35.000Z",
- *             "created_by": 0,
- *             "updated_by": 0
- *         }
- *     ]
+ *    "id": 2,
+ *    "customer": 2,
+ *    "name": "My Personal Name",
+ *    "email": "info@fwcloud.net",
+ *    "username": "fwcusr",
+ *    "password": "mysecret",
+ *    "enabled": 1,
+ *    "role": 1,
+ *    "allowed_from": "10.99.4.10,192.168.1.1",
+ *    "last_login": null,
+ *    "confirmation_token": null,
+ *    "created_at": "2019-05-13T15:11:20.000Z",
+ *    "updated_at": "2019-05-13T15:11:20.000Z",
+ *    "created_by": 0,
+ *    "updated_by": 0
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
  * }
  */
 router.put('/get', async (req, res) => {
@@ -263,7 +271,8 @@ router.put('/get', async (req, res) => {
 		if (req.body.user && !(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			throw fwcError.NOT_FOUND;
 
-		res.status(200).json(await userModel.get(req));
+		const data = await userModel.get(req);
+		res.status(200).json(req.body.user ? data[0] : data);
 	} catch (error) { res.status(400).json(error) }
 });
 
@@ -281,28 +290,24 @@ router.put('/get', async (req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "customer": 10
+ *   "customer": 2
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 204 OK
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
  * {
- *     "response": {
- *         "respStatus": true,
- *         "respCode": "ACR_OK",
- *         "respCodeMsg": "Ok",
- *         "respMsg": "User deleted",
- *         "errorCode": "",
- *         "errorMsg": ""
- *     },
- *     "data": {}
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
  * }
  */
 router.put('/del', 
 restrictedCheck.user,
 async (req, res) => {
 	try {
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
+		if (!(await userModel.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
 			throw fwcError.NOT_FOUND;
 
 		await userModel.delete(req);
@@ -357,7 +362,7 @@ router.put('/restricted', restrictedCheck.user, (req, res) => res.status(204).en
 
 
 /**
- * @api {POST} /user/fwcloud Allow a user access to a fwcloud.
+ * @api {POST} /user/fwcloud Enable cloud access.
  * @apiName UserAccessFwcloud
  *  * @apiGroup USER
  * 
@@ -387,7 +392,7 @@ router.post('/fwcloud', async (req, res) => {
 
 
 /**
- * @api {PUT} /user/fwcloud/del Disable user access to a fwcloud.
+ * @api {PUT} /user/fwcloud/del Disable cloud access.
  * @apiName UserDisableFwcloud
  *  * @apiGroup USER
  * 

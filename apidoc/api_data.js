@@ -368,7 +368,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10\n}",
+          "content": "{\n  \"customer\": 2\n}",
           "type": "json"
         }
       ]
@@ -377,7 +377,16 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n    \"response\": {\n        \"respStatus\": true,\n        \"respCode\": \"ACR_OK\",\n        \"respCodeMsg\": \"Ok\",\n        \"respMsg\": \"User deleted\",\n        \"errorCode\": \"\",\n        \"errorMsg\": \"\"\n    },\n    \"data\": {}\n}",
+          "content": "HTTP/1.1 204 OK",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1002,\n\t \"msg\":\t\"Not found\"\n}",
           "type": "json"
         }
       ]
@@ -415,7 +424,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10,\n  \"user\": 5\n}",
+          "content": "{\n  \"customer\": 2,\n  \"user\": 1\n}",
           "type": "json"
         }
       ]
@@ -424,7 +433,16 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n    \"response\": {\n        \"respStatus\": true,\n        \"respCode\": \"ACR_OK\",\n        \"respCodeMsg\": \"Ok\",\n        \"respMsg\": \"Customer data sent\",\n        \"errorCode\": \"\",\n        \"errorMsg\": \"\"\n    },\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"SOLTECSIS, S.L.\",\n            \"addr\": null,\n            \"phone\": null,\n            \"email\": \"info@soltecsis.com\",\n            \"web\": \"https://soltecsis.com\",\n            \"created_at\": \"2019-05-02T09:13:35.000Z\",\n            \"updated_at\": \"2019-05-02T09:13:35.000Z\",\n            \"created_by\": 0,\n            \"updated_by\": 0\n        }\n    ]\n}",
+          "content": "HTTP/1.1 200 OK\n{\n   \"id\": 2,\n   \"customer\": 2,\n   \"name\": \"My Personal Name\",\n   \"email\": \"info@fwcloud.net\",\n   \"username\": \"fwcusr\",\n   \"password\": \"mysecret\",\n   \"enabled\": 1,\n   \"role\": 1,\n   \"allowed_from\": \"10.99.4.10,192.168.1.1\",\n   \"last_login\": null,\n   \"confirmation_token\": null,\n   \"created_at\": \"2019-05-13T15:11:20.000Z\",\n   \"updated_at\": \"2019-05-13T15:11:20.000Z\",\n   \"created_by\": 0,\n   \"updated_by\": 0\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1002,\n\t \"msg\":\t\"Not found\"\n}",
           "type": "json"
         }
       ]
@@ -522,7 +540,7 @@ define({ "api": [
     "title": "New user",
     "name": "NewUser",
     "group": "USER",
-    "description": "<p>Create new user.</p>",
+    "description": "<p>Create new user.<br></p>",
     "parameter": {
       "fields": {
         "Parameter": [
@@ -531,7 +549,7 @@ define({ "api": [
             "type": "Number",
             "optional": false,
             "field": "customer",
-            "description": "<p>Customert id to which this user belongs to. <br>The API will check that exists a customer with this id.</p>"
+            "description": "<p>Customert id to which this user belongs to. <br>The API will check that exists a customer with this id. If the customer don't exists a not found error will be generated.</p>"
           },
           {
             "group": "Parameter",
@@ -587,7 +605,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10,\n  \"name\": \"My Personal Name\",\n  \"email\": \"info@fwcloud.net\",\n  \"username\": \"fwcloud\",\n  \"password\": \"mysecret\",\n  \"enabled\": 1,\n  \"role\": 1,\n  \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}",
+          "content": "{\n  \"customer\": 2,\n  \"name\": \"My Personal Name\",\n  \"email\": \"info@fwcloud.net\",\n  \"username\": \"fwcusr\",\n  \"password\": \"mysecret\",\n  \"enabled\": 1,\n  \"role\": 1,\n  \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}",
           "type": "json"
         }
       ]
@@ -603,6 +621,11 @@ define({ "api": [
     },
     "error": {
       "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1002,\n\t \"msg\":\t\"Not found\"\n}",
+          "type": "json"
+        },
         {
           "title": "Error-Response:",
           "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1003,\n\t \"msg\":\t\"Already exists\"\n}",
@@ -690,7 +713,7 @@ define({ "api": [
             "type": "Number",
             "optional": false,
             "field": "user",
-            "description": "<p>User id.</p>"
+            "description": "<p>User's id.</p>"
           },
           {
             "group": "Parameter",
@@ -753,7 +776,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10,\n  \"name\": \"My Personal Name\",\n  \"email\": \"info@fwcloud.net\",\n  \"username\": \"fwcloud\",\n  \"password\": \"mysecret\",\n  \"enabled\": 1,\n  \"role\": 1,\n  \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}",
+          "content": "{\n  \"customer\": 2,\n  \"name\": \"My Personal Name\",\n  \"email\": \"info@fwcloud.net\",\n  \"username\": \"fwcloud\",\n  \"password\": \"mysecret\",\n  \"enabled\": 1,\n  \"role\": 1,\n  \"allowed_from\": \"10.99.4.10,192.168.1.1\"\n}",
           "type": "json"
         }
       ]
@@ -783,7 +806,7 @@ define({ "api": [
   {
     "type": "POST",
     "url": "/user/fwcloud",
-    "title": "Allow a user access to a fwcloud.",
+    "title": "Enable cloud access.",
     "name": "UserAccessFwcloud",
     "group": "USER",
     "description": "<p>Allow a user the access to a fwcloud.</p>",
@@ -830,7 +853,7 @@ define({ "api": [
   {
     "type": "PUT",
     "url": "/user/fwcloud/del",
-    "title": "Disable user access to a fwcloud.",
+    "title": "Disable cloud access.",
     "name": "UserDisableFwcloud",
     "group": "USER",
     "description": "<p>Disable user access to a fwcloud.</p>",

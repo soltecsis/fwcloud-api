@@ -154,6 +154,7 @@ router.put('', async (req, res) => {
  * @apiParamExample {json} Request-Example:
  * {
  * }
+ * 
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * [
