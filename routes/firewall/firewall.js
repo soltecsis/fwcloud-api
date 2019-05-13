@@ -301,7 +301,7 @@ router.post('/', async(req, res) => {
 		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-		let newFirewallId = await firewallModel.insertFirewall(req.session.user_id, firewallData);
+		let newFirewallId = await firewallModel.insertFirewall(firewallData);
 		var dataresp = { "insertId": newFirewallId };
 
 		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);

@@ -125,7 +125,7 @@ router.post('/', (req, res) => {
 					firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 					firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-					let idfirewall = await FirewallModel.insertFirewall(req.session.user_id, firewallData);
+					let idfirewall = await FirewallModel.insertFirewall(firewallData);
 					await FirewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
 
 					if (firewallData.fwmaster === 1) {
