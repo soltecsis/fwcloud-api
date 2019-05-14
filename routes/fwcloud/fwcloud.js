@@ -122,18 +122,43 @@ router.put('/', async(req, res) => {
 
 
 /**
- * @api {PUT} /fwcloud/get Get allowed fwclouds
+ * @api {GET} /fwcloud/get Get allowed fwclouds
  * @apiName GetAllowedFwclouds
  *  * @apiGroup FWCLOUD
  * 
  * @apiDescription Get fwcloud data for all the fwclouds to which the logged used has access.
  *
- * @apiParamExample {json} Request-Example:
- * {
- * }
- *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
+ * [
+ *    {
+ *        "id": 4,
+ *        "name": "FWCloud-02",
+ *        "created_at": "2019-05-14T11:37:19.000Z",
+ *        "updated_at": "2019-05-14T11:37:19.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0,
+ *        "locked_at": null,
+ *        "locked_by": null,
+ *        "locked": 0,
+ *        "image": "",
+ *        "comment": ""
+ *    },
+ *    {
+ *        "id": 5,
+ *        "name": "FWCloud-03",
+ *        "created_at": "2019-05-14T11:37:24.000Z",
+ *        "updated_at": "2019-05-14T11:57:06.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0,
+ *        "locked_at": "2019-05-14T11:57:06.000Z",
+ *        "locked_by": 1,
+ *        "locked": 1,
+ *        "image": "",
+ *        "comment": ""
+ *		}
+ *	}
+ * ]
  * 
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
