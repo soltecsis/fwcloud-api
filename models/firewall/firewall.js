@@ -124,6 +124,7 @@ firewallModel.getFirewall = function (req) {
 		//logger.debug(sql);
 		req.dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
+			if (rows.length!==0) return resolve();
 
 			Promise.all(rows.map(utilsModel.decryptDataUserPass))
 			.then(data => resolve(data))
@@ -163,10 +164,10 @@ firewallModel.getFirewallSSH = function (req) {
 
 			// Obtain SSH connSettings for the firewall to which we want install the policy.
 			var SSHconn = {
-				host: data[0].ip,
-				port: data[0].install_port,
-				username: data[0].install_user,
-				password: data[0].install_pass
+				host: data.ip,
+				port: data.install_port,
+				username: data.install_user,
+				password: data.install_pass
 			}
 
 			// If we have ssh user and pass in the body of the request, then these data have preference over the data stored in database.

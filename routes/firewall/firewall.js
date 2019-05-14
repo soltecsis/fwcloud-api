@@ -182,7 +182,7 @@ router.put('/cloud/get', (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await firewallModel.getFirewall(req);
-		if (data && data.length > 0)
+		if (data)
 			res.status(200).json(data);
 		else
 			res.status(204).end();
@@ -458,10 +458,11 @@ router.put('/clone', async (req, res) => {
 router.put('/accesslock/get', async (req, res) => {
 	try {
 		const data = await firewallModel.getFirewall(req);
-		if (data && data.length > 0) {
+		if (data) {
 			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
 			res.status(200).json(resp);
 		}
+		else res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

@@ -28,68 +28,44 @@ clusterModel.getClusters = function (callback) {
 	});
 };
 
-
-
-
-
-//Get cluster by  id
-clusterModel.getCluster = function (id, callback) {
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(id);
-		connection.query(sql, function (error, row) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, row);
-		});
-	});
-};
-
 //Get FULL cluster by  id
-clusterModel.getClusterFullPro = (iduser, fwcloud, idcluster) => {
+clusterModel.getCluster = req => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
-			if (error)
-				reject(error);
-			var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + connection.escape(idcluster) + ' AND fwcloud=' + connection.escape(fwcloud);
-			connection.query(sql, function (error, row) {
-				if (error) return reject(error);
-				if (row && row.length > 0) {
-					var dataCluster = row[0];
-					//SEARCH FIREWALL NODES
-					firewallModel.getFirewallCluster(iduser, idcluster, (error, dataFw) => {
-						if (error) return reject(error);
-						//get data
-						if (dataFw && dataFw.length > 0)
-						{
-							dataCluster.nodes = dataFw;
-							//SEARCH INTERFACES FW-MASTER
-							firewallModel.getFirewallClusterMaster(iduser, idcluster, (error, dataFwM) => {
-								if (error) return reject(error);
-								if (dataFwM && dataFwM.length > 0) {
-									var idFwMaster = dataFwM[0].id;
-									interfaceModel.getInterfacesFull(idFwMaster, fwcloud, (error, dataI) => {
-										if (error) return reject(error);
-										if (dataI && dataI.length > 0) {
-											dataCluster.interfaces = dataI;
-										} else
-											dataCluster.interfaces = [];
-										resolve({"cluster": dataCluster});
-									});
-								} else
-									resolve({"cluster": dataCluster});
-							});
-						} else {
-							dataCluster.nodes = [];
-							resolve({"cluster": dataCluster});
-						}
+		var sql = 'SELECT * FROM ' + tableModel + ' WHERE id = ' + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
+		req.dbCon.query(sql, function (error, row) {
+			if (error) return reject(error);
+			if (row && row.length > 0) {
+				var dataCluster = row[0];
+				//SEARCH FIREWALL NODES
+				firewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
+					if (error) return reject(error);
+					//get data
+					if (dataFw && dataFw.length > 0)
+					{
+						dataCluster.nodes = dataFw;
+						//SEARCH INTERFACES FW-MASTER
+						firewallModel.getFirewallClusterMaster(req.session.user_id, req.body.cluster, (error, dataFwM) => {
+							if (error) return reject(error);
+							if (dataFwM && dataFwM.length > 0) {
+								var idFwMaster = dataFwM[0].id;
+								interfaceModel.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
+									if (error) return reject(error);
+									if (dataI && dataI.length > 0) {
+										dataCluster.interfaces = dataI;
+									} else
+										dataCluster.interfaces = [];
+									resolve(dataCluster);
+								});
+							} else
+								resolve(dataCluster);
+						});
+					} else {
+						dataCluster.nodes = [];
+						resolve(dataCluster);
+					}
 
-					});
-				} else
-					resolve(null);
-			});
+				});
+			} else resolve();
 		});
 	});
 };
