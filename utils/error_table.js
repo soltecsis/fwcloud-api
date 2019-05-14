@@ -41,6 +41,7 @@ var errorTable = {
   "VPN_NOT_FOUND_STATUS": {"fwcErr": 6005, "msg": "OpenVPN 'status' option not found"},
 
   // Access control error codes.
+  "ACC_FWCLOUD":          {"fwcErr": 7000, "msg": "FWCloud access not allowed"},
   "ACC_FIREWALL":         {"fwcErr": 7001, "msg": "Firewall access not allowed"},
   "ACC_TREE_NODE":        {"fwcErr": 7002, "msg": "Tree node access not allowed"},
   "ACC_CA":               {"fwcErr": 7003, "msg": "CA access not allowed"},

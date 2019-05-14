@@ -294,21 +294,19 @@ function checkFwCloudAccess(iduser, fwcloud, update, req, res) {
 								return resolve(true);
 							} else {
 								logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-								return reject(new Error('Error locking'));
+								return reject(fwcError.other('Error locking'));
 							}
 						})
 						.catch(r => {
 							logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
-							return reject(new Error('Error locking'));
+							return reject(fwcError.other('Error locking'));
 						});
 				} else if (resp.access && resp.locked && !resp.mylock) { //Acces ok an locked by other user
 					logger.warn("KO --> FWCLOUD ACCESS LOCKED BY OTHER USER ");
-					//next(new Error("KO --> FWCLOUD ACCESS NOT ALLOWED "));
-					return reject(new Error('FWCLOUD ACCESS LOCK BY OTHER USER'));
+					return reject(fwcError.other('FWCLOUD ACCESS LOCK BY OTHER USER'));
 				} else if (!resp.access) { //Acces Error
 					logger.warn("KO --> FWCLOUD ACCESS NOT ALLOWED");
-					//next(new Error("KO --> FWCLOUD ACCESS NOT ALLOWED "));
-					return reject(new Error('FWCLOUD ACCESS NOT ALLOWED'));
+					return reject(fwcError.ACC_FWCLOUD);
 				}
 				logger.warn("--------------------------------------------------");
 			})
@@ -316,7 +314,7 @@ function checkFwCloudAccess(iduser, fwcloud, update, req, res) {
 				logger.warn(resp);
 				logger.warn("ERROR --> FWCLOUD ACCESS NOT ALLOWED ");
 				logger.warn("--------------------------------------------------");
-				return reject(new Error('FWCLOUD ACCESS NOT ALLOWED'));
+				return reject(fwcError.ACC_FWCLOUD);
 			});
 	});
 };

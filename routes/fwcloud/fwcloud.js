@@ -39,7 +39,7 @@ var router = express.Router();
  * 
  * 
  */
-var FwcloudModel = require('../../models/fwcloud/fwcloud');
+var fwcloudModel = require('../../models/fwcloud/fwcloud');
 
 var utilsModel = require("../../utils/utils.js");
 var fwcTreemodel = require('../../models/tree/tree');
@@ -74,7 +74,7 @@ const fwcError = require('../../utils/error_table');
  */
 router.post('/', async(req, res) => {
 	try {
-		req.body.fwcloud = await FwcloudModel.insertFwcloud(req);
+		req.body.fwcloud = await fwcloudModel.insertFwcloud(req);
 		await fwcTreemodel.createAllTreeCloud(req);
 		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
@@ -98,54 +98,48 @@ router.post('/', async(req, res) => {
  * @apiParamExample {json} Request-Example:
  * {
  *   "id": 1,
- *   "name": "MyFWCloud",
+ *   "name": "FWCloud-Updated",
  *   "image": "",
- *   "comment": "My first FWCloud."
+ *   "comment": "Comment for the updated fwcloud."
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 204 No Content
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
  * {
- *   "insertId": 1
- * } 
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
  */
 router.put('/', async(req, res) => {
 	try {
-		await FwcloudModel.updateFwcloud(req);
+		await fwcloudModel.updateFwcloud(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
 
 
 /**
- * Get Fwclouds by User
+ * @api {PUT} /fwcloud/get Get allowed fwclouds
+ * @apiName GetAllowedFwclouds
+ *  * @apiGroup FWCLOUD
  * 
+ * @apiDescription Get fwcloud data for all the fwclouds to which the logged used has access.
+ *
+ * @apiParamExample {json} Request-Example:
+ * {
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
  * 
- * > ROUTE CALL:  __/:iduser__      
- * > METHOD:  __GET__
- * 
- * @method getFwcloudByUser
- * 
- * @param {Integer} iduser User identifier
- * 
- * @return {JSON} Returns `JSON` Data from Fwcloud
- * @example #### JSON RESPONSE
- *    
- *       {"data" : [
- *          {  //Data Fwcloud 1       
- *           "id" : ,            //Fwcloud Identifier
- *           "created_at" : ,    //Date Created
- *           "updated_at" : ,    //Date Updated
- *           "updated_by" : ,   //User last update
- *          },
- *          {....}, //Data Fwcloud 2
- *          {....}  //Data Fwcloud ...n 
- *         ]
- *       };
- * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
  */
 router.get('/all/get', (req, res) => {
-	FwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
+	fwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)
@@ -155,26 +149,50 @@ router.get('/all/get', (req, res) => {
 	});
 });
 
-/* Get fwcloud by Id */
+
 /**
- * Get Fwclouds by ID and User
+ * @api {PUT} /fwcloud/get Get fwcloud data
+ * @apiName GetFwcloud
+ *  * @apiGroup FWCLOUD
  * 
- * <br>ROUTE CALL:  <b>/get</b>
- * <br>METHOD: <b>PUT</b>
+ * @apiDescription Get fwcloud data.
  *
- * @method getFwcloudByUser_and_ID_V2
+ * @apiParam {Number} fwcloud FWCloud's id.
  * 
- * @param {Integer} iduser User identifier
- * @param {Integer} id Fwcloud identifier
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "id": 3
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 3,
+ *    "name": "FWCloud-Updated",
+ *    "created_at": "2019-05-14T11:37:15.000Z",
+ *    "updated_at": "2019-05-14T11:37:54.000Z",
+ *    "created_by": 0,
+ *    "updated_by": 0,
+ *    "locked_at": "2019-05-14T11:37:51.000Z",
+ *    "locked_by": 1,
+ *    "locked": 1,
+ *    "image": "",
+ *    "comment": "Comment for the updated fwcloud."
+ * }
  * 
- * @return {JSON} Returns Json Data from Fwcloud
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
  */
 router.put('/get', (req, res) => {
-	FwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+	fwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)
-			res.status(200).json(data);
+			res.status(200).json(data[0]);
 		else
 			res.status(400).json(fwcError.NOT_FOUND);
 	});
@@ -226,7 +244,7 @@ async(req, res) => {
 	try {
 		// Remove the fwcloud data dir.
 		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-		await FwcloudModel.deleteFwcloud(req);
+		await fwcloudModel.deleteFwcloud(req);
 
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
