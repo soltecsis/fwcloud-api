@@ -127,7 +127,7 @@ firewallModel.getFirewall = function (req) {
 			if (rows.length!==1) return resolve();
 
 			Promise.all(rows.map(utilsModel.decryptDataUserPass))
-			.then(data => resolve(data))
+			.then(data => resolve(data[0]))
 			.catch(error => reject(error));
 		});
 	});

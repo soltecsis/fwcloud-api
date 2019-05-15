@@ -60,6 +60,110 @@ var Policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
+/**
+ * @api {POST} /firewall New firewall
+ * @apiName NewFirewall
+ *  * @apiGroup FIREWALL
+ * 
+ * @apiDescription Create a new firewall.
+ *
+ * @apiParam {Number} fwcloud FWCloud to which the new firewall will belong.
+ * @apiParam {Number} [cluster] If this firewall is part of a firewalls cluster, the cluter's id.
+ * @apiParam {Number} [fwmaster] If this firewall is part of a firewalls cluster, this parameters indicates if it is the cluster master.
+ * @apiParam {String} name Firewall's name.
+ * @apiParam {String} comment Firewall's comment.
+ * @apiParam {String} [install_user] SSH user used for firewall access.
+ * @apiParam {String} [install_pass] SSH password used for firewall access.
+ * @apiParam {Number} save_user_pass Save the SSH user/password in the database.
+ * @apiParam {Number} [install_interface] Id of the firewall's network interface used for policy upload.
+ * @apiParam {Number} [install_ipobj] Id of the firewall's address used for policy upload.
+ * @apiParam {Number} [install_port] TCP port used for the SSH communication.
+ * @apiParam {Number} [options] Firewall's flag options.
+ * @apiParam {Number} node_id ID of the tree node to wich the new firewall will be added.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ *    "name": "Firewall-01",
+ *    "save_user_pass": 0,
+ *    "install_port": 22,
+ *    "fwmaster": 0,
+ *    "options": 0,
+ *    "node_id": 1
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "insertId": 1
+ * }
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7002,
+ *   "msg": "Tree node access not allowed"
+ * }
+ */
+router.post('/', async(req, res) => {
+	var firewallData = {
+		id: null,
+		cluster: req.body.cluster,
+		name: req.body.name,
+		status: 3,
+		comment: req.body.comment,
+		fwcloud: req.body.fwcloud,
+		install_user: req.body.install_user,
+		install_pass: req.body.install_pass,
+		save_user_pass: req.body.save_user_pass,
+		install_interface: req.body.install_interface,
+		install_ipobj: req.body.install_ipobj,
+		fwmaster: req.body.fwmaster,
+		install_port: req.body.install_port,
+		by_user: req.session.user_id,
+		options: req.body.options
+	};
+
+	try {
+		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
+		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
+			throw fwcError.BAD_TREE_NODE_TYPE;
+
+		firewallData = await firewallModel.checkBodyFirewall(firewallData, true);
+
+		//encript username and password
+		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
+		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
+
+		let newFirewallId = await firewallModel.insertFirewall(firewallData);
+		var dataresp = { "insertId": newFirewallId };
+
+		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
+
+		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
+			// Create the loop backup interface.
+			const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
+			await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
+		}
+
+		if (!firewallData.cluster) // Create firewall tree.
+			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
+		else // Create the new firewall node in the NODES node of the cluster.
+			await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
+
+		// Create the directory used for store firewall data.
+		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
+
+		res.status(200).json(dataresp);
+	} catch (error) { res.status(400).json(error) }
+});
 
 /**
  * Get Firewalls by User
@@ -235,94 +339,6 @@ router.put('/cluster/get', (req, res) => {
 });
 
 
-/**
- * CREATE New firewall
- * 
- * 
- * > ROUTE CALL:  __/firewalls/firewall__      
- * > METHOD:  __POST__
- * 
- *
- * @method AddFirewall
- * 
- * @param {Integer} id Firewall identifier (AUTO)
- * @param {Integer} iduser User identifier
- * @param {Integer} cluster Cluster identifier
- * @param {String} name Firewall Name
- * @param {String} [comment] Firewall comment
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "insertId : ID,   //firewall identifier           
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
- */
-router.post('/', async(req, res) => {
-	var firewallData = {
-		id: null,
-		cluster: req.body.cluster,
-		name: req.body.name,
-		status: 3,
-		comment: req.body.comment,
-		fwcloud: req.body.fwcloud,
-		install_user: req.body.install_user,
-		install_pass: req.body.install_pass,
-		save_user_pass: req.body.save_user_pass,
-		install_interface: req.body.install_interface,
-		install_ipobj: req.body.install_ipobj,
-		fwmaster: req.body.fwmaster,
-		install_port: req.body.install_port,
-		by_user: req.session.user_id,
-		options: req.body.options
-	};
-
-	try {
-		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
-		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
-			throw fwcError.BAD_TREE_NODE_TYPE;
-
-		firewallData = await firewallModel.checkBodyFirewall(firewallData, true);
-
-		//encript username and password
-		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
-		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
-
-		let newFirewallId = await firewallModel.insertFirewall(firewallData);
-		var dataresp = { "insertId": newFirewallId };
-
-		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
-
-		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
-			// Create the loop backup interface.
-			const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, newFirewallId);
-			await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
-		}
-
-		if (!firewallData.cluster) // Create firewall tree.
-			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
-		else // Create the new firewall node in the NODES node of the cluster.
-			await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
-
-		// Create the directory used for store firewall data.
-		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
-
-		res.status(200).json(dataresp);
-	} catch (error) { res.status(400).json(error) }
-});
 
 
 /**
