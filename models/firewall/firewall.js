@@ -507,7 +507,7 @@ firewallModel.cloneFirewall = function (iduser, firewallData) {
 					' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 					connection.query(sql, function (error, result) {
 						if (error) return reject(error);
-						resolve({"result": true, "insertId": result.insertId});                                    
+						resolve({"insertId": result.insertId});                                    
 					});
 				} else reject(fwcError.NOT_FOUND);
 			});

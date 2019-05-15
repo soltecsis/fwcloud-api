@@ -1,6 +1,55 @@
 [
   {
     "type": "PUT",
+    "url": "/customer/restricted",
+    "title": "Restrictions for customer deletion",
+    "name": "DelCustomer",
+    "group": "CUSTOMER",
+    "description": "<p>Check that there are no restrictions for customer deletion.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "customer",
+            "description": "<p>Customer's id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n  \"customer\": 10\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 204 No Content",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 403 Forbidden\n{\n   \"result\": true,\n   \"restrictions\": {\n       \"CustomerHasUsers\": true\n   }\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/user/customer.js",
+    "groupTitle": "CUSTOMER"
+  },
+  {
+    "type": "PUT",
     "url": "/customer/del",
     "title": "Delete customer",
     "name": "DelCustomer",
@@ -42,55 +91,6 @@
           "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1002,\n  \"msg\": \"Not found\"\n}",
           "type": "json"
         },
-        {
-          "title": "Error-Response:",
-          "content": "HTTP/1.1 403 Forbidden\n{\n   \"result\": true,\n   \"restrictions\": {\n       \"CustomerHasUsers\": true\n   }\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "routes/user/customer.js",
-    "groupTitle": "CUSTOMER"
-  },
-  {
-    "type": "PUT",
-    "url": "/customer/restricted",
-    "title": "Restrictions for customer deletion",
-    "name": "DelCustomer",
-    "group": "CUSTOMER",
-    "description": "<p>Check that there are no restrictions for customer deletion.</p>",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "Number",
-            "optional": false,
-            "field": "customer",
-            "description": "<p>Customer's id.</p>"
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Request-Example:",
-          "content": "{\n  \"customer\": 10\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "success": {
-      "examples": [
-        {
-          "title": "Success-Response:",
-          "content": "HTTP/1.1 204 No Content",
-          "type": "json"
-        }
-      ]
-    },
-    "error": {
-      "examples": [
         {
           "title": "Error-Response:",
           "content": "HTTP/1.1 403 Forbidden\n{\n   \"result\": true,\n   \"restrictions\": {\n       \"CustomerHasUsers\": true\n   }\n}",
@@ -338,6 +338,780 @@
     "version": "0.0.0",
     "filename": "routes/user/customer.js",
     "groupTitle": "CUSTOMER"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall/clone",
+    "title": "Clone firewall",
+    "name": "CloneFirewall",
+    "group": "FIREWALL",
+    "description": "<p>Create a new firewall cloning the one indicated in the request's parameters.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud to which the cloned firewall will belong.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "firewall",
+            "description": "<p>Id of the firewall to be cloned.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Cloned firewall's name.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "comment",
+            "description": "<p>Cloned firewall's comment.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "node_id",
+            "description": "<p>ID of the tree node to wich the cloned firewall will be added.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n\t\t\"firewall\": 5,\n   \"name\": \"Firewall-CLONED\",\n\t\t\"comment\": \"Comment for the cloned firewall.\",\n   \"node_id\": 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n   \"insertId\": 7\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7001,\n   \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall/del",
+    "title": "Delete firewall",
+    "name": "DelFirewall",
+    "group": "FIREWALL",
+    "description": "<p>Delete a firewall.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud's id of the firewall to delete.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "firewall",
+            "description": "<p>Id of the firewall to be deleted.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n\t\t\"firewall\": 7\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 204 No Content",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7001,\n   \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall/get",
+    "title": "Get firewall data",
+    "name": "GetFirewall",
+    "group": "FIREWALL",
+    "description": "<p>Get firewall data.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud's id.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "firewall",
+            "description": "<p>Firewall's id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n  \t\"firewall\": 5\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n  \"id\": 5,\n  \"cluster\": null,\n  \"fwcloud\": 1,\n  \"name\": \"Firewall-05\",\n  \"comment\": null,\n  \"created_at\": \"2019-05-15T10:34:46.000Z\",\n  \"updated_at\": \"2019-05-15T10:34:47.000Z\",\n  \"compiled_at\": null,\n  \"installed_at\": null,\n  \"by_user\": 1,\n  \"status\": 3,\n  \"install_user\": \"\",\n  \"install_pass\": \"\",\n  \"save_user_pass\": 0,\n  \"install_interface\": null,\n  \"install_ipobj\": null,\n  \"fwmaster\": 0,\n  \"install_port\": 22,\n  \"options\": 0,\n  \"interface_name\": null,\n  \"ip_name\": null,\n  \"ip\": null,\n  \"id_fwmaster\": null\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 7001,\n \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall/cloud/get",
+    "title": "Get firewalls in cloud",
+    "name": "GetFirewallsCloud",
+    "group": "FIREWALL",
+    "description": "<p>Get firewalls data by fwcloud.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud's id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n  {\n    \"id\": 1,\n    \"cluster\": null,\n    \"fwcloud\": 1,\n    \"name\": \"Firewall-01\",\n    \"comment\": null,\n    \"created_at\": \"2019-05-15T10:34:46.000Z\",\n    \"updated_at\": \"2019-05-15T10:34:47.000Z\",\n    \"compiled_at\": null,\n    \"installed_at\": null,\n    \"by_user\": 1,\n    \"status\": 3,\n    \"install_user\": \"\",\n    \"install_pass\": \"\",\n    \"save_user_pass\": 0,\n    \"install_interface\": null,\n    \"install_ipobj\": null,\n    \"fwmaster\": 0,\n    \"install_port\": 22,\n    \"options\": 0,\n    \"interface_name\": null,\n    \"ip_name\": null,\n    \"ip\": null,\n    \"id_fwmaster\": null\n  },\n  {\n    \"id\": 2,\n    \"cluster\": null,\n    \"fwcloud\": 1,\n    \"name\": \"Firewall-02\",\n    \"comment\": null,\n    \"created_at\": \"2019-05-15T10:34:46.000Z\",\n    \"updated_at\": \"2019-05-15T10:34:47.000Z\",\n    \"compiled_at\": null,\n    \"installed_at\": null,\n    \"by_user\": 1,\n    \"status\": 3,\n    \"install_user\": \"\",\n    \"install_pass\": \"\",\n    \"save_user_pass\": 0,\n    \"install_interface\": null,\n    \"install_ipobj\": null,\n    \"fwmaster\": 0,\n    \"install_port\": 22,\n    \"options\": 0,\n    \"interface_name\": null,\n    \"ip_name\": null,\n    \"ip\": null,\n    \"id_fwmaster\": null\n  }\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 7001,\n \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall/cluster/get",
+    "title": "Get firewalls in cluster",
+    "name": "GetFirewallsCluster",
+    "group": "FIREWALL",
+    "description": "<p>Get firewalls data by cluster.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud id.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "cluster",
+            "description": "<p>Cluster id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n\t\t\"cluster\": 2\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n  {\n    \"id\": 1,\n    \"cluster\": 2,\n    \"fwcloud\": 1,\n    \"name\": \"Firewall-01\",\n    \"comment\": null,\n    \"created_at\": \"2019-05-15T10:34:46.000Z\",\n    \"updated_at\": \"2019-05-15T10:34:47.000Z\",\n    \"compiled_at\": null,\n    \"installed_at\": null,\n    \"by_user\": 1,\n    \"status\": 3,\n    \"install_user\": \"\",\n    \"install_pass\": \"\",\n    \"save_user_pass\": 0,\n    \"install_interface\": null,\n    \"install_ipobj\": null,\n    \"fwmaster\": 1,\n    \"install_port\": 22,\n    \"options\": 0,\n    \"interface_name\": null,\n    \"ip_name\": null,\n    \"ip\": null,\n    \"id_fwmaster\": null\n  },\n  {\n    \"id\": 2,\n    \"cluster\": 2,\n    \"fwcloud\": 1,\n    \"name\": \"Firewall-02\",\n    \"comment\": null,\n    \"created_at\": \"2019-05-15T10:34:46.000Z\",\n    \"updated_at\": \"2019-05-15T10:34:47.000Z\",\n    \"compiled_at\": null,\n    \"installed_at\": null,\n    \"by_user\": 1,\n    \"status\": 3,\n    \"install_user\": \"\",\n    \"install_pass\": \"\",\n    \"save_user_pass\": 0,\n    \"install_interface\": null,\n    \"install_ipobj\": null,\n    \"fwmaster\": 0,\n    \"install_port\": 22,\n    \"options\": 0,\n    \"interface_name\": null,\n    \"ip_name\": null,\n    \"ip\": null,\n    \"id_fwmaster\": null\n  }\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 7001,\n \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "POST",
+    "url": "/firewall",
+    "title": "New firewall",
+    "name": "NewFirewall",
+    "group": "FIREWALL",
+    "description": "<p>Create a new firewall.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud to which the new firewall will belong.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "cluster",
+            "description": "<p>If this firewall is part of a firewalls cluster, the cluter's id.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "fwmaster",
+            "description": "<p>If this firewall is part of a firewalls cluster, this parameters indicates if it is the cluster master.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Firewall's name.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "comment",
+            "description": "<p>Firewall's comment.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "install_user",
+            "description": "<p>SSH user used for firewall access.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "install_pass",
+            "description": "<p>SSH password used for firewall access.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "save_user_pass",
+            "description": "<p>Save the SSH user/password in the database.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_interface",
+            "description": "<p>Id of the firewall's network interface used for policy upload.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_ipobj",
+            "description": "<p>Id of the firewall's address used for policy upload.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_port",
+            "description": "<p>TCP port used for the SSH communication.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "options",
+            "description": "<p>Firewall's flag options.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "node_id",
+            "description": "<p>ID of the tree node to wich the new firewall will be added.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n   \"name\": \"Firewall-01\",\n   \"save_user_pass\": 0,\n   \"install_port\": 22,\n   \"fwmaster\": 0,\n   \"options\": 0,\n   \"node_id\": 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n  \"insertId\": 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n  \"fwcErr\": 1002,\n\t \"msg\":\t\"Not found\"\n}",
+          "type": "json"
+        },
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7002,\n  \"msg\": \"Tree node access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "PUT",
+    "url": "/firewall",
+    "title": "Update firewall",
+    "name": "UpdateFirewall",
+    "group": "FIREWALL",
+    "description": "<p>Update firewall information.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud to which the firewall belongs.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "firewall",
+            "description": "<p>Firewall's id.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "cluster",
+            "description": "<p>If this firewall is part of a firewalls cluster, the cluter's id.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "fwmaster",
+            "description": "<p>If this firewall is part of a firewalls cluster, this parameters indicates if it is the cluster master.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Firewall's name.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "comment",
+            "description": "<p>Firewall's comment.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "install_user",
+            "description": "<p>SSH user used for firewall access.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": true,
+            "field": "install_pass",
+            "description": "<p>SSH password used for firewall access.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "save_user_pass",
+            "description": "<p>Save the SSH user/password in the database.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_interface",
+            "description": "<p>Id of the firewall's network interface used for policy upload.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_ipobj",
+            "description": "<p>Id of the firewall's address used for policy upload.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "install_port",
+            "description": "<p>TCP port used for the SSH communication.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": true,
+            "field": "options",
+            "description": "<p>Firewall's flag options.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "node_id",
+            "description": "<p>ID of the tree node to wich the new firewall will be added.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n   \"fwcloud\": 1,\n\t\t\"firewall\": 5,\n   \"name\": \"Firewall-UPDATED\",\n\t\t\"comment\": \"Comment for the updated firewall.\",\n   \"save_user_pass\": 0,\n   \"install_port\": 22,\n   \"fwmaster\": 0,\n   \"options\": 3\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 204 No Content",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7001,\n   \"msg\": \"Firewall access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/firewall/firewall.js",
+    "groupTitle": "FIREWALL"
+  },
+  {
+    "type": "GET",
+    "url": "/fwcloud/get",
+    "title": "Get allowed fwclouds",
+    "name": "GetAllowedFwclouds",
+    "group": "FWCLOUD",
+    "description": "<p>Get fwcloud data for all the fwclouds to which the logged used has access.</p>",
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n   {\n       \"id\": 4,\n       \"name\": \"FWCloud-02\",\n       \"created_at\": \"2019-05-14T11:37:19.000Z\",\n       \"updated_at\": \"2019-05-14T11:37:19.000Z\",\n       \"created_by\": 0,\n       \"updated_by\": 0,\n       \"locked_at\": null,\n       \"locked_by\": null,\n       \"locked\": 0,\n       \"image\": \"\",\n       \"comment\": \"\"\n   },\n   {\n       \"id\": 5,\n       \"name\": \"FWCloud-03\",\n       \"created_at\": \"2019-05-14T11:37:24.000Z\",\n       \"updated_at\": \"2019-05-14T11:57:06.000Z\",\n       \"created_by\": 0,\n       \"updated_by\": 0,\n       \"locked_at\": \"2019-05-14T11:57:06.000Z\",\n       \"locked_by\": 1,\n       \"locked\": 1,\n       \"image\": \"\",\n       \"comment\": \"\"\n\t\t}\n\t}\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/fwcloud/fwcloud.js",
+    "groupTitle": "FWCLOUD"
+  },
+  {
+    "type": "PUT",
+    "url": "/fwcloud/get",
+    "title": "Get fwcloud data",
+    "name": "GetFwcloud",
+    "group": "FWCLOUD",
+    "description": "<p>Get fwcloud data.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>FWCloud's id.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n  \"id\": 3\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n   \"id\": 3,\n   \"name\": \"FWCloud-Updated\",\n   \"created_at\": \"2019-05-14T11:37:15.000Z\",\n   \"updated_at\": \"2019-05-14T11:37:54.000Z\",\n   \"created_by\": 0,\n   \"updated_by\": 0,\n   \"locked_at\": \"2019-05-14T11:37:51.000Z\",\n   \"locked_by\": 1,\n   \"locked\": 1,\n   \"image\": \"\",\n   \"comment\": \"Comment for the updated fwcloud.\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7000,\n   \"msg\": \"FWCloud access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/fwcloud/fwcloud.js",
+    "groupTitle": "FWCLOUD"
+  },
+  {
+    "type": "POST",
+    "url": "/fwcloud",
+    "title": "New fwcloud",
+    "name": "NewFwcloud",
+    "group": "FWCLOUD",
+    "description": "<p>Create a new FWCloud.<br> One FWCloud is an agrupation of logical IP objects.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>FWCloud's name.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "image",
+            "description": "<p>Image vinculated to this FWCloud..</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "comment",
+            "description": "<p>FWCloud's comment.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n  \"name\": \"FWCloud-01\",\n  \"image\": \"\",\n  \"comment\": \"My first FWCloud.\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n  \"insertId\": 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/fwcloud/fwcloud.js",
+    "groupTitle": "FWCLOUD"
+  },
+  {
+    "type": "PUT",
+    "url": "/fwcloud",
+    "title": "Update fwcloud",
+    "name": "UpdateFwcloud",
+    "group": "FWCLOUD",
+    "description": "<p>Update FWCloud information.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "fwcloud",
+            "description": "<p>Id of the FWCloud that we want modify.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>FWCloud's name.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "image",
+            "description": "<p>Image vinculated to this FWCloud..</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "comment",
+            "description": "<p>FWCloud's comment.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Request-Example:",
+          "content": "{\n  \"id\": 1,\n  \"name\": \"FWCloud-Updated\",\n  \"image\": \"\",\n  \"comment\": \"Comment for the updated fwcloud.\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 204 No Content",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 400 Bad Request\n{\n   \"fwcErr\": 7000,\n   \"msg\": \"FWCloud access not allowed\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "routes/fwcloud/fwcloud.js",
+    "groupTitle": "FWCLOUD"
   },
   {
     "type": "PUT",

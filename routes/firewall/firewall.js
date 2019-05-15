@@ -166,6 +166,99 @@ router.post('/', async(req, res) => {
 });
 
 
+/**
+ * @api {PUT} /firewall Update firewall
+ * @apiName UpdateFirewall
+ *  * @apiGroup FIREWALL
+ * 
+ * @apiDescription Update firewall information.
+ *
+ * @apiParam {Number} fwcloud FWCloud to which the firewall belongs.
+ * @apiParam {Number} firewall Firewall's id.
+ * @apiParam {Number} [cluster] If this firewall is part of a firewalls cluster, the cluter's id.
+ * @apiParam {Number} [fwmaster] If this firewall is part of a firewalls cluster, this parameters indicates if it is the cluster master.
+ * @apiParam {String} name Firewall's name.
+ * @apiParam {String} comment Firewall's comment.
+ * @apiParam {String} [install_user] SSH user used for firewall access.
+ * @apiParam {String} [install_pass] SSH password used for firewall access.
+ * @apiParam {Number} save_user_pass Save the SSH user/password in the database.
+ * @apiParam {Number} [install_interface] Id of the firewall's network interface used for policy upload.
+ * @apiParam {Number} [install_ipobj] Id of the firewall's address used for policy upload.
+ * @apiParam {Number} [install_port] TCP port used for the SSH communication.
+ * @apiParam {Number} [options] Firewall's flag options.
+ * @apiParam {Number} node_id ID of the tree node to wich the new firewall will be added.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ * 		"firewall": 5,
+ *    "name": "Firewall-UPDATED",
+ * 		"comment": "Comment for the updated firewall.",
+ *    "save_user_pass": 0,
+ *    "install_port": 22,
+ *    "fwmaster": 0,
+ *    "options": 3
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7001,
+ *    "msg": "Firewall access not allowed"
+ * }
+ */
+router.put('/', async (req, res) => {
+	//Save firewall data into objet    
+	var firewallData = {
+		id: req.body.firewall,
+		cluster: req.body.cluster,
+		name: req.body.name,
+		comment: req.body.comment,
+		fwcloud: req.body.fwcloud, //working cloud      
+		install_user: req.body.install_user,
+		install_pass: req.body.install_pass,
+		save_user_pass: req.body.save_user_pass,
+		install_interface: req.body.install_interface,
+		install_ipobj: req.body.install_ipobj,
+		fwmaster: req.body.fwmaster,
+		install_port: req.body.install_port,
+		by_user: req.session.user_id, //working user
+		options: req.body.options
+	};
+
+	try {
+		await Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall);
+		await firewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
+		await firewallModel.checkBodyFirewall(firewallData, false);
+
+		//encript username and password
+		let data = await utilsModel.encrypt(firewallData.install_user)
+		firewallData.install_user = data;
+		data = await utilsModel.encrypt(firewallData.install_pass);
+		firewallData.install_pass = data;
+		if (!firewallData.save_user_pass) {
+			firewallData.install_user = '';
+			firewallData.install_pass = '';
+		}
+
+		await firewallModel.updateFirewall(req.dbCon, req.session.user_id, firewallData);
+		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
+
+		// If this a stateful firewall verify that the stateful special rules exists.
+		// Or remove them if this is not a stateful firewall.
+		await Policy_rModel.checkStatefulRules(req.dbCon, req.body.firewall, req.body.options);
+
+		//////////////////////////////////
+		//UPDATE FIREWALL NODE STRUCTURE                                    
+		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
+
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
+});
+
 
 /**
  * @api {PUT} /firewall/get Get firewall data
@@ -230,11 +323,11 @@ router.put('/get', async (req, res) => {
 
 
 /**
- * @api {PUT} /firewall/cloud/get Get firewalls data
- * @apiName GetFirewalls
+ * @api {PUT} /firewall/cloud/get Get firewalls in cloud
+ * @apiName GetFirewallsCloud
  *  * @apiGroup FIREWALL
  * 
- * @apiDescription Get firewall data by fwcloud.
+ * @apiDescription Get firewalls data by fwcloud.
  *
  * @apiParam {Number} fwcloud FWCloud's id.
  * 
@@ -318,36 +411,82 @@ router.put('/cloud/get', async (req, res) => {
 
 
 /**
- * Get Firewalls by Cluster
+ * @api {PUT} /firewall/cluster/get Get firewalls in cluster
+ * @apiName GetFirewallsCluster
+ *  * @apiGroup FIREWALL
  * 
+ * @apiDescription Get firewalls data by cluster.
+ *
+ * @apiParam {Number} fwcloud FWCloud id.
+ * @apiParam {Number} cluster Cluster id.
  * 
- * > ROUTE CALL:  __/firewalls/:iduser/cluster/:idcluster__      
- * > METHOD:  __GET__
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ * 		"cluster": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * [
+ *   {
+ *     "id": 1,
+ *     "cluster": 2,
+ *     "fwcloud": 1,
+ *     "name": "Firewall-01",
+ *     "comment": null,
+ *     "created_at": "2019-05-15T10:34:46.000Z",
+ *     "updated_at": "2019-05-15T10:34:47.000Z",
+ *     "compiled_at": null,
+ *     "installed_at": null,
+ *     "by_user": 1,
+ *     "status": 3,
+ *     "install_user": "",
+ *     "install_pass": "",
+ *     "save_user_pass": 0,
+ *     "install_interface": null,
+ *     "install_ipobj": null,
+ *     "fwmaster": 1,
+ *     "install_port": 22,
+ *     "options": 0,
+ *     "interface_name": null,
+ *     "ip_name": null,
+ *     "ip": null,
+ *     "id_fwmaster": null
+ *   },
+ *   {
+ *     "id": 2,
+ *     "cluster": 2,
+ *     "fwcloud": 1,
+ *     "name": "Firewall-02",
+ *     "comment": null,
+ *     "created_at": "2019-05-15T10:34:46.000Z",
+ *     "updated_at": "2019-05-15T10:34:47.000Z",
+ *     "compiled_at": null,
+ *     "installed_at": null,
+ *     "by_user": 1,
+ *     "status": 3,
+ *     "install_user": "",
+ *     "install_pass": "",
+ *     "save_user_pass": 0,
+ *     "install_interface": null,
+ *     "install_ipobj": null,
+ *     "fwmaster": 0,
+ *     "install_port": 22,
+ *     "options": 0,
+ *     "interface_name": null,
+ *     "ip_name": null,
+ *     "ip": null,
+ *     "id_fwmaster": null
+ *   }
+ * ]
  * 
- * @method getFirewallByUser_and_Cluster
- * 
- * @param {Integer} iduser User identifier
- * @param {Number} idcluster Cluster identifier
- * 
- * @return {JSON} Returns `JSON` Data from Firewall
- * @example #### JSON RESPONSE
- *    
- *       {"data" : [
- *          {  //Data Firewall 1       
- *           "id" : ,            //Firewall Identifier
- *           "cluster" : ,       //Cluster
- *           "fwcloud" : ,       //Id Firewall cloud
- *           "name" : ,          //Firewall name
- *           "comment" : ,       //comment
- *           "created_at" : ,    //Date Created
- *           "updated_at" : ,    //Date Updated
- *           "by_user" : ,       //User last update
- *          },
- *          {....}, //Data Firewall 2
- *          {....}  //Data Firewall ...n 
- *         ]
- *       };
- * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 7001,
+ *  "msg": "Firewall access not allowed"
+ * }
  */
 router.put('/cluster/get', (req, res) => {
 	firewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
@@ -364,92 +503,40 @@ router.put('/cluster/get', (req, res) => {
 
 
 /**
- * UPDATE firewall
+ * @api {PUT} /firewall/clone Clone firewall
+ * @apiName CloneFirewall
+ *  * @apiGroup FIREWALL
  * 
- * 
- * > ROUTE CALL:  __/firewalls/firewall__      
- * > METHOD:  __PUT__
- * 
+ * @apiDescription Create a new firewall cloning the one indicated in the request's parameters.
  *
- * @method UpdateFirewall
+ * @apiParam {Number} fwcloud FWCloud to which the cloned firewall will belong.
+ * @apiParam {Number} firewall Id of the firewall to be cloned.
+ * @apiParam {String} name Cloned firewall's name.
+ * @apiParam {String} comment Cloned firewall's comment.
+ * @apiParam {Number} node_id ID of the tree node to wich the cloned firewall will be added.
  * 
- * @param {Integer} id Firewall identifier
- * @optional
- * @param {Integer} iduser User identifier
- * @param {Integer} cluster Cluster identifier
- * @param {String} name Firewall Name
- * @param {String} comment Firewall comment
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ * 		"firewall": 5,
+ *    "name": "Firewall-CLONED",
+ * 		"comment": "Comment for the cloned firewall.",
+ *    "node_id": 1
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "insertId": 7
+ * }
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7001,
+ *    "msg": "Firewall access not allowed"
+ * }
  */
-router.put('/', async (req, res) => {
-	//Save firewall data into objet    
-	var firewallData = {
-		id: req.body.firewall,
-		cluster: req.body.cluster,
-		name: req.body.name,
-		comment: req.body.comment,
-		fwcloud: req.body.fwcloud, //working cloud      
-		install_user: req.body.install_user,
-		install_pass: req.body.install_pass,
-		save_user_pass: req.body.save_user_pass,
-		install_interface: req.body.install_interface,
-		install_ipobj: req.body.install_ipobj,
-		fwmaster: req.body.fwmaster,
-		install_port: req.body.install_port,
-		by_user: req.session.user_id, //working user
-		options: req.body.options
-	};
-
-	try {
-		await Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall);
-		await firewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
-		await firewallModel.checkBodyFirewall(firewallData, false);
-
-		//encript username and password
-		let data = await utilsModel.encrypt(firewallData.install_user)
-		firewallData.install_user = data;
-		data = await utilsModel.encrypt(firewallData.install_pass);
-		firewallData.install_pass = data;
-		if (!firewallData.save_user_pass) {
-			firewallData.install_user = '';
-			firewallData.install_pass = '';
-		}
-
-		data = await firewallModel.updateFirewall(req.dbCon, req.session.user_id, firewallData);
-		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
-
-		// If this a stateful firewall verify that the stateful special rules exists.
-		// Or remove them if this is not a stateful firewall.
-		await Policy_rModel.checkStatefulRules(req.dbCon, req.body.firewall, req.body.options);
-
-		//////////////////////////////////
-		//UPDATE FIREWALL NODE STRUCTURE                                    
-		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
-
-		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
-});
-
-
 router.put('/clone', async (req, res) => {
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
@@ -514,37 +601,30 @@ router.put("/restricted",
 
 
 /**
- * DELETE firewall
+ * @api {PUT} /firewall/del Delete firewall
+ * @apiName DelFirewall
+ *  * @apiGroup FIREWALL
  * 
- * 
- * > ROUTE CALL:  __/firewalls/firewall__      
- * > METHOD:  __DELETE__
- * 
+ * @apiDescription Delete a firewall.
  *
- * @method DeleteFirewall
+ * @apiParam {Number} fwcloud FWCloud's id of the firewall to delete.
+ * @apiParam {Number} firewall Id of the firewall to be deleted.
  * 
- * @param {Integer} id Firewall identifier
- * @optional
- * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ * 		"firewall": 7
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7001,
+ *    "msg": "Firewall access not allowed"
+ * }
  */
 router.put('/del',
 	restrictedCheck.firewall,
@@ -554,6 +634,8 @@ router.put('/del',
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
 	});
+
+
 
 //DELETE FIREWALL FROM CLUSTER
 router.put('/delfromcluster',
