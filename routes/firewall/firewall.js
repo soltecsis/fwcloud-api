@@ -165,90 +165,6 @@ router.post('/', async(req, res) => {
 	} catch (error) { res.status(400).json(error) }
 });
 
-/**
- * Get Firewalls by User
- * 
- * 
- * > ROUTE CALL:  __/firewalls/:iduser__      
- * > METHOD:  __GET__
- * 
- * @method getFirewallByUser
- * 
- * @param {Integer} iduser User identifier
- * 
- * @return {JSON} Returns `JSON` Data from Firewall
- * @example #### JSON RESPONSE
- *    
- *       {"data" : [
- *          {  //Data Firewall 1       
- *           "id" : ,            //Firewall Identifier
- *           "cluster" : ,       //Cluster
- *           "fwcloud" : ,       //Id Firewall cloud
- *           "name" : ,          //Firewall name
- *           "comment" : ,       //comment
- *           "created_at" : ,    //Date Created
- *           "updated_at" : ,    //Date Updated
- *           "by_user" : ,       //User last update
- *          },
- *          {....}, //Data Firewall 2
- *          {....}  //Data Firewall ...n 
- *         ]
- *       };
- * 
- */
-router.put('/all/get', (req, res) => {
-	firewallModel.getFirewalls(req.session.user_id, (error, data) => {
-		if (error) return res.status(400).json(error);
-		
-		if (data && data.length > 0)
-			res.status(200).json(data);
-		else
-			res.status(204).end();
-	});
-});
-
-/**
- * Get Firewalls by Cloud
- * 
- * 
- * > ROUTE CALL:  __/firewalls/Cloud/__      
- * > METHOD:  __GET__
- * 
- * @method getFirewallByUser_and_Cloud
- * 
- * @param {Integer} iduser User identifier
- * @param {Number} fwcloud Cloud identifier
- * 
- * @return {JSON} Returns `JSON` Data from Firewall
- * @example #### JSON RESPONSE
- *    
- *       {"data" : [
- *          {  //Data Firewall 1       
- *           "id" : ,            //Firewall Identifier
- *           "cluster" : ,       //Cluster
- *           "fwcloud" : ,       //Id Firewall cloud
- *           "name" : ,          //Firewall name
- *           "comment" : ,       //comment
- *           "created_at" : ,    //Date Created
- *           "updated_at" : ,    //Date Updated
- *           "by_user" : ,       //User last update
- *          },
- *          {....}, //Data Firewall 2
- *          {....}  //Data Firewall ...n 
- *         ]
- *       };
- * 
- */
-router.put('/cloud/get', (req, res) => {
-	firewallModel.getFirewallCloud(req.session.user_id, req.body.fwcloud, (error, data) => {
-		if (error) return res.status(400).json(error);
-		
-		if (data && data.length > 0)
-			res.status(200).json(data);
-		else
-			res.status(204).end();
-	});
-});
 
 
 /**
@@ -258,10 +174,8 @@ router.put('/cloud/get', (req, res) => {
  * 
  * @apiDescription Get firewall data. 
  *
- * @apiParam {Number} customer Id of the customer the user belongs to.
- * @apiParam {Number} [user] Id of the user.
- * <br>If empty, the API will return the id and name for all the users of this customer..
- * <br>If it is not empty, it will return all the data for the indicated user.
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * @apiParam {Number} firewall Firewall's id.
  * 
  * @apiParamExample {json} Request-Example:
  * {
@@ -308,6 +222,93 @@ router.put('/get', async (req, res) => {
 	try {
 		const data = await firewallModel.getFirewall(req);
 		if (data)
+			res.status(200).json(data);
+		else
+			res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /firewall/cloud/get Get firewalls data
+ * @apiName GetFirewalls
+ *  * @apiGroup FIREWALL
+ * 
+ * @apiDescription Get firewall data by fwcloud.
+ *
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * [
+ *   {
+ *     "id": 1,
+ *     "cluster": null,
+ *     "fwcloud": 1,
+ *     "name": "Firewall-01",
+ *     "comment": null,
+ *     "created_at": "2019-05-15T10:34:46.000Z",
+ *     "updated_at": "2019-05-15T10:34:47.000Z",
+ *     "compiled_at": null,
+ *     "installed_at": null,
+ *     "by_user": 1,
+ *     "status": 3,
+ *     "install_user": "",
+ *     "install_pass": "",
+ *     "save_user_pass": 0,
+ *     "install_interface": null,
+ *     "install_ipobj": null,
+ *     "fwmaster": 0,
+ *     "install_port": 22,
+ *     "options": 0,
+ *     "interface_name": null,
+ *     "ip_name": null,
+ *     "ip": null,
+ *     "id_fwmaster": null
+ *   },
+ *   {
+ *     "id": 2,
+ *     "cluster": null,
+ *     "fwcloud": 1,
+ *     "name": "Firewall-02",
+ *     "comment": null,
+ *     "created_at": "2019-05-15T10:34:46.000Z",
+ *     "updated_at": "2019-05-15T10:34:47.000Z",
+ *     "compiled_at": null,
+ *     "installed_at": null,
+ *     "by_user": 1,
+ *     "status": 3,
+ *     "install_user": "",
+ *     "install_pass": "",
+ *     "save_user_pass": 0,
+ *     "install_interface": null,
+ *     "install_ipobj": null,
+ *     "fwmaster": 0,
+ *     "install_port": 22,
+ *     "options": 0,
+ *     "interface_name": null,
+ *     "ip_name": null,
+ *     "ip": null,
+ *     "id_fwmaster": null
+ *   }
+ * ]
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 7001,
+ *  "msg": "Firewall access not allowed"
+ * }
+ */
+router.put('/cloud/get', async (req, res) => {
+	try {
+		data = await firewallModel.getFirewallCloud(req);
+		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
 			res.status(204).end();

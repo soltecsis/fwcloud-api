@@ -37,6 +37,8 @@ schema.validate = req => {
 				schema = schema.append({ firewall: sharedSch.id, name: sharedSch.name, comment: sharedSch.comment, node_id: sharedSch.id });
 			else if (req.url === '/firewall/delfromcluster')
 				schema = schema.append({ firewall: sharedSch.id, cluster: sharedSch.id });
+			else if (req.url!=='/firewall/cloud/get')
+				return reject(fwcError.BAD_API_CALL);
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
