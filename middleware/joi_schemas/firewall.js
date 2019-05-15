@@ -11,10 +11,10 @@ schema.validate = req => {
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/firewall')) {
 			schema = Joi.object().keys({
+				fwcloud: sharedSch.id,
 				cluster: sharedSch.id.allow(null).optional(),
 				name: sharedSch.name,
 				comment: sharedSch.comment,
-				fwcloud: sharedSch.id,
 				install_user: sharedSch.linux_user.allow(null).allow('').optional(),
 				install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
 				save_user_pass: sharedSch._0_1,
@@ -25,7 +25,7 @@ schema.validate = req => {
 				options: sharedSch.u16bits
 			});
 			if (req.method === 'PUT') schema = schema.append({ firewall: sharedSch.id });
-			else if (req.method === 'POST') schema = schema.append({ node_id: sharedSch.id.optional() });
+			else if (req.method === 'POST') schema = schema.append({ node_id: sharedSch.id });
 		} else if (req.method === 'PUT') {
 			schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
