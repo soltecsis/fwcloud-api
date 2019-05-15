@@ -124,7 +124,7 @@ firewallModel.getFirewall = function (req) {
 		//logger.debug(sql);
 		req.dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			if (rows.length!==1) return resolve();
+			if (rows.length!==1) return reject(fwcError.NOT_FOUND);
 
 			Promise.all(rows.map(utilsModel.decryptDataUserPass))
 			.then(data => resolve(data[0]))

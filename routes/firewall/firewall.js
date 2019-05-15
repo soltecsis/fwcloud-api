@@ -252,36 +252,57 @@ router.put('/cloud/get', (req, res) => {
 
 
 /**
- * Get Firewalls by User and ID
+ * @api {PUT} /firewall/get Get firewall data
+ * @apiName GetFirewall
+ *  * @apiGroup FIREWALL
  * 
+ * @apiDescription Get firewall data. 
+ *
+ * @apiParam {Number} customer Id of the customer the user belongs to.
+ * @apiParam {Number} [user] Id of the user.
+ * <br>If empty, the API will return the id and name for all the users of this customer..
+ * <br>If it is not empty, it will return all the data for the indicated user.
  * 
- * > ROUTE CALL:  __/firewalls/:iduser/:id__      
- * > METHOD:  __GET__
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ *   	"firewall": 5
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "id": 5,
+ *   "cluster": null,
+ *   "fwcloud": 1,
+ *   "name": "Firewall-05",
+ *   "comment": null,
+ *   "created_at": "2019-05-15T10:34:46.000Z",
+ *   "updated_at": "2019-05-15T10:34:47.000Z",
+ *   "compiled_at": null,
+ *   "installed_at": null,
+ *   "by_user": 1,
+ *   "status": 3,
+ *   "install_user": "",
+ *   "install_pass": "",
+ *   "save_user_pass": 0,
+ *   "install_interface": null,
+ *   "install_ipobj": null,
+ *   "fwmaster": 0,
+ *   "install_port": 22,
+ *   "options": 0,
+ *   "interface_name": null,
+ *   "ip_name": null,
+ *   "ip": null,
+ *   "id_fwmaster": null
+ * }
  * 
- * @method getFirewallByUser_and_Id
- * 
- * @param {Integer} iduser User identifier
- * @param {Integer} id firewall identifier
- * 
- * @return {JSON} Returns `JSON` Data from Firewall
- * @example #### JSON RESPONSE
- *    
- *       {"data" : [
- *          {  //Data Firewall        
- *           "id" : ,            //Firewall Identifier
- *           "cluster" : ,       //Cluster
- *           "fwcloud" : ,       //Id Firewall cloud
- *           "name" : ,          //Firewall name
- *           "comment" : ,       //comment
- *           "created_at" : ,    //Date Created
- *           "updated_at" : ,    //Date Updated
- *           "compiled_at" : ,   //Date Compiled
- *           "installed_at" : ,  //Date Installed
- *           "by_user" : ,       //User last update
- *          }
- *         ]
- *       };
- * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 7001,
+ *  "msg": "Firewall access not allowed"
+ * }
  */
 router.put('/get', async (req, res) => {
 	try {
