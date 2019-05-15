@@ -131,56 +131,56 @@ const fwcError = require('../../utils/error_table');
  *      };
  * */
 router.post("/",
-duplicityCheck.ipobj,
-async (req, res) => {
-	var fwcloud = req.body.fwcloud;
-	var node_parent = req.body.node_parent;
-	var node_order = req.body.node_order;
-	var node_type = req.body.node_type;
+    duplicityCheck.ipobj,
+    async(req, res) => {
+        var fwcloud = req.body.fwcloud;
+        var node_parent = req.body.node_parent;
+        var node_order = req.body.node_order;
+        var node_type = req.body.node_type;
 
-	//Create New objet with data ipobj
-	var ipobjData = {
-		id: null,
-		fwcloud: req.body.fwcloud,
-		interface: req.body.interface,
-		name: req.body.name,
-		type: req.body.type,
-		protocol: req.body.protocol,
-		address: req.body.address,
-		netmask: req.body.netmask,
-		diff_serv: req.body.diff_serv,
-		ip_version: req.body.ip_version,
-		icmp_code: req.body.icmp_code,
-		icmp_type: req.body.icmp_type,
-		tcp_flags_mask: req.body.tcp_flags_mask,
-		tcp_flags_settings: req.body.tcp_flags_settings,
-		range_start: req.body.range_start,
-		range_end: req.body.range_end,
-		source_port_start: req.body.source_port_start,
-		source_port_end: req.body.source_port_end,
-		destination_port_start: req.body.destination_port_start,
-		destination_port_end: req.body.destination_port_end,
-		options: req.body.options,
-		comment: req.body.comment
-	};
+        //Create New objet with data ipobj
+        var ipobjData = {
+            id: null,
+            fwcloud: req.body.fwcloud,
+            interface: req.body.interface,
+            name: req.body.name,
+            type: req.body.type,
+            protocol: req.body.protocol,
+            address: req.body.address,
+            netmask: req.body.netmask,
+            diff_serv: req.body.diff_serv,
+            ip_version: req.body.ip_version,
+            icmp_code: req.body.icmp_code,
+            icmp_type: req.body.icmp_type,
+            tcp_flags_mask: req.body.tcp_flags_mask,
+            tcp_flags_settings: req.body.tcp_flags_settings,
+            range_start: req.body.range_start,
+            range_end: req.body.range_end,
+            source_port_start: req.body.source_port_start,
+            source_port_end: req.body.source_port_end,
+            destination_port_start: req.body.destination_port_start,
+            destination_port_end: req.body.destination_port_end,
+            options: req.body.options,
+            comment: req.body.comment
+        };
 
-	try {
-		const id = await IpobjModel.insertIpobj(req,ipobjData);
-		await IpobjModel.UpdateHOST(id);
-		await IpobjModel.UpdateINTERFACE(id);
-		
-		//INSERT IN TREE
-		const node_id = (node_parent) ? await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
-		
-		var dataresp = {"insertId": id, "TreeinsertId": node_id};
-		if (ipobjData.interface) {
-			await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,ipobjData.interface,ipobjData.type,"|3");
-			dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
-		}
+        try {
+            const id = await IpobjModel.insertIpobj(req, ipobjData);
+            await IpobjModel.UpdateHOST(id);
+            await IpobjModel.UpdateINTERFACE(id);
 
-		res.status(200).json(dataresp);
-	} catch(error) { res.status(400).json(error) }
-});
+            //INSERT IN TREE
+            const node_id = (node_parent) ? await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
+
+            var dataresp = { "insertId": id, "TreeinsertId": node_id };
+            if (ipobjData.interface) {
+                await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, ipobjData.interface, ipobjData.type, "|3");
+                dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
+            }
+
+            res.status(200).json(dataresp);
+        } catch (error) { res.status(400).json(error) }
+    });
 
 
 
@@ -249,56 +249,56 @@ async (req, res) => {
  *      "data": {}
  *      };
  * */
-router.put('/', 
-duplicityCheck.ipobj,
-async (req, res) => {
-	//Save data into object
-	var ipobjData = {
-		id: req.body.id,
-		fwcloud: req.body.fwcloud, 
-		interface: req.body.interface, 
-		name: req.body.name, 
-		type: req.body.type, 
-		protocol: req.body.protocol, 
-		address: req.body.address, 
-		netmask: req.body.netmask, 
-		diff_serv: req.body.diff_serv, 
-		ip_version: req.body.ip_version, 
-		icmp_code: req.body.icmp_code, 
-		icmp_type: req.body.icmp_type, 
-		tcp_flags_mask: req.body.tcp_flags_mask, 
-		tcp_flags_settings: req.body.tcp_flags_settings, 
-		range_start: req.body.range_start, 
-		range_end: req.body.range_end, 
-		source_port_start: req.body.source_port_start, 
-		source_port_end: req.body.source_port_end, 
-		destination_port_start: req.body.destination_port_start, 
-		destination_port_end: req.body.destination_port_end, 
-		options: req.body.options, 
-		comment: req.body.comment
-	};
+router.put('/',
+    duplicityCheck.ipobj,
+    async(req, res) => {
+        //Save data into object
+        var ipobjData = {
+            id: req.body.id,
+            fwcloud: req.body.fwcloud,
+            interface: req.body.interface,
+            name: req.body.name,
+            type: req.body.type,
+            protocol: req.body.protocol,
+            address: req.body.address,
+            netmask: req.body.netmask,
+            diff_serv: req.body.diff_serv,
+            ip_version: req.body.ip_version,
+            icmp_code: req.body.icmp_code,
+            icmp_type: req.body.icmp_type,
+            tcp_flags_mask: req.body.tcp_flags_mask,
+            tcp_flags_settings: req.body.tcp_flags_settings,
+            range_start: req.body.range_start,
+            range_end: req.body.range_end,
+            source_port_start: req.body.source_port_start,
+            source_port_end: req.body.source_port_end,
+            destination_port_start: req.body.destination_port_start,
+            destination_port_end: req.body.destination_port_end,
+            options: req.body.options,
+            comment: req.body.comment
+        };
 
-	try {
-		const data = await  Ipobj_typeModel.getIpobj_type(req, ipobjData.type);
-		
-		if (data && data[0].protocol_number !== null)
-			ipobjData.protocol = data[0].protocol_number;
+        try {
+            const data = await Ipobj_typeModel.getIpobj_type(req, ipobjData.type);
 
-		await IpobjModel.updateIpobj(req,ipobjData);
-		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud,ipobjData.id,-1,-1,ipobjData.type,"|3");
-		await openvpnModel.updateOpenvpnStatusIPOBJ(req,ipobjData.id,"|1");
-		await IpobjModel.UpdateHOST(ipobjData.id);
-		await IpobjModel.UpdateINTERFACE(ipobjData.id);
+            if (data && data[0].protocol_number !== null)
+                ipobjData.protocol = data[0].protocol_number;
 
-		var data_return = {};
-		await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud,data_return);
-		await openvpnModel.getOpenvpnStatusNotZero(req,data_return);        
+            await IpobjModel.updateIpobj(req, ipobjData);
+            await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
+            await openvpnModel.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+            await IpobjModel.UpdateHOST(ipobjData.id);
+            await IpobjModel.UpdateINTERFACE(ipobjData.id);
 
-		await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
+            var data_return = {};
+            await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+            await openvpnModel.getOpenvpnStatusNotZero(req, data_return);
 
-		res.status(200).json(data_return);
-	} catch(error) { res.status(400).json(error) }
-});
+            await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
+
+            res.status(200).json(data_return);
+        } catch (error) { res.status(400).json(error) }
+    });
 
 
 
@@ -317,14 +317,14 @@ async (req, res) => {
  * 
  * @return {JSON} Returns `JSON` Data from Ipobj
  * */
-router.put('/get', async (req, res) => {
-	try {
-		const data = await IpobjModel.getIpobj(req.dbCon,req.body.fwcloud,req.body.id);
-    if (data && data.length > 0)
-      res.status(200).json(data);
-    else
-			res.status(400).json(fwcError.NOT_FOUND);
-	} catch(error) { res.status(400).json(error) }
+router.put('/get', async(req, res) => {
+    try {
+        const data = await IpobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.id);
+        if (data && data.length == 1)
+            res.status(200).json(data[0]);
+        else
+            res.status(400).json(fwcError.NOT_FOUND);
+    } catch (error) { res.status(400).json(error) }
 });
 
 
@@ -372,30 +372,30 @@ router.put('/get', async (req, res) => {
  *      "data": {}
  *      };
  */
-router.put('/del', 
-restrictedCheck.ipobj,  
-async (req, res) => {
-	var fwcloud = req.body.fwcloud;
-	var id = req.body.id;
-	var type = req.body.type;
+router.put('/del',
+    restrictedCheck.ipobj,
+    async(req, res) => {
+        var fwcloud = req.body.fwcloud;
+        var id = req.body.id;
+        var type = req.body.type;
 
-	try {
-		await FirewallModel.updateFirewallStatusIPOBJ(fwcloud,id,-1,-1,type,"|3");
-		await IpobjModel.UpdateHOST(id);
-		await IpobjModel.UpdateINTERFACE(id);
+        try {
+            await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, type, "|3");
+            await IpobjModel.UpdateHOST(id);
+            await IpobjModel.UpdateINTERFACE(id);
 
-		if (type===8)
-			await IpobjModel.deleteHost(req.dbCon,req.body.fwcloud,req.body.id);
-		else 
-			await IpobjModel.deleteIpobj(req.dbCon,req.body.fwcloud,req.body.id);
-			
-		await fwcTreemodel.orderTreeNodeDeleted(req.dbCon,fwcloud,id);
-		//DELETE FROM TREE
-		await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
-		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud,null);
-    res.status(200).json(not_zero_status_fws);
-	} catch(error) { res.status(400).json(error) }
-});
+            if (type === 8)
+                await IpobjModel.deleteHost(req.dbCon, req.body.fwcloud, req.body.id);
+            else
+                await IpobjModel.deleteIpobj(req.dbCon, req.body.fwcloud, req.body.id);
+
+            await fwcTreemodel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
+            //DELETE FROM TREE
+            await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
+            const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
+            res.status(200).json(not_zero_status_fws);
+        } catch (error) { res.status(400).json(error) }
+    });
 
 
 /**
@@ -414,14 +414,14 @@ async (req, res) => {
  * 
  * @return {JSON} Returns `JSON` Data from Search
  * */
-router.put('/where', async (req, res) => {
-	try {
-		const data = await IpobjModel.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
-    if (data && data.length > 0)
-      res.status(200).json(data);
-    else
-			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+router.put('/where', async(req, res) => {
+    try {
+        const data = await IpobjModel.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
+        if (data && data.length > 0)
+            res.status(200).json(data);
+        else
+            res.status(204).end();
+    } catch (error) { res.status(400).json(error) }
 });
 
 // API call for check deleting restrictions.
