@@ -52,46 +52,100 @@ var InterfaceModel = require('../../models/interface/interface');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
-
 /**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
- * @method getclusters
+ * @api {POST} /cluster New cluster
+ * @apiName NewCluster
+ *  * @apiGroup CLUSTER
  * 
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @param {String} config.name The name on the config object
- * @param {Function} config.callback A callback function on the config object
- * @param {Boolean} [extra=false] Do extra, optional work
- * @return {Boolean} Returns true on success
+ * @apiDescription Create a new cluster of firewalls.
+ *
+ * @apiParam {Number} fwcloud FWCloud to which the new cluster of firewalls will belong.
+ * @apiParam {Number} node_id Id of the tree node to wich the new cluster will be added.
+ * @apiParam {Object} clusterData Json object with the cluster data.
+ * 
+ * @apiParam (clusterData) {String} name Cluster's name.
+ * @apiParam (clusterData) {String} [comment] Cluster's comment.
+ * @apiParam (clusterData) {Number} options Options flags.
+ * @apiParam (clusterData) {Object[]} fwnodes Array of json objects with the information of the firewalls that are
+ * part of the cluster.
+ * 
+ * @apiParam (fwnodes) {String} name Firewall's name.
+ * @apiParam (fwnodes) {String} [comment] Firewall's comment.
+ * @apiParam (fwnodes) {String} [install_user] SSH user used for firewall access.
+ * @apiParam (fwnodes) {String} [install_pass] SSH password used for firewall access.
+ * @apiParam (fwnodes) {Number} save_user_pass Save the SSH user/password in the database.
+ * @apiParam (fwnodes) {Number} [install_interface] Id of the firewall's network interface used for policy upload.
+ * @apiParam (fwnodes) {Number} [install_ipobj] Id of the firewall's address used for policy upload.
+ * @apiParam (fwnodes) {Number} [install_port] TCP port used for the SSH communication.
+ * @apiParam (fwnodes) {Number} [fwmaster] If this firewall is part of a firewalls cluster, this parameters indicates if it is the cluster master.
+ * @apiParam (fwnodes) {Number} [options] Firewall's flag options.
+
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 3,
+ *    "node_id": 391,
+ *    "clusterData": {
+ *        "name": "Cluster-01",
+ *        "options": 3,
+ *        "fwnodes": [
+ *            {
+ *                "name": "node1",
+ *                "comment": null,
+ *                "install_user": null,
+ *                "install_pass": null,
+ *                "save_user_pass": 1,
+ *                "install_interface": null,
+ *                "install_ipobj": null,
+ *                "fwmaster": 1,
+ *                "install_port": 22
+ *            },
+ *            {
+ *                "name": "node2",
+ *                "comment": null,
+ *                "install_user": null,
+ *                "install_pass": null,
+ *                "save_user_pass": 1,
+ *                "install_interface": null,
+ *                "install_ipobj": null,
+ *                "fwmaster": 0,
+ *                "install_port": 22
+ *            },
+ *            {
+ *                "name": "node3",
+ *                "comment": null,
+ *                "install_user": null,
+ *                "install_pass": null,
+ *                "save_user_pass": 1,
+ *                "install_interface": null,
+ *                "install_ipobj": null,
+ *                "fwmaster": 0,
+ *                "install_port": 22
+ *            }
+ *        ]
+ *    }
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "insertId": 1
+ * }
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7002,
+ *   "msg": "Tree node access not allowed"
+ * }
  */
-router.put('/all/get', (req, res) => {
-	clusterModel.getClusters((error, data) => {
-		if (error) return res.status(400).json(error);
-		
-		if (data && data.length > 0)
-			res.status(200).json(data);
-		else
-			res.status(204).end();
-	});
-});
-
-
-/* Get FULL cluster by Id */
-router.put('/get', async (req, res) => {
-	try {
-		const data = await clusterModel.getCluster(req);
-		if (data)
-			res.status(200).json(data);
-		else
-			res.status(400).json(fwcError.NOT_FOUND);
-	} catch(error) { res.status(400).json(error) }
-});
-
-
-/* New cluster */
 router.post('/', (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
@@ -143,6 +197,95 @@ router.post('/', (req, res) => {
 		} else res.status(400).json(error);
 	});
 });
+
+
+/**
+ * My method description.  Like other pieces of your comment blocks, 
+ * this can span multiple lines.
+ * ROUTE CALL:  /
+ *
+ * @method getclusters
+ * 
+ * @param {String} foo Argument 1
+ * @param {Object} config A config object
+ * @param {String} config.name The name on the config object
+ * @param {Function} config.callback A callback function on the config object
+ * @param {Boolean} [extra=false] Do extra, optional work
+ * @return {Boolean} Returns true on success
+ */
+router.put('/cloud/get', async (req, res) => {
+	try {
+		const data = await clusterModel.getClusterCloud(req);
+		if (data)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /cluster/get Get cluster data
+ * @apiName GetCluster
+ *  * @apiGroup CLUSTER
+ * 
+ * @apiDescription Get cluster data. 
+ *
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * @apiParam {Number} cluster Cluster's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 1,
+ *   	"cluster": 5
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "id": 5,
+ *   "cluster": null,
+ *   "fwcloud": 1,
+ *   "name": "Firewall-05",
+ *   "comment": null,
+ *   "created_at": "2019-05-15T10:34:46.000Z",
+ *   "updated_at": "2019-05-15T10:34:47.000Z",
+ *   "compiled_at": null,
+ *   "installed_at": null,
+ *   "by_user": 1,
+ *   "status": 3,
+ *   "install_user": "",
+ *   "install_pass": "",
+ *   "save_user_pass": 0,
+ *   "install_interface": null,
+ *   "install_ipobj": null,
+ *   "fwmaster": 0,
+ *   "install_port": 22,
+ *   "options": 0,
+ *   "interface_name": null,
+ *   "ip_name": null,
+ *   "ip": null,
+ *   "id_fwmaster": null
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 7001,
+ *  "msg": "Firewall access not allowed"
+ * }
+ */
+router.put('/get', async (req, res) => {
+	try {
+		const data = await clusterModel.getCluster(req);
+		if (data)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
+});
+
+
 
 /* New cluster FROM FIREWALL */
 router.put('/fwtocluster', async(req, res) => {

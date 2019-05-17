@@ -14,16 +14,14 @@ var interfaceModel = require('../../models/interface/interface');
 var logger = require('log4js').getLogger("app");
 
 //Get All clusters
-clusterModel.getClusters = function (callback) {
-
-	db.get(function (error, connection) {
-		if (error)
-			callback(error, null);
-		connection.query('SELECT * FROM ' + tableModel + ' ORDER BY id', function (error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
+clusterModel.getClusterCloud = req => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT T.* FROM ${tableModel} T 
+			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
+			WHERE T.fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
 		});
 	});
 };

@@ -9,7 +9,7 @@ schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
-		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/cluster')) {
+		if ((req.method==='POST' && req.url==='/cluster') || (req.method==='PUT' && req.url==='/cluster')) {
 			var schemaItem = Joi.object().keys({
 				name: sharedSch.name,
 				comment: sharedSch.comment,
@@ -51,6 +51,8 @@ schema.validate = req => {
 				schema = schema.append({ cluster: sharedSch.id, node_id: sharedSch.id });
 			else if (req.url === '/cluster/restricted')
 				schema = schema.append({ firewall: sharedSch.id });
+			else if (req.url!=='/cluster/cloud/get')
+				return reject(fwcError.BAD_API_CALL);
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
