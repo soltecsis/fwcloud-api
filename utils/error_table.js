@@ -43,13 +43,14 @@ var errorTable = {
   // Access control error codes.
   "ACC_FWCLOUD":          {"fwcErr": 7000, "msg": "FWCloud access not allowed"},
   "ACC_FIREWALL":         {"fwcErr": 7001, "msg": "Firewall access not allowed"},
-  "ACC_TREE_NODE":        {"fwcErr": 7002, "msg": "Tree node access not allowed"},
-  "ACC_CA":               {"fwcErr": 7003, "msg": "CA access not allowed"},
-  "ACC_CRT":              {"fwcErr": 7004, "msg": "CRT access not allowed"},
-  "ACC_OPENVPN":          {"fwcErr": 7005, "msg": "OpenVPN access not allowed"},
-  "ACC_CRT_PREFIX":       {"fwcErr": 7006, "msg": "CRT prefix access not allowed"},
-  "ACC_POLICY_RULE":      {"fwcErr": 7007, "msg": "Policy rule access not allowed"},
-  "ACC_IPTABLES_MARK":    {"fwcErr": 7008, "msg": "IPTables mark access not allowed"},
+  "ACC_CLUSTER":          {"fwcErr": 7002, "msg": "Cluster access not allowed"},
+  "ACC_TREE_NODE":        {"fwcErr": 7003, "msg": "Tree node access not allowed"},
+  "ACC_CA":               {"fwcErr": 7004, "msg": "CA access not allowed"},
+  "ACC_CRT":              {"fwcErr": 7005, "msg": "CRT access not allowed"},
+  "ACC_OPENVPN":          {"fwcErr": 7006, "msg": "OpenVPN access not allowed"},
+  "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
+  "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
+  "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
 };
 
 errorTable.other = msg => {

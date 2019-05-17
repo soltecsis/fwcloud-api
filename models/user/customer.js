@@ -99,10 +99,10 @@ customerModel.searchUsers = req => {
 
 customerModel.lastCustomer = req => {
 	return new Promise((resolve, reject) => {
-    req.dbCon.query(`select count(*) as n from ${tableModel}`, async (error, result) => {
+    req.dbCon.query(`select count(*) as n from ${tableModel} where id!=${req.body.customer}`, async (error, result) => {
       if (error) return reject(error);
 
-      if (result[0].n < 2)
+      if (result[0].n === 0)
         resolve({result: true, restrictions: { LastCustomer: true}});
       else
         resolve({result: false});

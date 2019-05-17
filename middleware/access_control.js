@@ -57,6 +57,7 @@ accessCtrl.check = async (req, res, next) => {
 	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
 
 	try {
+		// This MUST be the first access control.
 		await checkFwCloudAccess(iduser, fwcloud, update, req, res);
 
 		// Check firewall access for the user.
@@ -66,6 +67,12 @@ accessCtrl.check = async (req, res, next) => {
 				throw fwcError.ACC_FIREWALL;
 		}
 
+		// Check access to the tree cluster indicated in req.body.cluster.
+		if (req.body.cluster || (req.body.clusterData && req.body.clusterData.cluster)) {
+			if (!(await checkClusterAccess(req,req.body.cluster ? req.body.cluster : req.body.clusterData.cluster)))
+				throw fwcError.ACC_CLUSTER;
+		}
+		
 		// Check access to the tree node indicated in req.body.node_id.
 		if (req.body.node_id) {
 			if (!(await checkTreeNodeAccess(req)))
@@ -120,6 +127,17 @@ accessCtrl.check = async (req, res, next) => {
 		
 		next()
 	} catch(error) { res.status(400).json(error) }
+};
+
+// Check access to the firewalls cluster.
+function checkClusterAccess(req,cluster) {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`select id FROM cluster WHERE id=${cluster} and fwcloud=${req.body.fwcloud}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length!==1) return resolve(false);
+			resolve(true);
+		});
+	});
 };
 
 // Check access to iptables mark object.

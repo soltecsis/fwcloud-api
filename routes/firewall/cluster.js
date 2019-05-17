@@ -200,18 +200,117 @@ router.post('/', (req, res) => {
 
 
 /**
- * My method description.  Like other pieces of your comment blocks, 
- * this can span multiple lines.
- * ROUTE CALL:  /
- *
- * @method getclusters
+ * @api {PUT} /cluster/get Get cluster data
+ * @apiName GetCluster
+ *  * @apiGroup CLUSTER
  * 
- * @param {String} foo Argument 1
- * @param {Object} config A config object
- * @param {String} config.name The name on the config object
- * @param {Function} config.callback A callback function on the config object
- * @param {Boolean} [extra=false] Do extra, optional work
- * @return {Boolean} Returns true on success
+ * @apiDescription Get cluster data. 
+ *
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * @apiParam {Number} cluster Cluster's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 2,
+ *   	"cluster": 5
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 2,
+ *    "fwcloud": 2,
+ *    "name": "Cluster-02",
+ *    "comment": null,
+ *    "created_at": "2019-05-17T11:47:00.000Z",
+ *    "updated_at": "2019-05-17T11:47:00.000Z",
+ *    "created_by": 0,
+ *    "updated_by": 0,
+ *    "nodes": [
+ *        {
+ *            "id": 10,
+ *            "cluster": 2,
+ *            "name": "node1",
+ *            "comment": null,
+ *            "status": 3,
+ *            "install_user": "",
+ *            "install_pass": "",
+ *            "save_user_pass": 1,
+ *            "install_interface": null,
+ *            "install_ipobj": null,
+ *            "fwmaster": 1,
+ *            "install_port": 22,
+ *            "interface_name": null,
+ *            "ip_name": null,
+ *            "ip": null,
+ *            "options": 3
+ *        }
+ *     ]
+ *  }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7002,
+ *    "msg": "Cluster access not allowed"
+ * }
+ */
+router.put('/get', async (req, res) => {
+	try {
+		const data = await clusterModel.getCluster(req);
+		if (data)
+			res.status(200).json(data);
+		else
+			res.status(400).json(fwcError.NOT_FOUND);
+	} catch(error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /cluster/cloud/get Get cloud's clusters
+ * @apiName GetCloudCluster
+ *  * @apiGroup CLUSTER
+ * 
+ * @apiDescription Get all the cluster data for the indicated fwcloud. 
+ *
+ * @apiParam {Number} fwcloud FWCloud's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * [
+ *    {
+ *        "id": 1,
+ *        "fwcloud": 2,
+ *        "name": "Cluster-01",
+ *        "comment": null,
+ *        "created_at": "2019-05-17T11:46:57.000Z",
+ *        "updated_at": "2019-05-17T11:46:57.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0
+ *    },
+ *    {
+ *        "id": 2,
+ *        "fwcloud": 2,
+ *        "name": "Cluster-02",
+ *        "comment": null,
+ *        "created_at": "2019-05-17T11:47:00.000Z",
+ *        "updated_at": "2019-05-17T11:47:00.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0
+ *		}
+ *	]
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7002,
+ *    "msg": "Cluster access not allowed"
+ * }
  */
 router.put('/cloud/get', async (req, res) => {
 	try {
@@ -225,66 +324,64 @@ router.put('/cloud/get', async (req, res) => {
 
 
 /**
- * @api {PUT} /cluster/get Get cluster data
- * @apiName GetCluster
+ * @api {POST} /cluster Update Cluster
+ * @apiName UpdateCluster
  *  * @apiGroup CLUSTER
  * 
- * @apiDescription Get cluster data. 
+ * @apiDescription Update cluster data.
  *
- * @apiParam {Number} fwcloud FWCloud's id.
- * @apiParam {Number} cluster Cluster's id.
+ * @apiParam {Number} fwcloud FWCloud to which the new cluster of firewalls belongs.
+ * @apiParam {Object} clusterData Json object with the cluster data.
+ * 
+ * @apiParam (clusterData) {Number} cluster Cluster's id.
+ * @apiParam (clusterData) {String} name Cluster's name.
+ * @apiParam (clusterData) {String} [comment] Cluster's comment.
+ * @apiParam (clusterData) {Number} options Options flags.
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *    "fwcloud": 1,
- *   	"cluster": 5
- * }
+    "fwcloud": 2,
+    "clusterData": {
+        "cluster": 5,
+        "name": "Cluster-UPDATED",
+        "options": 3
+    }
+}
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "id": 5,
- *   "cluster": null,
- *   "fwcloud": 1,
- *   "name": "Firewall-05",
- *   "comment": null,
- *   "created_at": "2019-05-15T10:34:46.000Z",
- *   "updated_at": "2019-05-15T10:34:47.000Z",
- *   "compiled_at": null,
- *   "installed_at": null,
- *   "by_user": 1,
- *   "status": 3,
- *   "install_user": "",
- *   "install_pass": "",
- *   "save_user_pass": 0,
- *   "install_interface": null,
- *   "install_ipobj": null,
- *   "fwmaster": 0,
- *   "install_port": 22,
- *   "options": 0,
- *   "interface_name": null,
- *   "ip_name": null,
- *   "ip": null,
- *   "id_fwmaster": null
- * }
- * 
+ * HTTP/1.1 204 No Content
+ *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
- *   "fwcErr": 7001,
- *  "msg": "Firewall access not allowed"
- * }
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
+ * } 
  */
-router.put('/get', async (req, res) => {
+router.put('/', async (req, res) => {
+	var JsonData = req.body;
+	//new objet with Cluster data
+	var clusterData = {
+		id: JsonData.clusterData.cluster,
+		name: JsonData.clusterData.name,
+		comment: JsonData.clusterData.comment,
+		fwcloud: req.body.fwcloud,
+		options: JsonData.clusterData.options
+	};
+
 	try {
-		const data = await clusterModel.getCluster(req);
-		if (data)
-			res.status(200).json(data);
-		else
-			res.status(400).json(fwcError.NOT_FOUND);
+		const masterFirewallID = await FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
+		await Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID);
+		await clusterModel.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
+
+		// If this a stateful cluster verify that the stateful special rules exists.
+		// Or remove them if this is not a stateful firewall cluster.
+		await Policy_rModel.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
+
+		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
+		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
-
 
 
 /* New cluster FROM FIREWALL */
@@ -457,31 +554,6 @@ router.put('/clone', (req, res) => {
 });
 
 
-/* cluster update */
-router.put('/', async (req, res) => {
-	var JsonData = req.body;
-	//new objet with Cluster data
-	var clusterData = {
-		id: JsonData.clusterData.cluster,
-		name: JsonData.clusterData.name,
-		comment: JsonData.clusterData.comment,
-		fwcloud: req.body.fwcloud,
-		options: JsonData.clusterData.options
-	};
-
-	try {
-		const masterFirewallID = await FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
-		await Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID);
-		await clusterModel.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
-
-		// If this a stateful cluster verify that the stateful special rules exists.
-		// Or remove them if this is not a stateful firewall cluster.
-		await Policy_rModel.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
-
-		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
-		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
-});
 
 // API call for check deleting restrictions.
 router.put('/restricted', restrictedCheck.firewall, (req, res) => res.status(204).end());
