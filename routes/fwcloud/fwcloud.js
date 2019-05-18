@@ -97,7 +97,7 @@ router.post('/', async(req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "id": 1,
+ *   "fwcloud": 1,
  *   "name": "FWCloud-Updated",
  *   "image": "",
  *   "comment": "Comment for the updated fwcloud."
@@ -186,7 +186,7 @@ router.get('/all/get', (req, res) => {
  * 
  * @apiParamExample {json} Request-Example:
  * {
- *   "id": 3
+ *   "fwcloud": 3
  * }
  *
  * @apiSuccessExample {json} Success-Response:
@@ -224,46 +224,59 @@ router.put('/get', (req, res) => {
 });
 
 
-
-
-
-// API call for check deleting restrictions.
+/**
+ * @api {PUT} /fwcloud/restricted Check delete restrictions
+ * @apiName RestrictedFwcloud
+ *  * @apiGroup FWCLOUD
+ * 
+ * @apiDescription Check if the fwcloud indicated as a parameter has any deletion restriction.
+ *
+ * @apiParam {Number} fwcloud Id of the FWCloud for which we want check its restrictions.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "fwcloud": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
+ */
 router.put('/restricted', restrictedCheck.fwcloud, (req, res) => res.status(204).end());
 
+
 /**
- * DELETE fwcloud
+ * @api {PUT} /fwcloud/del Delete fwcloud
+ * @apiName DeleteFwcloud
+ *  * @apiGroup FWCLOUD
  * 
- * 
- * > ROUTE CALL:  __/fwcloud/fwcloud__      
- * > METHOD:  __DELETE__
- * 
+ * @apiDescription Delete the firewall cloud indicated in the request body.<br>
+ * If the fwcloud has any restrictions, the deletion will not be done.
  *
- * @method DeleteFwcloud
+ * @apiParam {Number} fwcloud Id of the FWCloud that we want delete.
  * 
- * @param {Integer} fwcloud Fwcloud identifier
- * @optional
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "fwcloud": 2
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
  * 
- * @return {JSON} Returns Json result
- * @example 
- * #### JSON RESPONSE OK:
- *    
- *       {"data" : [
- *          { 
- *           "msg : "success",   //result
- *          }
- *         ]
- *       };
- *       
- * #### JSON RESPONSE ERROR:
- *    
- *       {"data" : [
- *          { 
- *           "msg : ERROR,   //Text Error
- *          }
- *         ]
- *       };
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
  */
-router.put("/del",
+router.put('/del',
 restrictedCheck.fwcloud,
 async(req, res) => {
 	try {
