@@ -10,126 +10,6 @@
 			"name": "Login",
 			"item": [
 				{
-					"name": "Syntax",
-					"item": [
-						{
-							"name": "Customer must be a number",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"id": "94225473-5132-4f19-8dc8-5810e0468252",
-										"exec": [
-											"pm.test(\"Status code is 400\", function () {",
-											"    pm.response.to.have.status(400);",
-											"});",
-											"",
-											"const response = pm.response.json();",
-											"",
-											"pm.test(\"Joi validation error\", function () {",
-											"    pm.expect(response.isJoi).to.be.true;",
-											"});",
-											"",
-											"pm.test(\"Error message\", function () {",
-											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be a number\");",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Origin",
-										"value": "{{Origin}}",
-										"type": "text"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"customer\": \"badCustomer\",\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
-								},
-								"url": {
-									"raw": "{{apiURL}}/user/login",
-									"host": [
-										"{{apiURL}}"
-									],
-									"path": [
-										"user",
-										"login"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Customer must be integer greater than 1",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"id": "94225473-5132-4f19-8dc8-5810e0468252",
-										"exec": [
-											"pm.test(\"Status code is 400\", function () {",
-											"    pm.response.to.have.status(400);",
-											"});",
-											"",
-											"const response = pm.response.json();",
-											"",
-											"pm.test(\"Joi validation error\", function () {",
-											"    pm.expect(response.isJoi).to.be.true;",
-											"});",
-											"",
-											"pm.test(\"Error message\", function () {",
-											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be larger than or equal to 1\");",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Origin",
-										"value": "{{Origin}}",
-										"type": "text"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"customer\": 0,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
-								},
-								"url": {
-									"raw": "{{apiURL}}/user/login",
-									"host": [
-										"{{apiURL}}"
-									],
-									"path": [
-										"user",
-										"login"
-									]
-								}
-							},
-							"response": []
-						}
-					],
-					"_postman_isSubFolder": true
-				},
-				{
 					"name": "Bad customer",
 					"event": [
 						{
@@ -363,7 +243,7 @@
 					"response": []
 				},
 				{
-					"name": "Login ok",
+					"name": "Login ok (clear some environment variables)",
 					"event": [
 						{
 							"listen": "test",
@@ -373,6 +253,18 @@
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
 									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									"pm.environment.unset(\"fwcloud\");",
+									"pm.environment.unset(\"firewall\");",
+									"pm.environment.unset(\"cluster\");"
 								],
 								"type": "text/javascript"
 							}
@@ -2328,7 +2220,7 @@
 					"response": []
 				},
 				{
-					"name": "Update fwcloud",
+					"name": "Update fwcloud and init the working fwcloud environment variable",
 					"event": [
 						{
 							"listen": "test",
@@ -2386,7 +2278,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"name\": \"FWCloud-Updated\",\n    \"image\": \"\",\n    \"comment\": \"Comment for the updated fwcloud.\"\n}"
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"name\": \"FWCloud-0{{fwcloud}} (WORKING)\",\n    \"image\": \"\",\n    \"comment\": \"Comment for the updated fwcloud.\"\n}"
 						},
 						"url": {
 							"raw": "{{apiURL}}/fwcloud",
@@ -2415,7 +2307,7 @@
 									"pm.test(\"Data received\", function () {",
 									"    const response = pm.response.json();",
 									"    pm.expect(response.id).to.eql(pm.environment.get(\"fwcloud\"));",
-									"    pm.expect(response.name).to.eql(\"FWCloud-Updated\");",
+									"    pm.expect(response.name).to.eql(\"FWCloud-0\"+pm.environment.get(\"fwcloud\")+\" (WORKING)\");",
 									"    pm.expect(response.comment).to.eql(\"Comment for the updated fwcloud.\");",
 									"});",
 									"",
@@ -2449,6 +2341,169 @@
 							"path": [
 								"fwcloud",
 								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete empty fwcloud",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.environment.unset(\"fwcloud_delete\");",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "edcc9763-03fc-4318-82fb-76b08a8e8c26",
+								"exec": [
+									"if (!pm.environment.get(\"fwcloud_Delete\")) {",
+									"    while (1) {",
+									"        var fwcloud_delete = _.random(1, 5);",
+									"        if (fwcloud_delete != pm.environment.get(\"fwcloud\")) {",
+									"           pm.environment.set(\"fwcloud_delete\",fwcloud_delete);",
+									"           break;",
+									"        }",
+									"    }",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud_delete}}\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/fwcloud/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"fwcloud",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete fwcloud (not exists)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 7000,",
+									"        \"msg\": \"FWCloud access not allowed\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "edcc9763-03fc-4318-82fb-76b08a8e8c26",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/fwcloud/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"fwcloud",
+								"del"
 							]
 						}
 					},
@@ -2818,7 +2873,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"name\": \"FireWall-UPDATED\",\n    \"comment\": \"Comment for the updated firewall.\",\n    \"save_user_pass\": 0,\n    \"install_port\": 22,\n    \"fwmaster\": 0,\n    \"options\": 3\n}"
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"name\": \"FireWall-0{{firewall}} (WORKING)\",\n    \"comment\": \"Comment for the updated firewall.\",\n    \"save_user_pass\": 0,\n    \"install_port\": 22,\n    \"fwmaster\": 0,\n    \"options\": 3\n}"
 						},
 						"url": {
 							"raw": "{{apiURL}}/firewall",
@@ -3736,7 +3791,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"clusterData\": {\n        \"cluster\": {{cluster}},\n        \"name\": \"Cluster-UPDATED\",\n        \"options\": 3\n    }\n}"
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"clusterData\": {\n        \"cluster\": {{cluster}},\n        \"name\": \"Cluster-0{{cluster}} (WORKING)\",\n        \"options\": 3\n    }\n}"
 						},
 						"url": {
 							"raw": "{{apiURL}}/cluster",
@@ -3914,6 +3969,1638 @@
 			]
 		},
 		{
+			"name": "RESTRICTIONS",
+			"item": [
+				{
+					"name": "FWCloud",
+					"item": [
+						{
+							"name": "Deletion restrictions for the working fwcloud",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 403\", function () {",
+											"    pm.response.to.have.status(403);",
+											"});",
+											"",
+											"pm.test(\"Restricted response\", function () {",
+											"    const response = pm.response.json();",
+											"    const err =  {",
+											"        \"count\": {",
+											"            \"CF\": 5,",
+											"            \"CC\": 5,",
+											"            \"CCA\": 0",
+											"        }",
+											"    }",
+											"    pm.expect(response).to.eql(err);",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}}\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/fwcloud/restricted",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"fwcloud",
+										"restricted"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Deletion restrictions (not exists)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"pm.test(\"Restricted response\", function () {",
+											"    const response = pm.response.json();",
+											"    const err =  {",
+											"        \"fwcErr\": 7000,",
+											"        \"msg\": \"FWCloud access not allowed\"",
+											"    }",
+											"    pm.expect(response).to.eql(err);",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": 1000\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/fwcloud/restricted",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"fwcloud",
+										"restricted"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "Group in rule can't be emptied",
+					"item": [
+						{
+							"name": "Get ipobj 'Groups' node_id for the working fwcloud",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.children).to.not.be.undefined;",
+											"    pm.expect(response.children).to.be.an('array');",
+											"    ",
+											"    for (let node of response.children) {",
+											"        if (node.node_type===\"OIG\") {",
+											"            pm.expect(node.text).to.eql(\"Groups\");",
+											"            pm.expect(node.fwcloud).to.eql(parseInt(pm.environment.get(\"fwcloud\")));",
+											"            pm.expect(node.obj_type).to.eql(20);",
+											"            pm.expect(node.id_obj).to.be.null;",
+											"            pm.environment.set(\"node_id\", node.id); ",
+											"            break;",
+											"        }",
+											"    }",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "2739a22e-a16b-4484-b8c9-1e94e9125458",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"objStandard\": 0,\n    \"objCloud\": 0\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/tree/objects/get",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"tree",
+										"objects",
+										"get"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create the test group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.insertId).to.not.be.undefined;",
+											"    pm.expect(response.insertId).to.be.above(99999);",
+											"    pm.expect(response.TreeinsertId).to.not.be.undefined;",
+											"    pm.expect(response.TreeinsertId).to.be.above(1);",
+											"    ",
+											"    pm.environment.set(\"group\",response.insertId);",
+											"    pm.environment.set(\"node_id\",response.TreeinsertId);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"type\": 20,\n    \"name\": \"IP objects test group\",\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIG\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add a member to the group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIN\",\n    \"ipobj_g\": {{group}},\n    \"ipobj\": 70003\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/addto",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"addto"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add another member to the group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIN\",\n    \"ipobj_g\": {{group}},\n    \"ipobj\": 70004\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/addto",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"addto"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get the forward policy for the working firewall",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"    pm.expect(response.length).to.be.above(1);",
+											"    ",
+											"    let rule = response[1];",
+											"    pm.environment.set(\"rule\", rule.id);",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "2739a22e-a16b-4484-b8c9-1e94e9125458",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"type\": 3\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/policy/rule/type/get",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"policy",
+										"rule",
+										"type",
+										"get"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add the group to a rule of the forward policy",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 7,\n    \"position_order\": 1,\n    \"ipobj\": -1,\n    \"ipobj_g\": {{group}},\n    \"interface\": -1\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/policy/ipobj",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"policy",
+										"ipobj"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove a member from the group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"ipobj_g\": {{group}},\n    \"ipobj\": 70004,\n    \"obj_type\": 7\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/delfrom",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"delfrom"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove the last member from the group (not allowed)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"pm.test(\"Error response\", function () {",
+											"    const response = pm.response.json();",
+											"    const err = {",
+											"        \"fwcErr\": 5001,",
+											"        \"msg\": \"Empty ipobj container\"",
+											"    }",
+											"    pm.expect(response).to.eql(err);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"ipobj_g\": {{group}},\n    \"ipobj\": 70003,\n    \"obj_type\": 7\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/delfrom",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"delfrom"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove the group from the policy rule",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 7,\n    \"position_order\": 1,\n    \"ipobj\": -1,\n    \"ipobj_g\": {{group}},\n    \"interface\": -1\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/policy/ipobj/del",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"policy",
+										"ipobj",
+										"del"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove the last member from the group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"ipobj_g\": {{group}},\n    \"ipobj\": 70003,\n    \"obj_type\": 7\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/delfrom",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"delfrom"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete the test group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"",
+											"    pm.environment.unset(\"rule\");",
+											"    pm.environment.unset(\"group\");",
+											"    pm.environment.unset(\"node_id\");",
+											"});",
+											"",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"id\": {{group}},\n    \"type\": 20\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/group/del",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"group",
+										"del"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "One important restriction in FWCloud.net is that we cant not leave empty an object container used in a rule because this may provocate, for example, that we create a rule that allows traffic from any source address because the group used in the source position of the rule is empty.",
+					"_postman_isSubFolder": true
+				}
+			]
+		},
+		{
+			"name": "DUPLICITY",
+			"item": [
+				{
+					"name": "IP Address",
+					"item": [
+						{
+							"name": "Get ipobj 'Addresses' node_id for the working fwcloud",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.children).to.not.be.undefined;",
+											"    pm.expect(response.children).to.be.an('array');",
+											"    ",
+											"    for (let node of response.children) {",
+											"        if (node.node_type===\"OIA\") {",
+											"            pm.expect(node.text).to.eql(\"Addresses\");",
+											"            pm.expect(node.fwcloud).to.eql(parseInt(pm.environment.get(\"fwcloud\")));",
+											"            pm.expect(node.obj_type).to.eql(5);",
+											"            pm.expect(node.id_obj).to.be.null;",
+											"            pm.environment.set(\"node_id\", node.id); ",
+											"            break;",
+											"        }",
+											"    }",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "2739a22e-a16b-4484-b8c9-1e94e9125458",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"objStandard\": 0,\n    \"objCloud\": 0\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/tree/objects/get",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"tree",
+										"objects",
+										"get"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create the test IP address",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.insertId).to.not.be.undefined;",
+											"    pm.expect(response.insertId).to.be.above(99999);",
+											"    pm.expect(response.TreeinsertId).to.not.be.undefined;",
+											"    pm.expect(response.TreeinsertId).to.be.above(1);",
+											"    ",
+											"    pm.environment.set(\"ipobj\",response.insertId);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"type\": 5,\n    \"name\": \"Test IP 1\",\n    \"address\": \"1.2.3.4\",\n    \"netmask\": \"255.255.255.0\",\n    \"ip_version\": 4,\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIA\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create the same test IP address (already exists)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"pm.test(\"Error response\", function () {",
+											"    const response = pm.response.json();",
+											"    const err =  {",
+											"        \"fwcErr\": 1003,",
+											"        \"msg\": \"Already exists\"",
+											"    }",
+											"    pm.expect(response).to.eql(err);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"type\": 5,\n    \"name\": \"Test IP 1\",\n    \"address\": \"1.2.3.4\",\n    \"netmask\": \"255.255.255.0\",\n    \"ip_version\": 4,\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIA\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Force creation of the same test IP address",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response.insertId).to.not.be.undefined;",
+											"    pm.expect(response.insertId).to.be.above(99999);",
+											"    pm.expect(response.TreeinsertId).to.not.be.undefined;",
+											"    pm.expect(response.TreeinsertId).to.be.above(1);",
+											"    ",
+											"    pm.environment.set(\"ipobj2\",response.insertId);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"type\": 5,\n    \"name\": \"Test IP 1\",\n    \"address\": \"1.2.3.4\",\n    \"netmask\": \"255.255.255.0\",\n    \"ip_version\": 4,\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIA\",\n    \"force\": 1\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete test IP address",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"    ",
+											"   ",
+											"    pm.environment.unset(\"ipobj\");",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"id\": {{ipobj}},\n    \"type\": 5\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/del",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"del"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete the same test IP address",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Data received\", function () {",
+											"    const response = pm.response.json();",
+											"    pm.expect(response).to.be.an('array');",
+											"    ",
+											"    pm.environment.unset(\"ipobj2\");",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"id\": {{ipobj2}},\n    \"type\": 5\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj/del",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj",
+										"del"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				}
+			]
+		},
+		{
+			"name": "INPUT VALIDATION",
+			"item": [
+				{
+					"name": "User",
+					"item": [
+						{
+							"name": "Customer must be a number",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"const response = pm.response.json();",
+											"",
+											"pm.test(\"Joi validation error\", function () {",
+											"    pm.expect(response.isJoi).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Error message\", function () {",
+											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be a number\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer\": \"badCustomer\",\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/user/login",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"user",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Customer must be integer greater than 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"const response = pm.response.json();",
+											"",
+											"pm.test(\"Joi validation error\", function () {",
+											"    pm.expect(response.isJoi).to.be.true;",
+											"});",
+											"",
+											"pm.test(\"Error message\", function () {",
+											"    pm.expect(response.details[0].message).to.eql(\"\\\"customer\\\" must be larger than or equal to 1\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer\": 0,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/user/login",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"user",
+										"login"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				}
+			]
+		},
+		{
 			"name": "Logout",
 			"item": [
 				{
@@ -4075,13 +5762,13 @@
 	],
 	"variable": [
 		{
-			"id": "181a75ff-9d6c-4b88-b418-f6e7573bf3b1",
+			"id": "82951ec3-5f38-4759-b382-5986664b944c",
 			"key": "apiURL",
 			"value": "http://localhost:3000",
 			"type": "string"
 		},
 		{
-			"id": "41cbe9a2-4c84-4999-b623-9e0ca931d0c2",
+			"id": "5988851f-bf6f-47da-ad11-a1d0b38d1e24",
 			"key": "Origin",
 			"value": "http://webtest.fwcloud.net",
 			"type": "string"

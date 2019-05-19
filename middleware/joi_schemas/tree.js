@@ -21,8 +21,8 @@ schema.validate = req => {
         schema = schema.append({ objStandard: sharedSch._0_1, objCloud: sharedSch._0_1 });
       else if (req.url==='/tree/node/get')
         schema = schema.append({ node_type: sharedSch.name, id_obj: sharedSch.id.allow(null) });
-    } else if (req.method==='POST') {
-
+      else if (req.url!=='/tree/firewalls/get' & req.url!=='/tree/ca/get')
+        return reject(fwcError.BAD_API_CALL);
     } else return reject(fwcError.BAD_API_CALL);
 
     try {

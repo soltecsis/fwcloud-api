@@ -10,7 +10,45 @@ const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const fwcError = require('../../utils/error_table');
 
 
-/* Get all fwc_tree NODE FIREWALL*/
+/**
+ * @api {PUT} /tree/firewalls/get Get firewalls tree
+ * @apiName GetFirewallsTree
+ *  * @apiGroup TREE
+ * 
+ * @apiDescription Get the firewalls and clusters tree.
+ *
+ * @apiParam {Number} fwcloud Fwcloud's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 4
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 787,
+ *    "text": "FIREWALLS",
+ *    "pid": null,
+ *    "allowdrag": 0,
+ *    "node_type": "FDF",
+ *    "obj_type": null,
+ *    "id_obj": null,
+ *    "fwcloud": 3,
+ *    "children": [],
+ *    "fw_status": [],
+ *    "openvpn_status": [],
+ *    "openvpn_info": []
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
+ */
+
 router.put('/firewalls/get', async (req, res) => {
 	try {
 		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FDF');
@@ -25,9 +63,51 @@ router.put('/firewalls/get', async (req, res) => {
 });
 
 
-/* Get all fwc_tree NODE OBJECTS by User*/
-//objs -> Standar objects (without fwcloud)
-//objc -> fwcloud objects
+/**
+ * @api {PUT} /tree/objects/get Get objects tree
+ * @apiName GetObjectsTree
+ *  * @apiGroup TREE
+ * 
+ * @apiDescription Get the IP objects tree.
+ *
+ * @apiParam {Number} fwcloud Fwcloud's id.
+ * @apiParam {Number} objStandard If we want the standard IP objects nodes.
+ * @apiParam {Number} objCloud If we want the fwcloud IP objects nodes.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *    "fwcloud": 4,
+ *    "objStandard": 0,
+ *    "objCloud": 0
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 788,
+ *    "text": "OBJECTS",
+ *    "pid": null,
+ *    "allowdrag": 0,
+ *    "node_type": "FDO",
+ *    "obj_type": null,
+ *    "id_obj": null,
+ *    "fwcloud": 3,
+ *    "children": [
+ *        {
+ *            "id": 789,
+ *            "text": "Addresses",
+ *            "pid": 788,
+ *            "allowdrag": 0, 
+ *						"node_type": "OIA",
+ * ...
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *    "fwcErr": 7000,
+ *    "msg": "FWCloud access not allowed"
+ * }
+ */
 router.put('/objects/get', async (req, res) => {
 	try {
 		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FDO');

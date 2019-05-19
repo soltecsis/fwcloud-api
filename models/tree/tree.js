@@ -49,13 +49,15 @@ fwcTreeModel.hasChilds = (req, node_id) => {
 fwcTreeModel.getTree = (req, idparent, tree, objStandard, objCloud, order_mode) => {
 	return new Promise((resolve, reject) => {
 		var sqlfwcloud = "";
-		if (objStandard === '1' && objCloud === '0')
-			sqlfwcloud = ` AND (T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //Only Standard objects
-		else if (objStandard === '0' && objCloud === '1')
-			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //Only fwcloud objects
-		else
-			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `; //ALL  objects
-
+		if (objStandard===1 && objCloud===0) // Only Standard objects
+			sqlfwcloud = ` AND (T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
+		else if (objStandard===0 && objCloud===1) // Only fwcloud objects
+			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
+		else if (objStandard===1 && objCloud===1) // All objects
+			sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
+		else // No objects.
+			sqlfwcloud = ` AND (T.fwcloud is not null AND (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
+		
 		const sqlorder = (order_mode===2) ? 'name' : 'id';
 
 		//Get ALL CHILDREN NODES FROM idparent
