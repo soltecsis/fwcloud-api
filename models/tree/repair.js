@@ -194,6 +194,7 @@ fwc_treeRepairModel.checkFirewallsInTree = rootNode => {
         for(let firewall of firewalls) {
           await fwc_treeRepairModel.regenerateFirewallTree(rootNode,firewall);
           await policy_rModel.checkStatefulRules(dbCon, firewall.id, firewall.options);
+          await policy_rModel.checkCatchAllRules(dbCon, firewall.id);
         }
       } catch(error) { return reject(error) };
       resolve();
@@ -250,6 +251,7 @@ fwc_treeRepairModel.checkClustersInTree = rootNode => {
         for(let cluster of clusters) {
           await fwc_treeRepairModel.regenerateClusterTree(rootNode,cluster);
           await policy_rModel.checkStatefulRules(dbCon, cluster.fwmaster_id, cluster.options);
+          await policy_rModel.checkCatchAllRules(dbCon, cluster.fwmaster_id);
         }
       } catch(error) { return reject(error) };
       resolve();

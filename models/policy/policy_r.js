@@ -161,6 +161,18 @@ policy_rModel.getPolicyRuleType = (dbCon, fwcloud, firewall, rule) => {
 		});
 };
 
+//Get last rule_order by firewall and policy type.
+policy_rModel.getLastRuleOrder= (dbCon, firewall, type) => {
+	return new Promise((resolve, reject) => {
+			let sql = `SELECT rule_order FROM ${tableModel} 
+				WHERE firewall=${firewall} AND type=${type} ORDER BY rule_order desc limit 1`;
+
+			dbCon.query(sql, async (error, result) => {
+				if (error) return reject(error);
+				resolve(result.length===0 ? 1 : result[0].rule_order);
+			});
+		});
+};
 
 //Get policy_r  GROUP by  NEXT or Previous RULE
 policy_rModel.getPolicy_r_DestGroup = function(idfirewall, offset, order, type, callback) {
@@ -284,6 +296,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId, options) => {
 			// Now create the catch all rule.
 			policy_rData.action = 2;
 			policy_rData.rule_order = 4;
+			policy_rData.special = 2;
 			policy_rData.comment = 'Catch-all rule.';
 			policy_rData.type = 1; // INPUT IPv4
 			await policy_rModel.insertPolicy_r(policy_rData);
@@ -309,6 +322,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId, options) => {
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
 			policy_rData.action = 2;
+			policy_rData.special = 2;
 			policy_rData.comment = 'Catch-all rule.';
 			policy_rData.type = 3; // FORWARD IPv4
 			await policy_rModel.insertPolicy_r(policy_rData);
@@ -334,7 +348,8 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId, options) => {
 
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
-			policy_rData.comment = 'Allow all outgoing traffic.';
+			policy_rData.special = 2;
+			policy_rData.comment = 'Catch-all rule.';
 			policy_rData.type = 2; // OUTPUT IPv4
 			await policy_rModel.insertPolicy_r(policy_rData);
 			policy_rData.type = 62; // OUTPUT IPv6
@@ -958,6 +973,51 @@ policy_rModel.checkStatefulRules = (dbCon, firewall, options) => {
 				resolve();
 			});
 		}
+	});
+};
+
+// Check if exists the catch all special rule by firewall and type.
+policy_rModel.existsCatchAllSpecialRule = (dbCon, firewall, type) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select id from ${tableModel} where firewall=${firewall} and type=${type} and special=2`, async (error, result) => {
+			if (error) return reject(error);
+			resolve(result.length>0 ? true: false);
+		});
+	});
+};
+
+// Check that the catch-all special rule exists. If not, create it.
+policy_rModel.checkCatchAllRules = (dbCon, firewall) => {
+	return new Promise(async (resolve, reject) => {
+		var policy_rData = {
+			id: null,
+			idgroup: null,
+			firewall: firewall,
+			rule_order: null,
+			action: null,
+			time_start: null,
+			time_end: null,
+			active: 1,
+			options: 0,
+			comment: 'Catch-all rule.',
+			type: null,
+			special: 2,
+			style: null
+		};
+
+		try {
+			for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+				if (! (await policy_rModel.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type))) {
+					if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
+						policy_rData.action = 1 // ACCEPT
+					else 
+						policy_rData.action = 2 // DENY
+					policy_rData.rule_order = (await policy_rModel.getLastRuleOrder(dbCon, firewall, policy_rData.type)) + 1;
+					await policy_rModel.insertPolicy_r(policy_rData);
+				}
+			}
+		} catch(error) { return reject(error) }
+		resolve();
 	});
 };
 
