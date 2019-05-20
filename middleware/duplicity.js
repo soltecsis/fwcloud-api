@@ -61,7 +61,7 @@ duplicityCheck.ipobj = (req, res, next) => {
 				const net1 = (req.body.netmask[0]==='/') ? ip.cidrSubnet(`${req.body.address}${req.body.netmask}`) : ip.subnet(req.body.address, req.body.netmask);
 				let net2 = {};
 				for (row of rows) {
-					net2 = (row.address[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
+					net2 = (row.netmask[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
 					if (net1.subnetMaskLength===net2.subnetMaskLength)
 						return res.status(400).json(fwcError.ALREADY_EXISTS);
 				}
