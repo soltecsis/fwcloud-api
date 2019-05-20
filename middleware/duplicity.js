@@ -4,6 +4,8 @@ var duplicityCheck = {};
 module.exports = duplicityCheck;
 
 const fwcError = require('../utils/error_table');
+const ip = require('ip');
+
 
 // Middleware for avoid ipobj duplicities.
 duplicityCheck.ipobj = (req, res, next) => {
@@ -17,11 +19,15 @@ duplicityCheck.ipobj = (req, res, next) => {
 	if (req.body.type===8) return next();
 
 	let sql;
-	// If we are creating a new DNS input, then we must search for one whith the same name.
-	if (req.body.type===9) {
+	if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
+		// We have two formats for the netmask (for example, 255.255.255.0 or /24).
+		sql = `select address,netmask from ipobj where address=${req.dbCon.escape(req.body.address)} and type=${req.body.type}`;
+	}
+	else if (req.body.type===9) { // DNS
+		// If we are creating a new DNS input, then we must search for one whith the same name.
 		sql = `select id,name from ipobj where name=${req.dbCon.escape(req.body.name)} and type=9`;
 	}
-	else { 
+	else { // Other types
 		sql = `SELECT id,name FROM ipobj
 			WHERE (fwcloud IS NULL OR fwcloud=${req.body.fwcloud})
 			AND type${(typeof req.body.type==='undefined' || req.body.type===null) ? ` IS NULL` : `=${req.body.type}`}
@@ -48,9 +54,21 @@ duplicityCheck.ipobj = (req, res, next) => {
 	req.dbCon.query(sql, (error, rows) => {
 		if (error) return next();
 
-		if (rows.length>0)
-			res.status(400).json(fwcError.ALREADY_EXISTS);
-		else
-			next();
+		if (rows.length>0) {
+			if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
+				// We have two formats for the netmask (for example, 255.255.255.0 or /24).
+				// We have to check if the object already exist independently of the netmask format.
+				const net1 = (req.body.netmask[0]==='/') ? ip.cidrSubnet(`${req.body.address}${req.body.netmask}`) : ip.subnet(req.body.address, req.body.netmask);
+				let net2 = {};
+				for (row of rows) {
+					net2 = (row.address[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
+					if (net1.subnetMaskLength===net2.subnetMaskLength)
+						return res.status(400).json(fwcError.ALREADY_EXISTS);
+				}
+				next();
+			} 
+			else res.status(400).json(fwcError.ALREADY_EXISTS);
+		}
+		else next();
 	});
 };
