@@ -246,7 +246,7 @@ router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204)
 router.put('/where', async (req, res) => {
 	try {
 		const data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
-    if (data && data.length > 0)
+    if (data.result > 0)
       res.status(200).json(data);
     else
 			res.status(204).end();

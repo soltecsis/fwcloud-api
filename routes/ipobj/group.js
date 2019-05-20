@@ -99,7 +99,7 @@ router.put("/del",
 router.put('/where', async(req, res) => {
 	try {
 		const data = await Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
-		if (data && data.length > 0)
+		if (data.result > 0)
 			res.status(200).json(data);
 		else
 			res.status(204).end();
