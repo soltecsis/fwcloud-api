@@ -5,6 +5,8 @@ var tableModel="user";
 var db = require('../../db.js');
 const fwcError = require('../../utils/error_table');
 
+var bcrypt = require('bcrypt');
+
 
 //Get user by  username
 userModel.getUserName = function (customer, username) {
@@ -52,13 +54,14 @@ userModel.updateUserCT = function (iduser, token, callback) {
 userModel.insert = req => {
 	return new Promise(async (resolve, reject) => {
 		//New object with customer data
+		var salt = bcrypt.genSaltSync(10);
 		var userData = {
 			id: null,
 			customer: req.body.customer,
 			name: req.body.name,
 			email: req.body.email,
 			username: req.body.username,
-			password: req.body.password,
+			password: bcrypt.hashSync(req.body.customer+req.body.username+req.body.password, salt),
 			enabled: req.body.enabled,
 			role: req.body.role,
 			allowed_from: req.body.allowed_from

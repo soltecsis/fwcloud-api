@@ -153,6 +153,23 @@ const config = convict({
     }
   },
 
+  // Encryption parameters.
+	crypt: {
+    algorithm: {
+      doc: 'Encryption algorithm.',
+      format: String,
+      default: 'aes-256-ctr',
+      env: 'CRYPT_ALGORITHM',
+    },
+    secret: {
+      doc: 'Secret used for data encryption.',
+      format: '*',
+      default: '',
+      env: 'CRYPT_SECRET',
+      sensitive: true
+    }
+	},
+
   // Lock system configuration.
   lock : {
     check_interval_mls: {
@@ -233,6 +250,11 @@ if (!config.get('session').secret) {
 
 if (!config.get('db').pass) {
   console.log("Configuration Error: Database password must be defined in .env");
+  process.exit();  
+}
+
+if (!config.get('crypt').secret) {
+  console.log("Configuration Error: Encryption secret must be defined in .env");
   process.exit();  
 }
 

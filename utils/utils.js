@@ -17,6 +17,7 @@ const db = require('../db');
 const fs = require('fs');
 var path = require('path');
 
+
 utilsModel.isEmptyObject = function (obj) {
 	return !Object.keys(obj).length;
 };
@@ -76,12 +77,11 @@ utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {
 				;
 	});
 };
-var algorithm = 'aes-256-ctr';
-var password = 'RJ23edrf9)8JsjseE%6m,35HsjS84MK';
+
 utilsModel.encrypt = function (text) {
 	return new Promise((resolve, reject) => {
 		try {
-			var cipher = crypto.createCipher(algorithm, password);
+			var cipher = crypto.createCipher(config.get('crypt').algorithm, config.get('crypt').secret);
 			var crypted = cipher.update(text, 'utf8', 'hex');
 			crypted += cipher.final('hex');
 			resolve(crypted);
@@ -93,7 +93,7 @@ utilsModel.encrypt = function (text) {
 utilsModel.decrypt = function (text) {
 	return new Promise((resolve, reject) => {
 		try {
-			var decipher = crypto.createDecipher(algorithm, password);
+			var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 			var dec = decipher.update(text, 'hex', 'utf8');
 			dec += decipher.final('utf8');
 			resolve(dec);
@@ -104,20 +104,19 @@ utilsModel.decrypt = function (text) {
 };
 
 utilsModel.decryptDataUserPass = function (data) {
-
 	return new Promise((resolve, reject) => {
 		try {
 			logger.debug("DENTRO de decryptDataUserPass");
 			if (data.install_user !== null) {
 				logger.debug("DECRYPT USER: ", data.install_user);
-				var decipher = crypto.createDecipher(algorithm, password);
+				var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 				var decUser = decipher.update(data.install_user, 'hex', 'utf8');
 				decUser += decipher.final('utf8');
 				data.install_user = decUser;
 			}
 			if (data.install_pass !== null) {
 				logger.debug("DECRYPT PASS: ", data.install_pass);
-				var decipherPass = crypto.createDecipher(algorithm, password);
+				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');
 				data.install_pass = decPass;
