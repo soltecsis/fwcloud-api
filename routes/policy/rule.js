@@ -106,7 +106,7 @@ router.put('/get', async (req, res) => {
 		const policy = await policy_rModel.getPolicyData(req);
 		//If exists policy_r get data
 		if (policy && policy.length > 0) 
-			res.status(200).json(policy);
+			res.status(200).json(policy[0]);
 		else
 			res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
