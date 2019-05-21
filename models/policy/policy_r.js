@@ -109,21 +109,17 @@ policy_rModel.getPolicyDataDetailed = (fwcloud, firewall, type, rule) => {
 
 
 //Get policy_r by  id  and firewall
-policy_rModel.getPolicy_r = function(idfirewall, id, callback) {
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
+policy_rModel.getPolicy_r = (dbCon, firewall, rule) => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT P.*, F.fwcloud, 
+		  (select MAX(rule_order) from ${tableModel} where firewall=P.firewall and type=P.type) as max_order,
+			(select MIN(rule_order) from ${tableModel} where firewall=P.firewall and type=P.type) as min_order
+			FROM ${tableModel} P INNER JOIN firewall F on F.id=P.firewall WHERE P.id=${rule} AND P.firewall=${firewall}`;
 
-		var sql = 'SELECT P.*, F.fwcloud, (select MAX(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as max_order, ' +
-			' (select MIN(rule_order) from ' + tableModel + ' where firewall=P.firewall and type=P.type) as min_order ' +
-			' FROM ' + tableModel + ' P  INNER JOIN firewall F on F.id=P.firewall WHERE P.id = ' + connection.escape(id) + ' AND P.firewall=' + connection.escape(idfirewall);
-
-		connection.query(sql, function(error, row) {
-			if (error) {
-				logger.debug(error);
-				callback(error, null);
-			} else
-				callback(null, row);
+		dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			if (result.length===0) return reject(fwcError.NOT_FOUND);
+			resolve(result[0]);
 		});
 	});
 };
@@ -594,9 +590,9 @@ policy_rModel.updatePolicy_r_Active = function(firewall, id, type, active, callb
 		if (error)
 			callback(error, null);
 
-		var sql = 'UPDATE ' + tableModel + ' SET ' +
-			'active = ' + connection.escape(active) + ' ' +
-			' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
+		var sql = `UPDATE ${tableModel} SET active=${active}
+			WHERE id=${id} and firewall=${firewall} AND type=${type}
+			AND special=0`; // We can not enable/disable special rules.
 
 		connection.query(sql, function(error, result) {
 			if (error) {
@@ -981,7 +977,7 @@ policy_rModel.existsCatchAllSpecialRule = (dbCon, firewall, type) => {
 	return new Promise((resolve, reject) => {
 		dbCon.query(`select id from ${tableModel} where firewall=${firewall} and type=${type} and special=2`, async (error, result) => {
 			if (error) return reject(error);
-			resolve(result.length>0 ? true: false);
+			resolve(result.length>0 ? result[0].id : 0);
 		});
 	});
 };
@@ -1007,13 +1003,24 @@ policy_rModel.checkCatchAllRules = (dbCon, firewall) => {
 
 		try {
 			for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-				if (! (await policy_rModel.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type))) {
-					if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
-						policy_rData.action = 1 // ACCEPT
-					else 
-						policy_rData.action = 2 // DENY
-					policy_rData.rule_order = (await policy_rModel.getLastRuleOrder(dbCon, firewall, policy_rData.type)) + 1;
+				if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
+					policy_rData.action = 1 // ACCEPT
+				else 
+					policy_rData.action = 2 // DENY
+				policy_rData.rule_order = (await policy_rModel.getLastRuleOrder(dbCon, firewall, policy_rData.type));
+				const rule_id = await policy_rModel.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type);
+
+				if (!rule_id) {
+					// If catch-all special rule don't exists create it.
+					policy_rData.rule_order++;
 					await policy_rModel.insertPolicy_r(policy_rData);
+				} else {
+					// If catch-all rule exists, verify that is the last one.
+					const rule_data = await policy_rModel.getPolicy_r(dbCon, firewall, rule_id);
+					if (rule_data.rule_order < policy_rData.rule_order) {
+						// If it is not the last one, move to the last one position.
+						await policy_rModel.updatePolicy_r(dbCon,{"id": rule_id, "rule_order": policy_rData.rule_order+1})
+					}
 				}
 			}
 		} catch(error) { return reject(error) }

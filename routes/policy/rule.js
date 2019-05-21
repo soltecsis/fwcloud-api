@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var Policy_rModel = require('../../models/policy/policy_r');
+var policy_rModel = require('../../models/policy/policy_r');
 var Policy_gModel = require('../../models/policy/policy_g');
 var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
@@ -34,8 +34,8 @@ async (req, res) => {
 	};
 
 	try {
-		await Policy_rModel.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
-		res.status(200).json(await Policy_rModel.insertPolicy_r(policy_rData));
+		await policy_rModel.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
+		res.status(200).json(await policy_rModel.insertPolicy_r(policy_rData));
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -45,7 +45,7 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	//Save data into object
 	var policy_rData = {
-		id: req.body.id,
+		id: req.body.rule,
 		idgroup: req.body.idgroup,
 		firewall: req.body.firewall,
 		rule_order: req.body.rule_order,
@@ -65,10 +65,15 @@ async (req, res) => {
 	try {
 		// Only allow Iptables marks in INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6 filter tables.
 		if (policy_rData.mark && policy_rData.type!==1 && policy_rData.type!==2 && policy_rData.type!==3
-			&& policy_rData.type!==61 && policy_rData.type!==62 && policy_rData.type!==63)
-		throw fwcError.NOT_ALLOWED;
+				&& policy_rData.type!==61 && policy_rData.type!==62 && policy_rData.type!==63)
+			throw fwcError.NOT_ALLOWED;
 
-		await Policy_rModel.updatePolicy_r(req.dbCon, policy_rData);
+		const rule_data = await policy_rModel.getPolicy_r(req.dbCon, req.body.firewall, req.body.rule);
+		// For the catch-all special rule only allow the actions ACCEPT (1), DENY (2) and REJECT (3);
+		if (rule_data.special===2 && req.body.action!==1 && req.body.action!==2 && req.body.action!==3)
+			throw fwcError.NOT_ALLOWED;
+
+		await policy_rModel.updatePolicy_r(req.dbCon, policy_rData);
 	} catch(error) { return res.status(400).json(error) }
 
 	// Recompile rule.
@@ -79,7 +84,7 @@ async (req, res) => {
 		idfirewall: req.body.firewall,
 		rule: policy_rData.id
 	};
-	Policy_rModel.compilePolicy_r(accessData, (error, datac) => {
+	policy_rModel.compilePolicy_r(accessData, (error, datac) => {
 		if (error) return res.status(400).json(error);
 		res.status(200).json(datac);
 	});
@@ -89,7 +94,7 @@ async (req, res) => {
 /* Get all policy_rs by firewall and type */
 router.put('/type/get', async (req, res) => {
 	try {
-		const policy = await Policy_rModel.getPolicyData(req);
+		const policy = await policy_rModel.getPolicyData(req);
 		res.status(200).json(policy);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -98,7 +103,7 @@ router.put('/type/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/get', async (req, res) => {
 	try {
-		const policy = await Policy_rModel.getPolicyData(req);
+		const policy = await policy_rModel.getPolicyData(req);
 		//If exists policy_r get data
 		if (policy && policy.length > 0) 
 			res.status(200).json(policy);
@@ -111,7 +116,7 @@ router.put('/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/full/get', async (req, res) => {
 	try { 
-		const data = await Policy_rModel.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const data = await policy_rModel.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		if (data && data.length > 0) 
 			res.status(200).json(data);
 		else
@@ -121,12 +126,12 @@ router.put('/full/get', async (req, res) => {
 
 
 /* Remove policy_r */
-router.put("/del",
+router.put('/del',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
 		for (let rule of req.body.rulesIds) {
-			await Policy_rModel.deletePolicy_r(req.body.firewall, rule);
+			await policy_rModel.deletePolicy_r(req.body.firewall, rule);
 		}
 
 		res.status(204).end();
@@ -148,7 +153,7 @@ utilsModel.disableFirewallCompileStatus,
 	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function() {
 		db.startTXcon(function() {
 			for (var rule of rulesIds) {
-				Policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function(error, data) {
+				policy_rModel.updatePolicy_r_Active(idfirewall, rule, type, active, function(error, data) {
 					if (error)
 						logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
 					if (data && data.result) {
@@ -173,7 +178,7 @@ utilsModel.disableFirewallCompileStatus,
 	db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
 		db.startTXcon(function() {
 			for (var rule of rulesIds) {
-				Policy_rModel.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
+				policy_rModel.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
 					if (error)
 						logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
 					if (data && data.result) {
@@ -210,10 +215,10 @@ async (req, res) => {
 
 		// The rule over wich we move cuted rules can not be part of the moved rules.
 		for (let rule of req.body.rulesIds)
-			if (rule.id === pasteOnRuleId) throw(new Error('Paste on rule can not be part of the set of pasted rules.'));
+			if (rule === pasteOnRuleId) throw(fwcError.other('Paste on rule can not be part of the set of pasted rules.'));
 
 		for (let rule of req.body.rulesIds)
-			pasteOnRuleId = await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
+			await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -241,111 +246,101 @@ async (req, res) => {
 			throw fwcError.NOT_ALLOWED;
 		
 		if (req.url==='/position/negate')
-			await Policy_rModel.negateRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Negate the rule position adding the rule position id to the negate list.
+			await policy_rModel.negateRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Negate the rule position adding the rule position id to the negate list.
 		else
-			await Policy_rModel.allowRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Allow the rule position.
+			await policy_rModel.allowRulePosition(req.dbCon,req.body.firewall,req.body.rule,position); // Allow the rule position.
 
 		// Recompile the rule.
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: req.body.rule };
-		Policy_rModel.compilePolicy_r(accessData, (error, datac) => {});
+		policy_rModel.compilePolicy_r(accessData, (error, datac) => {});
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
 function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	return new Promise((resolve, reject) => {
-		// Get rule data of rule over which we are running the copy action (up or down of this rule).
-		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
-			if (error) return reject(error);
+	return new Promise(async (resolve, reject) => {
+		try {
+			// Get rule data of rule over which we are running the copy action (up or down of this rule).
+			const pasteOnRule = await policy_rModel.getPolicy_r(dbCon, firewall, pasteOnRuleId);
+			const copyRule = await policy_rModel.getPolicy_r(dbCon, firewall, rule);
+			let new_order, newRuleId;
 
-			if (pasteOnRule && pasteOnRule.length > 0) {
-				// Get rule data for the rule we are copying.
-				Policy_rModel.getPolicy_r(firewall, rule, async (error, copyRule) => {
-					if (error) return reject(error);
+			// We can not copy the Catch-All special rule.
+			if (copyRule.special===2) throw(fwcError.NOT_ALLOWED);
+			// It is not possible to copy rules under the Catch-All special rule.
+			if (pasteOnRule.special===2 && pasteOffset===1) throw(fwcError.NOT_ALLOWED);
 
-					//If exists policy_r get data
-					let new_order, newRuleId;
-					if (copyRule && copyRule.length > 0) {
-						try {
-							if (pasteOffset===1)
-								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
-							else
-								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, copyRule[0].type, pasteOnRuleId);
+			if (pasteOffset===1)
+				new_order = await policy_rModel.makeAfterRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
+			else
+				new_order = await policy_rModel.makeBeforeRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
 
-							//Create New objet with data policy_r
-							var policy_rData = {
-								id: null,
-								idgroup: pasteOnRule[0].idgroup,
-								firewall: copyRule[0].firewall,
-								rule_order: new_order,
-								action: copyRule[0].action,
-								time_start: copyRule[0].time_start,
-								time_end: copyRule[0].time_end,
-								active: copyRule[0].active,
-								options: copyRule[0].options,
-								comment: copyRule[0].comment,
-								type: copyRule[0].type
-							};
-							newRuleId = await Policy_rModel.insertPolicy_r(policy_rData);
+			//Create New objet with data policy_r
+			var policy_rData = {
+				id: null,
+				idgroup: pasteOnRule.idgroup,
+				firewall: copyRule.firewall,
+				rule_order: new_order,
+				action: copyRule.action,
+				time_start: copyRule.time_start,
+				time_end: copyRule.time_end,
+				active: copyRule.active,
+				options: copyRule.options,
+				comment: copyRule.comment,
+				type: copyRule.type
+			};
+			newRuleId = await policy_rModel.insertPolicy_r(policy_rData);
 
-							//DUPLICATE RULE POSITONS O (OBJECTS)
-							await policy_r__ipobjModel.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
-							//DUPLICATE RULE POSITONS I (INTERFACES)
-							await policy_r__interfaceModel.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
-							//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
-							await policyOpenvpnModel.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
-							//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
-							await policyPrefixModel.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS O (OBJECTS)
+			await policy_r__ipobjModel.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS I (INTERFACES)
+			await policy_r__interfaceModel.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
+			await policyOpenvpnModel.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
+			await policyPrefixModel.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
 
-							resolve(newRuleId);
-						} catch(error) { return reject(error) }
-					} else return reject(fwcError.NOT_FOUND);
-				});
-			} else return reject(fwcError.NOT_FOUND);
-		});
+			resolve(newRuleId);
+		} catch(error) { return reject(error) }
 	});
 }
 
 function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	return new Promise((resolve, reject) => {
-		// Get rule data of rule over which we are running the move action (up or down of this rule).
-		Policy_rModel.getPolicy_r(firewall, pasteOnRuleId, (error, pasteOnRule) => {
-			if (error) return reject(error);
+	return new Promise(async (resolve, reject) => {
+		try {
+			// Get rule data of rule over which we are running the move action (up or down of this rule).
+			const pasteOnRule = await policy_rModel.getPolicy_r(dbCon, firewall, pasteOnRuleId);
+			// Get rule data for the rule we are moving.
+			const moveRule = await policy_rModel.getPolicy_r(dbCon, firewall, rule);
+			let new_order;
 
-			if (pasteOnRule && pasteOnRule.length > 0) {
-				// Get rule data for the rule we are moving.
-				Policy_rModel.getPolicy_r(firewall, rule, async (error, moveRule) => {
-					if (error) return reject(error);
+			// We can not move the Catch-All special rule.
+			if (moveRule.special===2) throw(fwcError.NOT_ALLOWED);
+			// It is not possible to move rules under the Catch-All special rule.
+			if (pasteOnRule.special===2 && pasteOffset===1) throw(fwcError.NOT_ALLOWED);
 
-					let new_order;
-					if (moveRule && moveRule.length > 0) {
-						try {
-							if (pasteOffset===1)
-								new_order = await Policy_rModel.makeAfterRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
-							else if (pasteOffset===-1)
-								new_order = await Policy_rModel.makeBeforeRuleOrderGap(firewall, moveRule[0].type, pasteOnRuleId);
-							else // Move rule into group.
-								new_order = moveRule[0].rule_order;
+			if (pasteOffset===1)
+				new_order = await policy_rModel.makeAfterRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
+			else if (pasteOffset===-1)
+				new_order = await policy_rModel.makeBeforeRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
+			else // Move rule into group.
+				new_order = moveRule.rule_order;
 
-							//Update the moved rule data
-							var policy_rData = {
-								id: rule,
-								idgroup: pasteOnRule[0].idgroup,
-								rule_order: new_order
-							};
-							await Policy_rModel.updatePolicy_r(dbCon, policy_rData);
-							
-							// If we have moved rule from a group, if the group is empty remove de rules group from the database.
-							if (pasteOffset!=0 && moveRule[0].idgroup)
-								await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule[0].idgroup);
+			//Update the moved rule data
+			var policy_rData = {
+				id: rule,
+				idgroup: pasteOnRule.idgroup,
+				rule_order: new_order
+			};
+			await policy_rModel.updatePolicy_r(dbCon, policy_rData);
+			
+			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
+			if (pasteOffset!=0 && moveRule.idgroup)
+				await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule[0].idgroup);
 
-							resolve(rule);
-						} catch(error) { return reject(error) }
-					} else return reject(fwcError.NOT_FOUND);
-				});
-			} else return reject(fwcError.NOT_FOUND);
-		});
+			resolve();
+		} catch(error) { return reject(error) }
 	});
 }
 
