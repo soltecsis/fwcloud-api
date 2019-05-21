@@ -30,18 +30,18 @@ var router = express.Router();
  * @property PolicyScript
  * @type ../../models/compile/
  */
-var PolicyScript = require('../../models/policy/policy_script');
-var FirewallModel = require('../../models/firewall/firewall');
+var policyScript = require('../../models/policy/policy_script');
+var firewallModel = require('../../models/firewall/firewall');
 const fwcError = require('../../utils/error_table');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
-    const data = await FirewallModel.getFirewallSSH(req);
+    const data = await firewallModel.getFirewallSSH(req);
 
-    await PolicyScript.install(req,data.SSHconn,((data[0].id_fwmaster) ? data[0].id_fwmaster : data[0].id))
-    await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
+    await policyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id))
+    await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }

@@ -66,6 +66,8 @@ RuleCompileModel.pre_compile_sd = (dir, sd, negate) => {
 			items.str.push(dir+sd[i].address+"/"+sd[i].netmask.replace('/',''));
 		else if (sd[i].type === 6) // Address range
 			items.str.push((dir!=="" ? ("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ")) : " ")+sd[i].range_start+"-"+sd[i].range_end);
+		else if (sd[i].type === 9) // DNS
+			items.str.push(dir+sd[i].name);
 	}
 
 	return ((items.str.length>0) ? items : null);
@@ -90,7 +92,7 @@ RuleCompileModel.pre_compile_if = (dir, ifs, negate) => {
 // Agrupate services position by protocol number (TCP, UDP, ICMP, etc.) 
 // Returns an array of strings with the services agrupated by protocol.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_svc = (sep, svc, negate) => {
+RuleCompileModel.pre_compile_svc = (sep, svc, negate, policy_type) => {
 	var items = {
 		'negate' : negate,
 		'str': []
@@ -181,12 +183,14 @@ RuleCompileModel.pre_compile_svc = (sep, svc, negate) => {
 				break;
 
 			case 1: // ICMP
+				const shared = (policy_type<=5) ? "-p icmp -m icmp --icmp-type" : "-p icmpv6 -m ipv6-icmp --icmpv6-type";
+
 				if (svc[i].icmp_type===-1 && svc[i].icmp_code===-1) // Any ICMP
-					items.str.push("-p icmp -m icmp --icmp-type any");
+					items.str.push(`${shared} any`);
 				else if (svc[i].icmp_type!==-1 && svc[i].icmp_code===-1)
-					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].icmp_type);
+					items.str.push(`${shared} ${svc[i].icmp_type}`);
 				else if (svc[i].icmp_type!==-1 && svc[i].icmp_code!==-1)
-					items.str.push("-p icmp -m icmp --icmp-type "+svc[i].icmp_type+"/"+svc[i].icmp_code);
+					items.str.push(`${shared} ${svc[i].icmp_type}/${svc[i].icmp_code}`);
 				break;
 
 			default: // Other IP protocols.
@@ -244,7 +248,7 @@ RuleCompileModel.pre_compile = rule => {
 	// SERVICE
 	objs = rule.positions[svc_position].position_objs;
 	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[svc_position].id);
-	if (items=RuleCompileModel.pre_compile_svc(":", objs, negated)) 
+	if (items=RuleCompileModel.pre_compile_svc(":", objs, negated, policy_type)) 
 		position_items.push(items);
 
 	// SOURCE
@@ -319,7 +323,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 		if (trans_addr.length === 1) 
 			action += (RuleCompileModel.pre_compile_sd("",trans_addr,false)).str[0];
 		if (trans_port.length === 1) 
-			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false)).str[0];
+			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false,policy_type)).str[0];
 
 		resolve(action);
 	});
