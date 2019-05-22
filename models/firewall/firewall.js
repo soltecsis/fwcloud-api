@@ -461,12 +461,12 @@ firewallModel.updateFirewallStatusIPOBJ = function (fwcloud, ipobj, ipobj_g, int
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql='UPDATE '+tableModel+' F'+
-			' INNER JOIN policy_r PR ON PR.firewall=F.id'+
-			' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id'+
-			' SET F.status=F.status'+status_action+
-			' WHERE F.fwcloud='+connection.escape(fwcloud)+' AND PRI.ipobj='+connection.escape(ipobj)+
-			' AND PRI.ipobj_g='+connection.escape(ipobj_g)+' AND PRI.interface='+connection.escape(interface);
+			var sql=`UPDATE ${tableModel} F
+				INNER JOIN policy_r PR ON PR.firewall=F.id
+				INNER JOIN ${(interface!=-1) ? `policy_r__interface` : `policy_r__ipobj`} PRI ON PRI.rule=PR.id
+				SET F.status=F.status${status_action}
+				WHERE F.fwcloud=${fwcloud} 
+				${(ipobj!=-1 || ipobj_g!=-1) ? `AND PRI.ipobj=${ipobj} AND PRI.ipobj_g=${ipobj_g}` : ``} AND PRI.interface=${interface}`;
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
 

@@ -176,7 +176,7 @@ router.put('/delfrom', async(req, res) => {
 
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
-		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.params.ipobjg, -1, -1, "|3");
+		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
 		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
