@@ -32,7 +32,8 @@ var utilsModel = require("../../utils/utils.js");
 var interfaceModel = require('../../models/interface/interface');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-var Policy_rModel = require('../../models/policy/policy_r');
+var policy_rModel = require('../../models/policy/policy_r');
+var policy_gModel = require('../../models/policy/policy_g');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
@@ -368,7 +369,7 @@ firewallModel.insertFirewall = firewallData => {
  *       callback(error, null);
  *       
  */
-firewallModel.updateFirewall = function (dbCon, iduser, firewallData) {
+firewallModel.updateFirewall = (dbCon, iduser, firewallData) => {
 	return new Promise((resolve, reject) => {
 		var sqlExists = `SELECT T.id FROM ${tableModel} T 
 			INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
@@ -377,17 +378,17 @@ firewallModel.updateFirewall = function (dbCon, iduser, firewallData) {
 			if (error) return reject(error);
 
 			if (row && row.length > 0) {
-				var sql = 'UPDATE ' + tableModel + ' SET name=' + dbCon.escape(firewallData.name) + ', ' +
-						'comment=' + dbCon.escape(firewallData.comment) + ', ' +
-						'install_user=' + dbCon.escape(firewallData.install_user) + ', ' +
-						'install_pass=' + dbCon.escape(firewallData.install_pass) + ', ' +
-						'save_user_pass=' + dbCon.escape(firewallData.save_user_pass) + ', ' +
-						'install_interface=' + dbCon.escape(firewallData.install_interface) + ', ' +
-						'install_ipobj=' + dbCon.escape(firewallData.install_ipobj) + ', ' +
-						'install_port=' + dbCon.escape(firewallData.install_port) + ', ' +
-						'by_user=' + dbCon.escape(iduser) + ', ' +
-						'options=' + dbCon.escape(firewallData.options) +
-						' WHERE id=' + firewallData.id;
+				var sql = `UPDATE ${tableModel} SET name=${dbCon.escape(firewallData.name)},
+					comment=${dbCon.escape(firewallData.comment)},
+					install_user=${dbCon.escape(firewallData.install_user)},
+					install_pass=${dbCon.escape(firewallData.install_pass)},
+					save_user_pass=${firewallData.save_user_pass},
+					install_interface=${firewallData.install_interface},
+					install_ipobj=${firewallData.install_ipobj},
+					install_port=${firewallData.install_port},
+					by_user=${iduser},
+					options=${firewallData.options}
+					WHERE id=${firewallData.id}`;
 				dbCon.query(sql, function (error, result) {
 					if (error) return reject(error);
 					resolve(true);
@@ -453,6 +454,15 @@ firewallModel.updateFirewallInstallDate = (fwcloud, firewall) => {
 				if (error) return reject(error);
 				resolve();
 			});
+		});
+	});
+};
+
+firewallModel.promoteToMaster = (dbCon,firewall) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`UPDATE ${tableModel} SET fwmaster=1 WHERE id=${firewall}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
@@ -760,7 +770,7 @@ firewallModel.deleteFirewall = (user, fwcloud, firewall) => {
 				//If exists Id from firewall to remove
 				if (row && row.length > 0) {
 					try {
-						await Policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
+						await policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 						await openvpnPrefixModel.deletePrefixAll(dbCon,fwcloud,firewall); // Remove all firewall openvpn prefixes.
 						await openvpnModel.delCfgAll(dbCon,fwcloud,firewall); // Remove all OpenVPN configurations for this firewall.
 						await interfaceModel.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
@@ -803,87 +813,48 @@ firewallModel.deleteFirewallFromCluster = req => {
 			// Deleting FIREWAL MASTER
 			if (rowF.fwmaster === 1) {
 				// Transfer data to the new slave firewall.
-				var sql = 'SELECT T.id FROM ' + tableModel + ' T ' +
-					' WHERE fwmaster=0 AND  T.cluster=' + req.dbCon.escape(req.body.cluster) +
-					' ORDER by T.id limit 1';
+				var sql = `SELECT T.id FROM ${tableModel} T
+					WHERE fwmaster=0 AND  T.cluster=${req.body.cluster}	ORDER by T.id limit 1`;
 				req.dbCon.query(sql, async (error, rowS) => {
-					if (rowS && rowS.length > 0) {
-						var idNewFM = rowS[0].id;
+					if (error) return reject(error);
+					if (rowS.length===0) return reject(fwcError.NOT_FOUND);
 
+					var idNewFM = rowS[0].id;
+					try {
 						// Rename data directory with the new firewall master id.
-						try {
-							await utilsModel.renameFirewallDataDir(req.body.fwcloud,req.body.firewall,idNewFM);
-						} catch(error) { return reject(error) }
+						await utilsModel.renameFirewallDataDir(req.body.fwcloud,req.body.firewall,idNewFM);
 
-						//UPDATE POLICY_R
-						sql = "UPDATE policy_r SET firewall=" + req.dbCon.escape(idNewFM) + " WHERE firewall=" + req.dbCon.escape(req.body.firewall);
-						req.dbCon.query(sql, (error, result) => {
-							if (error) return reject(fwcError.other("Error UPDATE POLICY"));
+						// Move all related objects to the new firewall.
+						await policy_rModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
+						await policy_gModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
+						await interfaceModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
+						await openvpnModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
 
-							//UPDATE POLICY_G
-							sql = "UPDATE policy_g SET firewall=" + req.dbCon.escape(idNewFM) + " WHERE firewall=" + req.dbCon.escape(req.body.firewall);
-							req.dbCon.query(sql, (error, result) => {
-								if (error) return reject(fwcError.other("Error UPDATE POLICY GROUPS"));
+						// Promote the new master.
+						await firewallModel.promoteToMaster(req.dbCon,idNewFM);
 
-								//UPDATE INTERFACES
-								sql = "UPDATE interface SET firewall=" + req.dbCon.escape(idNewFM) + " WHERE firewall=" + req.dbCon.escape(req.body.firewall);
-								req.dbCon.query(sql, (error, result) => {
-									if (error) return reject(fwcError.other("Error UPDATE INTERFACES"));
-									
-									//UPDATE NEW FWMASTER
-									sql = "UPDATE firewall SET fwmaster=1 WHERE id=" + req.dbCon.escape(idNewFM);
-									req.dbCon.query(sql, function (error, result) {
-										if (error) return reject(fwcError.other("Error UPDATE NEW FWMASTER"));
+						// Delete the old firewall node.
+						await firewallModel.deleteFirewallRow(req.dbCon,req.body.fwcloud,req.body.firewall);
+					} catch(error) { return reject(error) }
 
-										//UPDATE TREE RECURSIVE FROM IDNODE CLUSTER
-										//GET NODE FROM CLUSTER
-										sql = "SELECT " + req.dbCon.escape(req.body.firewall) + " as OLDFW, " + req.dbCon.escape(idNewFM) + " as NEWFW, T.* FROM fwc_tree T WHERE node_type='CL' AND  id_obj =" + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
-										logger.debug("FIRST SQL: ", sql);
-										req.dbCon.query(sql, function (error, rowT) {
-											if (rowT && rowT.length > 0) {
-												var iNodeCluster = rowT[0].id;
-												fwcTreemodel.updateIDOBJFwc_TreeFullNode(rowT[0])
-												.then(resp3 => {
-													//DELETE TREE NODES From firewall
-													var dataNode = {id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id};
-													logger.debug("----> DELETING TREE FOR NODE:", dataNode);
-													fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
-															.then(resp4 => {
-																//DELETE FIREWALL
-																var sql = 'DELETE FROM ' + tableModel + ' WHERE id = ' + req.dbCon.escape(req.body.firewall);
-																req.dbCon.query(sql, function (error, result) {
-																	if (error) {
-																		resolve({"result": false, "msg": "Error DELETE FIREWALL: " + error});
-																	} else {
+					//UPDATE TREE RECURSIVE FROM IDNODE CLUSTER
+					//GET NODE FROM CLUSTER
+					sql = `SELECT ${req.body.firewall} as OLDFW, ${idNewFM} as NEWFW, T.* FROM fwc_tree T 
+						WHERE node_type='CL' AND id_obj=${req.body.cluster} AND fwcloud=${req.body.fwcloud}`;
+					req.dbCon.query(sql, async (error, rowT) => {
+						if (error) return reject(error);
 
-																		resolve({"result": true, "msg": "deleted"});
-																	}
+						if (rowT && rowT.length > 0) {
+							try {
+								await fwcTreemodel.updateIDOBJFwc_TreeFullNode(rowT[0]);
 
-																});
-															})
-															.catch(e => {
-																resolve({"result": false, "msg": "Error DELETE TREE NODES: " + e});
-															});
-												})
-												.catch(e => {
-													resolve({"result": false, "msg": "Error DELETE USERS: " + e});
-												});
-											} else {
-												resolve({"result": false, "msg": "NOT FOUND NODE CLUSTER"});
-											}
-
-										});
-									});
-								});
-
-							});
-						});
-
-					//TRAPASO de NODOS
-					} else {
-						//NO HAY FIREWALL SLAVES
-						resolve({"result": false, "msg": "Not Exist SLAVE"});
-					}
+								//DELETE TREE NODES From firewall
+								var dataNode = {id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id};
+								await fwcTreemodel.deleteFwc_TreeFullNode(dataNode);
+							} catch(error) { return reject(error) }
+						}
+						resolve();
+					});
 				});
 			} else { // Deleting FIREWALL SLAVE
 				try {
@@ -893,7 +864,7 @@ firewallModel.deleteFirewallFromCluster = req => {
 					resolve();
 				} catch(error) { reject(error) }
 			}
-		});///
+		});
 	});
 };
 

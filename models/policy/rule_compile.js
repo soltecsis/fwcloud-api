@@ -520,7 +520,6 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			//Save compilation
 			var policy_cData = {
 				rule: rule,
-				firewall: firewall,
 				rule_compiled: cs,
 				status_compiled: 1
 			};

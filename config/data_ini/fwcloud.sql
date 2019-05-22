@@ -820,7 +820,7 @@ CREATE TABLE `ipobj_type__policy_position` (
 
 LOCK TABLES `ipobj_type__policy_position` WRITE;
 /*!40000 ALTER TABLE `ipobj_type__policy_position` DISABLE KEYS */;
-INSERT INTO `ipobj_type__policy_position` VALUES (5,1),(6,1),(7,1),(8,1),(10,1),(11,1),(20,1),(311,1),(401,1),(5,2),(6,2),(7,2),(8,2),(10,2),(11,2),(20,2),(311,2),(401,2),(1,3),(2,3),(3,3),(4,3),(21,3),(5,4),(6,4),(7,4),(8,4),(10,4),(11,4),(20,4),(311,4),(401,4),(5,5),(6,5),(7,5),(8,5),(10,5),(11,5),(20,5),(311,5),(401,5),(1,6),(2,6),(3,6),(4,6),(21,6),(5,7),(6,7),(7,7),(8,7),(10,7),(11,7),(20,7),(311,7),(401,7),(5,8),(6,8),(7,8),(8,8),(10,8),(11,8),(20,8),(311,8),(401,8),(1,9),(2,9),(3,9),(4,9),(21,9),(5,11),(6,11),(7,11),(8,11),(10,11),(11,11),(20,11),(311,11),(401,11),(5,12),(6,12),(7,12),(8,12),(10,12),(11,12),(20,12),(311,12),(401,12),(1,13),(2,13),(3,13),(4,13),(21,13),(5,14),(6,14),(311,14),(401,14),(2,16),(4,16),(10,20),(10,21),(10,22),(10,24),(10,25),(5,30),(6,30),(7,30),(8,30),(10,30),(11,30),(20,30),(311,30),(401,30),(5,31),(6,31),(7,31),(8,31),(10,31),(11,31),(20,31),(311,31),(401,31),(1,32),(2,32),(3,32),(4,32),(21,32),(5,34),(6,34),(311,34),(401,34),(2,35),(4,35),(10,36),(5,37),(6,37),(7,37),(8,37),(10,37),(11,37),(20,37),(311,37),(401,37),(5,38),(6,38),(7,38),(8,38),(10,38),(11,38),(20,38),(311,38),(401,38),(1,39),(2,39),(3,39),(4,39),(21,39),(5,40),(6,40),(7,40),(8,40),(10,40),(11,40),(20,40),(311,40),(401,40),(5,41),(6,41),(7,41),(8,41),(10,41),(11,41),(20,41),(311,41),(401,41),(1,42),(2,42),(3,42),(4,42),(21,42),(5,43),(6,43),(7,43),(8,43),(10,43),(11,43),(20,43),(311,43),(401,43),(5,44),(6,44),(7,44),(8,44),(10,44),(11,44),(20,44),(311,44),(401,44),(1,45),(2,45),(3,45),(4,45),(21,45),(5,46),(6,46),(7,46),(8,46),(10,46),(11,46),(20,46),(311,46),(401,46),(5,47),(6,47),(7,47),(8,47),(10,47),(11,47),(20,47),(311,47),(401,47),(1,48),(2,48),(3,48),(4,48),(21,48),(5,49),(6,49),(311,49),(401,49),(2,50),(4,50),(10,51),(10,52),(10,53),(10,54),(10,55),(5,56),(6,56),(7,56),(8,56),(10,56),(11,56),(20,56),(311,56),(401,56),(5,57),(6,57),(7,57),(8,57),(10,57),(11,57),(20,57),(311,57),(401,57),(1,58),(2,58),(3,58),(4,58),(21,58),(5,59),(6,59),(311,59),(401,59),(2,60),(4,60),(10,61),(9,1),(9,2),(9,4),(9,5),(9,7),(9,8),(9,11),(9,12),(9,14),(9,30),(9,31),(9,34),(9,37),(9,38),(9,40),(9,41),(9,43),(9,44),(9,46),(9,47),(9,49),(9,56),(9,57),(9,59);
+INSERT INTO `ipobj_type__policy_position` VALUES (5,1),(6,1),(7,1),(8,1),(9,1),(10,1),(11,1),(20,1),(311,1),(401,1),(5,2),(6,2),(7,2),(8,2),(9,2),(10,2),(11,2),(20,2),(311,2),(401,2),(1,3),(2,3),(3,3),(4,3),(21,3),(5,4),(6,4),(7,4),(8,4),(9,4),(10,4),(11,4),(20,4),(311,4),(401,4),(5,5),(6,5),(7,5),(8,5),(9,5),(10,5),(11,5),(20,5),(311,5),(401,5),(1,6),(2,6),(3,6),(4,6),(21,6),(5,7),(6,7),(7,7),(8,7),(9,7),(10,7),(11,7),(20,7),(311,7),(401,7),(5,8),(6,8),(7,8),(8,8),(9,8),(10,8),(11,8),(20,8),(311,8),(401,8),(1,9),(2,9),(3,9),(4,9),(21,9),(5,11),(6,11),(7,11),(8,11),(9,11),(10,11),(11,11),(20,11),(311,11),(401,11),(5,12),(6,12),(7,12),(8,12),(9,12),(10,12),(11,12),(20,12),(311,12),(401,12),(1,13),(2,13),(3,13),(4,13),(21,13),(5,14),(6,14),(9,14),(311,14),(401,14),(2,16),(4,16),(10,20),(10,21),(10,22),(10,24),(10,25),(5,30),(6,30),(7,30),(8,30),(9,30),(10,30),(11,30),(20,30),(311,30),(401,30),(5,31),(6,31),(7,31),(8,31),(9,31),(10,31),(11,31),(20,31),(311,31),(401,31),(1,32),(2,32),(3,32),(4,32),(21,32),(5,34),(6,34),(9,34),(311,34),(401,34),(2,35),(4,35),(10,36),(5,37),(6,37),(7,37),(8,37),(9,37),(10,37),(11,37),(20,37),(311,37),(401,37),(5,38),(6,38),(7,38),(8,38),(9,38),(10,38),(11,38),(20,38),(311,38),(401,38),(1,39),(2,39),(3,39),(4,39),(21,39),(5,40),(6,40),(7,40),(8,40),(9,40),(10,40),(11,40),(20,40),(311,40),(401,40),(5,41),(6,41),(7,41),(8,41),(9,41),(10,41),(11,41),(20,41),(311,41),(401,41),(1,42),(2,42),(3,42),(4,42),(21,42),(5,43),(6,43),(7,43),(8,43),(9,43),(10,43),(11,43),(20,43),(311,43),(401,43),(5,44),(6,44),(7,44),(8,44),(9,44),(10,44),(11,44),(20,44),(311,44),(401,44),(1,45),(2,45),(3,45),(4,45),(21,45),(5,46),(6,46),(7,46),(8,46),(9,46),(10,46),(11,46),(20,46),(311,46),(401,46),(5,47),(6,47),(7,47),(8,47),(9,47),(10,47),(11,47),(20,47),(311,47),(401,47),(1,48),(2,48),(3,48),(4,48),(21,48),(5,49),(6,49),(9,49),(311,49),(401,49),(2,50),(4,50),(10,51),(10,52),(10,53),(10,54),(10,55),(5,56),(6,56),(7,56),(8,56),(9,56),(10,56),(11,56),(20,56),(311,56),(401,56),(5,57),(6,57),(7,57),(8,57),(9,57),(10,57),(11,57),(20,57),(311,57),(401,57),(1,58),(2,58),(3,58),(4,58),(21,58),(5,59),(6,59),(9,59),(311,59),(401,59),(2,60),(4,60),(10,61);
 /*!40000 ALTER TABLE `ipobj_type__policy_position` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1045,7 +1045,6 @@ DROP TABLE IF EXISTS `policy_c`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `policy_c` (
   `rule` int(11) NOT NULL,
-  `firewall` int(11) NOT NULL,
   `rule_compiled` text,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1065,57 +1064,6 @@ LOCK TABLES `policy_c` WRITE;
 /*!40000 ALTER TABLE `policy_c` DISABLE KEYS */;
 /*!40000 ALTER TABLE `policy_c` ENABLE KEYS */;
 UNLOCK TABLES;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `policy_c_AFTER_INSERT` AFTER INSERT ON `policy_c` FOR EACH ROW BEGIN
-  UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `policy_c_AFTER_UPDATE` AFTER UPDATE ON `policy_c` FOR EACH ROW BEGIN
-  UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=NEW.firewall;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `policy_c_AFTER_DELETE` AFTER DELETE ON `policy_c` FOR EACH ROW BEGIN
-  UPDATE firewall set updated_at=CURRENT_TIMESTAMP WHERE id=OLD.firewall;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `policy_g`
@@ -1990,4 +1938,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-05-06 12:29:26
+-- Dump completed on 2019-05-22 18:15:48

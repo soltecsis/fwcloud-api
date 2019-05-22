@@ -92,15 +92,16 @@ policy_cModel.insertPolicy_c = (policy_cData) => {
 		db.get((error, dbCon) => {
 			if (error) return reject(error);
 			
-			let sqlExists = `SELECT * FROM ${tableModel} WHERE rule=${policy_cData.rule} AND firewall=${policy_cData.firewall}`;
+			let sqlExists = `SELECT * FROM ${tableModel} WHERE rule=${policy_cData.rule}`;
 			dbCon.query(sqlExists, async (error, row) => {
 				if (row && row.length > 0) {
 					try {
 						await policy_cModel.updatePolicy_c(dbCon,policy_cData);
 					} catch(error) { return reject(error) }
 				} else {
-					let sqlInsert = `INSERT INTO ${tableModel} SET rule=${policy_cData.rule}, firewall=${policy_cData.firewall}, 
-					rule_compiled=${dbCon.escape(policy_cData.rule_compiled)}, status_compiled=${dbCon.escape(policy_cData.status_compiled)},
+					let sqlInsert = `INSERT INTO ${tableModel} SET rule=${policy_cData.rule},  
+					rule_compiled=${dbCon.escape(policy_cData.rule_compiled)}, 
+					status_compiled=${dbCon.escape(policy_cData.status_compiled)},
 					updated_at=CURRENT_TIMESTAMP`;
 					
 					dbCon.query(sqlInsert, (error, result) => {
@@ -117,7 +118,7 @@ policy_cModel.insertPolicy_c = (policy_cData) => {
 policy_cModel.updatePolicy_c = (dbCon, policy_cData) => {
 	return new Promise((resolve, reject) => {
 		var sql = `UPDATE ${tableModel} SET rule_compiled=${dbCon.escape(policy_cData.rule_compiled)},
-			firewall=${policy_cData.firewall}, status_compiled=${policy_cData.status_compiled}, updated_at=CURRENT_TIMESTAMP
+			status_compiled=${policy_cData.status_compiled}, updated_at=CURRENT_TIMESTAMP
 			WHERE rule=${policy_cData.rule}`;		
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
@@ -127,12 +128,11 @@ policy_cModel.updatePolicy_c = (dbCon, policy_cData) => {
 };
 
 //Remove policy_c with id to remove
-policy_cModel.deletePolicy_c = function (fw, rule) {
+policy_cModel.deletePolicy_c = rule => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error) return reject(error);
-			let sql = 'DELETE FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' AND firewall=' +connection.escape(fw);
-			connection.query(sql, function (error, result) {
+			connection.query(`DELETE FROM ${tableModel} WHERE rule=${rule}`, (error, result) => {
 				if (error) return reject(error);
 				resolve();
 			});
@@ -141,15 +141,14 @@ policy_cModel.deletePolicy_c = function (fw, rule) {
 };
 
 //Remove all policy compilation for a firewall.
-policy_cModel.deleteFullFirewallPolicy_c = function (fw) {
+policy_cModel.deleteFullFirewallPolicy_c = (dbCon,firewall) => {
 	return new Promise((resolve, reject) => {
-		db.get(function (error, connection) {
+		let sql = `DELETE C.* FROM ${tableModel} C 
+			INNER JOIN policy_r R on R.id=C.rule
+			WHERE R.firewall=${firewall}`;
+		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
-			let sql = 'DELETE FROM ' + tableModel + ' WHERE firewall=' + connection.escape(fw);
-			connection.query(sql, (error, result) => {
-				if (error) return reject(error);
-				resolve();
-			});
+			resolve();
 		});
 	});
 };
@@ -173,7 +172,7 @@ policy_cModel.deleteRulesCompilation = (fwcloud, rules) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			for (let rule of rules) {
-				await policy_cModel.deletePolicy_c(rule.firewall, rule.rule);
+				await policy_cModel.deletePolicy_c(rule.rule);
 				await firewallModel.updateFirewallStatus(fwcloud,rule.firewall,"|3");
 			}
 			resolve();

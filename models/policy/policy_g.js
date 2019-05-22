@@ -255,5 +255,15 @@ policy_gModel.deleteFirewallGroups = function (idFirewall) {
 	});
 };
 
+//Move rules from one firewall to other.
+policy_gModel.moveToOtherFirewall = (dbCon, src_firewall, dst_firewall) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`UPDATE ${tableModel} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 //Export the object
 module.exports = policy_gModel;

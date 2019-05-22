@@ -46,8 +46,8 @@ async (req, res) => {
 			throw fwcError.BAD_POSITION;
 
 		// Invalidate compilation of the affected rules.
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
+		await policy_cModel.deletePolicy_c(req.body.rule);
+		await policy_cModel.deletePolicy_c(req.body.new_rule);
 		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		// Move OpenVPN configuration object to the new position.

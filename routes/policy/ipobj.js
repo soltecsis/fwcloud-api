@@ -96,8 +96,8 @@ async (req, res) => {
 
 	try {
 		// Invalidate compilation of the affected rules.
-		await policy_cModel.deletePolicy_c(firewall, rule);
-		await policy_cModel.deletePolicy_c(firewall, new_rule);
+		await policy_cModel.deletePolicy_c(rule);
+		await policy_cModel.deletePolicy_c(new_rule);
 		await firewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))

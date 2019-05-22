@@ -371,7 +371,7 @@ router.put('/', async (req, res) => {
 
 	try {
 		const masterFirewallID = await FirewallModel.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
-		await Policy_cModel.deleteFullFirewallPolicy_c(masterFirewallID);
+		await Policy_cModel.deleteFullFirewallPolicy_c(req.dbCon,masterFirewallID);
 		await clusterModel.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
 
 		// If this a stateful cluster verify that the stateful special rules exists.

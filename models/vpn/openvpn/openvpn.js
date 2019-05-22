@@ -14,6 +14,8 @@ const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
 
+const tableModel = 'openvpn';
+
 
 // Insert new OpenVPN configuration register in the database.
 openvpnModel.addCfg = req => {
@@ -27,7 +29,7 @@ openvpnModel.addCfg = req => {
       comment: req.body.comment,
       status: 1
     }
-    req.dbCon.query('insert into openvpn SET ?', cfg, (error, result) => {
+    req.dbCon.query(`insert into ${tableModel} SET ?`, cfg, (error, result) => {
       if (error) return reject(error);
       resolve(result.insertId);
     });
@@ -36,7 +38,7 @@ openvpnModel.addCfg = req => {
 
 openvpnModel.updateCfg = req => {
 	return new Promise((resolve, reject) => {
-    let sql =`UPDATE openvpn SET install_dir=${req.dbCon.escape(req.body.install_dir)},
+    let sql =`UPDATE ${tableModel} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
       install_name=${req.dbCon.escape(req.body.install_name)},
       comment=${req.dbCon.escape(req.body.comment)}
       WHERE id=${req.body.openvpn}`
@@ -81,7 +83,7 @@ openvpnModel.delCfg = (dbCon,fwcloud,openvpn) => {
         dbCon.query(`delete from openvpn_prefix where openvpn=${openvpn}`, (error, result) => {
           if (error) return reject(error);
 
-          dbCon.query(`delete from openvpn where id=${openvpn}`, async (error, result) => {
+          dbCon.query(`delete from ${tableModel} where id=${openvpn}`, async (error, result) => {
             if (error) return reject(error);
 
             // Remove all the ipobj referenced by this OpenVPN configuration.
@@ -107,7 +109,7 @@ openvpnModel.delCfgAll = (dbCon,fwcloud,firewall) => {
     // In the restrictions check we have already checked that it is possible to remove them.
     // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way, 
     // and the OpenVPN server is removed first, we will get a database foreign key constraint fails error.
-    let sql = `select VPN.id,CRT.type from openvpn VPN
+    let sql = `select VPN.id,CRT.type from ${tableModel} VPN
       inner join crt CRT on CRT.id=VPN.crt
       where VPN.firewall=${firewall} order by CRT.type asc`;
     dbCon.query(sql, async (error, result) => {
@@ -126,7 +128,7 @@ openvpnModel.delCfgAll = (dbCon,fwcloud,firewall) => {
 
 openvpnModel.getCfgId = req => {
 	return new Promise((resolve, reject) => {
-    let sql = 'select id from openvpn where firewall='+req.body.firewall+' and crt='+req.body.crt;
+    let sql = `select id from ${tableModel} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
       resolve(result[0].id);
@@ -136,7 +138,7 @@ openvpnModel.getCfgId = req => {
 
 openvpnModel.getCfg = req => {
 	return new Promise((resolve, reject) => {
-    let sql = 'select * from openvpn where id='+req.body.openvpn;
+    let sql = `select * from ${tableModel} where id=${req.body.openvpn}`;
     req.dbCon.query(sql, (error, result) => {
       if (error) return reject(error);
 
@@ -708,6 +710,17 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
     } catch(error) { reject(error) }
   });
 };
+
+//Move rules from one firewall to other.
+openvpnModel.moveToOtherFirewall = (dbCon, src_firewall, dst_firewall) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`UPDATE ${tableModel} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
 
 //Export the object
 module.exports = openvpnModel;

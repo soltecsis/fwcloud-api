@@ -754,7 +754,7 @@ policy_rModel.deletePolicy_r = (firewall, rule) => {
 						await policyOpenvpnModel.deleteFromRule(dbCon,rule);
 						await policyPrefixModel.deleteFromRule(dbCon,rule);
 						//DELETE POLICY_C compilation
-						await Policy_cModel.deletePolicy_c(firewall, rule);
+						await Policy_cModel.deletePolicy_c(rule);
 					} catch(error) { return reject(error) }
 
 					// DELETE FULE
@@ -1030,11 +1030,21 @@ policy_rModel.checkCatchAllRules = (dbCon, firewall) => {
 
 
 //Allow all positions of a rule that are empty.
-policy_rModel.firewallWithMarkRules = (dbCon,firewall) => {
-	return new Promise(async (resolve, reject) => {
+policy_rModel.firewallWithMarkRules = (dbCon, firewall) => {
+	return new Promise((resolve, reject) => {
 		dbCon.query(`select id from ${tableModel} where firewall=${firewall} and mark!=0`, (error, result) => {
 			if (error) return reject(error);
 			resolve((result.length>0) ? true : false);
+		});
+	});
+};
+
+//Move rules from one firewall to other.
+policy_rModel.moveToOtherFirewall = (dbCon, src_firewall, dst_firewall) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`UPDATE ${tableModel} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };

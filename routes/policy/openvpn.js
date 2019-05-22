@@ -35,8 +35,8 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
 		// Invalidate compilation of the affected rules.
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.rule);
-		await policy_cModel.deletePolicy_c(req.body.firewall, req.body.new_rule);
+		await policy_cModel.deletePolicy_c(req.body.rule);
+		await policy_cModel.deletePolicy_c(req.body.new_rule);
 		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await policyOpenvpnModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))

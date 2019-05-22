@@ -230,7 +230,7 @@ router.put('/', async (req, res) => {
 	};
 
 	try {
-		await Policy_cModel.deleteFullFirewallPolicy_c(req.body.firewall);
+		await Policy_cModel.deleteFullFirewallPolicy_c(req.dbCon,req.body.firewall);
 		await firewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
 		await firewallModel.checkBodyFirewall(firewallData, false);
 

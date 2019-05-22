@@ -13,9 +13,7 @@ var IpobjModel = require('../../models/ipobj/ipobj');
 
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
-
-
-var tableModel = "interface";
+const tableModel = "interface";
 
 
 var logger = require('log4js').getLogger("app");
@@ -610,6 +608,17 @@ interfaceModel.deleteInterfaceFirewall = firewall => {
 				else
 					resolve({"result": false, "msg": "notExist"});
 			});
+		});
+	});
+};
+
+
+//Move rules from one firewall to other.
+interfaceModel.moveToOtherFirewall = (dbCon, src_firewall, dst_firewall) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`UPDATE ${tableModel} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+			if (error) return reject(error);
+			resolve();
 		});
 	});
 };
