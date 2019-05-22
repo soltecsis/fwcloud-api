@@ -418,16 +418,40 @@ firewallModel.getFirewallStatusNotZero = function (fwcloud, data) {
 };
 
 
-firewallModel.updateFirewallStatus = function (fwcloud, firewall, status_action) {
+firewallModel.updateFirewallStatus = (fwcloud, firewall, status_action) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
-			var sql='UPDATE '+tableModel+' SET status=status'+status_action+
-			' WHERE id='+connection.escape(firewall)+' AND fwcloud='+connection.escape(fwcloud);
-			//logger.debug(sql);
+			let sql=`UPDATE ${tableModel} SET status=status${status_action} WHERE id=${firewall} AND fwcloud=${fwcloud}`;
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
 				resolve({"result": true});
+			});
+		});
+	});
+};
+
+firewallModel.updateFirewallCompileDate = (fwcloud, firewall) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			let sql=`UPDATE ${tableModel} SET compiled_at=NOW() WHERE id=${firewall} AND fwcloud=${fwcloud}`;
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve();
+			});
+		});
+	});
+};
+
+firewallModel.updateFirewallInstallDate = (fwcloud, firewall) => {
+	return new Promise((resolve, reject) => {
+		db.get((error, connection) => {
+			if (error) return reject(error);
+			let sql=`UPDATE ${tableModel} SET installed_at=NOW() WHERE id=${firewall} AND fwcloud=${fwcloud}`;
+			connection.query(sql, (error, result) => {
+				if (error) return reject(error);
+				resolve();
 			});
 		});
 	});

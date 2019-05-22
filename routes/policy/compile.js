@@ -50,7 +50,7 @@ var RuleCompile = require('../../models/policy/rule_compile');
 var PolicyScript = require('../../models/policy/policy_script');
 
 const config = require('../../config/config');
-const FirewallModel = require('../../models/firewall/firewall');
+const firewallModel = require('../../models/firewall/firewall');
 const socketTools = require('../../utils/socket');
 const policy_rModel = require('../../models/policy/policy_r');
 const fwcError = require('../../utils/error_table');
@@ -179,7 +179,10 @@ router.put('/', (req, res) => {
 			stream.end();
 			
 			// Update firewall status flags.
-			await FirewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~1");
+			await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~1");
+			// Update firewall compile date.
+			await firewallModel.updateFirewallCompileDate(req.body.fwcloud,req.body.firewall);
+
 			socketTools.msgEnd();
 			res.status(204).end();
 		} catch(error) { 
