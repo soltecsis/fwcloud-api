@@ -644,7 +644,7 @@ restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
 	try {
-		const data = await firewallModel.deleteFirewallFromCluster(req.session.user_id, req.body.fwcloud, req.body.firewall, req.body.cluster);
+		const data = await firewallModel.deleteFirewallFromCluster(req);
 		if (data && data.result)
 			res.status(200).json(data);
 	 	else

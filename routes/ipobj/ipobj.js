@@ -174,7 +174,7 @@ router.post("/",
 
 			var dataresp = { "insertId": id, "TreeinsertId": node_id };
 			if (ipobjData.interface) {
-				await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, ipobjData.interface, ipobjData.type, "|3");
+				await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, ipobjData.type, "|3");
 				dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
 			}
 
