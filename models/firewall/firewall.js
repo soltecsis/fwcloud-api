@@ -965,6 +965,7 @@ firewallModel.searchFirewallRestrictions = req => {
 			search.result = false;
 			search.restrictions = {};
 
+			let orgFirewallId = req.body.firewall;
 			if (req.body.cluster)
 				req.body.firewall = await firewallModel.getMasterFirewallId(req.body.fwcloud, req.body.cluster);
 
@@ -989,6 +990,7 @@ firewallModel.searchFirewallRestrictions = req => {
 					break;
 				}
 			}
+			if (req.body.cluster) req.body.firewall = orgFirewallId;
 			resolve(search);
 		} catch(error) { reject(error) }
 	});
