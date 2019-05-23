@@ -337,7 +337,7 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
 			if (pasteOffset!=0 && moveRule.idgroup)
-				await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule[0].idgroup);
+				await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule.idgroup);
 
 			resolve();
 		} catch(error) { return reject(error) }
