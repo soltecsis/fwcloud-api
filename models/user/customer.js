@@ -50,8 +50,8 @@ customerModel.update = req => {
 	return new Promise(async (resolve, reject) => {
 		let sql = `UPDATE ${tableModel} SET name=${req.dbCon.escape(req.body.name)},
 			email=${req.dbCon.escape(req.body.email)},
-			addr=${req.dbCon.escape(req.body.address)},
-			phone=${req.dbCon.escape(req.body.telephone)},
+			addr=${req.dbCon.escape(req.body.addr)},
+			phone=${req.dbCon.escape(req.body.phone)},
 			web=${req.dbCon.escape(req.body.web)}
 			WHERE id=${req.body.customer}`;
 		req.dbCon.query(sql, (error, result) => {

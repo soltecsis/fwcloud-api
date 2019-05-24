@@ -111,7 +111,8 @@ router.put('', async (req, res) => {
 			throw fwcError.NOT_FOUND;
 
 		// Verify that don't already exists a customer with same name indicated in the body request.
-		if ((await customerModel.existsName(req.dbCon,req.body.name)) != req.body.customer)
+		const customer_id_new_name = await customerModel.existsName(req.dbCon,req.body.name);
+		if (customer_id_new_name && customer_id_new_name!=req.body.customer)
 			throw fwcError.ALREADY_EXISTS_NAME;
 
 		await customerModel.update(req);
