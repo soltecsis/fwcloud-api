@@ -400,12 +400,12 @@ firewallModel.updateFirewall = (dbCon, iduser, firewallData) => {
 
 
 // Get the ID of all firewalls who's status field is not zero.
-firewallModel.getFirewallStatusNotZero = function (fwcloud, data) {
+firewallModel.getFirewallStatusNotZero = (fwcloud, data) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
-			var sql = 'SELECT id,cluster,status FROM '+tableModel+' WHERE status!=0 AND fwcloud='+connection.escape(fwcloud);
+			var sql = `SELECT id,cluster,status FROM ${tableModel} WHERE status!=0 AND fwcloud=${fwcloud}`;
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				if (data) {
