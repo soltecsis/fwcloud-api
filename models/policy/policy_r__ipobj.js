@@ -1,6 +1,7 @@
 var db = require('../../db.js');
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
+const ipobj_gModel = require('../../models/ipobj/group');
 const fwcError = require('../../utils/error_table');
 //const groupModel = require('../../models/ipobj/group');
 
@@ -1317,7 +1318,7 @@ policy_r__ipobjModel.searchIpobjInterfaceInGroup = (interface, type) => {
 
 policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 	return new Promise((resolve, reject) => {
-		dbCon.query(`select type from policy_r where id=${data.rule}`, (error, result) => {
+		dbCon.query(`select type from policy_r where id=${data.rule}`, async (error, result) => {
 			if (error) return reject(error);
 
 			if (result.length !== 1) return reject(fwcError.NOT_FOUND);
@@ -1331,7 +1332,7 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 			else 
 				return reject(fwcError.other('Incorrect policy type'));
 
-			if (data.ipobj>0) {
+			if (data.ipobj>0) { // Verify the IP version of the IP object that we are moving.
 				dbCon.query(`select ip_version,type from ipobj where id=${data.ipobj}`, (error, result) => {
 					if (error) return reject(error);
 					if (result.length !== 1) return reject(fwcError.NOT_FOUND);
@@ -1345,8 +1346,12 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 					return resolve(false);
 				});
 			}
-			else 
-				resolve(true);
+			else if (data.ipobj_g>0) { // Verify the IP version of the group that we are inserting in the rule.
+				try {
+					const groupIPv = await ipobj_gModel.groupIPVersion(dbCon, data.ipobj_g);
+					resolve(groupIPv===ip_version ? true : false);
+				} catch(error) { return reject(error) }
+			} else resolve(true);
 		});
 	});
 };
