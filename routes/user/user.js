@@ -470,7 +470,7 @@ router.put('/fwcloud/del', async (req, res) => {
  *	}
  * ]
  */
-router.post('/fwcloud/get', async (req, res) => {
+router.put('/fwcloud/get', async (req, res) => {
 	try {
 		const data = await fwcloudModel.getFwclouds(req.dbCon, req.body.user);
 		if (data && data.length > 0)
