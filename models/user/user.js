@@ -131,7 +131,7 @@ userModel.get = req => {
 		let sql = '';
 		
 		if (req.body.user)
-			sql = `select id,customer,name,email,username,enabled,role,allowed_fom,last_login from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`;
+			sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`;
 		else
 			sql = `select id,customer,name from ${tableModel} where customer=${req.body.customer}`;
 		req.dbCon.query(sql, (error, result) => {
