@@ -62,13 +62,27 @@ ipobj_gModel.countGroupItems = (dbCon, group) => {
 //IP version of the group items.
 ipobj_gModel.groupIPVersion = (dbCon, group) => {
 	return new Promise((resolve, reject) => {
-		let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
-			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
-			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
+		let sql = `select O.ip_version from ipobj__ipobjg G
+			inner join ipobj O on O.id=G.ipobj
+			where G.ipobj_g=${group}`
 		dbCon.query(sql, (error, result) => {
 			if (error) return reject(error);
+			if (result.length > 0) return resolve(parseInt(result[0].ip_version));
 
-			resolve(result.length);
+			dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
+				if (error) return reject(error);
+				// If there is an OpenVPN configuration in the group, then this is an IPv4 group.
+				if (result[0].n > 0) return resolve(4);
+
+				dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
+					if (error) return reject(error);
+					// If there is an OpenVPN prefix in the group, then this is an IPv4 group.
+					if (result[0].n > 0) return resolve(4);
+
+					// If we arrive here, then the group is empty.
+					resolve(0);
+				});
+			});
 		});
 	});
 };

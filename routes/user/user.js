@@ -3,6 +3,7 @@ var router = express.Router();
 const customerModel = require('../../models/user/customer');
 const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
+const fwcloudModel = require('../../models/fwcloud/fwcloud');
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');

@@ -124,7 +124,7 @@ router.put('/addto', async(req, res) => {
 		// Insert object in group.
 		let dataIpobj;
 		if (req.body.node_type === 'OCL') {
-			if (groupIPv !== 4) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await openvpnModel.addToGroup(req);
 			dataIpobj = await openvpnModel.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
@@ -132,7 +132,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		} else if (req.body.node_type === 'PRO') {
-			if (groupIPv !== 4) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			// Don't allow adding an empty OpenVPN server prefix to a group.
 			if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
@@ -143,8 +143,10 @@ router.put('/addto', async(req, res) => {
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
 		} else {
-			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
 			dataIpobj = await ipobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			if (groupIPv!=0 && dataIpobj[0].ip_version!==groupIPv) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
+			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
 
@@ -160,6 +162,7 @@ router.put('/addto', async(req, res) => {
 		res.status(200).json(not_zero_status_fws);
 	} catch (error) { res.status(400).json(error) }
 });
+
 
 /* Remove ipobj__ipobjg */
 router.put('/delfrom', async(req, res) => {
