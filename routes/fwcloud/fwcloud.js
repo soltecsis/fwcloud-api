@@ -163,15 +163,14 @@ router.put('/', async(req, res) => {
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  */
-router.get('/all/get', (req, res) => {
-	fwcloudModel.getFwclouds(req.session.user_id, (error, data) => {
-		if (error) return res.status(400).json(error);
-
+router.get('/all/get', async (req, res) => {
+	try {
+		const data = await fwcloudModel.getFwclouds(req.dbCon, req.session.user_id);
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	});
+	} catch(error) { res.status(400).json(error) }
 });
 
 

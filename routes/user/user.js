@@ -27,7 +27,10 @@ var bcrypt = require('bcrypt');
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 204 No Content
+ * HTTP/1.1 200 OK
+ * {
+ *   "user_id": 1
+ * } 
  *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 401 Unauthorized
@@ -418,6 +421,63 @@ router.put('/fwcloud/del', async (req, res) => {
 		await userModel.disableFwcloudAccess(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /user/fwcloud/get List of fwclouds with access.
+ * @apiName ListUserAccessFwcloud
+ *  * @apiGroup USER
+ * 
+ * @apiDescription List of fwclouds to which the indicated user has access to.
+ *
+ * @apiParam {Number} user User's id.
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "user": 5
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * [
+ *    {
+ *        "id": 4,
+ *        "name": "FWCloud-02",
+ *        "created_at": "2019-05-14T11:37:19.000Z",
+ *        "updated_at": "2019-05-14T11:37:19.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0,
+ *        "locked_at": null,
+ *        "locked_by": null,
+ *        "locked": 0,
+ *        "image": "",
+ *        "comment": ""
+ *    },
+ *    {
+ *        "id": 5,
+ *        "name": "FWCloud-03",
+ *        "created_at": "2019-05-14T11:37:24.000Z",
+ *        "updated_at": "2019-05-14T11:57:06.000Z",
+ *        "created_by": 0,
+ *        "updated_by": 0,
+ *        "locked_at": "2019-05-14T11:57:06.000Z",
+ *        "locked_by": 1,
+ *        "locked": 1,
+ *        "image": "",
+ *        "comment": ""
+ *		}
+ *	}
+ * ]
+ */
+router.post('/fwcloud/get', async (req, res) => {
+	try {
+		const data = await fwcloudModel.getFwclouds(req.dbCon, req.body.user);
+		if (data && data.length > 0)
+			res.status(200).json(data);
+		else
+			res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 module.exports = router;

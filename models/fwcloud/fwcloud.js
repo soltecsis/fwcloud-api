@@ -63,19 +63,14 @@ const fwcError = require('../../utils/error_table');
  *           updated_at	datetime
  *           by_user	int(11)
  */
-fwcloudModel.getFwclouds = function(iduser, callback) {
-	db.get(function(error, connection) {
-		if (error)
-			callback(error, null);
-		var sql = 'SELECT distinctrow C.* FROM ' + tableModel + ' C  ' +
-			' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
-			' WHERE U.user=' + connection.escape(iduser) + ' ORDER BY C.name';
-		logger.debug(sql);
-		connection.query(sql, function(error, rows) {
-			if (error)
-				callback(error, null);
-			else
-				callback(null, rows);
+fwcloudModel.getFwclouds = (dbCon, user) => {
+	return new Promise((resolve, reject) => {
+		var sql = `SELECT distinctrow C.* FROM ${tableModel} C 
+			INNER JOIN user__fwcloud U ON C.id=U.fwcloud
+			WHERE U.user=${user} ORDER BY C.name`;
+		dbCon.query(sql, (error, rows) => {
+			if (error) return reject(error);
+			resolve(rows);
 		});
 	});
 };

@@ -32,6 +32,7 @@ var errorTable = {
   // Ipobj.
   "IPOBJ_EMPTY_CONTAINER":{"fwcErr": 5001, "msg": "Empty ipobj container"},
   "IPOBJ_BAD_IP_VERSION": {"fwcErr": 5002, "msg": "Bad object IP version"},
+  "IPOBJ_MIX_IP_VERSION": {"fwcErr": 5003, "msg": "Mix of different IP version objects not allowed"},
 
   // VPN.
   "VPN_ONLY_CLI":         {"fwcErr": 6001, "msg": "Only OpenVPN client configurations allowed"},

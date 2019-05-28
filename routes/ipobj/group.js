@@ -10,11 +10,11 @@
 var express = require('express');
 var router = express.Router();
 
-var FirewallModel = require('../../models/firewall/firewall');
-var IpobjModel = require('../../models/ipobj/ipobj');
+var firewallModel = require('../../models/firewall/firewall');
+var ipobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-const Ipobj_gModel = require('../../models/ipobj/group');
+const ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
@@ -37,7 +37,7 @@ router.post("/", (req, res) => {
 		comment: req.body.comment
 	};
 
-	Ipobj_gModel.insertIpobj_g(ipobj_gData, async(error, data) => {
+	ipobj_gModel.insertIpobj_g(ipobj_gData, async(error, data) => {
 		if (error) return res.status(400).json(error);
 		//If saved ipobj_g Get data
 		if (data && data.insertId > 0) {
@@ -65,7 +65,7 @@ router.put('/', async(req, res) => {
 	};
 
 	try {
-		await Ipobj_gModel.updateIpobj_g(req, ipobj_gData);
+		await ipobj_gModel.updateIpobj_g(req, ipobj_gData);
 		await fwcTreeModel.updateFwc_Tree_OBJ(req, ipobj_gData);
 		res.status(204).end();
 	} catch (error) { return res.status(400).json(error) }
@@ -75,7 +75,7 @@ router.put('/', async(req, res) => {
 /* Get  ipobj_g by id */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await Ipobj_gModel.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
+		const data = await ipobj_gModel.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
 		else
@@ -88,7 +88,7 @@ router.put("/del",
 	restrictedCheck.ipobj_group,
 	async(req, res) => {
 		try {
-			await Ipobj_gModel.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+			await ipobj_gModel.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
 			await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
 			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
 			res.status(204).end();
@@ -98,7 +98,7 @@ router.put("/del",
 /* Search where is used Group  */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await Ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
+		const data = await ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else
@@ -113,21 +113,27 @@ router.put('/restricted', restrictedCheck.ipobj_group, (req, res) => res.status(
 /* Create New ipobj__ipobjg */
 router.put('/addto', async(req, res) => {
 	try {
-		// ATENCION: 
-		// No existe una tabla que relacione los grupos con las interfaces, por lo tanto, no es posible añadir una
-		// interfaz a un grupo de objetos IP, por el momento.
+		// It is not possible to add a network interface to a group of IP objects.
 		if (req.body.node_type === "IFF" || req.body.node_type === "IFH")
 			throw fwcError.IF_TO_IPOBJ_GROUP;
+
+		// Don't allow the mix of IPv4 and IPv6 objects in a group.
+		// If the group ins not empty, then we must know what type of IP (IPv4 or IPv6) are the objects contained in it.
+		const groupIPv = await ipobj_gModel.groupIPVersion(req.dbCon, req.body.ipobj_g);
 
 		// Insert object in group.
 		let dataIpobj;
 		if (req.body.node_type === 'OCL') {
+			if (groupIPv !== 4) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
 			await openvpnModel.addToGroup(req);
 			dataIpobj = await openvpnModel.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		} else if (req.body.node_type === 'PRO') {
+			if (groupIPv !== 4) throw fwcError.IPOBJ_MIX_IP_VERSION;
+
 			// Don't allow adding an empty OpenVPN server prefix to a group.
 			if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
@@ -138,7 +144,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].type = 401;
 		} else {
 			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
-			dataIpobj = await IpobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			dataIpobj = await ipobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
 
@@ -148,9 +154,9 @@ router.put('/addto', async(req, res) => {
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		// Update affected firewalls status.
-		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
-		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		const not_zero_status_fws = await firewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
 	} catch (error) { res.status(400).json(error) }
 });
@@ -161,7 +167,7 @@ router.put('/delfrom', async(req, res) => {
 		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
 		const search = await Policy_r__ipobjModel.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
 		if (search.length > 0) {
-			if ((await Ipobj_gModel.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
+			if ((await ipobj_gModel.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		}
 
@@ -176,9 +182,9 @@ router.put('/delfrom', async(req, res) => {
 
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
-		await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
-		const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		const not_zero_status_fws = await firewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
 	} catch (error) { res.status(400).json(error) }
 });

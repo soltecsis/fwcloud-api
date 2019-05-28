@@ -21,7 +21,6 @@ schema.validate = req => {
 		else if (req.url==='/user' && (req.method==='POST' || req.method==='PUT')) {
 			schema = Joi.object().keys({
 				customer: sharedSch.id,
-				name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/),
 				email: Joi.string().email().optional(),
         username: sharedSch.username,
 				password: sharedSch.password,
@@ -43,6 +42,8 @@ schema.validate = req => {
 				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id.optional() });
 			else if (req.url === '/user/del' || req.url === '/user/restricted')
 				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id });
+			else if (req.url==='/user/fwcloud/get')
+				schema = schema = Joi.object().keys({ user: sharedSch.id});
 			else return reject(fwcError.BAD_API_CALL);
 		} else return reject(fwcError.BAD_API_CALL);
 
