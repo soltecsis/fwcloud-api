@@ -38,7 +38,7 @@ async (req, res) => {
 
 		// Depending on the IP version of the policy_type of the rule we are working on, verify that we have root objects 
 		// of this IP version in the object that we are moving to this rule position.
-		if (!(await policy_r__ipobjModel.checkIpVersion(req.dbCon,req.body.fwcloud,policy_r__ipobjData)))
+		if (!(await policy_r__ipobjModel.checkIpVersion(req)))
 			throw fwcError.IPOBJ_BAD_IP_VERSION;
 
 		const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);

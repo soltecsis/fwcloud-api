@@ -166,7 +166,15 @@ policy_rModel.getPolicyRuleIPversion = (dbCon, fwcloud, firewall, rule) => {
 
 			dbCon.query(sql, async (error, result) => {
 				if (error) return reject(error);
-				resolve((result[0].type >= 61) ? 6 : 4);
+				if (result.length!==1) return reject(fwcError.NOT_FOUND);
+
+				const policy_type = result[0].type;
+				if (policy_type>=1 && policy_type<=5)
+					resolve(4);
+				else if (policy_type>=61 && policy_type<=65)
+					resolve(6);
+				else 
+					reject(fwcError.other('Bad policy type'));
 			});
 		});
 };

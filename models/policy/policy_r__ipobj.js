@@ -1351,48 +1351,38 @@ policy_r__ipobjModel.searchIpobjInterfaceInGroup = (interface, type) => {
 };
 
 
-policy_r__ipobjModel.checkIpVersion = (dbCon, fwcloud, data) => {
-	return new Promise((resolve, reject) => {
-		dbCon.query(`select type from policy_r where id=${data.rule}`, async (error, result) => {
-			if (error) return reject(error);
+policy_r__ipobjModel.checkIpVersion = req => {
+	return new Promise(async (resolve, reject) => {
+		let rule_ip_version;
+		try {
+			rule_ip_version = await policy_rModel.getPolicyRuleIPversion(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
+		} catch(error) { return reject(error) }
 
-			if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+		if (req.body.ipobj>0) { // Verify the IP version of the IP object that we are moving.
+			req.dbCon.query(`select ip_version,type from ipobj where id=${req.body.ipobj}`, (error, result) => {
+				if (error) return reject(error);
+				if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
-			let policy_type = parseInt(result[0].type);
-			let ip_version;
-			if (policy_type>=1 && policy_type<=5)
-				ip_version=4;
-			else if (policy_type>=61 && policy_type<=65)
-				ip_version=6;
-			else 
-				return reject(fwcError.other('Bad policy type'));
+				let type = parseInt(result[0].type);
+				if (type!==5 && type!==6 && type!==7) //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
+					return resolve(true);
+				
+				if (parseInt(result[0].ip_version) === rule_ip_version)
+					return resolve(true);
+				return resolve(false);
+			});
+		}
+		else if (req.body.ipobj_g>0) { // Verify the IP version of the group that we are inserting in the rule.
+			try {
+				const groupData = await ipobj_gModel.getIpobj_g(req.dbCon, req.body.fwcloud, req.body.ipobj_g);
+				
+				// If this is a services group, then we don't need to check the IP version.
+				if (groupData[0].type===21) return resolve(true);
 
-			if (data.ipobj>0) { // Verify the IP version of the IP object that we are moving.
-				dbCon.query(`select ip_version,type from ipobj where id=${data.ipobj}`, (error, result) => {
-					if (error) return reject(error);
-					if (result.length !== 1) return reject(fwcError.NOT_FOUND);
-
-					let type = parseInt(result[0].type);
-					if (type!==5 && type!==6 && type!==7) //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
-						return resolve(true);
-					
-					if (parseInt(result[0].ip_version) === ip_version)
-						return resolve(true);
-					return resolve(false);
-				});
-			}
-			else if (data.ipobj_g>0) { // Verify the IP version of the group that we are inserting in the rule.
-				try {
-					const groupData = await ipobj_gModel.getIpobj_g(dbCon, fwcloud, data.ipobj_g);
-					
-					// If this is a services group, then we don't need to check the IP version.
-					if (groupData[0].type===21) return resolve(true);
-
-					const groupIPv = await ipobj_gModel.groupIPVersion(dbCon, data.ipobj_g);
-					resolve(groupIPv===ip_version ? true : false);
-				} catch(error) { return reject(error) }
-			} else resolve(true);
-		});
+				const groupIPv = await ipobj_gModel.groupIPVersion(req.dbCon, req.body.ipobj_g);
+				resolve(groupIPv===rule_ip_version ? true : false);
+			} catch(error) { return reject(error) }
+		} else resolve(true);
 	});
 };
 
