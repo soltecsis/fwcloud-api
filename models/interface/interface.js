@@ -240,7 +240,7 @@ interfaceModel.getInterface_data = function (id, type, callback) {
 // Get interface address.
 interfaceModel.getInterfaceAddr = (dbCon,interface) => {
 	return new Promise((resolve, reject) => {
-		dbCon.query(`select id,interface from ipobj where interface=${interface}`, (error, result) => {
+		dbCon.query(`select id,interface,ip_version from ipobj where interface=${interface}`, (error, result) => {
 			if (error) return reject(error);
 			resolve(result);
 		});

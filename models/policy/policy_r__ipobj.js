@@ -7,6 +7,7 @@ var db = require('../../db.js');
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
 const ipobj_gModel = require('../../models/ipobj/group');
+const policy_rModel = require('../../models/policy/policy_r');
 const fwcError = require('../../utils/error_table');
 
 
@@ -209,15 +210,15 @@ policy_r__ipobjModel.isGroupEmpty = (dbCon, group) => {
 
 
 // Verify that the object we are moving to the rule is not an empty object container.
-policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
+policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = req => {
 	return new Promise((resolve, reject) => {
 		// First we need the object type and the content type of the rule position.
 		let sql=`select content,
-			${(data.ipobj > 0) ? `(select type from ipobj where id=${data.ipobj}) as type` : ``}
-			${(data.interface > 0) ? `(select type from interface where id=${data.interface}) as type` : ``}
-			${(data.ipobj_g > 0) ? `(select type from ipobj_g where id=${data.ipobj_g}) as type` : ``}
-			from policy_position where id=${data.position}`;
-		dbCon.query(sql, async (error, rows) => {
+			${(req.body.ipobj > 0) ? `(select type from ipobj where id=${req.body.ipobj}) as type` : ``}
+			${(req.body.interface > 0) ? `(select type from interface where id=${req.body.interface}) as type` : ``}
+			${(req.body.ipobj_g > 0) ? `(select type from ipobj_g where id=${req.body.ipobj_g}) as type` : ``}
+			from policy_position where id=${req.body.position}`;
+		req.dbCon.query(sql, async (error, rows) => {
 			if (error) return reject(error);
 
 			// We are not moving to a object (O) content position.
@@ -225,16 +226,27 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = (dbCon,data) => {
 			if (rows[0].content !== 'O') return resolve(false);
 
 			try {
+				const rule_type = await policy_rModel.getPolicyRuleType(req.dbCon,req.body.fwcloud,req.body.firewall,req.body.rule);
+				const rule_ip_version = (rule_type >= 61) ? 6 : 4;
+
 				let type = parseInt(rows[0].type);
 				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
-					let addr = await interfaceModel.getInterfaceAddr(dbCon,data.interface);
-					if (addr.length === 0) return resolve(true);
+					let addrs = await interfaceModel.getInterfaceAddr(req.dbCon,req.body.interface);
+					let nr = 0;
+					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
+						if (parseInt(addr.ip_version) === rule_ip_version) nr++;
+					}
+					if (nr === 0) return resolve(true);
 				} 
 				else if (type===8) { // 8 = HOST
-					let addr = await interfaceModel.getHostAddr(dbCon,data.ipobj);
-					if (addr.length === 0) return resolve(true);
+					let addrs = await interfaceModel.getHostAddr(req.dbCon,req.body.ipobj);
+					let nr = 0;
+					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
+						if (parseInt(addr.ip_version) === rule_ip_version) nr++;
+					}
+					if (nr === 0) return resolve(true);
 				}
-				else if ((type===20 || type===21) && (await policy_r__ipobjModel.isGroupEmpty(dbCon,data.ipobj_g))) // 20 = GROUP OBJECTS, 21 = GROUP SERVICES
+				else if ((type===20 || type===21) && (await policy_r__ipobjModel.isGroupEmpty(req.dbCon,req.body.ipobj_g))) // 20 = GROUP OBJECTS, 21 = GROUP SERVICES
 					return resolve(true);
 			} catch(error) { return reject(error) }
 			

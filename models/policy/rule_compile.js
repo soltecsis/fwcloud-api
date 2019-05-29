@@ -53,21 +53,23 @@ RuleCompileModel.isPositionNegated = (negate, position) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_sd = (dir, sd, negate) => {
+RuleCompileModel.pre_compile_sd = (dir, sd, negate, rule_ip_version) => {
 	var items = {
 		'negate' : negate,
 		'str': []
 	};
 
 	for (var i = 0; i < sd.length; i++) {
-		if (sd[i].type === 5) // Address
-			items.str.push(dir+sd[i].address);
-		else if (sd[i].type === 7) // Network
-			items.str.push(dir+sd[i].address+"/"+sd[i].netmask.replace('/',''));
-		else if (sd[i].type === 6) // Address range
-			items.str.push((dir!=="" ? ("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ")) : " ")+sd[i].range_start+"-"+sd[i].range_end);
-		else if (sd[i].type === 9) // DNS
+		if (sd[i].type === 9) // DNS
 			items.str.push(dir+sd[i].name);
+		else if (rule_ip_version === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
+			if (sd[i].type === 5) // Address
+				items.str.push(dir+sd[i].address);
+			else if (sd[i].type === 7) // Network
+				items.str.push(dir+sd[i].address+"/"+sd[i].netmask.replace('/',''));
+			else if (sd[i].type === 6) // Address range
+				items.str.push((dir!=="" ? ("-m iprange "+(dir==="-s " ? "--src-range " : "--dst-range ")) : " ")+sd[i].range_start+"-"+sd[i].range_end);
+		}
 	}
 
 	return ((items.str.length>0) ? items : null);
@@ -224,7 +226,7 @@ RuleCompileModel.pre_compile = rule => {
 	let items, src_position, dst_position, svc_position, dir, objs, negated;
 	let i, j, p;
 
-	if (policy_type === POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
+	if (policy_type===POLICY_TYPE_FORWARD) { src_position=2; dst_position=3; svc_position=4;}
 	else { src_position=1; dst_position=2; svc_position=3;}
 	
 	// Generate items strings for all the rule positions.
@@ -254,13 +256,13 @@ RuleCompileModel.pre_compile = rule => {
 	// SOURCE
 	objs = rule.positions[src_position].position_objs;
 	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[src_position].id);
-	if (items=RuleCompileModel.pre_compile_sd("-s ", objs, negated)) 
+	if (items=RuleCompileModel.pre_compile_sd("-s ", objs, negated, rule.ip_version)) 
 		position_items.push(items);
 
 	// DESTINATION
 	objs = rule.positions[dst_position].position_objs;
 	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[dst_position].id);
-	if (items=RuleCompileModel.pre_compile_sd("-d ", objs, negated)) 
+	if (items=RuleCompileModel.pre_compile_sd("-d ", objs, negated, rule.ip_version)) 
 		position_items.push(items);
 
 	// Order the resulting array by number of strings into each array.
@@ -296,7 +298,7 @@ RuleCompileModel.pre_compile = rule => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
+RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,rule_ip_version) => {
 	return new Promise((resolve,reject) => { 
 		if (trans_addr.length>1 || trans_port.length>1) 
 			return reject(fwcError.other('Translated fields must contain a maximum of one item'));			
@@ -321,7 +323,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,callback) => {
 			action = "DNAT --to-destination "
 
 		if (trans_addr.length === 1) 
-			action += (RuleCompileModel.pre_compile_sd("",trans_addr,false)).str[0];
+			action += (RuleCompileModel.pre_compile_sd("",trans_addr,false,rule_ip_version)).str[0];
 		if (trans_port.length === 1) 
 			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false,policy_type)).str[0];
 
@@ -408,17 +410,21 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 			let after_log_action = log_chain = acc_chain = cs_trail = stateful = table = action = "";
 
 			// Since now, all the compilation process for IPv6 is the same that the one for IPv4.
-			if (policy_type>=POLICY_TYPE_INPUT_IPv6) policy_type-=60;
+			if (policy_type>=POLICY_TYPE_INPUT_IPv6) {
+				policy_type -= 60;
+				data[0].type -= 60;
+				data[0].ip_version = 6;
+			} else data[0].ip_version = 4;
 
 			if (policy_type===POLICY_TYPE_SNAT) { // SNAT
 				table = "-t nat";
 				cs += table+" -A POSTROUTING ";
-				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
+				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,data[0].ip_version);
 			}
 			else if (policy_type===POLICY_TYPE_DNAT) { // DNAT
 				table = "-t nat";
 				cs += table+" -A PREROUTING ";
-				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs);
+				action = await RuleCompileModel.nat_action(policy_type,data[0].positions[4].position_objs,data[0].positions[5].position_objs,data[0].ip_version);
 			}
 			else { // Filter policy
 				if (data.length != 1 || !(data[0].positions)

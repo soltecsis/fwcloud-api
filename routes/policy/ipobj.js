@@ -30,7 +30,7 @@ async (req, res) => {
 
 	try {
 		// Don't allow to put in positions with O content empty object containers (interfaces, hosts, groups, etc.)
-		if (await policy_r__ipobjModel.emptyIpobjContainerToObjectPosition(req.dbCon,policy_r__ipobjData))
+		if (await policy_r__ipobjModel.emptyIpobjContainerToObjectPosition(req))
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
