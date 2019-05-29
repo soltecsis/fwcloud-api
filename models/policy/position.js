@@ -32,7 +32,7 @@ policyPositionModel.getPolicy_positions = function (callback) {
 
 
 
-//Get policy_position by  type
+//Get policy_position by type
 policyPositionModel.getPolicyPositionsByType = (dbCon,type) => {
 	return new Promise((resolve, reject) => {
 		dbCon.query(`SELECT * FROM ${tableModel} WHERE policy_type=${type} ORDER BY position_order`, (error, result) => {

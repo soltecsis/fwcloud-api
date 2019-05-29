@@ -226,25 +226,24 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = req => {
 			if (rows[0].content !== 'O') return resolve(false);
 
 			try {
-				const rule_type = await policy_rModel.getPolicyRuleType(req.dbCon,req.body.fwcloud,req.body.firewall,req.body.rule);
-				const rule_ip_version = (rule_type >= 61) ? 6 : 4;
+				const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(req.dbCon,req.body.fwcloud,req.body.firewall,req.body.rule);
 
 				let type = parseInt(rows[0].type);
 				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
 					let addrs = await interfaceModel.getInterfaceAddr(req.dbCon,req.body.interface);
-					let nr = 0;
+					let n = 0;
 					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
-						if (parseInt(addr.ip_version) === rule_ip_version) nr++;
+						if (parseInt(addr.ip_version) === rule_ip_version) n++;
 					}
-					if (nr === 0) return resolve(true);
+					if (n === 0) return resolve(true);
 				} 
 				else if (type===8) { // 8 = HOST
 					let addrs = await interfaceModel.getHostAddr(req.dbCon,req.body.ipobj);
-					let nr = 0;
+					let n = 0;
 					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
-						if (parseInt(addr.ip_version) === rule_ip_version) nr++;
+						if (parseInt(addr.ip_version) === rule_ip_version) n++;
 					}
-					if (nr === 0) return resolve(true);
+					if (n === 0) return resolve(true);
 				}
 				else if ((type===20 || type===21) && (await policy_r__ipobjModel.isGroupEmpty(req.dbCon,req.body.ipobj_g))) // 20 = GROUP OBJECTS, 21 = GROUP SERVICES
 					return resolve(true);
@@ -1205,9 +1204,21 @@ policy_r__ipobjModel.searchLastAddrInInterfaceInRule = (dbCon, ipobj, type, fwcl
 			let result = [];
 			try {
 				for(let row of rows) {
-					let data = await interfaceModel.getInterfaceAddr(dbCon,row.obj_id);
+					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
+					let addrs = await interfaceModel.getInterfaceAddr(dbCon,row.obj_id);
+
+					// Count the amount of interface address with the same IP version of the rule.
+					let n = 0;
+					let id = 0;
+					for (let addr of addrs) { 
+						if (parseInt(addr.ip_version) === rule_ip_version) {
+							n++;
+							if (n===1) id = addr.id;
+						}
+					}
+
 					// We are the last IP address in the interface used in a firewall rule.
-					if (data.length===1 && data[0].id===ipobj) 
+					if (n===1 && ipobj===id) 
 						result.push(row);
 				}
 			} catch(error) { return reject(error) }
@@ -1242,9 +1253,21 @@ policy_r__ipobjModel.searchLastAddrInHostInRule = (dbCon, ipobj, type, fwcloud) 
 			let result = [];
 			try {
 				for(let row of rows) {
-					let data = await interfaceModel.getHostAddr(dbCon,row.obj_id);
+					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
+					let addrs = await interfaceModel.getHostAddr(dbCon,row.obj_id);
+
+					// Count the amount of interface address with the same IP version of the rule.
+					let n = 0;
+					let id = 0;
+					for (let addr of addrs) { 
+						if (parseInt(addr.ip_version) === rule_ip_version) {
+							n++;
+							if (n===1) id = addr.id;
+						}
+					}
+
 					// We are the last IP address in the host used in a firewall rule.
-					if (data.length===1 && data[0].id===ipobj) 
+					if (n===1 && ipobj===id) 
 						result.push(row);
 				}
 			} catch(error) { return reject(error) }
@@ -1328,7 +1351,7 @@ policy_r__ipobjModel.searchIpobjInterfaceInGroup = (interface, type) => {
 };
 
 
-policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
+policy_r__ipobjModel.checkIpVersion = (dbCon, fwcloud, data) => {
 	return new Promise((resolve, reject) => {
 		dbCon.query(`select type from policy_r where id=${data.rule}`, async (error, result) => {
 			if (error) return reject(error);
@@ -1342,7 +1365,7 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 			else if (policy_type>=61 && policy_type<=65)
 				ip_version=6;
 			else 
-				return reject(fwcError.other('Incorrect policy type'));
+				return reject(fwcError.other('Bad policy type'));
 
 			if (data.ipobj>0) { // Verify the IP version of the IP object that we are moving.
 				dbCon.query(`select ip_version,type from ipobj where id=${data.ipobj}`, (error, result) => {
@@ -1360,6 +1383,11 @@ policy_r__ipobjModel.checkIpVersion = (dbCon, data) => {
 			}
 			else if (data.ipobj_g>0) { // Verify the IP version of the group that we are inserting in the rule.
 				try {
+					const groupData = await ipobj_gModel.getIpobj_g(dbCon, fwcloud, data.ipobj_g);
+					
+					// If this is a services group, then we don't need to check the IP version.
+					if (groupData[0].type===21) return resolve(true);
+
 					const groupIPv = await ipobj_gModel.groupIPVersion(dbCon, data.ipobj_g);
 					resolve(groupIPv===ip_version ? true : false);
 				} catch(error) { return reject(error) }

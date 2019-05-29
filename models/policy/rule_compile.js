@@ -94,7 +94,7 @@ RuleCompileModel.pre_compile_if = (dir, ifs, negate) => {
 // Agrupate services position by protocol number (TCP, UDP, ICMP, etc.) 
 // Returns an array of strings with the services agrupated by protocol.
 /*----------------------------------------------------------------------------------------------------------------------*/
-RuleCompileModel.pre_compile_svc = (sep, svc, negate, policy_type) => {
+RuleCompileModel.pre_compile_svc = (sep, svc, negate, rule_ip_version) => {
 	var items = {
 		'negate' : negate,
 		'str': []
@@ -185,7 +185,7 @@ RuleCompileModel.pre_compile_svc = (sep, svc, negate, policy_type) => {
 				break;
 
 			case 1: // ICMP
-				const shared = (policy_type<=5) ? "-p icmp -m icmp --icmp-type" : "-p icmpv6 -m ipv6-icmp --icmpv6-type";
+				const shared = (rule_ip_version===4) ? "-p icmp -m icmp --icmp-type" : "-p icmpv6 -m ipv6-icmp --icmpv6-type";
 
 				if (svc[i].icmp_type===-1 && svc[i].icmp_code===-1) // Any ICMP
 					items.str.push(`${shared} any`);
@@ -250,7 +250,7 @@ RuleCompileModel.pre_compile = rule => {
 	// SERVICE
 	objs = rule.positions[svc_position].position_objs;
 	negated = RuleCompileModel.isPositionNegated(rule.negate,rule.positions[svc_position].id);
-	if (items=RuleCompileModel.pre_compile_svc(":", objs, negated, policy_type)) 
+	if (items=RuleCompileModel.pre_compile_svc(":", objs, negated, rule.ip_version)) 
 		position_items.push(items);
 
 	// SOURCE
@@ -325,7 +325,7 @@ RuleCompileModel.nat_action = (policy_type,trans_addr,trans_port,rule_ip_version
 		if (trans_addr.length === 1) 
 			action += (RuleCompileModel.pre_compile_sd("",trans_addr,false,rule_ip_version)).str[0];
 		if (trans_port.length === 1) 
-			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false,policy_type)).str[0];
+			action += ":"+(RuleCompileModel.pre_compile_svc("-",trans_port,false,rule_ip_version)).str[0];
 
 		resolve(action);
 	});

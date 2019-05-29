@@ -152,7 +152,21 @@ policy_rModel.getPolicyRuleType = (dbCon, fwcloud, firewall, rule) => {
 
 			dbCon.query(sql, async (error, result) => {
 				if (error) return reject(error);
-				resolve(result[0].type)
+				resolve(result[0].type);
+			});
+		});
+};
+
+//Get rule type for a rule
+policy_rModel.getPolicyRuleIPversion = (dbCon, fwcloud, firewall, rule) => {
+	return new Promise((resolve, reject) => {
+			let sql = `SELECT R.type FROM ${tableModel} R
+				inner join firewall F on F.id=R.firewall
+				WHERE F.fwcloud=${fwcloud} and R.firewall=${firewall} AND R.id=${rule}`;
+
+			dbCon.query(sql, async (error, result) => {
+				if (error) return reject(error);
+				resolve((result[0].type >= 61) ? 6 : 4);
 			});
 		});
 };
