@@ -1,14 +1,14 @@
+//create object
+var policy_r__ipobjModel = {};
+//Export the object
+module.exports = policy_r__ipobjModel;
+
 var db = require('../../db.js');
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
 const ipobj_gModel = require('../../models/ipobj/group');
 const fwcError = require('../../utils/error_table');
-//const groupModel = require('../../models/ipobj/group');
 
-//create object
-var policy_r__ipobjModel = {};
-//Export the object
-module.exports = policy_r__ipobjModel;
 
 var tableModel = "policy_r__ipobj";
 var logger = require('log4js').getLogger("app");
@@ -1067,7 +1067,7 @@ policy_r__ipobjModel.searchIpobjInGroupInRule = (ipobj, type, fwcloud) => {
 };
 
 //check if IPOBJ's in GROUP Exists in any rule
-policy_r__ipobjModel.searchIpobjInGroupInRule = (idg, fwcloud) => {
+policy_r__ipobjModel.searchGroupIPObjectsInRule = (idg, fwcloud) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);

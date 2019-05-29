@@ -6,7 +6,7 @@ var openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
-const Policy_r__ipobjModel = require('../policy/policy_r__ipobj');
+var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Ipobj__ipobjgModel = require('./ipobj__ipobjg');
 
 //create object
@@ -249,7 +249,7 @@ ipobj_gModel.searchGroupUsage = (id, fwcloud) => {
 			let search = {};
 			search.result = false;
 			search.restrictions ={};
-			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 			search.restrictions.GroupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
 			for (let key in search.restrictions) {
