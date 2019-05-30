@@ -109,16 +109,34 @@ userModel.isAdmin = req => {
 
 userModel.update = req => {
 	return new Promise(async (resolve, reject) => {
+		let crypt_pass='';
+		if (req.body.password) {
+			var salt = bcrypt.genSaltSync(10);
+			crypt_pass = bcrypt.hashSync(req.body.customer+req.body.username+req.body.password, salt);
+		}
+
 		let sql = `UPDATE ${tableModel} SET customer=${req.body.customer},
 			name=${req.dbCon.escape(req.body.name)},
 			email=${req.dbCon.escape(req.body.email)},
 			username=${req.dbCon.escape(req.body.username)},
-			password=${req.dbCon.escape(req.body.password)},
+			${(crypt_pass) ? `password=${req.dbCon.escape(crypt_pass)},`: ``}
 			enabled=${req.body.enabled},
 			role=${req.body.role},
 			allowed_from=${req.dbCon.escape(req.body.allowed_from)}
 			WHERE id=${req.body.user}`;
 		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve();
+		});
+	});
+};
+
+userModel.changeLoggedUserPass = req => {
+	return new Promise(async (resolve, reject) => {
+		var salt = bcrypt.genSaltSync(10);
+		crypt_pass = bcrypt.hashSync(req.session.customer_id+req.session.username+req.body.password, salt);
+
+		req.dbCon.query(`UPDATE ${tableModel} SET password=${req.dbCon.escape(crypt_pass)} WHERE id=${req.session.user_id}`, (error, result) => {
 			if (error) return reject(error);
 			resolve();
 		});

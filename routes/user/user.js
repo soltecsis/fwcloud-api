@@ -124,7 +124,10 @@ router.post('/logout',(req, res) => {
  * }
  *
  * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 204 No Content
+ * HTTP/1.1 200 OK
+ * {
+ *   "user": 5
+ * }
  *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
@@ -153,8 +156,8 @@ router.post('', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't need to check it again.
 
-		await userModel.insert(req);
-		res.status(204).end();
+		const new_user_id = await userModel.insert(req);
+		res.status(200).json({"user": new_user_id});
 	} catch (error) { res.status(400).json(error) }
 });
 
@@ -206,7 +209,7 @@ router.put('', async (req, res) => {
 	try {
 		// Verify that the customer exists.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
-			throw fwcError.NOT_FOUND ;
+			throw fwcError.NOT_FOUND;
 
 		// Verify that the user exists and belongs to the indicated customer.
 		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
@@ -217,6 +220,38 @@ router.put('', async (req, res) => {
 	} catch (error) { res.status(400).json(error) }
 });
 
+
+
+/**
+ * @api {PUT} /user/changepass Modify logged user password
+ * @apiName ChangePassUser
+ *  * @apiGroup USER
+ * 
+ * @apiDescription Modify the password of the logged user.
+ *
+ * @apiParam {String} password New user's password. 
+ * 
+ * @apiParamExample {json} Request-Example:
+ * {
+ *   "password": "mynewsecrec"
+ * }
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ *
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1002,
+ * 	 "msg":	"Not found"
+ * }
+ */
+router.put('/changepass', async (req, res) => {
+	try {
+		await userModel.changeLoggedUserPass(req);
+		res.status(204).end();
+	} catch (error) { res.status(400).json(error) }
+});
 
 
 /**

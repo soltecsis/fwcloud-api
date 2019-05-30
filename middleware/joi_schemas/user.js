@@ -44,6 +44,8 @@ schema.validate = req => {
 				schema = schema = Joi.object().keys({ customer: sharedSch.id, user: sharedSch.id });
 			else if (req.url==='/user/fwcloud/get')
 				schema = schema = Joi.object().keys({ user: sharedSch.id});
+			else if (req.url==='/user/changepass')
+				schema = schema = Joi.object().keys({ password: sharedSch.password});
 			else return reject(fwcError.BAD_API_CALL);
 		} else return reject(fwcError.BAD_API_CALL);
 
