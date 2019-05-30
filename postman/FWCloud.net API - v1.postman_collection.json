@@ -250,9 +250,16 @@
 							"script": {
 								"id": "94225473-5132-4f19-8dc8-5810e0468252",
 								"exec": [
-									"pm.test(\"Status code is 204\", function () {",
-									"    pm.response.to.have.status(204);",
-									"});"
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Response data\", function () {",
+									"    pm.expect(response).to.eql({\"user\":1});",
+									"});",
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -275,13 +282,416 @@
 						"header": [
 							{
 								"key": "Origin",
-								"value": "{{Origin}}",
-								"type": "text"
+								"type": "text",
+								"value": "{{Origin}}"
 							},
 							{
 								"key": "Content-Type",
-								"value": "application/json",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change pass of the logged user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"    ",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"value": "{{fwc_confirm_token}}",
 								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"mynewsecret\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/changepass",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"changepass"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/logout",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login with the old password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err = {",
+									"        \"fwcErr\": 1001,",
+									"        \"msg\": \"Bad username or password\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login with the new password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Response data\", function () {",
+									"    pm.expect(response).to.eql({\"user\":1});",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"mynewsecret\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restore the original password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"    ",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/changepass",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"changepass"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login ok",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Response data\", function () {",
+									"    pm.expect(response).to.eql({\"user\":1});",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -1266,9 +1676,18 @@
 									"    }",
 									"}",
 									"",
-									"pm.test(\"Status code is 204\", function () {",
-									"    pm.response.to.have.status(204);",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
 									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    const data = {",
+									"        \"user\": 2",
+									"    }",
+									"    pm.expect(response).to.eql(data);",
+									"});",
+									"",
 									"    ",
 									"pm.globals.unset(\"fwc_confirm_token\");",
 									""
@@ -2684,7 +3103,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"id": "7c7423f3-efcb-41b6-83d6-9755b6f756aa",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2693,7 +3112,7 @@
 									"pm.test(\"Data received\", function () {",
 									"    const response = pm.response.json();",
 									"    pm.expect(response.id).to.eql(pm.environment.get(\"firewall\"));",
-									"    pm.expect(response.fwcloud).to.eql(pm.environment.get(\"fwcloud\"));",
+									"    pm.expect(response.fwcloud).to.eql(parseInt(pm.environment.get(\"fwcloud\")));",
 									"    pm.expect(response.name).to.eql(\"Firewall-0\"+pm.environment.get(\"firewall\"));",
 									"});",
 									"",
@@ -2705,7 +3124,7 @@
 						{
 							"listen": "prerequest",
 							"script": {
-								"id": "2739a22e-a16b-4484-b8c9-1e94e9125458",
+								"id": "b900a928-50b6-47c8-a16f-0a8a759c4cca",
 								"exec": [
 									"pm.environment.set(\"firewall\",_.random(1, 5));"
 								],
@@ -3969,6 +4388,561 @@
 			]
 		},
 		{
+			"name": "IPv6",
+			"item": [
+				{
+					"name": "Get IPv6 FORWARD rules",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5f66e920-f177-4182-9a4c-c0ef058a2daf",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.length).to.eql(2);",
+									"    pm.expect(response[0].special).to.eql(1);",
+									"    pm.expect(response[1].special).to.eql(2);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"type\": 63\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/rule/type/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"rule",
+								"type",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New rule at the begin of the policy",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(parseInt(response)).to.be.above(1);",
+									"    pm.environment.set(\"rule\",response);",
+									"});",
+									"",
+									"    "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"idgroup\": null,\n    \"rule_order\": 1,\n    \"action\": 2,\n    \"active\": 1,\n    \"options\": 0,\n    \"comment\": \"\",\n    \"type\": 63\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/rule",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"rule"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add IPv4 address to source position (Bad object IP version)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 5002,",
+									"        \"msg\": \"Bad object IP version\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									"    "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 43,\n    \"position_order\": 1,\n    \"ipobj\": 50009,\n    \"ipobj_g\": -1,\n    \"interface\": -1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/ipobj",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"ipobj"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add IPv4 network to source position (Bad object IP version)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 5002,",
+									"        \"msg\": \"Bad object IP version\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									"    "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 43,\n    \"position_order\": 1,\n    \"ipobj\": 60000,\n    \"ipobj_g\": -1,\n    \"interface\": -1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/ipobj",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"ipobj"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add IPv4 network to source positione (Bad object IP version)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 5002,",
+									"        \"msg\": \"Bad object IP version\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									"    "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 43,\n    \"position_order\": 1,\n    \"ipobj\": 70003,\n    \"ipobj_g\": -1,\n    \"interface\": -1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/ipobj",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"ipobj"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add IPv6 network to source position",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Data received\", function () {",
+									"    const response = pm.response.json();",
+									"    const data =  {",
+									"        \"result\": true,",
+									"     \"allowed\": 1",
+									"    }",
+									"    pm.expect(response).to.eql(data);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									"    "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 43,\n    \"position_order\": 1,\n    \"ipobj\": 70012,\n    \"ipobj_g\": -1,\n    \"interface\": -1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/ipobj",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"ipobj"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add IPv6 network to source position (already exists)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1003,",
+									"        \"msg\": \"Already exists\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"firewall\": {{firewall}},\n    \"rule\": {{rule}},\n    \"position\": 43,\n    \"position_order\": 1,\n    \"ipobj\": 70012,\n    \"ipobj_g\": -1,\n    \"interface\": -1\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/policy/ipobj",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"policy",
+								"ipobj"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ACCESS CONTROL",
+			"item": []
+		},
+		{
 			"name": "RESTRICTIONS",
 			"item": [
 				{
@@ -4125,81 +5099,6 @@
 				{
 					"name": "Group in rule can't be emptied",
 					"item": [
-						{
-							"name": "Get ipobj 'Groups' node_id for the working fwcloud",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"id": "94225473-5132-4f19-8dc8-5810e0468252",
-										"exec": [
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Data received\", function () {",
-											"    const response = pm.response.json();",
-											"    pm.expect(response.children).to.not.be.undefined;",
-											"    pm.expect(response.children).to.be.an('array');",
-											"    ",
-											"    for (let node of response.children) {",
-											"        if (node.node_type===\"OIG\") {",
-											"            pm.expect(node.text).to.eql(\"Groups\");",
-											"            pm.expect(node.fwcloud).to.eql(parseInt(pm.environment.get(\"fwcloud\")));",
-											"            pm.expect(node.obj_type).to.eql(20);",
-											"            pm.expect(node.id_obj).to.be.null;",
-											"            pm.environment.set(\"node_id\", node.id); ",
-											"            break;",
-											"        }",
-											"    }",
-											"});",
-											"",
-											""
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"id": "2739a22e-a16b-4484-b8c9-1e94e9125458",
-										"exec": [
-											""
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Origin",
-										"value": "{{Origin}}"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"objStandard\": 0,\n    \"objCloud\": 0\n}"
-								},
-								"url": {
-									"raw": "{{apiURL}}/tree/objects/get",
-									"host": [
-										"{{apiURL}}"
-									],
-									"path": [
-										"tree",
-										"objects",
-										"get"
-									]
-								}
-							},
-							"response": []
-						},
 						{
 							"name": "Create the test group",
 							"event": [
@@ -5228,6 +6127,87 @@
 							"response": []
 						},
 						{
+							"name": "Create the same test IP address but with CIDR notation",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "94225473-5132-4f19-8dc8-5810e0468252",
+										"exec": [
+											"if (pm.response.code === 403) {",
+											"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+											"    if (fwc_confirm_token) {",
+											"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+											"        postman.setNextRequest(pm.info.requestId);",
+											"        return;",
+											"    }",
+											"}",
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"pm.test(\"Error response\", function () {",
+											"    const response = pm.response.json();",
+											"    const err =  {",
+											"        \"fwcErr\": 1003,",
+											"        \"msg\": \"Already exists\"",
+											"    }",
+											"    pm.expect(response).to.eql(err);",
+											"});",
+											"",
+											"pm.globals.unset(\"fwc_confirm_token\");",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Origin",
+										"value": "{{Origin}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "X-FWC-Confirm-Token",
+										"type": "text",
+										"value": "{{fwc_confirm_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fwcloud\": {{fwcloud}},\n    \"type\": 5,\n    \"name\": \"Test IP 1\",\n    \"address\": \"1.2.3.4\",\n    \"netmask\": \"/24\",\n    \"ip_version\": 4,\n    \"node_parent\": {{node_id}},\n    \"node_order\": 1,\n    \"node_type\": \"OIA\"\n}"
+								},
+								"url": {
+									"raw": "{{apiURL}}/ipobj",
+									"host": [
+										"{{apiURL}}"
+									],
+									"path": [
+										"ipobj"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Force creation of the same test IP address",
 							"event": [
 								{
@@ -5762,13 +6742,13 @@
 	],
 	"variable": [
 		{
-			"id": "82951ec3-5f38-4759-b382-5986664b944c",
+			"id": "2833d3b6-2eec-48d9-82f9-229f1afb9d0c",
 			"key": "apiURL",
 			"value": "http://localhost:3000",
 			"type": "string"
 		},
 		{
-			"id": "5988851f-bf6f-47da-ad11-a1d0b38d1e24",
+			"id": "5699806f-1357-4419-b27a-b973347f17f1",
 			"key": "Origin",
 			"value": "http://webtest.fwcloud.net",
 			"type": "string"

@@ -29,7 +29,7 @@ schema.validate = req => {
 			});
 
 			if (req.method==='POST')
-				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/), password: sharedSch.password, });
+				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/), password: sharedSch.password });
 			else
 				schema = schema.append({ 
 					user: sharedSch.id, 
