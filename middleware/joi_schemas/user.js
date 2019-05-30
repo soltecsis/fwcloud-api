@@ -23,16 +23,20 @@ schema.validate = req => {
 				customer: sharedSch.id,
 				email: Joi.string().email().optional(),
         username: sharedSch.username,
-				password: sharedSch.password,
 				enabled: sharedSch._0_1,
 				role: sharedSch.role,
 				allowed_from: sharedSch.comment
 			});
 
 			if (req.method==='POST')
-				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/) });
+				schema = schema.append({ name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/), password: sharedSch.password, });
 			else
-				schema = schema.append({ user: sharedSch.id, customer: sharedSch.id, name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional() });
+				schema = schema.append({ 
+					user: sharedSch.id, 
+					customer: sharedSch.id, 
+					name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional(),
+					password: sharedSch.password.optional(), 
+				});
 		} 
     else if ((req.url==='/user/fwcloud' && req.method==='POST') || (req.url==='/user/fwcloud/del' && req.method==='PUT')) {
 			schema = schema = Joi.object().keys({ user: sharedSch.id, fwcloud: sharedSch.id });
