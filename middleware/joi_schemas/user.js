@@ -35,7 +35,7 @@ schema.validate = req => {
 					user: sharedSch.id, 
 					customer: sharedSch.id, 
 					name: Joi.string().regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional(),
-					password: sharedSch.password.optional(), 
+					password: sharedSch.password.optional() 
 				});
 		} 
     else if ((req.url==='/user/fwcloud' && req.method==='POST') || (req.url==='/user/fwcloud/del' && req.method==='PUT')) {
