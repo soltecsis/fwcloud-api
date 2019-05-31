@@ -43,9 +43,15 @@ accessCtrl.check = async (req, res, next) => {
 
 	// Check access to customer and user creation functionality.
 	if (req.url.substring(0,5)==="/user" || req.url.substring(0,9)==="/customer") {
+		// Allow the logged user to change its own password.
+		if (req.url==='/user/changepass')
+			return next();
+		
+			// All other customer and user changes are only allowed to administrator users.
 	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
 			return next();
-		return res.status(400).json(fwcError.NOT_ADMIN_USER);
+		
+			return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 		
 	// Next access control for fwcloud API functions.

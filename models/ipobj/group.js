@@ -8,6 +8,7 @@ var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Ipobj__ipobjgModel = require('./ipobj__ipobjg');
+const fwcError = require('../../utils/error_table');
 
 //create object
 var ipobj_gModel = {};
@@ -62,25 +63,32 @@ ipobj_gModel.countGroupItems = (dbCon, group) => {
 //IP version of the group items.
 ipobj_gModel.groupIPVersion = (dbCon, group) => {
 	return new Promise((resolve, reject) => {
-		let sql = `select O.ip_version from ipobj__ipobjg G
-			inner join ipobj O on O.id=G.ipobj
-			where G.ipobj_g=${group}`
-		dbCon.query(sql, (error, result) => {
+		dbCon.query(`select type from ${tableModel} where id=${group}`, (error, result) => {
 			if (error) return reject(error);
-			if (result.length > 0) return resolve(parseInt(result[0].ip_version));
+			if (result.length!==1) return reject(fwcError.NOT_FOUND);
+			// If this is not an IP objects group then finish without IP version.
+			if (result[0].type!==20) return resolve(0);
 
-			dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
+			let sql = `select O.type,O.ip_version from ipobj__ipobjg G
+				inner join ipobj O on O.id=G.ipobj
+				where G.ipobj_g=${group}`
+			dbCon.query(sql, (error, result) => {
 				if (error) return reject(error);
-				// If there is an OpenVPN configuration in the group, then this is an IPv4 group.
-				if (result[0].n > 0) return resolve(4);
+				if (result.length > 0) return resolve(parseInt(result[0].ip_version));
 
 				dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
 					if (error) return reject(error);
-					// If there is an OpenVPN prefix in the group, then this is an IPv4 group.
+					// If there is an OpenVPN configuration in the group, then this is an IPv4 group.
 					if (result[0].n > 0) return resolve(4);
 
-					// If we arrive here, then the group is empty.
-					resolve(0);
+					dbCon.query(`select count(*) as n from openvpn_prefix__ipobj_g where ipobj_g=${group}`, (error, result) => {
+						if (error) return reject(error);
+						// If there is an OpenVPN prefix in the group, then this is an IPv4 group.
+						if (result[0].n > 0) return resolve(4);
+
+						// If we arrive here, then the group is empty.
+						resolve(0);
+					});
 				});
 			});
 		});
@@ -96,7 +104,7 @@ ipobj_gModel.getIpobj_g_Full = (dbCon, fwcloud, gid) => {
 			WHERE (G.fwcloud=${fwcloud} OR G.fwcloud is null) AND G.id=${gid}`;
 		dbCon.query(sql, (error, rows) => {
 			if (error) return reject(error);
-			if (rows.length === 0) return reject('Grupo no encontrado');
+			if (rows.length === 0) return reject(fwcError.NOT_FOUND);
 
 			let groups = [];
 			let group_data = new ipobj_g_Data(rows[0]);

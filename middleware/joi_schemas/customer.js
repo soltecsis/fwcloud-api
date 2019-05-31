@@ -13,7 +13,7 @@ schema.validate = req => {
 			schema = Joi.object().keys({
 				addr: sharedSch.comment,
 				phone: sharedSch.comment,
-				email: Joi.string().email().optional(),
+				email: Joi.string().email().optional().allow('').allow(null),
 				web: sharedSch.comment
 			});
 

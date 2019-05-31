@@ -215,6 +215,23 @@ router.put('', async (req, res) => {
 		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			throw fwcError.NOT_FOUND;
 
+		// Veriry that don't exists another user with the same username into the same customer.
+		if(await userModel.existsCustomerUserNameOtherId(req.dbCon,req.body.customer,req.body.username,req.body.user))
+			throw fwcError.ALREADY_EXISTS_NAME;
+
+		// If there is only on administrator user left and we want to change his role from administrator to manager,
+		// don't allow it.
+		if(await userModel.isAdmin(req) && req.body.role!==1) {
+			const data = await userModel.lastAdminUser(req); 
+			if (data.result) 
+				throw fwcError.other('It is not allowed to change the role of the last administrator user');
+		}
+
+		// Don't allow to change the role of the current logged user.
+		// If we allow it the logged user will lost the power of change customers and users information.
+		if (req.body.user===req.session.user_id && req.body.role!==1)
+			throw fwcError.other('It is not allowed to change the role of the logged user');
+
 		await userModel.update(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
@@ -348,6 +365,9 @@ async (req, res) => {
 	try {
 		if (!(await userModel.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
 			throw fwcError.NOT_FOUND;
+
+		if (req.body.user===req.session.user_id)
+			throw fwcError.other('It is not allowed to delete the logged user');
 
 		await userModel.delete(req);
 		res.status(204).end();
