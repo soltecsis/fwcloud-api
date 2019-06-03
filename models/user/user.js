@@ -223,9 +223,25 @@ userModel.lastAdminUser = req => {
 
 userModel.allowFwcloudAccess = (dbCon,user,fwcloud) => {
 	return new Promise(async (resolve, reject) => {
-		dbCon.query(`INSERT INTO user__fwcloud values(${user},${fwcloud})`,(error, result) => {			
+		dbCon.query(`INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,(error, result) => {			
 			if (error) return reject(error);
 			resolve(result.insertId);
+		});
+	});
+};
+
+userModel.allowAllFwcloudAccess = (dbCon,user) => {
+	return new Promise(async (resolve, reject) => {
+		dbCon.query(`select id from fwcloud`,async (error, result) => {			
+			if (error) return reject(error);
+
+			try {
+				for(let fwcloud of result) {
+					await userModel.allowFwcloudAccess(dbCon,user,fwcloud.id);
+				}
+
+				resolve();
+			} catch(error) { reject(error) }
 		});
 	});
 };

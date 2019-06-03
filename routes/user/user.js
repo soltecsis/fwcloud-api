@@ -158,6 +158,11 @@ router.post('', async (req, res) => {
 			throw fwcError.ALREADY_EXISTS;
 
 		const new_user_id = await userModel.insert(req);
+
+		// If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
+		if (req.body.role===1)
+			await userModel.allowAllFwcloudAccess(req.dbCon,new_user_id);
+
 		res.status(200).json({"user": new_user_id});
 	} catch (error) { res.status(400).json(error) }
 });
@@ -234,6 +239,11 @@ router.put('', async (req, res) => {
 			throw fwcError.other('It is not allowed to change the role of the logged user');
 
 		await userModel.update(req);
+
+		// If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
+		if (req.body.role===1)
+			await userModel.allowAllFwcloudAccess(req.dbCon,req.body.user);
+
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -336,7 +346,7 @@ router.put('/get', async (req, res) => {
 
 /**
  * @api {PUT} /user/del Delete user
- * @apiName DelCustomer
+ * @apiName DelUser
  *  * @apiGroup USER
  * 
  * @apiDescription Delete user from the database. 

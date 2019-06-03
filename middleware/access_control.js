@@ -58,17 +58,10 @@ accessCtrl.check = async (req, res, next) => {
 			return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 		
-	// Next access control for fwcloud API functions.
-	const iduser = req.session.user_id;
-	const fwcloud = req.body.fwcloud;
-
-	const update = (req.method === 'GET') ? false : true;
-
-	logger.warn("API CHECK FWCLOUD ACCESS USER : [" + iduser + "] --- FWCLOUD: [" + fwcloud + "]   ACTION UPDATE: " + update);
-
 	try {
 		// This MUST be the first access control.
-		await checkFwCloudAccess(iduser, fwcloud, update, req, res);
+		if (req.body.fwcloud && !(await checkFwCloudAccess(req)))
+			throw fwcError.ACC_FWCLOUD;
 
 		// Check firewall access for the user.
 		if (req.body.firewall) {
@@ -296,8 +289,19 @@ function checkTreeNodeAccess(req) {
 	});
 };
 
+// Check access to the fwcloud.
+function checkFwCloudAccess(req) {
+	return new Promise((resolve, reject) => {
+		var sql = `select * FROM user__fwcloud WHERE user=${req.session.user_id} and fwcloud=${req.body.fwcloud}`;
+		req.dbCon.query(sql, (error, result) => {
+			if (error) return reject(error);
+			resolve(result.length!==1? false : true);
+		});
+	});
+};
+
 //CHECK IF A USER HAS ACCCESS TO FWCLOUD AND IF FWCLOUD IS NOT LOCKED.
-function checkFwCloudAccess(iduser, fwcloud, update, req, res) {
+/*function checkFwCloudAccess(iduser, fwcloud, update, req, res) {
 	return new Promise((resolve, reject) => {
 		var fwcloudData = { fwcloud: fwcloud, iduser: iduser };
 		//Check FWCLOUD LOCK
@@ -345,4 +349,4 @@ function checkFwCloudAccess(iduser, fwcloud, update, req, res) {
 				return reject(fwcError.ACC_FWCLOUD);
 			});
 	});
-};
+}; */
