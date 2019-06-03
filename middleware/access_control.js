@@ -47,6 +47,10 @@ accessCtrl.check = async (req, res, next) => {
 		if (req.url==='/user/changepass')
 			return next();
 		
+		// Any user can end the session.
+		if (req.url==='/user/logout')
+			return next();
+
 			// All other customer and user changes are only allowed to administrator users.
 	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
 			return next();

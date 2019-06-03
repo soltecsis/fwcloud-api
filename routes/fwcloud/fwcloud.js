@@ -41,9 +41,10 @@ var router = express.Router();
  */
 var fwcloudModel = require('../../models/fwcloud/fwcloud');
 
-var utilsModel = require("../../utils/utils.js");
+var utilsModel = require('../../utils/utils');
 var fwcTreemodel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
+const userModel = require("../../models/user/user");
 const fwcError = require('../../utils/error_table');
 
 

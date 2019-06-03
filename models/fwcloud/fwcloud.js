@@ -246,7 +246,7 @@ fwcloudModel.insertFwcloud = req => {
 			try {
 				const admins = await userModel.getAllAdminUserIds(req);
 				for(let admin of admins) {
-					await userModel.allowFwcloudAccess(req.dbCon,admin,fwcloud);
+					await userModel.allowFwcloudAccess(req.dbCon,admin.id,fwcloud);
 				}
 				resolve(fwcloud);
 			} catch(error) { reject(error) }
@@ -466,7 +466,7 @@ fwcloudModel.deleteFwcloud = req => {
 					await fwcloudModel.EmptyFwcloudStandard(req.body.fwcloud);
 					const admins = await userModel.getAllAdminUserIds(req);
 					for(let admin of admins) {
-						await userModel.allowFwcloudAccess(req.dbCon,admin,fwcloud);
+						await userModel.disableFwcloudAccess(req.dbCon,admin.id,req.body.fwcloud);
 					}
 				} catch (error) { return reject(error) }
 
