@@ -30,7 +30,8 @@ var bcrypt = require('bcrypt');
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * {
- *   "user": 1
+ *   "user": 1,
+ * 	 "role": 1
  * } 
  *
  * @apiErrorExample {json} Error-Response:
@@ -64,7 +65,7 @@ router.post('/login',async (req, res) => {
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
-			res.status(200).json({"user": req.session.user_id});
+			res.status(200).json({"user": req.session.user_id, "role": data[0].role});
 		} else {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;
