@@ -145,6 +145,9 @@ router.post('/logout',(req, res) => {
  */
 router.post('', async (req, res) => {
 	try {
+		// Remember that in the access control middleware we have already verified that the logged user
+		// has the admin role. Then, we don't need to check it again.
+	
 		// Verify that exists the customer to which the new user will belong.
 		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
 			throw fwcError.NOT_FOUND;
@@ -152,9 +155,6 @@ router.post('', async (req, res) => {
 		// Verify that for the indicated customer we don't have another user with the same username.
 		if (await userModel.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
 			throw fwcError.ALREADY_EXISTS;
-
-		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't need to check it again.
 
 		const new_user_id = await userModel.insert(req);
 		res.status(200).json({"user": new_user_id});
@@ -444,7 +444,7 @@ router.post('/fwcloud', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await userModel.allowFwcloudAccess(req);
+		await userModel.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -474,7 +474,7 @@ router.put('/fwcloud/del', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await userModel.disableFwcloudAccess(req);
+		await userModel.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });

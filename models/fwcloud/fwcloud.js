@@ -37,6 +37,7 @@ var tableModel = "fwcloud";
 
 
 var logger = require('log4js').getLogger("app");
+const userModel = require('../../models/user/user');
 const fwcError = require('../../utils/error_table');
 
 
@@ -238,14 +239,17 @@ fwcloudModel.insertFwcloud = req => {
 			comment: req.body.comment
 		};
 
-		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, fwcloudData, (error, result) => {
+		req.dbCon.query(`INSERT INTO ${tableModel} SET ?`, fwcloudData, async (error, result) => {
 			if (error) return reject(error);
 
 			let fwcloud = result.insertId;
-			req.dbCon.query(`INSERT INTO user__fwcloud SET fwcloud=${fwcloud}, user=${req.session.user_id}`, (error, result) => {
-				if (error) return reject(error);
+			try {
+				const admins = await userModel.getAllAdminUserIds(req);
+				for(let admin of admins) {
+					await userModel.allowFwcloudAccess(req.dbCon,admin,fwcloud);
+				}
 				resolve(fwcloud);
-			});
+			} catch(error) { reject(error) }
 		});
 	});
 };
@@ -460,14 +464,15 @@ fwcloudModel.deleteFwcloud = req => {
 				try {
 					//DELETE ALL OBJECTS FROM CLOUD
 					await fwcloudModel.EmptyFwcloudStandard(req.body.fwcloud);
-				} catch (error) {  return reject(error) }
+					const admins = await userModel.getAllAdminUserIds(req);
+					for(let admin of admins) {
+						await userModel.allowFwcloudAccess(req.dbCon,admin,fwcloud);
+					}
+				} catch (error) { return reject(error) }
 
-				req.dbCon.query(`DELETE FROM user__fwcloud WHERE fwcloud=${req.body.fwcloud}`, (error, result) => {
+				req.dbCon.query(`DELETE FROM ${tableModel} WHERE id=${req.body.fwcloud}`, (error, result) => {
 					if (error) return reject(error);
-					req.dbCon.query(`DELETE FROM ${tableModel} WHERE id=${req.body.fwcloud}`, (error, result) => {
-						if (error) return reject(error);
-						resolve();
-					});
+					resolve();
 				});
 			} else reject(fwcError.NOT_FOUND);
 		});

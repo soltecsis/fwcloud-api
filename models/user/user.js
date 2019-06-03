@@ -28,6 +28,17 @@ userModel.getUserName = function(customer, username) {
 };
 
 
+userModel.getAllAdminUserIds = req => {
+	return new Promise((resolve, reject) => {
+		req.dbCon.query(`select id from ${tableModel} where role=1`, (error, result) => {
+			if (error) return reject(error);
+			resolve(result);
+		});
+	});
+};
+
+
+
 //Update user confirmation_token
 userModel.updateUserCT = function(iduser, token, callback) {
 	return new Promise((resolve, reject) => {
@@ -109,6 +120,17 @@ userModel.existsCustomerUserId = (dbCon, customer, user) => {
 userModel.isAdmin = req => {
 	return new Promise(async(resolve, reject) => {
 		req.dbCon.query(`select role from ${tableModel} where customer=${req.body.customer} and id=${req.body.user}`, (error, result) => {
+			if (error) return reject(error);
+			if (result.length === 0) return reject(fwcError.NOT_FOUND);
+
+			resolve(result[0].role === 1 ? true : false);
+		});
+	});
+};
+
+userModel.isLoggedUserAdmin = req => {
+	return new Promise(async(resolve, reject) => {
+		req.dbCon.query(`select role from ${tableModel} where id=${req.session.user_id}`, (error, result) => {
 			if (error) return reject(error);
 			if (result.length === 0) return reject(fwcError.NOT_FOUND);
 
@@ -199,18 +221,18 @@ userModel.lastAdminUser = req => {
 };
 
 
-userModel.allowFwcloudAccess = req => {
+userModel.allowFwcloudAccess = (dbCon,user,fwcloud) => {
 	return new Promise(async (resolve, reject) => {
-		req.dbCon.query(`INSERT INTO user__fwcloud values(${req.body.user},${req.body.fwcloud})`,(error, result) => {			
+		dbCon.query(`INSERT INTO user__fwcloud values(${user},${fwcloud})`,(error, result) => {			
 			if (error) return reject(error);
 			resolve(result.insertId);
 		});
 	});
 };
 
-userModel.disableFwcloudAccess = req => {
+userModel.disableFwcloudAccess = (dbCon,user,fwcloud)  => {
 	return new Promise(async (resolve, reject) => {
-		req.dbCon.query(`delete from user__fwcloud where user=${req.body.user} and fwcloud=${req.body.fwcloud}`,(error, result) => {			
+		dbCon.query(`delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,(error, result) => {			
 			if (error) return reject(error);
 			resolve();
 		});

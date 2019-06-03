@@ -74,6 +74,10 @@ const fwcError = require('../../utils/error_table');
  */
 router.post('/', async(req, res) => {
 	try {
+		// Only users with the administrator role can create a new fwcloud.
+		if (!await userModel.isLoggedUserAdmin(req))
+			throw fwcError.NOT_ADMIN_USER;
+
 		req.body.fwcloud = await fwcloudModel.insertFwcloud(req);
 		await fwcTreemodel.createAllTreeCloud(req);
 		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
@@ -115,6 +119,10 @@ router.post('/', async(req, res) => {
  */
 router.put('/', async(req, res) => {
 	try {
+		// Only users with the administrator role can update a fwcloud.
+		if (!await userModel.isLoggedUserAdmin(req))
+			throw fwcError.NOT_ADMIN_USER;
+
 		await fwcloudModel.updateFwcloud(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
@@ -279,6 +287,10 @@ router.put('/del',
 restrictedCheck.fwcloud,
 async(req, res) => {
 	try {
+		// Only users with the administrator role can delete a fwcloud.
+		if (!await userModel.isLoggedUserAdmin(req))
+			throw fwcError.NOT_ADMIN_USER;
+
 		// Remove the fwcloud data dir.
 		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
 		await fwcloudModel.deleteFwcloud(req);

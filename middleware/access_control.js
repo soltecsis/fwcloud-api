@@ -47,6 +47,10 @@ accessCtrl.check = async (req, res, next) => {
 		if (req.url==='/user/changepass')
 			return next();
 		
+		// Allow the logged user to query its own data even if he/she is not a user with the administrator role.
+		if (req.url==='/user/get' && req.body.user===req.session.user_id)
+			return next();
+
 			// All other customer and user changes are only allowed to administrator users.
 	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
 			return next();
