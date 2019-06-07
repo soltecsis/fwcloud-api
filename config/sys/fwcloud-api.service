@@ -1,0 +1,17 @@
+[Unit]
+Description=FWCloud-API
+[Service]
+ExecStart= /usr/bin/node /opt/fwcloud-api/bin/www
+WorkingDirectory=/opt/fwcloud-api/
+Restart=always
+StandardOutput=/opt/fwcloud/logs/out.log
+StandardError=/opt/fwcloud/logs/error.log
+SyslogIdentifier=FWCloud-API
+User=fwcloud
+Group=fwcloud
+
+# Restart service after 10 seconds if node service crashes
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

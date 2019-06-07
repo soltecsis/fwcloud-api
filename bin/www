@@ -48,9 +48,12 @@ try {
     var fs = require('fs');
     var tlsOptions = {
       key: fs.readFileSync(config.get('https').key),
-      cert: fs.readFileSync(config.get('https').cert),
-      ca: fs.readFileSync(config.get('https').ca_bundle)
+      cert: fs.readFileSync(config.get('https').cert)
     }; 
+
+    if (config.get('https').ca_bundle)
+      tlsOptions.ca = config.get('https').ca_bundle;
+
     server = https.createServer(tlsOptions, app);
   } 
   else {

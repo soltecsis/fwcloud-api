@@ -45,19 +45,19 @@ const config = convict({
     cert: {
       doc: 'Path to certificate file.',
       format: String,
-      default: './config/tls/certificate.crt',
+      default: './config/tls/fwcloud-api.crt',
       env: 'HTTPS_CERT'
     },
     key: {
       doc: 'Path to key file.',
       format: String,
-      default: './config/tls/private.key',
+      default: './config/tls/fwcloud-api.key',
       env: 'HTTPS_KEY'
     },
     ca_bundle: {
       doc: 'Path to CA bundle file.',
       format: String,
-      default: './config/tls/ca_bundle.crt',
+      default: '',
       env: 'HTTPS_CA_BUNDLE'
     }
   },
