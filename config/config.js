@@ -15,7 +15,7 @@ const config = convict({
     ip: {
       doc: 'The IP address to bind.',
       format: 'ipaddress',
-      default: '127.0.0.1',
+      default: '0.0.0.0',
       env: 'LISTEN_IP'
     },
     port: {
