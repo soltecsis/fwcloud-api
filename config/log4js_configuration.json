@@ -12,20 +12,12 @@
       "filename": "logs/http_fwcloud.log",
       "maxLogSize": 2048000,
       "backups": 10
-    },
-    "compiler": {
-      "type": "file",
-      "filename": "logs/compiler_fwcloud.log",
-      "maxLogSize": 2048000,
-      "backups": 3
     }
   },
   "categories": {
     "default": { "appenders": [ "out" ], "level": "info" },
     "app": { "appenders": [ "app" ], "level" : "debug" },
-    "http": { "appenders": [ "http" ], "level" : "debug" },
-    "compiler": { "appenders": [ "compiler" ], "level" : "debug" }
-        
+    "http": { "appenders": [ "http" ], "level" : "debug" }
   }
 }
 

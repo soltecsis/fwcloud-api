@@ -10,13 +10,27 @@ var debug = require('debug')('nodeapi:server');
 
 
 /**
- * make a log directory, just in case it isn't there.
+ * Create the logs directory, just in case it isn't there.
  */
 try {
   require('fs').mkdirSync('./logs');
 } catch (e) {
   if (e.code !== 'EEXIST') {
-    console.error("Could not set up log directory, error was: ", e);
+    console.error("Could not create the logs directory. ERROR: ", e);
+    process.exit(1);
+  }
+}
+
+/**
+ * Create the data directories, just in case them aren't there.
+ */
+try {
+  require('fs').mkdirSync('./DATA');
+  require('fs').mkdirSync(config.get('policy').data_dir);
+  require('fs').mkdirSync(config.get('pki').data_dir);
+} catch (e) {
+  if (e.code !== 'EEXIST') {
+    console.error("Could not create the data directory. ERROR: ", e);
     process.exit(1);
   }
 }
