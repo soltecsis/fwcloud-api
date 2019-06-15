@@ -57,7 +57,7 @@ const config = convict({
     ca_bundle: {
       doc: 'Path to CA bundle file.',
       format: String,
-      default: '',
+      default: './config/tls/ca.crt',
       env: 'HTTPS_CA_BUNDLE'
     }
   },
