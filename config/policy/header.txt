@@ -32,9 +32,18 @@ check_cmds() {
   test -z "$IP" && echo "Command 'ip' not found!" && exit 1
 }
 
-load_modules() {
+default_filter_policy() { 
+  $IPTABLES  -P OUTPUT  $1
+  $IPTABLES  -P INPUT   $1
+  $IPTABLES  -P FORWARD $1
+  $IP6TABLES -P OUTPUT  $1
+  $IP6TABLES -P INPUT   $1
+  $IP6TABLES -P FORWARD $1
+}
+
+load_nat_modules() {
   MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
-  MODULES=$(find $MODULES_DIR -name '*conntrack*' -o -name '*nat*'|sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
+  MODULES=$(find $MODULES_DIR -name '*nat*'| sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
   for module in $MODULES; do
     if $LSMOD | grep ${module} >/dev/null; then continue; fi
     $MODPROBE ${module} ||  exit 1
