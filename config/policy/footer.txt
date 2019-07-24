@@ -20,10 +20,9 @@ case "$ACTION" in
     greeting_msg
     load_nat_modules
     reset_all
-    #prolog_commands
-    options_load
+    default_filter_policy DROP
     policy_load
-    #epilog_commands
+    options_load
     ;;
 
   stop)
