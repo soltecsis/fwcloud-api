@@ -19,7 +19,7 @@ case "$ACTION" in
   start)
     greeting_msg
     load_nat_modules
-    reset_all
+    policy_empty
     policy_load
     default_filter_policy DROP
     options_load
@@ -27,7 +27,7 @@ case "$ACTION" in
 
   stop)
     default_filter_policy ACCEPT
-    reset_all
+    policy_empty
     ;;
 
   restart|reload)
@@ -36,7 +36,7 @@ case "$ACTION" in
     ;;
 
   block)
-    reset_all
+    policy_empty
     default_filter_policy DROP
     ;;
 

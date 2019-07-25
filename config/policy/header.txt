@@ -75,7 +75,7 @@ reset_iptables_v6() {
   done
 }
 
-reset_all() {
+policy_empty() {
   reset_iptables_v4
   reset_iptables_v6
 }
