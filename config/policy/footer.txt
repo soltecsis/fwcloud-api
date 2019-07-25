@@ -20,14 +20,14 @@ case "$ACTION" in
     greeting_msg
     load_nat_modules
     reset_all
-    default_filter_policy DROP
     policy_load
+    default_filter_policy DROP
     options_load
     ;;
 
   stop)
-    reset_all
     default_filter_policy ACCEPT
+    reset_all
     ;;
 
   restart|reload)
