@@ -460,6 +460,8 @@ RuleCompileModel.rule_compile = (fwcloud, firewall, type, rule) => {
 
 				if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
 					action = "ACCEPT";
+				else if (data[0].special === 2) // Special rule for catch-all.
+					action = ACTION[data[0].action];
 				else {
 					action = ACTION[data[0].action];
 					if (action==="ACCEPT") {
