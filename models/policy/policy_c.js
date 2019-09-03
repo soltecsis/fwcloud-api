@@ -196,7 +196,7 @@ policy_cModel.deleteRulesCompilation = (fwcloud, rules) => {
 		try {
 			for (let rule of rules) {
 				await policy_cModel.deletePolicy_c(rule.rule);
-				await firewallModel.updateFirewallStatus(fwcloud,rule.firewall_id,"|3");
+				await firewallModel.updateFirewallStatus(fwcloud,(rule.firewall)?rule.firewall:rule.firewall_id,"|3");
 			}
 			resolve();
 		} catch(error) { reject(error) }
