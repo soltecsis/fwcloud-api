@@ -44,7 +44,7 @@ schema.validate = req => {
 				is: 1,
 				then: Joi.string().valid(['askpass', 'auth-nocache', 'auth-retry', 'auth-user-pass-verify', 'auth-user-pass',
 					'auth', 'bcast-buffers', 'ca', 'ccd-exclusive', 'cd', 'cert', 'chroot', 'cipher', 'client-cert-not-required', 'client-config-dir',
-					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'config', 'connect-freq',
+					'client-connect', 'client-disconnect', 'client-to-client', 'client', 'comp-lzo', 'comp-noadapt', 'compress', 'config', 'connect-freq',
 					'connect-retry', 'crl-verify', 'cryptoapicert', 'daemon', 'dev-node', 'dev-type', 'dev', 'dh', 'dhcp-option', 'dhcp-release',
 					'dhcp-renew', 'disable-occ', 'disable', 'down-pre', 'down', 'duplicate-cn', 'echo', 'engine', 'explicit-exit-notify', 'fast-io',
 					'float', 'fragment', 'group', 'hand-window', 'hash-size', 'http-proxy-option', 'http-proxy-retry', 'http-proxy-timeout',
@@ -77,6 +77,7 @@ schema.validate = req => {
 				.when('name', { is: 'verb', then: Joi.valid(['0','1','2','3','4','5','6','7','8','9','10','11']) })
 				.when('name', { is: 'script-security', then: Joi.valid(['0','1','2','3']) })
 				.when('name', { is: 'comp-lzo', then: Joi.string().valid(['yes','no','adaptive']) })
+				.when('name', { is: 'compress', then: Joi.string().valid(['lzo','lz4','']) })
 				.when('name', { is: 'route-gateway', then: Joi.string().valid(['gw','dhcp']) })
 				.when('name', { is: 'redirect-gateway', then: Joi.string().valid(['local','autolocal','def1','bypass-dhcp','bypass-dns','block-local']) })
 				.when('name', { is: 'redirect-private', then: Joi.string().valid(['local','autolocal','def1','bypass-dhcp','bypass-dns','block-local']) })
