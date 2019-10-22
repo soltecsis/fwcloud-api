@@ -44,7 +44,7 @@
     "joi": "^14.3.1",
     "jsdoc": "^3.6.2",
     "lockfile": "^1.0.4",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.13",
     "log4js": "~4.4.0",
     "log4js-extend": "^0.2.1",
     "method-override": "^3.0.0",
