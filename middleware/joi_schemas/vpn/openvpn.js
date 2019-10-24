@@ -54,7 +54,7 @@ schema.validate = req => {
 					'management-query-passwords', 'management', 'max-clients', 'max-routes-per-client', 'mktun', 'mlock', 'mode', 'mssfix', 'mtu-disc',
 					'mtu-test', 'multihome', 'mute-replay-warnings', 'mute', 'nice', 'no-iv', 'no-replay', 'nobind', 'ns-cert-type', 'passtos', 'pause-exit', 'persist-key',
 					'persist-local-ip', 'persist-remote-ip', 'persist-tun', 'ping-exit', 'ping-restart', 'ping-timer-rem', 'ping', 'pkcs12', 'plugin', 'port',
-					'proto', 'pull', 'push-reset', 'push', 'rcvbuf size', 'redirect-gateway', 'remap-usr1', 'remote-cert-tls', 'remote-random', 'remote', 'reneg-bytes',
+					'proto', 'pull', 'push-reset', 'push', 'rcvbuf', 'redirect-gateway', 'remap-usr1', 'remote-cert-tls', 'remote-random', 'remote', 'reneg-bytes',
 					'reneg-pkts', 'reneg-sec', 'replay-persist', 'replay-window', 'resolv-retry', 'rmtun', 'route-delay', 'route-gateway', 'route-method',
 					'route-noexec', 'route-up', 'route', 'rport', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
