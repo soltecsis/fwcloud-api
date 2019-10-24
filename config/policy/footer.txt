@@ -66,9 +66,6 @@ case "$ACTION" in
       create_systemd_service
       $SYSTEMCTL enable fwcloud
     fi
-
-    # Make sure that changes are written to disk.
-    sync
     ;;
 
   *)
