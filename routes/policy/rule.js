@@ -93,7 +93,7 @@ async (req, res) => {
 
 		const rule_data = await policy_rModel.getPolicy_r(req.dbCon, req.body.firewall, req.body.rule);
 		// For the catch-all special rule only allow the actions ACCEPT (1), DENY (2) and REJECT (3);
-		if (rule_data.special===2 && req.body.action!==1 && req.body.action!==2 && req.body.action!==3)
+		if (rule_data.special===2 && req.body.action && req.body.action!==1 && req.body.action!==2 && req.body.action!==3)
 			throw fwcError.NOT_ALLOWED;
 
 		await policy_rModel.updatePolicy_r(req.dbCon, policy_rData);

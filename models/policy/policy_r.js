@@ -390,6 +390,7 @@ policy_rModel.insertDefaultPolicy = (fwId, loInterfaceId, options) => {
 			policy_rData.special = 0;
 			policy_rData.rule_order = 2;
 			policy_rData.special = 2;
+			policy_rData.options = 2; // Make the default output rule stateless.
 			policy_rData.comment = 'Catch-all rule.';
 			policy_rData.type = 2; // OUTPUT IPv4
 			await policy_rModel.insertPolicy_r(policy_rData);
