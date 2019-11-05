@@ -86,11 +86,11 @@ duplicityCheck.ipobj = (req, res, next) => {
 				for (row of rows) {
 					net2 = (row.netmask[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
 					if (net1.subnetMaskLength===net2.subnetMaskLength)
-						return res.status(400).json(rows);
+						return res.status(200).json(rows);
 				}
 				next();
 			} 
-			else res.status(400).json(rows);
+			else res.status(200).json(rows);
 		}
 		else next();
 	});
