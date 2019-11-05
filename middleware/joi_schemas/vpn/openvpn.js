@@ -63,7 +63,7 @@ schema.validate = req => {
 					'tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up cmd', 'user', 'username-as-common-name ', 'verb', 'writepid'
 				]),
 				otherwise: Joi.string().valid(['push', 'push-reset', 'iroute', 'iroute-ipv6', 'ifconfig-push',
-					'ifconfig-ipv6-push', 'disable', 'config'
+					'ifconfig-ipv6-push', 'disable', 'config', 'comp-lzo', 'max-routes-per-client'
 				])
 			}),
 			//arg: Joi.string().regex(/^[ -~\x80-\xFE]{1,128}$/).allow(null).allow('').optional(),
