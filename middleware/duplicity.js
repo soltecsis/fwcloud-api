@@ -77,21 +77,23 @@ duplicityCheck.ipobj = (req, res, next) => {
 	req.dbCon.query(sql, (error, rows) => {
 		if (error) return next();
 
-		if (rows.length>0) {
-			if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
-				// We have two formats for the netmask (for example, 255.255.255.0 or /24).
-				// We have to check if the object already exist independently of the netmask format.
-				const net1 = (req.body.netmask[0]==='/') ? ip.cidrSubnet(`${req.body.address}${req.body.netmask}`) : ip.subnet(req.body.address, req.body.netmask);
-				let net2 = {};
-				for (row of rows) {
-					net2 = (row.netmask[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
-					if (net1.subnetMaskLength===net2.subnetMaskLength)
-						return res.status(403).json(rows);
-				}
-				next();
-			} 
-			else res.status(403).json(rows);
-		}
-		else next();
+		try {
+			if (rows.length>0) {
+				if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
+					// We have two formats for the netmask (for example, 255.255.255.0 or /24).
+					// We have to check if the object already exist independently of the netmask format.
+					const net1 = (req.body.netmask[0]==='/') ? ip.cidrSubnet(`${req.body.address}${req.body.netmask}`) : ip.subnet(req.body.address, req.body.netmask);
+					let net2 = {};
+					for (row of rows) {
+						net2 = (row.netmask[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
+						if (net1.subnetMaskLength===net2.subnetMaskLength)
+							throw fwcError.ALREADY_EXISTS;
+					}
+					next();
+				} 
+				else throw fwcError.ALREADY_EXISTS;
+			}
+			else next();
+		} catch(error) { res.status(400).json({ "data": rows, "error": error}) }
 	});
 };
