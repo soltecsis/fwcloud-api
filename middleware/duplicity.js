@@ -44,11 +44,15 @@ duplicityCheck.ipobj = (req, res, next) => {
 	let sql;
 	if (req.body.type===5 || req.body.type===7) { // 5: ADDRESS, 7: NETWORK
 		// We have two formats for the netmask (for example, 255.255.255.0 or /24).
-		sql = `select id,name,address,netmask from ipobj where address=${req.dbCon.escape(req.body.address)} and type=${req.body.type}`;
+		sql = `select id,name,address,netmask from ipobj 
+						where address=${req.dbCon.escape(req.body.address)} and type=${req.body.type}
+						${req.body.id ? ` AND id!=${req.body.id}` : ``}`;
 	}
 	else if (req.body.type===9) { // DNS
 		// If we are creating a new DNS input, then we must search for one whith the same name.
-		sql = `select id,name from ipobj where name=${req.dbCon.escape(req.body.name)} and type=9`;
+		sql = `select id,name from ipobj
+						where name=${req.dbCon.escape(req.body.name)} and type=9
+						${req.body.id ? ` AND id!=${req.body.id}` : ``}`;
 	}
 	else { // Other types
 		sql = `SELECT id,name FROM ipobj
