@@ -311,7 +311,8 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				active: copyRule.active,
 				options: copyRule.options,
 				comment: copyRule.comment,
-				type: copyRule.type
+				type: copyRule.type,
+				style: copyRule.style
 			};
 			newRuleId = await policy_rModel.insertPolicy_r(policy_rData);
 

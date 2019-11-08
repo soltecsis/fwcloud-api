@@ -565,7 +565,7 @@ policy_rModel.updatePolicy_r = (dbCon, policy_rData) => {
 		if (policy_rData.time_end) sql += 'time_end=' + policy_rData.time_end + ',';
 		if (typeof policy_rData.options !== 'undefined') sql += 'options=' + policy_rData.options + ',';
 		if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
-		if (policy_rData.comment) sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
+		if (policy_rData.comment !== undefined && policy_rData.comment !== null) sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
 		if (policy_rData.style) sql += 'style=' + policy_rData.style + ',';
 		if (typeof policy_rData.mark !== 'undefined') sql += 'mark=' + policy_rData.mark + ',';
 		if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
