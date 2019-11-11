@@ -34,6 +34,7 @@ var errorTable = {
   "NOT_ADMIN_USER":       {"fwcErr": 1008, "msg": "You are not an admin user"},
   "SESSION_EXPIRED":      {"fwcErr": 1009, "msg": "Session expired"},
   "SESSION_BAD":          {"fwcErr": 1010, "msg": "Invalid session"},
+  "NOT_ALLOWED_CORS":     {"fwcErr": 1011, "msg": "Not allowed by CORS"},
 
   // Input validation error codes.
   "NOT_ACCEPTED_METHOD":  {"fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API"},

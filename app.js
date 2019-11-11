@@ -56,7 +56,7 @@ const accessAuth = require('./middleware/authorization');
 const accessCtrl = require('./middleware/access_control');
 const inputValidation = require('./middleware/input_validation');
 const confirmToken = require('./middleware/confirmation_token');
-
+const fwcError = require('./utils/error_table');
 
 var app = express();
 
@@ -106,6 +106,11 @@ var corsOptions = {
 	}
 };
 app.use(cors(corsOptions));
+
+// CORS error handler
+app.use((err, req, res, next) => {
+	res.status(400).send(fwcError.NOT_ALLOWED_CORS);
+});
 
 
 logger.debug("\n\n-------------- INIT FWCLOUD.NET API REST -----------------");
