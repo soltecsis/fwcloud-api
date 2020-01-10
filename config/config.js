@@ -254,7 +254,17 @@ const config = convict({
       format: String,
       default: './lib/easy-rsa/easyrsa3/easyrsa',
     },
-  }
+  },
+
+  // Backup configuration.
+  backup: {
+    data_dir: {
+      doc: 'Directory for store the backups.',
+      format: String,
+      default: './BACKUP/',
+      env: 'BACKUP_DATA_DIR'
+    }
+  }  
 });
 
 // Perform validation

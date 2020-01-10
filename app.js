@@ -194,6 +194,7 @@ var vpn_pki_crt = require('./routes/vpn/pki/crt');
 var vpn_pki_prefix = require('./routes/vpn/pki/prefix');
 var vpn_openvpn = require('./routes/vpn/openvpn/openvpn');
 var vpn_openvpn_prefix = require('./routes/vpn/openvpn/prefix');
+var backup = require('./routes/backup/backup');
 
 app.use('/user', user);
 app.use('/customer', customer);
@@ -224,6 +225,7 @@ app.use('/vpn/pki/crt', vpn_pki_crt);
 app.use('/vpn/pki/prefix', vpn_pki_prefix);
 app.use('/vpn/openvpn', vpn_openvpn);
 app.use('/vpn/openvpn/prefix', vpn_openvpn_prefix);
+app.use('/backup', backup);
 
 
 // Connect to MySQL on start

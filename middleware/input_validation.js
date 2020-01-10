@@ -37,7 +37,8 @@ inputValidation.check = async(req, res, next) => {
 		return res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
 	
 	const item1 = req.url.split('/')[1];
-	const item1_valid_list = [ 'user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 'ipobj', 'tree', 'vpn' ];
+	const item1_valid_list = [ 'user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 
+														 'ipobj', 'tree', 'vpn', 'backup' ];
 	// Verify that item1 is in the valid list.
 	if (!item1_valid_list.includes(item1))
 		return res.status(404).json(fwcError.BAD_API_CALL);
