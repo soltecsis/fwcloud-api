@@ -34,9 +34,9 @@ const backupModel = require('../../models/backup/backup');
  */
 router.post('/', async (req, res) => {
 	try {
-		// Only admin users can create a new backup.
-    if (!(await userModel.isAdmin))
-			throw fwcError.NOT_ADMIN_USER;
+    // Only admin users can create a new backup.
+    if (!(await userModel.isLoggedUserAdmin(req)))
+		  throw fwcError.NOT_ADMIN_USER;
 
     /*
     // Verify that we are not creating a prefix that already exists for the same CA.
@@ -47,10 +47,10 @@ router.post('/', async (req, res) => {
 		const id = await openvpnPrefixModel.createPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
-
-    res.status(200).json({insertId: id});
+    await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
     */
+
+    res.status(200).json({backupId: id});
 	} catch(error) { res.status(400).json(error) }
 });
 

@@ -98,6 +98,10 @@ duplicityCheck.ipobj = (req, res, next) => {
 				else throw fwcError.ALREADY_EXISTS;
 			}
 			else next();
-		} catch(error) { error.data=rows; res.status(400).json(error) }
+		} catch(error) { 
+			error.data=rows; 
+			res.status(400).json(error);
+			delete error.data;
+		}
 	});
 };
