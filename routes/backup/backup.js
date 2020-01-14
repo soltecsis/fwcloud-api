@@ -24,33 +24,53 @@
 var express = require('express');
 var router = express.Router();
 
+var dateFormat = require('dateformat');
+
 const fwcError = require('../../utils/error_table');
+const utilsModel = require('../../utils/utils');
 const userModel = require('../../models/user/user');
 const backupModel = require('../../models/backup/backup');
 
 
 /**
- * Create a new full system backup.
+ * @api {POST} /backup Full system backup
+ * @apiName NewBackup
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Create a new full system backup.
+ * If all goes fine in the response you will get the id of the new backup.
+ * This backup id has the format: YYYY-mm-dd_HH:MM:SS
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": 2020-01-14_12:30:45
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
  */
 router.post('/', async (req, res) => {
 	try {
     // Only admin users can create a new backup.
     if (!(await userModel.isLoggedUserAdmin(req)))
-		  throw fwcError.NOT_ADMIN_USER;
+      throw fwcError.NOT_ADMIN_USER;
+      
+    // Generate the id for the new backup.
+    const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
 
-    /*
-    // Verify that we are not creating a prefix that already exists for the same CA.
-		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.body.openvpn,req.body.name)) 
-			throw fwcError.ALREADY_EXISTS;
+    // Create the backup directory.
+    await utilsModel.createBackupDataDir(backupId);
 
-   	// Create the tree node.
-		const id = await openvpnPrefixModel.createPrefix(req);
+    // Database dump.
 
-		// Apply the new CRT prefix container.
-    await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
-    */
+    // Copy of the DATA directory.
 
-    res.status(200).json({backupId: id});
+    res.status(200).json({backupId: backupId});
 	} catch(error) { res.status(400).json(error) }
 });
 

@@ -163,6 +163,23 @@ utilsModel.getDbConnection = () => {
   });
 };
 
+utilsModel.createBackupDataDir = backupId => {
+	return new Promise(async (resolve, reject) => {
+		var path='';
+		try {
+			path = config.get('backup').data_dir;
+			if (!fs.existsSync(path))
+				fs.mkdirSync(path);
+
+			path += "/" + backupId;
+			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
+			fs.mkdirSync(path);
+
+			resolve();
+		} catch(error) { reject(error) }
+  });
+};
+
 utilsModel.createFwcloudDataDir = fwcloud => {
 	return new Promise(async (resolve, reject) => {
 		var path='';
