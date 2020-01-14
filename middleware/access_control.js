@@ -26,7 +26,7 @@ var accessCtrl = {};
 //Export the object
 module.exports = accessCtrl;
 
-const userModel = require('../../models/user/user');
+const userModel = require('../models/user/user');
 const FirewallModel = require('../models/firewall/firewall');
 const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
