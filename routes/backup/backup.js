@@ -26,11 +26,11 @@ var router = express.Router();
 
 var dateFormat = require('dateformat');
 
+const config = require('../../config/config');
 const fwcError = require('../../utils/error_table');
 const utilsModel = require('../../utils/utils');
 const userModel = require('../../models/user/user');
 const backupModel = require('../../models/backup/backup');
-
 
 /**
  * @api {POST} /backup Full system backup
@@ -66,13 +66,16 @@ router.post('/', async (req, res) => {
     // Create the backup directory.
     await utilsModel.createBackupDataDir(backupId);
 
-    // Database dump.
+    // Database dump to a file.
+    await backupModel.databaseDump(backupId);
 
-    // Copy of the DATA directory.
+    // Copy of the data directories.
+    await backupModel.copyDataDirs(backupId);
 
     res.status(200).json({backupId: backupId});
 	} catch(error) { res.status(400).json(error) }
 });
+
 
 /**
  * @api {PUT} /backup/get List of full system backups
@@ -97,20 +100,12 @@ router.put('/get', async (req, res) => {
     // Only admin users can create a new backup.
     if (!(await userModel.isLoggedUserAdmin(req)))
       throw fwcError.NOT_ADMIN_USER;
-      
-    // Generate the id for the new backup.
-    const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
 
-    // Create the backup directory.
-    await utilsModel.createBackupDataDir(backupId);
-
-    // Database dump.
-
-    // Copy of the DATA directory.
-
-    res.status(200).json({backupId: backupId});
+    // Get list of available backups.
+    const backupIdList = await backupModel.getList();
+          
+    res.status(200).json(backupIdList);
 	} catch(error) { res.status(400).json(error) }
 });
-
 
 module.exports = router;

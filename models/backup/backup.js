@@ -24,16 +24,69 @@
 //create object
 var backupModel = {};
 
+const config = require('../../config/config');
+const mysqldump = require('mysqldump');
+const fs = require('fs')
+const fse = require('fs-extra')
 
-// Validate new prefix container.
-backupModel.existsPrefix = (dbCon,openvpn,name) => {
-	return new Promise((resolve, reject) => {
-    dbCon.query(`SELECT id FROM ${tableModel} WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`, (error, result) => {
-      if (error) return reject(error);
-      resolve((result.length>0) ? true : false);
-    });
+
+// Database dump to a file.
+backupModel.databaseDump = backupId => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const options = {
+        connection: {
+          host: config.get('db').host,
+          user: config.get('db').user,
+          password: config.get('db').pass,
+          database: config.get('db').name,
+        },
+        dumpToFile: `./${config.get('backup').data_dir}/${backupId}/${config.get('db').name}.sql`
+      };
+
+      await mysqldump(options);
+      resolve();
+    } catch(error) { reject(error) }
   });
 };
+
+// Copy the data directories.
+backupModel.copyDataDirs = backupId => {
+	return new Promise(async (resolve, reject) => {
+    var dst_dir;
+    try {
+      // Data directory for policy.
+      dst_dir = `./${config.get('backup').data_dir}/${backupId}/${config.get('policy').data_dir}/`;
+      await fse.mkdirp(dst_dir);
+      await fse.copy(`./${config.get('policy').data_dir}/`, dst_dir);
+
+      // Data directory for PKI.
+      dst_dir = `./${config.get('backup').data_dir}/${backupId}/${config.get('pki').data_dir}/`;
+      await fse.mkdirp(dst_dir);
+      await fse.copy(`./${config.get('pki').data_dir}/`, dst_dir);
+
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
+// List of available backups.
+backupModel.getList = () => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      var dirs = [];
+      const files = await fs.readdirSync(`./${config.get('backup').data_dir}/`);
+      for (file of files) {
+        if (await fs.statSync(`./${config.get('backup').data_dir}/${file}`).isDirectory()) {
+          dirs.push(file);
+        }
+      }
+
+      resolve(dirs);
+    } catch(error) { reject(error) }
+  });
+};
+
 
 //Export the object
 module.exports = backupModel;
