@@ -44,7 +44,7 @@ const backupModel = require('../../models/backup/backup');
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * {
- *    "id": 2020-01-14_12:30:45
+ *    "id": "2020-01-14_12:30:45"
  * }
  * 
  * @apiErrorExample {json} Error-Response:
@@ -73,5 +73,44 @@ router.post('/', async (req, res) => {
     res.status(200).json({backupId: backupId});
 	} catch(error) { res.status(400).json(error) }
 });
+
+/**
+ * @api {PUT} /backup/get List of full system backups
+ * @apiName GetBackups
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Get the id list of all full system backups.
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * ["2020-01-14_12:30:45", "2020-01-14_13:01:04"]
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
+ */
+router.put('/get', async (req, res) => {
+	try {
+    // Only admin users can create a new backup.
+    if (!(await userModel.isLoggedUserAdmin(req)))
+      throw fwcError.NOT_ADMIN_USER;
+      
+    // Generate the id for the new backup.
+    const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
+
+    // Create the backup directory.
+    await utilsModel.createBackupDataDir(backupId);
+
+    // Database dump.
+
+    // Copy of the DATA directory.
+
+    res.status(200).json({backupId: backupId});
+	} catch(error) { res.status(400).json(error) }
+});
+
 
 module.exports = router;

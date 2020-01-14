@@ -26,23 +26,10 @@ var accessCtrl = {};
 //Export the object
 module.exports = accessCtrl;
 
-const FwcloudModel = require('../models/fwcloud/fwcloud');
+const userModel = require('../../models/user/user');
 const FirewallModel = require('../models/firewall/firewall');
 const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
-
-
-accessCtrl.hasLoggedUserAdminRole = async req => {
-	return new Promise((resolve, reject) => {
-		req.dbCon.query(`select role from user where id=${req.session.user_id}`, (error, result) => {
-			if (error) return reject(error);
-			if (result.length!==1) return resolve(false);
-
-			// Role value of 1 is for admin users.
-			resolve(result[0].role===1 ? true : false);
-		});
-	});
-}
 
 
 // Access control for fwclouds and firewalls.
@@ -75,10 +62,10 @@ accessCtrl.check = async (req, res, next) => {
 			return next();
 
 			// All other customer and user changes are only allowed to administrator users.
-	 	if (await accessCtrl.hasLoggedUserAdminRole(req))
+	 	if (await await userModel.isLoggedUserAdmin(req))
 			return next();
 		
-			return res.status(400).json(fwcError.NOT_ADMIN_USER);
+		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 		
 	try {
