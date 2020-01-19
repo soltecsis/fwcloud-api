@@ -35,6 +35,9 @@ schema.validate = req => {
 		if ((req.method==='POST' && req.url==='/backup') || (req.method==='PUT' && req.url==='/backup/get')) {
 			schema = {};
 		}
+		else if (req.method==='PUT' && req.url==='/backup/del') {
+			schema = Joi.object().keys({ backup: sharedSch.backup_id })
+		}
 		else return reject(fwcError.BAD_API_CALL);
 
 		try {

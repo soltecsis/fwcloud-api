@@ -61,13 +61,20 @@ accessCtrl.check = async (req, res, next) => {
 		if (req.url==='/user/logout')
 			return next();
 
-			// All other customer and user changes are only allowed to administrator users.
-	 	if (await await userModel.isLoggedUserAdmin(req))
+		// All other customer and user changes are only allowed to administrator users.
+	 	if (await userModel.isLoggedUserAdmin(req))
 			return next();
 		
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
-		
+
+	// Backups can only be managed by users with the admin role.
+	if (req.url.substring(0,7)==="/backup") {
+		if (await userModel.isLoggedUserAdmin(req))
+			return next();
+		return res.status(400).json(fwcError.NOT_ADMIN_USER);		
+	}
+
 	try {
 		// This MUST be the first access control.
 		if (req.body.fwcloud && !(await checkFwCloudAccess(req)))

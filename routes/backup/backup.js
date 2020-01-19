@@ -26,10 +26,7 @@ var router = express.Router();
 
 var dateFormat = require('dateformat');
 
-const config = require('../../config/config');
-const fwcError = require('../../utils/error_table');
 const utilsModel = require('../../utils/utils');
-const userModel = require('../../models/user/user');
 const backupModel = require('../../models/backup/backup');
 
 /**
@@ -56,10 +53,6 @@ const backupModel = require('../../models/backup/backup');
  */
 router.post('/', async (req, res) => {
 	try {
-    // Only admin users can create a new backup.
-    if (!(await userModel.isLoggedUserAdmin(req)))
-      throw fwcError.NOT_ADMIN_USER;
-      
     // Generate the id for the new backup.
     const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
 
@@ -78,7 +71,7 @@ router.post('/', async (req, res) => {
 
 
 /**
- * @api {PUT} /backup/get List of full system backups
+ * @api {PUT} /backup/get Get list of all full system backups
  * @apiName GetBackups
  *  * @apiGroup BACKUP
  * 
@@ -97,14 +90,39 @@ router.post('/', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-    // Only admin users can create a new backup.
-    if (!(await userModel.isLoggedUserAdmin(req)))
-      throw fwcError.NOT_ADMIN_USER;
-
     // Get list of available backups.
     const backupIdList = await backupModel.getList();
           
     res.status(200).json(backupIdList);
+	} catch(error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /backup/del Delete full system backup
+ * @apiName DelBackup
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Delete the full system backup with the ID specified in the body request.
+ * 
+ * @apiParam {String} backup Identifier of the backup that we want to remove.
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
+ */
+router.put('/del', async (req, res) => {
+	try {
+    // Delete backup.
+    await backupModel.delete(req);
+          
+    res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

@@ -24,10 +24,13 @@
 //create object
 var backupModel = {};
 
-const config = require('../../config/config');
 const mysqldump = require('mysqldump');
 const fs = require('fs')
 const fse = require('fs-extra')
+
+const config = require('../../config/config');
+const utilsModel = require('../../utils/utils');
+const fwcError = require('../../utils/error_table');
 
 
 // Database dump to a file.
@@ -87,6 +90,19 @@ backupModel.getList = () => {
   });
 };
 
+// Delete backup.
+backupModel.delete = req => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const path = `./${config.get('backup').data_dir}/${req.body.backup}`;
+      if (!fs.existsSync(path))
+        throw(fwcError.NOT_FOUND);
+
+      await utilsModel.deleteFolder(path);
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
 
 //Export the object
 module.exports = backupModel;
