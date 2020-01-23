@@ -98,7 +98,61 @@ backupModel.delete = req => {
       if (!fs.existsSync(path))
         throw(fwcError.NOT_FOUND);
 
+      // Delete backup folder.
       await utilsModel.deleteFolder(path);
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
+
+backupModel.dropTable = (dbCon,table) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`DROP TABLE IF EXISTS ${table}`, (error, result) => {
+      if (error) return reject(error);
+      resolve();
+		});
+	});
+};
+
+backupModel.emptyDataBase = (dbCon) => {
+	return new Promise((resolve, reject) => {
+		dbCon.query("SET FOREIGN_KEY_CHECKS = 0", (error, result) => {
+      if (error) return reject(error);
+      
+      dbCon.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='${config.get('db').name}'`, async (error, result) => {
+        if (error) return reject(error);
+
+        try {
+          for(let row of result) {
+            await backupModel.dropTable(dbCon,row.table_name);
+          }  
+        } catch(error) { return reject(error) }
+
+        dbCon.query("SET FOREIGN_KEY_CHECKS = 1", (error, result) => {
+          if (error) return reject(error);
+          resolve();
+        });
+      });
+		});
+	});
+};
+
+// Restore backup.
+backupModel.restore = req => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      // Full database restore.
+      await backupModel.emptyDataBase(req.dbCon);
+
+      // Apply migration patchs depending on the database API version.
+
+      // Restore data folders.
+
+      // Make all firewalls pending of compile and install
+
+      // Make all VPNs pending of install.
+
       resolve();
     } catch(error) { reject(error) }
   });

@@ -126,4 +126,33 @@ router.put('/del', async (req, res) => {
 	} catch(error) { res.status(400).json(error) }
 });
 
+
+/**
+ * @api {PUT} /backup/restore Restore a full system backup
+ * @apiName RestoreBackup
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Restore a full system backup with the ID specified in the body request.
+ * 
+ * @apiParam {String} backup Identifier of the backup that we want to restore.
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
+ */
+router.put('/restore', async (req, res) => {
+	try {
+    // Restore a full system backup.
+    await backupModel.restore(req);
+          
+    res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
+});
+
 module.exports = router;
