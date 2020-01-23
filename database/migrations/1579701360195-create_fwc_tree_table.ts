@@ -59,6 +59,7 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
                     name: 'fwcloud',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
             ],
@@ -88,6 +89,13 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
                     name: 'obj_type',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
+                    default: null
+                },
+                {
+                    name: 'name',
+                    type: 'varchar',
+                    length: '45',
                     isNullable: true,
                     default: null
                 },

@@ -31,13 +31,12 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
                 {
                     name: 'labelName',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: false,
                     default: "''"
                 },
                 {
                     name: 'type',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {

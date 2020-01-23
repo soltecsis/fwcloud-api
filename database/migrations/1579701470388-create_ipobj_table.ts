@@ -53,9 +53,6 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                 }
 
             ],
-            indices: [
-                { columnNames: ['interface', 'ipobj'] }
-            ],
             foreignKeys: [
                 {
                     columnNames: ['interface'],
@@ -195,7 +192,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     default: null
                 },
                 {
-                    name: 'desintation_port_start',
+                    name: 'destination_port_start',
                     type: 'int',
                     isNullable: true,
                     default:null
@@ -216,6 +213,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                 {
                     name: 'comment',
                     type: 'longtext',
+                    isNullable: true
                 },
                 {
                     name: 'created_at',
@@ -342,13 +340,14 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                 },
                 {
                     name: 'type',
-                    type: 'varchar',
+                    type: 'tinyint',
+                    length: '2',
                     isNullable: false
                 },
                 {
                     name: 'fwcloud',
                     type: 'int',
-                    isNullable: false,
+                    isNullable: true,
                     default: 0
                 },
                 {
@@ -378,7 +377,8 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                 },
                 {
                     name: 'comment',
-                    type: 'longtext'
+                    type: 'longtext',
+                    isNullable: true
                 }
             ]
         }), true);

@@ -34,7 +34,7 @@ export class createCrtTable1579701318936 implements MigrationInterface {
                 {
                     name: 'type',
                     type: 'tinyint',
-                    length: '3',
+                    length: '1',
                     unsigned: true,
                     isNullable: false
                 },

@@ -37,14 +37,12 @@ export class createUserTable1579701598735 implements MigrationInterface {
                 {
                     name: 'username',
                     type: 'varchar',
-                    isNullable: true,
-                    default: null
+                    isNullable: false
                 },
                 {
                     name: 'password',
                     type: 'varchar',
-                    isNullable: true,
-                    default: null
+                    isNullable: false
                 },
                 {
                     name: 'enabled',
@@ -107,8 +105,12 @@ export class createUserTable1579701598735 implements MigrationInterface {
             uniques: [
                 { columnNames: ['customer', 'username'] }
             ],
-            indices: [
-                { columnNames: ['customer']}
+            foreignKeys: [
+                {
+                    columnNames: ['customer'],
+                    referencedTableName: 'customer',
+                    referencedColumnNames: ['id']
+                }
             ]
         }));
 
@@ -129,16 +131,24 @@ export class createUserTable1579701598735 implements MigrationInterface {
                     isPrimary: true
                 }
             ],
-            indices: [
-                { columnNames: ['user'] },
-                { columnNames: ['fwcloud'] },
+            foreignKeys: [
+                {
+                    columnNames: ['fwcloud'],
+                    referencedTableName: 'fwcloud',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['user'],
+                    referencedTableName: 'user',
+                    referencedColumnNames: ['id']
+                }
             ]
         }));
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
-        await queryRunner.dropTable('user', true);
         await queryRunner.dropTable('user__fwcloud', true);
+        await queryRunner.dropTable('user', true);
     }
 
 }

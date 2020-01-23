@@ -31,6 +31,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                 {
                     name: 'comment',
                     type: 'longtext',
+                    isNullable: true
                 },
                 {
                     name: 'idgroup',
@@ -65,8 +66,12 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['firewall'] }
+            foreignKeys: [
+                {
+                    columnNames: ['firewall'],
+                    referencedTableName: 'firewall',
+                    referencedColumnNames: ['id']
+                }
             ]
         }));
 
@@ -210,9 +215,17 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['idgroup'] },
-                { columnNames: ['firewall'] }
+            foreignKeys: [
+                {
+                    columnNames: ['firewall'],
+                    referencedTableName: 'firewall',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['idgroup'],
+                    referencedTableName: 'routing_g',
+                    referencedColumnNames: ['id']
+                }
             ]
         }));
 
@@ -265,8 +278,17 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['interface'] }
+            foreignKeys: [
+                {
+                    columnNames: ['interface'],
+                    referencedTableName: 'interface',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'routing_r',
+                    referencedColumnNames: ['id']
+                }
             ]
         }));
 
@@ -332,9 +354,22 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['ipobj_g'] },
-                { columnNames: ['ipobj'] }
+            foreignKeys: [
+                {
+                    columnNames: ['ipobj'],
+                    referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['ipobj_g'],
+                    referencedTableName: 'ipobj_g',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'routing_r',
+                    referencedColumnNames: ['id']
+                },
             ]
         }));
     }

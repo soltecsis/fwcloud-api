@@ -187,6 +187,12 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
             ]
         }));
 
+        await queryRunner.createForeignKey('ipobj_type__policy_position', new TableForeignKey({
+            columnNames: ['position'],
+            referencedColumnNames: ['id'],
+            referencedTableName: 'policy_position'
+        }));
+
         //policy_r
         await queryRunner.createTable(new Table({
             name: 'policy_r',
@@ -246,7 +252,8 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 },
                 {
                     name: 'comment',
-                    type: 'longtext'
+                    type: 'longtext',
+                    isNullable: true
                 },
                 {
                     name: 'options',
@@ -525,9 +532,17 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
             uniques: [
                 { columnNames: ['rule', 'ipobj', 'ipobj_g', 'interface', 'position'] },
             ],
-            indices: [
-                { columnNames: ['rule'] },
-                { columnNames: ['position'] }
+            foreignKeys: [
+                {
+                    columnNames: ['position'],
+                    referencedTableName: 'policy_position',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['rule'],
+                    referencedColumnNames: ['id'],
+                    referencedTableName: 'policy_r'
+                }
             ]
         }));
 
@@ -589,9 +604,22 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['openvpn'] },
-                { columnNames: ['position'] }
+            foreignKeys: [
+                {
+                    columnNames: ['openvpn'],
+                    referencedTableName: 'openvpn',
+                    referencedColumnNames: ['id'],
+                },
+                {
+                    columnNames: ['position'],
+                    referencedTableName: 'policy_position',
+                    referencedColumnNames: ['id'],
+                },
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'policy_r',
+                    referencedColumnNames: ['id'],
+                }
             ]
         }));
 
@@ -650,10 +678,22 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     default: 0,
                 }
             ],
-            indices: [
-                { columnNames: ['position'] },
-                { columnNames: ['rule'] },
-                { columnNames: ['prefix'] },
+            foreignKeys: [
+                {
+                    columnNames: ['prefix'],
+                    referencedTableName: 'openvpn_prefix',
+                    referencedColumnNames: ['id'],
+                },
+                {
+                    columnNames: ['position'],
+                    referencedTableName: 'policy_position',
+                    referencedColumnNames: ['id'],
+                },
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'policy_r',
+                    referencedColumnNames: ['id'],
+                }
             ]
         }));
 

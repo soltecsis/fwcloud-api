@@ -33,7 +33,8 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 },
                 {
                     name: 'comment',
-                    type: 'longtext'
+                    type: 'longtext',
+                    isNullable: true
                 },
                 {
                     name: 'created_at',
@@ -76,11 +77,15 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 {
                     name: 'install_user',
                     type: 'varchar',
+                    length: '250',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'install_pass',
                     type: 'varchar',
+                    length: '250',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -123,6 +128,13 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                     length: "2",
                     isNullable: false,
                     default: 0
+                }
+            ],
+            foreignKeys: [
+                {
+                    columnNames: ['cluster'],
+                    referencedTableName: 'cluster',
+                    referencedColumnNames: ['id']
                 }
             ]
         }), true);
