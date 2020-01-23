@@ -1,4 +1,5 @@
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
+import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
 
 export class createFwcloudTable1579701392749 implements MigrationInterface {
 
@@ -79,28 +80,24 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
         }), true);
 
         await queryRunner.createForeignKey('ca', new TableForeignKey({
-            name: 'fk_ca-fwcloud',
             referencedTableName: 'fwcloud',
             referencedColumnNames: ['id'],
             columnNames: ['fwcloud']
         }));
 
         await queryRunner.createForeignKey('cluster', new TableForeignKey({
-            name: 'fk_cluster-fwcloud',
             referencedTableName: 'fwcloud',
             referencedColumnNames: ['id'],
             columnNames: ['fwcloud']
         }));
 
         await queryRunner.createForeignKey('firewall', new TableForeignKey({
-            name: 'fk_firewall-fwcloud',
             referencedTableName: 'fwcloud',
             referencedColumnNames: ['id'],
             columnNames: ['fwcloud']
         }));
 
         await queryRunner.createForeignKey('fwc_tree', new TableForeignKey({
-            name: 'fk_fwc_tree-fwcloud',
             referencedTableName: 'fwcloud',
             referencedColumnNames: ['id'],
             columnNames: ['fwcloud']
@@ -108,11 +105,19 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
-        
-        await queryRunner.dropForeignKey('fwc_tree', 'fk_fwc_tree-fwcloud');
-        await queryRunner.dropForeignKey('firewall', 'fk_firewall-fwcloud');
-        await queryRunner.dropForeignKey('cluster', 'fk_cluster-fwcloud');
-        await queryRunner.dropForeignKey('ca', 'fk_ca-fwcloud');
+        let table: Table;
+
+        table = await queryRunner.getTable('fwc_tree');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
+
+        table = await queryRunner.getTable('firewall');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
+
+        table = await queryRunner.getTable('cluster');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
+
+        table = await queryRunner.getTable('ca');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
         
         await queryRunner.dropTable('fwcloud', true);
     }

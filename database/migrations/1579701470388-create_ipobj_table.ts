@@ -1,4 +1,5 @@
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
+import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
 
 export class createIpobjTable1579701470388 implements MigrationInterface {
 
@@ -240,7 +241,6 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
         }), true);
 
         await queryRunner.createForeignKey('interface__ipobj', new TableForeignKey({
-            name: 'fk_interface__ipobj-interface',
             columnNames: ['ipobj'],
             referencedTableName: 'ipobj',
             referencedColumnNames: ['id']
@@ -362,7 +362,6 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
         }), true);
 
         await queryRunner.createForeignKey('ipobj__ipobjg', new TableForeignKey({
-            name:'fk_ipobj__ipobjg-ipobj_g',
             columnNames: ['ipobj_g'],
             referencedTableName: 'ipobj_g',
             referencedColumnNames: ['id']
@@ -394,14 +393,12 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
         }), true);
 
         await queryRunner.createForeignKey('ipobj', new TableForeignKey({
-            name: 'fk_ipobj-ipobj_type',
             columnNames: ['type'],
             referencedTableName: 'ipobj_type',
             referencedColumnNames: ['id']
         }));
 
         await queryRunner.createForeignKey('fwc_tree', new TableForeignKey({
-            name: 'fk_fwc_tree-ipobj_type',
             columnNames: ['obj_type'],
             referencedTableName: 'ipobj_type',
             referencedColumnNames: ['id']
@@ -469,19 +466,27 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
+        let table: Table;
+
         await queryRunner.dropTable('ipobj_type__routing_position', true);
         await queryRunner.dropTable('ipobj_type__policy_position', true);
 
-        await queryRunner.dropForeignKey('fwc_tree', 'fk_fwc_tree-ipobj_type');
-        await queryRunner.dropForeignKey('ipobj', 'fk_ipobj-ipobj_type');
+        table = await queryRunner.getTable('fwc_tree');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'obj_type'));
+
+        table = await queryRunner.getTable('ipobj');
+        await queryRunner.dropForeignKey('ipobj', findForeignKeyInTable(table, 'type'));
+        
         await queryRunner.dropTable('ipobj_type', true);
 
-        await queryRunner.dropForeignKey('ipobj__ipobjg', 'fk_ipobj__ipobjg-ipobj_g');
+        table = await queryRunner.getTable('ipobj__ipobjg');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'ipobj_g'));
         await queryRunner.dropTable('ipobj_g', true);
 
         await queryRunner.dropTable('ipobj__ipobjg', true);
 
-        await queryRunner.dropForeignKey('interface__ipobj', 'fk_interface__ipobj-interface');
+        table = await queryRunner.getTable('interface__ipobj');
+        await queryRunner.dropForeignKey('interface__ipobj', findForeignKeyInTable(table, 'ipobj'));
         await queryRunner.dropTable('ipobj', true);
 
         await queryRunner.dropTable('interface__ipobj', true);

@@ -1,4 +1,5 @@
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
+import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
 
 export class createPolicyTable1579701543732 implements MigrationInterface {
 
@@ -336,7 +337,6 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
         }));
 
         await queryRunner.createForeignKey('policy_c', new TableForeignKey({
-            name: 'fk_policy_c-policy_r',
             columnNames: ['rule'],
             referencedTableName: 'policy_r',
             referencedColumnNames: ['id']
@@ -673,14 +673,12 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
         }));
 
         await queryRunner.createForeignKey('policy_position', new TableForeignKey({
-            name: 'fk_policy_position-policy_type',
             columnNames: ['policy_type'],
             referencedTableName: 'policy_type',
             referencedColumnNames: ['id']
         }));
 
         await queryRunner.createForeignKey('policy_r', new TableForeignKey({
-            name: 'fk_policy_r-policy_type',
             columnNames: ['type'],
             referencedTableName: 'policy_type',
             referencedColumnNames: ['id']
@@ -688,8 +686,14 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
-        await queryRunner.dropForeignKey('policy_r', 'fk_policy_r-policy_type');
-        await queryRunner.dropForeignKey('policy_position', 'fk_policy_position-policy_type');
+        let table: Table;
+
+        table = await queryRunner.getTable('policy_r');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'type'));
+
+        table = await queryRunner.getTable('policy_position');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'policy_type'));
+        
         await queryRunner.dropTable('policy_type', true);
 
         await queryRunner.dropTable('policy_r__openvpn_prefix', true);
@@ -697,11 +701,11 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
         await queryRunner.dropTable('policy_r__ipobj', true);
         await queryRunner.dropTable('policy_r__interface', true);
 
-        await queryRunner.dropForeignKey('policy_c', 'fk_policy_c-policy_r');
+        table = await queryRunner.getTable('policy_c');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'rule'));
         await queryRunner.dropTable('policy_r', true);
-
+        
         await queryRunner.dropTable('policy_position', true);
-
         await queryRunner.dropTable('policy_g', true);
         await queryRunner.dropTable('policy_c', true);
     }
