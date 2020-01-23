@@ -27,8 +27,8 @@ export class createClusterTable1579701144783 implements MigrationInterface {
                 {
                     name: 'comment',
                     type: 'varchar',
+                    isNullable: true,
                     default: null,
-                    isNullable: true
                 },
                 {
                     name: 'created_at',

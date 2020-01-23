@@ -27,19 +27,21 @@ export class createCrtTable1579701318936 implements MigrationInterface {
                 {
                     name: 'days',
                     type: 'int',
+                    length: '11',
                     unsigned: true,
                     isNullable: false
                 },
                 {
                     name: 'type',
                     type: 'tinyint',
+                    length: '3',
                     unsigned: true,
                     isNullable: false
                 },
                 {
                     name: 'comment',
                     type: 'varchar',
-                    charset: 'utf8',
+                    isNullable: true,
                     default: null
                 },
                 {

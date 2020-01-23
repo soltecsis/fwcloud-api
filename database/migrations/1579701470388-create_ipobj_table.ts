@@ -12,13 +12,13 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'interface',
                     type: 'int',
                     length: '11',
-                    isNullable: false
+                    isPrimary: true
                 },
                 {
                     name: 'ipobj',
                     type: 'int',
                     length: '11',
-                    isNullable: false
+                    isPrimary: true
                 },
                 {
                     name: 'interface_order',
@@ -53,7 +53,9 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                 }
 
             ],
-            indices: [{columnNames: ['interface', 'ipobj']}],
+            indices: [
+                { columnNames: ['interface', 'ipobj'] }
+            ],
             foreignKeys: [
                 {
                     columnNames: ['interface'],
@@ -71,25 +73,27 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'fwcloud',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'interface',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {
@@ -102,18 +106,20 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'protocol',
                     type: 'tinyint',
                     length: '1',
-                    isNullable: false
+                    unsigned: true,
+                    isNullable: true,
+                    default: null
                 },
                 {
                     name: 'address',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'netmask',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -121,6 +127,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     type: 'tinyint',
                     length: '1',
                     unsigned: true,
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -128,18 +135,21 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     type: 'tinyint',
                     length: '1',
                     unsigned: true,
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'icmp_type',
                     type: 'smallint',
                     length: '2',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'icmp_code',
                     type: 'smallint',
                     length: '2',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -147,6 +157,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     type: 'tinyint',
                     length: '1',
                     unsigned: true,
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -154,46 +165,52 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     type: 'tinyint',
                     length: '1',
                     unsigned: true,
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'range_start',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null,
                 },
                 {
                     name: 'range_end',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'source_port_start',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'source_port_end',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'desintation_port_start',
                     type: 'int',
+                    isNullable: true,
                     default:null
                 },
                 {
                     name: 'destination_port_end',
                     type: 'int',
+                    length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'options',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -254,18 +271,19 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'id_gi',
                     type: 'int',
                     length: '11',
+                    isGenerated: true,
                     generationStrategy: 'increment',
                     isPrimary: true
                 },
                 {
                     name: 'ipobj_g',
                     type: 'int',
-                    isNullable: true
+                    isNullable: false
                 },
                 {
                     name: 'ipobj',
                     type: 'int',
-                    isNullable:true
+                    isNullable: false
                 },
                 {
                     name: 'created_at',
@@ -313,20 +331,24 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isNullable: false,
+                    isGenerated: true,
                     generationStrategy: 'increment',
                     isPrimary: true
                 },
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: false
+                },
+                {
+                    name: 'type',
+                    type: 'varchar',
                     isNullable: false
                 },
                 {
                     name: 'fwcloud',
                     type: 'int',
-                    length: '11',
+                    isNullable: false,
                     default: 0
                 },
                 {
@@ -387,6 +409,7 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'protocol_number',
                     type: 'smallint',
                     length: '1',
+                    isNullable: true,
                     default: null
                 }
             ]
@@ -412,14 +435,13 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'type',
                     type: 'int',
                     length: '11',
-                    isNullable: false,
                     isPrimary: true
                 },
                 {
                     name: 'position',
                     type: 'int',
                     length: '11',
-                    isNullable: false
+                    isPrimary: true
                 }
             ],
             foreignKeys: [
@@ -439,13 +461,12 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
                     name: 'type',
                     type: 'int',
                     length: '11',
-                    isNullable: false
+                    isPrimary: true
                 },
                 {
                     name: 'position',
                     type: 'int',
                     length: '11',
-                    isNullable: false,
                     isPrimary: true
                 },
                 {

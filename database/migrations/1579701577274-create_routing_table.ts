@@ -12,19 +12,20 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {
@@ -35,6 +36,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     name: 'idgroup',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -88,6 +90,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     name: 'position_order',
                     type: 'tinyint',
                     length: '2',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -132,26 +135,29 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'idgroup',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'rule_order',
                     type: 'int',
                     length: '11',
-                    isNullable: true,
+                    isNullable: false,
                     default: 0
                 },
                 {
@@ -163,16 +169,18 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                 {
                     name: 'options',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'comment',
-                    type: 'longtext'
+                    type: 'longtext',
+                    isNullable: true,
                 },
                 {
                     name: 'active',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
                     default: 1
                 },
@@ -228,6 +236,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                     name: 'interface_order',
                     type: 'varchar',
                     length: '45',
+                    isNullable: true,
                     default: null
                 },
                 {

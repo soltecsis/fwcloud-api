@@ -17,12 +17,14 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 {
                     name: 'cluster',
                     type: 'int',
+                    isNullable: true,
                     default: null,
                 },
                 {
                     name: 'fwcloud',
                     type: 'int',
-                    default: null
+                    isNullable: true,
+                    default: null,
                 },
                 {
                     name: 'name',
@@ -31,17 +33,31 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 },
                 {
                     name: 'comment',
-                    type: 'longtext',
-                    charset: 'utf8'
+                    type: 'longtext'
+                },
+                {
+                    name: 'created_at',
+                    type: 'datetime',
+                    isNullable: false,
+                    default: "CURRENT_TIMESTAMP"
+                },
+                {
+                    name: 'updated_at',
+                    type: 'datetime',
+                    isNullable: false,
+                    default: 'CURRENT_TIMESTAMP',
+                    onUpdate: 'CURRENT_TIMESTAMP',
                 },
                 {
                     name: 'compiled_at',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'installed_at',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -53,6 +69,7 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 {
                     name: 'status',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
                     default: 0
                 },
@@ -69,23 +86,30 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                 {
                     name: 'save_user_pass',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
-                    default: false
+                    default: 1
                 },
                 {
                     name: 'install_interface',
                     type: 'int',
+                    length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'install_ipobj',
                     type: 'int',
+                    length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'fwmaster',
                     type: 'tinyint',
-                    default: null
+                    length: '1',
+                    isNullable: false,
+                    default: 0
                 },
                 {
                     name: 'install_port',
@@ -99,20 +123,7 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
                     length: "2",
                     isNullable: false,
                     default: 0
-                },
-                {
-                    name: 'created_at',
-                    type: 'datetime',
-                    isNullable: false,
-                    default: "CURRENT_TIMESTAMP"
-                },
-                {
-                    name: 'updated_at',
-                    type: 'datetime',
-                    isNullable: false,
-                    default: 'CURRENT_TIMESTAMP',
-                    onUpdate: 'CURRENT_TIMESTAMP',
-                },
+                }
             ]
         }), true);
     }

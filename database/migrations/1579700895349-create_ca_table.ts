@@ -28,8 +28,9 @@ export class createCaTable1579700895349 implements MigrationInterface {
                 {
                     name: 'days',
                     type: 'int',
-                    isNullable: false,
-                    unsigned: true
+                    length: '11',
+                    unsigned: true,
+                    isNullable: false
                 }, 
                 {
                     name: 'comment',
@@ -40,6 +41,7 @@ export class createCaTable1579700895349 implements MigrationInterface {
                 {
                     name: 'status',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
                     default: 0
                 },
@@ -68,6 +70,9 @@ export class createCaTable1579700895349 implements MigrationInterface {
                     isNullable: false,
                     default: 0,
                 }
+            ],
+            uniques: [
+                { columnNames: ['id', 'cn'] }
             ]
         }), true);
 
@@ -93,8 +98,8 @@ export class createCaTable1579700895349 implements MigrationInterface {
                     isNullable: false
                 }
             ],
-            indices: [
-                { columnNames: ['ca', 'name']}
+            uniques: [
+                { columnNames: ['ca', 'name'] }
             ],
             foreignKeys: [
                 {

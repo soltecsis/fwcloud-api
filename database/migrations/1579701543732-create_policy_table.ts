@@ -16,7 +16,8 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 },
                 {
                     name: 'rule_compiled',
-                    type: 'text'
+                    type: 'text',
+                    isNullable: true
                 },
                 {
                     name: 'created_at',
@@ -61,8 +62,10 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
+                    isGenerated: true,
+                    generationStrategy: 'increment',
                     isPrimary: true,
-                    generationStrategy: 'increment'
+                    
                 },
                 {
                     name: 'firewall',
@@ -73,17 +76,18 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {
                     name: 'comment',
-                    type: 'longtext'
+                    type: 'longtext',
+                    isNullable: true
                 },
                 {
                     name: 'idgroup',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -115,6 +119,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'groupstyle',
                     type: 'varchar',
                     length: '50',
+                    isNullable: true,
                     default: null
                 }
             ],
@@ -151,6 +156,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 {
                     name: 'policy_type',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
                     comment: 'R : Routing   P: Policy   N:Nat'
                 },
@@ -158,12 +164,14 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'position_order',
                     type: 'tinyint',
                     length: '2',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'content',
                     type: 'varchar',
                     length: '1',
+                    isNullable: true,
                     default: null,
                 },
                 {
@@ -187,19 +195,22 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'idgroup',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -212,6 +223,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'direction',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -223,11 +235,13 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 {
                     name: 'time_start',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'time_end',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -251,6 +265,8 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                 {
                     name: 'type',
                     type: 'tinyint',
+                    length: '1',
+                    isNullable: true,
                     default: null,
                     comment: 'rule type: I, O, F, N'
                 },
@@ -258,24 +274,27 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'style',
                     type: 'varchar',
                     length: '50',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'fw_apply_to',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'negate',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'mark',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -371,6 +390,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'position_order',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -430,6 +450,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'id_pi',
                     type: 'int',
                     length: '11',
+                    isGenerated: true,
                     generationStrategy: 'increment',
                     isPrimary: true
                 },
@@ -443,6 +464,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'ipobj',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: 0,
                     comment: 'id IPOBJ',
                 },
@@ -450,6 +472,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'ipobj_g',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: 0,
                     comment: 'ID IPOBJ GROUP'
                 },
@@ -457,6 +480,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'interface',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: 0,
                     comment: 'ID Interface in this position'
                 },
@@ -536,6 +560,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'position_order',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -596,6 +621,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'position_order',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -651,6 +677,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     name: 'name',
                     type: 'varchar',
                     length: '50',
+                    isNullable: true,
                     default: null
                 },
                 {

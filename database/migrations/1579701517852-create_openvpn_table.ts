@@ -11,13 +11,15 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                             name: 'id',
                             type: 'int',
                             length: '11',
+                            isGenerated: true,
+                            generationStrategy: 'increment',
                             isPrimary: true,
-                            generationStrategy: 'increment'
                         },
                         {
                             name: 'openvpn',
                             type: 'int',
                             length: '11',
+                            isNullable: true,
                             default: null
                         },
                         {
@@ -35,19 +37,19 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                         {
                             name: 'install_dir',
                             type: 'varchar',
-                            length: '255',
+                            isNullable: true,
                             default: null
                         },
                         {
                             name: 'install_name',
                             type: 'varchar',
-                            length: '255',
+                            isNullable: true,
                             default: null
                         },
                         {
                             name: 'comment',
                             type: 'varchar',
-                            length: '255',
+                            isNullable: true,
                             default: null
                         },
                         {
@@ -85,6 +87,7 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                         {
                             name: 'installed_at',
                             type: 'datetime',
+                            isNullable: true,
                             default: null
                         }
                     ],
@@ -157,18 +160,18 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                             name: 'ipobj',
                             type: 'int',
                             length: '11',
+                            isNullable: true,
                             default: null
                         },
                         {
                             name: 'name',
                             type: 'varchar',
-                            length: '255',
                             isNullable: false
                         },
                         {
                             name: 'arg',
                             type: 'varchar',
-                            length: '255',
+                            isNullable: true,
                             default: null
                         },
                         {
@@ -183,12 +186,12 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                             type: 'tinyint',
                             length: '1',
                             unsigned: true,
-                            isNullable: true
+                            isNullable: false
                         },
                         {
                             name: 'comment',
                             type: 'varchar',
-                            length: '255',
+                            isNullable: true,
                             default: null
                         }
                     ],
@@ -214,8 +217,9 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                             name: 'id',
                             type: 'int',
                             length: '11',
-                            isPrimary: true,
-                            generationStrategy: 'increment'
+                            isGenerated: true,
+                            generationStrategy: 'increment',
+                            isPrimary: true
                         },
                         {
                             name: 'openvpn',

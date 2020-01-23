@@ -13,8 +13,9 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
+                    isGenerated: true,
                     generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'name',
@@ -50,12 +51,14 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
                 {
                     name: 'locked_at',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'locked_by',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null,
                 },
                 {
@@ -68,12 +71,13 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
                 {
                     name: 'image',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'comment',
                     type: 'varchar',
+                    isNullable: true,
                     default: null
                 }
             ]

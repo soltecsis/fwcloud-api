@@ -11,6 +11,7 @@ export class createMarkTable1579701500404 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
+                    isGenerated: true,
                     generationStrategy: 'increment',
                     isPrimary: true
                 },
@@ -29,13 +30,12 @@ export class createMarkTable1579701500404 implements MigrationInterface {
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {
                     name: 'comment',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {

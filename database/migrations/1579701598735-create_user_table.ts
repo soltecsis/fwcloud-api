@@ -11,37 +11,39 @@ export class createUserTable1579701598735 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
+                    isGenerated: true,
+                    generationStrategy: 'increment',
                     isPrimary: true,
-                    generationStrategy: 'increment'
                 },
                 {
                     name: 'customer',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'email',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'username',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'password',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -54,24 +56,26 @@ export class createUserTable1579701598735 implements MigrationInterface {
                 {
                     name: 'role',
                     type: 'tinyint',
+                    length: '1',
                     isNullable: false,
                     default: 1
                 },
                 {
                     name: 'allowed_from',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'last_login',
                     type: 'datetime',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'confirmation_token',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {

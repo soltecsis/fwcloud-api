@@ -11,8 +11,9 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
                 {
                     name: 'id',
                     type: 'int',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'name',
@@ -23,30 +24,35 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
                 {
                     name: 'id_parent',
                     type: 'int',
+                    isNullable: true,
                     default: null,
                 },
                 {
                     name: 'node_order',
                     type: 'tinyint',
+                    length: '2',
                     isNullable: false,
                     default: 0
                 },
                 {
                     name: 'node_type',
                     type: 'char',
-                    length: "3",
+                    length: '3',
+                    isNullable: true,
                     default: null,
                 },
                 {
                     name: 'id_obj',
-                    type: "int",
-                    length: "11",
+                    type: 'int',
+                    length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'obj_type',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
@@ -75,19 +81,20 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
                 {
                     name: 'node_type',
                     type: 'char',
-                    isPrimary: true,
-                    isNullable: false
+                    length: '3',
+                    isPrimary: true
                 },
                 {
                     name: 'obj_type',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'api_call_base',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
                     default: null
                 },
                 {

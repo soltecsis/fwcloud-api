@@ -10,8 +10,9 @@ export class createCustomerTable1579701330995 implements MigrationInterface {
                 {
                     name: 'id',
                     type: 'int',
+                    isGenerated: true,
+                    generationStrategy: 'increment',
                     isPrimary: true,
-                    generationStrategy: 'increment'
                 },
                 {
                     name: 'name',
@@ -21,22 +22,26 @@ export class createCustomerTable1579701330995 implements MigrationInterface {
                 {
                     name: 'addr',
                     type: 'varchar',
-                    isNullable: false
+                    isNullable: true,
+                    default: null
                 },
                 {
                     name: 'phone',
                     type: 'varchar',
-                    isNullable: false
+                    isNullable: true,
+                    default: null
                 },
                 {
                     name: 'email',
                     type: 'varchar',
-                    isNullable: false
+                    isNullable: true,
+                    default: null
                 },
                 {
                     name: 'web',
                     type: 'varchar',
-                    isNullable: false
+                    isNullable: true,
+                    default: null
                 },
                 {
                     name: 'created_at',

@@ -12,26 +12,27 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
                     name: 'id',
                     type: 'int',
                     length: '11',
-                    isPrimary: true,
-                    generationStrategy: 'increment'
+                    isGenerated: true,
+                    generationStrategy: 'increment',
+                    isPrimary: true
                 },
                 {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
+                    isNullable: true,
                     default: null
                 },
                 {
                     name: 'name',
                     type: 'varchar',
-                    length: '255',
                     isNullable: false
                 },
                 {
                     name: 'labelName',
                     type: 'varchar',
                     length: '255',
-                    default: null
+                    default: "''"
                 },
                 {
                     name: 'type',
@@ -73,7 +74,14 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
                 {
                     name: 'comment',
                     type: 'varchar',
-                    length: '255',
+                    isNullable: true,
+                    default: null
+                },
+                {
+                    name: 'mac',
+                    type: 'varchar',
+                    length: '45',
+                    isNullable: true,
                     default: null
                 }
             ],
