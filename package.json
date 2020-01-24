@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node bin/www",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
-    "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/"
+    "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
+    "migrate:run": "node_modules/.bin/ts-node node_modules/.bin/typeorm migration:run --config .env",
+    "migrate:revert": "node_modules/.bin/ts-node node_modules/.bin/typeorm migration:revert --config .env"
   },
   "apidoc": {
     "title": "FWCloud.net API",
