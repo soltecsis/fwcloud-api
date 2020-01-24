@@ -770,7 +770,11 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
 
         table = await queryRunner.getTable('policy_c');
         await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'rule'));
+        
         await queryRunner.dropTable('policy_r', true);
+        
+        table = await queryRunner.getTable('ipobj_type__policy_position');
+        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'position'));
         
         await queryRunner.dropTable('policy_position', true);
         await queryRunner.dropTable('policy_g', true);
