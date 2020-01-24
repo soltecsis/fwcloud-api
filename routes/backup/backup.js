@@ -54,18 +54,18 @@ const backupModel = require('../../models/backup/backup');
 router.post('/', async (req, res) => {
 	try {
 	// Generate the id for the new backup.
-	const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
+	const backup=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
 
 	// Create the backup directory.
-	await utilsModel.createBackupDataDir(backupId);
+	await utilsModel.createBackupDataDir(backup);
 
 	// Database dump to a file.
-	await backupModel.databaseDump(backupId);
+	await backupModel.databaseDump(backup);
 
 	// Copy of the data directories.
-	await backupModel.copyDataDirs(backupId);
+	await backupModel.copyDataDirs(backup);
 
-	res.status(200).json({backupId: backupId});
+	res.status(200).json({backup: backup});
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -91,9 +91,9 @@ router.post('/', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 	// Get list of available backups.
-	const backupIdList = await backupModel.getList();
+	const backupList = await backupModel.getList();
 		  
-	res.status(200).json(backupIdList);
+	res.status(200).json(backupList);
 	} catch(error) { res.status(400).json(error) }
 });
 

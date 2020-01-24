@@ -35,7 +35,7 @@ const fwcError = require('../../utils/error_table');
 
 
 // Database dump to a file.
-backupModel.databaseDump = backupId => {
+backupModel.databaseDump = backup => {
 	return new Promise(async (resolve, reject) => {
     try {
       const options = {
@@ -45,7 +45,7 @@ backupModel.databaseDump = backupId => {
           password: config.get('db').pass,
           database: config.get('db').name,
         },
-        dumpToFile: `./${config.get('backup').data_dir}/${backupId}/${config.get('db').name}.sql`
+        dumpToFile: `./${config.get('backup').data_dir}/${backup}/${config.get('db').name}.sql`
       };
 
       await mysqldump(options);
@@ -55,19 +55,17 @@ backupModel.databaseDump = backupId => {
 };
 
 // Copy the data directories.
-backupModel.copyDataDirs = backupId => {
+backupModel.copyDataDirs = backup => {
 	return new Promise(async (resolve, reject) => {
-    var dst_dir;
+    let dst_dir;
     try {
-      // Data directory for policy.
-      dst_dir = `./${config.get('backup').data_dir}/${backupId}/${config.get('policy').data_dir}/`;
-      await fse.mkdirp(dst_dir);
-      await fse.copy(`./${config.get('policy').data_dir}/`, dst_dir);
-
-      // Data directory for PKI.
-      dst_dir = `./${config.get('backup').data_dir}/${backupId}/${config.get('pki').data_dir}/`;
-      await fse.mkdirp(dst_dir);
-      await fse.copy(`./${config.get('pki').data_dir}/`, dst_dir);
+      // Backup data folders.
+      let item_list = ['pki', 'policy'];
+      for (let item in item_list) {
+        dst_dir = `./${config.get('backup').data_dir}/${backup}/${config.get(item).data_dir}/`;
+        await fse.mkdirp(dst_dir);
+        await fse.copy(`./${config.get(item).data_dir}/`, dst_dir);
+      }
 
       resolve();
     } catch(error) { reject(error) }
@@ -140,15 +138,15 @@ backupModel.emptyDataBase = (dbCon) => {
 };
 
 // Check backup directory.
-backupModel.check = backupId => {
+backupModel.check = backup => {
 	return new Promise(async (resolve, reject) => {
     try {
       // First check that the backup directory exists.
-      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backupId}`))
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backup}`))
         throw(fwcError.NOT_FOUND);
  
 		  // Next check that the SQL dump file exists.
-      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backupId}/${config.get('db').name}.sql`))
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backup}/${config.get('db').name}.sql`))
         throw(fwcError.NOT_FOUND);
 
       resolve();
@@ -159,6 +157,7 @@ backupModel.check = backupId => {
 // Restore backup.
 backupModel.restore = req => {
 	return new Promise(async (resolve, reject) => {
+    let src_dir, dst_dir;
     try {
       // Empty database.
       await backupModel.emptyDataBase(req.dbCon);
@@ -171,13 +170,21 @@ backupModel.restore = req => {
         database: config.get('db').name,
         onerror: err=>{throw(err)}
       });
-      await mydb_importer.import(`./${config.get('backup').data_dir}/${req.boyd.backup}/${config.get('db').name}.sql`);
+      await mydb_importer.import(`./${config.get('backup').data_dir}/${req.body.backup}/${config.get('db').name}.sql`);
 
       // Apply migration patchs depending on the database API version.
 
       // Restore data folders.
+      let item_list = ['pki', 'policy'];
+      for (let item in item_list) {
+        src_dir = `./${config.get('backup').data_dir}/${req.body.backup}/${config.get(item).data_dir}/`;
+        dst_dir = `./${config.get(item).data_dir}/`;
+        await utilsModel.deleteFolder(dst_dir); // Empty destination dir
+        await fse.mkdirp(dst_dir);
+        await fse.copy(src_dir, dst_dir);
+      }
 
-      // Make all firewalls pending of compile and install
+      // Make all firewalls pending of compile and install.
 
       // Make all VPNs pending of install.
 
