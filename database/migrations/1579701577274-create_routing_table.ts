@@ -325,8 +325,7 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
                 {
                     name: 'position_order',
                     type: 'int',
-                    length: '11',
-                    isPrimary: true
+                    length: '11'
                 },
                 {
                     name: 'created_at',
