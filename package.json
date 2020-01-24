@@ -67,5 +67,8 @@
     "when": "^3.7.8",
     "xml2js": "^0.4.22",
     "yuidocjs": "^0.10.2"
+  },
+  "devDependencies": {
+    "mysql-import": "^3.0.6"
   }
 }

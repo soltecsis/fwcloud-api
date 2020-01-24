@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -53,19 +53,19 @@ const backupModel = require('../../models/backup/backup');
  */
 router.post('/', async (req, res) => {
 	try {
-    // Generate the id for the new backup.
-    const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
+	// Generate the id for the new backup.
+	const backupId=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
 
-    // Create the backup directory.
-    await utilsModel.createBackupDataDir(backupId);
+	// Create the backup directory.
+	await utilsModel.createBackupDataDir(backupId);
 
-    // Database dump to a file.
-    await backupModel.databaseDump(backupId);
+	// Database dump to a file.
+	await backupModel.databaseDump(backupId);
 
-    // Copy of the data directories.
-    await backupModel.copyDataDirs(backupId);
+	// Copy of the data directories.
+	await backupModel.copyDataDirs(backupId);
 
-    res.status(200).json({backupId: backupId});
+	res.status(200).json({backupId: backupId});
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -90,10 +90,10 @@ router.post('/', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-    // Get list of available backups.
-    const backupIdList = await backupModel.getList();
-          
-    res.status(200).json(backupIdList);
+	// Get list of available backups.
+	const backupIdList = await backupModel.getList();
+		  
+	res.status(200).json(backupIdList);
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -119,10 +119,10 @@ router.put('/get', async (req, res) => {
  */
 router.put('/del', async (req, res) => {
 	try {
-    // Delete backup.
-    await backupModel.delete(req);
-          
-    res.status(204).end();
+	// Delete backup.
+	await backupModel.delete(req);
+		  
+	res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -148,10 +148,13 @@ router.put('/del', async (req, res) => {
  */
 router.put('/restore', async (req, res) => {
 	try {
-    // Restore a full system backup.
-    await backupModel.restore(req);
-          
-    res.status(204).end();
+		// Before really make the restore, make sure that we have all the required information in the backup directory.
+		await backupModel.check(req.body.backup);
+
+		// Restore a full system backup.
+		await backupModel.restore(req);
+		  
+		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
 

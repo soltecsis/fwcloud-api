@@ -25,8 +25,9 @@
 var backupModel = {};
 
 const mysqldump = require('mysqldump');
-const fs = require('fs')
-const fse = require('fs-extra')
+const fs = require('fs');
+const fse = require('fs-extra');
+const mysql_import = require('mysql-import');
 
 const config = require('../../config/config');
 const utilsModel = require('../../utils/utils');
@@ -138,12 +139,39 @@ backupModel.emptyDataBase = (dbCon) => {
 	});
 };
 
+// Check backup directory.
+backupModel.check = backupId => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      // First check that the backup directory exists.
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backupId}`))
+        throw(fwcError.NOT_FOUND);
+ 
+		  // Next check that the SQL dump file exists.
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/${backupId}/${config.get('db').name}.sql`))
+        throw(fwcError.NOT_FOUND);
+
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
 // Restore backup.
 backupModel.restore = req => {
 	return new Promise(async (resolve, reject) => {
     try {
-      // Full database restore.
+      // Empty database.
       await backupModel.emptyDataBase(req.dbCon);
+
+      // Full database restore.
+      const mydb_importer = mysql_import.config({
+        host: config.get('db').host,
+        user: config.get('db').user,
+        password: config.get('db').pass,
+        database: config.get('db').name,
+        onerror: err=>{throw(err)}
+      });
+      await mydb_importer.import(`./${config.get('backup').data_dir}/${req.boyd.backup}/${config.get('db').name}.sql`);
 
       // Apply migration patchs depending on the database API version.
 
