@@ -1,4 +1,5 @@
 import {MigrationInterface, QueryRunner, getConnection, AdvancedConsoleLogger} from "typeorm";
+import * as fs from 'fs';
 
 export class createDefaultData1579857224771 implements MigrationInterface {
 
@@ -438,17 +439,37 @@ export class createDefaultData1579857224771 implements MigrationInterface {
             INSERT INTO user VALUES 
                 (1,1,'FWCloud admin user','info@soltecsis.com','fwcadmin','$2a$10$DPBdl3/ymJ9m47Wk8/ByBewWGOzNXhhBBoL7kN8N1bcEtR.rs1CGO',1,1,NULL,NULL,'','2019-05-06 10:22:14','2019-05-06 10:22:14',1,1);
         `);
+
+        //ipobj_std
+        const defaultQueries = fs.readFileSync('config/data_ini/ipobj_std.sql', { encoding: 'UTF-8' })
+                .toString()
+                .replace(new RegExp('\'', 'gm'), '"')
+                .replace(new RegExp('^--.*\n', 'gm'), '')
+                .replace(/(\r\n|\n|\r)/gm, " ")
+                .replace(/\s+/g, ' ')
+                .split(';');
+
+            for(let i: number = 0; i < defaultQueries.length; i++) {
+                let query = defaultQueries[i].trim();
+
+                if (query !== '') {
+                    await queryRunner.query(query);
+                }
+            }
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {        
-        await queryRunner.query(`DELETE FROM user`);
-        await queryRunner.query(`DELETE FROM routing_position`);
-        await queryRunner.query(`DELETE FROM ipobj_type__policy_position`);
-        await queryRunner.query(`DELETE FROM policy_position`);
-        await queryRunner.query(`DELETE FROM policy_type`);
-        await queryRunner.query(`DELETE FROM ipobj_type`);
-        await queryRunner.query(`DELETE FROM fwc_tree_node_types`);
-        await queryRunner.query(`DELETE FROM customer`);
+        await queryRunner.query('DELETE FROM ipobj__ipobjg');
+        await queryRunner.query('DELETE FROM ipobj_g');
+        await queryRunner.query('DELETE FROM ipobj');
+        await queryRunner.query('DELETE FROM user');
+        await queryRunner.query('DELETE FROM routing_position');
+        await queryRunner.query('DELETE FROM ipobj_type__policy_position');
+        await queryRunner.query('DELETE FROM policy_position');
+        await queryRunner.query('DELETE FROM policy_type');
+        await queryRunner.query('DELETE FROM ipobj_type');
+        await queryRunner.query('DELETE FROM fwc_tree_node_types');
+        await queryRunner.query('DELETE FROM customer');
     }
 
 }
