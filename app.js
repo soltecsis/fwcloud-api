@@ -51,12 +51,16 @@ var cors = require('cors');
 
 var methodOverride = require('method-override');
 
+const cronJob = require('cron').CronJob;
+
 const config = require('./config/config');
 const accessAuth = require('./middleware/authorization');
 const accessCtrl = require('./middleware/access_control');
 const inputValidation = require('./middleware/input_validation');
 const confirmToken = require('./middleware/confirmation_token');
 const fwcError = require('./utils/error_table');
+const backupModel = require('./models/backup/backup');
+
 
 var app = express();
 
@@ -162,6 +166,12 @@ app.use(inputValidation.check);
 
 // Middleware for access control.
 app.use(accessCtrl.check);
+
+// Start backup cron job.
+const moment = require('moment-timezone');
+let backupCron = new cronJob(config.get('backup').schedule, backupModel.cronJob, null, true, moment.tz.guess());
+backupCron.start();
+app.set('backupCron',backupCron);
 
 var db = require('./db');
 

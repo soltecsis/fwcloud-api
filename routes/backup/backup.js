@@ -24,9 +24,6 @@
 var express = require('express');
 var router = express.Router();
 
-var dateFormat = require('dateformat');
-
-const utilsModel = require('../../utils/utils');
 const backupModel = require('../../models/backup/backup');
 
 /**
@@ -53,19 +50,9 @@ const backupModel = require('../../models/backup/backup');
  */
 router.post('/', async (req, res) => {
 	try {
-	// Generate the id for the new backup.
-	const backup=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
+		const backup = await backupModel.fullBackup();
 
-	// Create the backup directory.
-	await utilsModel.createBackupDataDir(backup);
-
-	// Database dump to a file.
-	await backupModel.databaseDump(backup);
-
-	// Copy of the data directories.
-	await backupModel.copyDataDirs(backup);
-
-	res.status(200).json({backup: backup});
+		res.status(200).json({backup: backup});
 	} catch(error) { res.status(400).json(error) }
 });
 

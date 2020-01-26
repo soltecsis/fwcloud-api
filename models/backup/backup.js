@@ -24,10 +24,12 @@
 //create object
 var backupModel = {};
 
+const dateFormat = require('dateformat');
 const mysqldump = require('mysqldump');
 const fs = require('fs');
 const fse = require('fs-extra');
 const mysql_import = require('mysql-import');
+const logger = require('log4js').getLogger("app");
 
 const config = require('../../config/config');
 const utilsModel = require('../../utils/utils');
@@ -61,7 +63,7 @@ backupModel.copyDataDirs = backup => {
     try {
       // Backup data folders.
       let item_list = ['pki', 'policy'];
-      for (let item in item_list) {
+      for (let item of item_list) {
         dst_dir = `./${config.get('backup').data_dir}/${backup}/${config.get(item).data_dir}/`;
         await fse.mkdirp(dst_dir);
         await fse.copy(`./${config.get(item).data_dir}/`, dst_dir);
@@ -72,6 +74,34 @@ backupModel.copyDataDirs = backup => {
   });
 };
 
+// Make a full system backup.
+backupModel.fullBackup = () => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      // Generate the id for the new backup.
+	    const backup=dateFormat(new Date(), "yyyy-mm-dd_HH:MM:ss");
+
+	    // Create the backup directory.
+	    await utilsModel.createBackupDataDir(backup);
+
+	    // Database dump to a file.
+	    await backupModel.databaseDump(backup);
+
+	    // Copy of the data directories.
+	    await backupModel.copyDataDirs(backup);
+
+      resolve(backup);
+    } catch(error) { reject(error) }
+  });
+};
+
+backupModel.cronJob = async () => {
+  try {
+	  logger.info("Starting BACKUP job.");
+	  const backup = await backupModel.fullBackup();
+    logger.info(`BACKUP job completed: ${backup}`);
+  } catch(error) { logger.error("BACKUP ERROR: ", err.message) }
+}
 // List of available backups.
 backupModel.getList = () => {
 	return new Promise(async (resolve, reject) => {
@@ -176,7 +206,7 @@ backupModel.restore = req => {
 
       // Restore data folders.
       let item_list = ['pki', 'policy'];
-      for (let item in item_list) {
+      for (let item of item_list) {
         src_dir = `./${config.get('backup').data_dir}/${req.body.backup}/${config.get(item).data_dir}/`;
         dst_dir = `./${config.get(item).data_dir}/`;
         await utilsModel.deleteFolder(dst_dir); // Empty destination dir
@@ -187,6 +217,9 @@ backupModel.restore = req => {
       // Make all firewalls pending of compile and install.
 
       // Make all VPNs pending of install.
+
+      // Clean all polici compilation cache.
+
 
       resolve();
     } catch(error) { reject(error) }
