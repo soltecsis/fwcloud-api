@@ -20,15 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-require('dotenv').config();
+const fs = require('fs');
+process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
+const path = require('path');
 var convict = require('convict');
 
 // Define a schema
 const config = convict({
   env: {
     doc: 'The application environment.',
-    format: ['prod', 'dev'],
+    format: ['prod', 'dev', 'test'],
     default: 'dev',
     env: 'NODE_ENV'
   },
@@ -89,8 +90,8 @@ const config = convict({
   CORS: {
     whitelist: {
       doc: 'CORS (Cross-Origin Resource Sharing) withelist.',
-      format:  Array,
-      default: [],
+      format:  String,
+      default: "",
       env: 'CORS_WHITELIST'
     },
   },
@@ -290,9 +291,10 @@ const config = convict({
   }  
 });
 
+
 // Perform validation
 try {
-  config.loadFile('./config/' + config.get('env') + '.json');
+  config.loadFile(path.join('config/', `${config.get('env')}.json`));
   config.validate({allowed: 'strict'});
 } catch(err) {
   console.log("Configuration "+err);
@@ -314,6 +316,8 @@ if (!config.get('crypt').secret) {
   process.exit();  
 }
 
-config.set('CORS.whitelist',process.env.CORS_WHITELIST.replace(/ +/g,'').split(','));
+if(process.env.CORS_WHITELIST) {
+  config.set('CORS.whitelist',process.env.CORS_WHITELIST.replace(/ +/g,'').split(','));
+}
 
 module.exports = config;

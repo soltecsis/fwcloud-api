@@ -1,0 +1,13 @@
+version: "3"
+services:
+  # mysql
+  mysql:
+    image: "mysql:5.7"
+    container_name: "fwcloud-testing-mysql"
+    ports:
+      - "8888:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_USER: "fwcdbusr"
+      MYSQL_PASSWORD: "fwcdbusr"
+      MYSQL_DATABASE: "fwcloud"
