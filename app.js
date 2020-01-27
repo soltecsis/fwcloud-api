@@ -167,11 +167,16 @@ app.use(inputValidation.check);
 // Middleware for access control.
 app.use(accessCtrl.check);
 
-// Start backup cron job.
+
+/*--------------------------------------------------------------------------------------*/
+// Start the backup cron job.
+/*--------------------------------------------------------------------------------------*/
 const moment = require('moment-timezone');
 let backupCron = new cronJob(config.get('backup').schedule, backupModel.cronJob, null, true, moment.tz.guess());
 backupCron.start();
 app.set('backupCron',backupCron);
+/*--------------------------------------------------------------------------------------*/
+
 
 var db = require('./db');
 

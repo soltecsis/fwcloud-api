@@ -180,12 +180,7 @@ router.put('/restore', async (req, res) => {
  */
 router.put('/schedule', async (req, res) => {
 	try {
-		// Before really make the restore, make sure that we have all the required information in the backup directory.
-		await backupModel.check(req.body.backup);
 
-		// Restore a full system backup.
-		await backupModel.restore(req);
-		  
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
