@@ -11,7 +11,8 @@
     "migration:run": "node_modules/.bin/ts-node cli/cli.ts migration:run",
     "migration:revert": "node_modules/.bin/ts-node cli/cli.ts migration:revert",
     "migration:reset": "node_modules/.bin/ts-node cli/cli.ts migration:reset",
-    "migration:create": "node_modules/.bin/ts-node cli/cli.ts migration:create"
+    "migration:create": "node_modules/.bin/ts-node cli/cli.ts migration:create",
+    "test": "jest"
   },
   "apidoc": {
     "title": "FWCloud.net API",
@@ -82,6 +83,7 @@
   "devDependencies": {
     "@types/node": "13.5.0",
     "@types/yargs": "15.0.1",
+    "jest": "25.1.0",
     "mysql-import": "^3.0.6"
   }
 }

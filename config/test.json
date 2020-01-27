@@ -1,0 +1,15 @@
+{
+    "session": {
+        "secret": "SESSION_SECRET"
+    },
+    "crypt": {
+        "secret": "CRYPT_SECRET"
+    },
+    "db": {
+        "host": "localhost",
+        "port": 8888,
+        "name": "fwcloud",
+        "user": "fwcdbusr",
+        "pass": "fwcdbusr"
+      }
+}
