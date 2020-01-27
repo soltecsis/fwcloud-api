@@ -21,7 +21,7 @@
 */
 
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
-import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
+import { findForeignKeyInTable } from "../../../utils/typeorm/TableUtils";
 
 export class createFwcloudTable1579701392749 implements MigrationInterface {
 

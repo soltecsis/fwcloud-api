@@ -179,6 +179,18 @@ const config = convict({
       format: 'int',
       default: 1,
       env: 'TYPEORM_COMMIT_MODE'
+    },
+    migrations: {
+      doc: 'Database migration file pattern',
+      format: Array,
+      default: ['database/migrations/**/*.ts'],
+      env: 'TYPEORM_MIGRATIONS'
+    },
+    migration_directory: {
+      doc: 'Database migration directory',
+      format: String,
+      default: 'database/migrations',
+      env: 'TYPEORM_MIGRATION_DIR'
     }
   },
 

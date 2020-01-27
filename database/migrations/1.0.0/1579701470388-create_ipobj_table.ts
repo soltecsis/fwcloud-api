@@ -21,7 +21,7 @@
 */
 
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
-import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
+import { findForeignKeyInTable } from "../../../utils/typeorm/TableUtils";
 
 export class createIpobjTable1579701470388 implements MigrationInterface {
 

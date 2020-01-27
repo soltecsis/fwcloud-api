@@ -21,7 +21,7 @@
 */
 
 import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
-import { findForeignKeyInTable } from "../../utils/typeorm/TableUtils";
+import { findForeignKeyInTable } from "../../../utils/typeorm/TableUtils";
 
 export class createPolicyTable1579701543732 implements MigrationInterface {
 

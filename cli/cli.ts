@@ -24,12 +24,18 @@
 
 import * as yargs from "yargs";
 import { MigrationResetCommand } from "./commands/MigrationResetCommand";
+import { MigrationRunCommand } from "./commands/MigrationRunCommand";
 import { InstallCommand } from "./commands/InstallCommand";
+import { MigrationCreateCommand } from "./commands/MigrationCreateCommand";
+import { MigrationRevertCommand } from "./commands/MigrationRevertCommand";
 
 yargs
     .usage("Usage: $0 <command> [options]")
     .command(new MigrationResetCommand())
     .command(new InstallCommand())
+    .command(new MigrationRunCommand())
+    .command(new MigrationCreateCommand())
+    .command(new MigrationRevertCommand())
     .recommendCommands()
     .demandCommand(1)
     .strict()

@@ -8,9 +8,10 @@
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
     "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
-    "migration:run": "node_modules/.bin/ts-node node_modules/.bin/typeorm migration:run --config .env",
-    "migration:revert": "node_modules/.bin/ts-node node_modules/.bin/typeorm migration:revert --config .env",
-    "migration:reset": "node_modules/.bin/ts-node cli/cli.ts migration:reset"
+    "migration:run": "node_modules/.bin/ts-node cli/cli.ts migration:run",
+    "migration:revert": "node_modules/.bin/ts-node cli/cli.ts migration:revert",
+    "migration:reset": "node_modules/.bin/ts-node cli/cli.ts migration:reset",
+    "migration:create": "node_modules/.bin/ts-node cli/cli.ts migration:create"
   },
   "apidoc": {
     "title": "FWCloud.net API",

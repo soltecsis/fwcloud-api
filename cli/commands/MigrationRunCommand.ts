@@ -29,17 +29,18 @@ import * as config from '../../config/config';
 /**
  * Runs migration command.
  */
-export class MigrationResetCommand implements yargs.CommandModule {
+export class MigrationRunCommand implements yargs.CommandModule {
 
-    command = "migration:reset";
-    describe = "Reset all migrations";
+    command = "migration:run";
+    describe = "Run all migrations";
 
     builder(args: yargs.Argv) {
-        return args.option("connection", {
-            alias: "c",
-            default: "default",
-            describe: "Name of the connection on which run a query."
-        })
+        return args
+            .option("connection", {
+                alias: "c",
+                default: "default",
+                describe: "Name of the connection on which run a query."
+            })
             .option("config", {
                 alias: "f",
                 default: "ormconfig",
@@ -75,23 +76,13 @@ export class MigrationResetCommand implements yargs.CommandModule {
 
             const connection = await createConnection(connectionOptions);
 
-            const migrationExecutor = new MigrationExecutor(connection, connection.createQueryRunner());
-            const executedMigrations = await migrationExecutor.getExecutedMigrations();
-
-            if (executedMigrations.length === 0) {
-                connection.logger.logSchemaBuild(`No migrations was found in the database. Nothing to reset!`);
-            }
-
-            for (let i: number = 0; i < executedMigrations.length; i++) {
-                await connection.undoLastMigration(options);
-            }
-
+            await connection.runMigrations(options);
             await connection.close();
 
         } catch (err) {
             if (connection) await (connection as Connection).close();
 
-            console.log("Error during migration show:");
+            console.log("Error during migration run:");
             console.error(err);
             process.exit(1);
         }
