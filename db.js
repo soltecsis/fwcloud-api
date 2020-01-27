@@ -45,6 +45,7 @@ exports.connect = function (done) {
 		connectTimeout: 100000,        
 		host: configDB.host,
 		user: configDB.user,
+		port: configDB.port,
 		password: configDB.pass,
 		database: configDB.name
 

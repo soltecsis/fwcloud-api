@@ -135,44 +135,62 @@ const config = convict({
       doc: 'Database host name or IP address.',
       format: '*',
       default: 'localhost',
-      env: 'DB_HOST'
+      env: 'TYPEORM_HOST'
+    },
+    port: {
+      doc: 'Database port',
+      format: Number,
+      default: 3306,
+      env: 'TYPEORM_PORT'
     },
     name: {
       doc: 'Database name.',
       format: String,
       default: 'fwcloud',
-      env: 'DB_NAME'
+      env: 'TYPEORM_DATABASE'
     },
     user: {
       doc: 'Database user.',
       format: String,
       default: 'fwcdbusr',
-      env: 'DB_USER'
+      env: 'TYPEORM_USERNAME'
     },
     pass: {
       doc: 'Database password.',
       format: String,
       default: '',
-      env: 'DB_PASS',
+      env: 'TYPEORM_PASSWORD',
       sensitive: true
     },
     connectionLimit: {
       doc: 'Database maximun connections.',
       format: 'int',
       default: 100,
-      env: 'DB_CONNECTION_LIMIT'
+      env: 'TYPEORM_CONNECTION_LIMIT'
     },
     mode: {
       doc: 'Database mode.',
       format: String,
       default: 'mode_production',
-      env: 'DB_MODE'
+      env: 'TYPEORM_MODE'
     },
     commitMode: {
       doc: 'Database commint mode.',
       format: 'int',
       default: 1,
-      env: 'DB_COMMIT_MODE'
+      env: 'TYPEORM_COMMIT_MODE'
+    },
+    migrations: {
+      doc: 'Database migration file pattern',
+      format: Array,
+      default: ['database/migrations/**/*.ts'],
+      env: 'TYPEORM_MIGRATIONS'
+    },
+    migration_directory: {
+      doc: 'Database migration directory',
+      format: String,
+      default: 'database/migrations',
+      env: 'TYPEORM_MIGRATION_DIR'
     }
   },
 

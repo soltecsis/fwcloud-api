@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node bin/www",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
-    "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/"
+    "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
+    "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
+    "migration:run": "node_modules/.bin/ts-node cli/cli.ts migration:run",
+    "migration:revert": "node_modules/.bin/ts-node cli/cli.ts migration:revert",
+    "migration:reset": "node_modules/.bin/ts-node cli/cli.ts migration:reset",
+    "migration:create": "node_modules/.bin/ts-node cli/cli.ts migration:create"
   },
   "apidoc": {
     "title": "FWCloud.net API",
@@ -66,11 +71,17 @@
     "socket.io": "^2.3.0",
     "sse-channel": "^3.1.1",
     "ssh2": "^0.8.7",
+    "ts-node": "^8.6.2",
+    "typeorm": "^0.2.22",
+    "typescript": "^3.7.4",
     "when": "^3.7.8",
     "xml2js": "^0.4.22",
+    "yargs": "^15.1.0",
     "yuidocjs": "^0.10.2"
   },
   "devDependencies": {
+    "@types/node": "13.5.0",
+    "@types/yargs": "15.0.1",
     "mysql-import": "^3.0.6"
   }
 }
