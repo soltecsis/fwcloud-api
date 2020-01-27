@@ -145,4 +145,49 @@ router.put('/restore', async (req, res) => {
 	} catch(error) { res.status(400).json(error) }
 });
 
+/**
+ * @api {PUT} /backup/schedule Change backup schedule
+ * @apiName ScheduleBackup
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Change the schedule for automatic backups.
+ * 
+ * @apiParam {String} schedule Schedule string in the cron format.
+ * For example, for schedule backups every day at 2:30:15 the schedule string will be:
+ * 15 30 2 * * *
+ * 
+ * As explained in: https://www.npmjs.com/package/cron
+ * When specifying your cron values you'll need to make sure that your values fall within the ranges. 
+ * For instance, some cron's use a 0-7 range for the day of week where both 0 and 7 represent Sunday. 
+ * We do not. And that is an optimisation.
+ *
+ * Seconds: 0-59
+ * Minutes: 0-59
+ * Hours: 0-23
+ * Day of Month: 1-31
+ * Months: 0-11 (Jan-Dec)
+ * Day of Week: 0-6 (Sun-Sat)
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 204 No Content
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
+ */
+router.put('/schedule', async (req, res) => {
+	try {
+		// Before really make the restore, make sure that we have all the required information in the backup directory.
+		await backupModel.check(req.body.backup);
+
+		// Restore a full system backup.
+		await backupModel.restore(req);
+		  
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
+});
+
 module.exports = router;

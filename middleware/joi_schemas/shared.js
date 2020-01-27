@@ -85,3 +85,5 @@ sharedSchema.dns_name = Joi.string().regex(/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9
 sharedSchema.role = Joi.number().integer().min(1).max(2);
 
 sharedSchema.backup_id = Joi.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])_(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]$/);
+
+sharedSchema.cron_schedule = Joi.string().regex(/^([0-9]|[1-5][0-9]|*){1} ([0-9]|[1-5][0-9]|*){1} ([0-9]|[1][0-9]|[2][0-3]|*){1} ([1-9]|[1-2][0-9]|[3][0-1]|*){1} ([0-9]|[1][0-1]|*){1} ([0-6]|*){1}$/);

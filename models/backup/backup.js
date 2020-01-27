@@ -102,6 +102,7 @@ backupModel.cronJob = async () => {
     logger.info(`BACKUP job completed: ${backup}`);
   } catch(error) { logger.error("BACKUP ERROR: ", err.message) }
 }
+
 // List of available backups.
 backupModel.getList = () => {
 	return new Promise(async (resolve, reject) => {
