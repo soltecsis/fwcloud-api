@@ -108,7 +108,7 @@ const config = convict({
       format: '*',
       default: '',
       env: 'SESSION_SECRET',
-      //sensitive: true
+      sensitive: true
     },
     force_HTTPS: {
       doc: 'Force the use of HTTPS for session cookie.',
@@ -298,7 +298,7 @@ try {
   config.validate({allowed: 'strict'});
 } catch(err) {
   console.log("Configuration "+err);
-  process.exit(err);
+  process.exit();
 }
 
 if (!config.get('session').secret) {

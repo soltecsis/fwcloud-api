@@ -1,4 +1,3 @@
 module.exports = {
-    verbose: true
+    verbose: false
 }
-//require('dotenv').config();
