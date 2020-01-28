@@ -22,8 +22,8 @@
 
 import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from '../../config/config';
+import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner, getConnectionManager } from "typeorm";
+import * as config from "../../config/config"
 
 
 /**
@@ -35,16 +35,7 @@ export class MigrationResetCommand implements yargs.CommandModule {
     describe = "Reset all migrations";
 
     builder(args: yargs.Argv) {
-        return args.option("connection", {
-            alias: "c",
-            default: "default",
-            describe: "Name of the connection on which run a query."
-        })
-            .option("config", {
-                alias: "f",
-                default: "ormconfig",
-                describe: "Name of the file with connection configuration."
-            });
+        return args;
     }
 
     async handler(args: yargs.Arguments) {
@@ -52,14 +43,16 @@ export class MigrationResetCommand implements yargs.CommandModule {
         let configDB = config.get('db');
 
         try {
-            const connectionOptionsReader = new ConnectionOptionsReader({
-                root: process.cwd(),
-                configName: args.config as any
-            });
+            const options = { transaction: "all" as "all" | "none" | "each" };
 
-            const connectionOptions = await connectionOptionsReader.get(args.connection as any);
-
-            Object.assign(connectionOptions, {
+            let connection: Connection = await createConnection({
+                name: 'migrator',
+                type: 'mysql',
+                host: configDB.host,
+                port: configDB.port,
+                database: configDB.name,
+                username: configDB.user,
+                password: configDB.pass,
                 subscribers: [],
                 synchronize: false,
                 migrationsRun: false,
@@ -67,13 +60,9 @@ export class MigrationResetCommand implements yargs.CommandModule {
                 logging: ["query", "error", "schema"],
                 migrations: configDB.migrations,
                 cli: {
-                    migrations_dir: configDB.migration_directory
+                    migrationsDir: configDB.migration_directory
                 }
             });
-
-            const options = { transaction: "all" as "all" | "none" | "each" };
-
-            const connection = await createConnection(connectionOptions);
 
             const migrationExecutor = new MigrationExecutor(connection, connection.createQueryRunner());
             const executedMigrations = await migrationExecutor.getExecutedMigrations();
@@ -91,9 +80,9 @@ export class MigrationResetCommand implements yargs.CommandModule {
         } catch (err) {
             if (connection) await (connection as Connection).close();
 
-            console.log("Error during migration show:");
+            console.log("Error during migration reset:");
             console.error(err);
-            process.exit(1);
+            process.exit(err);
         }
     }
 

@@ -1,7 +1,5 @@
 # Logs
-logs/*
-logs/app_fwcloud.log
-logs/http_fwcloud.log
+logs/
 
 # Dependency directories
 node_modules/
@@ -9,6 +7,9 @@ jspm_packages/
 
 # Optional npm cache directory
 .npm
+
+#Typescript dist
+dist/
 
 nbproject/private/
 .vscode/
@@ -18,8 +19,7 @@ routes/xml
 *.fwb
 
 *.swp
-DATA/policy/
-DATA/pki/
+DATA/
 sessions/
 .env
 config/tls/

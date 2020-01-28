@@ -23,7 +23,7 @@
 import * as process from "process";
 import * as yargs from "yargs";
 import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from '../../config/config';
+import * as config from "../../config/config"
 
 
 /**

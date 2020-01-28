@@ -4,14 +4,15 @@
   "description": "Documentation for the RESTful API of the FWCloud.net project.",
   "private": true,
   "scripts": {
-    "start": "node bin/www",
+    "start": "npm run build && node dist/src/bin/www.js",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
+    "build": "node_modules/.bin/tsc",
     "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
-    "migration:run": "node_modules/.bin/ts-node cli/cli.ts migration:run",
-    "migration:revert": "node_modules/.bin/ts-node cli/cli.ts migration:revert",
-    "migration:reset": "node_modules/.bin/ts-node cli/cli.ts migration:reset",
-    "migration:create": "node_modules/.bin/ts-node cli/cli.ts migration:create",
+    "migration:run": "npm run build && node dist/src/cli/cli.js migration:run",
+    "migration:revert": "npm run build && node dist/src/cli/cli.js migration:revert",
+    "migration:reset": "npm run build && node dist/src/cli/cli.js migration:reset",
+    "migration:create": "npm run build && node dist/src/cli/cli.js migration:create",
     "test": "jest"
   },
   "apidoc": {
@@ -82,8 +83,10 @@
     "yuidocjs": "^0.10.2"
   },
   "devDependencies": {
+    "@types/jest": "25.1.0",
     "@types/node": "13.5.0",
     "@types/yargs": "15.0.1",
-    "jest": "25.1.0"
+    "jest": "25.1.0",
+    "ts-jest": "25.0.0"
   }
 }

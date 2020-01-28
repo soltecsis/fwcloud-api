@@ -184,13 +184,13 @@ const config = convict({
     migrations: {
       doc: 'Database migration file pattern',
       format: Array,
-      default: ['database/migrations/**/*.ts'],
+      default: ['dist/src/database/migrations/**/*.js'],
       env: 'TYPEORM_MIGRATIONS'
     },
     migration_directory: {
       doc: 'Database migration directory',
       format: String,
-      default: 'database/migrations',
+      default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
     }
   },

@@ -1,7 +1,15 @@
 {
     "compilerOptions": {
+      "outDir": "dist",
+      "allowJs": true,
       "lib": [ "es2015" ],
+      "target": "ES3",
+      "sourceMap": true,
+      "moduleResolution": "node",
       "resolveJsonModule": true,
       "esModuleInterop": true
-    }
+    },
+    "include": [
+      "./src/**/*"
+    ]
   }

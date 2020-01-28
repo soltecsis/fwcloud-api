@@ -23,8 +23,8 @@
 import * as process from "process";
 import * as yargs from "yargs";
 import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from '../../config/config';
-import * as version from '../../version.json';
+import * as config from "../../config/config"
+import * as version from '../../../version.json';
 import * as Path from 'path';
 import {CommandUtils} from "typeorm/commands/CommandUtils";
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
@@ -85,7 +85,7 @@ export class MigrationCreateCommand implements yargs.CommandModule {
             args.d = path;
             args.dir = path;
 
-            new originalCommand.MigrationCreateCommand().handler(args);
+            await new originalCommand.MigrationCreateCommand().handler(args);
 
         } catch (err) {
             console.log("Error during migration creation:");

@@ -10,6 +10,7 @@
         "port": 8888,
         "name": "fwcloud",
         "user": "fwcdbusr",
-        "pass": "fwcdbusr"
-      }
+        "pass": "fwcdbusr",
+        "migrations": "src/database/migrations/**/*.ts"
+    }
 }
