@@ -29,6 +29,7 @@ const mysqldump = require('mysqldump');
 const fs = require('fs');
 const fse = require('fs-extra');
 const mysql_import = require('mysql-import');
+const cronJob = require('cron').CronJob;
 const logger = require('log4js').getLogger("app");
 
 const config = require('../../config/config');
@@ -95,13 +96,84 @@ backupModel.fullBackup = () => {
   });
 };
 
+// Read config file.
+backupModel.readConfig = () => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const backupConfigFile = `./${config.get('backup').data_dir}/${config.get('backup').config_file}`;
+      if (!fs.existsSync(backupConfigFile)) 
+        return resolve({}); // Empty config.
+      
+      const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile,'utf8'));
+      resolve(backupConfig);
+    } catch(error) { reject(error) }
+  });
+};
+
+// Write config in json to file.
+backupModel.writeConfig = backupConfig => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const backupConfigFile = `./${config.get('backup').data_dir}/${config.get('backup').config_file}`;
+      fs.writeFileSync(backupConfigFile, JSON.stringify(backupConfig), 'utf8'); 
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
+// Get backup cron schedule.
+backupModel.getSchedule = () => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      const backupConfig = await backupModel.readConfig;
+      resolve(backupConfig.schedule ? backupConfig.schedule : config.get('backup').default_schedule);
+    } catch(error) { reject(error) }
+  });
+};
+
+// Set backup cron schedule.
+backupModel.setSchedule = req => {
+	return new Promise(async (resolve, reject) => {
+    try {
+      let backupCron = req.app.get('backupCron');
+
+      var CronTime = require('cron').CronTime;
+      const time = new CronTime(req.body.schedule);
+      backupCron.setTime(time);
+      backupCron.start();
+
+      // Update backup config file with the new schedule.
+      const backupConfig = await backupModel.readConfig();
+      backupConfig.schedule = req.body.schedule;
+
+      await backupModel.writeConfig(backupConfig);
+
+      logger.info(`New backup cron task schedule: ${backupConfig.schedule}`);
+
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
 backupModel.cronJob = async () => {
   try {
 	  logger.info("Starting BACKUP job.");
 	  const backup = await backupModel.fullBackup();
     logger.info(`BACKUP job completed: ${backup}`);
-  } catch(error) { logger.error("BACKUP ERROR: ", err.message) }
+  } catch(error) { logger.error("BACKUP job ERROR: ", error.message) }
 }
+
+backupModel.initCron = async app => {
+  try {
+    const moment = require('moment-timezone');
+    const schedule = await backupModel.getSchedule();
+    logger.info(`Starting backup cron task with the schedule: ${schedule}`);
+    let backupCron = new cronJob(schedule, backupModel.cronJob, null, true, moment.tz.guess());
+    backupCron.start();
+    app.set('backupCron',backupCron);
+  } catch(error) { logger.error("Backup cron init ERROR: ", error.message) }
+}
+
 
 // List of available backups.
 backupModel.getList = () => {

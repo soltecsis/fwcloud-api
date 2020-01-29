@@ -283,10 +283,15 @@ const config = convict({
       default: './BACKUP/',
       env: 'BACKUP_DATA_DIR'
     },
-    schedule: {
-      doc: 'Default backup cron based schedule.',
+    config_file: {
+      doc: 'File for store backup data (schedule and policy retention) in JSON format.',
       format: String,
-      default: '0 0 2 * * *'
+      default: 'backup_config.json'
+    },
+    default_schedule: {
+      doc: 'Default backup cron task schedule',
+      format: String,
+      default: '0 30 2 * * *'
     }
   }  
 });

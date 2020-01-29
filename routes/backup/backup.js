@@ -180,6 +180,7 @@ router.put('/restore', async (req, res) => {
  */
 router.put('/schedule', async (req, res) => {
 	try {
+		await backupModel.setSchedule(req);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }

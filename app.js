@@ -51,8 +51,6 @@ var cors = require('cors');
 
 var methodOverride = require('method-override');
 
-const cronJob = require('cron').CronJob;
-
 const config = require('./config/config');
 const accessAuth = require('./middleware/authorization');
 const accessCtrl = require('./middleware/access_control');
@@ -171,10 +169,7 @@ app.use(accessCtrl.check);
 /*--------------------------------------------------------------------------------------*/
 // Start the backup cron job.
 /*--------------------------------------------------------------------------------------*/
-const moment = require('moment-timezone');
-let backupCron = new cronJob(config.get('backup').schedule, backupModel.cronJob, null, true, moment.tz.guess());
-backupCron.start();
-app.set('backupCron',backupCron);
+backupModel.initCron(app);
 /*--------------------------------------------------------------------------------------*/
 
 

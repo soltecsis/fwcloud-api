@@ -39,7 +39,7 @@ schema.validate = req => {
 			schema = Joi.object().keys({ backup: sharedSch.backup_id })
 		}
 		else if (req.method==='PUT' && req.url==='/backup/schedule') {
-			schema = Joi.object().keys({ backup_schedule: sharedSch.cron_schedule })
+			schema = Joi.object().keys({ schedule: sharedSch.cron_schedule })
 		}
 		else return reject(fwcError.BAD_API_CALL);
 
