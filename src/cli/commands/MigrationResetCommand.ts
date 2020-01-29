@@ -22,8 +22,9 @@
 
 import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner, getConnectionManager } from "typeorm";
+import { Connection, ConnectionOptionsReader, createConnection, QueryRunner, getConnectionManager } from "typeorm";
 import * as config from "../../config/config"
+import { FwCloudMigrationExecutor } from "../../utils/typeorm/migrations/MigrationExecutor";
 
 
 /**
@@ -64,16 +65,9 @@ export class MigrationResetCommand implements yargs.CommandModule {
                 }
             });
 
-            const migrationExecutor = new MigrationExecutor(connection, connection.createQueryRunner());
-            const executedMigrations = await migrationExecutor.getExecutedMigrations();
-
-            if (executedMigrations.length === 0) {
-                connection.logger.logSchemaBuild(`No migrations was found in the database. Nothing to reset!`);
-            }
-
-            for (let i: number = 0; i < executedMigrations.length; i++) {
-                await connection.undoLastMigration(options);
-            }
+            const migrationExecutor = new FwCloudMigrationExecutor(connection, connection.createQueryRunner());
+            
+            await migrationExecutor.undoAllMigrations();
 
             await connection.close();
 
