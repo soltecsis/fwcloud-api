@@ -125,7 +125,7 @@ backupModel.writeConfig = backupConfig => {
 backupModel.getSchedule = () => {
 	return new Promise(async (resolve, reject) => {
     try {
-      const backupConfig = await backupModel.readConfig;
+      const backupConfig = await backupModel.readConfig();
       resolve(backupConfig.schedule ? backupConfig.schedule : config.get('backup').default_schedule);
     } catch(error) { reject(error) }
   });
