@@ -32,7 +32,10 @@ schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
-		if ((req.method==='POST' && req.url==='/backup') || (req.method==='PUT' && req.url==='/backup/get')) {
+		if (req.method==='POST' && req.url==='/backup') {
+			schema = { comment: sharedSch.comment };
+		}
+		else if (req.method==='PUT' && req.url==='/backup/get') {
 			schema = {};
 		}
 		else if (req.method==='PUT' && (req.url==='/backup/del' || req.url==='/backup/restore')) {
