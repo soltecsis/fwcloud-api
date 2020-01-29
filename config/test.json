@@ -1,6 +1,7 @@
 {
     "session": {
-        "secret": "SESSION_SECRET"
+        "secret": "SESSION_SECRET",
+        "force_HTTPS": false
     },
     "crypt": {
         "secret": "CRYPT_SECRET"
@@ -12,5 +13,8 @@
         "user": "fwcdbusr",
         "pass": "fwcdbusr",
         "migrations": "src/database/migrations/**/*.ts"
+    },
+    "https": {
+        "enable": false
     }
 }

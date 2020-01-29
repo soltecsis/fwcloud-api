@@ -13,7 +13,8 @@
     "migration:revert": "npm run build && node dist/src/cli/cli.js migration:revert",
     "migration:reset": "npm run build && node dist/src/cli/cli.js migration:reset",
     "migration:create": "npm run build && node dist/src/cli/cli.js migration:create",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "jest --config ./tests/e2e/jest-e2e.json"
   },
   "apidoc": {
     "title": "FWCloud.net API",
@@ -85,8 +86,10 @@
   "devDependencies": {
     "@types/jest": "25.1.0",
     "@types/node": "13.5.0",
+    "@types/supertest": "2.0.8",
     "@types/yargs": "15.0.1",
     "jest": "25.1.0",
+    "supertest": "4.0.2",
     "ts-jest": "25.0.0"
   }
 }
