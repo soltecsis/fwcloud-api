@@ -7,14 +7,15 @@
     "start": "npm run build && node dist/src/bin/www.js",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
-    "build": "node_modules/.bin/tsc",
+    "build": "npm run clean && node_modules/.bin/tsc",
+    "clean": "rm -fr dist/",
     "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
     "migration:run": "npm run build && node dist/src/cli/cli.js migration:run",
     "migration:revert": "npm run build && node dist/src/cli/cli.js migration:revert",
     "migration:reset": "npm run build && node dist/src/cli/cli.js migration:reset",
     "migration:create": "npm run build && node dist/src/cli/cli.js migration:create",
     "test": "jest",
-    "test:e2e": "jest --config ./tests/e2e/jest-e2e.json"
+    "test:e2e": "jest --config ./tests/e2e/jest-e2e.json --forceExit"
   },
   "apidoc": {
     "title": "FWCloud.net API",

@@ -2,12 +2,14 @@
     "compilerOptions": {
       "outDir": "dist",
       "allowJs": true,
-      "lib": [ "es2015" ],
-      "target": "ES3",
+      "lib": [ "es2018" ],
+      "target": "es2018",
       "sourceMap": true,
+      "module": "commonjs",
       "moduleResolution": "node",
       "resolveJsonModule": true,
-      "esModuleInterop": true
+      "esModuleInterop": true,
+      "noImplicitUseStrict": true
     },
     "include": [
       "./src/**/*"
