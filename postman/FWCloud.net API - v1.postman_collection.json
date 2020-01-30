@@ -7876,7 +7876,13 @@
 											"    const response = pm.response.json();",
 											"    const err =  {",
 											"        \"fwcErr\": 1003,",
-											"        \"msg\": \"Already exists\"",
+											"        \"msg\": \"Already exists\",",
+											"        \"data\": [{",
+											"            \"id\": 100000,",
+											"            \"name\": \"Test IP 1\",",
+											"            \"address\": \"1.2.3.4\",",
+											"            \"netmask\": \"255.255.255.0\"",
+											"        }]",
 											"    }",
 											"    pm.expect(response).to.eql(err);",
 											"});",
@@ -7957,7 +7963,13 @@
 											"    const response = pm.response.json();",
 											"    const err =  {",
 											"        \"fwcErr\": 1003,",
-											"        \"msg\": \"Already exists\"",
+											"        \"msg\": \"Already exists\",",
+											"        \"data\": [{",
+											"            \"id\": 100000,",
+											"            \"name\": \"Test IP 1\",",
+											"            \"address\": \"1.2.3.4\",",
+											"            \"netmask\": \"255.255.255.0\"",
+											"        }]",
 											"    }",
 											"    pm.expect(response).to.eql(err);",
 											"});",
@@ -8387,6 +8399,976 @@
 			]
 		},
 		{
+			"name": "BACKUP",
+			"item": [
+				{
+					"name": "Logout ok",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-token",
+								"value": "{{fwc_confirm_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/logout",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login ok with not admin role user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Response data\", function () {",
+									"    pm.expect(response).to.eql({\"user\":4, \"role\":2});",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 2,\n    \"username\": \"manager01\",\n    \"password\": \"mymanagerusersecret\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Full backup (ERROR: Not admin user)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1008,",
+									"        \"msg\": \"You are not an admin user\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List of backups (ERROR: Not admin user)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1008,",
+									"        \"msg\": \"You are not an admin user\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete backup (ERROR: Not admin user)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1008,",
+									"        \"msg\": \"You are not an admin user\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"backup\": \"{{backupId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout ok",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-token",
+								"value": "{{fwc_confirm_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/logout",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login ok with admin role user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Response data\", function () {",
+									"    pm.expect(response).to.eql({\"user\":1, \"role\":1});",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8a2d37bb-09c7-4bc2-abb4-3369effc1f64",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"type": "text",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer\": 1,\n    \"username\": \"fwcadmin\",\n    \"password\": \"fwcadmin\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/user/login",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Full system backup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "028274dc-c35d-4192-ba04-e73c9147ed7c",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.environment.set(\"backup\", pm.response.json().backup);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "1cadc3de-ab23-491a-94af-ead0698e6af3",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List of backups. Verify that previos backup exists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    ",
+									"    const backupId_list = pm.response.json();",
+									"    //console.log(backupId_list);",
+									"    var found = 0;",
+									"    for(var id of backupId_list) {",
+									"        if (id === pm.environment.get(\"backupId\")) {",
+									"            found = 1;",
+									"            break;",
+									"        }",
+									"    }",
+									"    ",
+									"    pm.expect(found).to.eql(1);",
+									"});",
+									"",
+									"pm.globals.unset(\"backupId\");",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/get",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete backup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"backup\": \"{{backupId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete backup (ERROR: Not found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"backup\": \"{{backupId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/del",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"del"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restore backup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"backup\": \"{{backup}}\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/restore",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"restore"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change schedule",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "94225473-5132-4f19-8dc8-5810e0468252",
+								"exec": [
+									"if (pm.response.code === 403) {",
+									"    const fwc_confirm_token = pm.response.json().fwc_confirm_token;",
+									"    if (fwc_confirm_token) {",
+									"        pm.globals.set(\"fwc_confirm_token\", fwc_confirm_token);",
+									"        postman.setNextRequest(pm.info.requestId);",
+									"        return;",
+									"    }",
+									"}",
+									"",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error response\", function () {",
+									"    const response = pm.response.json();",
+									"    const err =  {",
+									"        \"fwcErr\": 1002,",
+									"        \"msg\": \"Not found\"",
+									"    }",
+									"    pm.expect(response).to.eql(err);",
+									"});",
+									"",
+									"pm.globals.unset(\"fwc_confirm_token\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "83836b94-23b6-42b4-b4c2-8e8246a4f850",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{Origin}}"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-FWC-Confirm-Token",
+								"type": "text",
+								"value": "{{fwc_confirm_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"schedule\": \"15 0 *\\2 * * *\"\n}"
+						},
+						"url": {
+							"raw": "{{apiURL}}/backup/schedule",
+							"host": [
+								"{{apiURL}}"
+							],
+							"path": [
+								"backup",
+								"schedule"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
 			"name": "Logout",
 			"item": [
 				{
@@ -8548,15 +9530,15 @@
 	],
 	"variable": [
 		{
-			"id": "a751140e-e6a2-47bc-8d6c-368e31efeeea",
+			"id": "a4d82d19-f826-49c0-8158-06403d17f1be",
 			"key": "apiURL",
-			"value": "http://localhost:3000",
+			"value": "https://localhost:3000",
 			"type": "string"
 		},
 		{
-			"id": "e7caf2c3-a89c-428b-8fcd-4e0926528573",
+			"id": "1036688c-3c4f-457a-8986-b2aa5ed07132",
 			"key": "Origin",
-			"value": "http://webtest.fwcloud.net",
+			"value": "https://devel.fwcloud.net",
 			"type": "string"
 		}
 	]
