@@ -1,5 +1,5 @@
-const app = require('../../../src/app');
-const request = require('supertest');
+import app from '../../../src/app';
+import request from 'supertest';
 
 describe('(GET) /customer', () => {
 
