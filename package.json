@@ -7,8 +7,10 @@
     "start": "npm run build && node dist/src/bin/www.js",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
-    "build": "npm run clean && node_modules/.bin/tsc",
     "clean": "rm -fr dist/",
+    "build": "npm run clean && node_modules/.bin/tsc",
+    "watch": "npm run build -- -w",
+    "reload": "node_modules/.bin/gulp reload",
     "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
     "migration:run": "npm run build && node dist/src/cli/cli.js migration:run",
     "migration:revert": "npm run build && node dist/src/cli/cli.js migration:revert",
@@ -89,8 +91,10 @@
     "@types/node": "13.5.0",
     "@types/supertest": "2.0.8",
     "@types/yargs": "15.0.1",
+    "gulp": "4.0.2",
     "jest": "25.1.0",
     "supertest": "4.0.2",
+    "tree-kill": "1.2.2",
     "ts-jest": "25.0.0"
   }
 }
