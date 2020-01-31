@@ -1,6 +1,12 @@
 # Logs
 logs/
 
+# IDE Settings
+.vscode/*
+!.vscode/launch.json
+nbproject/private/
+nbproject/
+
 # Dependency directories
 node_modules/
 jspm_packages/
@@ -11,16 +17,14 @@ jspm_packages/
 #Typescript dist
 dist/
 
-nbproject/private/
-.vscode/
-nbproject/
-
-routes/xml
-*.fwb
-
-*.swp
+#fwcloud runtime files
 DATA/
 sessions/
+
+#fwcloud custom configuration files
 .env
 config/tls/
 BACKUP/
+
+*.fwb
+*.swp
