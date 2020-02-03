@@ -145,12 +145,13 @@ router.put('/restore', async (req, res) => {
 	} catch(error) { res.status(400).json(error) }
 });
 
+
 /**
- * @api {PUT} /backup/schedule Change backup schedule
+ * @api {PUT} /backup/config Change backup configuration
  * @apiName ScheduleBackup
  *  * @apiGroup BACKUP
  * 
- * @apiDescription Change the schedule for automatic backups.
+ * @apiDescription Change the schedule for automatic backups and the backup retention policy.
  * 
  * @apiParam {String} schedule Schedule string in the cron format.
  * For example, for schedule backups every day at 2:30:15 the schedule string will be:
@@ -168,6 +169,9 @@ router.put('/restore', async (req, res) => {
  * Months: 0-11 (Jan-Dec)
  * Day of Week: 0-6 (Sun-Sat)
  * 
+ * @apiParam {Number} max_copies Maximum number of backups.
+ * @apiParam {Number} max_days Maximum days of backup policy retention.
+ * 
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 No Content
  * 
@@ -178,11 +182,51 @@ router.put('/restore', async (req, res) => {
  * 	 "msg":	"You are not an admin user"
  * }
  */
-router.put('/schedule', async (req, res) => {
+router.put('/config', async (req, res) => {
 	try {
+		// Set new backup schedule.
 		await backupModel.setSchedule(req);
 
+		// Update backup config file.
+		let backupConfig = {};
+		backupConfig.schedule = req.body.schedule;
+		backupConfig.max_copies = req.body.max_copies;
+		backupConfig.max_days = req.body.max_days;
+		await backupModel.writeConfig(backupConfig);		
+		
 		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
+});
+
+
+/**
+ * @api {PUT} /backup/config/get Get the backup schedule and retention policy
+ * @apiName ScheduleBackup
+ *  * @apiGroup BACKUP
+ * 
+ * @apiDescription Get the stored backup schedule and retention policy.
+ * 
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 209 No Content
+ * {
+ *   "schedule": "0 30 2 * * *",
+ * 	 "max_copies":	0,
+ *   "max_days": 30
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response:
+ * HTTP/1.1 400 Bad Request
+ * {
+ *   "fwcErr": 1008,
+ * 	 "msg":	"You are not an admin user"
+ * }
+ */
+router.put('/config/get', async (req, res) => {
+	try {
+		const backupConfig = await backupModel.readConfig();
+
+		res.status(200).json(backupConfig);
 	} catch(error) { res.status(400).json(error) }
 });
 

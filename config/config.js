@@ -292,6 +292,16 @@ const config = convict({
       doc: 'Default backup cron task schedule',
       format: String,
       default: '0 30 2 * * *'
+    },
+    default_max_copies: {
+      doc: 'Default value for maximum copies retention policy. 0 means disabled.',
+      format: Number,
+      default: 0
+    },
+    default_max_days: {
+      doc: 'Default value for maximum days retention policy. 0 means disabled.',
+      format: Number,
+      default: 30
     }
   }  
 });

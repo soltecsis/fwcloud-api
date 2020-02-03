@@ -35,14 +35,17 @@ schema.validate = req => {
 		if (req.method==='POST' && req.url==='/backup') {
 			schema = { comment: sharedSch.comment };
 		}
-		else if (req.method==='PUT' && req.url==='/backup/get') {
+		else if (req.method==='PUT' && (req.url==='/backup/get' || req.url==='/backup/config/get')) {
 			schema = {};
 		}
 		else if (req.method==='PUT' && (req.url==='/backup/del' || req.url==='/backup/restore')) {
 			schema = Joi.object().keys({ backup: sharedSch.backup_id })
 		}
-		else if (req.method==='PUT' && req.url==='/backup/schedule') {
-			schema = Joi.object().keys({ schedule: sharedSch.cron_schedule })
+		else if (req.method==='PUT' && req.url==='/backup/config') {
+			schema = Joi.object().keys({ 	schedule: sharedSch.cron_schedule, 
+																		 max_copies: Joi.number().integer().min(0).max(100000),
+																		 max_days: Joi.number().integer().min(0).max(100000)
+																});
 		}
 		else return reject(fwcError.BAD_API_CALL);
 

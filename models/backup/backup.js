@@ -75,6 +75,16 @@ backupModel.copyDataDirs = backup => {
   });
 };
 
+// Copy the data directories.
+backupModel.applyRetentionPolicy = () => {
+	return new Promise(async (resolve, reject) => {
+    try {
+
+      resolve();
+    } catch(error) { reject(error) }
+  });
+};
+
 // Make a full system backup.
 backupModel.fullBackup = () => {
 	return new Promise(async (resolve, reject) => {
@@ -90,6 +100,9 @@ backupModel.fullBackup = () => {
 
 	    // Copy of the data directories.
 	    await backupModel.copyDataDirs(backup);
+      
+      // Apply retention policy.
+      await backupModel.applyRetentionPolicy();
 
       resolve(backup);
     } catch(error) { reject(error) }
@@ -101,8 +114,12 @@ backupModel.readConfig = () => {
 	return new Promise(async (resolve, reject) => {
     try {
       const backupConfigFile = `./${config.get('backup').data_dir}/${config.get('backup').config_file}`;
-      if (!fs.existsSync(backupConfigFile)) 
-        return resolve({}); // Empty config.
+      if (!fs.existsSync(backupConfigFile)) {
+        return resolve({ schedule: config.get('backup').default_schedule,
+          max_copies: config.get('backup').default_max_copies,
+          max_days: config.get('backup').default_max_days
+        }); // Default config.
+      }
       
       const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile,'utf8'));
       resolve(backupConfig);
@@ -126,12 +143,12 @@ backupModel.getSchedule = () => {
 	return new Promise(async (resolve, reject) => {
     try {
       const backupConfig = await backupModel.readConfig();
-      resolve(backupConfig.schedule ? backupConfig.schedule : config.get('backup').default_schedule);
+      resolve(backupConfig.schedule);
     } catch(error) { reject(error) }
   });
 };
 
-// Set backup cron schedule.
+// Set new backup cron schedule.
 backupModel.setSchedule = req => {
 	return new Promise(async (resolve, reject) => {
     try {
@@ -142,13 +159,7 @@ backupModel.setSchedule = req => {
       backupCron.setTime(time);
       backupCron.start();
 
-      // Update backup config file with the new schedule.
-      const backupConfig = await backupModel.readConfig();
-      backupConfig.schedule = req.body.schedule;
-
-      await backupModel.writeConfig(backupConfig);
-
-      logger.info(`New backup cron task schedule: ${backupConfig.schedule}`);
+      logger.info(`New backup cron task schedule: ${req.body.schedule}`);
 
       resolve();
     } catch(error) { reject(error) }
