@@ -25,7 +25,7 @@
 var userModel = {};
 var tableModel = "user";
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');

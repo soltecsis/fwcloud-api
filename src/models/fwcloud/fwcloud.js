@@ -21,7 +21,7 @@
 */
 
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 
 /**
  * Module to manage Fwcloud data

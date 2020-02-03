@@ -54,7 +54,7 @@ var objModel = 'IPOBJ';
  * @property db
  * @type db 
  */
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 
 /**
  * Property  to manage Ipobj in Rules

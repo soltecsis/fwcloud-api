@@ -27,7 +27,7 @@ var policy_rModel = {};
 //Export the object
 module.exports = policy_rModel;
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 var Policy_typeModel = require('../../models/policy/policy_type');

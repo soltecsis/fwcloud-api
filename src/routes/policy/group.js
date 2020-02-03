@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 var Policy_gModel = require('../../models/policy/policy_g');
 var Policy_rModel = require('../../models/policy/policy_r');
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 const fwcError = require('../../utils/error_table');
 
 

@@ -30,7 +30,7 @@ const policy_r__interfaceModel = require('../../models/policy/policy_r__interfac
 const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policyPrefixModel = require('../../models/policy/prefix');
 const policyPositionModel = require('../../models/policy/position');
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");

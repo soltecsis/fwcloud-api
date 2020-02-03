@@ -21,7 +21,7 @@
 */
 
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 var asyncMod = require('async');
 
 //create object

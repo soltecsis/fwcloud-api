@@ -31,7 +31,7 @@ function startApplication() {
 }
 
 function start() {
-    applicationInstanceReference = startApplication();
+    startApplication();
 };
 
 function stop() {
@@ -55,13 +55,4 @@ function reload() {
     restart();
 }
 
-function compile() {
-    return spawn('node_modules/.bin/tsc', ['-w'], {
-        detach: true,
-        stdio: 'inherit',
-        shell: true
-    });
-};
-
 exports.reload = reload;
-exports.dev = gulp.parallel(compile, reload);

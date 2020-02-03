@@ -26,7 +26,7 @@ var policy_r__ipobjModel = {};
 //Export the object
 module.exports = policy_r__ipobjModel;
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 var asyncMod = require('async');
 const interfaceModel = require('../../models/interface/interface');
 const ipobj_gModel = require('../../models/ipobj/group');

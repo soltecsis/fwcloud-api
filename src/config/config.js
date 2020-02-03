@@ -134,7 +134,7 @@ const config = convict({
   db: {
     host: {
       doc: 'Database host name or IP address.',
-      format: '*',
+      format: String,
       default: 'localhost',
       env: 'TYPEORM_HOST'
     },

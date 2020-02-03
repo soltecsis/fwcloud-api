@@ -21,7 +21,7 @@
 */
 
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 //var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var IpobjModel = require('./ipobj');
 var openvpnModel = require('../../models/vpn/openvpn/openvpn');

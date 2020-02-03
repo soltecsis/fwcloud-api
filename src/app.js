@@ -36,9 +36,9 @@ var log4js = require("log4js");
 const log4js_extend = require("log4js-extend");
 // This will log file name and line number in each log.
 log4js_extend(log4js, {
-  path: __dirname,
-  //format: "at @name (@file:@line:@column)"
-  format: "[@file:@line]"
+	path: __dirname,
+	//format: "at @name (@file:@line:@column)"
+	format: "[@file:@line]"
 });
 
 
@@ -71,10 +71,10 @@ app.set('view engine', 'html');
 
 var logger = log4js.getLogger('app');
 
-app.use(log4js.connectLogger(log4js.getLogger("http"), {level: 'auto'}));
+app.use(log4js.connectLogger(log4js.getLogger("http"), { level: 'auto' }));
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Helmet is a middleware that helps you secure your Express apps by setting various HTTP headers. 
 // It's not a silver bullet, but it can help!
@@ -105,7 +105,7 @@ var corsOptions = {
 			callback(null, true);
 		} else {
 			logger.debug("ORIGIN NOT ALLOWED BY CORS: " + origin);
-			callback(new Error('Not allowed by CORS'),false);
+			callback(new Error('Not allowed by CORS'), false);
 		}
 	}
 };
@@ -129,17 +129,17 @@ var utilsModel = require("./utils/utils.js");
 // All routes will use this middleware.
 /*--------------------------------------------------------------------------------------*/
 app.use(session({
-  name: config.get('session').name,
-  secret: config.get('session').secret,
-  saveUninitialized: false,
-  resave: true,
-  rolling: true,
-  store: new FileStore({ path: config.get('session').files_path }),
-  cookie: { 
+	name: config.get('session').name,
+	secret: config.get('session').secret,
+	saveUninitialized: false,
+	resave: true,
+	rolling: true,
+	store: new FileStore({ path: config.get('session').files_path }),
+	cookie: {
 		httpOnly: false,
 		secure: config.get('session').force_HTTPS, // Enable this when the https is enabled for the API.
 		maxAge: config.get('session').expire * 1000
-  }
+	}
 }));
 
 // Middleware for access authorization.
@@ -149,9 +149,11 @@ app.use(accessAuth.check);
 // Store the databasse access object in the req object.
 app.use(async (req, res, next) => {
 	try {
-		req.dbCon = await utilsModel.getDbConnection();
+		req.dbCon = db.getQuery();
 		next();
-	} catch(error) { res.status(400).json(error) }
+	} catch (error) { 
+		res.status(400).json(error) 
+	}
 });
 
 if (config.get('confirmation_token')) {
@@ -174,11 +176,13 @@ app.use(accessCtrl.check);
 const moment = require('moment-timezone');
 let backupCron = new cronJob(config.get('backup').schedule, backupModel.cronJob, null, true, moment.tz.guess());
 backupCron.start();
-app.set('backupCron',backupCron);
+app.set('backupCron', backupCron);
 /*--------------------------------------------------------------------------------------*/
 
 
-var db = require('./db');
+//var db = require('./db');
+import db from "./database/DatabaseService";
+
 
 var user = require('./routes/user/user');
 var customer = require('./routes/user/customer');
@@ -244,55 +248,49 @@ app.use('/backup', backup);
 
 
 // Connect to MySQL on start
-db.connect(err => {
-	if (err) {
-		console.log('Unable to connect to MySQL.');
-		process.exit(1);
-	}
-});
-
-//Interval control for unlock FWCLouds 
-const intervalObj = setInterval(() => {
-	FwcloudModel.checkFwcloudLockTimeout(config.get('lock').unlock_timeout_min)
+db.connect().then((connection) => {
+	//Interval control for unlock FWCLouds 
+	const intervalObj = setInterval(() => {
+		FwcloudModel.checkFwcloudLockTimeout(config.get('lock').unlock_timeout_min)
 			.then(result => {
 				logger.debug("OK CHECKLOCK: " + result);
 			})
 			.catch(result => {
 			});
-}, config.get('lock').check_interval_mls);
+	}, config.get('lock').check_interval_mls);
 
 
-// error handlers
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-	var err = new Error('Not Found');
-	err.status = 404;
-	next(err);
-});
+	// error handlers
+	// catch 404 and forward to error handler
+	app.use(function (req, res, next) {
+		var err = new Error('Not Found');
+		err.status = 404;
+		next(err);
+	});
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'dev') {
+	// development error handler
+	// will print stacktrace
+	if (app.get('env') === 'dev') {
+		app.use(function (err, req, res, next) {
+			logger.error("Something went wrong: ", err.message);
+			res.status(err.status || 500);
+			res.render('error', {
+				message: err.message,
+				error: err
+			});
+		});
+	}
+
+	// production error handler
+	// no stacktraces leaked to user
 	app.use(function (err, req, res, next) {
 		logger.error("Something went wrong: ", err.message);
 		res.status(err.status || 500);
 		res.render('error', {
 			message: err.message,
-			error: err
+			error: {}
 		});
 	});
-}
-
-// production error handler
-// no stacktraces leaked to user
-app.use(function (err, req, res, next) {
-	logger.error("Something went wrong: ", err.message);
-	res.status(err.status || 500);
-	res.render('error', {
-		message: err.message,
-		error: {}
-	});
 });
-
 
 module.exports = app;

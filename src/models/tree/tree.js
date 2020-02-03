@@ -21,7 +21,7 @@
 */
 
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 

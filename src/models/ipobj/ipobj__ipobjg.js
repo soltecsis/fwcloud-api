@@ -21,7 +21,7 @@
 */
 
 
-var db = require('../../db.js');
+import db from '../../database/DatabaseService';
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 
 //create object
