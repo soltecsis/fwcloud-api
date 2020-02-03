@@ -79,6 +79,14 @@ backupModel.copyDataDirs = backup => {
 backupModel.applyRetentionPolicy = () => {
 	return new Promise(async (resolve, reject) => {
     try {
+      const backupConfig = await backupModel.readConfig();
+      let backupList = await backupModel.getList();
+
+      // First apply the retention policy for the maximum number of copies.
+
+
+      // Then apply the retention policy for the maximum retention days.
+
 
       resolve();
     } catch(error) { reject(error) }
@@ -197,6 +205,9 @@ backupModel.getList = () => {
           dirs.push(file);
         }
       }
+
+      // Before returning the result short array by directory name.
+      dirs.sort();
 
       resolve(dirs);
     } catch(error) { reject(error) }
