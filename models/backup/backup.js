@@ -83,10 +83,23 @@ backupModel.applyRetentionPolicy = () => {
       let backupList = await backupModel.getList();
 
       // First apply the retention policy for the maximum number of copies.
-
+      while (backupList.length > backupConfig.max_copies) {
+        backupList.shift();
+      }
 
       // Then apply the retention policy for the maximum retention days.
+      const ms = 1000 * 24 * 3600 * backupConfig.max_days;
+      let retdate = new Date();
+      retdate.setDate(retdate.getDate()-backupConfig.max_days);
 
+      for (backup of backupList) {
+        let mydate = new Date(backup.replace("_"," "));
+        let diff = retdate - mydate; // Difference in milliseconds.
+        if (diff > ms) // Remove backup.
+          await backupModel.delete(backup);
+        else
+          break;
+      }
 
       resolve();
     } catch(error) { reject(error) }
@@ -215,10 +228,10 @@ backupModel.getList = () => {
 };
 
 // Delete backup.
-backupModel.delete = req => {
+backupModel.delete = backup => {
 	return new Promise(async (resolve, reject) => {
     try {
-      const path = `./${config.get('backup').data_dir}/${req.body.backup}`;
+      const path = `./${config.get('backup').data_dir}/${backup}`;
       if (!fs.existsSync(path))
         throw(fwcError.NOT_FOUND);
 

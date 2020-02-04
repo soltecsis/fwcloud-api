@@ -107,7 +107,7 @@ router.put('/get', async (req, res) => {
 router.put('/del', async (req, res) => {
 	try {
 	// Delete backup.
-	await backupModel.delete(req);
+	await backupModel.delete(req.body.backup);
 		  
 	res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
