@@ -28,16 +28,16 @@ var policy_rModel = {};
 module.exports = policy_rModel;
 
 import db from '../../database/DatabaseService';
+import { getCustomRepository } from 'typeorm';
+import PolicyGRepository from '../../repositories/PolicyGRepository';
 
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
-var Policy_typeModel = require('../../models/policy/policy_type');
 
 var tableModel = "policy_r";
 var policyPositionModel = require('./position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
-var Policy_gModel = require('../../models/policy/policy_g');
 var policyOpenvpnModel = require('../../models/policy/openvpn');
 var policyPrefixModel = require('../../models/policy/prefix');
 const fwcError = require('../../utils/error_table');
@@ -750,18 +750,20 @@ policy_rModel.reorderAfterRuleOrder = (dbCon, firewall, type, rule_order) => {
 
 
 //Remove All policy_r from firewall
-policy_rModel.deletePolicy_r_Firewall = function(idfirewall) {
+policy_rModel.deletePolicy_r_Firewall = async (idfirewall) => {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 
 			var sql = 'SELECT  I.*   FROM ' + tableModel + ' I ' +
 				' WHERE (I.firewall=' + connection.escape(idfirewall) + ') ';
-			connection.query(sql, (error, rows) => {
+			connection.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 				//Bucle por reglas
 				Promise.all(rows.map(policy_rModel.deletePolicy_rPro))
-					.then(data => Policy_gModel.deleteFirewallGroups(idfirewall))
+					.then(async data => {
+						await getCustomRepository(PolicyGRepository).deleteFirewallGroups(idfirewall);
+					})
 					.then(() => resolve())
 					.catch(error => reject(error));
 			});

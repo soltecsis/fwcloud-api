@@ -1,7 +1,9 @@
+import "reflect-metadata";
 import { Connection, createConnection, QueryRunner } from "typeorm";
 import * as config from "../config/config";
 import Query from "./Query";
 import * as Logger from "log4js";
+import { PolicyGroup } from "../models/policy/PolicyGroup";
 
 const logger = Logger.getLogger("app");
 
@@ -34,9 +36,13 @@ class DatabaseService {
             database: this.configDB.name,
             username: this.configDB.user,
             password: this.configDB.pass,
-            debug: false
+            debug: false,
+            synchronize: false,
+            entities: [
+                PolicyGroup
+            ]
         }).catch(e => {
-            console.log('Unable to connect to MySQL.');
+            console.log('Unable to connect to MySQL: ' + e.message);
             process.exit(1);
         });
 

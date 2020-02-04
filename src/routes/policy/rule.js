@@ -24,13 +24,14 @@
 var express = require('express');
 var router = express.Router();
 var policy_rModel = require('../../models/policy/policy_r');
-var Policy_gModel = require('../../models/policy/policy_g');
 var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policyPrefixModel = require('../../models/policy/prefix');
 const policyPositionModel = require('../../models/policy/position');
 import db from '../../database/DatabaseService';
+import { getRepository } from 'typeorm';
+import { PolicyGroup } from '../../models/policy/PolicyGroup';
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -360,8 +361,12 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			await policy_rModel.updatePolicy_r(dbCon, policy_rData);
 			
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
-			if (pasteOffset!=0 && moveRule.idgroup)
-				await Policy_gModel.deleteIfEmptyPolicy_g(dbCon, firewall, moveRule.idgroup);
+			if (pasteOffset!=0 && moveRule.idgroup) {
+				const policyGroup = await getRepository(PolicyGroup).findOne(moveRule.idgroup);
+				if (policyGroup) {
+					await policyGroup.deleteIfEmpty(dbCon, firewall);
+				}
+			}
 
 			resolve();
 		} catch(error) { return reject(error) }

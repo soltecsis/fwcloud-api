@@ -22,6 +22,8 @@
 
 
 import db from '../../database/DatabaseService'
+import { getCustomRepository } from 'typeorm';
+import PolicyGRepository from '../../repositories/PolicyGRepository';
 
 /**
  * Module to manage Firewalls data
@@ -57,7 +59,6 @@ var interfaceModel = require('../../models/interface/interface');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var policy_rModel = require('../../models/policy/policy_r');
-var policy_gModel = require('../../models/policy/policy_g');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
@@ -850,7 +851,7 @@ firewallModel.deleteFirewallFromCluster = req => {
 
 						// Move all related objects to the new firewall.
 						await policy_rModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
-						await policy_gModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
+						await getCustomRepository(PolicyGRepository).moveFirewallGroupsToFirewall(req.body.firewall, idNewFM)
 						await interfaceModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
 						await openvpnModel.moveToOtherFirewall(req.dbCon,req.body.firewall,idNewFM);
 

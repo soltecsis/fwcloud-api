@@ -9,7 +9,9 @@
       "moduleResolution": "node",
       "resolveJsonModule": true,
       "esModuleInterop": true,
-      "noImplicitUseStrict": true
+      "noImplicitUseStrict": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
     },
     "include": [
       "./src/**/*"

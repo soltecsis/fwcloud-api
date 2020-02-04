@@ -4,15 +4,27 @@ import * as sqlstring from "sqlstring";
 
 export default class Query {
 
-    public query(query: string, callback: (err: any, result: any) => void): void {
+    public query(query:string, params: Array<any>, callback: (err:any, result: any) => void);
+    public query(query: string, callback: (err: any, result: any) => void);
+    public query(query: string, params: any = [] , callback?: (err: any, result: any) => void): void {
+        
         const queryRunner: QueryRunner = db.getQueryRunner();
 
-        queryRunner.query(query).then((result) => {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+
+        queryRunner.query(query, params).then((result) => {
             queryRunner.release();
-            callback(null, result);
+            if (callback) {
+                callback(null, result);
+            }
         }).catch((err) => {
             queryRunner.release();
-            callback(err, null);
+            if (callback) {
+                callback(err, null);
+            }
         });
     }
 
