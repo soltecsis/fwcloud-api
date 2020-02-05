@@ -54,17 +54,17 @@ var router = express.Router();
  * @type ../../models/compile/
  */
 var policyScript = require('../../models/policy/policy_script');
-var firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
-    const data = await firewallModel.getFirewallSSH(req);
+    const data = await Firewall.getFirewallSSH(req);
 
     await policyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id))
-    await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
-    await firewallModel.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
+    await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
+    await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }

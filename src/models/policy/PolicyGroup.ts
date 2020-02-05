@@ -21,16 +21,16 @@
 */
 
 
-import db from '../../database/DatabaseService';
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository } from 'typeorm';
 import Logger from 'log4js';
+import Model from '../Model';
 
 const logger = Logger.getLogger("app");
 
 const tableName = "policy_g";
 
 @Entity(tableName)
-export class PolicyGroup {
+export class PolicyGroup extends Model{
 
 	@PrimaryGeneratedColumn()
 	id: number;
@@ -62,7 +62,7 @@ export class PolicyGroup {
 	@Column()
 	groupstyle: string;
 
-	static getTableName(): string {
+	public getTableName(): string {
 		return tableName;
 	}
 
@@ -82,7 +82,7 @@ export class PolicyGroup {
 				// Only delete if the group is empty.
 				if (rows[0].n > 0) return resolve();
 
-				sql = 'DELETE FROM ' + tableName + ' WHERE id=' + this.id;
+				sql = 'DELETE FROM ' + this.getTableName() + ' WHERE id=' + this.id;
 				dbCon.query(sql, (error, rows) => {
 					if (error) return reject(error);
 					resolve();

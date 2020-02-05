@@ -29,7 +29,7 @@ var policy_cModel = {};
 var tableModel = "policy_c";
 var tableModelPolicy = "policy_r";
 
-const firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 
 var logger = require('log4js').getLogger("app");
 
@@ -196,7 +196,7 @@ policy_cModel.deleteRulesCompilation = (fwcloud, rules) => {
 		try {
 			for (let rule of rules) {
 				await policy_cModel.deletePolicy_c(rule.rule);
-				await firewallModel.updateFirewallStatus(fwcloud,(rule.firewall)?rule.firewall:rule.firewall_id,"|3");
+				await Firewall.updateFirewallStatus(fwcloud,(rule.firewall)?rule.firewall:rule.firewall_id,"|3");
 			}
 			resolve();
 		} catch(error) { reject(error) }
@@ -211,7 +211,7 @@ policy_cModel.deleteGroupsInRulesCompilation = (dbCon, fwcloud, groups) => {
 				// Invalidate the policy compilation of all affected rules.
 				await policy_cModel.deleteFullGroupPolicy_c(dbCon, group.ipobj_g);
 				// Update affected firewalls status.
-				await firewallModel.updateFirewallStatusIPOBJ(fwcloud, -1, group.ipobj_g, -1, -1, "|3");
+				await Firewall.updateFirewallStatusIPOBJ(fwcloud, -1, group.ipobj_g, -1, -1, "|3");
 			}
 			resolve();
 		} catch(error) { reject(error) }

@@ -30,7 +30,7 @@ const readline = require('readline');
 const fwcTreeModel = require('../../../models/tree/tree');
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
-const firewallModel = require('../../../models/firewall/firewall');
+import { Firewall } from '../../../models/firewall/Firewall';
 const policyOpenvpnModel = require('../../../models/policy/openvpn');
 const interfaceModel = require('../../../models/interface/interface');
 const fwcError = require('../../../utils/error_table');
@@ -337,7 +337,7 @@ openvpnModel.installCfg = (req,cfg,dir,name,type,close_socketio) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
     try {
-      const fwData = await firewallModel.getFirewallSSH(req);
+      const fwData = await Firewall.getFirewallSSH(req);
 
       if (type===1) // Client certificarte
         socketTools.msg(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`);
@@ -378,7 +378,7 @@ openvpnModel.uninstallCfg = (req,dir,name) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
     try {
-      const fwData = await firewallModel.getFirewallSSH(req);
+      const fwData = await Firewall.getFirewallSSH(req);
 
       socketTools.msg(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`);
       await sshTools.runCommand(fwData.SSHconn,`sudo rm -f "${dir}/${name}"`);
@@ -398,7 +398,7 @@ openvpnModel.ccdCompare = (req,dir,clients) => {
     socketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
     try {
-      const fwData = await firewallModel.getFirewallSSH(req);
+      const fwData = await Firewall.getFirewallSSH(req);
 
       socketTools.msg(`Comparing files with OpenVPN client configurations.\n`);
       const fileList = (await sshTools.runCommand(fwData.SSHconn,`cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
@@ -641,7 +641,7 @@ openvpnModel.removeFromGroup = req => {
 openvpnModel.getStatusFile = (req,status_file_path) => {
 	return new Promise(async (resolve, reject) => {
     try {
-      const fwData = await firewallModel.getFirewallSSH(req);
+      const fwData = await Firewall.getFirewallSSH(req);
       
       let data = await sshTools.runCommand(fwData.SSHconn,`sudo cat "${status_file_path}"`);
       // Remove the first line ()

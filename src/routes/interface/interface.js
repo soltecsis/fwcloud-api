@@ -28,7 +28,7 @@ var fwcTreemodel = require('../../models/tree/tree');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const restrictedCheck = require('../../middleware/restricted');
-const firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 const fwcError = require('../../utils/error_table');
 
 
@@ -168,10 +168,10 @@ router.put('/', (req, res) => {
 				try {
 					await Interface__ipobjModel.UpdateHOST(interfaceData.id);
 
-					await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, -1, interfaceData.id, interfaceData.type, "|3");
+					await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, -1, interfaceData.id, interfaceData.type, "|3");
 
 					var data_return = {};
-					await firewallModel.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+					await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
 		
 					await fwcTreemodel.updateFwc_Tree_OBJ(req, interfaceData);
 

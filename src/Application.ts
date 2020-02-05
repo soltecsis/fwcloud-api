@@ -55,12 +55,15 @@ export class Application {
          * as some of them is using DB
          */
         await this.startDatabaseService();
-
-        this.registerVendorMiddlewares();
         
+        this.registerVendorMiddlewares();
         this.registerFWCloudMiddlewares();
+        
         this.startBackupCronJob();
+
         await this.registerRoutes();
+
+        this.registerCallbacks();
     }
 
     get express(): express.Application {
@@ -109,11 +112,13 @@ export class Application {
 
         // Middleware for access control.
         this._express.use(accessCtrl.check);
+    }
 
+    private registerCallbacks() {
         // error handlers
         // catch 404 and forward to error handler
         this._express.use((req, res, next) => {
-            var err = new Error('Not Found');
+            var err: any = new Error('Not Found');
             err.status = 404;
             next(err);
         });

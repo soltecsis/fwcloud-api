@@ -75,7 +75,7 @@ var fwcTreemodel = require('../../models/tree/tree');
 
 
 var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
-var FirewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
@@ -197,8 +197,8 @@ router.post("/",
 
 			var dataresp = { "insertId": id, "TreeinsertId": node_id };
 			if (ipobjData.interface) {
-				await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, ipobjData.type, "|3");
-				dataresp.fw_status = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
+				await Firewall.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, ipobjData.type, "|3");
+				dataresp.fw_status = await Firewall.getFirewallStatusNotZero(fwcloud, null);
 			}
 
 			res.status(200).json(dataresp);
@@ -308,13 +308,13 @@ router.put('/',
 				ipobjData.protocol = data[0].protocol_number;
 
 			await IpobjModel.updateIpobj(req, ipobjData);
-			await FirewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
+			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
 			await openvpnModel.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
 			await IpobjModel.UpdateHOST(ipobjData.id);
 			await IpobjModel.UpdateINTERFACE(ipobjData.id);
 
 			var data_return = {};
-			await FirewallModel.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
 			await openvpnModel.getOpenvpnStatusNotZero(req, data_return);
 
 			await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
@@ -403,7 +403,7 @@ router.put('/del',
 		var type = req.body.type;
 
 		try {
-			await FirewallModel.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, type, "|3");
+			await Firewall.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, type, "|3");
 			await IpobjModel.UpdateHOST(id);
 			await IpobjModel.UpdateINTERFACE(id);
 
@@ -415,7 +415,7 @@ router.put('/del',
 			await fwcTreemodel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
 			//DELETE FROM TREE
 			await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
-			const not_zero_status_fws = await FirewallModel.getFirewallStatusNotZero(fwcloud, null);
+			const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(fwcloud, null);
 			res.status(200).json(not_zero_status_fws);
 		} catch (error) { res.status(400).json(error) }
 	});

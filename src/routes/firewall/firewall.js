@@ -62,7 +62,7 @@ var router = express.Router();
  * 
  * 
  */
-var firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 var firewallExport = require('../../models/firewall/export');
 
 /**
@@ -159,16 +159,16 @@ router.post('/', async(req, res) => {
 		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
-		firewallData = await firewallModel.checkBodyFirewall(firewallData, true);
+		firewallData = await Firewall.checkBodyFirewall(firewallData, true);
 
 		//encript username and password
 		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-		let newFirewallId = await firewallModel.insertFirewall(firewallData);
+		let newFirewallId = await Firewall.insertFirewall(firewallData);
 		var dataresp = { "insertId": newFirewallId };
 
-		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
+		await Firewall.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
 
 		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
 			// Create the loop backup interface.
@@ -254,8 +254,8 @@ router.put('/', async (req, res) => {
 
 	try {
 		await Policy_cModel.deleteFullFirewallPolicy_c(req.dbCon,req.body.firewall);
-		await firewallModel.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
-		await firewallModel.checkBodyFirewall(firewallData, false);
+		await Firewall.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
+		await Firewall.checkBodyFirewall(firewallData, false);
 
 		//encript username and password
 		let data = await utilsModel.encrypt(firewallData.install_user)
@@ -267,8 +267,8 @@ router.put('/', async (req, res) => {
 			firewallData.install_pass = '';
 		}
 
-		await firewallModel.updateFirewall(req.dbCon, req.session.user_id, firewallData);
-		await firewallModel.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
+		await Firewall.updateFirewall(req.dbCon, req.session.user_id, firewallData);
+		await Firewall.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, req.body.firewall, firewallData.fwmaster);
 
 		// If this a stateful firewall verify that the stateful special rules exists.
 		// Or remove them if this is not a stateful firewall.
@@ -336,7 +336,7 @@ router.put('/', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-		const data = await firewallModel.getFirewall(req);
+		const data = await Firewall.getFirewall(req);
 		if (data)
 			res.status(200).json(data);
 		else
@@ -423,7 +423,7 @@ router.put('/get', async (req, res) => {
  */
 router.put('/cloud/get', async (req, res) => {
 	try {
-		data = await firewallModel.getFirewallCloud(req);
+		data = await Firewall.getFirewallCloud(req);
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
@@ -512,7 +512,7 @@ router.put('/cloud/get', async (req, res) => {
  * }
  */
 router.put('/cluster/get', (req, res) => {
-	firewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
+	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
 		if (error) return res.status(400).json(error);
 		
 		if (data && data.length > 0)
@@ -575,7 +575,7 @@ router.put('/clone', async (req, res) => {
 			by_user: req.session.user_id //working user
 		};
 
-		const data = await firewallModel.cloneFirewall(req.session.user_id, firewallData);
+		const data = await Firewall.cloneFirewall(req.session.user_id, firewallData);
 		const idNewFirewall = data.insertId;
 
 		const dataI = await InterfaceModel.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
@@ -605,7 +605,7 @@ router.put('/clone', async (req, res) => {
  */
 router.put('/accesslock/get', async (req, res) => {
 	try {
-		const data = await firewallModel.getFirewall(req);
+		const data = await Firewall.getFirewall(req);
 		if (data) {
 			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
 			res.status(200).json(resp);
@@ -653,7 +653,7 @@ router.put('/del',
 	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
-			await firewallModel.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
+			await Firewall.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
 	});
@@ -667,7 +667,7 @@ restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
 	try {
-		const data = await firewallModel.deleteFirewallFromCluster(req);
+		const data = await Firewall.deleteFirewallFromCluster(req);
 		if (data && data.result)
 			res.status(200).json(data);
 	 	else

@@ -19,9 +19,9 @@ function stopApplication(pid) {
 
 function startApplication() {
     try {
-        const stat = Fs.statSync(Path.join(buildPath, 'src/bin/www.js'))
+        const stat = Fs.statSync(Path.join(buildPath, 'src/bin/fwcloud.js'))
         if (stat.isFile()) {
-            applicationInstanceReference = spawn('node ' + Path.join(buildPath, 'src/bin/www.js'), [], {
+            applicationInstanceReference = spawn('node ' + Path.join(buildPath, 'src/bin/fwcloud.js'), [], {
                 stdio: 'inherit',
                 shell: true,
             });

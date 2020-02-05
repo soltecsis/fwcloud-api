@@ -33,7 +33,7 @@
 var express = require('express');
 var router = express.Router();
 
-var firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 var ipobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
@@ -179,9 +179,9 @@ router.put('/addto', async(req, res) => {
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		// Update affected firewalls status.
-		await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
-		const not_zero_status_fws = await firewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
 	} catch (error) { res.status(400).json(error) }
 });
@@ -208,9 +208,9 @@ router.put('/delfrom', async(req, res) => {
 
 		// Invalidate the policy compilation of all affected rules.
 		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
-		await firewallModel.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
-		const not_zero_status_fws = await firewallModel.getFirewallStatusNotZero(req.body.fwcloud, null);
+		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
 	} catch (error) { res.status(400).json(error) }
 });

@@ -24,10 +24,10 @@
 //create object
 var accessCtrl = {};
 //Export the object
-module.exports = accessCtrl;
+export default accessCtrl;
 
 const userModel = require('../models/user/user');
-const FirewallModel = require('../models/firewall/firewall');
+import { Firewall } from '../models/firewall/Firewall';
 const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
 
@@ -83,7 +83,7 @@ accessCtrl.check = async (req, res, next) => {
 		// Check firewall access for the user.
 		if (req.body.firewall) {
 			const accessData = { iduser: req.session.user_id, fwcloud: req.body.fwcloud, firewall: req.body.firewall };
-			if (!(await FirewallModel.getFirewallAccess(accessData)))
+			if (!(await Firewall.getFirewallAccess(accessData)))
 				throw fwcError.ACC_FIREWALL;
 		}
 

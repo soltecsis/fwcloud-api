@@ -42,7 +42,7 @@ var Policy_cModel = require('../../models/policy/policy_c');
  */
 var RuleCompile = require('../../models/policy/rule_compile');
 
-var firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 
 const sshTools = require('../../utils/ssh');
 const socketTools = require('../../utils/socket');
@@ -66,7 +66,7 @@ PolicyScript.append = path => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 PolicyScript.dumpFirewallOptions = (fwcloud,fw,data) => {
 	return new Promise((resolve,reject) => { 
-		firewallModel.getFirewallOptions(fwcloud,fw)
+		Firewall.getFirewallOptions(fwcloud,fw)
 		.then(options => {
 			var action = '';
 			data.options = options;
@@ -137,7 +137,7 @@ PolicyScript.install = (req, SSHconn, firewall) => {
 			await sshTools.uploadFile(SSHconn,config.get('policy').data_dir+"/"+req.body.fwcloud+"/"+firewall+"/"+config.get('policy').script_name,config.get('policy').script_name);
 		
 			// Enable bash depuration if it is selected in firewalls/cluster options.
-			const options = await firewallModel.getFirewallOptions(req.body.fwcloud,firewall);
+			const options = await Firewall.getFirewallOptions(req.body.fwcloud,firewall);
 			const bash_debug = (options & 0x0008) ? ' -x' : '';
 	
 			socketTools.msg("Installing firewall script.\n");

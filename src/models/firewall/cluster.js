@@ -30,7 +30,7 @@ module.exports = clusterModel;
 
 var tableModel = "cluster";
 
-var firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 var fwcTreemodel = require('../tree/tree');
 var interfaceModel = require('../../models/interface/interface');
 
@@ -58,14 +58,14 @@ clusterModel.getCluster = req => {
 			if (row && row.length > 0) {
 				var dataCluster = row[0];
 				//SEARCH FIREWALL NODES
-				firewallModel.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
+				Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
 					if (error) return reject(error);
 					//get data
 					if (dataFw && dataFw.length > 0)
 					{
 						dataCluster.nodes = dataFw;
 						//SEARCH INTERFACES FW-MASTER
-						firewallModel.getFirewallClusterMaster(req.session.user_id, req.body.cluster, (error, dataFwM) => {
+						Firewall.getFirewallClusterMaster(req.session.user_id, req.body.cluster, (error, dataFwM) => {
 							if (error) return reject(error);
 							if (dataFwM && dataFwM.length > 0) {
 								var idFwMaster = dataFwM[0].id;
@@ -152,7 +152,7 @@ clusterModel.deleteCluster = (dbCon, cluster, iduser, fwcloud) => {
 
 			try {
 				for (let fw of fws)
-					await firewallModel.deleteFirewall(iduser, fwcloud, fw.id)
+					await Firewall.deleteFirewall(iduser, fwcloud, fw.id)
 			} catch(error) { return reject(error) }
 
 			sql = `SELECT T.* , A.id as idnode FROM ${tableModel} T

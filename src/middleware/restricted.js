@@ -28,7 +28,7 @@ module.exports = restrictedCheck;
 
 const customerModel = require('../models/user/customer');
 const userModel = require('../models/user/user');
-const firewallModel = require('../models/firewall/firewall');
+import { Firewall } from '../models/firewall/Firewall';
 const interfaceModel = require('../models/interface/interface');
 const ipobjModel = require('../models/ipobj/ipobj');
 const ipobj_gModel = require('../models/ipobj/group');
@@ -76,7 +76,7 @@ restrictedCheck.fwcloud = (req, res, next) => {
 
 restrictedCheck.firewall = async(req, res, next) => {
 	try {
-		const data = await firewallModel.searchFirewallRestrictions(req);
+		const data = await Firewall.searchFirewallRestrictions(req);
 		if (data.result) res.status(403).json(data);
 		else next();
 	} catch (error) { res.status(400).json(error) }

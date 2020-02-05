@@ -28,7 +28,7 @@ const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
-const firewallModel = require('../../models/firewall/firewall');
+import { Firewall } from '../../models/firewall/Firewall';
 const fwcError = require('../../utils/error_table');
 const utilsModel = require("../../utils/utils.js");
 
@@ -60,7 +60,7 @@ async (req, res) => {
 		// Invalidate compilation of the affected rules.
 		await policy_cModel.deletePolicy_c(req.body.rule);
 		await policy_cModel.deletePolicy_c(req.body.new_rule);
-		await firewallModel.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
+		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await policyOpenvpnModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
 			throw fwcError.ALREADY_EXISTS;

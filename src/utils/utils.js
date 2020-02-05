@@ -32,11 +32,12 @@ module.exports = utilsModel;
  * @type log4js/app
  * 
  */
+
+import db from '../database/DatabaseService';
 var logger = require('log4js').getLogger("app");
-var FirewallModel = require('../models/firewall/firewall');
+import { Firewall } from '../models/firewall/Firewall';
 const config = require('../config/config');
 var crypto = require('crypto');
-const db = require('../db');
 const fs = require('fs');
 var path = require('path');
 
@@ -81,7 +82,7 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 		firewall=req.body.firewall;
 	else if (req.body.rulesData)
 		firewall=req.body.rulesData.firewall;
-	FirewallModel.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
+	Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
 	.then(() => next())
 	.catch(error => res.status(400).json(error));
 };
@@ -90,7 +91,7 @@ utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {
 	return new Promise((resolve, reject) => {
 		var accessData = {iduser: iduser, fwcloud: fwcloud, firewall: firewall};
 		//logger.debug(accessData);
-		FirewallModel.getFirewallAccess(accessData)
+		Firewall.getFirewallAccess(accessData)
 				.then(resp => {
 					resolve(true);
 				})
