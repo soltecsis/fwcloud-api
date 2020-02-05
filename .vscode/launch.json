@@ -11,7 +11,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/dist/src/bin/www.js",
+      "program": "${workspaceFolder}/dist/src/bin/fwcloud.js",
       //"preLaunchTask": "tsc: build - tsconfig.json",
       "preLaunchTask": "npm: build",
       "outFiles": [
@@ -25,7 +25,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/dist/src/bin/www.js",
+      "program": "${workspaceFolder}/dist/src/bin/fwcloud.js",
       "outFiles": [
         "${workspaceFolder}/dist/**/*.js"
       ]

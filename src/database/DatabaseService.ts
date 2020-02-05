@@ -7,7 +7,7 @@ import { PolicyGroup } from "../models/policy/PolicyGroup";
 
 const logger = Logger.getLogger("app");
 
-class DatabaseService {
+export class DatabaseService {
 
     private _connected: boolean = false;
     private _connection: Connection = null;

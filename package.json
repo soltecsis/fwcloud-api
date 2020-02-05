@@ -4,7 +4,7 @@
   "description": "Documentation for the RESTful API of the FWCloud.net project.",
   "private": true,
   "scripts": {
-    "start": "npm run build && node dist/src/bin/www.js",
+    "start": "npm run build && node dist/src/bin/fwcloud.js",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
     "clean": "rm -fr dist/",
@@ -89,8 +89,18 @@
     "yuidocjs": "^0.10.2"
   },
   "devDependencies": {
+    "@types/compression": "^1.0.1",
+    "@types/cors": "^2.8.6",
+    "@types/cron": "^1.7.1",
+    "@types/ejs": "^3.0.0",
+    "@types/express": "^4.17.2",
+    "@types/express-session": "^1.15.16",
+    "@types/helmet": "0.0.45",
     "@types/jest": "25.1.0",
+    "@types/moment-timezone": "^0.5.12",
     "@types/node": "13.5.0",
+    "@types/session-file-store": "^1.2.1",
+    "@types/socket.io": "^2.1.4",
     "@types/sqlstring": "^2.2.1",
     "@types/supertest": "2.0.8",
     "@types/yargs": "15.0.1",
