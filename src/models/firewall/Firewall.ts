@@ -4,7 +4,7 @@ import { getCustomRepository, Entity, Column, PrimaryGeneratedColumn } from "typ
 import PolicyGRepository from '../../repositories/PolicyGRepository';
 
 var utilsModel = require("../../utils/utils.js");
-var interfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var policy_rModel = require('../../models/policy/policy_r');
@@ -800,8 +800,8 @@ export class Firewall extends Model {
 							await policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 							await openvpnPrefixModel.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
 							await openvpnModel.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
-							await interfaceModel.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
-							await interfaceModel.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
+							await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
+							await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
 							await fwcTreemodel.deleteFwc_TreeFullNode({ id: row[0].id, fwcloud: fwcloud, iduser: user }); //DELETE TREE NODES From firewall
 							await utilsModel.deleteFolder(config.get('policy').data_dir + '/' + fwcloud + '/' + firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
 							await Firewall.deleteFirewallRow(dbCon, fwcloud, firewall);
@@ -854,7 +854,7 @@ export class Firewall extends Model {
 							// Move all related objects to the new firewall.
 							await policy_rModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await getCustomRepository(PolicyGRepository).moveFirewallGroupsToFirewall(req.body.firewall, idNewFM)
-							await interfaceModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
+							await Interface.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await openvpnModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 
 							// Promote the new master.
@@ -1003,7 +1003,7 @@ export class Firewall extends Model {
 						  	
 						  Verify too that these objects are not being used in any group.
 				*/
-				const r1 = await interfaceModel.searchInterfaceUsageOutOfThisFirewall(req);
+				const r1 = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
 				const r2 = await openvpnModel.searchOpenvpnUsageOutOfThisFirewall(req);
 				const r3 = await openvpnPrefixModel.searchPrefixUsageOutOfThisFirewall(req);
 

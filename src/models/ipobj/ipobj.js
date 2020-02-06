@@ -77,7 +77,7 @@ var asyncMod = require('async');
  * @property InterfaceModel
  * @type models.interface
  */
-var InterfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 /**
  * Property  to manage Ipobj host data
  *
@@ -245,7 +245,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 						if (row[0].type === 8) {
 							logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
 							//GET ALL HOST INTERFACES
-							InterfaceModel.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
+							Interface.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
 									.then(interfacesHost => {
 
 										//RETURN IPOBJ HOST DATA                                                                            
@@ -265,7 +265,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 						}
 					} else if (position_ipobj.type === 'I') {
 						//SEARCH INTERFACE DATA
-						InterfaceModel.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
+						Interface.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
 								.then(dataInt => {
 									logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
 									//var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
@@ -385,7 +385,7 @@ ipobjModel.getIpobj_Host_Full = function (fwcloud, id, AllDone) {
 					host_node.interfaces = new Array();
 
 					//GET ALL HOST INTERFACES
-					InterfaceModel.getInterfacesHost(idhost, fwcloud, function (error, data_interfaces) {
+					Interface.getInterfacesHost(idhost, fwcloud, function (error, data_interfaces) {
 						if (data_interfaces.length > 0) {
 							interfaces_cont = data_interfaces.length;
 
@@ -766,7 +766,7 @@ ipobjModel.deleteHost = (dbCon, fwcloud, host) => {
 				for(let interface of interfaces) {
 					await interface__ipobjModel.deleteHostInterface(dbCon, host, interface.id);
 					await ipobjModel.deleteIpobjInterface(dbCon, interface.id);
-					await InterfaceModel.deleteInterfaceHOST(dbCon, interface.id);
+					await Interface.deleteInterfaceHOST(dbCon, interface.id);
 				}
 
 				// Delete host ipobj.
@@ -1132,7 +1132,7 @@ ipobjModel.searchLastInterfaceWithAddrInHostInRule = (interface, fwcloud) => {
 				try {
 					let host = rows[0].obj_id;
 					// Get all host addresses.
-					let all_host_addr = await InterfaceModel.getHostAddr(dbCon,host);
+					let all_host_addr = await Interface.getHostAddr(dbCon,host);
 					for(let addr of all_host_addr) {
 						// If one of the host addresses hast a different interface, then we are not removing 
 						// the last host interface with IP addresses.

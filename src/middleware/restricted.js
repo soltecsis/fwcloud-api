@@ -29,7 +29,7 @@ module.exports = restrictedCheck;
 const customerModel = require('../models/user/customer');
 const userModel = require('../models/user/user');
 import { Firewall } from '../models/firewall/Firewall';
-const interfaceModel = require('../models/interface/interface');
+import { Interface } from '../models/interface/Interface';
 const ipobjModel = require('../models/ipobj/ipobj');
 const ipobj_gModel = require('../models/ipobj/group');
 const pkiCAModel = require('../models/vpn/pki/ca');
@@ -113,7 +113,7 @@ restrictedCheck.interface = async(req, res, next) => {
 	//Check interface in RULE O POSITIONS
 	const type = (req.body.host) ? 11 /* Host interface */ : 10 /* Firewall interface */ ;
 	try {
-		const data = await interfaceModel.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
+		const data = await Interface.searchInterfaceUsage(req.body.id, type, req.body.fwcloud, '');
 
 		if (data.result) {
 			// Ignore restrictions.InterfaceInFirewall restrictions.InterfaceInHost

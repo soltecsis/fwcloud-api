@@ -32,7 +32,7 @@ const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 import { Firewall } from '../../../models/firewall/Firewall';
 const policyOpenvpnModel = require('../../../models/policy/openvpn');
-const interfaceModel = require('../../../models/interface/interface');
+import { Interface } from '../../../models/interface/Interface';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -665,7 +665,7 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
         const interface_name = openvpn_opt.arg;
 
         // If we already have an interface with the same name then do nothing.
-        const interfaces = await interfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
+        const interfaces = await Interface.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
         for (interface of  interfaces) {
           if (interface.name===interface_name)
             return resolve();
@@ -683,7 +683,7 @@ openvpnModel.createOpenvpnServerInterface = (req,cfg) => {
 					mac: ''
         };
         
-				const interfaceId = await interfaceModel.insertInterface(req.dbCon, interfaceData);
+				const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
 				if (interfaceId) {
 					const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon,req.body.fwcloud,req.body.firewall,'FDI')
 					if (interfaces_node) {

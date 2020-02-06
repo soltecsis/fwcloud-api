@@ -28,7 +28,7 @@ module.exports = policy_r__ipobjModel;
 
 import db from '../../database/DatabaseService';
 var asyncMod = require('async');
-const interfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 const ipobj_gModel = require('../../models/ipobj/group');
 const policy_rModel = require('../../models/policy/policy_r');
 const fwcError = require('../../utils/error_table');
@@ -253,7 +253,7 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = req => {
 
 				let type = parseInt(rows[0].type);
 				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
-					let addrs = await interfaceModel.getInterfaceAddr(req.dbCon,req.body.interface);
+					let addrs = await Interface.getInterfaceAddr(req.dbCon,req.body.interface);
 					let n = 0;
 					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
 						if (parseInt(addr.ip_version) === rule_ip_version) n++;
@@ -261,7 +261,7 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = req => {
 					if (n === 0) return resolve(true);
 				} 
 				else if (type===8) { // 8 = HOST
-					let addrs = await interfaceModel.getHostAddr(req.dbCon,req.body.ipobj);
+					let addrs = await Interface.getHostAddr(req.dbCon,req.body.ipobj);
 					let n = 0;
 					for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
 						if (parseInt(addr.ip_version) === rule_ip_version) n++;
@@ -1228,7 +1228,7 @@ policy_r__ipobjModel.searchLastAddrInInterfaceInRule = (dbCon, ipobj, type, fwcl
 			try {
 				for(let row of rows) {
 					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
-					let addrs = await interfaceModel.getInterfaceAddr(dbCon,row.obj_id);
+					let addrs = await Interface.getInterfaceAddr(dbCon,row.obj_id);
 
 					// Count the amount of interface address with the same IP version of the rule.
 					let n = 0;
@@ -1277,7 +1277,7 @@ policy_r__ipobjModel.searchLastAddrInHostInRule = (dbCon, ipobj, type, fwcloud) 
 			try {
 				for(let row of rows) {
 					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
-					let addrs = await interfaceModel.getHostAddr(dbCon,row.obj_id);
+					let addrs = await Interface.getHostAddr(dbCon,row.obj_id);
 
 					// Count the amount of interface address with the same IP version of the rule.
 					let n = 0;

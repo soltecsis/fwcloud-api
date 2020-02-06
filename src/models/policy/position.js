@@ -28,7 +28,7 @@ import db from '../../database/DatabaseService';
 var policyPositionModel = {};
 const IpobjModel = require('../../models/ipobj/ipobj');
 const Ipobj_gModel = require('../../models/ipobj/group');
-const InterfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var data_policy_positions = require('../../models/data/data_policy_positions');
@@ -234,7 +234,7 @@ policyPositionModel.getRulePositionData = position => {
 						else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
 							data = await Ipobj_gModel.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g);
 						else if (item.interface>0 || item.type==='I') { // Network interface.
-							data = await InterfaceModel.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
+							data = await Interface.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
 							item.type='I'; // We need this when we create the data_policy_position_ipobjs object.
 						}
 						else if (item.ipobj>0 && item.type==='VPN') // OPENVPN

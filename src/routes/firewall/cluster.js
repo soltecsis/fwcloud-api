@@ -71,7 +71,7 @@ var fwcTreemodel = require('../../models/tree/tree');
 var Policy_rModel = require('../../models/policy/policy_r');
 var Policy_cModel = require('../../models/policy/policy_c');
 import { Firewall } from '../../models/firewall/Firewall';
-var InterfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -207,7 +207,7 @@ router.post('/', (req, res) => {
 
 					if (firewallData.fwmaster === 1) {
 						// Create the loop backup interface.
-						const loInterfaceId = await InterfaceModel.createLoInterface(req.body.fwcloud, idfirewall);
+						const loInterfaceId = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
 						// Create the default policy rules.							
 						await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
 						// Create the directory used for store firewall data.
@@ -555,7 +555,7 @@ router.put('/clone', (req, res) => {
 								fwNewMaster = idNewFirewall;
 								await Firewall.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1);
 								//CLONE INTERFACES
-								let dataI = await InterfaceModel.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+								let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
 								await Policy_rModel.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 								await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							}

@@ -4,7 +4,8 @@ import { Firewall } from "./Firewall";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 var fwcTreemodel = require('../tree/tree');
-var interfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
+
 
 var logger = require('log4js').getLogger("app");
 
@@ -73,7 +74,7 @@ export class Cluster extends Model {
                                 if (error) return reject(error);
                                 if (dataFwM && dataFwM.length > 0) {
                                     var idFwMaster = dataFwM[0].id;
-                                    interfaceModel.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
+                                    Interface.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
                                         if (error) return reject(error);
                                         if (dataI && dataI.length > 0) {
                                             dataCluster.interfaces = dataI;

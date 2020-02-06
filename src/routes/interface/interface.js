@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-var InterfaceModel = require('../../models/interface/interface');
+import { Interface } from '../../models/interface/Interface';
 var fwcTreemodel = require('../../models/tree/tree');
 var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
@@ -35,7 +35,7 @@ const fwcError = require('../../utils/error_table');
 /* Get all interfaces by firewall*/
 router.put('/fw/all/get', async(req, res) => {
 	try {
-		let data = await InterfaceModel.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
+		let data = await Interface.getInterfaces(req.dbCon, req.body.fwcloud, req.body.firewall);
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
@@ -46,7 +46,7 @@ router.put('/fw/all/get', async(req, res) => {
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', (req, res) => {
-	InterfaceModel.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
+	Interface.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)
@@ -59,7 +59,7 @@ router.put('/fw/full/get', (req, res) => {
 /* Get  interface by id and  by firewall*/
 router.put('/fw/get', async(req, res) => {
 	try {
-		const data = await InterfaceModel.getInterface(req.body.fwcloud, req.body.id);
+		const data = await Interface.getInterface(req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
 		else
@@ -70,7 +70,7 @@ router.put('/fw/get', async(req, res) => {
 
 /* Get all interfaces by HOST*/
 router.put('/host/all/get', (req, res) => {
-	InterfaceModel.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
+	Interface.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)
@@ -82,7 +82,7 @@ router.put('/host/all/get', (req, res) => {
 
 /* Get interface by id and HOST*/
 router.put('/host/get', (req, res) => {
-	InterfaceModel.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
+	Interface.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length == 1)
@@ -118,7 +118,7 @@ router.post("/", async(req, res) => {
 			comment: req.body.comment,
 			mac: req.body.mac
 		};
-		const insertId = await InterfaceModel.insertInterface(req.dbCon, interfaceData);
+		const insertId = await Interface.insertInterface(req.dbCon, interfaceData);
 
 		//If saved interface Get data
 		if (insertId && insertId > 0) {
@@ -161,7 +161,7 @@ router.put('/', (req, res) => {
 	};
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
-		InterfaceModel.updateInterface(interfaceData, async(error, data) => {
+		Interface.updateInterface(interfaceData, async(error, data) => {
 			if (error) return res.status(400).json(error);
 			//If saved interface saved ok, get data
 			if (data && data.result) {
@@ -189,7 +189,7 @@ router.put('/fw/del',
 	async(req, res) => {
 		try {
 			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
-			await InterfaceModel.deleteInterfaceFW(req.dbCon, req.body.id);
+			await Interface.deleteInterfaceFW(req.dbCon, req.body.id);
 			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
@@ -203,7 +203,7 @@ router.put("/host/del",
 		try {
 			await Interface__ipobjModel.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
 			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
-			await InterfaceModel.deleteInterfaceHOST(req.dbCon, req.body.id);
+			await Interface.deleteInterfaceHOST(req.dbCon, req.body.id);
 			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
@@ -213,7 +213,7 @@ router.put("/host/del",
 /* Search where is used interface  */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await InterfaceModel.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
+		const data = await Interface.searchInterfaceUsage(req.body.id, req.body.type, req.body.fwcloud, null);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else
