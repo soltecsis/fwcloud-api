@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 
-const markModel = require('../../models/ipobj/mark');
+import { Mark } from '../models/ipobj/Mark';
 const fwcTreeModel = require('../../models/tree/tree');
 const policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');
@@ -40,11 +40,11 @@ router.post('/', async (req, res) => {
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
     // Verify that we are not creating an iptables mark that already exists for this fwcloud.
-		if (await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.code)) 
+		if (await Mark.existsMark(req.dbCon,req.body.fwcloud,req.body.code)) 
 			throw fwcError.ALREADY_EXISTS;
 
 		// Create the new iptables mark for the indicated fwcloud.
-		const id = await markModel.createMark(req);
+		const id = await Mark.createMark(req);
 
 		// Create the iptables mark node in the ipobj tree.
 		let nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.name, req.body.node_id, 'MRK', id, 30);
@@ -60,16 +60,16 @@ router.post('/', async (req, res) => {
 router.put('/', async (req, res) => {
 	try {
 		// Verify that we the new iptables mark doesn't already exists for this fwcloud.
-		const existsId = await markModel.existsMark(req.dbCon,req.body.fwcloud,req.body.code);
+		const existsId = await Mark.existsMark(req.dbCon,req.body.fwcloud,req.body.code);
 		if (existsId && existsId!==req.body.mark) 
 			throw fwcError.ALREADY_EXISTS;
 
 		// Invalidate the compilation of the rules that use this mark.
-		const search = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
+		const search = await Mark.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
 		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,search.restrictions.MarkInRule);
 
    	// Modify the mark data.
-		await markModel.modifyMark(req);
+		await Mark.modifyMark(req);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -81,7 +81,7 @@ router.put('/', async (req, res) => {
  */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await markModel.getMark(req.dbCon,req.body.mark);
+		const data = await Mark.getMark(req.dbCon,req.body.mark);
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -95,7 +95,7 @@ restrictedCheck.mark,
 async (req, res) => {
 	try {
 		// Delete iptables mark.
-		await markModel.deleteMark(req.dbCon,req.body.mark);
+		await Mark.deleteMark(req.dbCon,req.body.mark);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -108,7 +108,7 @@ router.put('/restricted', restrictedCheck.mark, (req, res) => res.status(204).en
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await markModel.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
+		const data = await Mark.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
 		if (data.result)
 			res.status(200).json(data);
 		else

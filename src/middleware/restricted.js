@@ -31,12 +31,12 @@ const userModel = require('../models/user/user');
 import { Firewall } from '../models/firewall/Firewall';
 import { Interface } from '../models/interface/Interface';
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
+import { Mark } from '../models/ipobj/Mark';
 const ipobjModel = require('../models/ipobj/ipobj');
 const pkiCAModel = require('../models/vpn/pki/ca');
 const pkiCRTModel = require('../models/vpn/pki/crt');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
-const markModel = require('../models/ipobj/mark');
 
 restrictedCheck.customer = async(req, res, next) => {
 	try {
@@ -196,7 +196,7 @@ restrictedCheck.openvpn_prefix = async(req, res, next) => {
 
 restrictedCheck.mark = async(req, res, next) => {
 	try {
-		let data = await markModel.searchMarkUsage(req.dbCon, req.body.fwcloud, req.body.mark);
+		let data = await Mark.searchMarkUsage(req.dbCon, req.body.fwcloud, req.body.mark);
 		if (data.result) return res.status(403).json(data);
 
 		next();
