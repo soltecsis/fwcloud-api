@@ -26,7 +26,7 @@ var router = express.Router();
 const customerModel = require('../../models/user/customer');
 const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
-const fwcloudModel = require('../../models/fwcloud/fwcloud');
+import { FwCloud } from '../../models/fwcloud/FwCloud';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
@@ -562,7 +562,7 @@ router.put('/fwcloud/del', async (req, res) => {
  */
 router.put('/fwcloud/get', async (req, res) => {
 	try {
-		const data = await fwcloudModel.getFwclouds(req.dbCon, req.body.user);
+		const data = await FwCloud.getFwclouds(req.dbCon, req.body.user);
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else

@@ -73,7 +73,7 @@ import { FirewallExport } from '../../export/FirewallExport';
  * 
  * 
  */
-var FwcloudModel = require('../../models/fwcloud/fwcloud');
+import { FwCloud } from '../../models/fwcloud/FwCloud';
 
 var utilsModel = require("../../utils/utils.js");
 var fwcTreemodel = require('../../models/tree/tree');
@@ -607,7 +607,7 @@ router.put('/accesslock/get', async (req, res) => {
 	try {
 		const data = await Firewall.getFirewall(req);
 		if (data) {
-			await FwcloudModel.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
+			await FwCloud.getFwcloudAccess(req.session.user_id, req.body.fwcloud);
 			res.status(200).json(resp);
 		}
 		else res.status(204).end();

@@ -62,7 +62,8 @@ var router = express.Router();
  * 
  * 
  */
-var fwcloudModel = require('../../models/fwcloud/fwcloud');
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+
 
 var utilsModel = require('../../utils/utils');
 var fwcTreemodel = require('../../models/tree/tree');
@@ -102,7 +103,7 @@ router.post('/', async(req, res) => {
 		if (!await userModel.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
-		req.body.fwcloud = await fwcloudModel.insertFwcloud(req);
+		req.body.fwcloud = await FwCloud.insertFwcloud(req);
 		await fwcTreemodel.createAllTreeCloud(req);
 		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
@@ -147,7 +148,7 @@ router.put('/', async(req, res) => {
 		if (!await userModel.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
-		await fwcloudModel.updateFwcloud(req);
+		await FwCloud.updateFwcloud(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -197,7 +198,7 @@ router.put('/', async(req, res) => {
  */
 router.get('/all/get', async (req, res) => {
 	try {
-		const data = await fwcloudModel.getFwclouds(req.dbCon, req.session.user_id);
+		const data = await FwCloud.getFwclouds(req.dbCon, req.session.user_id);
 		if (data && data.length > 0)
 			res.status(200).json(data);
 		else
@@ -244,7 +245,7 @@ router.get('/all/get', async (req, res) => {
  * }
  */
 router.put('/get', (req, res) => {
-	fwcloudModel.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
+	FwCloud.getFwcloud(req.session.user_id, req.body.fwcloud, (error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)
@@ -317,7 +318,7 @@ async(req, res) => {
 
 		// Remove the fwcloud data dir.
 		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-		await fwcloudModel.deleteFwcloud(req);
+		await FwCloud.deleteFwcloud(req);
 
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
