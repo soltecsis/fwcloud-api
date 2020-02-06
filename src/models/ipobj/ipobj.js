@@ -108,7 +108,7 @@ var ipobj_Data = require('../../models/data/data_ipobj');
 
 import { IPObjGroup } from './IPObjGroup';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
-var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
+import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 const fwcError = require('../../utils/error_table');
 
@@ -948,14 +948,14 @@ ipobjModel.searchIpobjUsage = (dbCon, fwcloud, id, type) => {
 			search.result = false;
 			search.restrictions ={};
 			search.restrictions.IpobjInRule = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInGroup = await IPObjToIPObjGroup.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
 			if (type===8) { // HOST
 				search.restrictions.InterfaceHostInRule = await Policy_r__ipobjModel.searchInterfaceHostInRule(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInRule = await Policy_r__ipobjModel.searchAddrHostInRule(dbCon, fwcloud, id);
-				search.restrictions.AddrHostInGroup = await Ipobj__ipobjgModel.searchAddrHostInGroup(dbCon, fwcloud, id);
+				search.restrictions.AddrHostInGroup = await IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
 				search.restrictions.AddrHostInOpenvpn = await ipobjModel.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
 			}	
 
@@ -1015,7 +1015,7 @@ ipobjModel.searchIpobj = (id, type, fwcloud) => {
 			search.result = false;
 			search.restrictions = {};
 			search.restrictions.IpobjInRule = await Policy_r__ipobjModel.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-			search.restrictions.IpobjInGroup = await Ipobj__ipobjgModel.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+			search.restrictions.IpobjInGroup = await IPObjToIPObjGroup.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
 			search.restrictions.IpobjInterface = await Policy_r__ipobjModel.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
 			search.restrictions.IpobjInOpenVPN = await ipobjModel.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 

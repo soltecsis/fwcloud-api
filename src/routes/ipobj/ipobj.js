@@ -74,7 +74,7 @@ var IpobjModel = require('../../models/ipobj/ipobj');
 var fwcTreemodel = require('../../models/tree/tree');
 
 
-var Ipobj_typeModel = require('../../models/ipobj/ipobj_type');
+import { IPObjType } from '../../models/ipobj/IPObjType';
 import { Firewall } from '../../models/firewall/Firewall';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
@@ -302,7 +302,7 @@ router.put('/',
 		};
 
 		try {
-			const data = await Ipobj_typeModel.getIpobj_type(req, ipobjData.type);
+			const data = await IPObjType.getIpobj_type(req, ipobjData.type);
 
 			if (data && data[0].protocol_number !== null)
 				ipobjData.protocol = data[0].protocol_number;

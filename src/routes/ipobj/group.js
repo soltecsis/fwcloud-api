@@ -35,12 +35,12 @@ var router = express.Router();
 
 import { Firewall } from '../../models/firewall/Firewall';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 var ipobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
-var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 const restrictedCheck = require('../../middleware/restricted');
 const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const fwcError = require('../../utils/error_table');
@@ -169,7 +169,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj = await ipobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 			if (groupIPv!=0 && dataIpobj[0].ip_version!==groupIPv) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
-			await Ipobj__ipobjgModel.insertIpobj__ipobjg(req);
+			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
 
@@ -202,7 +202,7 @@ router.put('/delfrom', async(req, res) => {
 		else if (req.body.obj_type === 401) // OpenVPN PREFIX
 			await openvpnPrefixModel.removePrefixFromGroup(req);
 		else
-			await Ipobj__ipobjgModel.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
+			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 
 		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 

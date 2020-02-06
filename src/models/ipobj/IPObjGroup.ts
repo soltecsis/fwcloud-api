@@ -10,7 +10,7 @@ var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var Ipobj__ipobjgModel = require('./ipobj__ipobjg');
+import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'ipobj_g';
@@ -315,7 +315,7 @@ export class IPObjGroup extends Model {
         return new Promise(async (resolve, reject) => {
             // FIRST DELETE CHILDREN
             try {
-                await Ipobj__ipobjgModel.deleteIpobj__ipobjgAll(dbCon, id);
+                await IPObjToIPObjGroup.deleteIpobj__ipobjgAll(dbCon, id);
             } catch (error) { return reject(error) }
 
             dbCon.query(`DELETE FROM ${tableName} WHERE id=${id} AND fwcloud=${fwcloud} AND type=${type}`, (error, result) => {
