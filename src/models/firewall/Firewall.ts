@@ -264,7 +264,7 @@ export class Firewall extends Model {
 	 *           by_user	int(11)
 	 */
 	public static getFirewallCluster(iduser, idcluster, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error) return callback(error, null);
 			var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
 			FROM ${tableName} T 
@@ -272,7 +272,7 @@ export class Firewall extends Model {
 			LEFT join interface I on I.id=T.install_interface
 			LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 			WHERE cluster=${idcluster} ORDER BY T.fwmaster desc, T.id`;
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else {

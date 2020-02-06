@@ -61,7 +61,7 @@ var router = express.Router();
  * @property ClusterModel
  * @type ../../models/cluster
  */
-var clusterModel = require('../../models/firewall/cluster');
+import { Cluster } from '../../models/firewall/Cluster';
 
 var logger = require('log4js').getLogger("app");
 
@@ -184,7 +184,7 @@ router.post('/', (req, res) => {
 	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
 		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 
-	clusterModel.insertCluster(clusterData, async(error, dataNewCluster) => {
+	Cluster.insertCluster(clusterData, async(error, dataNewCluster) => {
 		//get cluster info
 		if (dataNewCluster && dataNewCluster.insertId) {
 			var idcluster = dataNewCluster.insertId;
@@ -280,7 +280,7 @@ router.post('/', (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-		const data = await clusterModel.getCluster(req);
+		const data = await Cluster.getCluster(req);
 		if (data)
 			res.status(200).json(data);
 		else
@@ -337,7 +337,7 @@ router.put('/get', async (req, res) => {
  */
 router.put('/cloud/get', async (req, res) => {
 	try {
-		const data = await clusterModel.getClusterCloud(req);
+		const data = await Cluster.getClusterCloud(req);
 		if (data)
 			res.status(200).json(data);
 		else
@@ -395,7 +395,7 @@ router.put('/', async (req, res) => {
 	try {
 		const masterFirewallID = await Firewall.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
 		await Policy_cModel.deleteFullFirewallPolicy_c(req.dbCon,masterFirewallID);
-		await clusterModel.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
+		await Cluster.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
 
 		// If this a stateful cluster verify that the stateful special rules exists.
 		// Or remove them if this is not a stateful firewall cluster.
@@ -426,7 +426,7 @@ router.put('/fwtocluster', async(req, res) => {
 			fwcloud: fwcloud
 		};
 
-		clusterModel.insertCluster(clusterData, function(error, data) {
+		Cluster.insertCluster(clusterData, function(error, data) {
 			//get cluster info
 			if (data && data.insertId) {
 				var idcluster = data.insertId;
@@ -486,7 +486,7 @@ router.put('/clustertofw', (req, res) => {
 					Firewall.updateFirewallCluster(firewallData)
 						.then(() => {
 							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, function(error, dataFC) {
-								clusterModel.deleteClusterSimple(idCluster, iduser, fwcloud, function(error, data) {
+								Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, function(error, data) {
 									Policy_rModel.cleanApplyTo(firewallData.id, (error, data) => {});
 								});
 							});
@@ -527,7 +527,7 @@ router.put('/clone', (req, res) => {
 
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
-			clusterModel.insertCluster(clusterData, async(error, data) => {
+			Cluster.insertCluster(clusterData, async(error, data) => {
 				if (error) return res.status(400).json(error);
 
 				//get cluster info
@@ -586,7 +586,7 @@ router.put("/del",
 restrictedCheck.firewall,
 async (req, res) => {
 	try {
-		await clusterModel.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
+		await Cluster.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
 		res.status(204).end();
 	}	catch(error) { res.status(400).json(error) }
 });
