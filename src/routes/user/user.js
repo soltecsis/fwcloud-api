@@ -23,9 +23,9 @@
 
 var express = require('express');
 var router = express.Router();
-const customerModel = require('../../models/user/customer');
-const userModel = require('../../models/user/user');
 const restrictedCheck = require('../../middleware/restricted');
+import { Customer } from '../../models/user/Customer';
+import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 const fwcError = require('../../utils/error_table');
 
@@ -68,7 +68,7 @@ router.post('/login',async (req, res) => {
 	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
 	// fields are mandatory.
 	try {
-		const data = await userModel.getUserName(req.body.customer, req.body.username);
+		const data = await User.getUserName(req.body.customer, req.body.username);
 		if (data.length===0) {
 			req.session.destroy(err => {});
 			throw fwcError.BAD_LOGIN;
@@ -173,18 +173,18 @@ router.post('', async (req, res) => {
 		// has the admin role. Then, we don't need to check it again.
 	
 		// Verify that exists the customer to which the new user will belong.
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
 			throw fwcError.NOT_FOUND;
 
 		// Verify that for the indicated customer we don't have another user with the same username.
-		if (await userModel.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
+		if (await User.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
 			throw fwcError.ALREADY_EXISTS;
 
-		const new_user_id = await userModel.insert(req);
+		const new_user_id = await User.insert(req);
 
 		// If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
 		if (req.body.role===1)
-			await userModel.allowAllFwcloudAccess(req.dbCon,new_user_id);
+			await User.allowAllFwcloudAccess(req.dbCon,new_user_id);
 
 		res.status(200).json({"user": new_user_id});
 	} catch (error) { res.status(400).json(error) }
@@ -237,21 +237,21 @@ router.post('', async (req, res) => {
 router.put('', async (req, res) => {
 	try {
 		// Verify that the customer exists.
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
 			throw fwcError.NOT_FOUND;
 
 		// Verify that the user exists and belongs to the indicated customer.
-		if (!(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+		if (!(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			throw fwcError.NOT_FOUND;
 
 		// Veriry that don't exists another user with the same username into the same customer.
-		if(await userModel.existsCustomerUserNameOtherId(req.dbCon,req.body.customer,req.body.username,req.body.user))
+		if(await User.existsCustomerUserNameOtherId(req.dbCon,req.body.customer,req.body.username,req.body.user))
 			throw fwcError.ALREADY_EXISTS_NAME;
 
 		// If there is only on administrator user left and we want to change his role from administrator to manager,
 		// don't allow it.
-		if(await userModel.isAdmin(req) && req.body.role!==1) {
-			const data = await userModel.lastAdminUser(req); 
+		if(await User.isAdmin(req) && req.body.role!==1) {
+			const data = await User.lastAdminUser(req); 
 			if (data.result) 
 				throw fwcError.other('It is not allowed to change the role of the last administrator user');
 		}
@@ -261,11 +261,11 @@ router.put('', async (req, res) => {
 		if (req.body.user===req.session.user_id && req.body.role!==1)
 			throw fwcError.other('It is not allowed to change the role of the logged user');
 
-		await userModel.update(req);
+		await User.update(req);
 
 		// If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
 		if (req.body.role===1)
-			await userModel.allowAllFwcloudAccess(req.dbCon,req.body.user);
+			await User.allowAllFwcloudAccess(req.dbCon,req.body.user);
 
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
@@ -299,7 +299,7 @@ router.put('', async (req, res) => {
  */
 router.put('/changepass', async (req, res) => {
 	try {
-		await userModel.changeLoggedUserPass(req);
+		await User.changeLoggedUserPass(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -353,15 +353,15 @@ router.put('/changepass', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		// Verify that the customer exists.
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer))) 
+		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
 			throw fwcError.NOT_FOUND;
 
 		// Check that the user indicated in the requests exists and belongs to the customer send in the request body.
 		// req.body.customer is a mandatory parameter in Joi schema.
-		if (req.body.user && !(await userModel.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
+		if (req.body.user && !(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
 			throw fwcError.NOT_FOUND;
 
-		const data = await userModel.get(req);
+		const data = await User.get(req);
 		res.status(200).json(req.body.user ? data[0] : data);
 	} catch (error) { res.status(400).json(error) }
 });
@@ -397,13 +397,13 @@ router.put('/del',
 restrictedCheck.user,
 async (req, res) => {
 	try {
-		if (!(await userModel.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
+		if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
 			throw fwcError.NOT_FOUND;
 
 		if (req.body.user===req.session.user_id)
 			throw fwcError.other('It is not allowed to delete the logged user');
 
-		await userModel.delete(req);
+		await User.delete(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -478,7 +478,7 @@ router.post('/fwcloud', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await userModel.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
+		await User.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -508,7 +508,7 @@ router.put('/fwcloud/del', async (req, res) => {
 		// Remember that in the access control middleware we have already verified that the logged user
 		// has the admin role. Then, we don't have to check it again.
 
-		await userModel.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
+		await User.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });

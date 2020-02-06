@@ -53,7 +53,7 @@ var router = express.Router();
  * @property PolicyScript
  * @type ../../models/compile/
  */
-var policyScript = require('../../models/policy/policy_script');
+import { PolicyScript } from '../../compiler/PolicyScript';
 import { Firewall } from '../../models/firewall/Firewall';
 
 
@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
   try {
     const data = await Firewall.getFirewallSSH(req);
 
-    await policyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id))
+    await PolicyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id))
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     

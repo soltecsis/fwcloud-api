@@ -1,0 +1,117 @@
+import Model from "../Model";
+import { Column } from "typeorm";
+
+const tableName: string = 'policy_r__openvpn_prefix';
+
+export class PolicyRuleToOpenVPNPrefix extends Model {
+
+    @Column()
+    rule: number;
+
+    @Column()
+    prefix: number;
+
+    @Column()
+    position: number;
+
+    @Column()
+    position_order: number;
+
+    @Column()
+    created_at: Date;
+
+    @Column()
+    updated_at: Date;
+
+    @Column()
+    created_by: number;
+
+    @Column()
+    updated_by: number;
+
+    public getTableName(): string {
+        return tableName;
+    }
+
+    //Add new policy_r__openvpn_prefix
+    public static insertInRule = req => {
+        return new Promise(async (resolve, reject) => {
+            var policyPrefix = {
+                rule: req.body.rule,
+                prefix: req.body.prefix,
+                position: req.body.position,
+                position_order: req.body.position_order
+            };
+            req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, (error, result) => {
+                if (error) return reject(error);
+                resolve(result.insertId);
+            });
+        });
+    }
+
+    public static checkPrefixPosition = (dbCon, position) => {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`select type from ipobj_type__policy_position where type=401 and position=${position}`, (error, rows) => {
+                if (error) return reject(error);
+                resolve((rows.length > 0) ? 1 : 0);
+            });
+        });
+    }
+
+
+    public static checkExistsInPosition = (dbCon, rule, prefix, openvpn, position) => {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT rule FROM ${tableName}
+                WHERE rule=${rule} AND prefix=${prefix} AND position=${position}`;
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                resolve((rows.length > 0) ? 1 : 0);
+            });
+        });
+    }
+
+
+    public static moveToNewPosition(req) {
+        return new Promise((resolve, reject) => {
+            let sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
+                WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
+            req.dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    }
+
+
+    public static deleteFromRulePosition(req) {
+        return new Promise((resolve, reject) => {
+            let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
+            req.dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    }
+
+    public static deleteFromRule(dbCon, rule) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, (error, rows) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    }
+
+    //Duplicate policy_r__openvpn_prefix RULES
+    public static duplicatePolicy_r__prefix(dbCon, rule, new_rule) {
+        return new Promise((resolve, reject) => {
+            let sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
+                (SELECT ${new_rule}, prefix, position, position_order
+                from ${tableName} where rule=${rule} order by  position, position_order)`;
+            dbCon.query(sql, (error, result) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    }
+}

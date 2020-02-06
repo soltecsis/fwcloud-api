@@ -26,8 +26,8 @@ var restrictedCheck = {};
 //Export the object
 module.exports = restrictedCheck;
 
-const customerModel = require('../models/user/customer');
-const userModel = require('../models/user/user');
+import { User } from '../models/user/User';
+import { Customer } from '../models/user/Customer';
 import { Firewall } from '../models/firewall/Firewall';
 import { Interface } from '../models/interface/Interface';
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
@@ -40,9 +40,9 @@ const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
 
 restrictedCheck.customer = async(req, res, next) => {
 	try {
-		let data = await customerModel.searchUsers(req);
+		let data = await Customer.searchUsers(req);
 		if (data.result) return res.status(403).json(data);
-		data = await customerModel.lastCustomer(req);
+		data = await Customer.lastCustomer(req);
 		if (data.result) return res.status(403).json(data);
 		next();
 	} catch (error) { res.status(400).json(error) }
@@ -51,8 +51,8 @@ restrictedCheck.customer = async(req, res, next) => {
 
 restrictedCheck.user = async(req, res, next) => {
 	try {
-		if (await userModel.isAdmin(req)) {
-			const data = await userModel.lastAdminUser(req);
+		if (await User.isAdmin(req)) {
+			const data = await User.lastAdminUser(req);
 			if (data.result) return res.status(403).json(data);
 		}
 		next();

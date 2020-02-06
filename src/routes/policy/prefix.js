@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-const policyPrefixModel = require('../../models/policy/prefix');
+import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
@@ -41,10 +41,10 @@ async (req, res) => {
 		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-		if (!(await policyPrefixModel.checkPrefixPosition(req.dbCon,req.body.position)))
+		if (!(await PolicyRuleToOpenVPNPrefix.checkPrefixPosition(req.dbCon,req.body.position)))
 			throw fwcError.ALREADY_EXISTS;
 
-		await policyPrefixModel.insertInRule(req);
+		await PolicyRuleToOpenVPNPrefix.insertInRule(req);
 		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
@@ -60,7 +60,7 @@ async (req, res) => {
 		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		
-		if (await policyPrefixModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.openvpn,req.body.new_position))
+		if (await PolicyRuleToOpenVPNPrefix.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.openvpn,req.body.new_position))
 			throw fwcError.ALREADY_EXISTS;
 
 		// Get content of positions.
@@ -74,7 +74,7 @@ async (req, res) => {
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		// Move OpenVPN configuration object to the new position.
-		const data = await policyPrefixModel.moveToNewPosition(req);
+		const data = await PolicyRuleToOpenVPNPrefix.moveToNewPosition(req);
 
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }
@@ -90,7 +90,7 @@ router.put('/del',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
-		await policyPrefixModel.deleteFromRulePosition(req);
+		await PolicyRuleToOpenVPNPrefix.deleteFromRulePosition(req);
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });

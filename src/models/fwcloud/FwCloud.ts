@@ -3,7 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import db from '../../database/DatabaseService';
 
 var logger = require('log4js').getLogger("app");
-const userModel = require('../../models/user/user');
+import { User } from '../../models/user/User';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -248,9 +248,9 @@ export class FwCloud extends Model {
 
                 let fwcloud = result.insertId;
                 try {
-                    const admins = await userModel.getAllAdminUserIds(req);
+                    const admins: any = await User.getAllAdminUserIds(req);
                     for(let admin of admins) {
-                        await userModel.allowFwcloudAccess(req.dbCon,admin.id,fwcloud);
+                        await User.allowFwcloudAccess(req.dbCon,admin.id,fwcloud);
                     }
                     resolve(fwcloud);
                 } catch(error) { reject(error) }
@@ -468,9 +468,9 @@ export class FwCloud extends Model {
                     try {
                         //DELETE ALL OBJECTS FROM CLOUD
                         await this.EmptyFwcloudStandard(req.body.fwcloud);
-                        const admins = await userModel.getAllAdminUserIds(req);
+                        const admins: any = await User.getAllAdminUserIds(req);
                         for(let admin of admins) {
-                            await userModel.disableFwcloudAccess(req.dbCon,admin.id,req.body.fwcloud);
+                            await User.disableFwcloudAccess(req.dbCon,admin.id,req.body.fwcloud);
                         }
                     } catch (error) { return reject(error) }
 

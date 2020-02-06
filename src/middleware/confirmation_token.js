@@ -24,10 +24,10 @@
 //create object
 var confirmToken = {};
 //Export the object
-module.exports = confirmToken;
+export default confirmToken;
 
 const randomString = require('random-string');
-const userModel = require('../models/user/user');
+import { User } from '../models/user/User';
 
 confirmToken.check = async (req, res, next) => {
   if (req.url.split('/').pop()==='get' || req.url.split('/').pop()==='restricted' || req.url.split('/').pop()==='where' 
@@ -58,12 +58,12 @@ confirmToken.validate = req => {
           if (reqCT===undefined || reqCT!==dbCT) {
             //generate new token
             const new_token = req.sessionID + "_" + randomString({length: 20});
-            await userModel.updateUserCT(req.session.user_id, new_token)
+            await User.updateUserCT(req.session.user_id, new_token)
             resolve({"result": false, "token": new_token});
           } else {
             //token valid
             //REMOVE token
-            await userModel.updateUserCT(req.session.user_id, "")
+            await User.updateUserCT(req.session.user_id, "")
             resolve({"result": true, "token": ""});
           }
         } else reject({"result": false, "token": ""});

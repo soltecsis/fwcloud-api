@@ -26,7 +26,7 @@ var accessCtrl = {};
 //Export the object
 export default accessCtrl;
 
-const userModel = require('../models/user/user');
+import { User } from '../models/user/User';
 import { Firewall } from '../models/firewall/Firewall';
 const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
@@ -62,7 +62,7 @@ accessCtrl.check = async (req, res, next) => {
 			return next();
 
 		// All other customer and user changes are only allowed to administrator users.
-	 	if (await userModel.isLoggedUserAdmin(req))
+	 	if (await User.isLoggedUserAdmin(req))
 			return next();
 		
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);
@@ -70,7 +70,7 @@ accessCtrl.check = async (req, res, next) => {
 
 	// Backups can only be managed by users with the admin role.
 	if (req.url.substring(0,7)==="/backup") {
-		if (await userModel.isLoggedUserAdmin(req))
+		if (await User.isLoggedUserAdmin(req))
 			return next();
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);		
 	}

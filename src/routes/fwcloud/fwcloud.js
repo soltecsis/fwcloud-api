@@ -68,7 +68,7 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 var utilsModel = require('../../utils/utils');
 var fwcTreemodel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
-const userModel = require("../../models/user/user");
+import { User } from '../../models/user/User'
 const fwcError = require('../../utils/error_table');
 
 
@@ -100,7 +100,7 @@ const fwcError = require('../../utils/error_table');
 router.post('/', async(req, res) => {
 	try {
 		// Only users with the administrator role can create a new fwcloud.
-		if (!await userModel.isLoggedUserAdmin(req))
+		if (!await User.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
 		req.body.fwcloud = await FwCloud.insertFwcloud(req);
@@ -145,7 +145,7 @@ router.post('/', async(req, res) => {
 router.put('/', async(req, res) => {
 	try {
 		// Only users with the administrator role can update a fwcloud.
-		if (!await userModel.isLoggedUserAdmin(req))
+		if (!await User.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
 		await FwCloud.updateFwcloud(req);
@@ -313,7 +313,7 @@ restrictedCheck.fwcloud,
 async(req, res) => {
 	try {
 		// Only users with the administrator role can delete a fwcloud.
-		if (!await userModel.isLoggedUserAdmin(req))
+		if (!await User.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
 		// Remove the fwcloud data dir.

@@ -55,7 +55,7 @@ var router = express.Router();
  * @type ../../models/vpn/openvpn
  */
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
-import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 const policy_cModel = require('../../../models/policy/policy_c');
 
 const fwcTreeModel = require('../../../models/tree/tree');

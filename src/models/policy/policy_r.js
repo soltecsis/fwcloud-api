@@ -31,15 +31,16 @@ import db from '../../database/DatabaseService';
 import { getCustomRepository } from 'typeorm';
 import PolicyGRepository from '../../repositories/PolicyGRepository';
 
+import { RuleCompile } from '../../compiler/RuleCompiler';
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
+import { PolicyPosition } from './PolicyPosition';
+
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 
 var tableModel = "policy_r";
-var policyPositionModel = require('./position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
-import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-var policyPrefixModel = require('../../models/policy/prefix');
 const fwcError = require('../../utils/error_table');
 
 var logger = require('log4js').getLogger("app");
@@ -85,8 +86,8 @@ policy_rModel.getPolicyData = req => {
 
 			try {
 				for(let rule of rules) {
-					const positions = await policyPositionModel.getRulePositions(rule);
-					rule.positions = await Promise.all(positions.map(policyPositionModel.getRulePositionData));
+					const positions = await PolicyPosition.getRulePositions(rule);
+					rule.positions = await Promise.all(positions.map(PolicyPosition.getRulePositionData));
 				}
 				resolve(rules);
 			} catch(error) { reject(error) }
@@ -119,8 +120,8 @@ policy_rModel.getPolicyDataDetailed = (fwcloud, firewall, type, rule) => {
 				try {
 					if (rules.length > 0) {
 						for(let rule of rules) {
-							const positions = await policyPositionModel.getRulePositions(rule);
-							rule.positions = await Promise.all(positions.map(policyPositionModel.getRulePositionDataDetailed));
+							const positions = await PolicyPosition.getRulePositions(rule);
+							rule.positions = await Promise.all(positions.map(PolicyPosition.getRulePositionDataDetailed));
 						}		
 						resolve(rules);
 					} else resolve(null); // NO existes reglas
@@ -471,7 +472,7 @@ policy_rModel.clonePolicy = rowData => {
 				await policy_rModel.clonePolicyIpobj(dbCon,rowData.newfirewall,rowData.id,newRule);
 				await policy_rModel.clonePolicyInterface(dbCon,rowData.firewall,rowData.id,newRule);
 				await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon,rowData.id,newRule);
-				await policyPrefixModel.duplicatePolicy_r__prefix(dbCon,rowData.id,newRule);
+				await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon,rowData.id,newRule);
 				resolve();
 			} catch(error) { reject(error) }
 		});
@@ -800,7 +801,7 @@ policy_rModel.deletePolicy_r = (firewall, rule) => {
 					
 					try {
 						await PolicyRuleToOpenVPN.deleteFromRule(dbCon,rule);
-						await policyPrefixModel.deleteFromRule(dbCon,rule);
+						await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon,rule);
 						//DELETE POLICY_C compilation
 						await Policy_cModel.deletePolicy_c(rule);
 					} catch(error) { return reject(error) }
@@ -828,7 +829,7 @@ policy_rModel.compilePolicy_r = (accessData, callback) => {
 		if (error) return callback(error, null);
 		if (data && data.length > 0) {
 
-			RuleCompileModel.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
+			RuleCompile.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
 				.then(data => {
 					if (data && data.length > 0) {
 						callback(null, { "result": true, "msg": "Rule compiled" });

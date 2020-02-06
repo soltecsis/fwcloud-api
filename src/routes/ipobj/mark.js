@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 
-import { Mark } from '../models/ipobj/Mark';
+import { Mark } from '../../models/ipobj/Mark';
 const fwcTreeModel = require('../../models/tree/tree');
 const policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');

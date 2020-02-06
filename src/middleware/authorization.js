@@ -24,9 +24,9 @@
 //create object
 var accessAuth = {};
 //Export the object
-module.exports = accessAuth;
+export default accessAuth;
 
-var UserModel = require('../models/user/user');
+import { User } from '../models/user/User';
 const fwcError = require('../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -53,7 +53,7 @@ accessAuth.check = async (req, res, next) => {
 			throw fwcError.SESSION_BAD;
 		}
 	
-		const data = await UserModel.getUserName(req.session.customer_id, req.session.username);
+		const data = await User.getUserName(req.session.customer_id, req.session.username);
 		if (data.length===0) {
 			req.session.destroy(err => {} );
 			throw fwcError.SESSION_BAD;

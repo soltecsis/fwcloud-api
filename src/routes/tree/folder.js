@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-var fwcTreeFoldermodel = require('../../models/tree/folder');
+import { Folder } from '../../models/tree/Folder';
 const fwcError = require('../../utils/error_table');
 
 
@@ -40,14 +40,14 @@ router.post('/', async (req, res) =>{
 	};
 
 	try {
-		res.status(200).json(await fwcTreeFoldermodel.createFolderNode(nodeData)); 
+		res.status(200).json(await Folder.createFolderNode(nodeData)); 
 	} catch(error) { res.status(400).json(error) }
 });
 
 /* Rename folder */
 router.put('/', async (req, res) =>{
 	try {
-		await fwcTreeFoldermodel.renameFolderNode(req.body.fwcloud,req.body.id,req.body.old_name,req.body.new_name);
+		await Folder.renameFolderNode(req.body.fwcloud,req.body.id,req.body.old_name,req.body.new_name);
 		res.status(204).end(); 
 	} catch(error) { res.status(400).json(error) }
 });
@@ -55,7 +55,7 @@ router.put('/', async (req, res) =>{
 /* Delete folder */
 router.put('/del', async (req, res) =>{
 	try {
-		await fwcTreeFoldermodel.deleteFolderNode(req.body.fwcloud,req.body.id);
+		await Folder.deleteFolderNode(req.body.fwcloud,req.body.id);
 		res.status(204).end(); 
 	} catch(error) { res.status(400).json(error) }
 });
@@ -63,7 +63,7 @@ router.put('/del', async (req, res) =>{
 /* Drop to folder */
 router.put('/drop', async (req, res) =>{
 	try {
-		await fwcTreeFoldermodel.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst);
+		await Folder.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst);
 		res.status(204).end(); 
 	} catch(error) { res.status(400).json(error) }
 });

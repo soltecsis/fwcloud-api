@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-const customerModel = require('../../models/user/customer');
+import { Customer } from '../../models/user/Customer';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -74,13 +74,13 @@ const fwcError = require('../../utils/error_table');
 router.post('', async (req, res) => {
 	try {
 		// Verify that don't already exists a customer with the id or name indicated as a parameter in the body request.
-		if (req.body.customer && (await customerModel.existsId(req.dbCon,req.body.customer))) 
+		if (req.body.customer && (await Customer.existsId(req.dbCon,req.body.customer))) 
 			throw fwcError.ALREADY_EXISTS_ID;
 		
-		if (await customerModel.existsName(req.dbCon,req.body.name))
+		if (await Customer.existsName(req.dbCon,req.body.name))
 			throw fwcError.ALREADY_EXISTS_NAME;
 		
-		await customerModel.insert(req);
+		await Customer.insert(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -130,15 +130,15 @@ router.post('', async (req, res) => {
  */
 router.put('', async (req, res) => {
 	try {
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
+		if (!(await Customer.existsId(req.dbCon,req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
 		// Verify that don't already exists a customer with same name indicated in the body request.
-		const customer_id_new_name = await customerModel.existsName(req.dbCon,req.body.name);
+		const customer_id_new_name = await Customer.existsName(req.dbCon,req.body.name);
 		if (customer_id_new_name && customer_id_new_name!=req.body.customer)
 			throw fwcError.ALREADY_EXISTS_NAME;
 
-		await customerModel.update(req);
+		await Customer.update(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -201,10 +201,10 @@ router.put('', async (req, res) => {
  */
 router.put('/get', async (req, res) => {
 	try {
-		if (req.body.customer && !(await customerModel.existsId(req.dbCon,req.body.customer)))
+		if (req.body.customer && !(await Customer.existsId(req.dbCon,req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
-		const data = await customerModel.get(req);
+		const data = await Customer.get(req);
 		res.status(200).json(req.body.customer ? data[0] : data);
 	} catch (error) { res.status(400).json(error) }
 });
@@ -248,10 +248,10 @@ router.put('/del',
 restrictedCheck.customer,
 async (req, res) => {
 	try {
-		if (!(await customerModel.existsId(req.dbCon,req.body.customer)))
+		if (!(await Customer.existsId(req.dbCon,req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
-		await customerModel.delete(req);
+		await Customer.delete(req);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });

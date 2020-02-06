@@ -31,7 +31,7 @@ const fwcTreeModel = require('../../../models/tree/tree');
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 import { Firewall } from '../../../models/firewall/Firewall';
-import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');

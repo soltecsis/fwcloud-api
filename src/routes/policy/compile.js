@@ -62,7 +62,7 @@ var router = express.Router();
  * @property RuleCompileModel
  * @type ../../models/compile/
  */
-var RuleCompile = require('../../models/policy/rule_compile');
+import { RuleCompile } from '../../compiler/RuleCompiler';
 
 /**
  * Property Model to manage policy script generation and install process
@@ -70,7 +70,7 @@ var RuleCompile = require('../../models/policy/rule_compile');
  * @property PolicyScript
  * @type ../../models/compile/
  */
-var PolicyScript = require('../../models/policy/policy_script');
+import { PolicyScript } from '../../compiler/PolicyScript';
 
 const config = require('../../config/config');
 import { Firewall } from '../../models/firewall/Firewall';
