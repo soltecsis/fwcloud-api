@@ -23,12 +23,13 @@
 
 var express = require('express');
 var router = express.Router();
+import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
+import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 var fwcTreemodel = require('../../models/tree/tree');
-var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
 var IpobjModel = require('../../models/ipobj/ipobj');
 const restrictedCheck = require('../../middleware/restricted');
-import { Firewall } from '../../models/firewall/Firewall';
+
 const fwcError = require('../../utils/error_table');
 
 
@@ -131,10 +132,10 @@ router.post("/", async(req, res) => {
 					interface_order: 1
 				};
 
-				const id2 = await Interface__ipobjModel.insertInterface__ipobj(req.dbCon, interface__ipobjData);
+				const id2 = await InterfaceIPObj.insertInterface__ipobj(req.dbCon, interface__ipobjData);
 				//If saved interface__ipobj Get data
 				if (id2 && id2 > 0)
-					await Interface__ipobjModel.UpdateHOST(id2);
+					await InterfaceIPObj.UpdateHOST(id2);
 			}
 
 			//INSERT IN TREE
@@ -166,7 +167,7 @@ router.put('/', (req, res) => {
 			//If saved interface saved ok, get data
 			if (data && data.result) {
 				try {
-					await Interface__ipobjModel.UpdateHOST(interfaceData.id);
+					await InterfaceIPObj.UpdateHOST(interfaceData.id);
 
 					await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, -1, interfaceData.id, interfaceData.type, "|3");
 
@@ -201,7 +202,7 @@ router.put("/host/del",
 	restrictedCheck.interface,
 	async(req, res) => {
 		try {
-			await Interface__ipobjModel.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
+			await InterfaceIPObj.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
 			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceHOST(req.dbCon, req.body.id);
 			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);

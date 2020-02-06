@@ -110,7 +110,7 @@ var Ipobj_gModel = require('./group');
 
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
-const interface__ipobjModel = require('../../models/interface/interface__ipobj');
+import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 const fwcError = require('../../utils/error_table');
 
 const isIp = require('is-ip');
@@ -764,7 +764,7 @@ ipobjModel.deleteHost = (dbCon, fwcloud, host) => {
 			try {
 				// Delete all objects under this host.
 				for(let interface of interfaces) {
-					await interface__ipobjModel.deleteHostInterface(dbCon, host, interface.id);
+					await InterfaceIPObj.deleteHostInterface(dbCon, host, interface.id);
 					await ipobjModel.deleteIpobjInterface(dbCon, interface.id);
 					await Interface.deleteInterfaceHOST(dbCon, interface.id);
 				}

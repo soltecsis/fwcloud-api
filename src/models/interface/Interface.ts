@@ -4,7 +4,7 @@ var logger = require('log4js').getLogger("app");
 
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
-var Interface__ipobjModel = require('../../models/interface/interface__ipobj');
+import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 var IpobjModel = require('../../models/ipobj/ipobj');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -313,7 +313,7 @@ export class Interface extends Model {
                         search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfaceInGroup(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
                         search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
                         search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
-                        search.restrictions.InterfaceInHost = await Interface__ipobjModel.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
+                        search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
                         search.restrictions.LastInterfaceWithAddrInHostInRule = await IpobjModel.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
 
                         for (let key in search.restrictions) {
