@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 
 const fwcError = require('../../../utils/error_table');
-const pkiCAModel = require('../../../models/vpn/pki/ca');
+import { Ca } from '../../../models/vpn/pki/Ca';
 const fwcTreeModel = require('../../../models/tree/tree');
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
@@ -42,14 +42,14 @@ router.post('/', async(req, res) => {
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		// Add the new CA to the database.
-		req.caId = await pkiCAModel.createCA(req);
+		req.caId = await Ca.createCA(req);
 		// Create the new CA directory structure.
-		await pkiCAModel.runEasyRsaCmd(req, 'init-pki');
-		await pkiCAModel.runEasyRsaCmd(req, 'build-ca');
-		await pkiCAModel.runEasyRsaCmd(req, 'gen-crl');
+		await Ca.runEasyRsaCmd(req, 'init-pki');
+		await Ca.runEasyRsaCmd(req, 'build-ca');
+		await Ca.runEasyRsaCmd(req, 'gen-crl');
 
 		// Don't wait for the finish of this process because it takes several minutes.
-		pkiCAModel.runEasyRsaCmd(req, 'gen-dh')
+		Ca.runEasyRsaCmd(req, 'gen-dh')
 			.then(() => {
 				req.dbCon.query(`update ca set status=0 where id=${req.caId}`, (error, result) => {
 					const socket = req.app.get('socketio').sockets.connected[req.body.socketid];
@@ -80,7 +80,7 @@ restrictedCheck.ca,
 async(req, res) => {
 	try {
 		// Check that the ca can be deleted and delete it from the database.
-		await pkiCAModel.deleteCA(req);
+		await Ca.deleteCA(req);
 
 		// Delete the ca directory structure.
 		await utilsModel.deleteFolder(config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.body.ca);

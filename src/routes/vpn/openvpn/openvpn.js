@@ -60,7 +60,7 @@ const policy_cModel = require('../../../models/policy/policy_c');
 
 const fwcTreeModel = require('../../../models/tree/tree');
 const restrictedCheck = require('../../../middleware/restricted');
-const pkiCRTModel = require('../../../models/vpn/pki/crt');
+import { Crt } from '../../../models/vpn/pki/Crt';
 const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
 const fwcError = require('../../../utils/error_table');
@@ -283,7 +283,7 @@ router.put('/where', async (req, res) => {
 router.put('/install', async(req, res) => {
 	try {
 		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
@@ -315,7 +315,7 @@ router.put('/install', async(req, res) => {
  */
 router.put('/uninstall', async(req, res) => {
 	try {
-		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
@@ -344,7 +344,7 @@ router.put('/uninstall', async(req, res) => {
  */
 router.put('/ccdsync', async(req, res) => {
 	try {
-		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 
@@ -379,7 +379,7 @@ router.put('/ccdsync', async(req, res) => {
  */
 router.put('/status/get', async(req, res) => {
 	try {
-		const crt = await pkiCRTModel.getCRTdata(req.dbCon,req.openvpn.crt);
+		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 

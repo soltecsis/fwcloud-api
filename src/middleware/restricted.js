@@ -33,8 +33,8 @@ import { Interface } from '../models/interface/Interface';
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { Mark } from '../models/ipobj/Mark';
 const ipobjModel = require('../models/ipobj/ipobj');
-const pkiCAModel = require('../models/vpn/pki/ca');
-const pkiCRTModel = require('../models/vpn/pki/crt');
+import { Ca } from '../models/vpn/pki/Ca';
+import { Crt } from '../models/vpn/pki/Crt';
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
 
@@ -167,10 +167,10 @@ restrictedCheck.openvpn = async(req, res, next) => {
 
 restrictedCheck.ca = async(req, res, next) => {
 	try {
-		let data = await pkiCAModel.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
+		let data = await Ca.searchCAHasCRTs(req.dbCon, req.body.fwcloud, req.body.ca);
 		if (data.result) return res.status(403).json(data);
 
-		data = await pkiCAModel.searchCAHasPrefixes(req.dbCon, req.body.fwcloud, req.body.ca);
+		data = await Ca.searchCAHasPrefixes(req.dbCon, req.body.fwcloud, req.body.ca);
 		if (data.result) return res.status(403).json(data);
 
 		next();
@@ -179,7 +179,7 @@ restrictedCheck.ca = async(req, res, next) => {
 
 restrictedCheck.crt = async(req, res, next) => {
 	try {
-		let data = await pkiCRTModel.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
+		let data = await Crt.searchCRTInOpenvpn(req.dbCon, req.body.fwcloud, req.body.crt);
 		if (data.result) return res.status(403).json(data);
 		next();
 	} catch (error) { res.status(400).json(error) }

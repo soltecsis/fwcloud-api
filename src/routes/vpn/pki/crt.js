@@ -25,9 +25,9 @@ var express = require('express');
 var router = express.Router();
 
 const fwcError = require('../../../utils/error_table');
-const pkiCAModel = require('../../../models/vpn/pki/ca');
-const pkiCRTModel = require('../../../models/vpn/pki/crt');
-const pkiPrefixModel = require('../../../models/vpn/pki/prefix');
+import { Ca } from '../../../models/vpn/pki/Ca';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
 const fwcTreeModel = require('../../../models/tree/tree');
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
@@ -44,13 +44,13 @@ router.post('/', async(req, res) => {
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
 		// Add the new certificate to the database.
-		const id = await pkiCRTModel.createCRT(req);
+		const id = await Crt.createCRT(req);
 
 		req.caId = req.body.ca;
-		await pkiCAModel.runEasyRsaCmd(req, (req.body.type===1) ? 'build-client-full' : 'build-server-full');
+		await Ca.runEasyRsaCmd(req, (req.body.type===1) ? 'build-client-full' : 'build-server-full');
 
 		// Apply prefixes to the newly created certificate.
-		await pkiPrefixModel.applyCrtPrefixes(req,req.body.ca);
+		await CaPrefix.applyCrtPrefixes(req,req.body.ca);
 
 		res.status(200).json({insertId: id});
 	} catch(error) { res.status(400).json(error) }
@@ -70,14 +70,14 @@ restrictedCheck.crt,
 async(req, res) => {
 	try {
 		// Check that the certificate can be deleted and remove it from the database.
-		await pkiCRTModel.deleteCRT(req);
+		await Crt.deleteCRT(req);
 
 		// Delete the files that make the certificate.
 		const base_dir = config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.crt.ca;
 		await utilsModel.deleteFile(base_dir + '/reqs', req.crt.cn + '.req');
 		await utilsModel.deleteFile(base_dir + '/issued', req.crt.cn + '.crt');
 		await utilsModel.deleteFile(base_dir + '/private', req.crt.cn + '.key');
-		const serial = await pkiCAModel.delFromIndex(base_dir, req.crt.cn);
+		const serial = await Ca.delFromIndex(base_dir, req.crt.cn);
 		await utilsModel.deleteFile(base_dir + '/certs_by_serial', serial + '.pem');
 
 		// Delete the certificate node into the tree.
