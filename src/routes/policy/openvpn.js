@@ -24,11 +24,11 @@
 var express = require('express');
 var router = express.Router();
 
-const policyOpenvpnModel = require('../../models/policy/openvpn');
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { Firewall } from '../../models/firewall/Firewall';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
 const policy_cModel = require('../../models/policy/policy_c');
-import { Firewall } from '../../models/firewall/Firewall';
 const fwcError = require('../../utils/error_table');
 const utilsModel = require("../../utils/utils.js");
 
@@ -41,10 +41,10 @@ async (req, res) => {
 		if (req.openvpn.type!==1)
 			throw fwcError.VPN_ONLY_CLI;
 
-		if (!(await policyOpenvpnModel.checkOpenvpnPosition(req.dbCon,req.body.position)))
+		if (!(await PolicyRuleToOpenVPN.checkOpenvpnPosition(req.dbCon,req.body.position)))
 			throw fwcError.NOT_ALLOWED;
 
-		await policyOpenvpnModel.insertInRule(req);
+		await PolicyRuleToOpenVPN.insertInRule(req);
 		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
@@ -62,7 +62,7 @@ async (req, res) => {
 		await policy_cModel.deletePolicy_c(req.body.new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
-		if (await policyOpenvpnModel.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
+		if (await PolicyRuleToOpenVPN.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
 			throw fwcError.ALREADY_EXISTS;
 
 		// Get content of positions.
@@ -71,7 +71,7 @@ async (req, res) => {
 			throw fwcError.BAD_POSITION;
 
 		// Move OpenVPN configuration object to the new position.
-		const data = await policyOpenvpnModel.moveToNewPosition(req);
+		const data = await PolicyRuleToOpenVPN.moveToNewPosition(req);
 
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }
@@ -87,7 +87,7 @@ router.put('/del',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
-		await policyOpenvpnModel.deleteFromRulePosition(req);
+		await PolicyRuleToOpenVPN.deleteFromRulePosition(req);
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });

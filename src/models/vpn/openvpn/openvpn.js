@@ -31,7 +31,7 @@ const fwcTreeModel = require('../../../models/tree/tree');
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 import { Firewall } from '../../../models/firewall/Firewall';
-const policyOpenvpnModel = require('../../../models/policy/openvpn');
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
@@ -523,10 +523,10 @@ openvpnModel.searchOpenvpnUsage = (dbCon,fwcloud,openvpn) => {
           - IPBOJ group.
           - OpenVPN is the last in a CRT prefix used in a rule or group.
       */
-      search.restrictions.OpenvpnInRule = await policyOpenvpnModel.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
-      search.restrictions.OpenvpnInGroup = await policyOpenvpnModel.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
-      search.restrictions.LastOpenvpnInPrefixInRule = await policyOpenvpnModel.searchLastOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn); 
-      search.restrictions.LastOpenvpnInPrefixInGroup = await policyOpenvpnModel.searchLastOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
+      search.restrictions.OpenvpnInRule = await PolicyRuleToOpenVPN.searchOpenvpnInRule(dbCon,fwcloud,openvpn);
+      search.restrictions.OpenvpnInGroup = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(dbCon,fwcloud,openvpn); 
+      search.restrictions.LastOpenvpnInPrefixInRule = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn); 
+      search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon,fwcloud,openvpn); 
       
       for (let key in search.restrictions) {
         if (search.restrictions[key].length > 0) {

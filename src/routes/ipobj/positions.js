@@ -23,12 +23,12 @@
 
 var express = require('express');
 var router = express.Router();
-var Ipobj_type__policy_positionModel = require('../../models/ipobj/ipobj_type__policy_position');
+import { IPObjTypeToPolicyPosition } from '../../models/ipobj/IPObjTypeToPolicyPosition';
 const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_type__policy_positions*/
 router.get('/policy', (req, res) => {
-	Ipobj_type__policy_positionModel.getIpobj_type__policy_positions((error, data) => {
+	IPObjTypeToPolicyPosition.getIpobj_type__policy_positions((error, data) => {
 		if (error) return res.status(400).json(error);
 
 		if (data && data.length > 0)

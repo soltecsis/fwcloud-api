@@ -38,7 +38,7 @@ var policyPositionModel = require('./position');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 var RuleCompileModel = require('../../models/policy/rule_compile');
 var Policy_cModel = require('../../models/policy/policy_c');
-var policyOpenvpnModel = require('../../models/policy/openvpn');
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 var policyPrefixModel = require('../../models/policy/prefix');
 const fwcError = require('../../utils/error_table');
 
@@ -470,7 +470,7 @@ policy_rModel.clonePolicy = rowData => {
 				newRule = await policy_rModel.insertPolicy_r(policy_rData);
 				await policy_rModel.clonePolicyIpobj(dbCon,rowData.newfirewall,rowData.id,newRule);
 				await policy_rModel.clonePolicyInterface(dbCon,rowData.firewall,rowData.id,newRule);
-				await policyOpenvpnModel.duplicatePolicy_r__openvpn(dbCon,rowData.id,newRule);
+				await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon,rowData.id,newRule);
 				await policyPrefixModel.duplicatePolicy_r__prefix(dbCon,rowData.id,newRule);
 				resolve();
 			} catch(error) { reject(error) }
@@ -799,7 +799,7 @@ policy_rModel.deletePolicy_r = (firewall, rule) => {
 					if (error) return reject(error);
 					
 					try {
-						await policyOpenvpnModel.deleteFromRule(dbCon,rule);
+						await PolicyRuleToOpenVPN.deleteFromRule(dbCon,rule);
 						await policyPrefixModel.deleteFromRule(dbCon,rule);
 						//DELETE POLICY_C compilation
 						await Policy_cModel.deletePolicy_c(rule);

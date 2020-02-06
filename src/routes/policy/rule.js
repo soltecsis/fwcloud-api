@@ -26,12 +26,12 @@ var router = express.Router();
 var policy_rModel = require('../../models/policy/policy_r');
 var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
-const policyOpenvpnModel = require('../../models/policy/openvpn');
 const policyPrefixModel = require('../../models/policy/prefix');
-const policyPositionModel = require('../../models/policy/position');
 import db from '../../database/DatabaseService';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
+import { PolicyPosition } from '../../models/policy/PolicyPosition';
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -257,7 +257,7 @@ async (req, res) => {
 		const position = req.body.position;
 
 		// Verify that the route position id is correct for the policy type of the rule.
-		if (!(await policyPositionModel.checkPolicyRulePosition(req.dbCon,req.body.rule,position)))
+		if (!(await PolicyPosition.checkPolicyRulePosition(req.dbCon,req.body.rule,position)))
 			throw fwcError.NOT_FOUND;
 
 		/* This kind of position can not be negated:
@@ -322,7 +322,7 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			//DUPLICATE RULE POSITONS I (INTERFACES)
 			await policy_r__interfaceModel.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
-			await policyOpenvpnModel.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
+			await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
 			await policyPrefixModel.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
 

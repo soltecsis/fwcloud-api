@@ -55,7 +55,7 @@ var router = express.Router();
  * @type ../../models/vpn/openvpn
  */
 const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
-const policyOpenvpnModel = require('../../../models/policy/openvpn');
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 const policy_cModel = require('../../../models/policy/policy_c');
 
 const fwcTreeModel = require('../../../models/tree/tree');
@@ -116,11 +116,11 @@ router.post('/', async(req, res) => {
 		}
 
 		// Invalidate the compilation of the rules that use a prefix that use this new OpenVPN configuration.
-		let rules = await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,cfg);
+		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,cfg);
 		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
 
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this new OpenVPN configuration.
-		let groups = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,cfg);
+		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,cfg);
 		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
 
 		// If we are creaing an OpenVPN server configuration, then create the VPN virtual network interface with its assigned IP.
@@ -138,15 +138,15 @@ router.post('/', async(req, res) => {
 router.put('/', async(req, res) => {
 	try {
 		// Invalidate the compilation of the rules using this OpenVPN configuration.
-		let rules = await policyOpenvpnModel.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		// Invalidate the compilation of the rules that use a prefix that use this OpenVPN configuration.
-		rules = rules.concat(await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn));
+		rules = rules.concat(await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn));
 		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
 		
 		// Invalidate the compilation of the rules that use a group that use this OpenVPN configuration.
-		let groups = await policyOpenvpnModel.searchOpenvpnInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this OpenVPN configuration.
-		groups = groups.concat(await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn));
+		groups = groups.concat(await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn));
 		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon, req.body.fwcloud,groups);
 
 		await openvpnModel.updateCfg(req);
@@ -239,11 +239,11 @@ restrictedCheck.openvpn,
 async(req, res) => {
 	try {
 		// Invalidate the compilation of the rules that use a prefix that use this removed OpenVPN configuration.
-		let rules = await policyOpenvpnModel.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
 
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this removed OpenVPN configuration.
-		let groups = await policyOpenvpnModel.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
 		
 		// Delete the configuration from de database.
