@@ -1,27 +1,19 @@
-import { createConnection, Connection, QueryRunner, Table } from "typeorm";
+import { QueryRunner, Table } from "typeorm";
 import { MigrationResetCommand } from "../../../../src/cli/commands/MigrationResetCommand"
 
-import * as config from "../../../../src/config/config";
-import yargs = require("yargs");
-import { runMigrations, getDatabaseConnection, resetMigrations } from "../../../utils/utils";
+import { runApplication, getDatabaseConnection } from "../../../utils/utils";
+import { Application } from "../../../../src/Application";
 
 describe('MigrationResetCommand', () => {
-    let connection: Connection = null;
-    let queryRunner: QueryRunner = null;
-    const configDB = config.get('db');
+    let app: Application;
+    let queryRunner: QueryRunner
 
     beforeEach(async () => {
-        connection = await getDatabaseConnection();
-        queryRunner = connection.createQueryRunner();
-        await resetMigrations(connection);
-        await runMigrations(connection);
+        app = await runApplication();
+        queryRunner = (await getDatabaseConnection()).createQueryRunner();
     });
 
-    afterEach(async () => {
-        await connection.close();
-    })
-
-    it('reset should reset the database', async() => {
+    it.only('reset should reset the database', async() => {
         expect(await queryRunner.getTable('ca')).toBeInstanceOf(Table);
         expect(await queryRunner.getTable('user__fwcloud')).toBeInstanceOf(Table);
 

@@ -22,7 +22,7 @@
 
 import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, QueryRunner, getConnectionManager } from "typeorm";
+import { Connection, createConnection } from "typeorm";
 import * as config from "../../config/config"
 import { FwCloudMigrationExecutor } from "../../utils/typeorm/migrations/MigrationExecutor";
 

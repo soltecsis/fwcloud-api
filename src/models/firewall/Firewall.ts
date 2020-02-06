@@ -1,6 +1,6 @@
 import Model from "../Model";
 import db from '../../database/DatabaseService'
-import { getCustomRepository } from "typeorm";
+import { getCustomRepository, Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 import PolicyGRepository from '../../repositories/PolicyGRepository';
 
 var utilsModel = require("../../utils/utils.js");
@@ -15,7 +15,67 @@ const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'firewall';
 
+@Entity(tableName)
 export class Firewall extends Model {
+
+	@PrimaryGeneratedColumn()
+	id: number;
+
+	@Column()
+	cluster: number;
+
+	@Column()
+	fwcloud: number;
+
+	@Column()
+	name: string;
+
+	@Column()
+	comment: string;
+
+	@Column()
+	created_at: Date;
+
+	@Column()
+	updated_at: Date;
+
+	@Column()
+	compiled_at: Date;
+
+	@Column()
+	installed_at: Date;
+
+	@Column()
+	by_user: number;
+
+	@Column()
+	status: number;
+
+	@Column()
+	install_user: string;
+
+	@Column()
+	install_pass: string;
+
+	@Column()
+	save_user_pass: number;
+
+	@Column()
+	install_interface: number;
+
+	@Column()
+	install_ipobj: number;
+
+	@Column()
+	fwmaster: number;
+
+	@Column()
+	install_port: number;
+
+	@Column()
+	options: number;
+
+	
 	public getTableName(): string {
 		return tableName;
 	}

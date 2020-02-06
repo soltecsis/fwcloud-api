@@ -4,6 +4,8 @@ import * as config from "../config/config";
 import Query from "./Query";
 import * as Logger from "log4js";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
+import { Firewall } from "../models/firewall/Firewall";
+import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest"
 
 const logger = Logger.getLogger("app");
 
@@ -39,10 +41,12 @@ export class DatabaseService {
             debug: false,
             synchronize: false,
             entities: [
-                PolicyGroup
+                PolicyGroup,
+                Firewall,
+                FirewallTest
             ]
         }).catch(e => {
-            console.log('Unable to connect to MySQL: ' + e.message);
+            console.error('Unable to connect to MySQL: ' + e.message);
             process.exit(1);
         });
 
