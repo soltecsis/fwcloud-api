@@ -63,7 +63,7 @@ var router = express.Router();
  * 
  */
 import { Firewall } from '../../models/firewall/Firewall';
-var firewallExport = require('../../models/firewall/export');
+import { FirewallExport } from '../../export/FirewallExport';
 
 /**
  * Property Model to manage Fwcloud Data
@@ -681,7 +681,7 @@ async (req, res) => {
  */
 router.put('/export/get', async (req, res) => {
 	try {
-		const data = firewallExport.exportFirewall(req.body.firewall);
+		const data = FirewallExport.exportFirewall(req.body.firewall);
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }
 });
