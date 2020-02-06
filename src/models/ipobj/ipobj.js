@@ -106,11 +106,10 @@ var ipobj_Data = require('../../models/data/data_ipobj');
  * @type models.ipobj__ipobjg
  */
 
-var Ipobj_gModel = require('./group');
-
+import { IPObjGroup } from './IPObjGroup';
+import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
-import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 const fwcError = require('../../utils/error_table');
 
 const isIp = require('is-ip');
@@ -278,7 +277,7 @@ ipobjModel.getIpobjPro = function (position_ipobj) {
 					} else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
 						logger.debug("======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g);
 						//GET ALL GROUP's IPOBJS
-						Ipobj_gModel.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
+						IPObjGroup.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
 								.then(ipobjsGroup => {
 									logger.debug("-------------------------> FINAL de GROUP : " + position_ipobj.ipobj_g + " ----");
 									//RETURN IPOBJ GROUP DATA                                                                            

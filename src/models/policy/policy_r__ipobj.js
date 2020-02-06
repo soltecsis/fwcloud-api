@@ -27,9 +27,9 @@ var policy_r__ipobjModel = {};
 module.exports = policy_r__ipobjModel;
 
 import db from '../../database/DatabaseService';
-var asyncMod = require('async');
 import { Interface } from '../../models/interface/Interface';
-const ipobj_gModel = require('../../models/ipobj/group');
+import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
+var asyncMod = require('async');
 const policy_rModel = require('../../models/policy/policy_r');
 const fwcError = require('../../utils/error_table');
 
@@ -1397,12 +1397,12 @@ policy_r__ipobjModel.checkIpVersion = req => {
 		}
 		else if (req.body.ipobj_g>0) { // Verify the IP version of the group that we are inserting in the rule.
 			try {
-				const groupData = await ipobj_gModel.getIpobj_g(req.dbCon, req.body.fwcloud, req.body.ipobj_g);
+				const groupData = await IPObjGroup.getIpobj_g(req.dbCon, req.body.fwcloud, req.body.ipobj_g);
 				
 				// If this is a services group, then we don't need to check the IP version.
 				if (groupData[0].type===21) return resolve(true);
 
-				const groupIPv = await ipobj_gModel.groupIPVersion(req.dbCon, req.body.ipobj_g);
+				const groupIPv = await IPObjGroup.groupIPVersion(req.dbCon, req.body.ipobj_g);
 				resolve(groupIPv===rule_ip_version ? true : false);
 			} catch(error) { return reject(error) }
 		} else resolve(true);

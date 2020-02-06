@@ -30,8 +30,8 @@ const customerModel = require('../models/user/customer');
 const userModel = require('../models/user/user');
 import { Firewall } from '../models/firewall/Firewall';
 import { Interface } from '../models/interface/Interface';
+import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 const ipobjModel = require('../models/ipobj/ipobj');
-const ipobj_gModel = require('../models/ipobj/group');
 const pkiCAModel = require('../models/vpn/pki/ca');
 const pkiCRTModel = require('../models/vpn/pki/crt');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
@@ -145,7 +145,7 @@ restrictedCheck.ipobj = async(req, res, next) => {
 
 restrictedCheck.ipobj_group = async(req, res, next) => {
 	try {
-		const data = await ipobj_gModel.searchGroupUsage(req.body.id, req.body.fwcloud);
+		const data = await IPObjGroup.searchGroupUsage(req.body.id, req.body.fwcloud);
 		if (data.result) res.status(403).json(data);
 		else next();
 	} catch (error) { res.status(400).json(error) }

@@ -34,10 +34,10 @@ var express = require('express');
 var router = express.Router();
 
 import { Firewall } from '../../models/firewall/Firewall';
+import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 var ipobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
-const ipobj_gModel = require('../../models/ipobj/group');
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 var Ipobj__ipobjgModel = require('../../models/ipobj/ipobj__ipobjg');
@@ -60,7 +60,7 @@ router.post("/", (req, res) => {
 		comment: req.body.comment
 	};
 
-	ipobj_gModel.insertIpobj_g(ipobj_gData, async(error, data) => {
+	IPObjGroup.insertIpobj_g(ipobj_gData, async(error, data) => {
 		if (error) return res.status(400).json(error);
 		//If saved ipobj_g Get data
 		if (data && data.insertId > 0) {
@@ -88,7 +88,7 @@ router.put('/', async(req, res) => {
 	};
 
 	try {
-		await ipobj_gModel.updateIpobj_g(req, ipobj_gData);
+		await IPObjGroup.updateIpobj_g(req, ipobj_gData);
 		await fwcTreeModel.updateFwc_Tree_OBJ(req, ipobj_gData);
 		res.status(204).end();
 	} catch (error) { return res.status(400).json(error) }
@@ -98,7 +98,7 @@ router.put('/', async(req, res) => {
 /* Get  ipobj_g by id */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await ipobj_gModel.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
+		const data = await IPObjGroup.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
 		else
@@ -111,7 +111,7 @@ router.put("/del",
 	restrictedCheck.ipobj_group,
 	async(req, res) => {
 		try {
-			await ipobj_gModel.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+			await IPObjGroup.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
 			await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
 			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
 			res.status(204).end();
@@ -121,7 +121,7 @@ router.put("/del",
 /* Search where is used Group  */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await ipobj_gModel.searchGroup(req.body.id, req.body.fwcloud);
+		const data = await IPObjGroup.searchGroup(req.body.id, req.body.fwcloud);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else
@@ -142,7 +142,7 @@ router.put('/addto', async(req, res) => {
 
 		// Don't allow the mix of IPv4 and IPv6 objects in a group.
 		// If the group ins not empty, then we must know what type of IP (IPv4 or IPv6) are the objects contained in it.
-		const groupIPv = await ipobj_gModel.groupIPVersion(req.dbCon, req.body.ipobj_g);
+		const groupIPv = await IPObjGroup.groupIPVersion(req.dbCon, req.body.ipobj_g);
 
 		// Insert object in group.
 		let dataIpobj;
@@ -193,7 +193,7 @@ router.put('/delfrom', async(req, res) => {
 		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
 		const search = await Policy_r__ipobjModel.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
 		if (search.length > 0) {
-			if ((await ipobj_gModel.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
+			if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		}
 
