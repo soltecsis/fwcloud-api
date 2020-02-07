@@ -68,7 +68,7 @@ var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 var fwcTreemodel = require('../../models/tree/tree');
-var Policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
@@ -209,7 +209,7 @@ router.post('/', (req, res) => {
 						// Create the loop backup interface.
 						const loInterfaceId = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
 						// Create the default policy rules.							
-						await Policy_rModel.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
+						await PolicyRule.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
 						// Create the directory used for store firewall data.
 						await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 					}
@@ -399,7 +399,7 @@ router.put('/', async (req, res) => {
 
 		// If this a stateful cluster verify that the stateful special rules exists.
 		// Or remove them if this is not a stateful firewall cluster.
-		await Policy_rModel.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
+		await PolicyRule.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
 
 		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
 		res.status(204).end();
@@ -487,7 +487,7 @@ router.put('/clustertofw', (req, res) => {
 						.then(() => {
 							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, function(error, dataFC) {
 								Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, function(error, data) {
-									Policy_rModel.cleanApplyTo(firewallData.id, (error, data) => {});
+									PolicyRule.cleanApplyTo(firewallData.id, (error, data) => {});
 								});
 							});
 						});
@@ -556,7 +556,7 @@ router.put('/clone', (req, res) => {
 								await Firewall.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1);
 								//CLONE INTERFACES
 								let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
-								await Policy_rModel.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
+								await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 								await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							}
 						}
@@ -565,7 +565,7 @@ router.put('/clone', (req, res) => {
 						await fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster);
 
 						// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
-						await Policy_rModel.updateApplyToRules(newidcluster, fwNewMaster);
+						await PolicyRule.updateApplyToRules(newidcluster, fwNewMaster);
 
 						// If we arrive here all has gone fine.
 						res.status(200).json(dataresp);

@@ -28,7 +28,7 @@ import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const fwcError = require('../../utils/error_table');
 const utilsModel = require("../../utils/utils.js");
 
@@ -45,7 +45,7 @@ async (req, res) => {
 			throw fwcError.NOT_ALLOWED;
 
 		await PolicyRuleToOpenVPN.insertInRule(req);
-		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
+		PolicyRule.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }

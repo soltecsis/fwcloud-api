@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 const fwcError = require('../../utils/error_table');
@@ -49,7 +49,7 @@ async (req, res) => {
 		//If saved policy_r__interface Get data
 		if (data && data.result) {
 			if (data.result) {
-				policy_rModel.compilePolicy_r(policy_r__interfaceData.rule, (error, datac) => {});
+				PolicyRule.compilePolicy_r(policy_r__interfaceData.rule, (error, datac) => {});
 				res.status(200).json(data);
 			} else if (!data.allowed)
 				throw fwcError.NOT_ALLOWED;
@@ -92,12 +92,12 @@ async(req, res) => {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data) {
 				if (data.result) {
-					policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-					policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
+					PolicyRule.compilePolicy_r(rule, function(error, datac) {});
+					PolicyRule.compilePolicy_r(new_rule, function(error, datac) {});
 
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
-						await policy_rModel.allowEmptyRulePositions(req);
+						await PolicyRule.allowEmptyRulePositions(req);
 					} catch(error) { return res.status(400).json(error) }
 
 					res.status(200).json(data);
@@ -127,12 +127,12 @@ async(req, res) => {
 					//delete Position 'O'
 					policy_r__ipobjModel.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
-							policy_rModel.compilePolicy_r(rule, function(error, datac) {});
-							policy_rModel.compilePolicy_r(new_rule, function(error, datac) {});
+							PolicyRule.compilePolicy_r(rule, function(error, datac) {});
+							PolicyRule.compilePolicy_r(new_rule, function(error, datac) {});
 
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
-								await policy_rModel.allowEmptyRulePositions(req);
+								await PolicyRule.allowEmptyRulePositions(req);
 							} catch(error) { return res.status(400).json(error) }
 
 							res.status(200).json(data);
@@ -161,7 +161,7 @@ utilsModel.disableFirewallCompileStatus,
 		if (error) return res.status(400).json(error);
 		//If saved policy_r__interface saved ok, get data
 		if (data && data.result) {
-			policy_rModel.compilePolicy_r(rule, function(error, datac) {});
+			PolicyRule.compilePolicy_r(rule, function(error, datac) {});
 			res.status(200).json(data);
 		} else res.status(400).json(error);
 	});
@@ -181,11 +181,11 @@ utilsModel.disableFirewallCompileStatus,
 	policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, async (error, data) => {
 		if (data) {
 			if (data.msg === "deleted") {
-				policy_rModel.compilePolicy_r(rule, function(error, datac) {});
+				PolicyRule.compilePolicy_r(rule, function(error, datac) {});
 
 				// If after the delete we have empty rule positions, then remove them from the negate position list.
 				try {
-					await policy_rModel.allowEmptyRulePositions(req);
+					await PolicyRule.allowEmptyRulePositions(req);
 				} catch(error) { return res.status(400).json(error) }
 
 				res.status(200).json(data);

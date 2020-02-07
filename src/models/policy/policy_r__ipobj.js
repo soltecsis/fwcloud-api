@@ -30,7 +30,7 @@ import db from '../../database/DatabaseService';
 import { Interface } from '../../models/interface/Interface';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 var asyncMod = require('async');
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const fwcError = require('../../utils/error_table');
 
 
@@ -249,7 +249,7 @@ policy_r__ipobjModel.emptyIpobjContainerToObjectPosition = req => {
 			if (rows[0].content !== 'O') return resolve(false);
 
 			try {
-				const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(req.dbCon,req.body.fwcloud,req.body.firewall,req.body.rule);
+				const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(req.dbCon,req.body.fwcloud,req.body.firewall,req.body.rule);
 
 				let type = parseInt(rows[0].type);
 				if (type===10 || type===11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
@@ -1227,7 +1227,7 @@ policy_r__ipobjModel.searchLastAddrInInterfaceInRule = (dbCon, ipobj, type, fwcl
 			let result = [];
 			try {
 				for(let row of rows) {
-					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
+					const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
 					let addrs = await Interface.getInterfaceAddr(dbCon,row.obj_id);
 
 					// Count the amount of interface address with the same IP version of the rule.
@@ -1276,7 +1276,7 @@ policy_r__ipobjModel.searchLastAddrInHostInRule = (dbCon, ipobj, type, fwcloud) 
 			let result = [];
 			try {
 				for(let row of rows) {
-					const rule_ip_version = await policy_rModel.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
+					const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(dbCon,fwcloud,row.firewall_id,row.rule_id);
 					let addrs = await Interface.getHostAddr(dbCon,row.obj_id);
 
 					// Count the amount of interface address with the same IP version of the rule.
@@ -1378,7 +1378,7 @@ policy_r__ipobjModel.checkIpVersion = req => {
 	return new Promise(async (resolve, reject) => {
 		let rule_ip_version;
 		try {
-			rule_ip_version = await policy_rModel.getPolicyRuleIPversion(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
+			rule_ip_version = await PolicyRule.getPolicyRuleIPversion(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
 		} catch(error) { return reject(error) }
 
 		if (req.body.ipobj>0) { // Verify the IP version of the IP object that we are moving.

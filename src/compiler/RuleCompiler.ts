@@ -21,7 +21,7 @@
 */
 
 var fwcError = require('../utils/error_table');
-var Policy_rModel = require('../models/policy/policy_r');
+import { PolicyRule } from '../models/policy/PolicyRule';
 import { PolicyCompilation } from '../models/policy/PolicyCompilation';
 
 export const POLICY_TYPE_INPUT = 1;
@@ -406,7 +406,7 @@ export class RuleCompiler {
         return new Promise(async (resolve, reject) => {
             let data;
             try {
-                data = await Policy_rModel.getPolicyDataDetailed(fwcloud, firewall, type, rule);
+                data = await PolicyRule.getPolicyDataDetailed(fwcloud, firewall, type, rule);
                 if (!data) return reject(fwcError.other('Rule data not found'));
 
                 let policy_type = data[0].type;

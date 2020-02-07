@@ -78,7 +78,7 @@ import { Interface } from '../../models/interface/Interface';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 var utilsModel = require("../../utils/utils.js");
 var fwcTreemodel = require('../../models/tree/tree');
-var Policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -172,7 +172,7 @@ router.post('/', async(req, res) => {
 		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
 			// Create the loop backup interface.
 			const loInterfaceId = await Interface.createLoInterface(req.body.fwcloud, newFirewallId);
-			await Policy_rModel.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
+			await PolicyRule.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
 		}
 
 		if (!firewallData.cluster) // Create firewall tree.
@@ -271,7 +271,7 @@ router.put('/', async (req, res) => {
 
 		// If this a stateful firewall verify that the stateful special rules exists.
 		// Or remove them if this is not a stateful firewall.
-		await Policy_rModel.checkStatefulRules(req.dbCon, req.body.firewall, req.body.options);
+		await PolicyRule.checkStatefulRules(req.dbCon, req.body.firewall, req.body.options);
 
 		//////////////////////////////////
 		//UPDATE FIREWALL NODE STRUCTURE                                    
@@ -578,7 +578,7 @@ router.put('/clone', async (req, res) => {
 		const idNewFirewall = data.insertId;
 
 		const dataI = await Interface.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
-		await Policy_rModel.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
+		await PolicyRule.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 		await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 

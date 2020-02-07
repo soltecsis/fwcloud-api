@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-var Policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 import db from '../../database/DatabaseService';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
@@ -36,27 +36,27 @@ var logger = require('log4js').getLogger("app");
 router.post('/', async (req, res) => {
 	var body = req.body;
 
-	let policyG = new PolicyG();
-	policyG.name = body.name;
-	policyG.comment = body.comment;
-	policyG.firewall = body.firewall;
+	let policyGroup = new PolicyGroup();
+	policyGroup.name = body.name;
+	policyGroup.comment = body.comment;
+	policyGroup.firewall = body.firewall;
 
-	const policyGRepository = getRepository(PolicyG);
+	const policyGroupRepository = getRepository(PolicyGroup);
 
 	try {
-		policyG = policyGRepository.create(policyG);
-		policyG = await policyGRepository.save(policyG);
+		policyGroup = policyGroupRepository.create(policyGroup);
+		policyGroup = await policyGroupRepository.save(policyGroup);
 
 		if (body.rulesIds.length > 0) {
 
 			//Add rules to group
 			for (var rule of body.rulesIds) {
-				Policy_rModel.updatePolicy_r_Group(body.firewall, null, policyG.id, rule, function (error, data) {
-					logger.debug("ADDED to Group " + policyG.id + " POLICY: " + rule);
+				PolicyRule.updatePolicy_r_Group(body.firewall, null, policyGroup.id, rule, function (error, data) {
+					logger.debug("ADDED to Group " + policyGroup.id + " POLICY: " + rule);
 				});
 			}
 		}
-		res.status(200).json({ "insertId": policyG.id });
+		res.status(200).json({ "insertId": policyGroup.id });
 	} catch (e) {
 		res.status(400).json(fwcError.NOT_FOUND);
 	}
@@ -76,7 +76,7 @@ router.put('/', (req, res) => {
 
 
 	try {
-		const policyG = getRepository(PolicyG).update(data.id, {
+		const policyGroup = getRepository(PolicyGroup).update(data.id, {
 			name: req.body.name,
 			firewall: req.body.firewall,
 			comment: req.body.comment,
@@ -103,7 +103,7 @@ router.put('/style', async (req, res) => {
 	db.lockTableCon(PolicyGroup.getTableName(), " WHERE firewall=" + data.idfirewall, function () {
 		db.startTXcon(async () => {
 			try {
-				await getRepository(PolicyG).update({firewall: data.idfirewall, id: groupIds}, {
+				await getRepository(PolicyGroup).update({firewall: data.idfirewall, id: groupIds}, {
 					groupstyle: style
 				});
 			} catch (e) {
@@ -122,7 +122,7 @@ router.put('/name', (req, res) => {
 	var data = { id: req.body.id, name: req.body.name };
 
 	try {
-		getRepository(PolicyG).update(data.id, {
+		getRepository(PolicyGroup).update(data.id, {
 			name: data.name
 		});
 		res.status(204).end();
@@ -138,12 +138,12 @@ router.put("/del", async (req, res) => {
 	var id = req.body.id;
 
 	logger.debug("Removed all Policy from Group " + id);
-	const policyGs = await getRepository(PolicyG).find({firewall: idfirewall, id: id});
+	const policyGroups = await getRepository(PolicyGroup).find({firewall: idfirewall, id: id});
 
 	try {
-		policyGs.forEach(policyG => {
-			Policy_rModel.updatePolicy_r_GroupAll(idfirewall, id, function(error, data) {
-				getRepository(PolicyG).delete(policyG.id);
+		policyGroups.forEach(policyGroup => {
+			PolicyRule.updatePolicy_r_GroupAll(idfirewall, id, function(error, data) {
+				getRepository(PolicyGroup).delete(policyGroup.id);
 			});
 		});
 		res.status(204).end();
@@ -175,7 +175,7 @@ async function removeRules(idfirewall, idgroup, rulesIds) {
 
 function ruleRemove(idfirewall, idgroup, rule) {
 	return new Promise((resolve, reject) => {
-		Policy_rModel.updatePolicy_r_Group(idfirewall, idgroup, null, rule, (error, data) => {
+		PolicyRule.updatePolicy_r_Group(idfirewall, idgroup, null, rule, (error, data) => {
 			if (error) return reject(error);
 			resolve();
 		});

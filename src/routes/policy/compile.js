@@ -75,7 +75,7 @@ import { PolicyScript } from '../../compiler/PolicyScript';
 const config = require('../../config/config');
 import { Firewall } from '../../models/firewall/Firewall';
 const socketTools = require('../../utils/socket');
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const fwcError = require('../../utils/error_table');
 
 
@@ -125,7 +125,7 @@ router.put('/', (req, res) => {
 				socketTools.msg("<strong>--- STATELESS FIREWALL ---</strong>\n\n");
 
 			// Generate default rules for mangle table
-			if (await policy_rModel.firewallWithMarkRules(req.dbCon,req.body.firewall)) {
+			if (await PolicyRule.firewallWithMarkRules(req.dbCon,req.body.firewall)) {
 				socketTools.msg("<strong>MANGLE TABLE:</strong>\n");
 				socketTools.msg("Automatic rules.\n\n");
 				stream.write("\n\necho -e \"\\n****************\\n* MANGLE TABLE *\\n****************\"\n");

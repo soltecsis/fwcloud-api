@@ -1,14 +1,14 @@
 import Model from "../Model";
 import db from '../../database/DatabaseService'
-import { getCustomRepository, Entity, Column, PrimaryGeneratedColumn } from "typeorm";
-import PolicyGRepository from '../../repositories/PolicyGRepository';
+import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 
 var utilsModel = require("../../utils/utils.js");
-var policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
+import { PolicyGroup } from '../../models/policy/PolicyGroup';
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
@@ -798,7 +798,7 @@ export class Firewall extends Model {
 					//If exists Id from firewall to remove
 					if (row && row.length > 0) {
 						try {
-							await policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
+							await PolicyRule.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 							await OpenVPNPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
 							await OpenVPN.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
 							await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
@@ -853,8 +853,8 @@ export class Firewall extends Model {
 							await utilsModel.renameFirewallDataDir(req.body.fwcloud, req.body.firewall, idNewFM);
 
 							// Move all related objects to the new firewall.
-							await policy_rModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-							await getCustomRepository(PolicyGRepository).moveFirewallGroupsToFirewall(req.body.firewall, idNewFM)
+							await PolicyRule.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
+							await PolicyGroup.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await Interface.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await OpenVPN.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 

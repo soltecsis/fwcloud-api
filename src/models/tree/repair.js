@@ -24,7 +24,7 @@
 const fwcTreeModel = require('./tree');
 const socketTools = require('../../utils/socket');
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const fwcError = require('../../utils/error_table');
 
 //create object
@@ -216,8 +216,8 @@ fwc_treeRepairModel.checkFirewallsInTree = rootNode => {
       try {
         for(let firewall of firewalls) {
           await fwc_treeRepairModel.regenerateFirewallTree(rootNode,firewall);
-          await policy_rModel.checkStatefulRules(dbCon, firewall.id, firewall.options);
-          await policy_rModel.checkCatchAllRules(dbCon, firewall.id);
+          await PolicyRule.checkStatefulRules(dbCon, firewall.id, firewall.options);
+          await PolicyRule.checkCatchAllRules(dbCon, firewall.id);
         }
       } catch(error) { return reject(error) };
       resolve();
@@ -273,8 +273,8 @@ fwc_treeRepairModel.checkClustersInTree = rootNode => {
       try {
         for(let cluster of clusters) {
           await fwc_treeRepairModel.regenerateClusterTree(rootNode,cluster);
-          await policy_rModel.checkStatefulRules(dbCon, cluster.fwmaster_id, cluster.options);
-          await policy_rModel.checkCatchAllRules(dbCon, cluster.fwmaster_id);
+          await PolicyRule.checkStatefulRules(dbCon, cluster.fwmaster_id, cluster.options);
+          await PolicyRule.checkCatchAllRules(dbCon, cluster.fwmaster_id);
         }
       } catch(error) { return reject(error) };
       resolve();

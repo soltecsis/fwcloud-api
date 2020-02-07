@@ -29,7 +29,7 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-const policy_rModel = require('../../models/policy/policy_r');
+import { PolicyRule } from '../../models/policy/PolicyRule';
 const utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 
@@ -45,7 +45,7 @@ async (req, res) => {
 			throw fwcError.ALREADY_EXISTS;
 
 		await PolicyRuleToOpenVPNPrefix.insertInRule(req);
-		policy_rModel.compilePolicy_r(req.body.rule, (error, datac) => {});
+		PolicyRule.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
