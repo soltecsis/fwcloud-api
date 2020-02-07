@@ -71,7 +71,7 @@ var IpobjModel = require('../../models/ipobj/ipobj');
  * @type ../../models/tree/fwc_tree
  * 
  */
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 
 
 import { IPObjType } from '../../models/ipobj/IPObjType';

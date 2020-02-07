@@ -26,7 +26,7 @@ var router = express.Router();
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 var IpobjModel = require('../../models/ipobj/ipobj');
 const restrictedCheck = require('../../middleware/restricted');
 

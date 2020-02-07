@@ -108,7 +108,7 @@ export class CaPrefix extends Model {
         return new Promise(async (resolve, reject) => {
             try {
                 // Search for the CA node tree.
-                let node = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+                let node: any = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
                 if (node.length !== 1)
                     throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
                 let node_id = node[0].id;

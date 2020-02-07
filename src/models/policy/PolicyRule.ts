@@ -31,7 +31,7 @@ import { PolicyPosition } from './PolicyPosition';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -326,11 +326,11 @@ export class PolicyRule extends Model {
                 policy_rData.type = 1; // INPUT IPv4
                 policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
                 policy_r__ipobjData.position = 3;
-                await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+                await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
                 policy_rData.type = 61; // INPUT IPv6
                 policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
                 policy_r__ipobjData.position = 39;
-                await Policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+                await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
 
                 // Now create the catch all rule.
                 policy_rData.action = 2;
@@ -509,7 +509,7 @@ export class PolicyRule extends Model {
 
                 try {
                     //Bucle por IPOBJS
-                    await Promise.all(rows.map(Policy_r__ipobjModel.clonePolicy_r__ipobj));
+                    await Promise.all(rows.map(PolicyRuleToIPObj.clonePolicy_r__ipobj));
                     resolve();
                 } catch (error) { return reject(error) }
             });
@@ -784,7 +784,7 @@ export class PolicyRule extends Model {
                 if (error) return reject(error);
 
                 //DELETE FROM policy_r__ipobj
-                Policy_r__ipobjModel.deletePolicy_r__All(rule, (error, data) => {
+                PolicyRuleToIPObj.deletePolicy_r__All(rule, (error, data) => {
                     if (error) return reject(error);
                     //DELETE FROM policy_r__interface
                     PolicyRuleToInterface.deletePolicy_r__All(rule, async (error, data) => {

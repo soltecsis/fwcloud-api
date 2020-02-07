@@ -34,7 +34,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
-const tableName: string = '';
+const tableName: string = 'policy_position';
 
 export class PolicyPosition extends Model {
 

@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
@@ -53,18 +53,18 @@ async (req, res) => {
 
 	try {
 		// Don't allow to put in positions with O content empty object containers (interfaces, hosts, groups, etc.)
-		if (await policy_r__ipobjModel.emptyIpobjContainerToObjectPosition(req))
+		if (await PolicyRuleToIPObj.emptyIpobjContainerToObjectPosition(req))
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
+		if (await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData))
 			throw fwcError.ALREADY_EXISTS;
 
 		// Depending on the IP version of the policy_type of the rule we are working on, verify that we have root objects 
 		// of this IP version in the object that we are moving to this rule position.
-		if (!(await policy_r__ipobjModel.checkIpVersion(req)))
+		if (!(await PolicyRuleToIPObj.checkIpVersion(req)))
 			throw fwcError.IPOBJ_BAD_IP_VERSION;
 
-		const data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+		const data = await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
 		//If saved policy_r__ipobj Get data
 		if (data && data.result) {
 			if (data.result && data.allowed) {
@@ -123,17 +123,17 @@ async (req, res) => {
 		await PolicyCompilation.deletePolicy_c(new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
-		if (await policy_r__ipobjModel.checkExistsInPosition(policy_r__ipobjData))
+		if (await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData))
 			throw fwcError.ALREADY_EXISTS;
 
 		// Get positions content.
-		const data = await 	policy_r__ipobjModel.getPositionsContent(req.dbCon, position, new_position);
+		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
 	} catch(error) { return res.status(400).json(error) }
 
 	if (content1 === content2) { //SAME POSITION
-		policy_r__ipobjModel.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
+		PolicyRuleToIPObj.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data) {
 				if (data.result) {
@@ -166,7 +166,7 @@ async (req, res) => {
 
 			var data;
 			try {
-				data = await policy_r__ipobjModel.insertPolicy_r__ipobj(policy_r__ipobjData);
+				data = await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
 			} catch(error) { return res.status(400).json(error) }
 
 			//If saved policy_r__ipobj Get data
@@ -206,7 +206,7 @@ utilsModel.disableFirewallCompileStatus,
 	var position_order = req.body.position_order;
 	var new_order = req.body.new_order;
 
-	policy_r__ipobjModel.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, function(error, data) {
+	PolicyRuleToIPObj.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, function(error, data) {
 		if (error) return res.status(400).json(error);
 		//If saved policy_r__ipobj saved ok, get data
 		if (data && data.result) {
@@ -221,7 +221,7 @@ utilsModel.disableFirewallCompileStatus,
 
 /* Get all policy_r__ipobjs by rule*/
 router.put('/get', (req, res) => {
-	policy_r__ipobjModel.getPolicy_r__ipobjs(req.body.rule, (error, data) => {
+	PolicyRuleToIPObj.getPolicy_r__ipobjs(req.body.rule, (error, data) => {
 		//If exists policy_r__ipobj get data
     if (data && data.length > 0)
       res.status(200).json(data);
@@ -243,7 +243,7 @@ utilsModel.disableFirewallCompileStatus,
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 
-	policy_r__ipobjModel.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, async (error, data) => {
+	PolicyRuleToIPObj.deletePolicy_r__ipobj(rule, ipobj, ipobj_g, interface, position, position_order, async (error, data) => {
 		if (data && data.result) {
 			if (data.msg === "deleted") {
 				var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };

@@ -100,7 +100,7 @@ router.put('/style', async (req, res) => {
 	var style = req.body.style;
 	var groupIds = req.body.groupIds;
 
-	db.lockTableCon(PolicyGroup.getTableName(), " WHERE firewall=" + data.idfirewall, function () {
+	db.lockTableCon((new PolicyGroup).getTableName(), " WHERE firewall=" + data.idfirewall, function () {
 		db.startTXcon(async () => {
 			try {
 				await getRepository(PolicyGroup).update({firewall: data.idfirewall, id: groupIds}, {

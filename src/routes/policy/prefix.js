@@ -28,7 +28,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
-const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 const utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -64,7 +64,7 @@ async (req, res) => {
 			throw fwcError.ALREADY_EXISTS;
 
 		// Get content of positions.
-		const content = await policy_r__ipobjModel.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
+		const content = await PolicyRuleToIPObj.getPositionsContent(req.dbCon, req.body.position, req.body.new_position);
 		if (content.content1!=='O' || content.content2!=='O')
 			throw fwcError.BAD_POSITION;
 

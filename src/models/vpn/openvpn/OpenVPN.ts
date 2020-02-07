@@ -706,7 +706,7 @@ export class OpenVPN extends Model {
 
                     const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
                     if (interfaceId) {
-                        const interfaces_node = await Tree.getNodeUnderFirewall(req.dbCon, req.body.fwcloud, req.body.firewall, 'FDI')
+                        const interfaces_node: any = await Tree.getNodeUnderFirewall(req.dbCon, req.body.fwcloud, req.body.firewall, 'FDI')
                         if (interfaces_node) {
                             const nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
 

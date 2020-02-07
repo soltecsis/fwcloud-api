@@ -26,7 +26,7 @@ var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 

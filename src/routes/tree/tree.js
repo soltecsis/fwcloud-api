@@ -23,13 +23,12 @@
 
 var express = require('express');
 var router = express.Router();
-var fwcTreemodel = require('../../models/tree/tree');
-//var Node = require("tree-node");
-var Tree = require('easy-tree');
-var fwc_tree_node = require("../../models/tree/node.js");
+import { Tree } from '../../models/tree/Tree';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+var _Tree = require('easy-tree');
+var fwc_tree_node = require("../../models/tree/node.js");
 const fwcError = require('../../utils/error_table');
 
 
@@ -74,10 +73,10 @@ const fwcError = require('../../utils/error_table');
 
 router.put('/firewalls/get', async (req, res) => {
 	try {
-		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FDF');
+		const node_data = await Tree.getRootNodeByType(req, 'FDF');
 		var root_node = new fwc_tree_node(node_data);
-		var tree = new Tree(root_node);
-		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
+		var tree = new _Tree(root_node);
+		await Tree.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
@@ -133,11 +132,11 @@ router.put('/firewalls/get', async (req, res) => {
  */
 router.put('/objects/get', async (req, res) => {
 	try {
-		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FDO');
+		const node_data = await Tree.getRootNodeByType(req, 'FDO');
 		var root_node = new fwc_tree_node(node_data);
-		var tree = new Tree(root_node);
-		await fwcTreemodel.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
-		await fwcTreemodel.stdFoldersFirst(tree);
+		var tree = new _Tree(root_node);
+		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
+		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -148,11 +147,11 @@ router.put('/objects/get', async (req, res) => {
 //objc -> fwcloud services
 router.put('/services/get', async (req, res) => {
 	try {
-		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FDS');
+		const node_data = await Tree.getRootNodeByType(req, 'FDS');
 		var root_node = new fwc_tree_node(node_data);
-		var tree = new Tree(root_node);
-		await fwcTreemodel.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
-		await fwcTreemodel.stdFoldersFirst(tree);
+		var tree = new _Tree(root_node);
+		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
+		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -161,10 +160,10 @@ router.put('/services/get', async (req, res) => {
 /* Get nodes for the CA tree */
 router.put('/ca/get', async (req, res) => {
 	try {
-		const node_data = await fwcTreemodel.getRootNodeByType(req, 'FCA');
+		const node_data = await Tree.getRootNodeByType(req, 'FCA');
 		var root_node = new fwc_tree_node(node_data);
-		var tree = new Tree(root_node);
-		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
+		var tree = new _Tree(root_node);
+		await Tree.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
 		await Ca.getCAStatusNotZero(req,tree);
 		res.status(200).json(tree);
 	} catch(error) { res.status(400).json(error) }
@@ -174,7 +173,7 @@ router.put('/ca/get', async (req, res) => {
 // Get objects node information.
 router.put('/node/get', async (req, res) => {
 	try {
-		const data = await fwcTreemodel.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type,req.body.id_obj);
+		const data = await Tree.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type,req.body.id_obj);
     if (data && data.length > 0)
       res.status(200).json(data);
     else

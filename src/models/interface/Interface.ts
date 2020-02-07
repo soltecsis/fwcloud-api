@@ -2,7 +2,7 @@ import Model from "../Model";
 import db from '../../database/DatabaseService';
 var logger = require('log4js').getLogger("app");
 
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 var IpobjModel = require('../../models/ipobj/ipobj');
@@ -308,9 +308,9 @@ export class Interface extends Model {
                     try {
                         search.restrictions = {};
                         search.restrictions.InterfaceInRules_I = await PolicyRuleToInterface.SearchInterfaceInRules(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES I POSITIONS
-                        search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
-                        search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
-                        search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfaceInGroup(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
+                        search.restrictions.InterfaceInRules_O = await PolicyRuleToIPObj.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
+                        search.restrictions.IpobjInterfaceInRule = await PolicyRuleToIPObj.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
+                        search.restrictions.IpobjInterfaceInGroup = await PolicyRuleToIPObj.searchIpobjInterfaceInGroup(id, type); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
                         search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
                         search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
                         search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS

@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
-const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
@@ -82,7 +82,7 @@ async(req, res) => {
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		// Get positions content.
-		const data = await 	policy_r__ipobjModel.getPositionsContent(req.dbCon, position, new_position);
+		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
 	} catch(error) { return res.status(400).json(error) }
@@ -125,7 +125,7 @@ async(req, res) => {
 			if (data) {
 				if (data.result) {
 					//delete Position 'O'
-					policy_r__ipobjModel.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
+					PolicyRuleToIPObj.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
 							PolicyRule.compilePolicy_r(rule, function(error, datac) {});
 							PolicyRule.compilePolicy_r(new_rule, function(error, datac) {});

@@ -27,8 +27,8 @@ var router = express.Router();
 import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { Tree } from '../../models/tree/Tree';
 const socketTools = require('../../utils/socket');
-import { Tree } from '../../../models/tree/Tree';
 const fwcError = require('../../utils/error_table');
 
 

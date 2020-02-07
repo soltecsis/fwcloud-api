@@ -7,10 +7,10 @@ var IpobjModel = require('./ipobj');
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
-var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 
 const fwcError = require('../../utils/error_table');
 
@@ -241,7 +241,7 @@ export class IPObjGroup extends Model {
                 let search: any = {};
                 search.result = false;
                 search.restrictions = {};
-                search.restrictions.GroupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {
@@ -262,8 +262,8 @@ export class IPObjGroup extends Model {
                 let search: any = {};
                 search.result = false;
                 search.restrictions = {};
-                search.restrictions.IpobjInGroupInRule = await Policy_r__ipobjModel.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-                search.restrictions.GroupInRule = await Policy_r__ipobjModel.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

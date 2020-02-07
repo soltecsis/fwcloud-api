@@ -67,7 +67,7 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';

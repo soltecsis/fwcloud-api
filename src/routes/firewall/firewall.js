@@ -76,9 +76,9 @@ import { FirewallExport } from '../../export/FirewallExport';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Interface } from '../../models/interface/Interface';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
-var utilsModel = require("../../utils/utils.js");
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 

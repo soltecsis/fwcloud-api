@@ -39,10 +39,10 @@ import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { Tree } from '../../models/tree/Tree';
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 var ipobjModel = require('../../models/ipobj/ipobj');
-import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
-const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const fwcError = require('../../utils/error_table');
 
 /* Create New ipobj_g */
@@ -191,7 +191,7 @@ router.put('/addto', async(req, res) => {
 router.put('/delfrom', async(req, res) => {
 	try {
 		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
-		const search = await Policy_r__ipobjModel.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
+		const search = await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
 		if (search.length > 0) {
 			if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;

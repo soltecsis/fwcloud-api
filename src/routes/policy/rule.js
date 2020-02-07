@@ -23,11 +23,11 @@
 
 var express = require('express');
 var router = express.Router();
+import db from '../../database/DatabaseService';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
-import db from '../../database/DatabaseService';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
@@ -318,7 +318,7 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			newRuleId = await PolicyRule.insertPolicy_r(policy_rData);
 
 			//DUPLICATE RULE POSITONS O (OBJECTS)
-			await policy_r__ipobjModel.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
+			await PolicyRuleToIPObj.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS I (INTERFACES)
 			await PolicyRuleToInterface.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS

@@ -66,7 +66,7 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 
 
 var utilsModel = require('../../utils/utils');
-import { Tree } from '../../../models/tree/Tree';
+import { Tree } from '../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
 const fwcError = require('../../utils/error_table');
