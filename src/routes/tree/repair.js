@@ -24,11 +24,11 @@
 var express = require('express');
 var router = express.Router();
 
-const fwcTreeRepairModel = require('../../models/tree/repair');
-const socketTools = require('../../utils/socket');
-const fwcTreemodel = require('../../models/tree/tree');
+import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+const socketTools = require('../../utils/socket');
+const fwcTreemodel = require('../../models/tree/tree');
 const fwcError = require('../../utils/error_table');
 
 
@@ -46,23 +46,23 @@ router.put('/', async (req, res) =>{
     else
       throw fwcError.BAD_TREE_NODE_TYPE;
     
-    await fwcTreeRepairModel.initData(req);
+    await Repair.initData(req);
 
     socketTools.msg('<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
 
-    const rootNodes = await fwcTreeRepairModel.checkRootNodes();
+    const rootNodes = await Repair.checkRootNodes();
 
     // Verify that all tree not root nodes are part of a tree.
     socketTools.msg('<font color="blue">Checking tree struture.</font>\n');
-    await fwcTreeRepairModel.checkNotRootNodes(rootNodes);
+    await Repair.checkNotRootNodes(rootNodes);
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF' && req.body.type==='FDF') { // Firewalls and clusters tree.
         socketTools.msg('<font color="blue">Checking folders.</font>\n');
-        await fwcTreeRepairModel.checkFirewallsFoldersContent(rootNode);
+        await Repair.checkFirewallsFoldersContent(rootNode);
         socketTools.msg('<font color="blue">Checking firewalls and clusters tree.</font>\n');
-        await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
-        await fwcTreeRepairModel.checkClustersInTree(rootNode);
+        await Repair.checkFirewallsInTree(rootNode);
+        await Repair.checkClustersInTree(rootNode);
         socketTools.msg('<font color="blue">Applying OpenVPN server prefixes.</font>\n');
         const openvpn_srv_list = await OpenVPN.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
@@ -78,26 +78,26 @@ router.put('/', async (req, res) =>{
         const ids = await fwcTreemodel.createObjectsTree(req);
 
         socketTools.msg('<font color="blue">Checking addresses objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.Addresses,'OIA',5);
+        await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
 
         socketTools.msg('<font color="blue">Checking address ranges objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.AddressesRanges,'OIR',6);
+        await Repair.checkNonStdIPObj(ids.AddressesRanges,'OIR',6);
 
         socketTools.msg('<font color="blue">Checking network objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.Networks,'OIN',7);
+        await Repair.checkNonStdIPObj(ids.Networks,'OIN',7);
 
         socketTools.msg('<font color="blue">Checking DNS objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.DNS,'ONS',9);
+        await Repair.checkNonStdIPObj(ids.DNS,'ONS',9);
 
         socketTools.msg('<font color="blue">Checking host objects.</font>\n');
         rootNode.id = ids.OBJECTS;
-        await fwcTreeRepairModel.checkHostObjects(rootNode);
+        await Repair.checkHostObjects(rootNode);
 
         socketTools.msg('<font color="blue">Checking mark objects.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.Marks,'MRK',30);
+        await Repair.checkNonStdIPObj(ids.Marks,'MRK',30);
 
         socketTools.msg('<font color="blue">Checking objects groups.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
+        await Repair.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
         break;
       }
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
@@ -107,19 +107,19 @@ router.put('/', async (req, res) =>{
         const ids = await fwcTreemodel.createServicesTree(req);
 
         socketTools.msg('<font color="blue">Checking IP services.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.IP,'SOI',1);
+        await Repair.checkNonStdIPObj(ids.IP,'SOI',1);
 
         socketTools.msg('<font color="blue">Checking ICMP services.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.ICMP,'SOM',3);
+        await Repair.checkNonStdIPObj(ids.ICMP,'SOM',3);
 
         socketTools.msg('<font color="blue">Checking TCP services.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.TCP,'SOT',2);
+        await Repair.checkNonStdIPObj(ids.TCP,'SOT',2);
 
         socketTools.msg('<font color="blue">Checking UDP services.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObj(ids.UDP,'SOU',4);
+        await Repair.checkNonStdIPObj(ids.UDP,'SOU',4);
 
         socketTools.msg('<font color="blue">Checking services groups.</font>\n');
-        await fwcTreeRepairModel.checkNonStdIPObjGroup(ids.Groups,'SOG',21);
+        await Repair.checkNonStdIPObjGroup(ids.Groups,'SOG',21);
         break;
       }
     }
