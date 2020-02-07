@@ -36,7 +36,7 @@ import { OpenVPNPrefix } from '../models/vpn/openvpn/OpenVPNPrefix';
 import { Ca } from '../models/vpn/pki/Ca';
 import { Crt } from '../models/vpn/pki/Crt';
 import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
-const ipobjModel = require('../models/ipobj/ipobj');
+import { IPObj } from '../models/ipobj/IPObj';
 
 
 
@@ -138,7 +138,7 @@ restrictedCheck.interface = async(req, res, next) => {
 
 restrictedCheck.ipobj = async(req, res, next) => {
 	try {
-		const data = await ipobjModel.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
+		const data = await IPObj.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
 		if (data.result) res.status(403).json(data);
 		else next();
 	} catch (error) { res.status(400).json(error) }

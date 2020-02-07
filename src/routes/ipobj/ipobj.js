@@ -62,7 +62,7 @@ var router = express.Router();
  * @type ../../models/ipobj/ipobj
  * 
  */
-var IpobjModel = require('../../models/ipobj/ipobj');
+import { IPObj } from '../../models/ipobj/IPObj';
 
 /**
  * Property Model to manage FWC_TREE Data
@@ -188,9 +188,9 @@ router.post("/",
 		};
 
 		try {
-			const id = await IpobjModel.insertIpobj(req, ipobjData);
-			await IpobjModel.UpdateHOST(id);
-			await IpobjModel.UpdateINTERFACE(id);
+			const id = await IPObj.insertIpobj(req, ipobjData);
+			await IPObj.UpdateHOST(id);
+			await IPObj.UpdateINTERFACE(id);
 
 			//INSERT IN TREE
 			const node_id = (node_parent) ? await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
@@ -307,11 +307,11 @@ router.put('/',
 			if (data && data[0].protocol_number !== null)
 				ipobjData.protocol = data[0].protocol_number;
 
-			await IpobjModel.updateIpobj(req, ipobjData);
+			await IPObj.updateIpobj(req, ipobjData);
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
 			await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
-			await IpobjModel.UpdateHOST(ipobjData.id);
-			await IpobjModel.UpdateINTERFACE(ipobjData.id);
+			await IPObj.UpdateHOST(ipobjData.id);
+			await IPObj.UpdateINTERFACE(ipobjData.id);
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
@@ -342,7 +342,7 @@ router.put('/',
  * */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await IpobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.id);
+		const data = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
 		else
@@ -404,13 +404,13 @@ router.put('/del',
 
 		try {
 			await Firewall.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, type, "|3");
-			await IpobjModel.UpdateHOST(id);
-			await IpobjModel.UpdateINTERFACE(id);
+			await IPObj.UpdateHOST(id);
+			await IPObj.UpdateINTERFACE(id);
 
 			if (type === 8)
-				await IpobjModel.deleteHost(req.dbCon, req.body.fwcloud, req.body.id);
+				await IPObj.deleteHost(req.dbCon, req.body.fwcloud, req.body.id);
 			else
-				await IpobjModel.deleteIpobj(req.dbCon, req.body.fwcloud, req.body.id);
+				await IPObj.deleteIpobj(req.dbCon, req.body.fwcloud, req.body.id);
 
 			await Tree.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
 			//DELETE FROM TREE
@@ -439,7 +439,7 @@ router.put('/del',
  * */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await IpobjModel.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
+		const data = await IPObj.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
 		if (data.result)
 			res.status(200).json(data);
 		else

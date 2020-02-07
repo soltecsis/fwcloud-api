@@ -24,7 +24,7 @@ import Model from "../Model";
 import db from '../../database/DatabaseService';
 import { PrimaryGeneratedColumn, Column } from "typeorm";
 
-const tableName: string = '';
+const tableName: string = 'ipobj__ipobjg';
 
 export class IPObjToIPObjGroup extends Model {
 

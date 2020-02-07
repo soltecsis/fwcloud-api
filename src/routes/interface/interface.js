@@ -27,7 +27,7 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { Tree } from '../../models/tree/Tree';
-var IpobjModel = require('../../models/ipobj/ipobj');
+import { IPObj } from '../../models/ipobj/IPObj';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -189,7 +189,7 @@ router.put('/fw/del',
 	restrictedCheck.interface,
 	async(req, res) => {
 		try {
-			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
+			await IPObj.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceFW(req.dbCon, req.body.id);
 			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
 			res.status(204).end();
@@ -203,7 +203,7 @@ router.put("/host/del",
 	async(req, res) => {
 		try {
 			await InterfaceIPObj.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
-			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
+			await IPObj.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceHOST(req.dbCon, req.body.id);
 			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
 			res.status(204).end();

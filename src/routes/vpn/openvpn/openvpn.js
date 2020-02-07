@@ -62,7 +62,7 @@ import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
-const ipobjModel = require('../../../models/ipobj/ipobj');
+import { IPObj } from '../../../models/ipobj/IPObj';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -201,7 +201,7 @@ router.put('/ipobj/get', async(req, res) => {
 		let data = [];
 		for (let openvpn_opt of cfgData.options) {
 			if (openvpn_opt.ipobj)
-				data.push(await ipobjModel.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj));
+				data.push(await IPObj.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj));
 		}
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }

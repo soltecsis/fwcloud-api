@@ -3,7 +3,7 @@ import db from '../../database/DatabaseService';
 
 var logger = require('log4js').getLogger("app");
 
-var IpobjModel = require('./ipobj');
+import { IPObj } from './IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
@@ -135,7 +135,7 @@ export class IPObjGroup extends Model {
                     for (let obj of rows) {
                         try {
                             if (obj.type === 'O')
-                                ipobj_node = new ipobj_Data((await IpobjModel.getIpobj(dbCon, fwcloud, obj.id))[0]);
+                                ipobj_node = new ipobj_Data((await IPObj.getIpobj(dbCon, fwcloud, obj.id))[0]);
                             else if (obj.type === 'VPN')
                                 ipobj_node = new ipobj_Data((await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0]);
                             else if (obj.type === 'PRO')
@@ -183,7 +183,7 @@ export class IPObjGroup extends Model {
                             var idgroup = row.id;
                             group_node.ipobjs = new Array();
                             //GET ALL GROUP OBJECTs
-                            IpobjModel.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+                            IPObj.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
                                 if (data_ipobjs.length > 0) {
                                     ipobjs_cont = data_ipobjs.length;
 

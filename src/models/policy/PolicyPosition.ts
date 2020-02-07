@@ -29,7 +29,7 @@ import { Interface } from '../../models/interface/Interface';
 import { PrimaryColumn, Column } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
-const IpobjModel = require('../../models/ipobj/ipobj');
+import { IPObj } from '../../models/ipobj/IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
@@ -208,7 +208,7 @@ export class PolicyPosition extends Model {
                     if (error) return reject(error);
 
                     try {
-                        position.ipobjs = await Promise.all(rows.map(IpobjModel.getFinalIpobjPro));
+                        position.ipobjs = await Promise.all(rows.map(IPObj.getFinalIpobjPro));
                         resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "position_objs": position.ipobjs});
                     }	catch(error) { reject(error) }
                 });
@@ -249,7 +249,7 @@ export class PolicyPosition extends Model {
                         for (let item of items) {
                             let data = {};
                             if (item.ipobj>0 && item.type==='O') // IPOBJ
-                            data = await IpobjModel.getIpobj(dbCon, position.fwcloud, item.ipobj);
+                            data = await IPObj.getIpobj(dbCon, position.fwcloud, item.ipobj);
                             else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
                                 data = await IPObjGroup.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g);
                             else if (item.interface>0 || item.type==='I') { // Network interface.

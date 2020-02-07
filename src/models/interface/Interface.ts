@@ -5,7 +5,7 @@ var logger = require('log4js').getLogger("app");
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
-var IpobjModel = require('../../models/ipobj/ipobj');
+import { IPObj } from '../../models/ipobj/IPObj';
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -44,7 +44,7 @@ export class Interface extends Model {
                 else {
                     //logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
                     //Bucle por interfaces
-                    Promise.all(rows.map(IpobjModel.getAllIpobjsInterfacePro))
+                    Promise.all(rows.map(IPObj.getAllIpobjsInterfacePro))
                         .then(data => callback(null, data))
                         .catch(e => callback(e, null));
                 }
@@ -194,9 +194,9 @@ export class Interface extends Model {
                     else {
                         //GET ALL IPOBJ UNDER INTERFACE
                         //logger.debug("INTERFACE -> " , row[0]);
-                        IpobjModel.getAllIpobjsInterfacePro(row[0])
-                            .then(dataI => {
-                                Promise.all(dataI.ipobjs.map(IpobjModel.getIpobjPro))
+                        IPObj.getAllIpobjsInterfacePro(row[0])
+                            .then((dataI: any) => {
+                                Promise.all(dataI.ipobjs.map(IPObj.getIpobjPro))
                                     .then(dataO => {
                                         //dataI.ipobjs = dataO;
                                         //logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
@@ -311,10 +311,10 @@ export class Interface extends Model {
                         search.restrictions.InterfaceInRules_O = await PolicyRuleToIPObj.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
                         search.restrictions.IpobjInterfaceInRule = await PolicyRuleToIPObj.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
                         search.restrictions.IpobjInterfaceInGroup = await PolicyRuleToIPObj.searchIpobjInterfaceInGroup(id, type); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
-                        search.restrictions.IpobjInterfaceInOpenvpn = await IpobjModel.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
+                        search.restrictions.IpobjInterfaceInOpenvpn = await IPObj.searchIpobjInterfaceInOpenvpn(id, fwcloud, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
                         search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
                         search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
-                        search.restrictions.LastInterfaceWithAddrInHostInRule = await IpobjModel.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
+                        search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
 
                         for (let key in search.restrictions) {
                             if (search.restrictions[key].length > 0) {
@@ -505,7 +505,7 @@ export class Interface extends Model {
                             rows[i].name = rows[i].name.replace(new RegExp("^" + rows[i].org_name + ":"), rows[i].clon_name + ":");
                     }
                     //Bucle por IPOBJS
-                    Promise.all(rows.map(IpobjModel.cloneIpobj))
+                    Promise.all(rows.map(IPObj.cloneIpobj))
                         .then(data => resolve({ "id_org": id_org, "id_clon": id_clon, "addr": data }))
                         .catch(e => reject(e));
                 });
@@ -580,7 +580,7 @@ export class Interface extends Model {
 
                     try {
                         for (let _interface of interfaces)
-                            await IpobjModel.deleteIpobjInterface(dbCon, _interface.id);
+                            await IPObj.deleteIpobjInterface(dbCon, _interface.id);
                         resolve();
                     } catch (error) { reject(error) }
                 });

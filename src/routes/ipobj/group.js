@@ -41,7 +41,7 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-var ipobjModel = require('../../models/ipobj/ipobj');
+import { IPObj } from '../../models/ipobj/IPObj';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -166,7 +166,7 @@ router.put('/addto', async(req, res) => {
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
 		} else {
-			dataIpobj = await ipobjModel.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
+			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 			if (groupIPv!=0 && dataIpobj[0].ip_version!==groupIPv) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);

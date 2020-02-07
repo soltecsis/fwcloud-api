@@ -4,7 +4,7 @@ import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN'
 import { Interface } from '../../../models/interface/Interface';
 import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
 const config = require('../../../config/config');
-const ipobjModel = require('../../ipobj/ipobj');
+import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
 const sshTools = require('../../../utils/ssh');
@@ -134,7 +134,7 @@ export class OpenVPN extends Model {
                             // In the restrictions check we have already checked that it is possible to remove them.
                             try {
                                 for (let ipobj of ipobj_list) {
-                                    await ipobjModel.deleteIpobj(dbCon, fwcloud, ipobj.id);
+                                    await IPObj.deleteIpobj(dbCon, fwcloud, ipobj.id);
                                     await Tree.deleteObjFromTree(fwcloud, ipobj.id, ipobj.type);
                                 }
                             } catch (error) { return reject(error) }
@@ -313,7 +313,7 @@ export class OpenVPN extends Model {
                             let cfg_line = ((opt.comment) ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
                             if (opt.ipobj) {
                                 // Get the ipobj data.
-                                const ipobj = await ipobjModel.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
+                                const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
                                 if (ipobj.type === 7) // Network
                                     cfg_line += ' ' + ipobj.address + ' ' + ipobj.netmask;
                                 else if (ipobj.type === 5) { // Address
@@ -714,7 +714,7 @@ export class OpenVPN extends Model {
                             openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
                             if (openvpn_opt && openvpn_opt.ipobj) {
                                 // Get the ipobj data.
-                                const ipobj = await ipobjModel.getIpobjInfo(req.dbCon, req.body.fwcloud, openvpn_opt.ipobj);
+                                const ipobj: any = await IPObj.getIpobjInfo(req.dbCon, req.body.fwcloud, openvpn_opt.ipobj);
                                 if (ipobj.type === 7) { // Network
                                     const net = ip.subnet(ipobj.address, ipobj.netmask);
 
@@ -742,7 +742,7 @@ export class OpenVPN extends Model {
                                         options: null
                                     };
 
-                                    const ipobjId = await ipobjModel.insertIpobj(req, ipobjData);
+                                    const ipobjId = await IPObj.insertIpobj(req, ipobjData);
                                     await Tree.newNode(req.dbCon, req.body.fwcloud, `${interface_name} (${net.firstAddress})`, nodeId, 'OIA', ipobjId, 5);
                                 }
                             }
