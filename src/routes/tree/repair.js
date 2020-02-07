@@ -28,7 +28,7 @@ import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 const socketTools = require('../../utils/socket');
-const fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const fwcError = require('../../utils/error_table');
 
 
@@ -74,8 +74,8 @@ router.put('/', async (req, res) =>{
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.
         socketTools.msg('<font color="blue">Checking objects tree.</font>\n');
         // Remove the full tree an create it again from scratch.
-        await fwcTreemodel.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        const ids = await fwcTreemodel.createObjectsTree(req);
+        await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
+        const ids = await Tree.createObjectsTree(req);
 
         socketTools.msg('<font color="blue">Checking addresses objects.</font>\n');
         await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
@@ -103,8 +103,8 @@ router.put('/', async (req, res) =>{
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
         socketTools.msg('<font color="blue">Checking services tree.</font>\n');
         // Remove the full tree an create it again from scratch.
-        await fwcTreemodel.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        const ids = await fwcTreemodel.createServicesTree(req);
+        await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
+        const ids = await Tree.createServicesTree(req);
 
         socketTools.msg('<font color="blue">Checking IP services.</font>\n');
         await Repair.checkNonStdIPObj(ids.IP,'SOI',1);

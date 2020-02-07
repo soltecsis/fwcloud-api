@@ -9,7 +9,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var utilsModel = require("../../utils/utils.js");
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
-var fwcTreemodel = require('../tree/tree');
+import { Tree } from '../tree/Tree';
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -803,7 +803,7 @@ export class Firewall extends Model {
 							await OpenVPN.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
 							await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
 							await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
-							await fwcTreemodel.deleteFwc_TreeFullNode({ id: row[0].id, fwcloud: fwcloud, iduser: user }); //DELETE TREE NODES From firewall
+							await Tree.deleteFwc_TreeFullNode({ id: row[0].id, fwcloud: fwcloud, iduser: user }); //DELETE TREE NODES From firewall
 							await utilsModel.deleteFolder(config.get('policy').data_dir + '/' + fwcloud + '/' + firewall); // DELETE DATA DIRECTORY FOR THIS FIREWALL
 							await Firewall.deleteFirewallRow(dbCon, fwcloud, firewall);
 							resolve();
@@ -874,11 +874,11 @@ export class Firewall extends Model {
 
 							if (rowT && rowT.length > 0) {
 								try {
-									await fwcTreemodel.updateIDOBJFwc_TreeFullNode(rowT[0]);
+									await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
 
 									//DELETE TREE NODES From firewall
 									var dataNode = { id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id };
-									await fwcTreemodel.deleteFwc_TreeFullNode(dataNode);
+									await Tree.deleteFwc_TreeFullNode(dataNode);
 								} catch (error) { return reject(error) }
 							}
 							resolve();
@@ -887,7 +887,7 @@ export class Firewall extends Model {
 				} else { // Deleting FIREWALL SLAVE
 					try {
 						//DELETE TREE NODES From firewall
-						await fwcTreemodel.deleteFwc_TreeFullNode({ id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id });
+						await Tree.deleteFwc_TreeFullNode({ id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id });
 						await Firewall.deleteFirewallRow(req.dbCon, req.body.fwcloud, req.body.firewall);
 						resolve();
 					} catch (error) { reject(error) }

@@ -26,7 +26,7 @@ var router = express.Router();
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
-var fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 var IpobjModel = require('../../models/ipobj/ipobj');
 const restrictedCheck = require('../../middleware/restricted');
 
@@ -105,7 +105,7 @@ router.post("/", async(req, res) => {
 
 	// Verify that the node tree information is consistent with the information in the request.
 	try {
-		if (!(await fwcTreemodel.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host))))
+		if (!(await Tree.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host))))
 			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 
 		//Create New objet with data interface
@@ -141,7 +141,7 @@ router.post("/", async(req, res) => {
 			//INSERT IN TREE
 			interfaceData.id = insertId;
 			interfaceData.type = interfaceData.interface_type;
-			const node_id = await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
+			const node_id = await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
 			res.status(200).json({ "insertId": insertId, "TreeinsertId": node_id });
 		} else { return res.status(400).end() }
 	} catch (error) { res.status(400).json(error) }
@@ -174,7 +174,7 @@ router.put('/', (req, res) => {
 					var data_return = {};
 					await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
 		
-					await fwcTreemodel.updateFwc_Tree_OBJ(req, interfaceData);
+					await Tree.updateFwc_Tree_OBJ(req, interfaceData);
 
 					res.status(200).json(data_return);
 				} catch (error) { res.status(400).json(error) }
@@ -191,7 +191,7 @@ router.put('/fw/del',
 		try {
 			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceFW(req.dbCon, req.body.id);
-			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
+			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
 	});
@@ -205,7 +205,7 @@ router.put("/host/del",
 			await InterfaceIPObj.deleteHostInterface(req.dbCon, req.body.host, req.body.id);
 			await IpobjModel.deleteIpobjInterface(req.dbCon, req.body.id);
 			await Interface.deleteInterfaceHOST(req.dbCon, req.body.id);
-			await fwcTreemodel.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
+			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
 			res.status(204).end();
 		} catch (error) { res.status(400).json(error) }
 	});

@@ -40,7 +40,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var ipobjModel = require('../../models/ipobj/ipobj');
-var fwcTreeModel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const fwcError = require('../../utils/error_table');
@@ -68,7 +68,7 @@ router.post("/", (req, res) => {
 			ipobj_gData.id = id;
 			//INSERT IN TREE
 			try {
-				const node_id = await fwcTreeModel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
+				const node_id = await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
 				var dataresp = { "insertId": id, "TreeinsertId": node_id };
 				res.status(200).json(dataresp);
 			} catch (error) { res.status(400).json(error) }
@@ -89,7 +89,7 @@ router.put('/', async(req, res) => {
 
 	try {
 		await IPObjGroup.updateIpobj_g(req, ipobj_gData);
-		await fwcTreeModel.updateFwc_Tree_OBJ(req, ipobj_gData);
+		await Tree.updateFwc_Tree_OBJ(req, ipobj_gData);
 		res.status(204).end();
 	} catch (error) { return res.status(400).json(error) }
 });
@@ -112,8 +112,8 @@ router.put("/del",
 	async(req, res) => {
 		try {
 			await IPObjGroup.deleteIpobj_g(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
-			await fwcTreeModel.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
-			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
+			await Tree.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
+			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
 			res.status(204).end();
 		} catch (error) { return res.status(400).json(error) }
 	});
@@ -174,7 +174,7 @@ router.put('/addto', async(req, res) => {
 		}
 
 		//INSERT IN TREE
-		await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
+		await Tree.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
 
 		// Invalidate the policy compilation of all affected rules.
 		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
@@ -204,7 +204,7 @@ router.put('/delfrom', async(req, res) => {
 		else
 			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 
-		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
+		await Tree.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
 		// Invalidate the policy compilation of all affected rules.
 		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);

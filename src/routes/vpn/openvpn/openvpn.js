@@ -60,7 +60,7 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 const ipobjModel = require('../../../models/ipobj/ipobj');
 const fwcError = require('../../../utils/error_table');
@@ -109,7 +109,7 @@ router.post('/', async(req, res) => {
 		// Create the OpenVPN configuration node in the tree.
 		let nodeId;
 		if (req.tree_node.node_type === 'OPN') // This will be an OpenVPN server configuration.
-			nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
+			nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
 			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
@@ -255,7 +255,7 @@ async(req, res) => {
 			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.openvpn.openvpn);
 		} else { // Server OpenVPN configuration.
 			// Delete the openvpn node from the tree.
-			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
+			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);
 		}
 
 		res.status(204).end();

@@ -6,7 +6,7 @@ import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
 const config = require('../../../config/config');
 const ipobjModel = require('../../ipobj/ipobj');
 const readline = require('readline');
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 const fwcError = require('../../../utils/error_table');
@@ -135,7 +135,7 @@ export class OpenVPN extends Model {
                             try {
                                 for (let ipobj of ipobj_list) {
                                     await ipobjModel.deleteIpobj(dbCon, fwcloud, ipobj.id);
-                                    await fwcTreeModel.deleteObjFromTree(fwcloud, ipobj.id, ipobj.type);
+                                    await Tree.deleteObjFromTree(fwcloud, ipobj.id, ipobj.type);
                                 }
                             } catch (error) { return reject(error) }
 
@@ -706,9 +706,9 @@ export class OpenVPN extends Model {
 
                     const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
                     if (interfaceId) {
-                        const interfaces_node = await fwcTreeModel.getNodeUnderFirewall(req.dbCon, req.body.fwcloud, req.body.firewall, 'FDI')
+                        const interfaces_node = await Tree.getNodeUnderFirewall(req.dbCon, req.body.fwcloud, req.body.firewall, 'FDI')
                         if (interfaces_node) {
-                            const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
+                            const nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, interface_name, interfaces_node.id, 'IFF', interfaceId, 10);
 
                             // Create the network address for the new interface.
                             openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
@@ -743,7 +743,7 @@ export class OpenVPN extends Model {
                                     };
 
                                     const ipobjId = await ipobjModel.insertIpobj(req, ipobjData);
-                                    await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, `${interface_name} (${net.firstAddress})`, nodeId, 'OIA', ipobjId, 5);
+                                    await Tree.newNode(req.dbCon, req.body.fwcloud, `${interface_name} (${net.firstAddress})`, nodeId, 'OIA', ipobjId, 5);
                                 }
                             }
                         }

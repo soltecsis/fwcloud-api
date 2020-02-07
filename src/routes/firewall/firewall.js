@@ -77,7 +77,7 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Interface } from '../../models/interface/Interface';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 var utilsModel = require("../../utils/utils.js");
-var fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -176,9 +176,9 @@ router.post('/', async(req, res) => {
 		}
 
 		if (!firewallData.cluster) // Create firewall tree.
-			await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
+			await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, newFirewallId);
 		else // Create the new firewall node in the NODES node of the cluster.
-			await fwcTreemodel.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
+			await Tree.insertFwc_Tree_New_cluster_firewall(req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.name);
 
 		// Create the directory used for store firewall data.
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
@@ -275,7 +275,7 @@ router.put('/', async (req, res) => {
 
 		//////////////////////////////////
 		//UPDATE FIREWALL NODE STRUCTURE                                    
-		await	fwcTreemodel.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
+		await	Tree.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -580,7 +580,7 @@ router.put('/clone', async (req, res) => {
 		const dataI = await Interface.cloneFirewallInterfaces(req.session.user_id, req.body.fwcloud, req.body.firewall, idNewFirewall);
 		await PolicyRule.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
-		await fwcTreemodel.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
+		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }

@@ -66,7 +66,7 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 
 
 var utilsModel = require('../../utils/utils');
-var fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
 const fwcError = require('../../utils/error_table');
@@ -104,7 +104,7 @@ router.post('/', async(req, res) => {
 			throw fwcError.NOT_ADMIN_USER;
 
 		req.body.fwcloud = await FwCloud.insertFwcloud(req);
-		await fwcTreemodel.createAllTreeCloud(req);
+		await Tree.createAllTreeCloud(req);
 		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
 		res.status(200).json({ "insertId": req.body.fwcloud });

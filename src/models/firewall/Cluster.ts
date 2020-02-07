@@ -2,8 +2,7 @@ import Model from "../Model";
 import db from '../../database/DatabaseService'
 import { Firewall } from "./Firewall";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
-
-var fwcTreemodel = require('../tree/tree');
+import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
 
 
@@ -169,7 +168,7 @@ export class Cluster extends Model {
                     try {
                         //If exists Id from cluster to remove
                         if (cluster.length > 0)
-                            await fwcTreemodel.deleteFwc_TreeFullNode({ id: cluster[0].idnode, fwcloud: fwcloud, iduser: iduser });
+                            await Tree.deleteFwc_TreeFullNode({ id: cluster[0].idnode, fwcloud: fwcloud, iduser: iduser });
                     } catch (error) { return reject(error) }
 
                     dbCon.query(`DELETE FROM ${tableName} WHERE id=${cluster[0].id}`, (error, result) => {
@@ -196,7 +195,7 @@ export class Cluster extends Model {
                 //If exists Id from cluster to remove
                 if (row.length > 0) {
                     var dataNode = { id: row[0].idnode, fwcloud: fwcloud, iduser: iduser }
-                    fwcTreemodel.deleteFwc_TreeFullNode(dataNode)
+                    Tree.deleteFwc_TreeFullNode(dataNode)
                         .then(resp => {
                             db.get(function (error, connection) {
                                 var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);

@@ -23,7 +23,7 @@
 import Model from "../../Model";
 import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -167,9 +167,9 @@ export class OpenVPNPrefix extends Model {
 
                 try {
                     // Create the prefix and OpenVPN client configuration nodes.
-                    let node_id = await fwcTreeModel.newNode(dbCon, fwcloud, prefix_name, parent, 'PRO', prefix_id, 401);
+                    let node_id = await Tree.newNode(dbCon, fwcloud, prefix_name, parent, 'PRO', prefix_id, 401);
                     for (let row of result)
-                        await fwcTreeModel.newNode(dbCon, fwcloud, row.sufix, node_id, 'OCL', row.id, 311);
+                        await Tree.newNode(dbCon, fwcloud, row.sufix, node_id, 'OCL', row.id, 311);
                 } catch (error) { return reject(error) }
 
                 if (result.length === 0) return resolve();
@@ -189,15 +189,15 @@ export class OpenVPNPrefix extends Model {
     public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv) {
         return new Promise(async (resolve, reject) => {
             try {
-                let node = await fwcTreeModel.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
+                let node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
                 let node_id = node[0].id;
                 // Remove all nodes under the OpenVPN server configuration node.
-                await fwcTreeModel.deleteNodesUnderMe(dbCon, fwcloud, node_id);
+                await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
 
                 // Create all OpenVPN client config nodes.
                 let openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
                 for (let openvpn_cli of openvpn_cli_list)
-                    await fwcTreeModel.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
+                    await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
 
                 // Create the nodes for all the prefixes.
                 const prefix_list: any = await this.getPrefixes(dbCon, openvpn_srv);

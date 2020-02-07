@@ -26,7 +26,7 @@ var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
-const fwcTreeModel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
 		const id = await Mark.createMark(req);
 
 		// Create the iptables mark node in the ipobj tree.
-		let nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.name, req.body.node_id, 'MRK', id, 30);
+		let nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.body.name, req.body.node_id, 'MRK', id, 30);
 
 		res.status(200).json({insertId: id, TreeinsertId: nodeId});
 	} catch(error) { res.status(400).json(error) }

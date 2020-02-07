@@ -28,7 +28,7 @@ const fwcError = require('../../../utils/error_table');
 import { Ca } from '../../../models/vpn/pki/Ca';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
@@ -81,7 +81,7 @@ async(req, res) => {
 		await utilsModel.deleteFile(base_dir + '/certs_by_serial', serial + '.pem');
 
 		// Delete the certificate node into the tree.
-		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
+		await Tree.deleteObjFromTree(req.body.fwcloud, req.body.crt, ((req.crt.type===1) ? 301 : 302));
 
 		// Answer to the API request.
 		res.status(204).end();

@@ -21,7 +21,7 @@
 */
 
 
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import Model from '../../Model';
 import { Entity, Column } from 'typeorm';
@@ -90,7 +90,7 @@ export class CaPrefix extends Model {
 
                 try {
                     for (let row of result)
-                        await fwcTreeModel.newNode(dbCon, fwcloud, row.sufix, node, 'CRT', row.id, ((row.type === 1) ? 301 : 302));
+                        await Tree.newNode(dbCon, fwcloud, row.sufix, node, 'CRT', row.id, ((row.type === 1) ? 301 : 302));
                 } catch (error) { return reject(error) }
 
                 // Remove from root CA node the nodes that match de prefix.
@@ -108,23 +108,23 @@ export class CaPrefix extends Model {
         return new Promise(async (resolve, reject) => {
             try {
                 // Search for the CA node tree.
-                let node = await fwcTreeModel.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+                let node = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
                 if (node.length !== 1)
                     throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
                 let node_id = node[0].id;
 
                 // Remove all nodes under the CA node.
-                await fwcTreeModel.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
+                await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
                 // Generate all the CRT tree nodes under the CA node.
                 const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
                 for (let crt of crt_list)
-                    await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, crt.cn, node_id, 'CRT', crt.id, ((crt.type === 1) ? 301 : 302));
+                    await Tree.newNode(req.dbCon, req.body.fwcloud, crt.cn, node_id, 'CRT', crt.id, ((crt.type === 1) ? 301 : 302));
 
                 // Create the nodes for all the prefixes.
                 const prefix_list: any = await this.getPrefixes(req.dbCon, ca);
                 for (let prefix of prefix_list) {
-                    let id = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, prefix.name, node_id, 'PRE', prefix.id, 400);
+                    let id = await Tree.newNode(req.dbCon, req.body.fwcloud, prefix.name, node_id, 'PRE', prefix.id, 400);
                     await this.fillPrefixNodeCA(req.dbCon, req.body.fwcloud, ca, prefix.name, node_id, id);
                 }
 

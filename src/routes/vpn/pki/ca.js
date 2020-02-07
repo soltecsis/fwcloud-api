@@ -26,7 +26,7 @@ var router = express.Router();
 
 const fwcError = require('../../../utils/error_table');
 import { Ca } from '../../../models/vpn/pki/Ca';
-const fwcTreeModel = require('../../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
@@ -58,7 +58,7 @@ router.post('/', async(req, res) => {
 			});
 
 		// Create new CA tree node.
-		const nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
+		const nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
 
 		res.status(200).json({insertId: req.caId, TreeinsertId: nodeId});
 	} catch(error) { res.status(400).json(error) }
@@ -86,7 +86,7 @@ async(req, res) => {
 		await utilsModel.deleteFolder(config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.body.ca);
 
 		// Delete the ca node into the tree.
-		await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
+		await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);
 
 		// Answer to the API request.
 		res.status(204).end();

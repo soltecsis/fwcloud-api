@@ -67,7 +67,7 @@ var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
-var fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
@@ -214,7 +214,7 @@ router.post('/', (req, res) => {
 						await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 					}
 				}
-				await fwcTreemodel.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, idcluster);
+				await Tree.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, idcluster);
 				res.status(200).json(dataNewCluster);
 			} catch (error) { res.status(400).json(error) }
 		} else res.status(400).json(error);
@@ -401,7 +401,7 @@ router.put('/', async (req, res) => {
 		// Or remove them if this is not a stateful firewall cluster.
 		await PolicyRule.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
 
-		await fwcTreemodel.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
+		await Tree.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
@@ -432,7 +432,7 @@ router.put('/fwtocluster', async(req, res) => {
 				var idcluster = data.insertId;
 				//////////////////////////////////
 				//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-				fwcTreemodel.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, function(error, dataTree) {
+				Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, function(error, dataTree) {
 					if (error)
 						return res.status(400).json(error);
 					else if (dataTree && dataTree.result) {
@@ -471,7 +471,7 @@ router.put('/clustertofw', (req, res) => {
 
 			//////////////////////////////////
 			//UPDATE CLUSTER NODE STRUCTURE
-			fwcTreemodel.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, function(error, dataTree) {
+			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, function(error, dataTree) {
 				logger.debug("DATATREE: ", dataTree);
 				if (error)
 					return res.status(400).json(error);
@@ -562,7 +562,7 @@ router.put('/clone', (req, res) => {
 						}
 
 						//INSERT FIREWALL NODE STRUCTURE
-						await fwcTreemodel.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster);
+						await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster);
 
 						// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
 						await PolicyRule.updateApplyToRules(newidcluster, fwNewMaster);

@@ -71,7 +71,7 @@ var IpobjModel = require('../../models/ipobj/ipobj');
  * @type ../../models/tree/fwc_tree
  * 
  */
-var fwcTreemodel = require('../../models/tree/tree');
+import { Tree } from '../../../models/tree/Tree';
 
 
 import { IPObjType } from '../../models/ipobj/IPObjType';
@@ -193,7 +193,7 @@ router.post("/",
 			await IpobjModel.UpdateINTERFACE(id);
 
 			//INSERT IN TREE
-			const node_id = (node_parent) ? await fwcTreemodel.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
+			const node_id = (node_parent) ? await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobjData) : 0;
 
 			var dataresp = { "insertId": id, "TreeinsertId": node_id };
 			if (ipobjData.interface) {
@@ -317,7 +317,7 @@ router.put('/',
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
 			await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
 
-			await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
+			await Tree.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 
 			res.status(200).json(data_return);
 		} catch (error) { res.status(400).json(error) }
@@ -412,9 +412,9 @@ router.put('/del',
 			else
 				await IpobjModel.deleteIpobj(req.dbCon, req.body.fwcloud, req.body.id);
 
-			await fwcTreemodel.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
+			await Tree.orderTreeNodeDeleted(req.dbCon, fwcloud, id);
 			//DELETE FROM TREE
-			await fwcTreemodel.deleteObjFromTree(fwcloud, id, type);
+			await Tree.deleteObjFromTree(fwcloud, id, type);
 			const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(fwcloud, null);
 			res.status(200).json(not_zero_status_fws);
 		} catch (error) { res.status(400).json(error) }
