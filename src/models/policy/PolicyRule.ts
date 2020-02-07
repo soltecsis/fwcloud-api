@@ -30,7 +30,7 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyPosition } from './PolicyPosition';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
-var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -314,11 +314,11 @@ export class PolicyRule extends Model {
                 policy_rData.type = 1; // INPUT IPv4
                 policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
                 policy_r__interfaceData.position = 20;
-                await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+                await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
                 policy_rData.type = 61; // INPUT IPv6
                 policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
                 policy_r__interfaceData.position = 51;
-                await Policy_r__interfaceModel.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+                await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
                 // Allow useful ICMP traffic.
                 policy_rData.rule_order = 3;
@@ -540,7 +540,7 @@ export class PolicyRule extends Model {
 
                 //Bucle for INTERFACES
                 try {
-                    await Promise.all(rowsI.map(Policy_r__interfaceModel.clonePolicy_r__interface));
+                    await Promise.all(rowsI.map(PolicyRuleToInterface.clonePolicy_r__interface));
                     resolve();
                 } catch (error) { reject(error) }
             });
@@ -787,7 +787,7 @@ export class PolicyRule extends Model {
                 Policy_r__ipobjModel.deletePolicy_r__All(rule, (error, data) => {
                     if (error) return reject(error);
                     //DELETE FROM policy_r__interface
-                    Policy_r__interfaceModel.deletePolicy_r__All(rule, async (error, data) => {
+                    PolicyRuleToInterface.deletePolicy_r__All(rule, async (error, data) => {
                         if (error) return reject(error);
 
                         try {

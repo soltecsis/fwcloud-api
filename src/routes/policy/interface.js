@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
@@ -45,7 +45,7 @@ async (req, res) => {
 	};
 
 	try {
-		const data = await policy_r__interfaceModel.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
+		const data = await PolicyRuleToInterface.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
 		//If saved policy_r__interface Get data
 		if (data && data.result) {
 			if (data.result) {
@@ -88,7 +88,7 @@ async(req, res) => {
 	} catch(error) { return res.status(400).json(error) }
 
 	if (content1 === content2) { //SAME POSITION
-		policy_r__interfaceModel.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
+		PolicyRuleToInterface.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data) {
 				if (data.result) {
@@ -119,7 +119,7 @@ async(req, res) => {
 
 			var data;
 			try {
-				data = await policy_r__interfaceModel.insertPolicy_r__interface(firewall, policy_r__interfaceData);
+				data = await PolicyRuleToInterface.insertPolicy_r__interface(firewall, policy_r__interfaceData);
 			} catch(error) { return res.status(400).json(error) }
 			//If saved policy_r__interface Get data
 			if (data) {
@@ -157,7 +157,7 @@ utilsModel.disableFirewallCompileStatus,
 	var old_order = req.body.position_order;
 	var new_order = req.body.new_order;
 
-	policy_r__interfaceModel.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, function(error, data) {
+	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, function(error, data) {
 		if (error) return res.status(400).json(error);
 		//If saved policy_r__interface saved ok, get data
 		if (data && data.result) {
@@ -178,7 +178,7 @@ utilsModel.disableFirewallCompileStatus,
 	var position = req.body.position;
 	var old_order = req.body.position_order;
 
-	policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, old_order, async (error, data) => {
+	PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, old_order, async (error, data) => {
 		if (data) {
 			if (data.msg === "deleted") {
 				PolicyRule.compilePolicy_r(rule, function(error, datac) {});

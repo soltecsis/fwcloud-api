@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
@@ -173,7 +173,7 @@ async (req, res) => {
 			if (data) {
 				if (data.result) {
 					//Delete position 'I'
-					policy_r__interfaceModel.deletePolicy_r__interface(rule, interface, position, position_order, async (error, data) => {
+					PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
 							PolicyRule.compilePolicy_r(accessData, function(error, datac) {});
 							accessData.rule = new_rule;

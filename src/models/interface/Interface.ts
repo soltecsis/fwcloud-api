@@ -3,7 +3,7 @@ import db from '../../database/DatabaseService';
 var logger = require('log4js').getLogger("app");
 
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 var IpobjModel = require('../../models/ipobj/ipobj');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
@@ -307,7 +307,7 @@ export class Interface extends Model {
                 if (data && data.length > 0) {
                     try {
                         search.restrictions = {};
-                        search.restrictions.InterfaceInRules_I = await Policy_r__interfaceModel.SearchInterfaceInRules(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES I POSITIONS
+                        search.restrictions.InterfaceInRules_I = await PolicyRuleToInterface.SearchInterfaceInRules(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES I POSITIONS
                         search.restrictions.InterfaceInRules_O = await Policy_r__ipobjModel.searchInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH INTERFACE IN RULES O POSITIONS
                         search.restrictions.IpobjInterfaceInRule = await Policy_r__ipobjModel.searchIpobjInterfaceInRule(id, type, fwcloud, null, diff_firewall); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
                         search.restrictions.IpobjInterfaceInGroup = await Policy_r__ipobjModel.searchIpobjInterfaceInGroup(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS

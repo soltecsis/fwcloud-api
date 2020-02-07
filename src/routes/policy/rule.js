@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 var policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-const policy_r__interfaceModel = require('../../models/policy/policy_r__interface');
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import db from '../../database/DatabaseService';
 import { getRepository } from 'typeorm';
@@ -320,7 +320,7 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			//DUPLICATE RULE POSITONS O (OBJECTS)
 			await policy_r__ipobjModel.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS I (INTERFACES)
-			await policy_r__interfaceModel.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
+			await PolicyRuleToInterface.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
 			await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
 			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
