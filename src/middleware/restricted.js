@@ -35,8 +35,9 @@ import { Mark } from '../models/ipobj/Mark';
 import { OpenVPNPrefix } from '../models/vpn/openvpn/OpenVPNPrefix';
 import { Ca } from '../models/vpn/pki/Ca';
 import { Crt } from '../models/vpn/pki/Crt';
+import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
 const ipobjModel = require('../models/ipobj/ipobj');
-const openvpnModel = require('../models/vpn/openvpn/openvpn');
+
 
 
 restrictedCheck.customer = async(req, res, next) => {
@@ -155,10 +156,10 @@ restrictedCheck.ipobj_group = async(req, res, next) => {
 
 restrictedCheck.openvpn = async(req, res, next) => {
 	try {
-		let data = await openvpnModel.searchOpenvpnChild(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		let data = await OpenVPN.searchOpenvpnChild(req.dbCon, req.body.fwcloud, req.body.openvpn);
 		if (data.result) return res.status(403).json(data);
 
-		data = await openvpnModel.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		data = await OpenVPN.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn);
 		if (data.result) return res.status(403).json(data);
 
 		next();

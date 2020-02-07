@@ -37,10 +37,9 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var ipobjModel = require('../../models/ipobj/ipobj');
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-
-const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
 const Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
@@ -150,8 +149,8 @@ router.put('/addto', async(req, res) => {
 		if (req.body.node_type === 'OCL') {
 			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
-			await openvpnModel.addToGroup(req);
-			dataIpobj = await openvpnModel.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
+			await OpenVPN.addToGroup(req);
+			dataIpobj = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
@@ -178,7 +177,7 @@ router.put('/addto', async(req, res) => {
 		await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
 
 		// Invalidate the policy compilation of all affected rules.
-		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
+		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		// Update affected firewalls status.
 		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
@@ -199,7 +198,7 @@ router.put('/delfrom', async(req, res) => {
 		}
 
 		if (req.body.obj_type === 311) // OPENVPN CLI
-			await openvpnModel.removeFromGroup(req);
+			await OpenVPN.removeFromGroup(req);
 		else if (req.body.obj_type === 401) // OpenVPN PREFIX
 			await OpenVPNPrefix.removePrefixFromGroup(req);
 		else
@@ -208,7 +207,7 @@ router.put('/delfrom', async(req, res) => {
 		await fwcTreeModel.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
 		// Invalidate the policy compilation of all affected rules.
-		await policy_cModel.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
+		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);

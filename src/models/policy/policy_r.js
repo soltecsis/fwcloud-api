@@ -40,7 +40,7 @@ var Policy_r__interfaceModel = require('../../models/policy/policy_r__interface'
 
 var tableModel = "policy_r";
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-var Policy_cModel = require('../../models/policy/policy_c');
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 const fwcError = require('../../utils/error_table');
 
 var logger = require('log4js').getLogger("app");
@@ -803,7 +803,7 @@ policy_rModel.deletePolicy_r = (firewall, rule) => {
 						await PolicyRuleToOpenVPN.deleteFromRule(dbCon,rule);
 						await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon,rule);
 						//DELETE POLICY_C compilation
-						await Policy_cModel.deletePolicy_c(rule);
+						await PolicyCompilation.deletePolicy_c(rule);
 					} catch(error) { return reject(error) }
 
 					// DELETE FULE

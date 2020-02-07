@@ -30,7 +30,7 @@ import { PrimaryColumn, Column } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 const IpobjModel = require('../../models/ipobj/ipobj');
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -257,7 +257,7 @@ export class PolicyPosition extends Model {
                                 item.type='I'; // We need this when we create the data_policy_position_ipobjs object.
                             }
                             else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
-                                data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
+                                data = await OpenVPN.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
                             else if (item.ipobj>0 && item.type==='PRO') // OPENVPN PREFIXES
                                 data = await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
                             else data = null;

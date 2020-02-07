@@ -26,9 +26,9 @@ var router = express.Router();
 
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { Firewall } from '../../models/firewall/Firewall';
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
-const policy_cModel = require('../../models/policy/policy_c');
 const fwcError = require('../../utils/error_table');
 const utilsModel = require("../../utils/utils.js");
 
@@ -58,8 +58,8 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try { 
 		// Invalidate compilation of the affected rules.
-		await policy_cModel.deletePolicy_c(req.body.rule);
-		await policy_cModel.deletePolicy_c(req.body.new_rule);
+		await PolicyCompilation.deletePolicy_c(req.body.rule);
+		await PolicyCompilation.deletePolicy_c(req.body.new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await PolicyRuleToOpenVPN.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))

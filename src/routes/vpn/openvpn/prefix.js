@@ -23,11 +23,10 @@
 
 var express = require('express');
 var router = express.Router();
-
-const fwcError = require('../../../utils/error_table');
-import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
-const policy_cModel = require('../../../models/policy/policy_c');
+import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
+import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
 const restrictedCheck = require('../../../middleware/restricted');
+const fwcError = require('../../../utils/error_table');
 
 
 /**
@@ -70,10 +69,10 @@ router.put('/', async (req, res) => {
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		// Invalidate the compilation of the rules that use this prefix.
-		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,search.restrictions.PrefixInRule);
+		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,search.restrictions.PrefixInRule);
 
 		// Invalidate the compilation of the rules that use a group that use this prefix.
-		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,search.restrictions.PrefixInGroup);
+		await PolicyCompilation.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,search.restrictions.PrefixInGroup);
 
    	// Modify the prefix name.
 		await OpenVPNPrefix.modifyPrefix(req);

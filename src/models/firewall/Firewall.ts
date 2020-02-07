@@ -5,9 +5,9 @@ import PolicyGRepository from '../../repositories/PolicyGRepository';
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 
 var utilsModel = require("../../utils/utils.js");
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 var policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
@@ -800,7 +800,7 @@ export class Firewall extends Model {
 						try {
 							await policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
 							await OpenVPNPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
-							await openvpnModel.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
+							await OpenVPN.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
 							await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
 							await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
 							await fwcTreemodel.deleteFwc_TreeFullNode({ id: row[0].id, fwcloud: fwcloud, iduser: user }); //DELETE TREE NODES From firewall
@@ -856,7 +856,7 @@ export class Firewall extends Model {
 							await policy_rModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await getCustomRepository(PolicyGRepository).moveFirewallGroupsToFirewall(req.body.firewall, idNewFM)
 							await Interface.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-							await openvpnModel.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
+							await OpenVPN.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 
 							// Promote the new master.
 							await Firewall.promoteToMaster(req.dbCon, idNewFM);
@@ -1005,7 +1005,7 @@ export class Firewall extends Model {
 						  Verify too that these objects are not being used in any group.
 				*/
 				const r1: any = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
-				const r2: any = await openvpnModel.searchOpenvpnUsageOutOfThisFirewall(req);
+				const r2: any = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
 				const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
 				if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);

@@ -25,8 +25,8 @@ var express = require('express');
 var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 const fwcTreeModel = require('../../models/tree/tree');
-const policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -66,7 +66,7 @@ router.put('/', async (req, res) => {
 
 		// Invalidate the compilation of the rules that use this mark.
 		const search = await Mark.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
-		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,search.restrictions.MarkInRule);
+		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,search.restrictions.MarkInRule);
 
    	// Modify the mark data.
 		await Mark.modifyMark(req);

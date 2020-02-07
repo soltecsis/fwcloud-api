@@ -57,9 +57,9 @@ var router = express.Router();
 
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Crt } from '../../../models/vpn/pki/Crt';
-import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
-const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
-const policy_cModel = require('../../../models/policy/policy_c');
+import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
+import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 const fwcTreeModel = require('../../../models/tree/tree');
 const restrictedCheck = require('../../../middleware/restricted');
 const ipobjModel = require('../../../models/ipobj/ipobj');
@@ -96,14 +96,14 @@ router.post('/', async(req, res) => {
 		if (req.crt.type===1 && req.body.firewall!==req.openvpn.firewall) 
 			throw {'msg': 'Firewall ID for the new client OpenVPN configuration must match server OpenVPN configuration'};
 
-		const cfg = await openvpnModel.addCfg(req);
+		const cfg = await OpenVPN.addCfg(req);
 
 		// Now create all the options for the OpenVPN configuration.
 		var order = 1;
 		for (let opt of req.body.options) {
 			opt.openvpn = cfg;
 			opt.order = order++;
-			await openvpnModel.addCfgOpt(req, opt);
+			await OpenVPN.addCfgOpt(req, opt);
 		}
 
 		// Create the OpenVPN configuration node in the tree.
@@ -117,15 +117,15 @@ router.post('/', async(req, res) => {
 
 		// Invalidate the compilation of the rules that use a prefix that use this new OpenVPN configuration.
 		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,cfg);
-		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,rules);
 
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this new OpenVPN configuration.
 		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,cfg);
-		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
+		await PolicyCompilation.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
 
 		// If we are creaing an OpenVPN server configuration, then create the VPN virtual network interface with its assigned IP.
 		if (req.crt.type===2) // 1=Client certificate, 2=Server certificate.
-			await openvpnModel.createOpenvpnServerInterface(req,cfg);
+			await OpenVPN.createOpenvpnServerInterface(req,cfg);
 
 		res.status(200).json({insertId: cfg, TreeinsertId: nodeId});
 	} catch(error) { res.status(400).json(error) }
@@ -141,29 +141,29 @@ router.put('/', async(req, res) => {
 		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		// Invalidate the compilation of the rules that use a prefix that use this OpenVPN configuration.
 		rules = rules.concat(await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn));
-		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,rules);
 		
 		// Invalidate the compilation of the rules that use a group that use this OpenVPN configuration.
 		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this OpenVPN configuration.
 		groups = groups.concat(await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn));
-		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon, req.body.fwcloud,groups);
+		await PolicyCompilation.deleteGroupsInRulesCompilation(req.dbCon, req.body.fwcloud,groups);
 
-		await openvpnModel.updateCfg(req);
+		await OpenVPN.updateCfg(req);
 
 		// First remove all the current configuration options.
-		await openvpnModel.delCfgOptAll(req);
+		await OpenVPN.delCfgOptAll(req);
 
 		// Now create all the new options for the OpenVPN configuration.
 		var order = 1;
 		for (let opt of req.body.options) {
 			opt.openvpn = req.body.openvpn;
 			opt.order = order++;
-			await openvpnModel.addCfgOpt(req, opt);
+			await OpenVPN.addCfgOpt(req, opt);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -175,7 +175,7 @@ router.put('/', async(req, res) => {
  */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await openvpnModel.getCfg(req);
+		const data = await OpenVPN.getCfg(req);
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -186,7 +186,7 @@ router.put('/get', async(req, res) => {
  */
 router.put('/file/get', async(req, res) => {
 	try {
-		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
  		res.status(200).json(cfgDump);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -197,7 +197,7 @@ router.put('/file/get', async(req, res) => {
  */
 router.put('/ipobj/get', async(req, res) => {
 	try {
-		const cfgData = await openvpnModel.getCfg(req);
+		const cfgData = await OpenVPN.getCfg(req);
 		let data = [];
 		for (let openvpn_opt of cfgData.options) {
 			if (openvpn_opt.ipobj)
@@ -213,7 +213,7 @@ router.put('/ipobj/get', async(req, res) => {
  */
 router.put('/ip/get', async(req, res) => {
 	try {
-		const freeIP = await openvpnModel.freeVpnIP(req);
+		const freeIP = await OpenVPN.freeVpnIP(req);
 		res.status(200).json(freeIP);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -224,7 +224,7 @@ router.put('/ip/get', async(req, res) => {
  */
 router.put('/info/get', async(req, res) => {
 	try {
-		const data = await openvpnModel.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
+		const data = await OpenVPN.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
 		res.status(200).json(data[0]);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -240,14 +240,14 @@ async(req, res) => {
 	try {
 		// Invalidate the compilation of the rules that use a prefix that use this removed OpenVPN configuration.
 		let rules = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInRule(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		await policy_cModel.deleteRulesCompilation(req.body.fwcloud,rules);
+		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,rules);
 
 		// Invalidate the compilation of the rules that use a group that contains a prefix that use this removed OpenVPN configuration.
 		let groups = await PolicyRuleToOpenVPN.searchOpenvpnInPrefixInGroup(req.dbCon,req.body.fwcloud,req.body.openvpn);
-		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
+		await PolicyCompilation.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,groups);
 		
 		// Delete the configuration from de database.
-		await openvpnModel.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
+		await OpenVPN.delCfg(req.dbCon, req.body.fwcloud, req.body.openvpn);
 
 		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
 			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
@@ -268,7 +268,7 @@ router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204)
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await openvpnModel.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
     if (data.result > 0)
       res.status(200).json(data);
     else
@@ -282,28 +282,28 @@ router.put('/where', async (req, res) => {
  */
 router.put('/install', async(req, res) => {
 	try {
-		const cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
-			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await openvpnModel.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true);
+			await OpenVPN.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await openvpnModel.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2,true);
+			await OpenVPN.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2,true);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"&~1");
 
 		// Update the install date.
-		await openvpnModel.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
+		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -320,18 +320,18 @@ router.put('/uninstall', async(req, res) => {
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
-			const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
+			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await openvpnModel.uninstallCfg(req,openvpn_opt.arg,crt.cn);
+			await OpenVPN.uninstallCfg(req,openvpn_opt.arg,crt.cn);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await openvpnModel.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name);
+			await OpenVPN.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
-		await openvpnModel.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
+		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -350,24 +350,24 @@ router.put('/ccdsync', async(req, res) => {
 
 		// Obtain the configuration directory in the client-config-dir configuration option of the OpenVPN
 		// server configuration.
-		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
+		const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
 		const client_config_dir = openvpn_opt.arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
-		const clients = await openvpnModel.getOpenvpnClients(req.dbCon,req.body.openvpn);
+		const clients = await OpenVPN.getOpenvpnClients(req.dbCon,req.body.openvpn);
 
 		for (let client of clients) {
-			let cfgDump = await openvpnModel.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
-			await openvpnModel.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1,false);
+			let cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
+			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1,false);
 
 			// Update the status flag for the OpenVPN configuration.
-			await openvpnModel.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
+			await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
 		}
 
 		// Get the list of files into the client-config-dir directory.
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
-		await openvpnModel.ccdCompare(req,client_config_dir,clients)
+		await OpenVPN.ccdCompare(req,client_config_dir,clients)
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -384,11 +384,11 @@ router.put('/status/get', async(req, res) => {
 			throw fwcError.VPN_NOT_SER;
 
 		// Obtain the status log file option of the OpeVPN server configuration.
-		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'status');
+		const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'status');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
 		const status_file_path = openvpn_opt.arg;
 
-		const data = await openvpnModel.getStatusFile(req,status_file_path);
+		const data = await OpenVPN.getStatusFile(req,status_file_path);
 
 		res.status(200).json(data);
 	} catch(error) { res.status(400).json(error) }

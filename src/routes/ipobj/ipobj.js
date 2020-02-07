@@ -76,9 +76,9 @@ var fwcTreemodel = require('../../models/tree/tree');
 
 import { IPObjType } from '../../models/ipobj/IPObjType';
 import { Firewall } from '../../models/firewall/Firewall';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
 const fwcError = require('../../utils/error_table');
 
 
@@ -309,13 +309,13 @@ router.put('/',
 
 			await IpobjModel.updateIpobj(req, ipobjData);
 			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
-			await openvpnModel.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
+			await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
 			await IpobjModel.UpdateHOST(ipobjData.id);
 			await IpobjModel.UpdateINTERFACE(ipobjData.id);
 
 			var data_return = {};
 			await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
-			await openvpnModel.getOpenvpnStatusNotZero(req, data_return);
+			await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
 
 			await fwcTreemodel.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 

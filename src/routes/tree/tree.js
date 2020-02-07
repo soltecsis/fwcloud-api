@@ -29,8 +29,7 @@ var Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/node.js");
 import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
-
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 const fwcError = require('../../utils/error_table');
 
 
@@ -80,7 +79,7 @@ router.put('/firewalls/get', async (req, res) => {
 		var tree = new Tree(root_node);
 		await fwcTreemodel.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
-		await openvpnModel.getOpenvpnStatusNotZero(req,tree);
+		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
 		res.status(200).json(tree);
 	} catch(error) { res.status(400).json(error) }

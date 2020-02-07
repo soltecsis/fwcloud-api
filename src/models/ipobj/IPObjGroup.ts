@@ -4,7 +4,7 @@ import db from '../../database/DatabaseService';
 var logger = require('log4js').getLogger("app");
 
 var IpobjModel = require('./ipobj');
-var openvpnModel = require('../../models/vpn/openvpn/openvpn');
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 var asyncMod = require('async');
@@ -137,7 +137,7 @@ export class IPObjGroup extends Model {
                             if (obj.type === 'O')
                                 ipobj_node = new ipobj_Data((await IpobjModel.getIpobj(dbCon, fwcloud, obj.id))[0]);
                             else if (obj.type === 'VPN')
-                                ipobj_node = new ipobj_Data((await openvpnModel.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0]);
+                                ipobj_node = new ipobj_Data((await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0]);
                             else if (obj.type === 'PRO')
                                 ipobj_node = new ipobj_Data((await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, fwcloud, obj.id))[0]);
                             group_data.ipobjs.push(ipobj_node);

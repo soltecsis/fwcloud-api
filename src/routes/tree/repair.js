@@ -27,7 +27,7 @@ var router = express.Router();
 const fwcTreeRepairModel = require('../../models/tree/repair');
 const socketTools = require('../../utils/socket');
 const fwcTreemodel = require('../../models/tree/tree');
-const openvpnModel = require('../../models/vpn/openvpn/openvpn');
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 const fwcError = require('../../utils/error_table');
 
@@ -64,7 +64,7 @@ router.put('/', async (req, res) =>{
         await fwcTreeRepairModel.checkFirewallsInTree(rootNode);
         await fwcTreeRepairModel.checkClustersInTree(rootNode);
         socketTools.msg('<font color="blue">Applying OpenVPN server prefixes.</font>\n');
-        const openvpn_srv_list = await openvpnModel.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
+        const openvpn_srv_list = await OpenVPN.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
           socketTools.msg(`OpenVPN server: ${openvpn_srv.cn}\n`);
           await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);

@@ -22,9 +22,8 @@
 
 import Model from "../../Model";
 import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
-
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 const fwcTreeModel = require('../../../models/tree/tree');
-const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -147,7 +146,7 @@ export class OpenVPNPrefix extends Model {
                 try {
                     let openvpn_clients: any = await this.getOpenvpnClientesUnderPrefix(dbCon, result[0].openvpn, result[0].name);
                     for (let openvpn_client of openvpn_clients)
-                        result[0].openvpn_clients.push((await openvpnModel.getOpenvpnInfo(dbCon, fwcloud, openvpn_client.id, 1))[0]);
+                        result[0].openvpn_clients.push((await OpenVPN.getOpenvpnInfo(dbCon, fwcloud, openvpn_client.id, 1))[0]);
                 } catch (error) { return reject(error) }
 
                 resolve(result);
@@ -196,7 +195,7 @@ export class OpenVPNPrefix extends Model {
                 await fwcTreeModel.deleteNodesUnderMe(dbCon, fwcloud, node_id);
 
                 // Create all OpenVPN client config nodes.
-                let openvpn_cli_list = await openvpnModel.getOpenvpnClients(dbCon, openvpn_srv);
+                let openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
                 for (let openvpn_cli of openvpn_cli_list)
                     await fwcTreeModel.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
 

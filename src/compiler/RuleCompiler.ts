@@ -22,7 +22,7 @@
 
 var fwcError = require('../utils/error_table');
 var Policy_rModel = require('../models/policy/policy_r');
-var Policy_cModel = require('../models/policy/policy_c');
+import { PolicyCompilation } from '../models/policy/PolicyCompilation';
 
 export const POLICY_TYPE_INPUT = 1;
 export const POLICY_TYPE_OUTPUT = 2;
@@ -550,7 +550,7 @@ export class RuleCompiler {
                 };
 
                 // Store compilation string in the database
-                await Policy_cModel.insertPolicy_c(policy_cData);
+                await PolicyCompilation.insertPolicy_c(policy_cData);
 
                 resolve(cs);
             } catch (error) { return reject(error) }
@@ -564,7 +564,7 @@ export class RuleCompiler {
     public static get(fwcloud, firewall, type, rule) {
         return new Promise(async (resolve, reject) => {
             try {
-                let data = await Policy_cModel.getPolicy_c(fwcloud, firewall, rule);
+                let data: any = await PolicyCompilation.getPolicy_c(fwcloud, firewall, rule);
                 if (data && data.length > 0) {
                     if (data[0].c_status_recompile === 0)
                         resolve(data[0].c_compiled);

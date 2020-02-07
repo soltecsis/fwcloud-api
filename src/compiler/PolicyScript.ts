@@ -26,7 +26,7 @@
 * @property Policy_cModel
 * @type /models/policy_c
 */
-var Policy_cModel = require('../models/policy/policy_c');
+import { PolicyCompilation } from '../models/policy/PolicyCompilation';
 
 /**
  * Property Model to manage compilation process
@@ -90,7 +90,7 @@ export class PolicyScript {
 
     public static dump(req, type) {
         return new Promise((resolve, reject) => {
-            Policy_cModel.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
+            PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
                 if (error) return reject(error);
 
                 socketTools.init(req); // Init the socket used for message notification by the socketTools module.

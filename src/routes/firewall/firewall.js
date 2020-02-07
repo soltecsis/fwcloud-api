@@ -74,12 +74,11 @@ import { FirewallExport } from '../../export/FirewallExport';
  * 
  */
 import { FwCloud } from '../../models/fwcloud/FwCloud';
-
+import { Interface } from '../../models/interface/Interface';
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 var utilsModel = require("../../utils/utils.js");
 var fwcTreemodel = require('../../models/tree/tree');
-import { Interface } from '../../models/interface/Interface';
 var Policy_rModel = require('../../models/policy/policy_r');
-var Policy_cModel = require('../../models/policy/policy_c');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -253,7 +252,7 @@ router.put('/', async (req, res) => {
 	};
 
 	try {
-		await Policy_cModel.deleteFullFirewallPolicy_c(req.dbCon,req.body.firewall);
+		await PolicyCompilation.deleteFullFirewallPolicy_c(req.dbCon,req.body.firewall);
 		await Firewall.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
 		await Firewall.checkBodyFirewall(firewallData, false);
 
