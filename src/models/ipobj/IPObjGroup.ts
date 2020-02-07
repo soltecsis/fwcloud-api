@@ -5,12 +5,13 @@ var logger = require('log4js').getLogger("app");
 
 var IpobjModel = require('./ipobj');
 var openvpnModel = require('../../models/vpn/openvpn/openvpn');
-var openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
 var Policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
-import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
+
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'ipobj_g';
@@ -138,7 +139,7 @@ export class IPObjGroup extends Model {
                             else if (obj.type === 'VPN')
                                 ipobj_node = new ipobj_Data((await openvpnModel.getOpenvpnInfo(dbCon, fwcloud, obj.id, 1))[0]);
                             else if (obj.type === 'PRO')
-                                ipobj_node = new ipobj_Data((await openvpnPrefixModel.getPrefixOpenvpnInfo(dbCon, fwcloud, obj.id))[0]);
+                                ipobj_node = new ipobj_Data((await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, fwcloud, obj.id))[0]);
                             group_data.ipobjs.push(ipobj_node);
                         } catch (error) { return reject(error) }
                     }

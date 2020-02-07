@@ -28,7 +28,7 @@ const fwcTreeRepairModel = require('../../models/tree/repair');
 const socketTools = require('../../utils/socket');
 const fwcTreemodel = require('../../models/tree/tree');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 const fwcError = require('../../utils/error_table');
 
 
@@ -67,7 +67,7 @@ router.put('/', async (req, res) =>{
         const openvpn_srv_list = await openvpnModel.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
           socketTools.msg(`OpenVPN server: ${openvpn_srv.cn}\n`);
-          await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);
+          await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);
         }
         break;
       }

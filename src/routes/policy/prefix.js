@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 
-const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 const policy_r__ipobjModel = require('../../models/policy/policy_r__ipobj');
 const policy_rModel = require('../../models/policy/policy_r');
@@ -38,7 +38,7 @@ router.post("/",
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+		if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		if (!(await PolicyRuleToOpenVPNPrefix.checkPrefixPosition(req.dbCon,req.body.position)))
@@ -57,7 +57,7 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	try {
-		if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
+		if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.prefix.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		
 		if (await PolicyRuleToOpenVPNPrefix.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.prefix,req.body.openvpn,req.body.new_position))

@@ -3,10 +3,11 @@ import db from '../../database/DatabaseService'
 import { getCustomRepository, Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 import PolicyGRepository from '../../repositories/PolicyGRepository';
 
-var utilsModel = require("../../utils/utils.js");
 import { Interface } from '../../models/interface/Interface';
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+
+var utilsModel = require("../../utils/utils.js");
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var policy_rModel = require('../../models/policy/policy_r');
 var fwcTreemodel = require('../tree/tree');
 const config = require('../../config/config');
@@ -798,7 +799,7 @@ export class Firewall extends Model {
 					if (row && row.length > 0) {
 						try {
 							await policy_rModel.deletePolicy_r_Firewall(firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
-							await openvpnPrefixModel.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
+							await OpenVPNPrefix.deletePrefixAll(dbCon, fwcloud, firewall); // Remove all firewall openvpn prefixes.
 							await openvpnModel.delCfgAll(dbCon, fwcloud, firewall); // Remove all OpenVPN configurations for this firewall.
 							await Interface.deleteInterfacesIpobjFirewall(firewall); // DELETE IPOBJS UNDER INTERFACES
 							await Interface.deleteInterfaceFirewall(firewall); //DELETE INTEFACES
@@ -1005,7 +1006,7 @@ export class Firewall extends Model {
 				*/
 				const r1: any = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
 				const r2: any = await openvpnModel.searchOpenvpnUsageOutOfThisFirewall(req);
-				const r3: any = await openvpnPrefixModel.searchPrefixUsageOutOfThisFirewall(req);
+				const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
 				if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
 				if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);

@@ -32,11 +32,12 @@ import { Firewall } from '../models/firewall/Firewall';
 import { Interface } from '../models/interface/Interface';
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { Mark } from '../models/ipobj/Mark';
-const ipobjModel = require('../models/ipobj/ipobj');
+import { OpenVPNPrefix } from '../models/vpn/openvpn/OpenVPNPrefix';
 import { Ca } from '../models/vpn/pki/Ca';
 import { Crt } from '../models/vpn/pki/Crt';
+const ipobjModel = require('../models/ipobj/ipobj');
 const openvpnModel = require('../models/vpn/openvpn/openvpn');
-const openvpnPrefixModel = require('../models/vpn/openvpn/prefix');
+
 
 restrictedCheck.customer = async(req, res, next) => {
 	try {
@@ -187,7 +188,7 @@ restrictedCheck.crt = async(req, res, next) => {
 
 restrictedCheck.openvpn_prefix = async(req, res, next) => {
 	try {
-		let data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
+		let data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix);
 		if (data.result) return res.status(403).json(data);
 
 		next();

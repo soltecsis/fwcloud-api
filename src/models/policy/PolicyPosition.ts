@@ -27,10 +27,10 @@ var logger = require('log4js').getLogger("app");
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import { PrimaryColumn, Column } from "typeorm";
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 const IpobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -259,7 +259,7 @@ export class PolicyPosition extends Model {
                             else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
                                 data = await openvpnModel.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
                             else if (item.ipobj>0 && item.type==='PRO') // OPENVPN PREFIXES
-                                data = await openvpnPrefixModel.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
+                                data = await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
                             else data = null;
 
                             if (data) {

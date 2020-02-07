@@ -25,7 +25,7 @@ var express = require('express');
 var router = express.Router();
 
 const fwcError = require('../../../utils/error_table');
-const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 const policy_cModel = require('../../../models/policy/policy_c');
 const restrictedCheck = require('../../../middleware/restricted');
 
@@ -40,14 +40,14 @@ router.post('/', async (req, res) => {
 			throw fwcError.VPN_NOT_SER;
 
     // Verify that we are not creating a prefix that already exists for the same CA.
-		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.body.openvpn,req.body.name)) 
+		if (await OpenVPNPrefix.existsPrefix(req.dbCon,req.body.openvpn,req.body.name)) 
 			throw fwcError.ALREADY_EXISTS;
 
    	// Create the tree node.
-		const id = await openvpnPrefixModel.createPrefix(req);
+		const id = await OpenVPNPrefix.createPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 
 		res.status(200).json({insertId: id});
 	} catch(error) { res.status(400).json(error) }
@@ -61,12 +61,12 @@ router.put('/', async (req, res) => {
 	try {
 		// Verify that the new prefix name doesn't already exists.
 		req.body.ca = req.prefix.ca;
-		if (await openvpnPrefixModel.existsPrefix(req.dbCon,req.prefix.openvpn,req.body.name))
+		if (await OpenVPNPrefix.existsPrefix(req.dbCon,req.prefix.openvpn,req.body.name))
 			throw fwcError.ALREADY_EXISTS;
 
 		// If we modify a prefix used in a rule or group, and the new prefix name has no openvpn clients, then don't allow it.
-		const search = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
-		if (search.result && (await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
+		const search = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		if (search.result && (await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 		// Invalidate the compilation of the rules that use this prefix.
@@ -76,10 +76,10 @@ router.put('/', async (req, res) => {
 		await policy_cModel.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,search.restrictions.PrefixInGroup);
 
    	// Modify the prefix name.
-		await openvpnPrefixModel.modifyPrefix(req);
+		await OpenVPNPrefix.modifyPrefix(req);
 
 		// Apply the new CRT prefix container.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
+		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -91,7 +91,7 @@ router.put('/', async (req, res) => {
  */
 router.put('/info/get', async(req, res) => {
 	try {
-		const data = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const data = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
 		res.status(200).json(data[0]);
 	} catch(error) { res.status(400).json(error) }
 });
@@ -105,10 +105,10 @@ restrictedCheck.openvpn_prefix,
 async (req, res) => {
 	try {
 		// Delete prefix.
-		await openvpnPrefixModel.deletePrefix(req.dbCon,req.body.prefix);
+		await OpenVPNPrefix.deletePrefix(req.dbCon,req.body.prefix);
 
 		// Regenerate prefixes.
-		await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);
+		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);
 	
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
@@ -121,7 +121,7 @@ router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.stat
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await openvpnPrefixModel.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (data.result)
 			res.status(200).json(data);
 		else

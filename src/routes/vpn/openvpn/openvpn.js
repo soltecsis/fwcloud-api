@@ -54,14 +54,14 @@ var router = express.Router();
  * @property ClusterModel
  * @type ../../models/vpn/openvpn
  */
-const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
-import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
-const policy_cModel = require('../../../models/policy/policy_c');
 
+import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
+const openvpnModel = require('../../../models/vpn/openvpn/openvpn');
+const policy_cModel = require('../../../models/policy/policy_c');
 const fwcTreeModel = require('../../../models/tree/tree');
 const restrictedCheck = require('../../../middleware/restricted');
-import { Crt } from '../../../models/vpn/pki/Crt';
-const openvpnPrefixModel = require('../../../models/vpn/openvpn/prefix');
 const ipobjModel = require('../../../models/ipobj/ipobj');
 const fwcError = require('../../../utils/error_table');
 
@@ -112,7 +112,7 @@ router.post('/', async(req, res) => {
 			nodeId = await fwcTreeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', cfg, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
-			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
+			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		}
 
 		// Invalidate the compilation of the rules that use a prefix that use this new OpenVPN configuration.
@@ -252,7 +252,7 @@ async(req, res) => {
 		if (req.openvpn.type === 1) { // Client OpenVPN configuration.
 			// Regenerate the tree under the OpenVPN server to which the client OpenVPN configuration belongs.
 			// This is necesary for avoid empty prefixes if we remove all the OpenVPN client configurations for a prefix.
-			await openvpnPrefixModel.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.openvpn.openvpn);
+			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.openvpn.openvpn);
 		} else { // Server OpenVPN configuration.
 			// Delete the openvpn node from the tree.
 			await fwcTreeModel.deleteObjFromTree(req.body.fwcloud, req.body.openvpn, 312);

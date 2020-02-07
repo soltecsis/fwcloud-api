@@ -36,9 +36,10 @@ var router = express.Router();
 import { Firewall } from '../../models/firewall/Firewall';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
+import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 var ipobjModel = require('../../models/ipobj/ipobj');
 const openvpnModel = require('../../models/vpn/openvpn/openvpn');
-const openvpnPrefixModel = require('../../models/vpn/openvpn/prefix');
+
 const policy_cModel = require('../../models/policy/policy_c');
 var fwcTreeModel = require('../../models/tree/tree');
 const restrictedCheck = require('../../middleware/restricted');
@@ -158,11 +159,11 @@ router.put('/addto', async(req, res) => {
 			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			// Don't allow adding an empty OpenVPN server prefix to a group.
-			if ((await openvpnPrefixModel.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
+			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-			await openvpnPrefixModel.addPrefixToGroup(req);
-			dataIpobj = await openvpnPrefixModel.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
+			await OpenVPNPrefix.addPrefixToGroup(req);
+			dataIpobj = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;
 		} else {
@@ -200,7 +201,7 @@ router.put('/delfrom', async(req, res) => {
 		if (req.body.obj_type === 311) // OPENVPN CLI
 			await openvpnModel.removeFromGroup(req);
 		else if (req.body.obj_type === 401) // OpenVPN PREFIX
-			await openvpnPrefixModel.removePrefixFromGroup(req);
+			await OpenVPNPrefix.removePrefixFromGroup(req);
 		else
 			await IPObjToIPObjGroup.deleteIpobj__ipobjg(req.dbCon, req.body.ipobj_g, req.body.ipobj);
 
