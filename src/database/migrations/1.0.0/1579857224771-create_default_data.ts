@@ -484,13 +484,14 @@ export class createDefaultData1579857224771 implements MigrationInterface {
         await queryRunner.query('DELETE FROM ipobj__ipobjg');
         await queryRunner.query('DELETE FROM ipobj_g');
         await queryRunner.query('DELETE FROM ipobj');
-        await queryRunner.query('DELETE FROM user');
         await queryRunner.query('DELETE FROM routing_position');
         await queryRunner.query('DELETE FROM ipobj_type__policy_position');
         await queryRunner.query('DELETE FROM policy_position');
         await queryRunner.query('DELETE FROM policy_type');
         await queryRunner.query('DELETE FROM ipobj_type');
         await queryRunner.query('DELETE FROM fwc_tree_node_types');
+        await queryRunner.query('DELETE FROM user__fwcloud');
+        await queryRunner.query('DELETE FROM user');
         await queryRunner.query('DELETE FROM customer');
     }
 

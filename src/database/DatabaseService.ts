@@ -1,10 +1,9 @@
 import "reflect-metadata";
+import * as path from 'path';
 import { Connection, createConnection, QueryRunner } from "typeorm";
 import * as config from "../config/config";
 import Query from "./Query";
 import * as Logger from "log4js";
-import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { Firewall } from "../models/firewall/Firewall";
 import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest"
 
 const logger = Logger.getLogger("app");
@@ -41,8 +40,7 @@ export class DatabaseService {
             debug: false,
             synchronize: false,
             entities: [
-                PolicyGroup,
-                Firewall,
+                path.join(process.cwd(), 'dist/src/models/**/*.js'),
                 FirewallTest
             ]
         }).catch(e => {
@@ -81,7 +79,7 @@ export class DatabaseService {
     }
 
     public lockTable(cn: Query, table: string, where: string, done: () => void) {
-        cn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
+        cn.query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN LOCK TABLE : " + error);
             else
@@ -91,7 +89,7 @@ export class DatabaseService {
     };
 
     public lockTableCon(table: string, where: string, done: () => void) {
-        this.getQuery().query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", function (error, result) {
+        this.getQuery().query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN LOCK TABLE : " + error);
             else
@@ -102,7 +100,7 @@ export class DatabaseService {
 
 
     public startTX(cn: Query, done: () => void) {
-        cn.query("START TRANSACTION;", function (error, result) {
+        cn.query("START TRANSACTION;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN START TRANSACTION : " + error);
             else
@@ -112,7 +110,7 @@ export class DatabaseService {
     };
 
     public startTXcon(done: () => void) {
-        this.getQuery().query("START TRANSACTION;", function (error, result) {
+        this.getQuery().query("START TRANSACTION;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN START TRANSACTION : " + error);
             else
@@ -122,7 +120,7 @@ export class DatabaseService {
     };
 
     public endTX(cn: Query, done: () => void) {
-        cn.query("COMMIT;", function (error, result) {
+        cn.query("COMMIT;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN COMMIT TRANSACTION: " + error);
             else
@@ -132,7 +130,7 @@ export class DatabaseService {
     };
 
     public endTXcon(done: () => void) {
-        this.getQuery().query("COMMIT;", function (error, result) {
+        this.getQuery().query("COMMIT;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN COMMIT TRANSACTION: " + error);
             else
@@ -142,7 +140,7 @@ export class DatabaseService {
     };
 
     public backTX(cn: Query, done: () => void) {
-        cn.query("ROLLBACK;", function (error, result) {
+        cn.query("ROLLBACK;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN ROLLBACK TRANSACTION ");
             else
@@ -152,7 +150,7 @@ export class DatabaseService {
     };
 
     public backTXcon(done: () => void) {
-        this.getQuery().query("ROLLBACK;", function (error, result) {
+        this.getQuery().query("ROLLBACK;", (error, result) => {
             if (error)
                 logger.debug("DATABASE ERROR IN ROLLBACK TRANSACTION ");
             else
