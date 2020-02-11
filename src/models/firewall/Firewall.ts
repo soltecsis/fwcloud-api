@@ -106,7 +106,7 @@ export class Firewall extends Model {
 				if (error) return reject(error);
 				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
-				Promise.all(rows.map(utilsModel.decryptDataUserPass))
+				Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
 					.then(data => resolve(data[0]))
 					.catch(error => reject(error));
 			});
@@ -147,7 +147,7 @@ export class Firewall extends Model {
 
 			req.dbCon.query(sql, (error, rows) => {
 				if (error) return reject(error);
-				Promise.all(rows.map(utilsModel.decryptDataUserPass))
+				Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
 					.then(data => resolve(data))
 					.catch(error => reject(error));
 			});
@@ -277,9 +277,9 @@ export class Firewall extends Model {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(utilsModel.decryptDataUserPass))
+					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
 						.then(data => {
-							Promise.all(data.map(this.getfirewallData))
+							Promise.all(data.map(data => this.getfirewallData(data)))
 								.then(dataF => {
 									callback(null, dataF);
 								});
@@ -313,7 +313,7 @@ export class Firewall extends Model {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(utilsModel.decryptDataUserPass))
+					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
 						.then(data => {
 							callback(null, data);
 						})

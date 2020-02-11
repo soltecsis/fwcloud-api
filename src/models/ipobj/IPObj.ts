@@ -363,7 +363,7 @@ export class IPObj extends Model {
                 else if (rows.length > 0) {
                     host_cont = rows.length;
                     var row = rows[0];
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
 
                         var host_node = new host_Data(row);
 
@@ -376,7 +376,7 @@ export class IPObj extends Model {
                             if (data_interfaces.length > 0) {
                                 interfaces_cont = data_interfaces.length;
 
-                                asyncMod.map(data_interfaces, function (data_interface, callback2) {
+                                asyncMod.map(data_interfaces, (data_interface, callback2) => {
                                     //GET INTERFACES
                                     logger.debug("--> DENTRO de INTERFACE id:" + data_interface.id + "  Name:" + data_interface.name + "  Type:" + data_interface.interface_type)
 
@@ -390,7 +390,7 @@ export class IPObj extends Model {
                                         if (data_ipobjs.length > 0) {
                                             ipobjs_cont = data_ipobjs.length;
 
-                                            asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+                                            asyncMod.map(data_ipobjs, (data_ipobj, callback2) => {
                                                 //GET OBJECTS
                                                 logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
@@ -556,7 +556,7 @@ export class IPObj extends Model {
                 var _interface = new interface_Data(data);
                 connection.query(sql, (error, rows) => {
                     if (error) return reject(error);
-                    Promise.all(rows.map(this.getIpobjData))
+                    Promise.all(rows.map(data => this.getIpobjData(data)))
                         .then(ipobjs => {
                             _interface.ipobjs = ipobjs;
                             resolve(_interface);

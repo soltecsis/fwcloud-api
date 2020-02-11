@@ -266,7 +266,7 @@ export class PolicyGroup extends Model {
 					if (error) return reject(error);
 
 					//Bucle for each policy group.
-					Promise.all(rows.map(this.cloneGroup))
+					Promise.all(rows.map(data => this.cloneGroup(data)))
 						.then(data => resolve(data))
 						.catch(error => reject(error));
 				});

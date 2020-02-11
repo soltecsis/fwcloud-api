@@ -412,7 +412,7 @@ export class PolicyRuleToInterface extends Model {
             connection.query(sqlPos, function (error, rows) {
                 if (rows.length > 0) {
                     var order = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         order++;
                         db.get(function (error, connection) {
                             const sql = 'UPDATE ' + tableName + ' SET position_order=' + order +
@@ -455,7 +455,7 @@ export class PolicyRuleToInterface extends Model {
                 if (rows.length > 0) {
                     var order = 0;
                     var prev_position = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         var position = row.position;
                         if (position !== prev_position) {
                             order = 1;
@@ -505,7 +505,7 @@ export class PolicyRuleToInterface extends Model {
                     var order = 0;
                     var prev_rule = 0;
                     var prev_position = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         var position = row.position;
                         var rule = row.rule;
                         if (position !== prev_position || rule !== prev_rule) {

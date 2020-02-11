@@ -175,7 +175,7 @@ export class IPObjGroup extends Model {
                     else if (rows.length > 0) {
                         group_cont = rows.length;
                         var row = rows[0];
-                        asyncMod.map(rows, function (row, callback1) {
+                        asyncMod.map(rows, (row, callback1) => {
 
                             var group_node = new ipobj_g_Data(row);
 
@@ -187,7 +187,7 @@ export class IPObjGroup extends Model {
                                 if (data_ipobjs.length > 0) {
                                     ipobjs_cont = data_ipobjs.length;
 
-                                    asyncMod.map(data_ipobjs, function (data_ipobj, callback2) {
+                                    asyncMod.map(data_ipobjs, (data_ipobj, callback2) => {
                                         //GET OBJECTS
                                         logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 

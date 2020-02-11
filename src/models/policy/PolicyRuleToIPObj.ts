@@ -693,12 +693,12 @@ export class PolicyRuleToIPObj extends Model {
                 callback(error, null);
             var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
             logger.debug(sqlPos);
-            connection.query(sqlPos, function (error, rows) {
+            connection.query(sqlPos, (error, rows) => {
                 if (rows.length > 0) {
                     var order = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         order++;
-                        db.get(function (error, connection) {
+                        db.get((error, connection) => {
                             const sql = 'UPDATE ' + tableModel + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) + ' AND ipobj=' + connection.escape(row.ipobj) +
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
@@ -737,7 +737,7 @@ export class PolicyRuleToIPObj extends Model {
                 if (rows.length > 0) {
                     var order = 0;
                     var prev_position = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         var position = row.position;
                         if (position !== prev_position) {
                             order = 1;
@@ -784,7 +784,7 @@ export class PolicyRuleToIPObj extends Model {
                     var order = 0;
                     var prev_rule = 0;
                     var prev_position = 0;
-                    asyncMod.map(rows, function (row, callback1) {
+                    asyncMod.map(rows, (row, callback1) => {
                         var position = row.position;
                         var rule = row.rule;
                         if (position !== prev_position || rule !== prev_rule) {

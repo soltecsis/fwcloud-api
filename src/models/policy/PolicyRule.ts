@@ -85,7 +85,7 @@ export class PolicyRule extends Model {
                 try {
                     for (let rule of rules) {
                         const positions: any = await PolicyPosition.getRulePositions(rule);
-                        rule.positions = await Promise.all(positions.map(PolicyPosition.getRulePositionData));
+                        rule.positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(data)));
                     }
                     resolve(rules);
                 } catch (error) { reject(error) }
@@ -119,7 +119,7 @@ export class PolicyRule extends Model {
                         if (rules.length > 0) {
                             for (let rule of rules) {
                                 const positions: any = await PolicyPosition.getRulePositions(rule);
-                                rule.positions = await Promise.all(positions.map(PolicyPosition.getRulePositionDataDetailed));
+                                rule.positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(data)));
                             }
                             resolve(rules);
                         } else resolve(null); // NO existes reglas
@@ -427,7 +427,7 @@ export class PolicyRule extends Model {
 
                 //Bucle por policy clone process.
                 try {
-                    await Promise.all(rows.map(this.clonePolicy));
+                    await Promise.all(rows.map(data => this.clonePolicy(data)));
                     await PolicyGroup.clonePolicyGroups(idfirewall, idNewFirewall);
                     resolve();
                 } catch (error) { reject(error) }
@@ -509,7 +509,7 @@ export class PolicyRule extends Model {
 
                 try {
                     //Bucle por IPOBJS
-                    await Promise.all(rows.map(PolicyRuleToIPObj.clonePolicy_r__ipobj));
+                    await Promise.all(rows.map(data => PolicyRuleToIPObj.clonePolicy_r__ipobj(data)));
                     resolve();
                 } catch (error) { return reject(error) }
             });
@@ -540,7 +540,7 @@ export class PolicyRule extends Model {
 
                 //Bucle for INTERFACES
                 try {
-                    await Promise.all(rowsI.map(PolicyRuleToInterface.clonePolicy_r__interface));
+                    await Promise.all(rowsI.map(data => PolicyRuleToInterface.clonePolicy_r__interface(data)));
                     resolve();
                 } catch (error) { reject(error) }
             });
@@ -752,7 +752,7 @@ export class PolicyRule extends Model {
                 connection.query(sql, async (error, rows) => {
                     if (error) return reject(error);
                     //Bucle por reglas
-                    Promise.all(rows.map(this.deletePolicy_rPro))
+                    Promise.all(rows.map(data => this.deletePolicy_rPro(data)))
                         .then(async data => {
                             await PolicyGroup.deleteFirewallGroups(idfirewall);
                         })
@@ -862,7 +862,7 @@ export class PolicyRule extends Model {
 			connection.query(sql, (error, rows) => {
 				if (error) return reject(error);
 				//Bucle for rules with fw_apply_to defined.
-				Promise.all(rows.map(this.repointApplyTo))
+				Promise.all(rows.map(data => this.repointApplyTo(data)))
 					.then(data => resolve(data))
 					.catch(e => reject(e));
 			});

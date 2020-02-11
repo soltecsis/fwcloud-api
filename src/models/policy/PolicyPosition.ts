@@ -208,7 +208,7 @@ export class PolicyPosition extends Model {
                     if (error) return reject(error);
 
                     try {
-                        position.ipobjs = await Promise.all(rows.map(IPObj.getFinalIpobjPro));
+                        position.ipobjs = await Promise.all(rows.map(data => IPObj.getFinalIpobjPro(data)));
                         resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "position_objs": position.ipobjs});
                     }	catch(error) { reject(error) }
                 });

@@ -182,7 +182,7 @@ export class Tree extends Model {
 
                     try {
                         if (rows.length > 0)
-                            await Promise.all(rows.map(this.deleteFwc_TreeFullNode));
+                            await Promise.all(rows.map(data => this.deleteFwc_TreeFullNode(data)));
                         await this.deleteFwc_Tree_node(data.id);
                         resolve();
                     } catch (err) { return reject(err) }
@@ -215,7 +215,7 @@ export class Tree extends Model {
 
                 try {
                     if (rows.length > 0)
-                        await Promise.all(rows.map(this.deleteFwc_TreeFullNode));
+                        await Promise.all(rows.map(data => this.deleteFwc_TreeFullNode(data)));
 
                     resolve();
                 } catch (err) { return reject(err) }
@@ -268,7 +268,7 @@ export class Tree extends Model {
                     if (rows.length > 0) {
                         logger.debug("-----> UPDATING NODES UNDER PARENT: " + data.id);
                         //Bucle por interfaces
-                        Promise.all(rows.map(this.updateIDOBJFwc_TreeFullNode))
+                        Promise.all(rows.map(data => this.updateIDOBJFwc_TreeFullNode(data)))
                             .then(resp => {
                                 //logger.debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
                                 this.updateIDOBJFwc_Tree_node(data.fwcloud, data.id, data.NEWFW)
@@ -1156,7 +1156,7 @@ export class Tree extends Model {
             connection.query(sqlNodes, function (error, rowsnodes) {
                 if (rowsnodes.length > 0) {
                     var order = 0;
-                    asyncMod.map(rowsnodes, function (rowNode, callback2) {
+                    asyncMod.map(rowsnodes, (rowNode, callback2) => {
                         order++;
                         const sql = 'UPDATE ' + tableName + ' SET node_order=' + order +
                             ' WHERE id_parent = ' + connection.escape(id_parent) + ' AND id=' + connection.escape(rowNode.id);

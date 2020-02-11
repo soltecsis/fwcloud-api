@@ -44,7 +44,7 @@ export class Interface extends Model {
                 else {
                     //logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
                     //Bucle por interfaces
-                    Promise.all(rows.map(IPObj.getAllIpobjsInterfacePro))
+                    Promise.all(rows.map(data => IPObj.getAllIpobjsInterfacePro(data)))
                         .then(data => callback(null, data))
                         .catch(e => callback(e, null));
                 }
@@ -91,7 +91,7 @@ export class Interface extends Model {
                         reject(error);
                     else {
                         //BUCLE DE INTERFACES del HOST -> Obtenemos IPOBJS por cada Interface
-                        Promise.all(rows.map(this.getInterfaceFullProData))
+                        Promise.all(rows.map(data => this.getInterfaceFullProData(data)))
                             .then(dataI => {
                                 //dataI es una Inteface y sus ipobjs
                                 //logger.debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
@@ -196,7 +196,7 @@ export class Interface extends Model {
                         //logger.debug("INTERFACE -> " , row[0]);
                         IPObj.getAllIpobjsInterfacePro(row[0])
                             .then((dataI: any) => {
-                                Promise.all(dataI.ipobjs.map(IPObj.getIpobjPro))
+                                Promise.all(dataI.ipobjs.map(data => IPObj.getIpobjPro(data)))
                                     .then(dataO => {
                                         //dataI.ipobjs = dataO;
                                         //logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
@@ -460,7 +460,7 @@ export class Interface extends Model {
                 connection.query(sql, function (error, rows) {
                     if (error) return reject(error);
                     //Bucle por interfaces
-                    Promise.all(rows.map(this.cloneInterface))
+                    Promise.all(rows.map(data => this.cloneInterface(data)))
                         .then(data => resolve(data))
                         .catch(e => reject(e));
                 });
@@ -505,7 +505,7 @@ export class Interface extends Model {
                             rows[i].name = rows[i].name.replace(new RegExp("^" + rows[i].org_name + ":"), rows[i].clon_name + ":");
                     }
                     //Bucle por IPOBJS
-                    Promise.all(rows.map(IPObj.cloneIpobj))
+                    Promise.all(rows.map(data => IPObj.cloneIpobj(data)))
                         .then(data => resolve({ "id_org": id_org, "id_clon": id_clon, "addr": data }))
                         .catch(e => reject(e));
                 });
