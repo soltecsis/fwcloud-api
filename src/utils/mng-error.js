@@ -41,7 +41,7 @@ var logger = require('log4js').getLogger("app");
  * @param {Function} [init] optional initialization function
  * @returns {Err} The new Error
  */
-errorModel.createError = function (name, init) {
+errorModel.createError = (name, init) => {
     function Err(message) {
         Error.captureStackTrace(this, this.constructor);
         this.message = message;

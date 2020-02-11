@@ -22,12 +22,21 @@
 
 import Model from "../Model";
 import db from '../../database/DatabaseService';
+import modelEventService from "../ModelEventService";
+import { Entity, PrimaryColumn } from "typeorm";
 
 var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'ipobj_type__policy_position';
 
+@Entity(tableName)
 export class IPObjTypeToPolicyPosition extends Model {
+
+    @PrimaryColumn()
+    type: number;
+
+    @PrimaryColumn()
+    position: number;
 
     public getTableName(): string {
         return tableName;
@@ -35,7 +44,7 @@ export class IPObjTypeToPolicyPosition extends Model {
 
     //Get All ipobj_type__policy_position
     public static getIpobj_type__policy_positions = callback => {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) return callback(error, null);
             connection.query(`SELECT type,position FROM ${tableName} ORDER BY type,position`, (error, rows) => {
                 if (error)
@@ -52,11 +61,11 @@ export class IPObjTypeToPolicyPosition extends Model {
 
     //Get ipobj_type__policy_position by  id
     public static getIpobj_type__policy_position(type, position, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'SELECT type, position, allowed FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
             logger.debug(sql);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -68,9 +77,9 @@ export class IPObjTypeToPolicyPosition extends Model {
 
     //Add new ipobj_type__policy_position
     public static insertIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', ipobj_type__policy_positionData, function (error, result) {
+            connection.query('INSERT INTO ' + tableName + ' SET ?', ipobj_type__policy_positionData, (error, result) => {
                 if (error) {
                     callback(error, null);
                 }
@@ -85,11 +94,11 @@ export class IPObjTypeToPolicyPosition extends Model {
     //Update ipobj_type__policy_position
     public static updateIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'UPDATE ' + tableName + ' SET type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' ' +
                 ' WHERE type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' position = ' + connection.escape(ipobj_type__policy_positionData.position);
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);
                 }
@@ -102,15 +111,15 @@ export class IPObjTypeToPolicyPosition extends Model {
 
     //Remove ipobj_type__policy_position with id to remove
     public static deleteIpobj_type__policy_position(type, position, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from ipobj_type__policy_position to remove
                 if (row) {
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             }

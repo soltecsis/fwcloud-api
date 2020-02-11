@@ -1,7 +1,8 @@
-import { Connection, createConnection } from "typeorm";
+import { Connection, createConnection, getRepository } from "typeorm";
 import * as config from "../../src/config/config";
 import { FwCloudMigrationExecutor } from "../../src/utils/typeorm/migrations/MigrationExecutor";
 import { Application } from "../../src/Application";
+import db from "../../src/database/DatabaseService";
 
 const configDB = config.get('db');
 
@@ -39,3 +40,14 @@ export async function runApplication(resetDatabase: boolean = true): Promise<App
 
     return application;
 }
+
+export function randomString(length: number = 10) {
+    var result           = '';
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
+

@@ -1,3 +1,25 @@
+/*
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import Model from "../Model";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import db from '../../database/DatabaseService';
@@ -108,14 +130,14 @@ export class FwCloud extends Model {
      *           by_user	int(11)
      */
     public static getFwcloud (iduser, fwcloud, callback) {
-        db.get(function(error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
             var sql = 'SELECT distinctrow C.* FROM ' + tableName + ' C  ' +
                 ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
                 ' WHERE U.user=' + connection.escape(iduser) + ' AND C.id=' + connection.escape(fwcloud);
-            connection.query(sql, function(error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -140,13 +162,13 @@ export class FwCloud extends Model {
      */
     public static getFwcloudAccess(iduser, fwcloud) {
         return new Promise((resolve, reject) => {
-            db.get(function(error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(false);
                 var sql = 'SELECT distinctrow C.* FROM ' + tableName + ' C  ' +
                     ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
                     ' WHERE U.user=' + connection.escape(iduser) + ' AND C.id=' + connection.escape(fwcloud);
-                connection.query(sql, function(error, row) {
+                connection.query(sql, (error, row) => {
                     if (error)
                         reject(false);
                     else if (row && row.length > 0) {
@@ -185,10 +207,10 @@ export class FwCloud extends Model {
      */
     public static checkFwcloudLockTimeout(timeout, callback) {
         return new Promise((resolve, reject) => {
-            db.get(function(error, connection) {
+            db.get((error, connection) => {
                 if (error) return reject(false);
                 var sql = 'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' + tableName + ' C WHERE C.locked=1 HAVING dif>' + timeout;
-                connection.query(sql, function(error, rows) {
+                connection.query(sql, (error, rows) => {
                     if (error)
                         reject(false);
                     else if (rows && rows.length > 0) {
@@ -196,7 +218,7 @@ export class FwCloud extends Model {
                         for (var i = 0; i < rows.length; i++) {
                             var row = rows[i];
                             var sqlupdate = 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
-                            connection.query(sqlupdate, function(error, result) {
+                            connection.query(sqlupdate, (error, result) => {
                                 logger.info("-----> UNLOCK FWCLOUD: " + row.id + " BY TIMEOT INACTIVITY of " + row.dif + "  Min LAST UPDATE: " + row.updated_at +
                                     "  LAST LOCK: " + row.locked_at + "  BY: " + row.locked_by);
                             });
@@ -325,9 +347,9 @@ export class FwCloud extends Model {
     public static updateFwcloudLock(fwcloudData) {
         return new Promise((resolve, reject) => {
             var locked = 1;
-            db.get(function(error, connection) {
-                db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.fwcloud, function() {
-                    db.startTX(connection, function() {
+            db.get((error, connection) => {
+                db.lockTable(connection, "fwcloud", " WHERE id=" + fwcloudData.fwcloud, () => {
+                    db.startTX(connection, () => {
                         if (error)
                             reject(error);
                         //Check if FWCloud is unlocked or locked by the same user
@@ -335,14 +357,14 @@ export class FwCloud extends Model {
                             ' WHERE id = ' + connection.escape(fwcloudData.fwcloud) +
                             ' AND (locked=0 OR (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ')) ';
 
-                        connection.query(sqlExists, function(error, row) {
+                        connection.query(sqlExists, (error, row) => {
                             if (row && row.length > 0) {
                                 //Check if there are FWCloud with Access and Edit permissions
                                 var sqlExists = 'SELECT C.id FROM ' + tableName + ' C ' +
                                     ' INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=' + connection.escape(fwcloudData.iduser) +
                                     ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud);
                                 logger.debug(sqlExists);
-                                connection.query(sqlExists, function(error, row) {
+                                connection.query(sqlExists, (error, row) => {
                                     if (row && row.length > 0) {
 
                                         var sql = 'UPDATE ' + tableName + ' SET locked = ' + connection.escape(locked) + ',' +
@@ -350,21 +372,21 @@ export class FwCloud extends Model {
                                             'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
                                             ' WHERE id = ' + fwcloudData.fwcloud;
                                         logger.debug(sql);
-                                        connection.query(sql, function(error, result) {
+                                        connection.query(sql, (error, result) => {
                                             if (error) {
                                                 reject(error);
                                             } else {
-                                                db.endTX(connection, function() {});
+                                                db.endTX(connection, () => {});
                                                 resolve({ "result": true });
                                             }
                                         });
                                     } else {
-                                        db.endTX(connection, function() {});
+                                        db.endTX(connection, () => {});
                                         resolve({ "result": false });
                                     }
                                 });
                             } else {
-                                db.endTX(connection, function() {});
+                                db.endTX(connection, () => {});
                                 resolve({ "result": false });
                             }
                         });
@@ -403,13 +425,13 @@ export class FwCloud extends Model {
     public static updateFwcloudUnlock(fwcloudData, callback) {
         return new Promise((resolve, reject) => {
             var locked = 0;
-            db.get(function(error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
                 var sqlExists = 'SELECT id FROM ' + tableName + '  ' +
                     ' WHERE id = ' + connection.escape(fwcloudData.id) +
                     ' AND (locked=1 AND locked_by=' + connection.escape(fwcloudData.iduser) + ') ';
-                connection.query(sqlExists, function(error, row) {
+                connection.query(sqlExists, (error, row) => {
                     //If exists Id from fwcloud to remove
                     if (row && row.length > 0) {
                         var sql = 'UPDATE ' + tableName + ' SET locked = ' + connection.escape(locked) + ',' +
@@ -417,7 +439,7 @@ export class FwCloud extends Model {
                             'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
                             ' WHERE id = ' + fwcloudData.id;
 
-                        connection.query(sql, function(error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 reject(error);
                             } else {
@@ -488,42 +510,42 @@ export class FwCloud extends Model {
             var sqlcloud = "  is null";
             if (fwcloud !== null)
                 sqlcloud = "= " + fwcloud;
-            db.get(function(error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
-                connection.query("SET FOREIGN_KEY_CHECKS = 0", function(error, result) {
+                connection.query("SET FOREIGN_KEY_CHECKS = 0", (error, result) => {
                     if (error) {
                         reject(error);
                     } else {
-                        connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function(error, result) {
+                        connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
                             if (error) {
                                 reject(error);
                             } else {
-                                connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function(error, result) {
+                                connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
                                     if (error) {
                                         reject(error);
                                     } else {
-                                        connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, function(error, result) {
+                                        connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
                                             if (error) {
                                                 reject(error);
                                             } else {
-                                                connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, function(error, result) {
+                                                connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, (error, result) => {
                                                     if (error) {
                                                         reject(error);
                                                     } else {
-                                                        connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function(error, result) {
+                                                        connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, (error, result) => {
                                                             if (error) {
                                                                 reject(error);
                                                             } else {
-                                                                connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, function(error, result) {
+                                                                connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, (error, result) => {
                                                                     if (error) {
                                                                         reject(error);
                                                                     } else {
-                                                                        connection.query("DELETE  FROM fwc_tree where fwcloud" + sqlcloud, function(error, result) {
+                                                                        connection.query("DELETE  FROM fwc_tree where fwcloud" + sqlcloud, (error, result) => {
                                                                             if (error) {
                                                                                 reject(error);
                                                                             } else {
-                                                                                connection.query("SET FOREIGN_KEY_CHECKS = 1", function(error, result) {
+                                                                                connection.query("SET FOREIGN_KEY_CHECKS = 1", (error, result) => {
                                                                                     if (error) {
                                                                                         reject(error);
                                                                                     } else {

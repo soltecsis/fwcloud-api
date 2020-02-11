@@ -22,10 +22,11 @@
 
 import Model from "../Model";
 import db from '../../database/DatabaseService';
-import { PrimaryColumn, Column } from "typeorm";
+import { PrimaryColumn, Column, Entity } from "typeorm";
 
 const tableName: string = 'ipobj_type';
 
+@Entity(tableName)
 export class IPObjType extends Model {
     
     @PrimaryColumn()
@@ -44,9 +45,9 @@ export class IPObjType extends Model {
     //Get All ipobj_type
     public static getIpobj_types(callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' ORDER BY id', function (error, rows) {
+            connection.query('SELECT * FROM ' + tableName + ' ORDER BY id', (error, rows) => {
                 if (error)
                     callback(error, null);
                 else

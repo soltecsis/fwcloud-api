@@ -32,12 +32,28 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
+import modelEventService from "../ModelEventService";
+import { MoreThan, getRepository, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Firewall } from "../firewall/Firewall";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
 var tableName: string = "policy_r";
 
+@Entity(tableName)
 export class PolicyRule extends Model {
+
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    firewall: number;
+
+    @Column()
+    created_at: Date;
+
+    @Column()
+    updated_at: Date;
 
     private static clon_data: any;
 
@@ -48,7 +64,7 @@ export class PolicyRule extends Model {
     //Get All policy_r by firewall and group
     public static getPolicy_rs(idfirewall, idgroup, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var whereGroup = '';
@@ -56,7 +72,7 @@ export class PolicyRule extends Model {
                 whereGroup = ' AND idgroup=' + connection.escape(idgroup);
             }
             var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + whereGroup + ' ORDER BY rule_order';
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -147,14 +163,14 @@ export class PolicyRule extends Model {
 
     //Get policy_r by  id  
     public static getPolicy_r_id(id, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
             var sql = 'SELECT P.*, F.fwcloud ' +
                 ' FROM ' + tableName + ' P INNER JOIN firewall F on F.id=P.firewall  WHERE P.id = ' + connection.escape(id);
 
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error) {
                     logger.debug(error);
                     callback(error, null);
@@ -215,7 +231,7 @@ export class PolicyRule extends Model {
 
     //Get policy_r  GROUP by  NEXT or Previous RULE
     public static getPolicy_r_DestGroup(idfirewall, offset, order, type, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             var nextRuleStr;
 
             if (error) return callback(error, null);
@@ -227,7 +243,7 @@ export class PolicyRule extends Model {
 
             var sql = 'SELECT id, idgroup, rule_order ' +
                 ' FROM ' + tableName + '  WHERE rule_order ' + nextRuleStr + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall) + ' LIMIT 1';
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error) {
                     logger.debug(error);
                     callback(error, null);
@@ -239,7 +255,7 @@ export class PolicyRule extends Model {
 
     //Get routing by name and firewall and group
     public static getPolicy_rName(idfirewall, idgroup, name, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var namesql = '%' + name + '%';
@@ -249,7 +265,7 @@ export class PolicyRule extends Model {
             }
             var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' AND firewall=' + connection.escape(idfirewall) + whereGroup;
             logger.debug(sql);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -575,7 +591,7 @@ export class PolicyRule extends Model {
     //Update policy_r from user
     public static updatePolicy_r_Group(firewall, oldgroup, newgroup, id, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
@@ -585,7 +601,7 @@ export class PolicyRule extends Model {
             if (oldgroup !== null)
                 sql += "  AND idgroup=" + oldgroup;
             logger.debug(sql);
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
@@ -601,14 +617,14 @@ export class PolicyRule extends Model {
     //Update policy_r Style
     public static updatePolicy_r_Style(firewall, id, type, style, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
             var sql = 'UPDATE ' + tableName + ' SET ' +
                 'style = ' + connection.escape(style) + ' ' +
                 ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
@@ -625,7 +641,7 @@ export class PolicyRule extends Model {
     //Update policy_r Active
     public static updatePolicy_r_Active(firewall, id, type, active, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
@@ -633,7 +649,7 @@ export class PolicyRule extends Model {
 			WHERE id=${id} and firewall=${firewall} AND type=${type}
 			AND special=0`; // We can not enable/disable special rules.
 
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
@@ -651,7 +667,7 @@ export class PolicyRule extends Model {
     //Update policy_r from user
     public static updatePolicy_r_GroupAll(firewall, idgroup, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
@@ -659,7 +675,7 @@ export class PolicyRule extends Model {
                 'idgroup = NULL' + ' ' +
                 ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
 
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
@@ -838,7 +854,7 @@ export class PolicyRule extends Model {
 
 
     public static cleanApplyTo(idfirewall, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error);
 
             var sql = 'UPDATE ' + tableName + ' SET fw_apply_to=null WHERE firewall=' + connection.escape(idfirewall);

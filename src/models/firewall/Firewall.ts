@@ -1,3 +1,25 @@
+/*
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import Model from "../Model";
 import db from '../../database/DatabaseService'
 import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
@@ -224,14 +246,14 @@ export class Firewall extends Model {
 	 */
 	public static getFirewallAccess(accessData) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 
 				//CHECK FIREWALL PERIMSSIONS
 				var sql = `SELECT T.* FROM ${tableName} T
 				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${accessData.iduser}
 				WHERE T.id=${accessData.firewall}	AND T.fwcloud=${accessData.fwcloud}`;
-				connection.query(sql, function (error, row) {
+				connection.query(sql, (error, row) => {
 					if (error) return reject(error);
 
 					resolve((row && row.length > 0) ? true : false);
@@ -300,7 +322,7 @@ export class Firewall extends Model {
 	}
 
 	public static getFirewallClusterMaster(iduser, idcluster, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = `SELECT T.*, I.name as interface_name, O.name as ip_name, O.address as ip
@@ -309,7 +331,7 @@ export class Firewall extends Model {
 					LEFT join interface I on I.id=T.install_interface
 					LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 					WHERE cluster=${idcluster} AND fwmaster=1`;
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else {
@@ -355,7 +377,7 @@ export class Firewall extends Model {
 	 */
 	public static insertFirewall(firewallData) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 
 				connection.query(`INSERT INTO ${tableName} SET ?`, firewallData, (error, result) => {
@@ -415,7 +437,7 @@ export class Firewall extends Model {
 					by_user=${iduser},
 					options=${firewallData.options}
 					WHERE id=${firewallData.id}`;
-					dbCon.query(sql, function (error, result) {
+					dbCon.query(sql, (error, result) => {
 						if (error) return reject(error);
 						resolve(true);
 					});
@@ -554,18 +576,18 @@ export class Firewall extends Model {
 
 	public static cloneFirewall(iduser, firewallData) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 				var sqlExists = `SELECT T.id FROM ${tableName} T 
 					INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
 					WHERE T.id=${firewallData.id}`;
-				connection.query(sqlExists, function (error, row) {
+				connection.query(sqlExists, (error, row) => {
 					//NEW FIREWALL
 					if (row && row.length > 0) {
 						var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options) ' +
 							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options ' +
 							' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
-						connection.query(sql, function (error, result) {
+						connection.query(sql, (error, result) => {
 							if (error) return reject(error);
 							resolve({ "insertId": result.insertId });
 						});
@@ -577,7 +599,7 @@ export class Firewall extends Model {
 
 	public static updateFWMaster(iduser, fwcloud, cluster, idfirewall, fwmaster) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 				var sqlExists = `SELECT T.id FROM ${tableName} T 
 					INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${iduser}
@@ -589,14 +611,14 @@ export class Firewall extends Model {
 							'fwmaster = ' + fwmaster + ', ' +
 							'by_user = ' + connection.escape(iduser) +
 							' WHERE id = ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
-						connection.query(sql, function (error, result) {
+						connection.query(sql, (error, result) => {
 							if (error) return reject(error);
 							if (fwmaster == 1) {
 								var sql = 'UPDATE ' + tableName + ' SET ' +
 									'fwmaster = 0, ' +
 									'by_user = ' + connection.escape(iduser) +
 									' WHERE id <> ' + idfirewall + ' AND fwcloud=' + fwcloud + ' AND cluster=' + cluster;
-								connection.query(sql, function (error, result) {
+								connection.query(sql, (error, result) => {
 									if (error) return reject(error);
 									resolve({ "result": true });
 								});
@@ -610,7 +632,7 @@ export class Firewall extends Model {
 
 	public static updateFirewallCluster(firewallData) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 				var sqlExists = `SELECT T.id FROM ${tableName} T 
 					INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud	AND U.user=${firewallData.by_user}
@@ -634,13 +656,13 @@ export class Firewall extends Model {
 
 	public static removeFirewallClusterSlaves(cluster, fwcloud, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 
 			var sql = 'DELETE FROM ' + tableName +
 				' WHERE cluster = ' + connection.escape(cluster) + ' AND fwcloud=' + connection.escape(fwcloud) + ' AND fwmaster=0';
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					callback(error, null);
 				} else {
@@ -679,20 +701,20 @@ export class Firewall extends Model {
 	public static updateFirewallLock(firewallData, callback) {
 
 		var locked = 1;
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sqlExists = `SELECT T.id FROM ${tableName} T 
 				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${firewallData.iduser}
 				WHERE T.id=${firewallData.id}	AND (locked=0 OR (locked=1 AND locked_by=${firewallData.iduser}))`;
-			connection.query(sqlExists, function (error, row) {
+			connection.query(sqlExists, (error, row) => {
 
 				if (row && row.length > 0) {
 					var sql = 'UPDATE ' + tableName + ' SET locked = ' + connection.escape(locked) + ',' +
 						'locked_at = CURRENT_TIMESTAMP ,' +
 						'locked_by = ' + connection.escape(firewallData.iduser) + ' ' +
 						' WHERE id = ' + firewallData.id;
-					connection.query(sql, function (error, result) {
+					connection.query(sql, (error, result) => {
 						if (error) {
 							callback(error, null);
 						} else {
@@ -735,20 +757,20 @@ export class Firewall extends Model {
 	public static updateFirewallUnlock(firewallData, callback) {
 
 		var locked = 0;
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sqlExists = `SELECT T.id FROM ${tableName} T 
 				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${firewallData.iduser}
 				WHERE T.id=${firewallData.id} AND (locked=1 AND locked_by=${firewallData.iduser})`;
-			connection.query(sqlExists, function (error, row) {
+			connection.query(sqlExists, (error, row) => {
 
 				if (row && row.length > 0) {
 					var sql = 'UPDATE ' + tableName + ' SET locked = ' + connection.escape(locked) + ',' +
 						'locked_at = CURRENT_TIMESTAMP ,' +
 						'locked_by = ' + connection.escape(firewallData.iduser) + ' ' +
 						' WHERE id = ' + firewallData.id;
-					connection.query(sql, function (error, result) {
+					connection.query(sql, (error, result) => {
 						if (error) {
 							callback(error, null);
 						} else {
@@ -956,7 +978,7 @@ export class Firewall extends Model {
 
 	public static getFirewallOptions(fwcloud, fw) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error) return reject(error);
 
 				let sql = 'SELECT options FROM ' + tableName +

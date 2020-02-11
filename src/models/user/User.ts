@@ -22,28 +22,76 @@
 
 import db from '../../database/DatabaseService';
 import Model from '../Model';
+import modelEventService from '../ModelEventService';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
 
 const tableName: string = "user";
 
+@Entity(tableName)
 export class User extends Model {
+
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    customer: number;
+
+    @Column()
+    name: string;
+
+    @Column()
+    email: string;
+
+    @Column()
+    username: string;
+
+    @Column()
+    password: string;
+
+    @Column()
+    enabled: number;
+
+    @Column()
+    role: number;
+
+    @Column()
+    allowed_from: string;
+
+    @Column()
+    last_login: Date;
+
+    @Column()
+    confirmation_token: string;
+
+    @Column()
+    created_at: Date;
+
+    @Column()
+    updated_at: Date;
+
+    @Column()
+    created_by: number;
+
+    @Column()
+    updated_by: number;
 
     public getTableName(): string {
         return tableName;
     }
 
     //Get user by  username
-    public static getUserName = function (customer, username) {
+    public static getUserName(customer, username) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error) return reject(error);
 
                 var sql = 'SELECT * FROM user ' +
                     'WHERE customer=' + connection.escape(customer) + ' AND username =' + connection.escape(username);
 
-                connection.query(sql, function (error, row) {
+                connection.query(sql, (error, row) => {
                     if (error)
                         reject(error);
                     else
@@ -66,15 +114,15 @@ export class User extends Model {
 
 
     //Update user confirmation_token
-    public static updateUserCT = function (iduser, token, callback) {
+    public static updateUserCT(iduser, token, callback) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
                 var sql = 'UPDATE user SET ' +
                     ' confirmation_token =  ' + connection.escape(token) +
                     ' WHERE id = ' + connection.escape(iduser);
-                connection.query(sql, function (error, result) {
+                connection.query(sql, (error, result) => {
                     if (error) {
                         reject(error);
                     } else {

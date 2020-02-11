@@ -1,6 +1,3 @@
-import Model from "../../Model";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
-
 /*
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -22,6 +19,9 @@ import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+import Model from "../../Model";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 const fwcError = require('../../../utils/error_table')
 

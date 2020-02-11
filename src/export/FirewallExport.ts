@@ -74,7 +74,7 @@ export class FirewallExport {
                 if (error) return reject(error);
     
                 // The order is preserved regardless of what resolved first	
-                Promise.all(interfaces.map(data => this.exportAddrs(data)))
+                Promise.all(interfaces.map(row => this.exportAddrs(row)))
                 .then(addrs => {
                     for(let i=0; i<interfaces.length; i++)
                         interfaces[i].addresses = addrs[i];
@@ -102,7 +102,7 @@ export class FirewallExport {
     private static exportPolicyInterfaces(rules) {
         return new Promise((resolve, reject) => {
             // The order is preserved regardless of what resolved first	
-            Promise.all(rules.map(data => this.exportRuleInterfaces(data)))
+            Promise.all(rules.map(row => this.exportRuleInterfaces(row)))
             .then(ruleInterfaces => {
                 for(let i=0; i<ruleInterfaces.length; i++)
                     rules[i].interfaces = ruleInterfaces[i];
@@ -140,7 +140,7 @@ export class FirewallExport {
                 connection.query(sql, (error, ipobjs) => {
                     if (error) return reject(error);
     
-                    Promise.all(ipobjs.map(data => this.exportRuleIpobjData(data)))
+                    Promise.all(ipobjs.map(ruleIpobj => this.exportRuleIpobjData(ruleIpobj)))
                     .then(ipobjsDetailed => {
                         for(let i=0; i<ipobjs.length; i++)
                             ipobjs[i].data = ipobjsDetailed[i];

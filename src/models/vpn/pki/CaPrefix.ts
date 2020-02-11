@@ -24,7 +24,8 @@
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import Model from '../../Model';
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import modelEventService from '../../ModelEventService';
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'ca_prefix';
@@ -32,7 +33,7 @@ const tableName: string = 'ca_prefix';
 @Entity(tableName)
 export class CaPrefix extends Model {
 
-    @Column()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column()

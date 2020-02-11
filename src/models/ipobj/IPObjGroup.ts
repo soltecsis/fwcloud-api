@@ -1,3 +1,25 @@
+/*
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import Model from "../Model";
 import db from '../../database/DatabaseService';
 
@@ -8,6 +30,9 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
+import modelEventService from "../ModelEventService";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn } from "typeorm";
+import { FwCloud } from "../fwcloud/FwCloud";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -16,7 +41,21 @@ const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'ipobj_g';
 
+@Entity(tableName)
 export class IPObjGroup extends Model {
+
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column()
+    fwcloud: number;
+
+    @Column()
+    created_at: Date;
+
+    @Column()
+    updated_at: Date;
+
     public getTableName(): string {
         return tableName;
     }
@@ -24,10 +63,10 @@ export class IPObjGroup extends Model {
     //Get All ipobj_g
     public static getIpobj_gs(fwcloud, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', function (error, rows) {
+            connection.query('SELECT * FROM ' + tableName + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -158,7 +197,7 @@ export class IPObjGroup extends Model {
             var group_cont = 0;
             var ipobjs_cont = 0;
 
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
 
@@ -169,7 +208,7 @@ export class IPObjGroup extends Model {
                     'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
                     ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
                 //logger.debug(sql);
-                connection.query(sql, function (error, rows) {
+                connection.query(sql, (error, rows) => {
                     if (error)
                         reject(error);
                     else if (rows.length > 0) {
@@ -183,7 +222,7 @@ export class IPObjGroup extends Model {
                             var idgroup = row.id;
                             group_node.ipobjs = new Array();
                             //GET ALL GROUP OBJECTs
-                            IPObj.getAllIpobjsGroup(fwcloud, idgroup, function (error, data_ipobjs) {
+                            IPObj.getAllIpobjsGroup(fwcloud, idgroup, (error, data_ipobjs) => {
                                 if (data_ipobjs.length > 0) {
                                     ipobjs_cont = data_ipobjs.length;
 
@@ -278,7 +317,7 @@ export class IPObjGroup extends Model {
 
     //Add new ipobj_g
     public static insertIpobj_g(ipobj_gData, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) return callback(error, null);
             // The IDs for the user defined IP Objects groups begin from the value 100000. 
             // IDs values from 0 to 99999 are reserved for standard IP Objects.

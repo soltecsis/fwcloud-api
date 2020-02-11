@@ -426,13 +426,13 @@ router.put('/fwtocluster', async(req, res) => {
 			fwcloud: fwcloud
 		};
 
-		Cluster.insertCluster(clusterData, function(error, data) {
+		Cluster.insertCluster(clusterData, (error, data) => {
 			//get cluster info
 			if (data && data.insertId) {
 				var idcluster = data.insertId;
 				//////////////////////////////////
 				//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-				Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, function(error, dataTree) {
+				Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, (error, dataTree) => {
 					if (error)
 						return res.status(400).json(error);
 					else if (dataTree && dataTree.result) {
@@ -464,14 +464,14 @@ router.put('/clustertofw', (req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var idCluster = req.body.cluster;
 
-	Firewall.getFirewallClusterMaster(iduser, idCluster, function(error, firewallDataArry) {
+	Firewall.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
 			var firewallData = firewallDataArry[0];
 
 			//////////////////////////////////
 			//UPDATE CLUSTER NODE STRUCTURE
-			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, function(error, dataTree) {
+			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, (error, dataTree) => {
 				logger.debug("DATATREE: ", dataTree);
 				if (error)
 					return res.status(400).json(error);
@@ -485,8 +485,8 @@ router.put('/clustertofw', (req, res) => {
 					//logger.debug("firewallData: ", firewallData);
 					Firewall.updateFirewallCluster(firewallData)
 						.then(() => {
-							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, function(error, dataFC) {
-								Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, function(error, data) {
+							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, (error, dataFC) => {
+								Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, (error, data) => {
 									PolicyRule.cleanApplyTo(firewallData.id, (error, data) => {});
 								});
 							});

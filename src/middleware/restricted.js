@@ -88,7 +88,7 @@ restrictedCheck.firewall = async(req, res, next) => {
 restrictedCheck.firewallApplyTo = (req, res, next) => {
 	// Is this firewall part of a cluster?
 	let sql = 'SELECT cluster from firewall where id=' + req.body.fwcloud + ' AND fwcloud=' + req.body.fwcloud;
-	req.dbCon.query(sql, function(error, result) {
+	req.dbCon.query(sql, (error, result) => {
 		if (error) return res.status(400).json(error);
 		if (result && result.length === 0) return next(); // No, it is not part of a cluster.
 
@@ -97,7 +97,7 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 			' where fw_apply_to=' + req.body.firewall +
 			' AND F.cluster=' + result[0].cluster +
 			' AND F.fwcloud=' + req.body.fwcloud;
-		req.dbCon.query(sql, function(error, row) {
+		req.dbCon.query(sql, (error, row) => {
 			if (error) return res.status(400).json(error);
 
 			if (row && row.length > 0) {

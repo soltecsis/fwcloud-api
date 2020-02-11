@@ -24,6 +24,7 @@ import Model from "../Model";
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Tree } from '../tree/Tree';
+import { Entity, PrimaryColumn, Column } from "typeorm";
 const socketTools = require('../../utils/socket');
 const fwcError = require('../../utils/error_table');
 
@@ -32,7 +33,34 @@ var fwcloud;
 
 const tableName: string = "fwc_tree";
 
+@Entity(tableName)
 export class Repair extends Model {
+
+    @PrimaryColumn()
+	id: number;
+
+	@Column()
+	name: string;
+
+	@Column()
+	id_parent: number;
+
+	@Column()
+	node_order: number;
+
+	@Column()
+	node_type: number;
+
+	@Column()
+	id_obj: number;
+
+	@Column()
+	obj_type: number;
+
+	@Column()
+    fwcloud: number;
+    
+    
     public getTableName(): string {
         return tableName;
     }

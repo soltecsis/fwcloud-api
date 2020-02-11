@@ -21,11 +21,40 @@
 */
 
 import Model from "../Model";
+import modelEventService from "../ModelEventService";
+import { Entity, Column, getRepository, PrimaryColumn } from "typeorm";
+import { PolicyRule } from "./PolicyRule";
+import { PolicyCompilation } from "./PolicyCompilation";
 
 const tableName: string = 'policy_r__openvpn';
 
+@Entity(tableName)
 export class PolicyRuleToOpenVPN extends Model {
     
+    @PrimaryColumn()
+    rule: number;
+
+    @PrimaryColumn()
+	openvpn: number;
+
+	@PrimaryColumn()
+    position: number;
+    
+    @Column()
+    position_order: number;
+
+    @Column()
+    created_at: Date;
+
+    @Column()
+    updated_at: Date;
+
+    @Column()
+    created_by: number;
+
+    @Column()
+    updated_by: number;
+
     public getTableName(): string {
         return tableName;
     }

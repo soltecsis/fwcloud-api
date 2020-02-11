@@ -22,11 +22,13 @@
 
 import Model from "../Model";
 import db from '../../database/DatabaseService';
-import { PrimaryColumn, Column } from "typeorm";
+import { PrimaryColumn, Column, Entity } from "typeorm";
+import modelEventService from "../ModelEventService";
 var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'policy_type';
 
+@Entity(tableName)
 export class PolicyType extends Model {
     
     @PrimaryColumn()
@@ -47,9 +49,9 @@ export class PolicyType extends Model {
 
     //Get All policy_type
     public static getPolicy_types(callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', function (error, rows) {
+            connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -64,10 +66,10 @@ export class PolicyType extends Model {
 
     //Get policy_type by  type
     public static getPolicy_type(id, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else{                
@@ -79,10 +81,10 @@ export class PolicyType extends Model {
 
     //Get policy_type by  type Letter
     public static getPolicy_typeL(id, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else{                
@@ -94,11 +96,11 @@ export class PolicyType extends Model {
 
     //Get policy_type by name
     public static getPolicy_typeName(name, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var namesql = '%' + name + '%';
             var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -111,9 +113,9 @@ export class PolicyType extends Model {
 
     //Add new policy_type
     public static insertPolicy_type(policy_typeData, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, function (error, result) {
+            connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
                 if (error) {
                     callback(error, null);
                 }
@@ -128,14 +130,14 @@ export class PolicyType extends Model {
     //Update policy_type
     public static updatePolicy_type(policy_typeData, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
                     ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
                     ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
                 ' WHERE type = ' + policy_typeData.type;
                 logger.debug(sql);
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);
                 }
@@ -148,15 +150,15 @@ export class PolicyType extends Model {
 
     //Remove policy_type with type to remove
     public static deletePolicy_type(type, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error) callback(error, null);
             var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_type to remove
                 if (row) {
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             }

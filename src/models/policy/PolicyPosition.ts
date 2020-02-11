@@ -26,16 +26,18 @@ var logger = require('log4js').getLogger("app");
 
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
-import { PrimaryColumn, Column } from "typeorm";
+import { PrimaryColumn, Column, Entity } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 import { IPObj } from '../../models/ipobj/IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import modelEventService from "../ModelEventService";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'policy_position';
 
+@Entity(tableName)
 export class PolicyPosition extends Model {
 
     @PrimaryColumn()
@@ -62,10 +64,10 @@ export class PolicyPosition extends Model {
 
     //Get All policy_position
     public static getPolicy_positions(callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' ORDER BY position_order', function (error, rows) {
+            connection.query('SELECT * FROM ' + tableName + ' ORDER BY position_order', (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -105,7 +107,7 @@ export class PolicyPosition extends Model {
     //Get object information for the position. Grops, hosts, interfaces, etc. will be breakdown to leaf nodes information.
     public static getRulePositionDataDetailed(position) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, dbCon) {
+            db.get((error, dbCon) => {
                 if (error) return reject(error);
                 
                 //SELECT ALL IPOBJ UNDER a POSITION
@@ -296,11 +298,11 @@ export class PolicyPosition extends Model {
 
     //Get policy_position by  id
     public static getPolicy_position(id, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -312,10 +314,10 @@ export class PolicyPosition extends Model {
 
     //Add new policy_position
     public static insertPolicy_position(policy_positionData, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', policy_positionData, function (error, result) {
+            connection.query('INSERT INTO ' + tableName + ' SET ?', policy_positionData, (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
@@ -329,7 +331,7 @@ export class PolicyPosition extends Model {
     //Update policy_position
     public static updatePolicy_position(policy_positionData, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_positionData.name) + ', ' +
@@ -338,7 +340,7 @@ export class PolicyPosition extends Model {
                     'content = ' + connection.escape(policy_positionData.content) + ' ' +
                     ' WHERE id = ' + policy_positionData.id;
             logger.debug(sql);
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
@@ -350,16 +352,16 @@ export class PolicyPosition extends Model {
 
     //Remove policy_position with id to remove
     public static deletePolicy_position(id, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_position to remove
                 if (row) {
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {

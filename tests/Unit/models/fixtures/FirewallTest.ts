@@ -14,7 +14,7 @@ export class FirewallTest extends Model {
         throw new Error("Method not implemented.");
     }
 
-    public onCreate(): void  {
-        getRepository(FirewallTest).update(this.id, {name: 'onCreate called'});
+    public async onCreate()  {
+        await getRepository(FirewallTest).update(this.id, {name: 'onCreate called'});
     }
 }

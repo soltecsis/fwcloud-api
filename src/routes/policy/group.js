@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
 
 			//Add rules to group
 			for (var rule of body.rulesIds) {
-				PolicyRule.updatePolicy_r_Group(body.firewall, null, policyGroup.id, rule, function (error, data) {
+				PolicyRule.updatePolicy_r_Group(body.firewall, null, policyGroup.id, rule, (error, data) => {
 					logger.debug("ADDED to Group " + policyGroup.id + " POLICY: " + rule);
 				});
 			}
@@ -100,7 +100,7 @@ router.put('/style', async (req, res) => {
 	var style = req.body.style;
 	var groupIds = req.body.groupIds;
 
-	db.lockTableCon((new PolicyGroup).getTableName(), " WHERE firewall=" + data.idfirewall, function () {
+	db.lockTableCon((new PolicyGroup).getTableName(), " WHERE firewall=" + data.idfirewall, () => {
 		db.startTXcon(async () => {
 			try {
 				await getRepository(PolicyGroup).update({firewall: data.idfirewall, id: groupIds}, {
@@ -109,7 +109,7 @@ router.put('/style', async (req, res) => {
 			} catch (e) {
 				res.status(400).json(fwcError.NOT_FOUND);
 			}
-			db.endTXcon(function () { });
+			db.endTXcon(() => { });
 		});
 	});
 	res.status(204).end();
@@ -142,7 +142,7 @@ router.put("/del", async (req, res) => {
 
 	try {
 		policyGroups.forEach(policyGroup => {
-			PolicyRule.updatePolicy_r_GroupAll(idfirewall, id, function(error, data) {
+			PolicyRule.updatePolicy_r_GroupAll(idfirewall, id, (error, data) => {
 				getRepository(PolicyGroup).delete(policyGroup.id);
 			});
 		});

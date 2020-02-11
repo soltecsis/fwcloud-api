@@ -22,10 +22,13 @@
 
 import Model from "../Model";
 import db from '../../database/DatabaseService';
-import { PrimaryGeneratedColumn, Column } from "typeorm";
+import { PrimaryGeneratedColumn, Column, getRepository, Entity } from "typeorm";
+import modelEventService from "../ModelEventService";
+import { IPObjGroup } from "./IPObjGroup";
 
 const tableName: string = 'ipobj__ipobjg';
 
+@Entity(tableName)
 export class IPObjToIPObjGroup extends Model {
 
     @PrimaryGeneratedColumn()

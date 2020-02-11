@@ -92,8 +92,8 @@ async(req, res) => {
 			//If saved policy_r__ipobj saved ok, get data
 			if (data) {
 				if (data.result) {
-					PolicyRule.compilePolicy_r(rule, function(error, datac) {});
-					PolicyRule.compilePolicy_r(new_rule, function(error, datac) {});
+					PolicyRule.compilePolicy_r(rule, (error, datac) => {});
+					PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
 
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
@@ -127,8 +127,8 @@ async(req, res) => {
 					//delete Position 'O'
 					PolicyRuleToIPObj.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
-							PolicyRule.compilePolicy_r(rule, function(error, datac) {});
-							PolicyRule.compilePolicy_r(new_rule, function(error, datac) {});
+							PolicyRule.compilePolicy_r(rule, (error, datac) => {});
+							PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
 
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
@@ -157,11 +157,11 @@ utilsModel.disableFirewallCompileStatus,
 	var old_order = req.body.position_order;
 	var new_order = req.body.new_order;
 
-	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, function(error, data) {
+	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, (error, data) => {
 		if (error) return res.status(400).json(error);
 		//If saved policy_r__interface saved ok, get data
 		if (data && data.result) {
-			PolicyRule.compilePolicy_r(rule, function(error, datac) {});
+			PolicyRule.compilePolicy_r(rule, (error, datac) => {});
 			res.status(200).json(data);
 		} else res.status(400).json(error);
 	});
@@ -181,7 +181,7 @@ utilsModel.disableFirewallCompileStatus,
 	PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, old_order, async (error, data) => {
 		if (data) {
 			if (data.msg === "deleted") {
-				PolicyRule.compilePolicy_r(rule, function(error, datac) {});
+				PolicyRule.compilePolicy_r(rule, (error, datac) => {});
 
 				// If after the delete we have empty rule positions, then remove them from the negate position list.
 				try {

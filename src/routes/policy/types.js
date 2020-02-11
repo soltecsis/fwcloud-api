@@ -40,11 +40,9 @@ router.get('', (req, res) => {
 
 
 /* Get  policy_type by type */
-router.get('/:type', function (req, res)
-{
+router.get('/:type', (req, res) => {
 	var type = req.params.type;
-	PolicyType.getPolicy_type(type, function (error, data)
-	{
+	PolicyType.getPolicy_type(type, (error, data) => {
     if (data && data.length > 0)
       res.status(200).json(data);
     else
@@ -53,11 +51,9 @@ router.get('/:type', function (req, res)
 });
 
 /* Get all policy_types by name */
-router.get('/name/:name', function (req, res)
-{
+router.get('/name/:name', (req, res) => {
 	var name = req.params.name;
-	PolicyType.getPolicy_typeName(name, function (error, data)
-	{
+	PolicyType.getPolicy_typeName(name, (error, data) => {
     if (data && data.length > 0)
       res.status(200).json(data);
     else

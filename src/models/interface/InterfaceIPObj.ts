@@ -1,19 +1,42 @@
+/*
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import Model from "../Model";
 import db from '../../database/DatabaseService';
-import { Column } from "typeorm";
+import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn } from "typeorm";
+import modelEventService from "../ModelEventService";
 
 var logger = require('log4js').getLogger("app");
 
 
 const tableName: string = 'interface__ipobj';
 
-
+@Entity(tableName)
 export class InterfaceIPObj extends Model {
 
-	@Column()
+	@PrimaryColumn()
 	interface: number;
 
-	@Column()
+	@PrimaryColumn()
 	ipobj: number;
 
 	@Column()
@@ -38,11 +61,11 @@ export class InterfaceIPObj extends Model {
 	//Get All interface__ipobj by interface
 	public static getInterface__ipobjs_interface(_interface, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE interface=' + connection.escape(_interface) + ' ORDER BY interface_order';
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else
@@ -54,11 +77,11 @@ export class InterfaceIPObj extends Model {
 	//Get All interface__ipobj by ipobj
 	public static getInterface__ipobjs_ipobj(ipobj, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE ipobj=' + connection.escape(ipobj) + ' ORDER BY interface_order';
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else
@@ -71,11 +94,11 @@ export class InterfaceIPObj extends Model {
 
 	//Get interface__ipobj by interface and ipobj
 	public static getInterface__ipobj(_interface, ipobj, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' AND ipobj=' + connection.escape(ipobj);
-			connection.query(sql, function (error, row) {
+			connection.query(sql, (error, row) => {
 				if (error)
 					callback(error, null);
 				else
@@ -121,7 +144,7 @@ export class InterfaceIPObj extends Model {
 
 		await this.OrderList(interface__ipobjData.interface_order, get_interface, get_interface_order);
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'UPDATE ' + tableName + ' SET ' +
@@ -129,7 +152,7 @@ export class InterfaceIPObj extends Model {
 				'ipobj = ' + connection.escape(interface__ipobjData.ipobj) + ',' +
 				'interface_order = ' + connection.escape(interface__ipobjData.interface_order) + ' ' +
 				' WHERE interface = ' + connection.escape(get_interface) + ' AND ipobj=' + connection.escape(get_ipobj);
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					callback(error, null);
 				} else {
@@ -144,13 +167,13 @@ export class InterfaceIPObj extends Model {
 
 		await this.OrderList(new_order, interface__ipobjData.interface, interface__ipobjData.interface_order);
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'UPDATE ' + tableName + ' SET ' +
 				'interface_order = ' + connection.escape(new_order) + ' ' +
 				' WHERE interface = ' + connection.escape(interface__ipobjData.interface) + ' AND ipobj=' + connection.escape(interface__ipobjData.ipobj);
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					callback(error, null);
 				} else {
@@ -163,7 +186,7 @@ export class InterfaceIPObj extends Model {
 	//UPDATE HOST IF IPOBJ IS UNDER 
 	public static UpdateHOST(_interface) {
 		return new Promise((resolve, reject) => {
-			db.get(function (error, connection) {
+			db.get((error, connection) => {
 				if (error)
 					reject(error);
 				var sql = 'UPDATE ipobj H  ' +
@@ -171,7 +194,7 @@ export class InterfaceIPObj extends Model {
 					'set H.updated_at= CURRENT_TIMESTAMP ' +
 					' WHERE I.interface = ' + connection.escape(_interface);
 				logger.debug(sql);
-				connection.query(sql, function (error, result) {
+				connection.query(sql, (error, result) => {
 					if (error) {
 						logger.debug(error);
 						reject(error);

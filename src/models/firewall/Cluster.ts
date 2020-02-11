@@ -1,3 +1,25 @@
+/*
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import Model from "../Model";
 import db from '../../database/DatabaseService'
 import { Firewall } from "./Firewall";
@@ -42,7 +64,7 @@ export class Cluster extends Model {
     }
 
     //Get All clusters
-    public static getClusterCloud = req => {
+    public static getClusterCloud(req) {
         return new Promise((resolve, reject) => {
             var sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
@@ -55,10 +77,10 @@ export class Cluster extends Model {
     }
 
     //Get FULL cluster by  id
-    public static getCluster = req => {
+    public static getCluster(req) {
         return new Promise((resolve, reject) => {
             var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
-            req.dbCon.query(sql, function (error, row) {
+            req.dbCon.query(sql, (error, row) => {
                 if (error) return reject(error);
                 if (row && row.length > 0) {
                     var dataCluster = row[0];
@@ -96,12 +118,12 @@ export class Cluster extends Model {
     }
 
     //Get clusters by name
-    public static getClusterName = function (name, callback) {
-        db.get(function (error, connection) {
+    public static getClusterName = (name, callback) => {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  "%' + connection.escape(name) + '%"';
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -111,12 +133,12 @@ export class Cluster extends Model {
     }
 
     //Add new cluster
-    public static insertCluster = function (clusterData, callback) {
-        db.get(function (error, connection) {
+    public static async insertCluster(clusterData, callback) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             logger.debug(clusterData);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', clusterData, function (error, result) {
+            connection.query('INSERT INTO ' + tableName + ' SET ?', clusterData, (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
@@ -128,7 +150,7 @@ export class Cluster extends Model {
     }
 
     //Update cluster
-    public static updateCluster = (dbCon, fwcloud, clusterData) => {
+    public static updateCluster(dbCon, fwcloud, clusterData) {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;
@@ -146,7 +168,7 @@ export class Cluster extends Model {
     }
 
     //Remove cluster with id to remove
-    public static deleteCluster = (dbCon, cluster, iduser, fwcloud) => {
+    public static deleteCluster(dbCon, cluster, iduser, fwcloud) {
         return new Promise((resolve, reject) => {
             //BUCLE de FIREWALL en CLUSTER
             let sql = `SELECT ${iduser} as iduser, F.* FROM firewall F
@@ -181,9 +203,9 @@ export class Cluster extends Model {
     }
 
     //Remove cluster with id to remove
-    public static deleteClusterSimple = function (id, iduser, fwcloud, callback) {
+    public static deleteClusterSimple(id, iduser, fwcloud, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             logger.debug("------>>>> DELETING CLUSTER: ", id);
@@ -191,15 +213,15 @@ export class Cluster extends Model {
                 ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
                 ' WHERE T.id = ' + connection.escape(id);
             logger.debug("SQL DELETE CLUSTER: ", sqlExists);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from cluster to remove
                 if (row.length > 0) {
                     var dataNode = { id: row[0].idnode, fwcloud: fwcloud, iduser: iduser }
                     Tree.deleteFwc_TreeFullNode(dataNode)
                         .then(resp => {
-                            db.get(function (error, connection) {
+                            db.get((error, connection) => {
                                 var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-                                connection.query(sql, function (error, result) {
+                                connection.query(sql, (error, result) => {
                                     if (error) {
                                         callback(error, null);
                                     } else {

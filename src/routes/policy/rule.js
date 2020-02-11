@@ -174,10 +174,10 @@ utilsModel.disableFirewallCompileStatus,
 	var rulesIds = req.body.rulesIds;
 	if (active !== 1)
 		active = 0;
-	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, function() {
-		db.startTXcon(function() {
+	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, () => {
+		db.startTXcon(() => {
 			for (var rule of rulesIds) {
-				PolicyRule.updatePolicy_r_Active(idfirewall, rule, type, active, function(error, data) {
+				PolicyRule.updatePolicy_r_Active(idfirewall, rule, type, active, (error, data) => {
 					if (error)
 						logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
 					if (data && data.result) {
@@ -186,7 +186,7 @@ utilsModel.disableFirewallCompileStatus,
 						logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
 				});
 			}
-			db.endTXcon(function() {});
+			db.endTXcon(() => {});
 		});
 		res.status(204).end();
 	});
@@ -200,7 +200,7 @@ utilsModel.disableFirewallCompileStatus,
 	var style = req.body.style;
 	var rulesIds = req.body.rulesIds;
 	db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
-		db.startTXcon(function() {
+		db.startTXcon(() => {
 			for (var rule of rulesIds) {
 				PolicyRule.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
 					if (error)
@@ -211,7 +211,7 @@ utilsModel.disableFirewallCompileStatus,
 						logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
 				});
 			}
-			db.endTXcon(function() {});
+			db.endTXcon(() => {});
 		});
 	});
 	res.status(204).end();

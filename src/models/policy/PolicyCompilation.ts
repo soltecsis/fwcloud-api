@@ -25,7 +25,8 @@ import db from '../../database/DatabaseService';
 import Model from "../Model";
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../../models/firewall/Firewall';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+import modelEventService from '../ModelEventService';
 var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'policy_c';
@@ -33,8 +34,8 @@ const tableName: string = 'policy_c';
 @Entity(tableName)
 export class PolicyCompilation extends Model {
     
-    @Column()
-    rule: number;
+    @PrimaryColumn()
+	rule: number;
 
     @Column()
     rule_compiled: string;
@@ -61,7 +62,7 @@ export class PolicyCompilation extends Model {
     //Get All policy_c by firewall
 public static getPolicy_cs(idfirewall, callback) {
 
-	db.get(function (error, connection) {
+	db.get((error, connection) => {
 		if (error)
 			callback(error, null);
 		//var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY rule';
@@ -73,7 +74,7 @@ public static getPolicy_cs(idfirewall, callback) {
 				' LEFT JOIN firewall FC on FC.id=R.fw_apply_to ' +
 				' WHERE R.firewall=' + connection.escape(idfirewall) +  ' AND R.active=1 ' +
 				' ORDER BY R.type, R.rule_order';
-		connection.query(sql, function (error, rows) {
+		connection.query(sql, (error, rows) => {
 			if (error)
 				callback(error, null);
 			else
@@ -85,7 +86,7 @@ public static getPolicy_cs(idfirewall, callback) {
 //Get All policy_c by policy type and firewall
 public static getPolicy_cs_type(fwcloud, idfirewall, type, callback) {
 
-	db.get(function (error, connection) {
+	db.get((error, connection) => {
 		if (error)
 			callback(error, null);
 		//return only: id, rule_order, c_status_recompile, c_compiled, comment
@@ -99,7 +100,7 @@ public static getPolicy_cs_type(fwcloud, idfirewall, type, callback) {
 				' AND F.fwcloud=' +  connection.escape(fwcloud) + ' AND R.active=1 ' +
 				' ORDER BY R.rule_order';          
 		 
-		connection.query(sql, function (error, rows) {
+		connection.query(sql, (error, rows) => {
 			if (error)
 				callback(error, null);
 			else

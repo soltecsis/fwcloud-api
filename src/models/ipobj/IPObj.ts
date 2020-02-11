@@ -27,7 +27,9 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository } from 'typeorm';
+import modelEventService from '../ModelEventService';
+import { FwCloud } from '../fwcloud/FwCloud';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -212,7 +214,7 @@ export class IPObj extends Model {
      * */
     public static getIpobjPro(position_ipobj) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error) return reject(error);
 
                 //SELECT IPOBJ DATA UNDER POSITION
@@ -223,7 +225,7 @@ export class IPObj extends Model {
                     ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 
                 logger.debug("getIpobjPro -> ", sql);
-                connection.query(sql, function (error, row) {
+                connection.query(sql, (error, row) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -289,9 +291,9 @@ export class IPObj extends Model {
     };
 
 
-    public static getFinalIpobjPro = function (position_ipobj) {
+    public static getFinalIpobjPro(position_ipobj) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error) return reject(error);
 
                 var sql = "";
@@ -307,7 +309,7 @@ export class IPObj extends Model {
                         ' WHERE I.id = ' + connection.escape(position_ipobj.interface);
                 }
                 //logger.debug("getIpobjPro -> ", sql);
-                connection.query(sql, function (error, row) {
+                connection.query(sql, (error, row) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -346,7 +348,7 @@ export class IPObj extends Model {
         var ipobjs_cont = 0;
         var interfaces_cont = 0;
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 AllDone(error, null);
 
@@ -357,7 +359,7 @@ export class IPObj extends Model {
                 'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
             logger.debug(sql);
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     AllDone(error, null);
                 else if (rows.length > 0) {
@@ -372,7 +374,7 @@ export class IPObj extends Model {
                         host_node.interfaces = new Array();
 
                         //GET ALL HOST INTERFACES
-                        Interface.getInterfacesHost(idhost, fwcloud, function (error, data_interfaces) {
+                        Interface.getInterfacesHost(idhost, fwcloud, (error, data_interfaces) => {
                             if (data_interfaces.length > 0) {
                                 interfaces_cont = data_interfaces.length;
 
@@ -386,7 +388,7 @@ export class IPObj extends Model {
                                     interface_node.ipobjs = new Array();
 
                                     //GET ALL INTERFACE OBJECTs
-                                    this.getAllIpobjsInterface(fwcloud, idinterface, function (error, data_ipobjs) {
+                                    this.getAllIpobjsInterface(fwcloud, idinterface, (error, data_ipobjs) => {
                                         if (data_ipobjs.length > 0) {
                                             ipobjs_cont = data_ipobjs.length;
 
@@ -470,9 +472,9 @@ export class IPObj extends Model {
      * 
      * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
      * */
-    public static getAllIpobjsGroup = function (fwcloud, idgroup, callback) {
+    public static getAllIpobjsGroup(fwcloud, idgroup, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
@@ -487,7 +489,7 @@ export class IPObj extends Model {
             //	' WHERE G.ipobj_g=' + idgroup + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)' +
             //	' ORDER BY G.id_gi';
 
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -506,9 +508,9 @@ export class IPObj extends Model {
      * 
      * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
      * */
-    public static getAllIpobjsInterface = function (fwcloud, idinterface, callback) {
+    public static getAllIpobjsInterface(fwcloud, idinterface, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
 
@@ -521,7 +523,7 @@ export class IPObj extends Model {
                 ' ORDER BY I.id';
             logger.debug(sql);
 
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -579,7 +581,7 @@ export class IPObj extends Model {
     public static getIpobjInfo(dbCon, fwcloud, ipobj) {
         return new Promise((resolve, reject) => {
             const sql = 'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
-            dbCon.query(sql, function (error, result) {
+            dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 if (result.length < 1) return reject(fwcError.NOT_FOUND);
 
@@ -782,7 +784,7 @@ export class IPObj extends Model {
     //UPDATE HOST IF IPOBJ IS UNDER 
     public static UpdateHOST(id) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
                 var sql = 'UPDATE ipobj H  ' +
@@ -792,7 +794,7 @@ export class IPObj extends Model {
                     'set H.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
                 logger.debug(sql);
-                connection.query(sql, function (error, result) {
+                connection.query(sql, (error, result) => {
                     if (error) {
                         logger.debug(error);
                         reject(error);
@@ -811,7 +813,7 @@ export class IPObj extends Model {
     //UPDATE INTEFACE IF IPOBJ IS UNDER 
     public static UpdateINTERFACE(id) {
         return new Promise((resolve, reject) => {
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
                 var sql = 'UPDATE interface I  ' +
@@ -819,7 +821,7 @@ export class IPObj extends Model {
                     'set I.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
                 logger.debug(sql);
-                connection.query(sql, function (error, result) {
+                connection.query(sql, (error, result) => {
                     if (error) {
                         logger.debug(error);
                         reject(error);
@@ -858,16 +860,16 @@ export class IPObj extends Model {
      *      {"result": false};
      *      
      * */
-    public static checkIpobjInGroup = function (ipobj, type, fwcloud, callback) {
+    public static checkIpobjInGroup(ipobj, type, fwcloud, callback) {
 
         logger.debug("CHECK DELETING FROM GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
 
             var sql = 'SELECT count(*) as n FROM ' + tableName + ' I ' +
                 ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
             logger.debug(sql);
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (!error) {
                     if (rows.length > 0) {
                         if (rows[0].n > 0) {

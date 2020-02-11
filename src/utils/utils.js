@@ -42,18 +42,19 @@ const fs = require('fs');
 var path = require('path');
 
 
-utilsModel.isEmptyObject = function (obj) {
+utilsModel.isEmptyObject = (obj) => {
 	return !Object.keys(obj).length;
 };
 
-utilsModel.startsWith = function(str, word) {
+utilsModel.startsWith = (str, word) => {
 	return str.lastIndexOf(word, 0) === 0;
 };
 
-utilsModel.mergeObj = function () {
+//TODO: Use arrow function expression
+utilsModel.mergeObj = function() {
 	var destination = {},
 			sources = [].slice.call(arguments, 0);
-	sources.forEach(function (source) {
+	sources.forEach((source) => {
 		var prop;
 		for (prop in source) {
 			if (prop in destination && Array.isArray(destination[ prop ])) {
@@ -76,7 +77,7 @@ utilsModel.mergeObj = function () {
 
 
 // Disable compiled and installed status flags.
-utilsModel.disableFirewallCompileStatus = function (req, res, next) {
+utilsModel.disableFirewallCompileStatus = (req, res, next) => {
 	var firewall=0;
 	if (req.body.firewall)
 		firewall=req.body.firewall;
@@ -87,7 +88,7 @@ utilsModel.disableFirewallCompileStatus = function (req, res, next) {
 	.catch(error => res.status(400).json(error));
 };
 
-utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {
+utilsModel.checkFirewallAccessTree = (iduser, fwcloud, firewall) => {
 	return new Promise((resolve, reject) => {
 		var accessData = {iduser: iduser, fwcloud: fwcloud, firewall: firewall};
 		//logger.debug(accessData);
@@ -102,7 +103,7 @@ utilsModel.checkFirewallAccessTree = function (iduser, fwcloud, firewall) {
 	});
 };
 
-utilsModel.encrypt = function (text) {
+utilsModel.encrypt = (text) =>  {
 	return new Promise((resolve, reject) => {
 		try {
 			var cipher = crypto.createCipher(config.get('crypt').algorithm, config.get('crypt').secret);
@@ -114,7 +115,7 @@ utilsModel.encrypt = function (text) {
 		}
 	});
 };
-utilsModel.decrypt = function (text) {
+utilsModel.decrypt = (text) => {
 	return new Promise((resolve, reject) => {
 		try {
 			var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
@@ -127,7 +128,7 @@ utilsModel.decrypt = function (text) {
 	});
 };
 
-utilsModel.decryptDataUserPass = function (data) {
+utilsModel.decryptDataUserPass = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
 			logger.debug("DENTRO de decryptDataUserPass");

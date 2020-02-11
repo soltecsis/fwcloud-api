@@ -21,11 +21,14 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository } from 'typeorm';
 import db from '../../database/DatabaseService';
 
 import Logger from 'log4js';
 import Model from '../Model';
+import modelEventService from '../ModelEventService';
+import { PolicyRule } from './PolicyRule';
+import { Firewall } from '../firewall/Firewall';
 
 const logger = Logger.getLogger("app");
 
@@ -71,11 +74,11 @@ export class PolicyGroup extends Model {
 	//Get All policy_g by firewall
 	public static getPolicy_gs(idfirewall, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else
@@ -87,11 +90,11 @@ export class PolicyGroup extends Model {
 	//Get All policy_g by firewall and group father
 	public static getPolicy_gs_group(idfirewall, idgroup, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND idgroup=' + connection.escape(idgroup) + ' ORDER BY id';
-			connection.query(sql, function (error, rows) {
+			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
 				else
@@ -102,11 +105,11 @@ export class PolicyGroup extends Model {
 
 	//Get policy_g by  id and firewall
 	public static getPolicy_g(idfirewall, id, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-			connection.query(sql, function (error, row) {
+			connection.query(sql, (error, row) => {
 				if (error)
 					callback(error, null);
 				else
@@ -117,19 +120,19 @@ export class PolicyGroup extends Model {
 
 	//Add new policy_g from user
 	public static insertPolicy_g(policy_gData, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
 
-			connection.query(sqlExists, function (error, row) {
+			connection.query(sqlExists, (error, row) => {
 				if (row && row.length > 0) {
 					logger.debug("GRUPO Existente: " + policy_gData.id);
 					callback(null, { "insertId": policy_gData.id });
 
 				} else {
 					const sqlInsert = 'INSERT INTO ' + tableName + ' SET firewall=' + policy_gData.firewall + ", name=" + connection.escape(policy_gData.name) + ", comment=" + connection.escape(policy_gData.comment);
-					connection.query(sqlInsert, function (error, result) {
+					connection.query(sqlInsert, (error, result) => {
 						if (error) {
 							callback(error, null);
 						} else {
@@ -146,7 +149,7 @@ export class PolicyGroup extends Model {
 	//Update policy_g from user
 	public static updatePolicy_g(policy_gData, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ',' +
@@ -154,7 +157,7 @@ export class PolicyGroup extends Model {
 				'comment = ' + connection.escape(policy_gData.comment) + ' ' +
 				' WHERE id = ' + policy_gData.id;
 
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					callback(error, null);
 				} else {
@@ -167,13 +170,13 @@ export class PolicyGroup extends Model {
 	//Update policy_g NAME 
 	public static updatePolicy_g_name(policy_gData, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ' ' +
 				' WHERE id = ' + policy_gData.id;
 
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					callback(error, null);
 				} else {
@@ -186,14 +189,14 @@ export class PolicyGroup extends Model {
 	//Update policy_r Style
 	public static updatePolicy_g_Style(firewall, id, style, callback) {
 
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 
 			var sql = 'UPDATE ' + tableName + ' SET ' +
 				'groupstyle = ' + connection.escape(style) + ' ' +
 				' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall);
-			connection.query(sql, function (error, result) {
+			connection.query(sql, (error, result) => {
 				if (error) {
 					logger.error(error);
 					callback(error, null);
@@ -210,16 +213,16 @@ export class PolicyGroup extends Model {
 	//Remove policy_g with id to remove
 	//FALTA BORRADO EN CASCADA 
 	public static deletePolicy_g(idfirewall, id, callback) {
-		db.get(function (error, connection) {
+		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
 			var sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
-			connection.query(sqlExists, function (error, row) {
+			connection.query(sqlExists, (error, row) => {
 				//If exists Id from policy_g to remove
 				if (row) {
-					db.get(function (error, connection) {
+					db.get((error, connection) => {
 						var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-						connection.query(sql, function (error, result) {
+						connection.query(sql, (error, result) => {
 							if (error) {
 								callback(error, null);
 							} else {

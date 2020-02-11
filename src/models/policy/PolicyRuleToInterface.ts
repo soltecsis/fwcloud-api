@@ -23,7 +23,10 @@
 
 import db from '../../database/DatabaseService';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity } from 'typeorm';
+import { Column, PrimaryColumn, Entity, Between, Not, getRepository } from 'typeorm';
+import modelEventService from '../ModelEventService';
+import { PolicyRule } from './PolicyRule';
+import { PolicyCompilation } from './PolicyCompilation';
 var asyncMod = require('async');
 var logger = require('log4js').getLogger("app");
 
@@ -63,11 +66,11 @@ export class PolicyRuleToInterface extends Model {
     //Get All policy_r__interface by policy_r
     public static getPolicy_r__interfaces_rule(_interface, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' ORDER by interface_order';
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -79,11 +82,11 @@ export class PolicyRuleToInterface extends Model {
     //Get All policy_r__interface by policy_r
     public static getPolicy_r__interfaces_interface(rule, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' ORDER by interface_order';
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
                 else
@@ -97,11 +100,11 @@ export class PolicyRuleToInterface extends Model {
 
     //Get policy_r__interface by  rule and  interface
     public static getPolicy_r__interface(_interface, rule, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND interface = ' + connection.escape(_interface);
-            connection.query(sql, function (error, row) {
+            connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
                 else
@@ -116,13 +119,13 @@ export class PolicyRuleToInterface extends Model {
     public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData) {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position
-            this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
+            this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, (error, data) => {
                 if (error) return reject(error);
                 const allowed = data;
                 if (allowed) {
                     db.get((error, connection) => {
                         if (error) return reject(error);
-                        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_r__interfaceData, function (error, result) {
+                        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_r__interfaceData, (error, result) => {
                             if (error) return reject(error);
                             if (result.affectedRows > 0) {
                                 this.OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
@@ -148,10 +151,10 @@ export class PolicyRuleToInterface extends Model {
                 position_order: policy_r__interfaceData.position_order
             };
 
-            db.get(function (error, connection) {
+            db.get((error, connection) => {
                 if (error)
                     reject(error);
-                connection.query('INSERT INTO ' + tableName + ' SET ?', p_interfaceData, function (error, result) {
+                connection.query('INSERT INTO ' + tableName + ' SET ?', p_interfaceData, (error, result) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -186,25 +189,25 @@ export class PolicyRuleToInterface extends Model {
     public static updatePolicy_r__interface(idfirewall, rule, _interface, old_position, old_position_order, policy_r__interfaceData, callback) {
 
         //Check if IPOBJ TYPE is ALLOWED in this Position
-        this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, function (error, data) {
+        this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, (error, data) => {
             if (error) {
                 callback(error, null);
             } else {
                 const allowed = data;
                 if (allowed) {
 
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         if (error)
                             callback(error, null);
                         var sql = 'UPDATE ' + tableName + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
                             ' WHERE rule = ' + policy_r__interfaceData.rule + ' AND  interface = ' + policy_r__interfaceData.interface;
 
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    this.OrderList(policy_r__interfaceData.position_order, rule, old_position_order, _interface);
+                                    this.OrderList(policy_r__interfaceData.position_order, rule, null, old_position_order, _interface);
                                     callback(null, { "result": true });
                                 } else {
                                     callback(null, { "result": false });
@@ -221,20 +224,20 @@ export class PolicyRuleToInterface extends Model {
     public static updatePolicy_r__interface_position(idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
 
         //Check if IPOBJ TYPE is ALLOWED in this Position
-        this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, function (error, data) {
+        this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, (error, data) => {
             if (error) {
                 callback(error, null);
             } else {
                 const allowed = data;
                 if (allowed) {
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         if (error) return callback(error, null);
 
                         var sql = 'UPDATE ' + tableName + ' SET position = ' + connection.escape(new_position) + ',' +
                             'rule = ' + connection.escape(new_rule) + ', ' +
                             'position_order = ' + connection.escape(new_order) + ' ' +
                             ' WHERE rule = ' + rule + ' AND  interface = ' + _interface + ' AND position=' + connection.escape(old_position);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
@@ -265,14 +268,14 @@ export class PolicyRuleToInterface extends Model {
     public static updatePolicy_r__interface_order(rule, _interface, position, old_order, new_order, callback) {
 
         this.OrderList(new_order, rule, position, old_order, _interface);
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'UPDATE ' + tableName + ' SET ' +
                 ' position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + rule + ' AND  interface = ' + _interface;
 
-            connection.query(sql, function (error, result) {
+            connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
@@ -336,17 +339,17 @@ export class PolicyRuleToInterface extends Model {
 
     //Remove policy_r__interface with id to remove
     public static deletePolicy_r__interface(rule, _interface, position, old_order, callback) {
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(_interface) + ' AND position=' + connection.escape(position);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(_interface) + ' AND position=' + connection.escape(position);
                         logger.debug(sql);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
@@ -369,17 +372,17 @@ export class PolicyRuleToInterface extends Model {
     //Remove policy_r__interface with id to remove
     public static deletePolicy_r__All(rule, callback) {
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
-            connection.query(sqlExists, function (error, row) {
+            connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     logger.debug("DELETING INTERFACES FROM RULE: " + rule);
-                    db.get(function (error, connection) {
+                    db.get((error, connection) => {
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
-                        connection.query(sql, function (error, result) {
+                        connection.query(sql, (error, result) => {
                             if (error) {
                                 logger.debug(error);
                                 callback(error, null);
@@ -404,23 +407,23 @@ export class PolicyRuleToInterface extends Model {
 
         logger.debug("DENTRO ORDER   Rule: " + rule + '  Position: ' + position);
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlPos = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
             //logger.debug(sqlPos);
-            connection.query(sqlPos, function (error, rows) {
+            connection.query(sqlPos, (error, rows) => {
                 if (rows.length > 0) {
                     var order = 0;
                     asyncMod.map(rows, (row, callback1) => {
                         order++;
-                        db.get(function (error, connection) {
+                        db.get((error, connection) => {
                             const sql = 'UPDATE ' + tableName + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) +
                                 ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, function (error, result) {
+                            connection.query(sql, (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
@@ -446,12 +449,12 @@ export class PolicyRuleToInterface extends Model {
     public static orderPolicy(rule, callback) {
 
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlRule = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
             //logger.debug(sqlRule);
-            connection.query(sqlRule, function (error, rows) {
+            connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
                     var order = 0;
                     var prev_position = 0;
@@ -463,13 +466,13 @@ export class PolicyRuleToInterface extends Model {
                         } else
                             order++;
 
-                        db.get(function (error, connection) {
+                        db.get((error, connection) => {
                             const sql = 'UPDATE ' + tableName + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) +
                                 ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, function (error, result) {
+                            connection.query(sql, (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
@@ -495,12 +498,12 @@ export class PolicyRuleToInterface extends Model {
     public static orderAllPolicy(callback) {
 
 
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
             //logger.debug(sqlRule);
-            connection.query(sqlRule, function (error, rows) {
+            connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
                     var order = 0;
                     var prev_rule = 0;
@@ -515,13 +518,13 @@ export class PolicyRuleToInterface extends Model {
                         } else
                             order++;
 
-                        db.get(function (error, connection) {
+                        db.get((error, connection) => {
                             const sql = 'UPDATE ' + tableName + ' SET position_order=' + order +
                                 ' WHERE rule = ' + connection.escape(row.rule) +
                                 ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, function (error, result) {
+                            connection.query(sql, (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
@@ -549,7 +552,7 @@ export class PolicyRuleToInterface extends Model {
     public static checkInterfaceInRule(_interface, type, fwcloud, callback) {
 
         logger.debug("CHECK DELETING interface I POSITIONS:" + _interface + " Type:" + type + "  fwcloud:" + fwcloud);
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT count(*) as n FROM ' + tableName + ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -559,7 +562,7 @@ export class PolicyRuleToInterface extends Model {
                 ' WHERE I.id=' + connection.escape(_interface) + ' AND I.interface_type=' + connection.escape(type) +
                 ' AND C.id=' + connection.escape(fwcloud);
             //logger.debug(sql);
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (!error) {
                     if (rows.length > 0) {
                         if (rows[0].n > 0) {
@@ -581,7 +584,7 @@ export class PolicyRuleToInterface extends Model {
     public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
 
         logger.debug("CHECK DELETING HOST ALL interfaces I POSITIONS:" + ipobj_host + "  fwcloud:" + fwcloud);
-        db.get(function (error, connection) {
+        db.get((error, connection) => {
             if (error)
                 callback(error, null);
             var sql = 'SELECT count(*) as n FROM ' + tableName + ' O ' +
@@ -591,7 +594,7 @@ export class PolicyRuleToInterface extends Model {
                 ' inner join fwcloud C on C.id=F.fwcloud ' +
                 ' WHERE J.ipobj=' + connection.escape(ipobj_host) + ' AND C.id=' + connection.escape(fwcloud);
             //logger.debug(sql);
-            connection.query(sql, function (error, rows) {
+            connection.query(sql, (error, rows) => {
                 if (!error) {
                     if (rows.length > 0) {
                         if (rows[0].n > 0) {
