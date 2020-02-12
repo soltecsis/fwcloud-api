@@ -152,6 +152,9 @@ backupModel.readConfig = () => {
 backupModel.writeConfig = backupConfig => {
 	return new Promise(async (resolve, reject) => {
     try {
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/`)) 
+        await fse.mkdirp(`./${config.get('backup').data_dir}/`);
+
       const backupConfigFile = `./${config.get('backup').data_dir}/${config.get('backup').config_file}`;
       fs.writeFileSync(backupConfigFile, JSON.stringify(backupConfig), 'utf8'); 
       resolve();
@@ -212,6 +215,11 @@ backupModel.getList = () => {
 	return new Promise(async (resolve, reject) => {
     try {
       var dirs = [];
+
+      // If backup folder don't exists return empty array.
+      if (!fs.existsSync(`./${config.get('backup').data_dir}/`)) 
+        return resolve(dirs);
+
       const files = await fs.readdirSync(`./${config.get('backup').data_dir}/`);
       for (file of files) {
         if (await fs.statSync(`./${config.get('backup').data_dir}/${file}`).isDirectory()) {
