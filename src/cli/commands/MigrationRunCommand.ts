@@ -61,6 +61,12 @@ export class MigrationRunCommand implements yargs.CommandModule {
             const connectionOptions = await connectionOptionsReader.get(args.connection as any);
 
             Object.assign(connectionOptions, {
+                type: "mysql",
+                host: configDB.host,
+                port: configDB.port,
+                database: configDB.name,
+                username: configDB.user,
+                password: configDB.pass,
                 subscribers: [],
                 synchronize: false,
                 migrationsRun: false,

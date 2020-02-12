@@ -291,8 +291,12 @@ export class PolicyGroup extends Model {
 
 					sql = 'UPDATE policy_r SET idgroup=' + connection.escape(result.insertId) +
 						' WHERE idgroup=' + connection.escape(rowData.id) + ' AND firewall=' + connection.escape(rowData.newfirewall);
-					connection.query(sql, (error, result) => {
+					connection.query(sql, async (error, result) => {
 						if (error) return reject(error);
+						await modelEventService.emit('update', PolicyRule, {
+							idgroup: rowData.id,
+							firewall: rowData.firewall
+						});
 						resolve();
 					});
 				});

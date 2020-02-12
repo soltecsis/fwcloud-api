@@ -41,7 +41,7 @@ export class PolicyRuleToIPObj extends Model {
     @PrimaryGeneratedColumn()
     id_pi: number;
 
-    @PrimaryColumn()
+    @Column()
     rule: number;
 
     @Column()
@@ -73,6 +73,18 @@ export class PolicyRuleToIPObj extends Model {
 
     public getTableName(): string {
         return tableModel;
+    }
+
+    public async onCreate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onUpdate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onDelete() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
     }
 
     //Get All policy_r__ipobj by Policy_r (rule)
@@ -326,9 +338,10 @@ export class PolicyRuleToIPObj extends Model {
                     db.get((error, connection) => {
                         if (error) return reject(error);
 
-                        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__ipobjData, (error, result) => {
+                        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__ipobjData, async (error, result) => {
                             if (error) return reject(error);
                             if (result.affectedRows > 0) {
+                                await modelEventService.emit('create', PolicyRuleToIPObj, policy_r__ipobjData);
                                 this.OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
                                 resolve({ "result": true, "allowed": 1 });
                             } else {
@@ -416,12 +429,13 @@ export class PolicyRuleToIPObj extends Model {
             db.get((error, connection) => {
                 if (error)
                     reject(error);
-                connection.query('INSERT INTO ' + tableModel + ' SET ?', p_ipobjData, (error, result) => {
+                connection.query('INSERT INTO ' + tableModel + ' SET ?', p_ipobjData, async (error, result) => {
                     if (error) {
                         logger.debug(error);
                         resolve({ "result": false, "allowed": 1 });
                     } else {
                         if (result.affectedRows > 0) {
+                            await modelEventService.emit('create', PolicyRuleToIPObj, p_ipobjData);
                             this.OrderList(p_ipobjData.position_order, p_ipobjData.rule, p_ipobjData.position, 999999, p_ipobjData.ipobj, p_ipobjData.ipobj_g, p_ipobjData.interface);
                             resolve({ "result": true });
                         } else {
@@ -438,8 +452,9 @@ export class PolicyRuleToIPObj extends Model {
             let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
-            dbCon.query(sql, (error, result) => {
+            dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('create', PolicyRuleToIPObj, result.insertId);
                 resolve();
             });
         });
@@ -468,11 +483,18 @@ export class PolicyRuleToIPObj extends Model {
                             ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                             ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                             ' AND interface=' + connection.escape(_interface);
-                        connection.query(sql, (error, result) => {
+                        connection.query(sql, async (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
+                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                                        rule: rule,
+                                        ipobj: ipobj,
+                                        ipobj_g: ipobj_g,
+                                        position: position,
+                                        interface: _interface
+                                    });
                                     if (position !== policy_r__ipobjData.position) {
                                         //ordenamos posicion antigua
                                         this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
@@ -505,11 +527,18 @@ export class PolicyRuleToIPObj extends Model {
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                 ' AND interface=' + connection.escape(_interface);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        await modelEventService.emit('update', PolicyRuleToIPObj, {
+                            rule: rule,
+                            ipobj: ipobj,
+                            ipobj_g: ipobj_g,
+                            position: position,
+                            interface: _interface
+                        });
                         this.OrderList(new_order, rule, position, position_order, ipobj, ipobj_g, _interface);
                         callback(null, { "result": true });
                     } else {
@@ -540,11 +569,17 @@ export class PolicyRuleToIPObj extends Model {
                             ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                             ' AND interface=' + connection.escape(_interface);
                         logger.debug(sql);
-                        connection.query(sql, (error, result) => {
+                        connection.query(sql, async (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
+                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                                        rule: rule,
+                                        ipobj: ipobj,
+                                        ipobj_g: ipobj_g,
+                                        interface: _interface
+                                    });
                                     //Order New position
                                     this.OrderList(new_order, new_rule, new_position, 999999, ipobj, ipobj_g, _interface);
                                     //Order Old position
@@ -590,11 +625,16 @@ export class PolicyRuleToIPObj extends Model {
                     ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                     ' AND position_order>=' + order1 + ' AND position_order<=' + order2 + sql_obj;
                 logger.debug(sql);
-                connection.query(sql, (error, result) => {
+                connection.query(sql, async (error, result) => {
                     if (error) {
                         reject(error);
                     }
-
+                    //TODO: Improve the criteria in order to fit the previous query
+                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                        rule: rule,
+                        position: position,
+                        position_order: Between(order1, order2)
+                    });
                     resolve(result);
                 });
             });
@@ -663,16 +703,24 @@ export class PolicyRuleToIPObj extends Model {
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__ipobj to remove
                 if (row) {
-                    db.get((error, connection) => {
+                    db.get(async (error, connection) => {
+                        const models: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({
+                            rule: rule,
+                            ipobj: ipobj,
+                            ipobj_g: ipobj_g,
+                            position: position,
+                            interface: _interface
+                        });
                         const sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                             ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                             ' AND interface=' + connection.escape(_interface);
-                        connection.query(sql, (error, result) => {
+                        connection.query(sql, async (error, result) => {
                             if (error) {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
+                                    await modelEventService.emit('delete', PolicyRuleToIPObj, models);
                                     this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
@@ -700,15 +748,19 @@ export class PolicyRuleToIPObj extends Model {
                 //If exists Id from policy_r__ipobj to remove
                 if (row) {
                     logger.debug("DELETING IPOBJ FROM RULE: " + rule);
-                    db.get((error, connection) => {
+                    db.get(async (error, connection) => {
+                        const models: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({
+                            rule: rule,
+                        });
                         var sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule);
-                        connection.query(sql, (error, result) => {
+                        connection.query(sql, async (error, result) => {
                             if (error) {
                                 logger.debug(error);
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
+                                    await modelEventService.emit('delete', PolicyRuleToIPObj, models);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
                                     callback(null, { "result": false });
@@ -742,10 +794,17 @@ export class PolicyRuleToIPObj extends Model {
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, (error, result) => {
+                            connection.query(sql, async (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
+                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                                        rule: row.rule,
+                                        ipobj: row.ipobj,
+                                        ipobj_g: row.ipobj_g,
+                                        position: row.position,
+                                        interface: row.interface
+                                    });
                                     callback1();
                                 }
                             });
@@ -788,10 +847,17 @@ export class PolicyRuleToIPObj extends Model {
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, (error, result) => {
+                            connection.query(sql, async (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
+                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                                        rule: row.rule,
+                                        ipobj: row.ipobj,
+                                        ipobj_g: row.ipobj_g,
+                                        position: row.position,
+                                        interface: row.interface
+                                    });
                                     callback1();
                                 }
                             });
@@ -837,10 +903,17 @@ export class PolicyRuleToIPObj extends Model {
                                 ' AND ipobj_g=' + connection.escape(row.ipobj_g) + ' AND position=' + connection.escape(row.position) +
                                 ' AND interface=' + connection.escape(row.interface);
                             //logger.debug(sql);
-                            connection.query(sql, (error, result) => {
+                            connection.query(sql, async (error, result) => {
                                 if (error) {
                                     callback1();
                                 } else {
+                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
+                                        rule: row.rule,
+                                        ipobj: row.ipobj,
+                                        ipobj_g: row.ipobj_g,
+                                        position: row.position,
+                                        interface: row.interface
+                                    });
                                     callback1();
                                 }
                             });

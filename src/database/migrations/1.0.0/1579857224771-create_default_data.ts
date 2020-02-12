@@ -22,6 +22,7 @@
 
 import {MigrationInterface, QueryRunner, getConnection, AdvancedConsoleLogger} from "typeorm";
 import * as fs from 'fs';
+import { policy_type } from "../../../middleware/joi_schemas/shared";
 
 export class createDefaultData1579857224771 implements MigrationInterface {
 
@@ -481,18 +482,22 @@ export class createDefaultData1579857224771 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {        
-        await queryRunner.query('DELETE FROM ipobj__ipobjg');
-        await queryRunner.query('DELETE FROM ipobj_g');
-        await queryRunner.query('DELETE FROM ipobj');
-        await queryRunner.query('DELETE FROM routing_position');
-        await queryRunner.query('DELETE FROM ipobj_type__policy_position');
-        await queryRunner.query('DELETE FROM policy_position');
-        await queryRunner.query('DELETE FROM policy_type');
-        await queryRunner.query('DELETE FROM ipobj_type');
-        await queryRunner.query('DELETE FROM fwc_tree_node_types');
-        await queryRunner.query('DELETE FROM user__fwcloud');
-        await queryRunner.query('DELETE FROM user');
-        await queryRunner.query('DELETE FROM customer');
+        await queryRunner.query('TRUNCATE TABLE routing_r__ipobj');
+        await queryRunner.query('TRUNCATE TABLE ipobj__ipobjg');
+        await queryRunner.query('TRUNCATE TABLE ipobj_g');
+        await queryRunner.query('TRUNCATE TABLE ipobj');
+        await queryRunner.query('TRUNCATE TABLE routing_position');
+        await queryRunner.query('TRUNCATE TABLE ipobj_type__policy_position');
+        await queryRunner.query('TRUNCATE TABLE policy_r__interface');
+        await queryRunner.query('TRUNCATE TABLE policy_position');
+        await queryRunner.query('TRUNCATE TABLE policy_r');
+        await queryRunner.query('TRUNCATE TABLE policy_type');
+        await queryRunner.query('TRUNCATE TABLE fwc_tree');
+        await queryRunner.query('TRUNCATE TABLE ipobj_type');
+        await queryRunner.query('TRUNCATE TABLE fwc_tree_node_types');
+        await queryRunner.query('TRUNCATE TABLE user__fwcloud');
+        await queryRunner.query('TRUNCATE TABLE user');
+        await queryRunner.query('TRUNCATE TABLE customer');
     }
 
 }

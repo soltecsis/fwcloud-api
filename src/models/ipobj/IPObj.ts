@@ -125,6 +125,19 @@ export class IPObj extends Model {
         return tableName;
     }
 
+    public async onUpdate() {
+        
+        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await getRepository(IPObjToIPObjGroup).find({ipobj: this.id});
+        for(let i = 0; i < ipobj_to_ipobj_group.length; i++) {
+            await modelEventService.emit('update', IPObjToIPObjGroup, ipobj_to_ipobj_group[i])
+        }
+
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({ipobj: this.id});
+        for(let i = 0; i < policyRuleToIPObjs.length; i++) {
+            await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
+        }
+	}
+
     /**
      * Get ipobj by Ipobj id
      * 
@@ -699,8 +712,12 @@ export class IPObj extends Model {
                 'options = ' + req.dbCon.escape(ipobjData.options) + ',' +
                 'comment = ' + req.dbCon.escape(ipobjData.comment) + ' ' +
                 ' WHERE id = ' + ipobjData.id + ' AND fwcloud=' + ipobjData.fwcloud;
-            req.dbCon.query(sql, (error, result) => {
+            req.dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', IPObj, {
+                    id: ipobjData.id,
+                    fwcloud: ipobjData.fwcloud
+                })
                 resolve();
             });
         });
@@ -794,12 +811,13 @@ export class IPObj extends Model {
                     'set H.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
                 logger.debug(sql);
-                connection.query(sql, (error, result) => {
+                connection.query(sql, async (error, result) => {
                     if (error) {
                         logger.debug(error);
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
+                            await modelEventService.emit('update', IPObj, id);
                             resolve({ "result": true });
                         } else {
                             resolve({ "result": false });
@@ -821,12 +839,16 @@ export class IPObj extends Model {
                     'set I.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
                 logger.debug(sql);
-                connection.query(sql, (error, result) => {
+                connection.query(sql, async (error, result) => {
                     if (error) {
                         logger.debug(error);
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
+                            const ipobj: IPObj = await getRepository(IPObj).findOne(id);
+                            if (ipobj && ipobj.interface) {
+                                await modelEventService.emit('update', Interface, ipobj.interface);
+                            }
                             resolve({ "result": true });
                         } else {
                             resolve({ "result": false });

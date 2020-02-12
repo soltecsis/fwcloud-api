@@ -59,6 +59,18 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
         return tableName;
     }
 
+    public async onCreate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onUpdate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onDelete() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
     //Add new policy_r__openvpn_prefix
     public static insertInRule = req => {
         return new Promise(async (resolve, reject) => {
@@ -68,8 +80,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
                 position: req.body.position,
                 position_order: req.body.position_order
             };
-            req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, (error, result) => {
+            req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, result.insertId);
                 resolve(result.insertId);
             });
         });
@@ -101,8 +114,13 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
-            req.dbCon.query(sql, (error, rows) => {
+            req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', PolicyRuleToOpenVPNPrefix, {
+                    rule: req.body.rule,
+                    prefix: req.body.prefix,
+                    position: req.body.position
+                });
                 resolve();
             });
         });
@@ -110,19 +128,29 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
 
     public static deleteFromRulePosition(req) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
+            const models: PolicyRuleToOpenVPNPrefix[] = await getRepository(PolicyRuleToOpenVPNPrefix).find({
+                rule: req.body.rule,
+                prefix: req.body.prefix,
+                position: req.body.position
+            });
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
-            req.dbCon.query(sql, (error, rows) => {
+            req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('delete', PolicyRuleToOpenVPNPrefix, models); 
                 resolve();
             });
         });
     }
 
     public static deleteFromRule(dbCon, rule) {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, (error, rows) => {
+        return new Promise(async (resolve, reject) => {
+            const models: PolicyRuleToOpenVPNPrefix[] = await getRepository(PolicyRuleToOpenVPNPrefix).find({
+                rule: rule
+            });
+            dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('delete', PolicyRuleToOpenVPNPrefix, models);
                 resolve();
             });
         });
@@ -134,7 +162,8 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             let sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
                 (SELECT ${new_rule}, prefix, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
-            dbCon.query(sql, (error, result) => {
+            dbCon.query(sql, async (error, result) => {
+                await modelEventService.emit('update', PolicyRuleToOpenVPNPrefix, result.insertId);
                 if (error) return reject(error);
                 resolve();
             });

@@ -59,6 +59,13 @@ export class IPObjGroup extends Model {
     public getTableName(): string {
         return tableName;
     }
+    
+    public async onUpdate() {
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({ipobj_g: this.id});
+        for(let i = 0; i < policyRuleToIPObjs.length; i++) {
+            await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
+        }
+	}
 
     //Get All ipobj_g
     public static getIpobj_gs(fwcloud, callback) {
@@ -343,8 +350,12 @@ export class IPObjGroup extends Model {
             ,type=${ipobj_gData.type}
             ,comment=${req.dbCon.escape(ipobj_gData.comment)}
             WHERE id=${ipobj_gData.id} AND fwcloud=${req.body.fwcloud}`;
-            req.dbCon.query(sql, (error, result) => {
+            req.dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', IPObjGroup, {
+                    id: ipobj_Data.id,
+                    fwcloud: req.body.fwcloud
+                });
                 resolve();
             });
         });

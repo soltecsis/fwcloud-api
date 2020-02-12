@@ -57,6 +57,30 @@ export class IPObjToIPObjGroup extends Model {
         return tableName;
     }
 
+    public async onCreate() {
+        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+
+        for(let i = 0; i < ipobj_group.length; i++) {
+            await modelEventService.emit('create', IPObjGroup, ipobj_group[i]);
+        }
+    }
+
+    public async onUpdate() {
+        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+
+        for(let i = 0; i < ipobj_group.length; i++) {
+            await modelEventService.emit('update', IPObjGroup, ipobj_group[i]);
+        }
+    }
+
+    public async onDelete() {
+        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+
+        for(let i = 0; i < ipobj_group.length; i++) {
+            await modelEventService.emit('delete', IPObjGroup, ipobj_group[i]);
+        }
+    }
+
     //Add new ipobj__ipobjg
     public static insertIpobj__ipobjg(req) {
         return new Promise((resolve, reject) => {

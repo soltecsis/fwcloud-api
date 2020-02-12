@@ -24,7 +24,6 @@ import Model from "../Model";
 
 import db from '../../database/DatabaseService';
 
-import { RuleCompiler } from '../../compiler/RuleCompiler';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyPosition } from './PolicyPosition';
@@ -32,9 +31,9 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
+import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual } from "typeorm";
 import modelEventService from "../ModelEventService";
-import { MoreThan, getRepository, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { Firewall } from "../firewall/Firewall";
+import { RuleCompiler } from "../../compiler/RuleCompiler";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -47,7 +46,49 @@ export class PolicyRule extends Model {
     id: number;
 
     @Column()
+    idgroup: number;
+
+    @Column()
     firewall: number;
+
+    @Column()
+    rule_order: number;
+
+    @Column()
+    direction: number;
+
+    @Column()
+    action: number;
+
+    @Column()
+    time_start: Date;
+
+    @Column()
+    time_end: Date;
+
+    @Column()
+    comment: string;
+
+    @Column()
+    options: number;
+
+    @Column()
+    active: number;
+
+    @Column()
+    style: string;
+
+    @Column()
+    fw_apply_to: number;
+
+    @Column()
+    negate: string;
+
+    @Column()
+    mark: number;
+
+    @Column()
+    special: number;
 
     @Column()
     created_at: Date;
@@ -55,7 +96,17 @@ export class PolicyRule extends Model {
     @Column()
     updated_at: Date;
 
+    @Column()
+    created_by: number;
+
+    @Column()
+    updated_by: number;
+
     private static clon_data: any;
+
+    public async onUpdate() {
+        await getRepository(PolicyCompilation).update({rule: this.id}, {status_compiled: 0});
+    }
 
     public getTableName(): string {
         return tableName;
@@ -580,8 +631,9 @@ export class PolicyRule extends Model {
             if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
             sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
-            dbCon.query(sql, (error, result) => {
+            dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', PolicyRule, policy_rData.id)
                 resolve();
             });
         });
@@ -601,12 +653,24 @@ export class PolicyRule extends Model {
             if (oldgroup !== null)
                 sql += "  AND idgroup=" + oldgroup;
             logger.debug(sql);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        if (oldgroup !== null) {
+                            await modelEventService.emit('update', PolicyRule, {
+                                id: id,
+                                firewall: firewall,
+                                idgroup: oldgroup
+                            })
+                        } else {
+                            await modelEventService.emit('update', PolicyRule, {
+                                id: id,
+                                firewall: firewall
+                            })
+                        }
                         callback(null, { "result": true });
                     } else
                         callback(null, { "result": false });
@@ -624,12 +688,17 @@ export class PolicyRule extends Model {
             var sql = 'UPDATE ' + tableName + ' SET ' +
                 'style = ' + connection.escape(style) + ' ' +
                 ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        await modelEventService.emit('update', PolicyRule, {
+                            id: id,
+                            firewall: firewall,
+                            type: type
+                        })
                         callback(null, { "result": true });
                     } else
                         callback(null, { "result": false });
@@ -649,12 +718,17 @@ export class PolicyRule extends Model {
 			WHERE id=${id} and firewall=${firewall} AND type=${type}
 			AND special=0`; // We can not enable/disable special rules.
 
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        await modelEventService.emit('update', PolicyRule, {
+                            id: id,
+                            firewall: firewall,
+                            type: type
+                        })
                         callback(null, { "result": true });
                     } else
                         callback(null, { "result": false });
@@ -675,12 +749,16 @@ export class PolicyRule extends Model {
                 'idgroup = NULL' + ' ' +
                 ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
 
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     logger.error(error);
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        await modelEventService.emit('update', PolicyRule, {
+                            idgroup: idgroup,
+                            firewall: firewall
+                        });
                         callback(null, { "result": true });
                     } else
                         callback(null, { "result": false });
@@ -712,8 +790,13 @@ export class PolicyRule extends Model {
                     sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                         ' WHERE firewall=' + firewall + ' AND type=' + type +
                         ' AND rule_order' + cond;
-                    connection.query(sql, (error, result) => {
+                    connection.query(sql, async (error, result) => {
                         if (error) return reject(error);
+                        await modelEventService.emit('update', PolicyRule, {
+                            firewall: firewall,
+                            type: type,
+                            rule_order: cond
+                        });
                         resolve(free_rule_order);
                     });
                 });
@@ -735,8 +818,13 @@ export class PolicyRule extends Model {
                         sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                             ' WHERE firewall=' + firewall + ' AND type=' + type +
                             ' AND rule_order>' + result[0].rule_order;
-                        connection.query(sql, (error, result) => {
+                        connection.query(sql, async (error, result) => {
                             if (error) return reject(error);
+                            await modelEventService.emit('update', PolicyRule, {
+                                firewall: firewall,
+                                type: type,
+                                rule_order: MoreThan(result[0].rule_order)
+                            });
                             resolve(free_rule_order);
                         });
                     } else return reject(fwcError.other('Rule not found'))
@@ -750,8 +838,13 @@ export class PolicyRule extends Model {
             let sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                 ' WHERE firewall=' + firewall + ' AND type=' + type +
                 ' AND rule_order>=' + rule_order;
-            dbCon.query(sql, (error, result) => {
+            dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', PolicyRule, {
+                    firewall: firewall,
+                    type: type,
+                    rule_order: MoreThanOrEqual(rule_order)
+                })
                 resolve();
             });
         });
@@ -858,11 +951,16 @@ export class PolicyRule extends Model {
             if (error) callback(error);
 
             var sql = 'UPDATE ' + tableName + ' SET fw_apply_to=null WHERE firewall=' + connection.escape(idfirewall);
-            connection.query(sql, (error, result) => {
-                if (error)
+            connection.query(sql, async (error, result) => {
+                if (error) {
                     callback(error, null);
-                else
+                } else {
+                    await modelEventService.emit('update', PolicyRule, {
+                        fw_apply_to: null,
+                        firewall: idfirewall
+                    });
                     callback(null, { "result": true });
+                }
             });
         });
     }
@@ -901,9 +999,10 @@ public static repointApplyTo(rowData) {
 				else // We have not found the node in the new cluster.
 					sql = 'UPDATE ' + tableName + ' set fw_apply_to=NULL WHERE id=' + connection.escape(rowData.id);
 
-				connection.query(sql, (error, rows1) => {
-					if (error) return reject(error);
-					resolve(rows1);
+				connection.query(sql, async (error, rows1) => {
+                    if (error) return reject(error);
+                    await modelEventService.emit('update', PolicyRule, rowData.id)
+                    resolve(rows1);
 				});
 			});
 		});
@@ -931,8 +1030,12 @@ public static negateRulePosition(dbCon, firewall, rule, position) {
 			}
 
 			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-			dbCon.query(sql, (error, result) => {
-				if (error) return reject(error);
+			dbCon.query(sql, async (error, result) => {
+                if (error) return reject(error);
+                await modelEventService.emit('update', PolicyRule, {
+                    id: rule,
+                    firewall: firewall
+                });
 				resolve();
 			});
 		});
@@ -959,8 +1062,12 @@ public static allowRulePosition(dbCon, firewall, rule, position) {
 			let negate = (new_negate_position_list.length===0) ? null : new_negate_position_list.join(' ');
 
 			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-			dbCon.query(sql, (error, result) => {
-				if (error) return reject(error);
+			dbCon.query(sql, async (error, result) => {
+                if (error) return reject(error);
+                await modelEventService.emit('update', PolicyRule, {
+                    id: rule,
+                    firewall: firewall
+                });
 				resolve();
 			});
 		});

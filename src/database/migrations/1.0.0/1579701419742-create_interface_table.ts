@@ -53,7 +53,7 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
                 {
                     name: 'labelName',
                     type: 'varchar',
-                    isNullable: false,
+                    isNullable: true,
                     default: "''"
                 },
                 {

@@ -22,8 +22,9 @@
 
 import Model from "../Model";
 import db from '../../database/DatabaseService';
-import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn } from "typeorm";
+import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository } from "typeorm";
 import modelEventService from "../ModelEventService";
+import { IPObj } from "../ipobj/IPObj";
 
 var logger = require('log4js').getLogger("app");
 
@@ -194,12 +195,19 @@ export class InterfaceIPObj extends Model {
 					'set H.updated_at= CURRENT_TIMESTAMP ' +
 					' WHERE I.interface = ' + connection.escape(_interface);
 				logger.debug(sql);
-				connection.query(sql, (error, result) => {
+				connection.query(sql, async (error, result) => {
 					if (error) {
 						logger.debug(error);
 						reject(error);
 					} else {
 						if (result.affectedRows > 0) {
+							const interfaceToIpObjs: InterfaceIPObj[] = await getRepository(InterfaceIPObj).find({
+								interface: _interface
+							})
+
+							for(let i = 0; i < interfaceToIpObjs.length; i++) {
+								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipobj);
+							}
 							resolve({ "result": true });
 						} else {
 							resolve({ "result": false });

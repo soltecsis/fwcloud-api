@@ -62,7 +62,7 @@ var router = express.Router();
  * @property RuleCompileModel
  * @type ../../models/compile/
  */
-import { RuleCompile } from '../../compiler/RuleCompiler';
+import { RuleCompiler } from '../../compiler/RuleCompiler';
 
 /**
  * Property Model to manage policy script generation and install process
@@ -85,7 +85,7 @@ const fwcError = require('../../utils/error_table');
 router.put('/rule', async (req, res) => {
 	try {
   	/* The get method of the RuleCompile model returns a promise. */
-  	const data = await RuleCompile.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+  	const data = await RuleCompiler.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		res.status(200).json({"result": true, "cs": data});
 	} catch(error) { res.status(400).json(error) }
 });

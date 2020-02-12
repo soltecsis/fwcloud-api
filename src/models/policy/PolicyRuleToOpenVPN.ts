@@ -59,6 +59,18 @@ export class PolicyRuleToOpenVPN extends Model {
         return tableName;
     }
 
+    public async onCreate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onUpdate() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
+    public async onDelete() {
+        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+    }
+
     //Add new policy_r__openvpn
     public static insertInRule(req) {
         return new Promise(async (resolve, reject) => {
@@ -68,8 +80,9 @@ export class PolicyRuleToOpenVPN extends Model {
                 position: req.body.position,
                 position_order: req.body.position_order
             };
-            req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, (error, result) => {
+            req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('create', PolicyRuleToOpenVPN, result.insertId);
                 resolve(result.insertId);
             });
         });
@@ -101,8 +114,12 @@ export class PolicyRuleToOpenVPN extends Model {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-            req.dbCon.query(sql, (error, rows) => {
+            req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('create', PolicyRuleToOpenVPN, {
+                    rule: req.body.rule,
+                    openvpn: req.body.openvpn
+                });
                 resolve();
             });
         });
@@ -110,19 +127,29 @@ export class PolicyRuleToOpenVPN extends Model {
 
 
     public static deleteFromRulePosition(req) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
+            const models: PolicyRuleToOpenVPN[] = await getRepository(PolicyRuleToOpenVPN).find({
+                rule: req.body.rule,
+                openvpn: req.body.openvpn,
+                position: req.body.position
+            });
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-            req.dbCon.query(sql, (error, rows) => {
+            req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('delete', PolicyRuleToOpenVPN, models);
                 resolve();
             });
         });
     }
 
     public static deleteFromRule(dbCon,rule) {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, (error, rows) => {
+        return new Promise(async (resolve, reject) => {
+            const models: PolicyRuleToOpenVPN[] = await getRepository(PolicyRuleToOpenVPN).find({
+                rule: rule
+            });
+            dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);
+                await modelEventService.emit('delete', PolicyRuleToOpenVPN, models);
                 resolve();
             });
         });
@@ -135,8 +162,9 @@ export class PolicyRuleToOpenVPN extends Model {
             let sql = `INSERT INTO ${tableName} (rule, openvpn, position,position_order)
                 (SELECT ${new_rule}, openvpn, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
-            dbCon.query(sql, (error, result) => {
+            dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('create', PolicyRuleToOpenVPN, result.insertId);
                 resolve();
             });
         });

@@ -78,19 +78,16 @@ export class Interface extends Model {
         return tableName;
     }
 
-    public async onCreate() {
-        await getRepository(Firewall).update(this.firewall, {updated_at: new Date()});
-    }
-
     public async onUpdate() {
-        await getRepository(PolicyRuleToIPObj).update({interface: this.id}, {updated_at: new Date()});
-        await getRepository(PolicyRuleToInterface).update({interface: this.id}, {updated_at: new Date()});
-        await getRepository(InterfaceIPObj).update({interface: this.id}, {updated_at: new Date()});
-        await getRepository(Firewall).update(this.firewall, {updated_at: new Date()});
-	}
+        const policyRuleToInterfaces: PolicyRuleToInterface[] = await getRepository(PolicyRuleToInterface).find({interface: this.id});
+        for(let i = 0; i < policyRuleToInterfaces.length; i++) {
+            await modelEventService.emit('update', PolicyRuleToInterface, policyRuleToInterfaces[i])
+        }
 
-	public async onDelete() {
-		await getRepository(Firewall).update(this.firewall, {updated_at: new Date()});
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({interface: this.id});
+        for(let i = 0; i < policyRuleToIPObjs.length; i++) {
+            await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
+        }
 	}
 
     //Get All interface by firewall
@@ -508,11 +505,12 @@ export class Interface extends Model {
                 'mac = ' + connection.escape(interfaceData.mac) + ' ' +
                 ' WHERE id = ' + interfaceData.id;
             logger.debug(sql);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, async (error, result) => {
                 if (error) {
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
+                        await modelEventService.emit('update', Interface, interfaceData.id);
                         callback(null, { "result": true });
                     } else {
                         callback(null, { "result": false });
@@ -688,8 +686,11 @@ export class Interface extends Model {
     //Move rules from one firewall to other.
     public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
         return new Promise((resolve, reject) => {
-            dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+            dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, async (error, result) => {
                 if (error) return reject(error);
+                await modelEventService.emit('update', Interface, {
+                    firewall: src_firewall
+                });
                 resolve();
             });
         });
