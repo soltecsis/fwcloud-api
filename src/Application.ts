@@ -14,7 +14,6 @@ import fwcError from './utils/error_table';
 import session from 'express-session';
 import FileStore from 'session-file-store';
 import * as moment from 'moment-timezone';
-import { CronJob } from 'cron';
 
 import accessAuth from './middleware/authorization';
 import accessCtrl from './middleware/access_control';
@@ -182,15 +181,7 @@ export class Application {
     }
 
     private startBackupCronJob() {
-        let backupCron = new CronJob(
-            this._config.get('backup').schedule,
-            backupModel.cronJob,
-            null,
-            true,
-            moment.tz.guess()
-        );
-        backupCron.start();
-        this._express.set('backupCron', backupCron);
+        backupModel.initCron(this._express);
     }
 
     private registerEjsMiddleware(): void {
