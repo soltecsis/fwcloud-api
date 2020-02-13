@@ -1,7 +1,11 @@
 # Logs
-logs/*
-logs/app_fwcloud.log
-logs/http_fwcloud.log
+logs/
+
+# IDE Settings
+.vscode/*
+!.vscode/launch.json
+nbproject/private/
+nbproject/
 
 # Dependency directories
 node_modules/
@@ -10,17 +14,17 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
-nbproject/private/
-.vscode/
-nbproject/
+#Typescript dist
+dist/
 
-routes/xml
-*.fwb
-
-*.swp
-DATA/policy/
-DATA/pki/
+#fwcloud runtime files
+DATA/
 sessions/
+
+#fwcloud custom configuration files
 .env
 config/tls/
 BACKUP/
+
+*.fwb
+*.swp

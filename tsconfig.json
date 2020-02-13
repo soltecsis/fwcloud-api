@@ -1,7 +1,19 @@
 {
     "compilerOptions": {
-      "lib": [ "es2015" ],
+      "outDir": "dist",
+      "allowJs": true,
+      "lib": [ "es2018" ],
+      "target": "es2018",
+      "sourceMap": true,
+      "module": "commonjs",
+      "moduleResolution": "node",
       "resolveJsonModule": true,
-      "esModuleInterop": true
-    }
+      "esModuleInterop": true,
+      "noImplicitUseStrict": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
+    },
+    "include": [
+      "./src/**/*"
+    ]
   }
