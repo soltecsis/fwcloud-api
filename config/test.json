@@ -1,6 +1,7 @@
 {
     "session": {
-        "secret": "SESSION_SECRET"
+        "secret": "SESSION_SECRET",
+        "force_HTTPS": false
     },
     "crypt": {
         "secret": "CRYPT_SECRET"
@@ -10,6 +11,10 @@
         "port": 8888,
         "name": "fwcloud",
         "user": "fwcdbusr",
-        "pass": "fwcdbusr"
-      }
+        "pass": "fwcdbusr",
+        "migrations": "src/database/migrations/**/*.ts"
+    },
+    "https": {
+        "enable": false
+    }
 }
