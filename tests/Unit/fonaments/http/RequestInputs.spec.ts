@@ -1,15 +1,17 @@
-import { Request } from "../../../../src/fonaments/http/Request";
+import { runApplication } from "../../../utils/utils";
+import { RequestInputs } from "../../../../src/fonaments/http/RequestInputs";
+import { Request } from "express";
 
 describe('Request tests', () => {
     it('All inputs from req.body should be listed in the inputs', async() => {
-        const req = {
+        const req: any = {
             body: {
                 "testInput": "testInput",
                 "testInput2": "testInput2"
             }
         }
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
         expect(request.getInputs()).toEqual([
             {name: 'testInput', value: 'testInput'},
             {name: 'testInput2', value: 'testInput2'},
@@ -17,55 +19,55 @@ describe('Request tests', () => {
     });
 
     it('hasInput should return false if an input does not exist', async() => {
-        const req = {}
+        const req: any = {}
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
         
-        expect(request.hasInput('testInput2')).toBe(false);
+        expect(request.has('testInput2')).toBe(false);
     });
 
     it('hasInput should return true if an input does exist', async() => {
-        const req = {
+        const req: any = {
             body: {
                 "testInput": "testInput",
             }
         }
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
         
-        expect(request.hasInput('testInput')).toBe(true);
+        expect(request.has('testInput')).toBe(true);
     });
 
     it('input should return the value if the input exists', async() => {
-        const req = {
+        const req: any = {
             body: {
                 "testInput": "testInput",
             }
         }
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
 
-        expect(request.input('testInput')).toBe('testInput');
+        expect(request.get('testInput')).toBe('testInput');
     });
 
     it('input should return null if the input does not exists', async() => {
-        const req = {}
+        const req: any = {}
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
 
-        expect(request.input('testInput2')).toBeNull();
+        expect(request.get('testInput2')).toBeNull();
     });
 
     it('input should return a default value if the input does not exists and a default value is provided', async() => {
-        const req = {}
+        const req: any = {}
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
 
-        expect(request.input('testInput2', 'defaultValue')).toBe('defaultValue');
+        expect(request.get('testInput2', 'defaultValue')).toBe('defaultValue');
     });
 
     it('params are handled as inputs', async() => {
-        const req = {
+        const req: any = {
             params: {
                 "testInput2": "testInput2"
             },
@@ -74,24 +76,8 @@ describe('Request tests', () => {
             }
         }
 
-        const request = new Request(req);
+        const request = new RequestInputs(req);
 
-        expect(request.hasInput('testInput2')).toBeTruthy();
+        expect(request.has('testInput2')).toBeTruthy();
     });
-
-    it('addInputObject should add inputs from the object', async() => {
-        const req = {
-            body: {
-                "testInput": "testInput",
-            }
-        }
-
-        const request = new Request(req);
-
-        request.addInputs({"testInput2": "testInput2"});
-
-        expect(request.hasInput('testInput2')).toBeTruthy();
-    })
-
-
 });

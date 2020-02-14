@@ -1,33 +1,24 @@
+import { Request } from "express";
+
 export interface Input {
     name: string;
     value: any;
 }
+export class RequestInputs {
 
-export class Request {
+    private _req: Request;
 
-    _req: Express.Request;
-    
-    _inputs: Array<{name: string, value: any}> = [];
+    private _inputs: Array<{name: string, value: any}> = [];
 
-    constructor(req: any) {
+    constructor(req: Request) {
         this._req = req;
-        this.addInputs(req.body || {});
-        this.addInputs(req.params || {});
-    }
-
-    /**
-     * Add a new input object into the request input array
-     * 
-     * @param input Input object
-     */
-    public addInputs(input: {}): void {
-        this.mergeInputArray(this.parseInputs(input));
     }
 
     /**
      * Returns all inputs
      */
     public getInputs(): Array<{name: string, value: any}> {
+        this.bindRequestInputs();
         return this._inputs
     }
 
@@ -37,7 +28,8 @@ export class Request {
      * @param name Input name
      * @param defaultValue Default value
      */
-    public input(name: string, defaultValue: any = null): any {
+    public get(name: string, defaultValue: any = null): any {
+        this.bindRequestInputs();
         const input: Array<Input> = this.filterByInputName(name);
 
         if(input.length === 1) {
@@ -56,8 +48,15 @@ export class Request {
      * 
      * @param name Input name
      */
-    public hasInput(name: string): boolean {
+    public has(name: string): boolean {
+        this.bindRequestInputs();
         return this.filterByInputName(name).length > 0;
+    }
+
+    private bindRequestInputs() {
+        this._inputs = [];
+        this.mergeInputArray(this.parseInputs(this._req.body || {}));
+        this.mergeInputArray(this.parseInputs(this._req.params || {}));
     }
 
     /**
@@ -94,7 +93,7 @@ export class Request {
      */
     private mergeInputArray(inputs: Array<Input>): void {
         inputs.forEach((item: Input) => {
-            if (!this.hasInput(item.name)) {
+            if (this.filterByInputName(item.name).length === 0) {
                 this._inputs.push(item);
             }
         })

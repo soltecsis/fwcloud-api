@@ -1,10 +1,11 @@
 import { Middleware } from "../fonaments/http/middleware/Middleware";
+import helmet from 'helmet';
 import { Request, Response, NextFunction } from "express";
-import { RequestInputs } from "../fonaments/http/RequestInputs";
 
-export class RequestBuilder extends Middleware {
+export class Helmet extends Middleware {
     public handle(req: Request, res: Response, next: NextFunction) {
-        req.inputs = new RequestInputs(req);
+        this.app.express.use(helmet());
         next();
     }
+
 }

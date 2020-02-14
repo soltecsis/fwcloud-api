@@ -114,7 +114,7 @@ export class User extends Model {
 
 
     //Update user confirmation_token
-    public static updateUserCT(iduser, token, callback) {
+    public static async updateUserCT(iduser, token): Promise<boolean> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error)
