@@ -112,6 +112,6 @@ export class Server {
     }
 
     public isHttps(): boolean {
-        return this._config.get('https').enabled;
+        return this._config.get('https').enable;
     }
 }
