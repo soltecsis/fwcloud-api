@@ -82,7 +82,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             };
             req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, result.insertId);
+                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, policyPrefix);
                 resolve(result.insertId);
             });
         });
@@ -163,7 +163,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
                 (SELECT ${new_rule}, prefix, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
-                await modelEventService.emit('update', PolicyRuleToOpenVPNPrefix, result.insertId);
+                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, {
+                    rule: rule
+                });
                 if (error) return reject(error);
                 resolve();
             });

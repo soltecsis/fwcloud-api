@@ -60,6 +60,7 @@ export class Application {
             console.log('Loading application from ' + this._path);
             this._express = express();
             this._config = require('./config/config');
+            console.log('Environment: ' + this._config.get('env'));
             this._logger = this.registerLogger();
             this._db = db;
         } catch(e) {

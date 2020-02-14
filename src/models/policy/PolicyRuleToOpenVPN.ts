@@ -82,7 +82,7 @@ export class PolicyRuleToOpenVPN extends Model {
             };
             req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPN, result.insertId);
+                await modelEventService.emit('create', PolicyRuleToOpenVPN, policyOpenvpn);
                 resolve(result.insertId);
             });
         });
@@ -118,7 +118,8 @@ export class PolicyRuleToOpenVPN extends Model {
                 if (error) return reject(error);
                 await modelEventService.emit('create', PolicyRuleToOpenVPN, {
                     rule: req.body.rule,
-                    openvpn: req.body.openvpn
+                    openvpn: req.body.openvpn,
+                    position: req.body.position
                 });
                 resolve();
             });
@@ -164,7 +165,7 @@ export class PolicyRuleToOpenVPN extends Model {
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPN, result.insertId);
+                await modelEventService.emit('create', PolicyRuleToOpenVPN, {rule: rule});
                 resolve();
             });
         });

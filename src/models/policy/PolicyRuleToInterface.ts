@@ -173,7 +173,7 @@ export class PolicyRuleToInterface extends Model {
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
-                            await modelEventService.emit('create', PolicyRuleToInterface, result.insertId);
+                            await modelEventService.emit('create', PolicyRuleToInterface, p_interfaceData);
                             this.OrderList(p_interfaceData.position_order, p_interfaceData.rule, p_interfaceData.position, 999999, p_interfaceData.interface);
 
                             resolve({ "result": true, "allowed": "1" });
@@ -194,7 +194,7 @@ export class PolicyRuleToInterface extends Model {
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToInterface, result.insertId);
+                await modelEventService.emit('create', PolicyRuleToInterface, {rule: rule});
                 resolve();
             });
         });

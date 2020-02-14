@@ -484,8 +484,9 @@ export class createDefaultData1579857224771 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<any> {        
         await queryRunner.query('TRUNCATE TABLE routing_r__ipobj');
         await queryRunner.query('TRUNCATE TABLE ipobj__ipobjg');
-        await queryRunner.query('TRUNCATE TABLE ipobj_g');
         await queryRunner.query('TRUNCATE TABLE ipobj');
+        await queryRunner.query('TRUNCATE TABLE interface__ipobj');
+        await queryRunner.query('TRUNCATE TABLE ipobj_g');
         await queryRunner.query('TRUNCATE TABLE routing_position');
         await queryRunner.query('TRUNCATE TABLE ipobj_type__policy_position');
         await queryRunner.query('TRUNCATE TABLE policy_r__interface');
