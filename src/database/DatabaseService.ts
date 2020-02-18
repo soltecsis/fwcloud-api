@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import * as path from 'path';
 import { Connection, createConnection, QueryRunner } from "typeorm";
 import * as config from "../config/config";

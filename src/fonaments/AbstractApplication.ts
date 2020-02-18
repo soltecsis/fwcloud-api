@@ -1,7 +1,11 @@
+import "reflect-metadata";
 import express from "express";
 import * as fs from 'fs';
 import Query from "../database/Query";
 import { RequestInputs } from "./http/RequestInputs";
+import { ServiceContainer } from "./services/ServiceContainer";
+import { RouterService } from "./http/router/RouterService";
+import { RouterServiceProvider } from "./http/router/RouterServiceProvider";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -10,10 +14,22 @@ declare module 'express-serve-static-core' {
   }
 }
 
+let _runningApplication: AbstractApplication = null;
+
+export function app(): AbstractApplication {
+  return _runningApplication;
+}
+
+
 export abstract class AbstractApplication {
   protected _express: express.Application;
   protected _config: any;
   protected _path: string;
+  protected _services: ServiceContainer;
+
+  private _providers: Array<any> = [
+    RouterServiceProvider
+  ];
   
   constructor(path: string = process.cwd()) {
     try {
@@ -21,6 +37,8 @@ export abstract class AbstractApplication {
       console.log('Loading application from ' + this._path);
       this._express = express();
       this._config = require('../config/config');
+      _runningApplication = this;
+      global
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
       process.exit(e);
@@ -39,14 +57,35 @@ export abstract class AbstractApplication {
     return this._path;
   }
 
+  public getService(name: string): any {
+    return this._services.get(name);
+  }
+
   protected async bootstrap() {
     await this.generateDirectories();
+    this.startServiceContainer();
+    await this.registerProviders();
     await this.registerMiddlewares('before');
-    await this.registerRoutes();
+    this.registerRoutes();
     await this.registerMiddlewares('after');
   }
 
-  protected abstract registerRoutes();
+  protected async registerProviders(): Promise<void> {
+    const providersArray: Array<any> = this._providers.concat(this.providers());
+    
+    for(let i = 0; i < providersArray.length; i++) {
+      await (new providersArray[i]()).register(this._services);
+    }
+  }
+  
+  protected registerRoutes() {
+    const routerService: RouterService = this.getService(RouterService.name);
+    routerService.registerRoutes();
+  };
+
+  protected startServiceContainer() {
+    this._services = new ServiceContainer(this);
+  }
 
   /**
    * Register all middlewares
@@ -80,6 +119,13 @@ export abstract class AbstractApplication {
    * Returns an array of Middleware classes to be registered after the routes handlers
    */
   protected afterMiddlewares(): Array<any> {
+    return [];
+  }
+
+  /**
+   * Returns an array of ServiceProviders classes to be bound
+   */
+  protected providers(): Array<any> {
     return [];
   }
 

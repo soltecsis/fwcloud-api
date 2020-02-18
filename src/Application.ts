@@ -1,7 +1,7 @@
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
 
-import db, { DatabaseService } from "./database/DatabaseService";
+import db from "./database/DatabaseService";
 
 import backupModel from './models/backup/backup';
 import { AbstractApplication } from "./fonaments/AbstractApplication";
@@ -22,14 +22,11 @@ import { RequestBuilder } from './middleware/RequestBuilder';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
-    private _db: DatabaseService;
-
 
     constructor(path: string = process.cwd()) {
         super();
         try {
             this._logger = this.registerLogger();
-            this._db = db;
         } catch (e) {
             console.error('Aplication startup failed: ' + e.message);
             process.exit(e);
@@ -46,7 +43,7 @@ export class Application extends AbstractApplication {
          * as some of them is using DB
          */
         await this.startDatabaseService();
-        
+
         await super.bootstrap();
 
         this.startBackupCronJob();
@@ -89,6 +86,9 @@ export class Application extends AbstractApplication {
     }
 
     protected async registerRoutes() {
+        super.registerRoutes();
+
+        //OLD Routes
         this._express.use('/user', require('./routes/user/user'));
         this._express.use('/customer', require('./routes/user/customer'));
         this._express.use('/fwcloud', require('./routes/fwcloud/fwcloud'));
