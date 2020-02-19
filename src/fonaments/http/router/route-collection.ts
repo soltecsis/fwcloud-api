@@ -1,5 +1,5 @@
-import { RouterService } from "./RouterService";
-import { AbstractApplication } from "../../AbstractApplication";
+import { RouterService } from "./router.service";
+import { AbstractApplication } from "../../abstract-application";
 
 export abstract class RouteCollection {
 

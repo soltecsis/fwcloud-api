@@ -1,6 +1,6 @@
 import { Application } from "../../../../../src/Application";
 import { runApplication } from "../../../../utils/utils";
-import { RouterService } from "../../../../../src/fonaments/http/router/RouterService"
+import { RouterService } from "../../../../../src/fonaments/http/router/router.service"
 
 let app: Application;
 

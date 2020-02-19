@@ -1,7 +1,7 @@
-import { ServiceProvider } from "../../services/ServiceProvider";
-import { ServiceContainer } from "../../services/ServiceContainer";
-import { RouterService } from "./RouterService";
-import { AbstractApplication } from "../../AbstractApplication";
+import { ServiceProvider } from "../../services/service-provider";
+import { ServiceContainer } from "../../services/service-container";
+import { RouterService } from "./router.service";
+import { AbstractApplication } from "../../abstract-application";
 
 export class RouterServiceProvider extends ServiceProvider {
     

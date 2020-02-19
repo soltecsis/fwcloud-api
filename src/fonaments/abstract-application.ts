@@ -2,10 +2,10 @@ import "reflect-metadata";
 import express from "express";
 import * as fs from 'fs';
 import Query from "../database/Query";
-import { RequestInputs } from "./http/RequestInputs";
-import { ServiceContainer } from "./services/ServiceContainer";
-import { RouterService } from "./http/router/RouterService";
-import { RouterServiceProvider } from "./http/router/RouterServiceProvider";
+import { RequestInputs } from "./http/request-inputs";
+import { ServiceContainer } from "./services/service-container";
+import { RouterService } from "./http/router/router.service";
+import { RouterServiceProvider } from "./http/router/router.provider";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -38,7 +38,6 @@ export abstract class AbstractApplication {
       this._express = express();
       this._config = require('../config/config');
       _runningApplication = this;
-      global
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
       process.exit(e);

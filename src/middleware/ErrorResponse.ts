@@ -1,14 +1,13 @@
 import { ErrorMiddleware } from "../fonaments/http/middleware/ErrorMiddleware";
 import { Request, Response, NextFunction } from "express";
+import { ResponseBuilder } from "../fonaments/http/response-builder";
+import { HttpException } from "../fonaments/exceptions/http/http-exception";
 
 export class ErrorResponse extends ErrorMiddleware {
-    public handle(error: any, req: Request, res: Response, next: NextFunction) {
-        this.app.logger.error("Something went wrong: ", error.message);
-        res.status(error.status || 500);
-        res.render('error', {
-            message: error.message,
-            error: this.app.express.get('env') === 'dev' ? error : {}
-        });
+    public handle(error: Error, req: Request, res: Response, next: NextFunction) {
+        const status: number = error instanceof HttpException ? error.status : 500;
+        
+        ResponseBuilder.make(res).status(status).send(error);
     }
 
 }

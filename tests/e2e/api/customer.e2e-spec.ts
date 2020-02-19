@@ -1,5 +1,12 @@
-import app from '../../../src/app';
 import request from 'supertest';
+import { Application } from '../../../src/Application';
+import { runApplication } from '../../utils/utils';
+
+let app: Application;
+
+beforeAll(async() => {
+  app = await runApplication();
+})
 
 describe('(GET) /customer', () => {
 

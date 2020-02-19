@@ -1,4 +1,4 @@
-import { AbstractApplication } from "../AbstractApplication";
+import { AbstractApplication } from "../abstract-application";
 
 
 export abstract class Service {

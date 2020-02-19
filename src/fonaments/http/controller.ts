@@ -1,4 +1,4 @@
-import { AbstractApplication } from "../AbstractApplication";
+import { AbstractApplication } from "../abstract-application";
 
 export class Controller {
     constructor(protected _app: AbstractApplication) { }

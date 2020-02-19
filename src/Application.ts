@@ -4,7 +4,7 @@ import log4js_extend from 'log4js-extend';
 import db from "./database/DatabaseService";
 
 import backupModel from './models/backup/backup';
-import { AbstractApplication } from "./fonaments/AbstractApplication";
+import { AbstractApplication } from "./fonaments/abstract-application";
 import { EJS } from "./middleware/EJS";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";

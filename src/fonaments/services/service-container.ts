@@ -1,5 +1,5 @@
-import { Service } from "./Service";
-import { AbstractApplication } from "../AbstractApplication";
+import { Service } from "./service";
+import { AbstractApplication } from "../abstract-application";
 
 export interface ServiceBound {
     singleton: boolean,

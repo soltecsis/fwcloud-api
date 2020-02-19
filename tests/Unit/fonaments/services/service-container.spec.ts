@@ -1,7 +1,7 @@
 import { runApplication, randomString } from "../../../utils/utils";
-import { ServiceContainer } from "../../../../src/fonaments/services/ServiceContainer"
+import { ServiceContainer } from "../../../../src/fonaments/services/service-container"
 import { Application } from "../../../../src/Application";
-import { Service } from "../../../../src/fonaments/services/Service";
+import { Service } from "../../../../src/fonaments/services/service";
 
 let app: Application; 
 beforeAll(async() => {

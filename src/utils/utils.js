@@ -52,6 +52,7 @@ utilsModel.startsWith = (str, word) => {
 
 //TODO: Use arrow function expression
 utilsModel.mergeObj = function() {
+	console.log('utils.mergeObj() is deprectaded. Use ObjectHelers.merge() instead');
 	var destination = {},
 			sources = [].slice.call(arguments, 0);
 	sources.forEach((source) => {

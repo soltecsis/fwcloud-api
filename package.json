@@ -97,6 +97,7 @@
     "@types/express-session": "^1.15.16",
     "@types/helmet": "0.0.45",
     "@types/jest": "25.1.0",
+    "@types/joi": "^14.3.4",
     "@types/moment-timezone": "^0.5.12",
     "@types/node": "13.5.0",
     "@types/session-file-store": "^1.2.1",

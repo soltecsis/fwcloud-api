@@ -1,5 +1,5 @@
-import { ServiceContainer } from "./ServiceContainer";
-import { AbstractApplication } from "../AbstractApplication";
+import { ServiceContainer } from "./service-container";
+import { AbstractApplication } from "../abstract-application";
 
 export interface IServiceProvider {
     register(serviceContainer: ServiceContainer): void;

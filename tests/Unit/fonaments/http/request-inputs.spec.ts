@@ -1,5 +1,5 @@
 import { runApplication } from "../../../utils/utils";
-import { RequestInputs } from "../../../../src/fonaments/http/RequestInputs";
+import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
 import { Request } from "express";
 
 describe('Request tests', () => {
@@ -12,7 +12,7 @@ describe('Request tests', () => {
         }
 
         const request = new RequestInputs(req);
-        expect(request.getInputs()).toEqual([
+        expect(request.all()).toEqual([
             {name: 'testInput', value: 'testInput'},
             {name: 'testInput2', value: 'testInput2'},
         ])
@@ -50,15 +50,15 @@ describe('Request tests', () => {
         expect(request.get('testInput')).toBe('testInput');
     });
 
-    it('input should return null if the input does not exists', async() => {
+    it('get should return undefined if the input does not exists', async() => {
         const req: any = {}
 
         const request = new RequestInputs(req);
 
-        expect(request.get('testInput2')).toBeNull();
+        expect(request.get('testInput2')).toBeUndefined();
     });
 
-    it('input should return a default value if the input does not exists and a default value is provided', async() => {
+    it('get should return a default value if the input does not exists and a default value is provided', async() => {
         const req: any = {}
 
         const request = new RequestInputs(req);
@@ -66,9 +66,9 @@ describe('Request tests', () => {
         expect(request.get('testInput2', 'defaultValue')).toBe('defaultValue');
     });
 
-    it('params are handled as inputs', async() => {
+    it('query are handled as inputs', async() => {
         const req: any = {
-            params: {
+            query: {
                 "testInput2": "testInput2"
             },
             body: {
