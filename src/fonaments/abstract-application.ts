@@ -6,11 +6,13 @@ import { RequestInputs } from "./http/request-inputs";
 import { ServiceContainer } from "./services/service-container";
 import { RouterService } from "./http/router/router.service";
 import { RouterServiceProvider } from "./http/router/router.provider";
+import { AuthorizationServiceProvider } from "./authorization/authorization.provider";
+import { AuthorizationMiddleware } from "./authorization/authorization.middleware";
 
 declare module 'express-serve-static-core' {
   interface Request {
-      dbCon: Query,
-      inputs: RequestInputs
+    dbCon: Query,
+    inputs: RequestInputs
   }
 }
 
@@ -28,7 +30,16 @@ export abstract class AbstractApplication {
   protected _services: ServiceContainer;
 
   private _providers: Array<any> = [
-    RouterServiceProvider
+    RouterServiceProvider,
+    AuthorizationServiceProvider
+  ];
+
+  private _premiddlewares: Array<any> = [
+    AuthorizationMiddleware
+  ];
+
+  private _postmiddlewares: Array<any> = [
+
   ];
   
   constructor(path: string = process.cwd()) {
@@ -93,14 +104,14 @@ export abstract class AbstractApplication {
     let middlewares: Array<any> = [];
 
     if (group === 'before') {
-      middlewares = this.beforeMiddlewares();
+      middlewares = this._premiddlewares.concat(this.beforeMiddlewares());
       for(let i = 0; i < middlewares.length; i++) {
         await (new middlewares[i]()).register(this);
       }
     }
 
     if (group === 'after') {
-      middlewares = this.afterMiddlewares();
+      middlewares = this.afterMiddlewares().concat(this._postmiddlewares);
       for(let i = 0; i < middlewares.length; i++) {
         await (new middlewares[i]()).register(this);
       }

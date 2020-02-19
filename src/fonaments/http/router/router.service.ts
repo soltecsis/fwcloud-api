@@ -1,13 +1,12 @@
 import { Service } from "../../services/service";
 import { PathParams } from "express-serve-static-core"
-import { Request, Response, Router } from "express";
+import { Request, Response, NextFunction } from "express";
 import { Controller } from "../controller";
 import { FunctionHelper } from "../../../utils/FunctionHelper";
 import { AbstractApplication, app } from "../../abstract-application";
 import { RouteCollection } from "./route-collection";
 import { Routes } from "../../../routes/routes";
 import { RequestValidation } from "../../validation/request-validation";
-import e = require("express");
 import { ValidationException } from "../../exceptions/validation-exception";
 
 export type httpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
@@ -91,7 +90,7 @@ export class RouterService extends Service {
         return this._router[httpMethod.toLowerCase()](pathParams, callback);
     }
     private async callWithController(httpMethod: httpMethod, pathParams, controller: typeof Controller, method: string, validation?: any, policy?: any, action?: string): Promise<void> {
-        return this._router[httpMethod.toLowerCase()](pathParams, async (req: Request, res: Response, next?: e.NextFunction) => {
+        return this._router[httpMethod.toLowerCase()](pathParams, async (req: Request, res: Response, next?: NextFunction) => {
             
             if (!controller.methodExists(method)) {
                 throw new Error('Method ' + method + ' does not exist in controller: ' + controller.name);
