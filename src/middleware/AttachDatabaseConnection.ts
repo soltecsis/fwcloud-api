@@ -22,7 +22,7 @@
 
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import { Request, Response, NextFunction } from "express";
-import db from "../database/DatabaseService";
+import db from "../database/database-manager";
 
 export class AttachDatabaseConnection extends Middleware {
     public handle(req: Request, res: Response, next: NextFunction): void {

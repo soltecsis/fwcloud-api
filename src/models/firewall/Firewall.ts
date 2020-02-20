@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService'
+import db from '../../database/database-manager'
 import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';

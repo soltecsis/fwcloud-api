@@ -23,7 +23,7 @@
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
 
-import db from "./database/DatabaseService";
+import db from "./database/database-manager";
 
 import backupModel from './models/backup/backup';
 import { AbstractApplication } from "./fonaments/abstract-application";
@@ -60,14 +60,9 @@ export class Application extends AbstractApplication {
     }
 
     public async bootstrap() {
-        /**
-         * We should start the database service before FwCloudMiddlewares 
-         * as some of them is using DB
-         */
-        await this.startDatabaseService();
-
         await super.bootstrap();
 
+        await this.startDatabaseService();
         this.startBackupCronJob();
     }
 
@@ -148,6 +143,6 @@ export class Application extends AbstractApplication {
     }
 
     private async startDatabaseService() {
-        await db.connect();
+        await db.connect(this);
     }
 }

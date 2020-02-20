@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as path from 'path';
 import { Connection, createConnection, QueryRunner } from "typeorm";
 import * as config from "../config/config";
 import Query from "./Query";
 import * as Logger from "log4js";
-import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest"
+import { AbstractApplication } from '../fonaments/abstract-application';
+import { DatabaseService } from './database.service';
 
 const logger = Logger.getLogger("app");
 
-export class DatabaseService {
+export class DatabaseManager {
 
     private _connected: boolean = false;
     private _connection: Connection = null;
@@ -46,29 +46,8 @@ export class DatabaseService {
 
     }
 
-    public async connect(): Promise<Connection> {
-        if (this._connected) {
-            return this._connection;
-        }
-
-        this._connection = await createConnection({
-            type: "mysql",
-            host: this.configDB.host,
-            port: this.configDB.port,
-            database: this.configDB.name,
-            username: this.configDB.user,
-            password: this.configDB.pass,
-            debug: false,
-            synchronize: false,
-            entities: [
-                path.join(process.cwd(), 'dist/src/models/**/*.js'),
-                FirewallTest
-            ]
-        }).catch(e => {
-            console.error('Unable to connect to MySQL: ' + e.message);
-            process.exit(1);
-        });
-
+    public async connect(app: AbstractApplication): Promise<Connection> {
+        this._connection = (await app.getService(DatabaseService.name)).connection;
         this._connected = true;
         return this._connection;
     }
@@ -181,6 +160,6 @@ export class DatabaseService {
     };
 }
 
-const db: DatabaseService = new DatabaseService();
+const db: DatabaseManager = new DatabaseManager();
 
 export default db;

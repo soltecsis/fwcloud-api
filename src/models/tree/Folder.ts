@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwc_tree';

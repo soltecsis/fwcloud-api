@@ -23,7 +23,7 @@
 
 var express = require('express');
 var router = express.Router();
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';

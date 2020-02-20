@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "./DatabaseService";
+import db from "./database-manager";
 import { QueryRunner, Connection } from "typeorm";
 import * as sqlstring from "sqlstring";
 

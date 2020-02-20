@@ -24,7 +24,7 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 const fwcError = require('../../utils/error_table');

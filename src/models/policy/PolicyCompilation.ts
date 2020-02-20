@@ -21,7 +21,7 @@
 */
 
 
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import Model from "../Model";
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../../models/firewall/Firewall';

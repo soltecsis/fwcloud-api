@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';

@@ -33,7 +33,7 @@ module.exports = utilsModel;
  * 
  */
 
-import db from '../database/DatabaseService';
+import db from '../database/database-manager';
 var logger = require('log4js').getLogger("app");
 import { Firewall } from '../models/firewall/Firewall';
 const config = require('../config/config');
