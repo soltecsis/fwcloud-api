@@ -27,7 +27,7 @@ export interface ServiceBound {
     singleton: boolean,
     name: string,
     target: CallableFunction,
-    instance: Service
+    instance: Promise<Service>
 }
 
 export class ServiceContainer {
@@ -45,7 +45,7 @@ export class ServiceContainer {
         return this._services;
     }
 
-    public bind(name: string, target: (app: AbstractApplication) => Service): Promise<void> {
+    public bind(name: string, target: (app: AbstractApplication) => Promise<Service>): Promise<void> {
         if (this.isBound(name)) {
             throw new Error('Service ' + name + 'has been already bound');
         }
@@ -60,7 +60,7 @@ export class ServiceContainer {
         return;
     }
 
-    public async singleton(name: string, target: (app: AbstractApplication) => Service): Promise<void> {
+    public async singleton(name: string, target: (app: AbstractApplication) => Promise<Service>): Promise<void> {
         this._services.push({
             singleton: true,
             name: name,
@@ -73,7 +73,7 @@ export class ServiceContainer {
         return this.find(name) !== null;
     }
 
-    public get(name: string): any {
+    public async get(name: string): Promise<Service> {
         if (this.isBound(name)) {
             const service = this.find(name);
             const target = service.target
@@ -83,10 +83,10 @@ export class ServiceContainer {
             }
 
             if (service.singleton && service.instance !== null) {
-                return service.instance;
+                return await service.instance;
             }
 
-            return service.target(this.app);
+            return await service.target(this.app);
         }
 
         return null;

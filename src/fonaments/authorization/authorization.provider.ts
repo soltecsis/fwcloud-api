@@ -24,12 +24,12 @@ import { ServiceProvider } from "../services/service-provider";
 import { ServiceContainer } from "../services/service-container";
 import { AuthorizationService } from "./authorization.service";
 import { AbstractApplication } from "../abstract-application";
+import { Service } from "../services/service";
 
 export class AuthorizationServiceProvider extends ServiceProvider {
     public async register(serviceContainer: ServiceContainer): Promise<void> {
-        serviceContainer.singleton(AuthorizationService.name, (app: AbstractApplication) => {
+        serviceContainer.singleton(AuthorizationService.name, async (app: AbstractApplication): Promise<Service> => {
             return new AuthorizationService(app);
         });
     }
-
 }

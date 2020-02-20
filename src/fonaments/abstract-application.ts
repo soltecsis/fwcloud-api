@@ -30,6 +30,7 @@ import { RouterService } from "./http/router/router.service";
 import { RouterServiceProvider } from "./http/router/router.provider";
 import { AuthorizationServiceProvider } from "./authorization/authorization.provider";
 import { AuthorizationMiddleware } from "./authorization/authorization.middleware";
+import { DatabaseServiceProvider } from "../database/database.provider";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -52,6 +53,7 @@ export abstract class AbstractApplication {
   protected _services: ServiceContainer;
 
   private _providers: Array<any> = [
+    DatabaseServiceProvider,
     RouterServiceProvider,
     AuthorizationServiceProvider
   ];
@@ -89,8 +91,8 @@ export abstract class AbstractApplication {
     return this._path;
   }
 
-  public getService(name: string): any {
-    return this._services.get(name);
+  public async getService(name: string): Promise<any> {
+    return await this._services.get(name);
   }
 
   protected async bootstrap() {
@@ -98,7 +100,7 @@ export abstract class AbstractApplication {
     this.startServiceContainer();
     await this.registerProviders();
     await this.registerMiddlewares('before');
-    this.registerRoutes();
+    await this.registerRoutes();
     await this.registerMiddlewares('after');
   }
 
@@ -110,8 +112,8 @@ export abstract class AbstractApplication {
     }
   }
   
-  protected registerRoutes() {
-    const routerService: RouterService = this.getService(RouterService.name);
+  protected async registerRoutes() {
+    const routerService: RouterService = await this.getService(RouterService.name);
     routerService.registerRoutes();
   };
 

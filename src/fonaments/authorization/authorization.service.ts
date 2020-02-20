@@ -46,7 +46,7 @@ export class AuthorizationService extends Service {
         this._next = next;
     }
 
-    public async revokeAuthorization(): Promise<void> {
+    public revokeAuthorization(): Promise<void> {
         const exception = new AuthorizationException();
         this._next(exception);
         throw exception;

@@ -42,76 +42,84 @@ export class RouterService extends Service {
 
     protected _routes: RouteCollection;
 
+    protected _list: Array<{httpMethod: string, path: PathParams, destination: string}>
+
     constructor(_app: AbstractApplication) {
         super(_app);
         this._express = this._app.express;
         this._router = this._express;
+        this._list = [];
     }
 
     public registerRoutes() {
-        this._routes = new Routes(this._app, this._app.getService(RouterService.name));
+        this._routes = new Routes(this._app, this);
     }
 
-    public post(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public post(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public post(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public post(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('POST', pathParams, controller, method, validation, policy, action);
+    public post(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('POST', pathParams, controller, method, validation);
     }
 
-    public get(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public get(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public get(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public get(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('GET', pathParams, controller, method, validation, policy, action);
+    public get(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('GET', pathParams, controller, method, validation);
     }
 
-    public all(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public all(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public all(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public all(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('ALL', pathParams, controller, method, validation, policy, action);
+    public all(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('ALL', pathParams, controller, method, validation);
     }
 
-    public options(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public options(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public options(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public options(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('OPTIONS', pathParams, controller, method, validation, policy, action);
+    public options(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('OPTIONS', pathParams, controller, method, validation);
     }
 
-    public delete(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public delete(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public delete(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public delete(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('DELETE', pathParams, controller, method, validation, policy, action);
+    public delete(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('DELETE', pathParams, controller, method, validation);
     }
 
-    public head(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public head(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public head(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public head(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('HEAD', pathParams, controller, method, validation, policy, action);
+    public head(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('HEAD', pathParams, controller, method, validation);
     }
 
-    public patch(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public patch(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public patch(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public patch(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('PATCH', pathParams, controller, method, validation, policy, action);
+    public patch(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('PATCH', pathParams, controller, method, validation);
     }
 
-    public put(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation, policy?: any, action?: string): any
+    public put(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
     public put(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public put(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
-        return this.addRoute('PUT', pathParams, controller, method, validation, policy, action);
+    public put(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
+        return this.addRoute('PUT', pathParams, controller, method, validation);
     }
 
-    private addRoute(httpMethod: httpMethod, pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation, policy?: any, action?: string): any {
+    private addRoute(httpMethod: httpMethod, pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
         if (FunctionHelper.isCallback(controller)) {
-            return this.callWithCallback(httpMethod, pathParams, controller);
+            this.callWithCallback(httpMethod, pathParams, controller);
+            this._list.push({httpMethod: httpMethod, path: pathParams, destination: 'callback'});
+            return;
         }
 
-        return this.callWithController(httpMethod, pathParams, controller, method, validation, policy, action);    
+        this.callWithController(httpMethod, pathParams, controller, method, validation);    
+        this._list.push({httpMethod: httpMethod, path: pathParams, destination: controller.name + '@' + method});
+        return;
     }
 
     private async callWithCallback(httpMethod: httpMethod, pathParams: PathParams, callback: (req: Request, res: Response) => void): Promise<void> {
         return this._router[httpMethod.toLowerCase()](pathParams, callback);
     }
-    private async callWithController(httpMethod: httpMethod, pathParams, controller: typeof Controller, method: string, validation?: any, policy?: any, action?: string): Promise<void> {
+    
+    private async callWithController(httpMethod: httpMethod, pathParams, controller: typeof Controller, method: string, validation?: any): Promise<void> {
         return this._router[httpMethod.toLowerCase()](pathParams, async (req: Request, res: Response, next?: NextFunction) => {
             
             if (!controller.methodExists(method)) {

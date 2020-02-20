@@ -24,11 +24,12 @@ import { ServiceProvider } from "../../services/service-provider";
 import { ServiceContainer } from "../../services/service-container";
 import { RouterService } from "./router.service";
 import { AbstractApplication } from "../../abstract-application";
+import { Service } from "../../services/service";
 
 export class RouterServiceProvider extends ServiceProvider {
     
     public async register(serviceContainer: ServiceContainer): Promise<void> {
-        serviceContainer.singleton(RouterService.name, (app: AbstractApplication) => {
+        serviceContainer.singleton(RouterService.name, async (app: AbstractApplication): Promise<Service> => {
             return new RouterService(app);
         });
     }

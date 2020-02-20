@@ -108,7 +108,7 @@ export class Application extends AbstractApplication {
     }
 
     protected async registerRoutes() {
-        super.registerRoutes();
+        await super.registerRoutes();
 
         //OLD Routes
         this._express.use('/user', require('./routes/user/user'));
