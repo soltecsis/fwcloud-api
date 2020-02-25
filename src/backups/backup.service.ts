@@ -1,0 +1,231 @@
+import { Service } from "../fonaments/services/service";
+import { DatabaseService } from "../database/database.service";
+import * as fs from "fs";
+import * as path from "path";
+import { Backup } from "./backup";
+import moment, { Moment } from "moment";
+import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
+import { CronTime, CronJob } from "cron";
+import { CronService } from "./cron/cron.service";
+import * as fse from "fs-extra";
+
+const logger = require('log4js').getLogger("app");
+
+export interface CustomBackupConfig {
+    schedule: string,
+    default_max_copies: number,
+    default_max_days: number
+};
+
+export class BackupService extends Service {
+
+    protected _config: any;
+    protected _db: DatabaseService;
+    protected _cronService: CronService;
+
+    protected _runningJob: CronJob;
+    protected _schedule: string;
+    protected _task: any;
+
+
+    async make(): Promise<BackupService> {
+        this._config = this._app.config.get('backup');
+        this._db = await this._app.getService(DatabaseService.name);
+        this._cronService = await this._app.getService(CronService.name);
+
+        let backupDirectory: string = this._config.data_dir;
+
+        if (!fs.existsSync(backupDirectory)) {
+            fs.mkdirSync(backupDirectory);
+        }
+
+        this._schedule = (await this.readConfig()).schedule;
+        this._task = async () => {
+            try {
+                logger.info("Starting BACKUP job.");
+                const backup = await this.create();
+                logger.info(`BACKUP job completed: ${backup.id}`);
+            } catch (error) { logger.error("BACKUP job ERROR: ", error.message) }
+        }
+
+        this._runningJob = this._cronService.addJob(this._schedule, this._task);
+        this._runningJob.start();
+
+        return this;
+    }
+
+    /**
+     * Returns all backups
+     */
+    public async getAll(): Promise<Array<Backup>> {
+        var dirs = [];
+
+        const entires: Array<string> = fs.readdirSync(this.getBackupDirectory());
+        for (let entry of entires) {
+            let backupPath: string = path.join(this.getBackupDirectory(), entry);
+
+            if (fs.statSync(backupPath).isDirectory()) {
+                dirs.push(await new Backup().load(backupPath));
+            }
+        }
+
+        return dirs;
+    }
+
+    /**
+     * Find and existing backup
+     * 
+     * @param id Backup id
+     */
+    public async findOne(id: number): Promise<Backup> {
+        const backups: Array<Backup> = await this.getAll();
+        const matches: Array<Backup> = backups.filter((backup: Backup) => {
+            return backup.id === id;
+        });
+
+        return matches.length > 0 ? matches[0] : null;
+    }
+
+    /**
+     * Creates a new backup
+     */
+    public async create(): Promise<Backup> {
+        const backup: Backup = new Backup();
+        await backup.create(this._config.data_dir);
+        await this.applyRetentionPolicy();
+        return backup;
+    }
+
+    /**
+     * 
+     * @param backup Restores an existing backup
+     */
+    public async restore(backup: Backup): Promise<Backup> {
+        if (backup.exists()) {
+            return await backup.restore();
+        }
+
+        throw new BackupNotFoundException(backup.path);
+    }
+
+    public async delete(backup: Backup): Promise<Backup> {
+        return await backup.destroy();
+    }
+
+    /**
+     * Applies the retention policy
+     */
+    public async applyRetentionPolicy(): Promise<Array<Backup>> {
+        let deletedBackups: Array<Backup> = [];
+        const backups: Array<Backup> = await this.getAll();
+
+        if (this.shouldApplyRetentionPolicyByBackupCount()) {
+            deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByBackupCount());
+        }
+
+        if (this.shouldApplyRetentionpolicyByExpirationDate()) {
+            deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByExpirationDate());
+        }
+
+        return deletedBackups;
+    }
+
+    /**
+     * Returns whether retention policy by backup counts should be applied
+     */
+    protected shouldApplyRetentionPolicyByBackupCount(): boolean {
+        return this._config.default_max_copies !== 0;
+    }
+
+    /**
+     * Returns whether retention policy by expiration date should be applied
+     */
+    protected shouldApplyRetentionpolicyByExpirationDate(): boolean {
+        return this._config.default_max_days !== 0;
+    }
+
+    /**
+     * Applies the retention policy by backup count
+     */
+    protected async applyRetentionPolicyByBackupCount(): Promise<Array<Backup>> {
+        const deletedBackups: Array<Backup> = [];
+
+        const sortedBackups = (await this.getAll()).sort((a: Backup, b: Backup) => {
+            return a.id > b.id ? 1 : -1;
+        });
+
+        while (sortedBackups.length > this._config.default_max_copies) {
+            let deletedBackup = sortedBackups.shift();
+            deletedBackups.push(await deletedBackup.destroy());
+        }
+
+        return deletedBackups;
+    }
+
+    /**
+     * Applies retention policy by expiration date
+     */
+    protected async applyRetentionPolicyByExpirationDate(): Promise<Array<Backup>> {
+        const backups: Array<Backup> = await this.getAll();
+        const deletedBackups: Array<Backup> = [];
+        const expirationTimestamp: Moment = moment().subtract(this._config.default_max_days, 'days');
+
+        for(let i = 0; i < backups.length; i++) {
+            if (backups[i].date.isBefore(expirationTimestamp)) {
+                deletedBackups.push(await backups[i].destroy());
+            }
+        }
+
+        return deletedBackups;
+    }
+
+    public async updateConfig(config: CustomBackupConfig): Promise<CustomBackupConfig> {
+        const cronTime: CronTime = new CronTime(config.schedule);
+        this._runningJob.setTime(cronTime);
+        this._runningJob.start();
+
+        logger.info(`New backup cron task schedule: ${config.schedule}`);
+
+        await this.writeConfig(config);
+        this._config = config;
+        return this._config;
+    }
+
+    /**
+     * Returns the backup full path
+     */
+    protected getBackupDirectory() {
+        return path.join(this._app.path, this._config.data_dir);
+    }
+
+    protected async readConfig(): Promise<any> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const backupConfigFile: string = path.join(this._config.data_dir, this._config.config_file);
+                if (!fs.existsSync(backupConfigFile)) {
+                    return resolve({
+                        schedule: this._config.default_schedule,
+                        max_copies: this._config.default_max_copies,
+                        max_days: this._config.default_max_days
+                    }); // Default config.
+                }
+
+                const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
+                resolve(backupConfig);
+            } catch (error) { reject(error) }
+        });
+    }
+
+    protected async writeConfig(config: CustomBackupConfig): Promise<CustomBackupConfig> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!fs.existsSync(this._config.data_dir))
+                    await fse.mkdirp(this._config.data_dir);
+
+                const backupConfigFile = path.join(this._config.data_dir, this._config.config_file);
+                fs.writeFileSync(backupConfigFile, JSON.stringify(config), 'utf8');
+                resolve();
+            } catch (error) { reject(error) }
+        });
+    }
+}

@@ -30,7 +30,7 @@ export abstract class Middleware {
 
     private safeHandler(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = this.handle(req, res, next);
+            this.handle(req, res, next);
         } catch (e) {
             console.error(e);
             throw e;

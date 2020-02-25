@@ -15,7 +15,9 @@ module.exports = {
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
+    "globalSetup" : './jest/global-setup.ts',
+    "globalTeardown": './jest/global-teardown.ts',
     "setupFilesAfterEnv": [
-        './setup.ts'
+        './jest/setup-after-env.ts',
     ]
 }

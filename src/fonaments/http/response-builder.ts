@@ -25,6 +25,7 @@ import { isResponsable } from "../../fonaments/contracts/responsable"
 import { InternalServerException } from "../exceptions/internal-server-exception";
 import { HttpException } from "../exceptions/http/http-exception";
 import { AbstractApplication, app } from "../abstract-application";
+import { isArray } from "util";
 
 export class ResponseBuilder {
     protected _status: number;
@@ -44,7 +45,9 @@ export class ResponseBuilder {
             this._res = this._res.status(this._status);
         }
 
-        this._res.send(this.buildResponse(payload));
+        payload = this.buildResponse(payload);
+
+        this._res.send(payload);
 
         return this;
     }
@@ -58,7 +61,33 @@ export class ResponseBuilder {
             return this.buildErrorResponse(payload);
         }
 
-        return payload;
+        return this.buildDataResponse(payload);
+    }
+
+    protected buildDataResponse(payload: Object): Object {
+        if (payload === null || payload === undefined) {
+            return {};
+        }
+
+        if (isArray(payload)) {
+            return this.buildArrayDataResponse(payload);
+        }
+
+        if (isResponsable(payload)) {
+            return payload.toResponse();
+        }
+
+        return {};
+    }
+
+    protected buildArrayDataResponse(payload: Array<any>): Array<Object> {
+        const result: Array<Object> = [];
+
+        for(let i = 0; i < payload.length; i++) {
+            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : {});
+        }
+
+        return result;
     }
 
     protected buildErrorResponse(payload: Error): Object {
@@ -67,7 +96,10 @@ export class ResponseBuilder {
         }
 
         if (this._app.config.get('env') !== 'prod') {
-            return payload;
+            return {
+                message: payload.message,
+                stack: payload.stack
+            };
         }
 
         // In case the exception is not an http exception we generate a 500 exception

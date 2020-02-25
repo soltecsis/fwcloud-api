@@ -30,7 +30,8 @@ export class RouterServiceProvider extends ServiceProvider {
     
     public async register(serviceContainer: ServiceContainer): Promise<void> {
         serviceContainer.singleton(RouterService.name, async (app: AbstractApplication): Promise<Service> => {
-            return new RouterService(app);
+            const service: RouterService = new RouterService(app);
+            return await service.make();
         });
     }
 }

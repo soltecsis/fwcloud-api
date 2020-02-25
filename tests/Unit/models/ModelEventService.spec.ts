@@ -4,9 +4,8 @@ import { runApplication, randomString, getDatabaseConnection } from '../../utils
 import modelEventService from '../../../src/models/ModelEventService'
 import { getRepository } from 'typeorm';
 import { FirewallTest } from './fixtures/FirewallTest';
-import Model from '../../../src/models/Model';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
-import db from '../../../src/database/DatabaseService';
+import db from '../../../src/database/database-manager';
 
 
 let application: Application;

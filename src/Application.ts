@@ -41,6 +41,10 @@ import { AttachDatabaseConnection } from './middleware/AttachDatabaseConnection'
 import { Throws404 } from './middleware/Throws404';
 import { ErrorResponse } from './middleware/ErrorResponse';
 import { RequestBuilder } from './middleware/RequestBuilder';
+import { ServiceProvider } from './fonaments/services/service-provider';
+import { BackupServiceProvider } from './backups/backup.provider';
+import { CronServiceProvider } from './backups/cron/cron.provider';
+import { AuthorizationTest } from './middleware/AuthorizationTest';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
@@ -62,8 +66,11 @@ export class Application extends AbstractApplication {
     public async bootstrap() {
         await super.bootstrap();
 
-        await this.startDatabaseService();
-        this.startBackupCronJob();
+    protected providers(): Array<typeof ServiceProvider> {
+        return [
+            CronServiceProvider,
+            BackupServiceProvider
+        ]
     }
 
     protected beforeMiddlewares(): Array<any> {
@@ -76,7 +83,7 @@ export class Application extends AbstractApplication {
             AttachDatabaseConnection,
             Session,
             CORS,
-            Authorization,
+            this.config.get('env') !== 'test' ? Authorization: AuthorizationTest,
             ConfirmationToken,
             InputValidation,
             AccessControl

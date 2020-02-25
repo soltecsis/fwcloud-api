@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from "../../config/config"
 import { Application } from "../../Application";
 import { DatabaseService } from "../../database/database.service";
 
@@ -31,32 +28,22 @@ import { DatabaseService } from "../../database/database.service";
 /**
  * Runs migration command.
  */
-export class MigrationRunCommand implements yargs.CommandModule {
+export class MigrationImportDataCommand implements yargs.CommandModule {
 
-    command = "migration:run";
-    describe = "Run all migrations";
+    command = "migration:data";
+    describe = "Import default data";
 
     builder(args: yargs.Argv) {
-        return args
-            .option("connection", {
-                alias: "c",
-                default: "default",
-                describe: "Name of the connection on which run a query."
-            })
-            .option("config", {
-                alias: "f",
-                default: "ormconfig",
-                describe: "Name of the file with connection configuration."
-            });
+        return args;
     }
 
     async handler(args: yargs.Arguments) {
         const app: Application = new Application();
         await app.bootstrap();
         const databaseService: DatabaseService = await app.getService(DatabaseService.name);
-
+        
         try {
-            await databaseService.runMigrations();
+            await databaseService.feedDefaultData();
             process.exit(0);
         } catch (err) {
             console.log("Error during migration run:");

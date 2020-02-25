@@ -46,9 +46,14 @@ export class RouterService extends Service {
 
     constructor(_app: AbstractApplication) {
         super(_app);
+    }
+
+    public async make(): Promise<RouterService> {
         this._express = this._app.express;
         this._router = this._express;
         this._list = [];
+
+        return this;
     }
 
     public registerRoutes() {
@@ -135,7 +140,14 @@ export class RouterService extends Service {
                 }
             }
 
-            return (new controller(this._app))[method](req,res);
+            try {
+                const controllerInstance = new controller(this._app);
+                await controllerInstance.make();
+
+                return await controllerInstance[method](req,res);
+            } catch (e) {
+                return next(e);
+            }
             
         });
     }

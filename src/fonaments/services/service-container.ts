@@ -26,8 +26,8 @@ import { AbstractApplication } from "../abstract-application";
 export interface ServiceBound {
     singleton: boolean,
     name: string,
-    target: CallableFunction,
-    instance: Promise<Service>
+    target: (app: AbstractApplication) => Promise<Service>,
+    instance: Service
 }
 
 export class ServiceContainer {
@@ -65,7 +65,7 @@ export class ServiceContainer {
             singleton: true,
             name: name,
             target: target,
-            instance: target(this.app)
+            instance: null
         });
     }
 
@@ -79,11 +79,11 @@ export class ServiceContainer {
             const target = service.target
 
             if (service.singleton && service.instance === null) {
-                service.instance = service.target(this.app);
+                service.instance = await service.target(this.app);
             }
 
             if (service.singleton && service.instance !== null) {
-                return await service.instance;
+                return service.instance;
             }
 
             return await service.target(this.app);
