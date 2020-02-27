@@ -5,7 +5,6 @@ import * as path from "path";
 import { DatabaseService } from "../../../src/database/database.service";
 import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
-import { backup_id } from "../../../src/middleware/joi_schemas/shared";
 
 let app: AbstractApplication;
 let service: BackupService;

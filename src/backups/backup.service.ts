@@ -30,8 +30,6 @@ import { BackupNotFoundException } from "./exceptions/backup-not-found-exception
 import { CronTime, CronJob } from "cron";
 import { CronService } from "./cron/cron.service";
 import * as fse from "fs-extra";
-import { AbstractApplication } from "../fonaments/abstract-application";
-import { BackupServiceProvider } from "./backup.provider";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 const logger = require('log4js').getLogger("app");

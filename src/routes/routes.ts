@@ -24,6 +24,8 @@ import { RouteCollection } from "../fonaments/http/router/route-collection";
 import { RouterService } from "../fonaments/http/router/router.service";
 import { BackupController } from "../controllers/backups/backup.controller";
 import { BackupConfigController } from "../controllers/backups/backup-config.controller";
+import { CreateBackupValidator } from "../validators/create-backup.validator";
+import { UpdateBackupConfigValidator } from "../validators/update-backup-config.validator";
 
 export class Routes extends RouteCollection {
     
@@ -31,11 +33,12 @@ export class Routes extends RouteCollection {
         
         //Backups
         router.get('/backups', BackupController, 'index');
-        router.post('/backups', BackupController, 'create');
+        router.post('/backups', BackupController, 'create', CreateBackupValidator);
         router.get('/backups/:id(\\d+)', BackupController, 'show');
         router.post('/backups/:id(\\d+)/restore', BackupController, 'restore');
         router.delete('/backups/:id(\\d+)', BackupController, 'delete', );
-        router.put('/backups/config', BackupConfigController, 'update');
+        
+        router.put('/backups/config', BackupConfigController, 'update', UpdateBackupConfigValidator);
         router.get('/backups/config', BackupConfigController, 'show');
     }
 }
