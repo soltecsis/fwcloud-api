@@ -206,7 +206,7 @@ export class User extends Model {
         return new Promise(async (resolve, reject) => {
             req.dbCon.query(`select role from ${tableName} where id=${req.session.user_id}`, (error, result) => {
                 if (error) return reject(error);
-                if (result.length === 0) return reject(fwcError.NOT_FOUND);
+                if (result.length === 0) reject(fwcError.NOT_FOUND);
 
                 resolve(result[0].role === 1 ? true : false);
             });

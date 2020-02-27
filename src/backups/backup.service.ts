@@ -8,6 +8,9 @@ import { BackupNotFoundException } from "./exceptions/backup-not-found-exception
 import { CronTime, CronJob } from "cron";
 import { CronService } from "./cron/cron.service";
 import * as fse from "fs-extra";
+import { AbstractApplication } from "../fonaments/abstract-application";
+import { BackupServiceProvider } from "./backup.provider";
+import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 const logger = require('log4js').getLogger("app");
 
@@ -27,12 +30,14 @@ export class BackupService extends Service {
     protected _schedule: string;
     protected _task: any;
 
+    public get config(): any {
+        return this._config;
+    }
 
-    async make(): Promise<BackupService> {
+    public async build(): Promise<BackupService> {
         this._config = this._app.config.get('backup');
-        this._db = await this._app.getService(DatabaseService.name);
-        this._cronService = await this._app.getService(CronService.name);
-
+        this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
+        this._cronService = await this._app.getService<CronService>(CronService.name);
         let backupDirectory: string = this._config.data_dir;
 
         if (!fs.existsSync(backupDirectory)) {
@@ -84,6 +89,16 @@ export class BackupService extends Service {
         });
 
         return matches.length > 0 ? matches[0] : null;
+    }
+
+    public async findOneOrDie(id: number): Promise<Backup> {
+        const backup: Backup = await this.findOne(id);
+
+        if (backup) {
+            return backup;
+        }
+
+        throw new NotFoundException();
     }
 
     /**

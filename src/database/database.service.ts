@@ -1,7 +1,10 @@
 import { Service } from "../fonaments/services/service";
-import { Connection, createConnection, QueryRunner, Migration, MigrationExecutor } from "typeorm";
+import { Connection, createConnection, QueryRunner, Migration, MigrationExecutor, getConnectionManager } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
+import { timingSafeEqual } from "crypto";
+import moment = require("moment");
+import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 
 export interface DatabaseConfig {
     host: string,
@@ -14,19 +17,22 @@ export interface DatabaseConfig {
 }
 
 export class DatabaseService extends Service {
-
-    protected _connected: boolean;
+    protected _id: number;
     protected _connection: Connection;
     protected _config: DatabaseConfig;
 
-    public async start(): Promise<Service> {
+    public async build(): Promise<DatabaseService> {
         this._config = this._app.config.get('db');
-        this._connected = false;
         this._connection = null;
+        this._id = moment().valueOf();
 
-        await this.init();
-
+        await this.startDefaultConnection();
+        
         return this;
+    }
+
+    public async close(): Promise<void> {
+        await this.connection.close();
     }
 
     get config(): any {
@@ -37,60 +43,64 @@ export class DatabaseService extends Service {
         return this._connection;
     }
 
-    public async init() {
-        if (this._connected) {
-            return this._connection;
-        }
+    protected async startDefaultConnection(): Promise<void> {
+        this._connection = await this.createConnection();
+    }
 
-
-        this._connection = await createConnection({
-            type: 'mysql',
-            host: this._config.host,
-            port: this._config.port,
-            database: this._config.name,
-            username: this._config.user,
-            password: this._config.pass,
-            subscribers: [],
-            synchronize: false,
-            migrationsRun: false,
-            dropSchema: false,
-            logging: ["error", "query"],
-            migrations: this._config.migrations,
-            cli: {
-                migrationsDir: this._config.migration_directory
-            }
-        }).catch(e => {
-            console.error('Unable to connect to MySQL: ' + e.message);
-            process.exit(1);
-        });
-
-        this._connected = true;
-        return this._connection;
+    public async createConnection(): Promise<Connection> {
+        try {
+            return await createConnection({
+                name: this._id.toString(),
+                type: 'mysql',
+                host: this._config.host,
+                port: this._config.port,
+                database: this._config.name,
+                username: this._config.user,
+                password: this._config.pass,
+                subscribers: [],
+                synchronize: false,
+                migrationsRun: false,
+                dropSchema: false,
+                logging: ["error"],
+                migrations: this._config.migrations,
+                cli: {
+                    migrationsDir: this._config.migration_directory
+                },
+                entities: [
+                    path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
+                    FirewallTest
+                ]
+            });
+        } catch(e) {
+            throw e;
+        };
     }
 
     public async emptyDatabase(): Promise<void> {
-        const queryRunner: QueryRunner = this.getQueryRunner();
-        queryRunner.startTransaction();
+        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+        await queryRunner.startTransaction();
 
         try {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
             const tables: Array<string> = await this.getTables();
 
-            for(let i = 0; i < tables.length; i++) {
+            for (let i = 0; i < tables.length; i++) {
                 await queryRunner.dropTable(tables[i]);
             }
 
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            queryRunner.commitTransaction();
+            await queryRunner.commitTransaction();
         } catch (e) {
-            queryRunner.rollbackTransaction();
+            await queryRunner.rollbackTransaction();
             throw e;
+        } finally {
+            await queryRunner.release();
         }
     }
 
     public async isDatabaseEmpty(): Promise<boolean> {
-        const queryRunner: QueryRunner = this.getQueryRunner();
+        const queryRunner: QueryRunner = this._connection.createQueryRunner();
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
 
         return result.length === 0;
@@ -100,20 +110,8 @@ export class DatabaseService extends Service {
         return await this.connection.runMigrations();
     }
 
-    public async resetMigrations() {
-        const migrationExecutor: MigrationExecutor = new MigrationExecutor(this.connection)
-        
-        // get all migrations that are executed and saved in the database
-        const executedMigrations = await migrationExecutor.getPendingMigrations();
-
-        if (executedMigrations.length <= 0) {
-            this.connection.logger.logSchemaBuild(`No migrations was found in the database. Nothing to reset!`);
-            return;
-        }
-
-        for (let i: number = 0; i < executedMigrations.length; i++) {
-            await migrationExecutor.undoLastMigration();
-        }
+    public async resetMigrations(): Promise<void> {
+        return await this.emptyDatabase();
     }
 
     public async feedDefaultData(): Promise<void> {
@@ -122,31 +120,33 @@ export class DatabaseService extends Service {
     }
 
     public async removeData(): Promise<void> {
-        const queryRunner: QueryRunner = this.getQueryRunner();
-        queryRunner.startTransaction();
+        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+        
+        await queryRunner.startTransaction();
 
         try {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
             const tables: Array<string> = await this.getTables();
 
-            for(let i = 0; i < tables.length; i++) {
+            for (let i = 0; i < tables.length; i++) {
                 await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
             }
-            
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            queryRunner.commitTransaction();
-        } catch (e) {
-            queryRunner.rollbackTransaction();
-            throw e;
-        }
-    }
 
-    public getQueryRunner(): QueryRunner {
-        return this.connection.createQueryRunner();
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.commitTransaction();
+        } catch (e) {
+            await queryRunner.rollbackTransaction();
+            throw e;
+        } finally {
+            await queryRunner.release();
+        }
+
+        return;
     }
 
     protected async importSQLFile(path: string): Promise<void> {
+        const queryRunner: QueryRunner = this._connection.createQueryRunner();
         const queries = fs.readFileSync(path, { encoding: 'UTF-8' })
             .replace(new RegExp('\'', 'gm'), '"')
             .replace(new RegExp('^--.*\n', 'gm'), '')
@@ -154,21 +154,33 @@ export class DatabaseService extends Service {
             .replace(/\s+/g, ' ')
             .split(';');
 
-        for (let i = 0; i < queries.length; i++) {
-            let query = queries[i].trim();
+        await queryRunner.startTransaction();
 
-            if (query !== '') {
-                await this.getQueryRunner().query(query);
+        try {
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+            
+            for (let i = 0; i < queries.length; i++) {
+                let query = queries[i].trim();
+    
+                if (query !== '') {
+                    await queryRunner.query(query);
+                }
             }
+            
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.commitTransaction();
+        } catch (e) {
+            await queryRunner.rollbackTransaction();
+            throw e;
         }
     }
 
     protected async getTables(): Promise<Array<string>> {
-        const queryRunner: QueryRunner = this.connection.createQueryRunner();
+        const queryRunner: QueryRunner = this._connection.createQueryRunner();
 
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
 
-        return result.map((row) => {
+        const tables: Array<string> = result.map((row) => {
             if (row.hasOwnProperty('table_name')) {
                 return row.table_name;
             }
@@ -177,6 +189,10 @@ export class DatabaseService extends Service {
                 return row.TABLE_NAME;
             }
         })
+
+        await queryRunner.release();
+
+        return tables;
     }
 
 

@@ -20,10 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ErrorMiddleware } from "../fonaments/http/middleware/ErrorMiddleware";
 import { Request, Response, NextFunction } from "express";
 import { ResponseBuilder } from "../fonaments/http/response-builder";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
+import { ErrorMiddleware } from "../fonaments/http/middleware/Middleware";
+import { app } from "../fonaments/abstract-application";
 
 export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {

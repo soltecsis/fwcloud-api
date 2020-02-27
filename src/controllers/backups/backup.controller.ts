@@ -4,12 +4,14 @@ import { app } from "../../fonaments/abstract-application";
 import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request, Response } from "express";
+import { Authorized } from "../../fonaments/authorization/policy";
+import { SpawnServiceException } from "../../fonaments/exceptions/service-container/spawn-service-exception";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
 
     async make() {
-        this._backupService = await app().getService(BackupService.name);
+        this._backupService = await app().getService<BackupService>(BackupService.name);
     }
 
     /**
@@ -29,7 +31,7 @@ export class BackupController extends Controller {
     public async show(request: Request, response: Response) {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOne(parseInt(request.params.id));
+        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.id));
 
         ResponseBuilder.make(response).status(200).send(backup);
     }

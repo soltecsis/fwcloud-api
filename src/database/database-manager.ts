@@ -41,14 +41,10 @@ export class DatabaseManager {
         name: string
     } = config.get('db');
 
-
-    constructor() {
-
-    }
-
     public async connect(app: AbstractApplication): Promise<Connection> {
-        this._connection = (await app.getService(DatabaseService.name)).connection;
-        this._connected = true;
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+
+        this._connection = databaseService.connection;
         return this._connection;
     }
 

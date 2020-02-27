@@ -12,7 +12,7 @@ type SessionData = {
 
 export class AuthorizationTest extends Middleware {
     public handle(req: Request, res: Response, next: NextFunction): void {
-        const logger = this.app.logger;
+        //const logger = this.app.logger;
 
         // Exclude the login route.
         if (req.method === 'POST' && req.path === '/user/login') {
@@ -40,7 +40,7 @@ export class AuthorizationTest extends Middleware {
                 req.session.username = session_data.username;
 
                 // If we arrive here, then the session is correct.
-                logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
+                //logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
                 return next();
             }
 

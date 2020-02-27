@@ -21,15 +21,15 @@
 */
 
 import { ServiceProvider } from "../services/service-provider";
-import { ServiceContainer } from "../services/service-container";
+import { ServiceContainer, ServiceBound } from "../services/service-container";
 import { AuthorizationService } from "./authorization.service";
 import { AbstractApplication } from "../abstract-application";
 import { Service } from "../services/service";
 
 export class AuthorizationServiceProvider extends ServiceProvider {
-    public async register(serviceContainer: ServiceContainer): Promise<void> {
-        serviceContainer.singleton(AuthorizationService.name, async (app: AbstractApplication): Promise<Service> => {
-            return new AuthorizationService(app);
+    public register(serviceContainer: ServiceContainer): ServiceBound {
+        return serviceContainer.singleton(AuthorizationService.name, async (app: AbstractApplication): Promise<AuthorizationService> => {
+            return AuthorizationService.make(app);
         });
     }
 }

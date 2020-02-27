@@ -31,10 +31,10 @@ export class CORS extends Middleware {
             credentials: true,
             origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {
                 if (this.app.config.get('CORS').whitelist.indexOf(origin) !== -1) {
-                    this.app.logger.debug('Origin Allowed: ' + origin);
+                    //this.app.logger.debug('Origin Allowed: ' + origin);
                     callback(null, true);
                 } else {
-                    this.app.logger.debug('Origin not allowed by cors: ' + origin);
+                    //this.app.logger.debug('Origin not allowed by cors: ' + origin);
                     callback(new Error('Origin not allowed by CORS: ' + origin));
                 }
             }

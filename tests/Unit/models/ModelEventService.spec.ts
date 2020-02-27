@@ -1,20 +1,25 @@
+import '../../mocha/global-setup';
+import { expect } from 'chai';
+
 import { Firewall } from '../../../src/models/firewall/Firewall';
 import { Application } from '../../../src/Application';
-import { runApplication, randomString, getDatabaseConnection } from '../../utils/utils';
 import modelEventService from '../../../src/models/ModelEventService'
-import { getRepository } from 'typeorm';
 import { FirewallTest } from './fixtures/FirewallTest';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
-import db from '../../../src/database/database-manager';
+import { randomString } from "../utils/../../utils/utils"
+import { testSuite, describeName } from "../../mocha/global-setup";
+import db from "../../../src/database/database-manager";
+import { RepositoryService } from '../../../src/database/repository.service';
 
-
-let application: Application;
+let app: Application;
+let repository: RepositoryService;
 
 beforeEach(async () => {
-    application = await runApplication();
-});
+    app = testSuite.app;
+    repository = await app.getService<RepositoryService>(RepositoryService.name);
+})
 
-describe('ModelEventService tests', () => {
+describe(describeName('ModelEventService tests'), () => {
     it('emit model event with a callback should run the callback', async () => {
         const name = randomString();
         const fwcloud = await FwCloud.insertFwcloud({
@@ -31,40 +36,40 @@ describe('ModelEventService tests', () => {
 
         const newName = randomString();
         await modelEventService.emit('create', Firewall, id, async () => {
-            return await getRepository(Firewall).update(id, { name: newName });
+            return await repository.for(Firewall).update(id, { name: newName });
         });
 
-        expect((await getRepository(Firewall).findOne(id)).name).toBe(newName);
+        expect((await repository.for(Firewall).findOne(id)).name).to.be.deep.equal(newName);
     });
 
     it('emit model event over a model should run a model method if exists', async () => {
         const name = randomString();
-        let firewall = getRepository(FirewallTest).create({ name: name });
-        firewall = await getRepository(FirewallTest).save(firewall);
+        let firewall = repository.for(FirewallTest).create({ name: name });
+        firewall = await repository.for(FirewallTest).save(firewall);
 
         await modelEventService.emit('create', FirewallTest, firewall.id);
 
-        expect((await getRepository(Firewall).findOne(firewall.id)).name).toBe('onCreate called');
+        expect((await repository.for(Firewall).findOne(firewall.id)).name).to.be.deep.equal('onCreate called');
     });
 
     it('emit model event using where arguments should update the models with that where-clausules', async () => {
         const name = randomString();
-        let firewall = getRepository(FirewallTest).create({ name: name });
-        firewall = await getRepository(FirewallTest).save(firewall);
+        let firewall = repository.for(FirewallTest).create({ name: name });
+        firewall = await repository.for(FirewallTest).save(firewall);
 
         await modelEventService.emit('create', FirewallTest, { name: name });
 
-        expect((await getRepository(Firewall).findOne(firewall.id)).name).toBe('onCreate called');
+        expect((await repository.for(Firewall).findOne(firewall.id)).name).to.be.deep.equal('onCreate called');
     });
 
     it('emit model event using a model instance should update the instanced model', async() => {
         const name = randomString();
-        let firewall = getRepository(FirewallTest).create({ name: name });
-        firewall = await getRepository(FirewallTest).save(firewall);
+        let firewall = repository.for(FirewallTest).create({ name: name });
+        firewall = await repository.for(FirewallTest).save(firewall);
 
         await modelEventService.emit('create', FirewallTest, firewall);
 
-        expect((await getRepository(Firewall).findOne(firewall.id)).name).toBe('onCreate called');
+        expect((await repository.for(Firewall).findOne(firewall.id)).name).to.deep.equal('onCreate called');
     });
 
     it('emit model event using an empty criteria should not throw an exception', async () => {
@@ -72,17 +77,17 @@ describe('ModelEventService tests', () => {
     });
 
     it('emit model event using an array of model instance should update all model instances', async() => {
-        let firewall = getRepository(FirewallTest).create({ name: randomString() });
-        let firewall2 = getRepository(FirewallTest).create({ name: randomString() });
+        let firewall = repository.for(FirewallTest).create({ name: randomString() });
+        let firewall2 = repository.for(FirewallTest).create({ name: randomString() });
         
-        firewall = await getRepository(FirewallTest).save(firewall);
-        firewall2 = await getRepository(FirewallTest).save(firewall2);
+        firewall = await repository.for(FirewallTest).save(firewall);
+        firewall2 = await repository.for(FirewallTest).save(firewall2);
 
-        const firewalls = await getRepository(FirewallTest).find({});
+        const firewalls = await repository.for(FirewallTest).find({});
 
         await modelEventService.emit('create', FirewallTest, firewalls);
 
-        expect((await getRepository(Firewall).findOne(firewall.id)).name).toBe('onCreate called');
-        expect((await getRepository(Firewall).findOne(firewall2.id)).name).toBe('onCreate called');
+        expect((await repository.for(Firewall).findOne(firewall.id)).name).to.be.deep.equal('onCreate called');
+        expect((await repository.for(Firewall).findOne(firewall2.id)).name).to.be.deep.equal('onCreate called');
     });
 });

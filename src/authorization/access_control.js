@@ -28,6 +28,7 @@ export default accessCtrl;
 
 import { User } from '../models/user/User';
 import { Firewall } from '../models/firewall/Firewall';
+import { AuthorizationException } from '../fonaments/exceptions/authorization-exception';
 const fwcError = require('../utils/error_table');
 const logger = require('log4js').getLogger("app");
 
@@ -69,10 +70,11 @@ accessCtrl.check = async (req, res, next) => {
 	}
 
 	// Backups can only be managed by users with the admin role.
-	if (req.url.substring(0,7)==="/backup") {
-		if (await User.isLoggedUserAdmin(req))
+	if (req.url.substring(0,8)==="/backups") {
+		if (await User.isLoggedUserAdmin(req)) {
 			return next();
-		return res.status(400).json(fwcError.NOT_ADMIN_USER);		
+		}
+		return next(new AuthorizationException());
 	}
 
 	try {

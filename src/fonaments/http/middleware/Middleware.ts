@@ -22,9 +22,12 @@
 
 import { Application } from "../../../Application";
 import { Request, Response, NextFunction } from "express";
+import { AbstractApplication } from "../../abstract-application";
+
+export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
 
 export abstract class Middleware {
-    protected app: Application;
+    protected app: AbstractApplication;
 
     public abstract handle(req: Request, res: Response, next: NextFunction): void;
 
@@ -37,10 +40,32 @@ export abstract class Middleware {
         }
     }
 
-    public register(app: Application) {
+    public register(app: AbstractApplication) {
         this.app = app;
         app.express.use((req: Request, res: Response, next: NextFunction) => {
             this.safeHandler(req, res, next);
+        });
+    }
+}
+
+export abstract class ErrorMiddleware {
+    protected app: Application;
+
+    public abstract handle(error: any, req: Request, res: Response, next: NextFunction): void;
+
+    private safeHandler(error: any, req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = this.handle(error, req, res, next);
+        } catch (e) {
+            console.error(e);
+            throw e;
+        }
+    }
+
+    public register(app: Application) {
+        this.app = app;
+        app.express.use((error: any, req: Request, res: Response, next: NextFunction) => {
+            this.safeHandler(error, req, res, next);
         });
     }
 }

@@ -1,4 +1,3 @@
-import { Application } from "../../src/Application";
 import { User } from "../../src/models/user/User";
 import * as path from 'path';
 import { app } from "../../src/fonaments/abstract-application";
@@ -6,23 +5,6 @@ import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
-import { DatabaseService } from "../../src/database/database.service";
-
-export async function runApplication(resetDatabase: boolean = true): Promise<Application> {
-    try {
-        const application: Application = new Application();
-        await application.bootstrap();
-        let databaseService: DatabaseService = await application.getService(DatabaseService.name);
-
-        if (resetDatabase) {
-            await databaseService.resetMigrations();
-            await databaseService.runMigrations();
-            await databaseService.feedDefaultData();
-        }
-
-        return application;
-    } catch(e) {console.error(e);}
-}
 
 export function randomString(length: number = 10) {
     var result = '';
@@ -63,4 +45,3 @@ export async function sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
     return;
 }
-

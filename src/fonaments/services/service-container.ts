@@ -41,39 +41,57 @@ export class ServiceContainer {
         this._services = [];
     }
 
+    public async close(): Promise<void> {
+        for(let i = 0; i < this._services.length; i++) {
+            if (this._services[i].singleton && this._services[i].instance !== null) {
+                await this._services[i].instance.close();
+            }
+        }
+    }
+
     get services(): Array<ServiceBound> {
         return this._services;
     }
 
-    public bind(name: string, target: (app: AbstractApplication) => Promise<Service>): Promise<void> {
+    public bind<T extends Service>(name: string, target: (app: AbstractApplication) => Promise<T>): ServiceBound {
         if (this.isBound(name)) {
             throw new Error('Service ' + name + 'has been already bound');
         }
 
-        this._services.push({
+        const bound: ServiceBound = {
             singleton: false,
             name: name,
             target: target,
             instance: null
-        });
+        }
 
-        return;
+        this._services.push(bound);
+
+        return bound;
     }
 
-    public async singleton(name: string, target: (app: AbstractApplication) => Promise<Service>): Promise<void> {
-        this._services.push({
+    public singleton<T extends Service>(name: string, target: (app: AbstractApplication) => Promise<T>): ServiceBound {
+        if (this.isBound(name)) {
+            throw new Error('Service ' + name + 'has been already bound');
+        }
+
+        const bound: ServiceBound = {
             singleton: true,
             name: name,
             target: target,
             instance: null
-        });
+        }
+        
+        this._services.push(bound);
+
+        return bound;
     }
 
     public isBound(name: string): boolean {
         return this.find(name) !== null;
     }
 
-    public async get(name: string): Promise<Service> {
+    public async get<T extends Service>(name: string): Promise<T> {
         if (this.isBound(name)) {
             const service = this.find(name);
             const target = service.target
@@ -83,10 +101,10 @@ export class ServiceContainer {
             }
 
             if (service.singleton && service.instance !== null) {
-                return service.instance;
+                return <T>service.instance;
             }
 
-            return await service.target(this.app);
+            return <T>await service.target(this.app);
         }
 
         return null;

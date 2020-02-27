@@ -23,6 +23,19 @@
 import { AbstractApplication } from "../abstract-application";
 
 
-export abstract class Service {
-    constructor(protected _app: AbstractApplication) { }
+export class Service {
+    protected constructor(protected _app: AbstractApplication) { }
+
+    public async build(): Promise<Service> {
+        return this;
+    }
+
+    public async close(): Promise<void> {
+        return;
+    }
+
+    static async make<T extends Service>(app: AbstractApplication): Promise<T> {
+        const service: T = <T>new this(app);
+        return <T>await service.build();
+    }
 }

@@ -27,7 +27,7 @@ export abstract class AuthorizationResponse {
     protected _authorizationService: AuthorizationService;
     
     async authorize(): Promise<void> {
-        this._authorizationService = await app().getService(AuthorizationService.name);
+        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
     }
     
     static revoke() {
@@ -61,7 +61,7 @@ export class Policy {
     }
     
     protected async authorize(): Promise<void> {
-        this._authorizationService = await app().getService(AuthorizationService.name);
+        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
         if (!this.authorized) {
             this._authorizationService.revokeAuthorization();
         }

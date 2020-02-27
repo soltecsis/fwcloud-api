@@ -21,14 +21,18 @@
 */
 
 import Model from './Model';
-import { getRepository } from 'typeorm';
 import StringHelper from '../utils/StringHelper';
+import { RepositoryService } from '../database/repository.service';
+import { app } from '../fonaments/abstract-application';
+
+let repository: RepositoryService
 
 export class ModelEventService {
     constructor() {}
 
     public async emit(event: "create" | "update" | "delete" | "all", model: typeof Model, criteria: any, 
     callback?: (event: "create" | "update" | "delete" | "all", model: typeof Model, criteria: any) => void) {
+        repository = await (app().getService<RepositoryService>(RepositoryService.name));
         if (callback) {
             return callback(event, model, criteria);
         }
@@ -47,6 +51,7 @@ export class ModelEventService {
     }
 
     private async getEntities(model: typeof Model, criteria: number | Object): Promise<Model[]> {
+
         if (criteria instanceof model) {
             return [criteria];
         }
@@ -59,11 +64,11 @@ export class ModelEventService {
     }
 
     private async getEntityById(model: typeof Model, id: number): Promise<Model> {
-        return await getRepository(model).findOne(id)
+        return await repository.for(model).findOne(id)
     }
 
     private async getEntitiesByCriteria(model: typeof Model, criteria: Object): Promise<Model[]> {
-        return await getRepository(model).find(criteria);
+        return await repository.for(model).find(criteria);
     }
 }
 

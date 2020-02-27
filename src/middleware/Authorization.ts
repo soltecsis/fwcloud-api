@@ -27,7 +27,7 @@ import { Request, Response, NextFunction } from "express";
 
 export class Authorization extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
-        const logger = this.app.logger;
+        //const logger = this.app.logger;
 
         // Exclude the login route.
         if (req.method === 'POST' && req.path === '/user/login') {
@@ -60,7 +60,7 @@ export class Authorization extends Middleware {
             }
 
             // If we arrive here, then the session is correct.
-            logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
+            //logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             next();
         } catch (error) { res.status(400).json(error) }
     }

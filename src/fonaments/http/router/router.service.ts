@@ -44,11 +44,7 @@ export class RouterService extends Service {
 
     protected _list: Array<{httpMethod: string, path: PathParams, destination: string}>
 
-    constructor(_app: AbstractApplication) {
-        super(_app);
-    }
-
-    public async make(): Promise<RouterService> {
+    public async build(): Promise<RouterService> {
         this._express = this._app.express;
         this._router = this._express;
         this._list = [];

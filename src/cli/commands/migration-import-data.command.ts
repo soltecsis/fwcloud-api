@@ -38,9 +38,9 @@ export class MigrationImportDataCommand implements yargs.CommandModule {
     }
 
     async handler(args: yargs.Arguments) {
-        const app: Application = new Application();
-        await app.bootstrap();
-        const databaseService: DatabaseService = await app.getService(DatabaseService.name);
+        const app: Application = await Application.run();
+        
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
         
         try {
             await databaseService.feedDefaultData();

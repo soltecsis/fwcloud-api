@@ -61,7 +61,7 @@ export class ResponseBuilder {
             return this.buildErrorResponse(payload);
         }
 
-        return this.buildDataResponse(payload);
+        return {data: this.buildDataResponse(payload)};
     }
 
     protected buildDataResponse(payload: Object): Object {

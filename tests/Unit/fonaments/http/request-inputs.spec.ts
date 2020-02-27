@@ -1,8 +1,7 @@
-import { runApplication } from "../../../utils/utils";
 import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
-import { Request } from "express";
+import { expect, describeName } from "../../../mocha/global-setup";
 
-describe('Request tests', () => {
+describe(describeName('Request tests'), () => {
     it('All inputs from req.body should be listed in the inputs', async() => {
         const req: any = {
             body: {
@@ -12,10 +11,10 @@ describe('Request tests', () => {
         }
 
         const request = new RequestInputs(req);
-        expect(request.all()).toEqual([
-            {name: 'testInput', value: 'testInput'},
-            {name: 'testInput2', value: 'testInput2'},
-        ])
+        expect(request.all()).to.be.deep.equal({
+            'testInput': 'testInput',
+            'testInput2': 'testInput2',
+        })
     });
 
     it('hasInput should return false if an input does not exist', async() => {
@@ -23,7 +22,7 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
         
-        expect(request.has('testInput2')).toBe(false);
+        expect(request.has('testInput2')).to.be.false;
     });
 
     it('hasInput should return true if an input does exist', async() => {
@@ -35,7 +34,7 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
         
-        expect(request.has('testInput')).toBe(true);
+        expect(request.has('testInput')).to.be.true;
     });
 
     it('input should return the value if the input exists', async() => {
@@ -47,7 +46,7 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
 
-        expect(request.get('testInput')).toBe('testInput');
+        expect(request.get('testInput')).to.be.deep.equal('testInput');
     });
 
     it('get should return undefined if the input does not exists', async() => {
@@ -55,7 +54,7 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
 
-        expect(request.get('testInput2')).toBeUndefined();
+        expect(request.get('testInput2')).to.be.undefined;
     });
 
     it('get should return a default value if the input does not exists and a default value is provided', async() => {
@@ -63,7 +62,7 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
 
-        expect(request.get('testInput2', 'defaultValue')).toBe('defaultValue');
+        expect(request.get('testInput2', 'defaultValue')).to.be.deep.equal('defaultValue');
     });
 
     it('query are handled as inputs', async() => {
@@ -78,6 +77,6 @@ describe('Request tests', () => {
 
         const request = new RequestInputs(req);
 
-        expect(request.has('testInput2')).toBeTruthy();
+        expect(request.has('testInput2')).to.be.true;
     });
 });

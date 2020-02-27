@@ -45,17 +45,20 @@ import { ServiceProvider } from './fonaments/services/service-provider';
 import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
+import { Middlewareable } from './fonaments/http/middleware/Middleware';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
 
-    constructor(path: string = process.cwd()) {
-        super();
+    public static async run(): Promise<Application> {
         try {
-            this._logger = this.registerLogger();
-        } catch (e) {
-            console.error('Aplication startup failed: ' + e.message);
-            process.exit(e);
+            const app: Application = new Application();
+            await app.bootstrap();
+            return app;
+        } catch(e) {
+            console.error('Application can not start: ' + e.message);
+            console.error(e.stack);
+            process.exit(1);
         }
     }
 
@@ -63,8 +66,19 @@ export class Application extends AbstractApplication {
         return this._logger;
     }
 
-    public async bootstrap() {
+    public async bootstrap(): Promise<Application> {
         await super.bootstrap();
+        this._logger = await this.registerLogger();
+        await this.startDatabaseService()
+
+        return this;
+    }
+
+    public async close(): Promise<void> {
+        //log4js.shutdown(async () => {
+            await super.close();
+        //});
+    }
 
     protected providers(): Array<typeof ServiceProvider> {
         return [
@@ -73,7 +87,7 @@ export class Application extends AbstractApplication {
         ]
     }
 
-    protected beforeMiddlewares(): Array<any> {
+    protected beforeMiddlewares(): Array<Middlewareable> {
         return [
             EJS,
             BodyParser,
@@ -90,15 +104,15 @@ export class Application extends AbstractApplication {
         ];
     }
 
-    protected afterMiddlewares(): Array<any> {
+    protected afterMiddlewares(): Array<Middlewareable> {
         return [
             Throws404,
             ErrorResponse
         ]
     }
 
-    private registerLogger(): Logger {
-        log4js_extend(log4js, {
+    private async registerLogger(): Promise<Logger> {
+        await log4js_extend(log4js, {
             path: this._path,
             format: "[@file:@line]"
         });
@@ -143,10 +157,6 @@ export class Application extends AbstractApplication {
         this._express.use('/vpn/openvpn', require('./routes/vpn/openvpn/openvpn'));
         this._express.use('/vpn/openvpn/prefix', require('./routes/vpn/openvpn/prefix'));
         this._express.use('/backup', require('./routes/backup/backup'));
-    }
-
-    private startBackupCronJob() {
-        backupModel.initCron(this._express);
     }
 
     private async startDatabaseService() {

@@ -9,6 +9,7 @@ import mysqldump from "mysqldump";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
+import StringHelper from "../utils/StringHelper";
 const mysql_import = require('mysql-import');
 
 export class Backup implements Responsable {
@@ -71,14 +72,14 @@ export class Backup implements Responsable {
      * @param backupPath Backup path
      */
     async load(backupPath: string): Promise<Backup> {
-        const dbConfig: DatabaseConfig = (await app().getService(DatabaseService.name)).config;
+        const dbConfig: DatabaseConfig = (await app().getService<DatabaseService>(DatabaseService.name)).config;
 
         if (fs.statSync(backupPath).isDirectory()) {
             this._date = moment(path.basename(backupPath).replace("_", " "))
             this._id = this._date.valueOf();
             this._name = path.basename(backupPath),
                 this._exists = true;
-            this._backupPath = backupPath
+            this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath): backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
         }
@@ -156,7 +157,7 @@ export class Backup implements Responsable {
      * Exports the database into a file
      */
     protected async exportDatabase(): Promise<void> {
-        const databaseService: DatabaseService = await app().getService(DatabaseService.name);
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const dbConfig: DatabaseConfig = databaseService.config;
 
         try {
@@ -180,7 +181,7 @@ export class Backup implements Responsable {
      */
     protected async importDatabase() {
         return new Promise(async (resolve, reject) => {
-            const databaseService: DatabaseService = await app().getService(DatabaseService.name);
+            const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
             const dbConfig: DatabaseConfig = databaseService.config;
 
             await databaseService.emptyDatabase();
@@ -202,6 +203,7 @@ export class Backup implements Responsable {
             });
 
             await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
+            resolve();
         });
     }
 

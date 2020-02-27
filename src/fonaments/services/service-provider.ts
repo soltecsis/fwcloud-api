@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceContainer } from "./service-container";
+import { ServiceContainer, ServiceBound } from "./service-container";
 import { AbstractApplication } from "../abstract-application";
 
 export interface IServiceProvider {
@@ -33,5 +33,5 @@ export abstract class ServiceProvider implements IServiceProvider {
         this.app = app;
     }
 
-    public abstract async register(serviceContainer: ServiceContainer): Promise<void>;
+    public abstract register(serviceContainer: ServiceContainer): ServiceBound;
 }

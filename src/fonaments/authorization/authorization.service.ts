@@ -33,11 +33,12 @@ export class AuthorizationService extends Service {
     protected _res: Response;
     protected _next: NextFunction;
 
-    constructor(protected _app: AbstractApplication) {
-        super(_app);
+    public async build(): Promise<AuthorizationService> {
         this._next = null;
         this._req = null;
         this._res = null;
+
+        return this;
     }
 
     public bindExpressContext(req: Request, res: Response, next: NextFunction) {

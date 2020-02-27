@@ -26,7 +26,7 @@ import { AuthorizationService } from "./authorization.service";
 
 export class AuthorizationMiddleware extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const authorization: AuthorizationService = await this.app.getService(AuthorizationService.name);
+        const authorization: AuthorizationService = await this.app.getService<AuthorizationService>(AuthorizationService.name);
         authorization.bindExpressContext(req, res, next);
         next();
     }
