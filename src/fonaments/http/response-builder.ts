@@ -77,14 +77,14 @@ export class ResponseBuilder {
             return payload.toResponse();
         }
 
-        return {};
+        return payload;
     }
 
     protected buildArrayDataResponse(payload: Array<any>): Array<Object> {
         const result: Array<Object> = [];
 
         for(let i = 0; i < payload.length; i++) {
-            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : {});
+            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : payload[i]);
         }
 
         return result;

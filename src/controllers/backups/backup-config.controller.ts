@@ -21,9 +21,17 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
+import { BackupService } from "../../backups/backup.service";
+import { ResponseBuilder } from "../../fonaments/http/response-builder";
+import { Request, Response } from "express";
 
 export class BackupConfigController extends Controller {
     
+    protected _backupService: BackupService;
+
+    public async make(): Promise<void> {
+        this._backupService = await this._app.getService<BackupService>(BackupService.name);
+    }
     /**
      * Returns the backup config
      * 
@@ -31,7 +39,9 @@ export class BackupConfigController extends Controller {
      * @param response 
      */
     public async show(request: Request, response: Response) {
+        const config = this._backupService.config;
 
+        ResponseBuilder.make(response).status(200).send(config);
     }
 
     /**
@@ -41,6 +51,9 @@ export class BackupConfigController extends Controller {
      * @param response 
      */
     public async update(request: Request, response: Response) {
+        await this._backupService.updateConfig(request.body);
+        const config = this._backupService.config;
 
+        ResponseBuilder.make(response).status(201).send(config);
     }
 }

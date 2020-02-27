@@ -12,7 +12,7 @@ import { testSuite } from "../../mocha/global-setup";
 import { RepositoryService } from "../../../src/database/repository.service";
 
 let app: Application;
-
+let backupService: BackupService;
 let loggedUser: User;
 let loggedUserSessionId: string;
 let adminUser: User;
@@ -20,6 +20,7 @@ let adminUserSessionId: string;
 
 beforeEach(async () => {
     app = testSuite.app;
+    backupService = await app.getService<BackupService>(BackupService.name);
     const repository: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
     
     try {
@@ -54,20 +55,20 @@ beforeEach(async () => {
 
 describe(describeName('BackupController@index'), () => {
 
-    it('index should not be recheable if the user is not logged in', async () => {
+    it('guest user should not see the backup index', async () => {
         return await request(app.express)
             .get('/backups')
             .expect(401);
     });
 
-    it('index should not be recheable if the user is logged in but is not admin', async () => {
+    it('regular user should not see backup index', async () => {
         return await request(app.express)
             .get('/backups')
             .set('Cookie', [attachSession(loggedUserSessionId)])
             .expect(401)
     });
     
-    it('index should return a backup list if the user is admin', async () => {
+    it('admin user should see backup index', async () => {
         const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
 
         const backup1: Backup = await backupService.create();
@@ -86,7 +87,7 @@ describe(describeName('BackupController@index'), () => {
 
 describe(describeName('BackupController@show'), () => {
 
-    it('anonymous user should not see a backup', async () => {
+    it('guest user should not see a backup', async () => {
         const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
         const backup: Backup = await backupService.create();
 
@@ -105,7 +106,7 @@ describe(describeName('BackupController@show'), () => {
             .expect(401)
     });
 
-    it('admin user sould see a backup', async () => {
+    it('admin user should see a backup', async () => {
         const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
         const backup: Backup = await backupService.create();
 
@@ -118,7 +119,7 @@ describe(describeName('BackupController@show'), () => {
             });
     });
 
-    it('a 404 exception should be thrown if a backup does not exist', async () => {
+    it('404 exception should be thrown if a backup does not exist', async () => {
         await request(app.express)
             .get(`/backups/${moment().add(2, 'd').valueOf().toString()}`)
             .set('Cookie', [attachSession(adminUserSessionId)])
@@ -127,13 +128,13 @@ describe(describeName('BackupController@show'), () => {
 });
 
 describe(describeName('BackupController@create'), async () => {
-    it('anonymous user should not create a backup', async () => {
+    it('guest user should not create a backup', async () => {
         await request(app.express)
         .post(`/backups`)
         .expect(401)
     });
 
-    it(describeName('regular user should not create a backup'), async () => {
+    it('regular user should not create a backup', async () => {
         await request(app.express)
             .post(`/backups`)
             .set('x-fwc-confirm-token', loggedUser.confirmation_token)
@@ -141,14 +142,77 @@ describe(describeName('BackupController@create'), async () => {
             .expect(401)
     });
 
-    it(describeName('admin user should create a backup'), async () => {
+    it('admin user should create a backup', async () => {
         const existingBackups: Array<Backup> = await (await (app.getService<BackupService>(BackupService.name))).getAll();
         await request(app.express)
             .post(`/backups`)
+            .send({
+                comment: 'test comment'
+            })
             .set('x-fwc-confirm-token', adminUser.confirmation_token)
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(201)
+            .expect(response => {
+                expect(response.body.data.comment).to.be.deep.equal('test comment')
+            })
 
         expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
     });
 });
+
+describe(describeName('BackupConfigController@show'), async () => {
+    it('guest user should not see backup config', async () => {
+        await request(app.express)
+            .get(`/backups/config`)
+            .expect(401)
+    });
+
+    it('regular user should not see backup config', async () => {
+        await request(app.express)
+            .get(`/backups/config`)
+            .set('Cookie', [attachSession(loggedUserSessionId)])
+            .expect(401)
+    });
+
+    it('admin user should see backup config', async () => {
+        await request(app.express)
+            .get(`/backups/config`)
+            .set('Cookie', [attachSession(adminUserSessionId)])
+            .expect(200)
+            .expect(response => {
+                expect(response.body.data).to.be.deep.equal(backupService.config);
+            });
+    });
+});
+
+describe(describeName('BackupConfigController@update'), async () => {
+    it('guest user should not update backup config', async () => {
+        await request(app.express)
+            .put(`/backups/config`)
+            .expect(401)
+    });
+
+    it('regular user should not update backup config', async () => {
+        await request(app.express)
+            .put(`/backups/config`)
+            .set('Cookie', [attachSession(loggedUserSessionId)])
+            .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+            .expect(401)
+    });
+
+    it.skip('admin user should update backup config', async () => {
+        await request(app.express)
+            .put(`/backups/config`)
+            .set('Cookie', [attachSession(adminUserSessionId)])
+            .set('x-fwc-confirm-token', adminUser.confirmation_token)
+            .send({
+                "default_max_copies": 100
+            })
+            .expect(201)
+            .expect(response => {
+                expect(response.body.data).to.be.deep.equal(backupService.config);
+                expect(response.body.data.default_max_copies).to.be.deep.equal(100);
+            });
+    });
+});
+

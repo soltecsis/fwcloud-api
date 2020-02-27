@@ -5,6 +5,7 @@ import * as path from "path";
 import { DatabaseService } from "../../../src/database/database.service";
 import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
+import { backup_id } from "../../../src/middleware/joi_schemas/shared";
 
 let app: AbstractApplication;
 let service: BackupService;
@@ -15,7 +16,7 @@ beforeEach(async() => {
 })
 
 describe(describeName('Backup tests'), () => {
-    it('A new backup exists should return false', async () => {
+    it('exists should return false if the backup is not persisted', async () => {
         const backup: Backup = new Backup();
         expect(backup.exists()).to.be.false;
     });
@@ -36,6 +37,23 @@ describe(describeName('Backup tests'), () => {
 
     it('create() should copy data files if exists', async () => {
         //TODO
+    });
+
+    it('create() should generate a backup.json file with metadata', async () => {
+        let backup: Backup = new Backup();
+        backup.setComment('test comment');
+        backup = await backup.create(service.config.data_dir);
+        
+        expect(fs.existsSync(path.join(backup.path, Backup.METADATA_FILENAME))).to.be.true;
+
+        const metadata: object = JSON.parse(fs.readFileSync(path.join(backup.path, Backup.METADATA_FILENAME)).toString());
+
+        expect(metadata).to.be.deep.equal({
+            name: backup.name,
+            timestamp: backup.timestamp,
+            version: '0.0.0',
+            comment: 'test comment',
+        });
     });
 
     it('store() should import the database', async() => {

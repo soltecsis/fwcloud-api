@@ -66,7 +66,7 @@ export class BackupController extends Controller {
      */
     public async create(request: Request, response: Response) {
         //TODO: Authorization
-        const backup: Backup = await this._backupService.create();
+        const backup: Backup = await this._backupService.create(request.inputs.get('comment'));
 
         ResponseBuilder.make(response).status(201).send(backup);
     }

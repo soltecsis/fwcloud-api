@@ -32,16 +32,27 @@ import { BackupNotFoundException } from "./exceptions/backup-not-found-exception
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
+import { timingSafeEqual } from "crypto";
+import { stringify } from "querystring";
 const mysql_import = require('mysql-import');
 
+export interface BackupMetadata {
+    name: string,
+    timestamp: number;
+    version: string;
+    comment: string;
+}
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
+    static METADATA_FILENAME: string = 'backup.json';
+
     protected _id: number;
     protected _name: string;
     protected _date: Moment;
     protected _exists: boolean;
     protected _backupPath: string;
     protected _dumpFilename: string;
+    protected _comment: string;
 
     constructor() {
         this._id = null;
@@ -50,6 +61,7 @@ export class Backup implements Responsable {
         this._exists = false;
         this._backupPath = null;
         this._dumpFilename = null;
+        this._comment = null;
     }
 
     toResponse(): Object {
@@ -57,6 +69,7 @@ export class Backup implements Responsable {
             id: this._id,
             name: this._name,
             date: this._date.utc(),
+            comment: this._comment
         }
     }
 
@@ -65,6 +78,14 @@ export class Backup implements Responsable {
      */
     get date(): Moment {
         return this._date;
+    }
+
+    get timestamp(): number {
+        return this._date.valueOf();
+    }
+
+    get name(): string {
+        return this._name;
     }
 
     /**
@@ -79,6 +100,10 @@ export class Backup implements Responsable {
      */
     get path(): string {
         return this._backupPath;
+    }
+
+    public setComment(comment: string) {
+        this._comment = comment; 
     }
 
     /**
@@ -96,17 +121,28 @@ export class Backup implements Responsable {
     async load(backupPath: string): Promise<Backup> {
         const dbConfig: DatabaseConfig = (await app().getService<DatabaseService>(DatabaseService.name)).config;
 
-        if (fs.statSync(backupPath).isDirectory()) {
-            this._date = moment(path.basename(backupPath).replace("_", " "))
-            this._id = this._date.valueOf();
-            this._name = path.basename(backupPath),
-                this._exists = true;
+        if (fs.statSync(backupPath).isDirectory() && fs.statSync) {
+            const metadata: BackupMetadata = this.loadMetadataFromDirectory(backupPath);
+            this._date = moment(metadata.timestamp);
+            this._id = metadata.timestamp;
+            this._name = metadata.name;
+            this._exists = true;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath): backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
         }
 
         throw new BackupNotFoundException(backupPath);
+    }
+
+    protected loadMetadataFromDirectory(directory: string): BackupMetadata {
+        const metadataPath: string = path.join(directory, Backup.METADATA_FILENAME);
+
+        if (fs.statSync(metadataPath).isFile()) {
+            return <BackupMetadata>JSON.parse(fs.readFileSync(metadataPath).toString());
+        }
+
+        throw new BackupNotFoundException(metadataPath);
     }
 
     /**
@@ -116,9 +152,11 @@ export class Backup implements Responsable {
      */
     async create(backupDirectory: string): Promise<Backup> {
         this._date = moment();
-        this._backupPath = path.join(backupDirectory, this._date.format('YYYY-MM-DD_HH:MM:ss'));
+        this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
+        this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
         this.createDirectory();
+        this.exportMetadataFile();
         await this.exportDatabase();
         await this.exportDataDirectories();
 
@@ -173,6 +211,17 @@ export class Backup implements Responsable {
         }
 
         fs.mkdirSync(this._backupPath);
+    }
+
+    protected exportMetadataFile(): void {
+        const metadata: BackupMetadata = {
+            name: this._name,
+            timestamp: this._date.valueOf(),
+            version: '0.0.0',
+            comment: this._comment
+        };
+
+        fs.writeFileSync(path.join(this._backupPath, Backup.METADATA_FILENAME), JSON.stringify(metadata, null, 2))
     }
 
     /**

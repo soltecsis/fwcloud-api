@@ -13,7 +13,7 @@ describe(describeName('BackupService tests'), async() => {
         service = await app.getService<BackupService>(BackupService.name);
     });
 
-    it.only('getAll should return all existing backups', async () => {
+    it('getAll should return all existing backups', async () => {
         const b1: Backup = new Backup();
         const b2: Backup = new Backup();
 
@@ -88,4 +88,15 @@ describe(describeName('BackupService tests'), async() => {
 
         expect(await service.applyRetentionPolicy()).toHaveLength(2)*/
     });
+
+    it('update config should update the custom config parameters', async () => {
+        let config = service.config;
+
+        config.default_max_days = 100;
+
+        await service.updateConfig(config);
+
+        expect(service.config.default_max_days).to.be.deep.equal(100);
+
+    })
 })

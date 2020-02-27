@@ -37,7 +37,7 @@ import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 const logger = require('log4js').getLogger("app");
 
 export interface CustomBackupConfig {
-    schedule: string,
+    default_schedule: string,
     default_max_copies: number,
     default_max_days: number
 };
@@ -126,8 +126,9 @@ export class BackupService extends Service {
     /**
      * Creates a new backup
      */
-    public async create(): Promise<Backup> {
+    public async create(comment?: string): Promise<Backup> {
         const backup: Backup = new Backup();
+        backup.setComment(comment ? comment: null);
         await backup.create(this._config.data_dir);
         await this.applyRetentionPolicy();
         return backup;
@@ -217,11 +218,11 @@ export class BackupService extends Service {
     }
 
     public async updateConfig(config: CustomBackupConfig): Promise<CustomBackupConfig> {
-        const cronTime: CronTime = new CronTime(config.schedule);
+        const cronTime: CronTime = new CronTime(config.default_schedule);
         this._runningJob.setTime(cronTime);
         this._runningJob.start();
 
-        logger.info(`New backup cron task schedule: ${config.schedule}`);
+        logger.info(`New backup cron task schedule: ${config.default_schedule}`);
 
         await this.writeConfig(config);
         this._config = config;

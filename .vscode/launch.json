@@ -53,5 +53,29 @@
         "<node_internals>/**"
       ]
     },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha Watch Tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "runtimeArgs": [
+        "--no-warnings"
+      ],
+      "args": [
+        "--watch",
+        "--growl",
+        "--exit",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/dist/tests/**/*spec.js"
+      ],
+      "env": {"NODE_ENV": "test"},
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
   ]
 }
