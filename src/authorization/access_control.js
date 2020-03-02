@@ -69,14 +69,6 @@ accessCtrl.check = async (req, res, next) => {
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 
-	// Backups can only be managed by users with the admin role.
-	if (req.url.substring(0,8)==="/backups") {
-		if (await User.isLoggedUserAdmin(req)) {
-			return next();
-		}
-		return next(new AuthorizationException());
-	}
-
 	try {
 		// This MUST be the first access control.
 		if (req.body.fwcloud && !(await checkFwCloudAccess(req)))

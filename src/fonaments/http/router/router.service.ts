@@ -21,17 +21,16 @@
 */
 
 import { Service } from "../../services/service";
-import { PathParams } from "express-serve-static-core"
 import { Request, Response, NextFunction } from "express";
-import { Controller } from "../controller";
-import { FunctionHelper } from "../../../utils/FunctionHelper";
-import { AbstractApplication, app } from "../../abstract-application";
-import { RouteCollection } from "./route-collection";
+import { RouteCollection as RouteDefinition } from "./route-collection";
 import { Routes } from "../../../routes/routes";
+import { RouterParser } from "./router-parser";
+import { Route } from "./route";
+import { AuthorizationException } from "../../exceptions/authorization-exception";
 import { RequestValidation } from "../../validation/request-validation";
 import { ValidationException } from "../../exceptions/validation-exception";
 
-export type httpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
+export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
 declare function optionalParams(params:number, params2: string): void;
 
@@ -40,9 +39,13 @@ export class RouterService extends Service {
     protected _express: Express.Application;
     protected _router: Express.Application
 
-    protected _routes: RouteCollection;
+    protected _routes: RouteDefinition;
 
-    protected _list: Array<{httpMethod: string, path: PathParams, destination: string}>
+    protected _list: Array<Route>
+
+    public getRoutes(): Array<Route> {
+        return this._list;
+    }
 
     public async build(): Promise<RouterService> {
         this._express = this._app.express;
@@ -52,99 +55,80 @@ export class RouterService extends Service {
         return this;
     }
 
-    public registerRoutes() {
-        this._routes = new Routes(this._app, this);
-    }
+    public registerRoutes(): void {
+        const routes: Array<Route> = this.parseRoutes();
 
-    public post(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public post(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public post(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('POST', pathParams, controller, method, validation);
-    }
-
-    public get(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public get(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public get(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('GET', pathParams, controller, method, validation);
-    }
-
-    public all(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public all(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public all(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('ALL', pathParams, controller, method, validation);
-    }
-
-    public options(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public options(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public options(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('OPTIONS', pathParams, controller, method, validation);
-    }
-
-    public delete(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public delete(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public delete(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('DELETE', pathParams, controller, method, validation);
-    }
-
-    public head(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public head(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public head(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('HEAD', pathParams, controller, method, validation);
-    }
-
-    public patch(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public patch(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public patch(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('PATCH', pathParams, controller, method, validation);
-    }
-
-    public put(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): any
-    public put(pathParams: PathParams, controller: (req: Request, res: Response) => void): any
-    public put(pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        return this.addRoute('PUT', pathParams, controller, method, validation);
-    }
-
-    private addRoute(httpMethod: httpMethod, pathParams: PathParams, controller: any, method?: string, validation?: typeof RequestValidation): any {
-        if (FunctionHelper.isCallback(controller)) {
-            this.callWithCallback(httpMethod, pathParams, controller);
-            this._list.push({httpMethod: httpMethod, path: pathParams, destination: 'callback'});
-            return;
+        for(let i = 0; i < routes.length; i++) {
+            const route: Route = this.registerRoute(routes[i]);
+            this._list.push(route);
         }
-
-        this.callWithController(httpMethod, pathParams, controller, method, validation);    
-        this._list.push({httpMethod: httpMethod, path: pathParams, destination: controller.name + '@' + method});
-        return;
     }
 
-    private async callWithCallback(httpMethod: httpMethod, pathParams: PathParams, callback: (req: Request, res: Response) => void): Promise<void> {
-        return this._router[httpMethod.toLowerCase()](pathParams, callback);
+    protected parseRoutes(): Array<Route> {
+
+        const parser = new RouterParser();
+        const routes: RouteDefinition = new Routes();
+
+        routes.parse(parser);
+        parser.commitCurrentRoute();
+
+        return parser.routes;
     }
-    
-    private async callWithController(httpMethod: httpMethod, pathParams, controller: typeof Controller, method: string, validation?: any): Promise<void> {
-        return this._router[httpMethod.toLowerCase()](pathParams, async (req: Request, res: Response, next?: NextFunction) => {
-            
-            if (!controller.methodExists(method)) {
-                throw new Error('Method ' + method + ' does not exist in controller: ' + controller.name);
-            }
 
-            if (validation) {
-                const validationRequest: RequestValidation = new validation(req);
-                try {
-                    await validationRequest.validate();
-                } catch(e) {
-                    return next(new ValidationException(e));
-                }
-            }
+    protected registerRoute(route: Route): Route {
+        if (route.isControllerHandler()) {
+            return this.registerControllerHandlerRoute(route);
+        }
+        
+        return this.registerCallbackHandlerRoute(route);
+    }
 
+    protected registerCallbackHandlerRoute(route: Route): Route {
+        this._router[route.httpMethod.toLowerCase()](route.pathParams, route.callback);
+        return route;
+    }
+
+    protected registerControllerHandlerRoute(route: Route): Route {
+        this._router[route.httpMethod.toLowerCase()](route.pathParams, async (request: Request, response: Response, next?: NextFunction) => {
             try {
-                const controllerInstance = new controller(this._app);
+
+                if (!route.controllerSignature.controller.methodExists(route.controllerSignature.method)) {
+                    throw new Error('Method ' + route.controllerSignature.method + ' does not exist in controller: ' + route.controllerSignature.controller.name);
+                }
+
+                await this.checkGates(route, request);
+                await this.validateInput(route, request);
+
+                const controllerInstance = new route.controllerSignature.controller(this._app);
                 await controllerInstance.make();
 
-                return await controllerInstance[method](req,res);
+                return await controllerInstance[route.controllerSignature.method](request, response);
+
             } catch (e) {
                 return next(e);
             }
-            
         });
+
+        return route;
+    }
+
+    protected async checkGates(route: Route, request: Request): Promise<void> {
+        for (let i = 0; i < route.gates.length; i++) {
+            const gate = new route.gates[i]();
+            if (! await gate.grant(request)) {
+                throw new AuthorizationException();
+            }
+        }
+    }
+
+    public async validateInput(route: Route, request: Request): Promise<void> {
+        if (route.validator) {
+            const validationRequest: RequestValidation = new route.validator(request);
+            try {
+                await validationRequest.validate();
+            } catch (e) {
+                throw new ValidationException(e);
+            }
+        }
     }
 }

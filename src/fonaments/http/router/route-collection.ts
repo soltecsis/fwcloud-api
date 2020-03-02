@@ -20,14 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RouterService } from "./router.service";
-import { AbstractApplication } from "../../abstract-application";
+import { RouterParser } from "./router-parser";
 
 export abstract class RouteCollection {
 
-    constructor(protected _app: AbstractApplication, protected _router: RouterService) {
-        this.routes(this._router);
+    public parse(router: RouterParser): void {
+        return this.routes(router);
     }
     
-    public abstract routes(router: RouterService): void;
+    public abstract routes(router: RouterParser): void;
 }
