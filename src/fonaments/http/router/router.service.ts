@@ -29,6 +29,7 @@ import { Route } from "./route";
 import { AuthorizationException } from "../../exceptions/authorization-exception";
 import { RequestValidation } from "../../validation/request-validation";
 import { ValidationException } from "../../exceptions/validation-exception";
+import { ResponseBuilder } from "../response-builder";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
@@ -102,7 +103,13 @@ export class RouterService extends Service {
                 const controllerInstance = new route.controllerSignature.controller(this._app);
                 await controllerInstance.make();
 
-                return await controllerInstance[route.controllerSignature.method](request, response);
+                const result: ResponseBuilder = await controllerInstance[route.controllerSignature.method](request);
+
+                if (!result) {
+                    throw new Error('Controller handler ' + route.controllerSignature.controller + '@' + route.controllerSignature.method + ' does not return a response');                    
+                }
+
+                return result.send(response);
 
             } catch (e) {
                 return next(e);

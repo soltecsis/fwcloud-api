@@ -29,10 +29,16 @@ import { isArray } from "util";
 
 export class ResponseBuilder {
     protected _status: number;
+    protected _payload: object;
     protected _app: AbstractApplication;
+    protected _response: Response;
 
-    constructor(protected _res: Response) {
+    private constructor() {
         this._app = app();
+    }
+
+    public static buildResponse(): ResponseBuilder {
+        return new ResponseBuilder();
     }
 
     public status(status: number): ResponseBuilder {
@@ -40,20 +46,22 @@ export class ResponseBuilder {
         return this;
     }
 
-    public send(payload: any): ResponseBuilder {
-        if (this._status) {
-            this._res = this._res.status(this._status);
-        }
-
-        payload = this.buildResponse(payload);
-
-        this._res.send(payload);
+    public body(payload: any): ResponseBuilder {
+        this._payload = this.buildResponse(payload);
 
         return this;
     }
 
-    public static make(res: Response): ResponseBuilder {
-        return new ResponseBuilder(res);
+    public send(response: Response): ResponseBuilder {
+        this._response = response;
+        
+        if (this._status) {
+            this._response.status(this._status);
+        }
+
+        this._response.send(this._payload);
+
+        return this;
     }
 
     protected buildResponse(payload: any): Object {
