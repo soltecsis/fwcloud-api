@@ -33,50 +33,49 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Jest Tests",
-      "cwd": "${workspaceFolder}",
-      "args": [
-        "--inspect-brk",
-        "${workspaceRoot}/node_modules/.bin/jest",
-        "--runInBand",
-        "--config",
-        "${workspaceRoot}/jest.config.js"
+      "name": "Mocha Tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "runtimeArgs": [
+        "--no-warnings"
       ],
-      "windows": {
-        "args": [
-          "--inspect-brk",
-          "${workspaceRoot}/node_modules/jest/bin/jest.js",
-          "--runInBand",
-          "--config",
-          "${workspaceRoot}/jest.config.js"
-        ],
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
+      "args": [
+        "--growl",
+        "--exit",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/dist/tests/**/*spec.js"
+      ],
+      "env": {"NODE_ENV": "test"},
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Jest E2E Tests",
-      "cwd": "${workspaceFolder}",
-      "args": [
-        "--inspect-brk",
-        "${workspaceRoot}/node_modules/.bin/jest",
-        "--runInBand",
-        "--config",
-        "${workspaceRoot}/tests/e2e/jest-e2e.json"
+      "name": "Mocha Watch Tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "runtimeArgs": [
+        "--no-warnings"
       ],
-      "windows": {
-        "args": [
-          "--inspect-brk",
-          "${workspaceRoot}/node_modules/jest/bin/jest.js",
-          "--runInBand",
-          "--config",
-          "${workspaceRoot}/tests/e2e/jest-e2e.json"
-        ],
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
+      "args": [
+        "--watch",
+        "--growl",
+        "--exit",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/dist/tests/**/*spec.js"
+      ],
+      "env": {"NODE_ENV": "test"},
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     },
   ]
 }

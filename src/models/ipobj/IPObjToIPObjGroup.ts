@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { PrimaryGeneratedColumn, Column, getRepository, Entity } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObjGroup } from "./IPObjGroup";

@@ -28,3 +28,6 @@ BACKUP/
 
 *.fwb
 *.swp
+
+# fwcloud tests
+tests/playground

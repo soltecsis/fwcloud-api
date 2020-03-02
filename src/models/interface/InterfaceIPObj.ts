@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObj } from "../ipobj/IPObj";

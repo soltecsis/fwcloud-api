@@ -21,7 +21,7 @@
 */
 
 
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import Model from '../Model';
 import { Column, PrimaryColumn, Entity, Between, Not, getRepository } from 'typeorm';
 import modelEventService from '../ModelEventService';

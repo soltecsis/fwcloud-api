@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import Model from '../Model';
 import modelEventService from '../ModelEventService';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
@@ -114,7 +114,7 @@ export class User extends Model {
 
 
     //Update user confirmation_token
-    public static updateUserCT(iduser, token, callback) {
+    public static async updateUserCT(iduser, token): Promise<boolean> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error)
@@ -206,7 +206,7 @@ export class User extends Model {
         return new Promise(async (resolve, reject) => {
             req.dbCon.query(`select role from ${tableName} where id=${req.session.user_id}`, (error, result) => {
                 if (error) return reject(error);
-                if (result.length === 0) return reject(fwcError.NOT_FOUND);
+                if (result.length === 0) reject(fwcError.NOT_FOUND);
 
                 resolve(result[0].role === 1 ? true : false);
             });

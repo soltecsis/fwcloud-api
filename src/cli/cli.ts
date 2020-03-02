@@ -28,6 +28,7 @@ import { MigrationRunCommand } from "./commands/MigrationRunCommand";
 import { InstallCommand } from "./commands/InstallCommand";
 import { MigrationCreateCommand } from "./commands/MigrationCreateCommand";
 import { MigrationRevertCommand } from "./commands/MigrationRevertCommand";
+import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 
 yargs
     .usage("Usage: $0 <command> [options]")
@@ -36,6 +37,7 @@ yargs
     .command(new MigrationRunCommand())
     .command(new MigrationCreateCommand())
     .command(new MigrationRevertCommand())
+    .command(new MigrationImportDataCommand())
     .recommendCommands()
     .demandCommand(1)
     .strict()

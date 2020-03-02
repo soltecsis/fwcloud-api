@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 
 var logger = require('log4js').getLogger("app");
 import { User } from '../../models/user/User';

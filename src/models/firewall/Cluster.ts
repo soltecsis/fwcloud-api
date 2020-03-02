@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService'
+import db from '../../database/database-manager'
 import { Firewall } from "./Firewall";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import { Tree } from '../tree/Tree';

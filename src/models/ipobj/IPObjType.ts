@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { PrimaryColumn, Column, Entity } from "typeorm";
 
 const tableName: string = 'ipobj_type';

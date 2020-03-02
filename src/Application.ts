@@ -1,80 +1,117 @@
-import * as path from "path";
-import * as fs from 'fs';
+/*!
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
 
-import express from "express";
-import ejs from 'ejs';
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
-import bodyParser from 'body-parser';
-import helmet from 'helmet';
-import compression from 'compression';
-import method_override from 'method-override';
-import cors from 'cors';
-import fwcError from './utils/error_table';
-import session from 'express-session';
-import FileStore from 'session-file-store';
-import * as moment from 'moment-timezone';
 
-import accessAuth from './middleware/authorization';
-import accessCtrl from './middleware/access_control';
-import inputValidation from './middleware/input_validation';
-import confirmToken from './middleware/confirmation_token';
+import db from "./database/database-manager";
 
-import db, { DatabaseService } from "./database/DatabaseService";
+import { AbstractApplication } from "./fonaments/abstract-application";
+import { EJS } from "./middleware/EJS";
+import { BodyParser } from "./middleware/BodyParser";
+import { Compression } from "./middleware/Compression";
+import { MethodOverride } from "./middleware/MethodOverride";
+import { Session } from "./middleware/Session";
+import { CORS } from './middleware/CORS';
+import { Authorization } from './middleware/Authorization';
+import { ConfirmationToken } from './middleware/ConfirmationToken';
+import { InputValidation } from './middleware/InputValidation';
+import { AccessControl } from './middleware/AccessControl';
+import { AttachDatabaseConnection } from './middleware/AttachDatabaseConnection';
+import { Throws404 } from './middleware/Throws404';
+import { ErrorResponse } from './middleware/ErrorResponse';
+import { RequestBuilder } from './middleware/RequestBuilder';
+import { ServiceProvider } from './fonaments/services/service-provider';
+import { BackupServiceProvider } from './backups/backup.provider';
+import { CronServiceProvider } from './backups/cron/cron.provider';
+import { AuthorizationTest } from './middleware/AuthorizationTest';
+import { Middlewareable } from './fonaments/http/middleware/Middleware';
 
-import backupModel from './models/backup/backup';
-
-export class Application {
-    private _express: express.Application;
-    private _config: any;
-    private _path: string;
+export class Application extends AbstractApplication {
     private _logger: Logger;
-    private _db: DatabaseService;
 
-
-    constructor(path: string = process.cwd()) {
+    public static async run(): Promise<Application> {
         try {
-            this._path = path;
-            console.log('Loading application from ' + this._path);
-            this._express = express();
-            this._config = require('./config/config');
-            this._logger = this.registerLogger();
-            this._db = db;
+            const app: Application = new Application();
+            await app.bootstrap();
+            return app;
         } catch(e) {
-            console.error('Aplication startup failed: ' + e.message);
-            process.exit(e);
+            console.error('Application can not start: ' + e.message);
+            console.error(e.stack);
+            process.exit(1);
         }
     }
 
-    public async bootstrap() {
-        await this.generateDirectories();
-        
-        /**
-         * We should start the database service before FwCloudMiddlewares 
-         * as some of them is using DB
-         */
-        await this.startDatabaseService();
-        
-        this.registerVendorMiddlewares();
-        this.registerFWCloudMiddlewares();
-        
-        this.startBackupCronJob();
-
-        await this.registerRoutes();
-
-        this.registerCallbacks();
+    get logger() {
+        return this._logger;
     }
 
-    get express(): express.Application {
-        return this._express;
+    public async bootstrap(): Promise<Application> {
+        await super.bootstrap();
+        this._logger = await this.registerLogger();
+        await this.startDatabaseService()
+
+        return this;
     }
 
-    get config(): any {
-        return this._config;
+    public async close(): Promise<void> {
+        //log4js.shutdown(async () => {
+            await super.close();
+        //});
     }
 
-    private registerLogger(): Logger {
-        log4js_extend(log4js, {
+    protected providers(): Array<typeof ServiceProvider> {
+        return [
+            CronServiceProvider,
+            BackupServiceProvider
+        ]
+    }
+
+    protected beforeMiddlewares(): Array<Middlewareable> {
+        return [
+            EJS,
+            BodyParser,
+            RequestBuilder,
+            Compression,
+            MethodOverride,
+            AttachDatabaseConnection,
+            Session,
+            CORS,
+            this.config.get('env') !== 'test' ? Authorization: AuthorizationTest,
+            ConfirmationToken,
+            InputValidation,
+            AccessControl
+        ];
+    }
+
+    protected afterMiddlewares(): Array<Middlewareable> {
+        return [
+            Throws404,
+            ErrorResponse
+        ]
+    }
+
+    private async registerLogger(): Promise<Logger> {
+        await log4js_extend(log4js, {
             path: this._path,
             format: "[@file:@line]"
         });
@@ -85,69 +122,10 @@ export class Application {
         return log4js.getLogger('app');
     }
 
-    private registerVendorMiddlewares(): void {
-        this.registerEjsMiddleware();
-        this.registerBodyparserMiddleware();
-        this.registerHelmetMiddleware();
-        this.registerCompressionMiddleware();
-        this.registerMethodOverrideMiddleware();
-        this.registerSessionMiddleware();
-        this.registerCORSMiddleware();
-    }
+    protected async registerRoutes() {
+        await super.registerRoutes();
 
-    private registerFWCloudMiddlewares() {
-        this._express.use(accessAuth.check);
-
-        if (this._config.get('confirmation_token')) {
-            /** Middleware for manage confirmation token. 
-             *  Only required for requests that will change the platform information.
-             *  Do this before the input data validation process.
-             */
-            this._express.use(confirmToken.check);
-        }
-
-        // Middleware for input data validation.
-        this._express.use(inputValidation.check);
-
-        // Middleware for access control.
-        this._express.use(accessCtrl.check);
-    }
-
-    private registerCallbacks() {
-        // error handlers
-        // catch 404 and forward to error handler
-        this._express.use((req, res, next) => {
-            var err: any = new Error('Not Found');
-            err.status = 404;
-            next(err);
-        });
-
-        // development error handler
-        // will print stacktrace
-        if (this._express.get('env') === 'dev') {
-            this._express.use((err, req, res, next) => {
-                this._logger.error("Something went wrong: ", err.message);
-                res.status(err.status || 500);
-                res.render('error', {
-                    message: err.message,
-                    error: err
-                });
-            });
-        }
-
-        // production error handler
-        // no stacktraces leaked to user
-        this._express.use((err, req, res, next) => {
-            this._logger.error("Something went wrong: ", err.message);
-            res.status(err.status || 500);
-            res.render('error', {
-                message: err.message,
-                error: {}
-            });
-        });
-    }
-
-    private async registerRoutes() {
+        //OLD Routes
         this._express.use('/user', require('./routes/user/user'));
         this._express.use('/customer', require('./routes/user/customer'));
         this._express.use('/fwcloud', require('./routes/fwcloud/fwcloud'));
@@ -180,116 +158,7 @@ export class Application {
         this._express.use('/backup', require('./routes/backup/backup'));
     }
 
-    private startBackupCronJob() {
-        backupModel.initCron(this._express);
-    }
-
-    private registerEjsMiddleware(): void {
-        this._express.set('views', path.join(this._path, 'dist', 'src', 'views'));
-        this._express.engine('html', ejs.renderFile);
-        this._express.set('view engine', 'html');
-    }
-
-    private registerBodyparserMiddleware(): void {
-        this._express.use(bodyParser.json());
-        this._express.use(bodyParser.urlencoded({ extended: false }));
-    }
-
-    private registerHelmetMiddleware() {
-        this._express.use(helmet());
-    }
-
-    private registerCompressionMiddleware(): void {
-        this._express.use(compression());
-    }
-
-    private registerMethodOverrideMiddleware(): void {
-        this._express.use(method_override((req, res) => {
-            if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-                // look in urlencoded POST bodies and delete it
-                var method = req.body._method;
-                delete req.body._method;
-                return method;
-            }
-        }));
-    }
-
-    private registerCORSMiddleware() {
-        const options = {
-            credentials: true,
-            origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {
-                if (this._config.get('CORS').whitelist.indexOf(origin) !== -1) {
-                    this._logger.debug('Origin Allowed: ' + origin);
-                    callback(null, true);
-                } else {
-                    this._logger.debug('Origin not allowed by cors: ' + origin);
-                    callback(new Error('Origin not allowed by CORS: ' + origin));
-                }
-            }
-        }
-        this._express.options('*', cors(options));
-        
-        // CORS error handler
-        this._express.use((err, req, res, next) => {
-            res.status(400).send(fwcError.NOT_ALLOWED_CORS);
-        });
-    }
-
-    private registerSessionMiddleware() {
-        const config = {
-            name: this._config.get('session').name,
-            secret: this._config.get('session').secret,
-            saveUninitialized: false,
-            resave: true,
-            rolling: true,
-            store: new (FileStore(session))({
-                path: this._config.get('session').files_path
-            }),
-            cookie: {
-                httpOnly: false,
-                secure: this._config.get('session').force_HTTPS, // Enable this when the https is enabled for the API.
-                maxAge: this._config.get('session').expire * 1000
-            }
-        }
-
-        this._express.use(session(config));
-    }
-
     private async startDatabaseService() {
-        await db.connect();
-        
-        this._express.use(async (req: any, res, next) => {
-            try {
-                req.dbCon = db.getQuery();
-                next();
-            } catch (error) { 
-                res.status(400).json(error) 
-            }
-        });
-    }
-
-    private async generateDirectories() {
-        try {
-            fs.mkdirSync('./logs');
-          } catch (e) {
-            if (e.code !== 'EEXIST') {
-              console.error("Could not create the logs directory. ERROR: ", e);
-              process.exit(1);
-            }
-          }
-          
-          /**
-           * Create the data directories, just in case them aren't there.
-           */
-          try {
-            fs.mkdirSync('./DATA');
-            fs.mkdirSync(this._config.get('policy').data_dir);
-            fs.mkdirSync(this._config.get('pki').data_dir);
-          } catch (e) {
-            if (e.code !== 'EEXIST') {
-              console.error("Could not create the data directory. ERROR: ", e);
-              process.exit(1);
-            }
-          }
+        await db.connect(this);
     }
 }
