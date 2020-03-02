@@ -5,7 +5,9 @@ import { Request } from "express";
 export class isAdmin extends Gate {
     public async grant(request: Request): Promise<boolean> {
         if (await User.isLoggedUserAdmin(request)) {
-			return true;
-		}
+            return true;
+        }
+
+        return false;
     }
 }

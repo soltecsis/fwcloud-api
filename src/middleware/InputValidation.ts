@@ -37,7 +37,7 @@ export class InputValidation extends Middleware {
         const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface',
             'ipobj', 'tree', 'vpn'];
 
-        const item1_new_route_system = ['backups'];
+        const item1_new_route_system = ['backups', 'version'];
 
         // Verify that item1 is in the valid list.
         if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1))

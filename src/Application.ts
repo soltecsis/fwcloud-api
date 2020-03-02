@@ -45,8 +45,12 @@ import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
+import { Version } from './version/version';
 
 export class Application extends AbstractApplication {
+    static VERSION_FILENAME = 'version.json';
+
+    protected _version: Version;
     private _logger: Logger;
 
     public static async run(): Promise<Application> {
@@ -65,10 +69,15 @@ export class Application extends AbstractApplication {
         return this._logger;
     }
 
+    public getVersion(): Version {
+        return this._version;
+    }
+
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
         this._logger = await this.registerLogger();
         await this.startDatabaseService()
+        this._version = await this.loadVersion();
 
         return this;
     }
@@ -156,6 +165,13 @@ export class Application extends AbstractApplication {
         this._express.use('/vpn/openvpn', require('./routes/vpn/openvpn/openvpn'));
         this._express.use('/vpn/openvpn/prefix', require('./routes/vpn/openvpn/prefix'));
         this._express.use('/backup', require('./routes/backup/backup'));
+    }
+
+    protected async loadVersion(): Promise<Version> {
+        const version: Version = new Version();
+        await version.loadVersionFile(Application.VERSION_FILENAME);
+
+        return version;
     }
 
     private async startDatabaseService() {

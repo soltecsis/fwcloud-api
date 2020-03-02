@@ -45,8 +45,8 @@ declare module 'express-serve-static-core' {
 
 let _runningApplication: AbstractApplication = null;
 
-export function app(): AbstractApplication {
-  return _runningApplication;
+export function app<T extends AbstractApplication>(): T {
+  return <T>_runningApplication;
 }
 
 

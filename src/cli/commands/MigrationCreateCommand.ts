@@ -52,7 +52,7 @@ export class MigrationCreateCommand implements yargs.CommandModule {
             .option('t', {
                 alias: 'tag',
                 describe: 'Version which migration belongs to.',
-                default: version.tag
+                default: version.version
             });            
     }
 
