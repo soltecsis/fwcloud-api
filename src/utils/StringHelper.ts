@@ -47,4 +47,10 @@ export default class StringHelper {
     public static capitalize(word: string): string {
         return word.charAt(0).toUpperCase() + word.slice(1);
     }
+
+    public static after(pattern: string, text: string): string {
+        const splitted: Array<string> = text.split(pattern);
+
+        return splitted[splitted.length -1];
+    }
 }

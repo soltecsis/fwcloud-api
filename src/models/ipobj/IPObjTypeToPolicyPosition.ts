@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import modelEventService from "../ModelEventService";
 import { Entity, PrimaryColumn } from "typeorm";
 

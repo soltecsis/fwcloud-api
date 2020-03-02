@@ -1,53 +1,47 @@
-import { Connection, createConnection, getRepository } from "typeorm";
-import * as config from "../../src/config/config";
-import { FwCloudMigrationExecutor } from "../../src/utils/typeorm/migrations/MigrationExecutor";
-import { Application } from "../../src/Application";
-import db from "../../src/database/DatabaseService";
-
-const configDB = config.get('db');
-
-export async function getDatabaseConnection(): Promise<Connection> {
-    return await createConnection({
-        name: Math.random().toString(),
-        type: 'mysql',
-        host: configDB.host,
-        port: configDB.port,
-        database: configDB.name,
-        username: configDB.user,
-        password: configDB.pass,
-        migrations: configDB.migrations
-    });
-}
-
-export async function runMigrations(connection: Connection): Promise<void> {
-    await connection.runMigrations();
-}
-
-export async function resetMigrations(connection: Connection): Promise<void> {
-    const executor = new FwCloudMigrationExecutor(connection, connection.createQueryRunner());
-    await executor.undoAllMigrations();
-}
-
-export async function runApplication(resetDatabase: boolean = true): Promise<Application> {
-    const application: Application = new Application();
-    await application.bootstrap();
-
-    if (resetDatabase) {
-        const connection: Connection = await getDatabaseConnection();
-        await resetMigrations(connection);
-        await runMigrations(connection);
-    }
-
-    return application;
-}
+import { User } from "../../src/models/user/User";
+import * as path from 'path';
+import { app } from "../../src/fonaments/abstract-application";
+import * as fs from "fs";
+import moment from "moment";
+import cookie from "cookie";
+import signature from "cookie-signature";
 
 export function randomString(length: number = 10) {
-    var result           = '';
-    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var result = '';
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var charactersLength = characters.length;
-    for ( var i = 0; i < length; i++ ) {
-       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
 }
 
+export function generateSession(user: User): string {
+    const session_id: string = randomString(10);
+    const session_path: string = path.join(app().config.get('session').files_path, session_id + '.json');
+
+    fs.writeFileSync(session_path, JSON.stringify({
+        "cookie": {
+            "originalMaxAge": 899998,
+            "expires": moment().add(1, 'd').utc(),
+            "secure": false,
+            "httpOnly": false,
+            "path": "/"
+        },
+        "customer_id": user.customer,
+        "user_id": user.id,
+        "username": user.username,
+        "__lastAccess": moment().valueOf()
+    }));
+
+    return session_id;
+}
+
+export function attachSession(id: string): string {
+    return cookie.serialize(app().config.get('session').name, signature.sign(id, app().config.get('crypt').secret), {});
+}
+
+export async function sleep(ms: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
+    return;
+}

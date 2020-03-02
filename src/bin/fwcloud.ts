@@ -24,8 +24,7 @@ import { Application } from '../Application';
 import { Server } from '../Server';
 
 async function loadApplication(): Promise<Application> {
-    const application = new Application();
-    await application.bootstrap();
+    const application = await Application.run();
     return application;
 }
 

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from '../database/DatabaseService';
+import db from '../database/database-manager';
 const fwcError = require('../utils/error_table');
 
 

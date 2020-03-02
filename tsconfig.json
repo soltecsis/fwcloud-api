@@ -11,9 +11,13 @@
       "esModuleInterop": true,
       "noImplicitUseStrict": true,
       "experimentalDecorators": true,
-      "emitDecoratorMetadata": true
+      "emitDecoratorMetadata": true,
+      "types": [
+        "node", "mocha"
+      ],
     },
     "include": [
-      "./src/**/*"
+      "./src/**/*",
+      "./tests/**/*"
     ]
   }

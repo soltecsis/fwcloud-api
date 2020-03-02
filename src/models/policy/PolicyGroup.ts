@@ -22,7 +22,7 @@
 
 
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository } from 'typeorm';
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 
 import Logger from 'log4js';
 import Model from '../Model';

@@ -20,11 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, createConnection } from "typeorm";
-import * as config from "../../config/config"
-import { FwCloudMigrationExecutor } from "../../utils/typeorm/migrations/MigrationExecutor";
+import { Application } from "../../Application";
+import { DatabaseService } from "../../database/database.service";
 
 
 /**
@@ -40,43 +38,16 @@ export class MigrationResetCommand implements yargs.CommandModule {
     }
 
     async handler(args: yargs.Arguments) {
-        let connection: Connection | undefined = undefined;
-        let configDB = config.get('db');
-
+        const app: Application = await Application.run();
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        
         try {
-            const options = { transaction: "all" as "all" | "none" | "each" };
-
-            let connection: Connection = await createConnection({
-                name: 'migrator',
-                type: 'mysql',
-                host: configDB.host,
-                port: configDB.port,
-                database: configDB.name,
-                username: configDB.user,
-                password: configDB.pass,
-                subscribers: [],
-                synchronize: false,
-                migrationsRun: false,
-                dropSchema: false,
-                logging: ["query", "error", "schema"],
-                migrations: configDB.migrations,
-                cli: {
-                    migrationsDir: configDB.migration_directory
-                }
-            });
-
-            const migrationExecutor = new FwCloudMigrationExecutor(connection, connection.createQueryRunner());
-            
-            await migrationExecutor.undoAllMigrations();
-
-            await connection.close();
-
+            await databaseService.resetMigrations();
+            await app.close();
         } catch (err) {
-            if (connection) await (connection as Connection).close();
-
-            console.log("Error during migration reset:");
+            console.log("Error during migration run:");
             console.error(err);
-            process.exit(err);
+            process.exit(1);
         }
     }
 

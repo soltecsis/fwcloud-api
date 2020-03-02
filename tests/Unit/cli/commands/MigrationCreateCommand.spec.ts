@@ -1,18 +1,19 @@
 import { MigrationCreateCommand } from "../../../../src/cli/commands/MigrationCreateCommand"
 import * as path from 'path';
 import * as fs from 'fs';
+import { expect } from "../../../mocha/global-setup";
 
 describe('MigrationCreateCommand tests', () => {
     const version: string = 'x.y.z';
     const migrationDirectory = path.join('tests', '.tmp');
 
-    beforeAll(() => {
+    before(() => {
         try {
             fs.mkdirSync(path.join(process.cwd(), migrationDirectory), {recursive: true});
         } catch(e) {}
     });
 
-    afterAll(() => {
+    after(() => {
         const tmpDir: string = path.join(process.cwd(), migrationDirectory);
         const files = fs.readdirSync(path.join(tmpDir, version));
 
@@ -42,6 +43,6 @@ describe('MigrationCreateCommand tests', () => {
             new RegExp('\w{13}-migration_test', 'g').test(item);
         });
 
-        expect(files.length).toBe(1);
+        expect(files.length).to.be.equal(1);
     });
 });

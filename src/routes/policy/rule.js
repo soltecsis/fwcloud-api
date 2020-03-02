@@ -23,12 +23,11 @@
 
 var express = require('express');
 var router = express.Router();
-import db from '../../database/DatabaseService';
+import db from '../../database/database-manager';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
-import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
@@ -331,7 +330,8 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 	});
 }
 
-function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
+async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
+	const repository = await app().getService(RepositoryService.name);
 	return new Promise(async (resolve, reject) => {
 		try {
 			// Get rule data of rule over which we are running the move action (up or down of this rule).
@@ -362,7 +362,7 @@ function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
 			if (pasteOffset!=0 && moveRule.idgroup) {
-				const policyGroup = await getRepository(PolicyGroup).findOne(moveRule.idgroup);
+				const policyGroup = await repository.for(PolicyGroup).findOne(moveRule.idgroup);
 				if (policyGroup) {
 					await policyGroup.deleteIfEmpty(dbCon, firewall);
 				}

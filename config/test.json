@@ -1,7 +1,8 @@
 {
     "session": {
         "secret": "SESSION_SECRET",
-        "force_HTTPS": false
+        "force_HTTPS": false,
+        "files_path": "tests/playground/sessions"
     },
     "crypt": {
         "secret": "CRYPT_SECRET"
@@ -11,8 +12,10 @@
         "port": 8888,
         "name": "fwcloud",
         "user": "fwcdbusr",
-        "pass": "fwcdbusr",
-        "migrations": "src/database/migrations/**/*.ts"
+        "pass": "fwcdbusr"
+    },
+    "backup": {
+        "data_dir": "tests/playground/BACKUPS"
     },
     "https": {
         "enable": false
