@@ -63,10 +63,10 @@ describe(describeName('BackupService tests'), async() => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         await b2.create(service.config.data_dir);
 
-        service['_config'].default_max_copies = 1;
-        service['_config'].default_max_days = 0;
+        service['_config'].max_copies = 1;
+        service['_config'].max_days = 0;
 
-        const expectedRemoved: number = (await service.getAll()).length - service['_config'].default_max_copies;
+        const expectedRemoved: number = (await service.getAll()).length - service['_config'].max_copies;
 
         expect(await service.applyRetentionPolicy()).to.have.length(expectedRemoved)
     });

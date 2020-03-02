@@ -34,15 +34,17 @@ import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 const logger = require('log4js').getLogger("app");
 
-export interface CustomBackupConfig {
-    default_schedule: string,
-    default_max_copies: number,
-    default_max_days: number
+export interface BackupConfig {
+    schedule: string,
+    max_copies: number,
+    max_days: number,
+    data_dir: string,
+    config_file: string
 };
 
 export class BackupService extends Service {
 
-    protected _config: any;
+    protected _config: BackupConfig;
     protected _db: DatabaseService;
     protected _cronService: CronService;
 
@@ -55,7 +57,7 @@ export class BackupService extends Service {
     }
 
     public async build(): Promise<BackupService> {
-        this._config = this._app.config.get('backup');
+        this._config = await this.readConfig(this._app.config.get('backup'));
         this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
         this._cronService = await this._app.getService<CronService>(CronService.name);
         let backupDirectory: string = this._config.data_dir;
@@ -64,7 +66,7 @@ export class BackupService extends Service {
             fs.mkdirSync(backupDirectory);
         }
 
-        this._schedule = (await this.readConfig()).schedule;
+        this._schedule = this._config.schedule;
         this._task = async () => {
             try {
                 logger.info("Starting BACKUP job.");
@@ -126,7 +128,7 @@ export class BackupService extends Service {
      */
     public async create(comment?: string): Promise<Backup> {
         const backup: Backup = new Backup();
-        backup.setComment(comment ? comment: null);
+        backup.setComment(comment ? comment : null);
         await backup.create(this._config.data_dir);
         await this.applyRetentionPolicy();
         return backup;
@@ -170,14 +172,14 @@ export class BackupService extends Service {
      * Returns whether retention policy by backup counts should be applied
      */
     protected shouldApplyRetentionPolicyByBackupCount(): boolean {
-        return this._config.default_max_copies !== 0;
+        return this._config.max_copies !== 0;
     }
 
     /**
      * Returns whether retention policy by expiration date should be applied
      */
     protected shouldApplyRetentionpolicyByExpirationDate(): boolean {
-        return this._config.default_max_days !== 0;
+        return this._config.max_days !== 0;
     }
 
     /**
@@ -190,7 +192,7 @@ export class BackupService extends Service {
             return a.id > b.id ? 1 : -1;
         });
 
-        while (sortedBackups.length > this._config.default_max_copies) {
+        while (sortedBackups.length > this._config.max_copies) {
             let deletedBackup = sortedBackups.shift();
             deletedBackups.push(await deletedBackup.destroy());
         }
@@ -204,9 +206,9 @@ export class BackupService extends Service {
     protected async applyRetentionPolicyByExpirationDate(): Promise<Array<Backup>> {
         const backups: Array<Backup> = await this.getAll();
         const deletedBackups: Array<Backup> = [];
-        const expirationTimestamp: Moment = moment().subtract(this._config.default_max_days, 'days');
+        const expirationTimestamp: Moment = moment().subtract(this._config.max_days, 'days');
 
-        for(let i = 0; i < backups.length; i++) {
+        for (let i = 0; i < backups.length; i++) {
             if (backups[i].date.isBefore(expirationTimestamp)) {
                 deletedBackups.push(await backups[i].destroy());
             }
@@ -215,12 +217,12 @@ export class BackupService extends Service {
         return deletedBackups;
     }
 
-    public async updateConfig(config: CustomBackupConfig): Promise<CustomBackupConfig> {
-        const cronTime: CronTime = new CronTime(config.default_schedule);
+    public async updateConfig(config: BackupConfig): Promise<BackupConfig> {
+        const cronTime: CronTime = new CronTime(config.schedule);
         this._runningJob.setTime(cronTime);
         this._runningJob.start();
 
-        logger.info(`New backup cron task schedule: ${config.default_schedule}`);
+        logger.info(`New backup cron task schedule: ${config.schedule}`);
 
         await this.writeConfig(config);
         this._config = config;
@@ -234,25 +236,23 @@ export class BackupService extends Service {
         return path.join(this._app.path, this._config.data_dir);
     }
 
-    protected async readConfig(): Promise<any> {
+    protected async readConfig(default_config: BackupConfig): Promise<BackupConfig> {
         return new Promise(async (resolve, reject) => {
             try {
-                const backupConfigFile: string = path.join(this._config.data_dir, this._config.config_file);
-                if (!fs.existsSync(backupConfigFile)) {
-                    return resolve({
-                        schedule: this._config.default_schedule,
-                        max_copies: this._config.default_max_copies,
-                        max_days: this._config.default_max_days
-                    }); // Default config.
+                let config: BackupConfig = default_config;
+                
+                const backupConfigFile: string = path.join(default_config.data_dir, default_config.config_file);
+                if (fs.existsSync(backupConfigFile)) {
+                    const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
+                    config = Object.assign(config, backupConfig);
                 }
 
-                const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
-                resolve(backupConfig);
+                resolve(config);
             } catch (error) { reject(error) }
         });
     }
 
-    protected async writeConfig(config: CustomBackupConfig): Promise<CustomBackupConfig> {
+    protected async writeConfig(config: BackupConfig): Promise<BackupConfig> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!fs.existsSync(this._config.data_dir))
