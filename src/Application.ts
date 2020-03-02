@@ -43,8 +43,8 @@ import { RequestBuilder } from './middleware/RequestBuilder';
 import { ServiceProvider } from './fonaments/services/service-provider';
 import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
-import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
+import { AuthorizationTest } from './middleware/AuthorizationTest';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;

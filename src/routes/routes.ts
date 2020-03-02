@@ -21,24 +21,37 @@
 */
 
 import { RouteCollection } from "../fonaments/http/router/route-collection";
-import { RouterService } from "../fonaments/http/router/router.service";
 import { BackupController } from "../controllers/backups/backup.controller";
 import { BackupConfigController } from "../controllers/backups/backup-config.controller";
 import { CreateBackupValidator } from "../validators/create-backup.validator";
 import { UpdateBackupConfigValidator } from "../validators/update-backup-config.validator";
+import { RouterParser } from "../fonaments/http/router/router-parser";
+import { isAdmin } from "../gates/isAdmin";
 
 export class Routes extends RouteCollection {
-    
-    public routes(router: RouterService): void {
-        
-        //Backups
-        router.get('/backups', BackupController, 'index');
-        router.post('/backups', BackupController, 'create', CreateBackupValidator);
-        router.get('/backups/:id(\\d+)', BackupController, 'show');
-        router.post('/backups/:id(\\d+)/restore', BackupController, 'restore');
-        router.delete('/backups/:id(\\d+)', BackupController, 'delete', );
-        
-        router.put('/backups/config', BackupConfigController, 'update', UpdateBackupConfigValidator);
-        router.get('/backups/config', BackupConfigController, 'show');
+
+    public routes(router: RouterParser): void {
+
+        //Admin routes
+        router.gates([isAdmin], (router) => {
+
+            router.prefix('/backups', (router: RouterParser) => {
+
+                //Backups
+                router.get('/', BackupController, 'index').name('backups.index');
+                router.post('/', BackupController, 'create', CreateBackupValidator).name('backups.store');
+                router.get('/:id(\\d+)', BackupController, 'show').name('backups.show');
+                router.post('/:id(\\d+)/restore', BackupController, 'restore').name('backups.restore');
+                router.delete('/:id(\\d+)', BackupController, 'delete').name('backups.delete');
+
+                // Backups Config
+                router.prefix('/config', (router: RouterParser) => {
+                    router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
+                    router.get('/', BackupConfigController, 'show').name('backups.config.show');
+                });
+
+            });
+
+        });
     }
 }

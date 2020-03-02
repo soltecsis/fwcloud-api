@@ -11,7 +11,7 @@
     "build": "npm run clean && mkdir -p dist/src && cp -r src/views dist/src/views && node_modules/.bin/tsc",
     "watch": "npm run build -- -w",
     "reload": "node_modules/.bin/gulp reload",
-    "fwcloud": "node_modules/.bin/ts-node cli/cli.ts",
+    "fwcloud": "npm run clean && npm run build && node dist/src/cli/cli.js",
     "migration:run": "npm run build && node dist/src/cli/cli.js migration:run",
     "migration:revert": "npm run build && node dist/src/cli/cli.js migration:revert",
     "migration:reset": "npm run build && node dist/src/cli/cli.js migration:reset",
