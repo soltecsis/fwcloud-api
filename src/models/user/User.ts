@@ -202,8 +202,12 @@ export class User extends Model {
         });
     }
 
-    public static isLoggedUserAdmin(req) {
-        return new Promise(async (resolve, reject) => {
+    public static async isLoggedUserAdmin(req) {
+        return new Promise((resolve, reject) => {
+            if (!req.session || !req.session.user_id) {
+                reject(fwcError.NOT_FOUND);
+            }
+
             req.dbCon.query(`select role from ${tableName} where id=${req.session.user_id}`, (error, result) => {
                 if (error) return reject(error);
                 if (result.length === 0) reject(fwcError.NOT_FOUND);

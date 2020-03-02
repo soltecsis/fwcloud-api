@@ -30,6 +30,7 @@ import { MigrationCreateCommand } from "./commands/MigrationCreateCommand";
 import { MigrationRevertCommand } from "./commands/MigrationRevertCommand";
 import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 import { RouteListCommand } from "./commands/route-list.command";
+import { TagVersionCommand } from "./commands/tag-version.command";
 
 yargs
     .usage("Usage: $0 <command> [options]")
@@ -40,6 +41,7 @@ yargs
     .command(new MigrationRevertCommand())
     .command(new MigrationImportDataCommand())
     .command(new RouteListCommand())
+    .command(new TagVersionCommand())
     .recommendCommands()
     .demandCommand(1)
     .strict()

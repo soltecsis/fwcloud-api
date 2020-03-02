@@ -113,11 +113,15 @@ export class RouterService extends Service {
     }
 
     protected async checkGates(route: Route, request: Request): Promise<void> {
-        for (let i = 0; i < route.gates.length; i++) {
-            const gate = new route.gates[i]();
-            if (! await gate.grant(request)) {
-                throw new AuthorizationException();
+        try {
+            for (let i = 0; i < route.gates.length; i++) {
+                const gate = new route.gates[i]();
+                if (! await gate.grant(request)) {
+                    throw new AuthorizationException();
+                }
             }
+        } catch (e) {
+            throw new AuthorizationException();
         }
     }
 

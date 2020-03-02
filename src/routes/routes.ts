@@ -27,6 +27,7 @@ import { CreateBackupValidator } from "../validators/create-backup.validator";
 import { UpdateBackupConfigValidator } from "../validators/update-backup-config.validator";
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
+import { VersionController } from "../controllers/version.controller";
 
 export class Routes extends RouteCollection {
 
@@ -36,7 +37,6 @@ export class Routes extends RouteCollection {
         router.gates([isAdmin], (router) => {
 
             router.prefix('/backups', (router: RouterParser) => {
-
                 //Backups
                 router.get('/', BackupController, 'index').name('backups.index');
                 router.post('/', BackupController, 'create', CreateBackupValidator).name('backups.store');
@@ -49,9 +49,10 @@ export class Routes extends RouteCollection {
                     router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
                     router.get('/', BackupConfigController, 'show').name('backups.config.show');
                 });
-
             });
 
+            //Version
+            router.get('/version', VersionController, 'show').name('version.show');
         });
     }
 }
