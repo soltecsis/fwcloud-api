@@ -1,11 +1,22 @@
-name: Node.js CI
+name: FwCloud CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  build:
-
+  test:
+    name: 'FwCloud Test'
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7,
+        ports:
+          - 8888:3306
+        env:
+          - MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          - MYSQL_USER: "fwcdbusr"
+          - MYSQL_PASSWORD: "fwcdbusr"
+          - MYSQL_DATABASE: "fwcloud"
 
     strategy:
       matrix:
