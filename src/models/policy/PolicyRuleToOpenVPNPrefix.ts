@@ -21,10 +21,12 @@
 */
 
 import Model from "../Model";
-import { Column, getRepository, Entity, PrimaryColumn } from "typeorm";
+import { Column, getRepository, Entity, PrimaryColumn, Repository } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyCompilation } from "./PolicyCompilation";
+import { app } from "../../fonaments/abstract-application";
+import { RepositoryService } from "../../database/repository.service";
 
 const tableName: string = 'policy_r__openvpn_prefix';
 
@@ -60,15 +62,21 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     }
 
     public async onCreate() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const policyCompilationRepository: Repository<PolicyCompilation> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     public async onUpdate() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const policyCompilationRepository: Repository<PolicyCompilation> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     public async onDelete() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const policyCompilationRepository: Repository<PolicyCompilation> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     //Add new policy_r__openvpn_prefix
@@ -129,7 +137,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     public static deleteFromRulePosition(req) {
         return new Promise(async (resolve, reject) => {
-            const models: PolicyRuleToOpenVPNPrefix[] = await getRepository(PolicyRuleToOpenVPNPrefix).find({
+            const policyRuleToOpenVPNPrefixRepository: Repository<PolicyRuleToOpenVPNPrefix> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPNPrefix);
+            const models: PolicyRuleToOpenVPNPrefix[] = await policyRuleToOpenVPNPrefixRepository.find({
                 rule: req.body.rule,
                 prefix: req.body.prefix,
                 position: req.body.position
@@ -145,7 +155,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     public static deleteFromRule(dbCon, rule) {
         return new Promise(async (resolve, reject) => {
-            const models: PolicyRuleToOpenVPNPrefix[] = await getRepository(PolicyRuleToOpenVPNPrefix).find({
+            const policyRuleToOpenVPNPrefixRepository: Repository<PolicyRuleToOpenVPNPrefix> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPNPrefix);
+            const models: PolicyRuleToOpenVPNPrefix[] = await policyRuleToOpenVPNPrefixRepository.find({
                 rule: rule
             });
             dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {

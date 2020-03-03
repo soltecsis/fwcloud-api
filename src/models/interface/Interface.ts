@@ -29,8 +29,10 @@ import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import modelEventService from "../ModelEventService";
-import { getRepository, Column, PrimaryGeneratedColumn, Entity } from "typeorm";
+import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
+import { app } from "../../fonaments/abstract-application";
+import { RepositoryService } from "../../database/repository.service";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -79,12 +81,17 @@ export class Interface extends Model {
     }
 
     public async onUpdate() {
-        const policyRuleToInterfaces: PolicyRuleToInterface[] = await getRepository(PolicyRuleToInterface).find({interface: this.id});
+        const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = (await app().getService<RepositoryService>(RepositoryService.name))
+            .for(PolicyRuleToInterface);
+
+        const policyRuleToInterfaces: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({interface: this.id});
         for(let i = 0; i < policyRuleToInterfaces.length; i++) {
             await modelEventService.emit('update', PolicyRuleToInterface, policyRuleToInterfaces[i])
         }
 
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({interface: this.id});
+        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = (await app().getService<RepositoryService>(RepositoryService.name))
+            .for(PolicyRuleToIPObj);
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({interface: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }

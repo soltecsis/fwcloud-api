@@ -31,9 +31,11 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual } from "typeorm";
+import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
+import { app } from "../../fonaments/abstract-application";
+import { RepositoryService } from "../../database/repository.service";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -105,7 +107,9 @@ export class PolicyRule extends Model {
     private static clon_data: any;
 
     public async onUpdate() {
-        await getRepository(PolicyCompilation).update({rule: this.id}, {status_compiled: 0});
+        const policyCompilationRepository: Repository<PolicyCompilation> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await policyCompilationRepository.update({rule: this.id}, {status_compiled: 0});
     }
 
     public getTableName(): string {

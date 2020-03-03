@@ -31,8 +31,10 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import modelEventService from "../ModelEventService";
-import { Entity, Column, getRepository, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
+import { app } from "../../fonaments/abstract-application";
+import { RepositoryService } from "../../database/repository.service";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -61,7 +63,9 @@ export class IPObjGroup extends Model {
     }
     
     public async onUpdate() {
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({ipobj_g: this.id});
+        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipobj_g: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }
