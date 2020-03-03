@@ -25,9 +25,7 @@ import { BackupService } from "../../backups/backup.service";
 import { app } from "../../fonaments/abstract-application";
 import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Request, Response } from "express";
-import { Authorized } from "../../fonaments/authorization/policy";
-import { SpawnServiceException } from "../../fonaments/exceptions/service-container/spawn-service-exception";
+import { Request } from "express";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -42,20 +40,20 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async index(request: Request, response: Response) {
+    public async index(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
         const backups: Array<Backup> = await this._backupService.getAll();
 
-        ResponseBuilder.make(response).status(200).send(backups);
+        return ResponseBuilder.buildResponse().status(200).body(backups);
     }
 
-    public async show(request: Request, response: Response) {
+    public async show(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
         const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.id));
 
-        ResponseBuilder.make(response).status(200).send(backup);
+        return ResponseBuilder.buildResponse().status(200).body(backup);
     }
     
     /**
@@ -64,11 +62,11 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async create(request: Request, response: Response) {
+    public async create(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         const backup: Backup = await this._backupService.create(request.inputs.get('comment'));
 
-        ResponseBuilder.make(response).status(201).send(backup);
+        return ResponseBuilder.buildResponse().status(201).body(backup);
     }
 
     /**
@@ -77,13 +75,13 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async restore(request: Request, response: Response) {
+    public async restore(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.id));
 
         await this._backupService.restore(backup);
 
-        ResponseBuilder.make(response).status(201).send(backup);
+        return ResponseBuilder.buildResponse().status(201).body(backup);
     }
 
     /**
@@ -92,13 +90,13 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async delete(request: Request, response: Response) {
+    public async delete(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.id));
 
         await this._backupService.delete(backup);
 
-        ResponseBuilder.make(response).status(200).send(backup);
+        return ResponseBuilder.buildResponse().status(200).body(backup);
     }
 }
