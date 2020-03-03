@@ -13,10 +13,10 @@ jobs:
         ports:
           - 8888:3306
         env:
-          - MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-          - MYSQL_USER: "fwcdbusr"
-          - MYSQL_PASSWORD: "fwcdbusr"
-          - MYSQL_DATABASE: "fwcloud"
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          MYSQL_USER: "fwcdbusr"
+          MYSQL_PASSWORD: "fwcdbusr"
+          MYSQL_DATABASE: "fwcloud"
 
     strategy:
       matrix:
