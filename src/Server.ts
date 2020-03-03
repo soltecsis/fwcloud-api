@@ -40,8 +40,9 @@ export class Server {
         try {
             if (this.isHttps()) {
                 this._server = this.startHttpsServer();
+            } else {
+                this._server = this.startHttpServer();
             }
-            this._server = this.startHttpServer();
 
             this.bootstrapSocketIO();
             this.bootstrapEvents();
