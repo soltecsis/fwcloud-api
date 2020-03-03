@@ -510,64 +510,26 @@ export class FwCloud extends Model {
             var sqlcloud = "  is null";
             if (fwcloud !== null)
                 sqlcloud = "= " + fwcloud;
-            db.get((error, connection) => {
+            db.get(async (error, connection) => {
                 if (error)
                     reject(error);
-                connection.query("SET FOREIGN_KEY_CHECKS = 0", (error, result) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        connection.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
-                            if (error) {
-                                reject(error);
-                            } else {
-                                connection.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
-                                    if (error) {
-                                        reject(error);
-                                    } else {
-                                        connection.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud, (error, result) => {
-                                            if (error) {
-                                                reject(error);
-                                            } else {
-                                                connection.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud, (error, result) => {
-                                                    if (error) {
-                                                        reject(error);
-                                                    } else {
-                                                        connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, (error, result) => {
-                                                            if (error) {
-                                                                reject(error);
-                                                            } else {
-                                                                connection.query("DELETE  FROM ipobj where fwcloud" + sqlcloud, (error, result) => {
-                                                                    if (error) {
-                                                                        reject(error);
-                                                                    } else {
-                                                                        connection.query("DELETE  FROM fwc_tree where fwcloud" + sqlcloud, (error, result) => {
-                                                                            if (error) {
-                                                                                reject(error);
-                                                                            } else {
-                                                                                connection.query("SET FOREIGN_KEY_CHECKS = 1", (error, result) => {
-                                                                                    if (error) {
-                                                                                        reject(error);
-                                                                                    } else {
-                                                                                        resolve({ "result": true });
-                                                                                    }
-                                                                                });
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
+
+                try {
+                    await getManager().transaction(async transactionalManager => {
+                        await transactionalManager.query("SET FOREIGN_KEY_CHECKS = 0");
+                        await transactionalManager.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE II.* from  ipobj__ipobjg II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE  FROM ipobj_g where fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE  FROM ipobj where fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE  FROM ipobj where fwcloud" + sqlcloud);
+                        await transactionalManager.query("DELETE  FROM fwc_tree where fwcloud" + sqlcloud);
+                        await transactionalManager.query("SET FOREIGN_KEY_CHECKS = 1");
+                    });
+                    resolve({ "result": true });
+                } catch (e) {
+                    reject(e);
+                }
             });
         });
     }
