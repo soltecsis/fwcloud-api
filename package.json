@@ -17,7 +17,7 @@
     "migration:reset": "npm run build && node dist/src/cli/cli.js migration:reset",
     "migration:create": "npm run build && node dist/src/cli/cli.js migration:create",
     "migration:data": "npm run build && node dist/src/cli/cli.js migration:data",
-    "test": "NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --growl --exit --timeout 999999 --colors dist/tests/**/*spec.js"
+    "test": "NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --exit --timeout 999999 --colors dist/tests/**/*spec.js"
   },
   "apidoc": {
     "title": "FWCloud.net API",
