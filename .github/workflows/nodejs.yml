@@ -9,7 +9,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:5.7,
+        image: mysql,
         ports:
           - 8888:3306
         env:
