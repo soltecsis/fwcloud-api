@@ -1,7 +1,7 @@
 [Unit]
 Description=FWCloud-API
 [Service]
-ExecStart= /usr/bin/node /opt/fwcloud-api/bin/www
+ExecStart= /usr/bin/node /opt/fwcloud-api/dist/bin/fwcloud.js
 WorkingDirectory=/opt/fwcloud-api/
 Restart=always
 StandardOutput=/opt/fwcloud/logs/out.log
