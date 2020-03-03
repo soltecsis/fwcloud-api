@@ -22,9 +22,11 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryGeneratedColumn, Column, getRepository, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObjGroup } from "./IPObjGroup";
+import { RepositoryService } from "../../database/repository.service";
+import { app } from "../../fonaments/abstract-application";
 
 const tableName: string = 'ipobj__ipobjg';
 
@@ -58,7 +60,9 @@ export class IPObjToIPObjGroup extends Model {
     }
 
     public async onCreate() {
-        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+        const ipObjGroupRepository: Repository<IPObjGroup> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
+        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipobj_g});
 
         for(let i = 0; i < ipobj_group.length; i++) {
             await modelEventService.emit('create', IPObjGroup, ipobj_group[i]);
@@ -66,7 +70,9 @@ export class IPObjToIPObjGroup extends Model {
     }
 
     public async onUpdate() {
-        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+        const ipObjGroupRepository: Repository<IPObjGroup> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
+        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipobj_g});
 
         for(let i = 0; i < ipobj_group.length; i++) {
             await modelEventService.emit('update', IPObjGroup, ipobj_group[i]);
@@ -74,7 +80,9 @@ export class IPObjToIPObjGroup extends Model {
     }
 
     public async onDelete() {
-        const ipobj_group: IPObjGroup[] = await getRepository(IPObjGroup).find({id: this.ipobj_g});
+        const ipObjGroupRepository: Repository<IPObjGroup> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
+        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipobj_g});
 
         for(let i = 0; i < ipobj_group.length; i++) {
             await modelEventService.emit('delete', IPObjGroup, ipobj_group[i]);

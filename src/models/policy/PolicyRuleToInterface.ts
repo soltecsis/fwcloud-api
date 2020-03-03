@@ -23,11 +23,13 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity, Between, Not, getRepository } from 'typeorm';
+import { Column, PrimaryColumn, Entity, Between, Not, Repository } from 'typeorm';
 import modelEventService from '../ModelEventService';
-import { PolicyRule } from './PolicyRule';
 import { PolicyCompilation } from './PolicyCompilation';
-import { PolicyRuleToIPObj } from './PolicyRuleToIPObj';
+import { app } from '../../fonaments/abstract-application';
+import { RepositoryService } from '../../database/repository.service';
+import { Policy } from '../../fonaments/authorization/policy';
+
 var asyncMod = require('async');
 var logger = require('log4js').getLogger("app");
 
@@ -65,15 +67,18 @@ export class PolicyRuleToInterface extends Model {
     }
 
     public async onCreate() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await repository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     public async onUpdate() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await repository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     public async onDelete() {
-        await getRepository(PolicyCompilation).update({rule: this.rule}, {status_compiled: 0});
+        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+        await repository.update({rule: this.rule}, {status_compiled: 0});
     }
 
     //Get All policy_r__interface by policy_r
@@ -382,7 +387,9 @@ export class PolicyRuleToInterface extends Model {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     db.get(async (error, connection) => {
-                        const models: PolicyRuleToInterface[] = await getRepository(PolicyRuleToInterface).find({
+                        const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
+                        const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
                             rule: rule,
                             interface: _interface,
                             position: position
@@ -422,7 +429,9 @@ export class PolicyRuleToInterface extends Model {
                 if (row) {
                     logger.debug("DELETING INTERFACES FROM RULE: " + rule);
                     db.get(async (error, connection) => {
-                        const models: PolicyRuleToInterface[] = await getRepository(PolicyRuleToInterface).find({
+                        const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
+                        const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
                             rule: rule
                         });
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);

@@ -27,9 +27,11 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
+import { app } from '../../fonaments/abstract-application';
+import { RepositoryService } from '../../database/repository.service';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -127,12 +129,16 @@ export class IPObj extends Model {
 
     public async onUpdate() {
         
-        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await getRepository(IPObjToIPObjGroup).find({ipobj: this.id});
+        const ipObjToIPObjGroupRepository: Repository<IPObjToIPObjGroup> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjToIPObjGroup);
+        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipobj: this.id});
         for(let i = 0; i < ipobj_to_ipobj_group.length; i++) {
             await modelEventService.emit('update', IPObjToIPObjGroup, ipobj_to_ipobj_group[i])
         }
 
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).find({ipobj: this.id});
+        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipobj: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }
@@ -845,7 +851,9 @@ export class IPObj extends Model {
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
-                            const ipobj: IPObj = await getRepository(IPObj).findOne(id);
+                            const ipObjRepository: Repository<IPObj> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObj);
+                            const ipobj: IPObj = await ipObjRepository.findOne(id);
                             if (ipobj && ipobj.interface) {
                                 await modelEventService.emit('update', Interface, ipobj.interface);
                             }

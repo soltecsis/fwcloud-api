@@ -29,7 +29,7 @@ export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {
         const status: number = error instanceof HttpException ? error.status : 500;
         
-        new ResponseBuilder().status(status).body(error).send(res);
+        return ResponseBuilder.buildResponse().status(status).body(error).send(res);
     }
 
 }

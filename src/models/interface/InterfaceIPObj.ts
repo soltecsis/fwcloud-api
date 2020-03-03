@@ -22,9 +22,11 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository } from "typeorm";
+import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository, Repository } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObj } from "../ipobj/IPObj";
+import { RepositoryService } from "../../database/repository.service";
+import { app } from "../../fonaments/abstract-application";
 
 var logger = require('log4js').getLogger("app");
 
@@ -201,7 +203,9 @@ export class InterfaceIPObj extends Model {
 						reject(error);
 					} else {
 						if (result.affectedRows > 0) {
-							const interfaceToIpObjs: InterfaceIPObj[] = await getRepository(InterfaceIPObj).find({
+							const interfaceIPObjRepository: Repository<InterfaceIPObj> = 
+								(await app().getService<RepositoryService>(RepositoryService.name)).for(InterfaceIPObj);
+							const interfaceToIpObjs: InterfaceIPObj[] = await interfaceIPObjRepository.find({
 								interface: _interface
 							})
 
