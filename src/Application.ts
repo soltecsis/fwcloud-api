@@ -46,6 +46,7 @@ import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { Version } from './version/version';
+import * as path from "path";
 
 export class Application extends AbstractApplication {
     static VERSION_FILENAME = 'version.json';
@@ -169,7 +170,7 @@ export class Application extends AbstractApplication {
 
     protected async loadVersion(): Promise<Version> {
         const version: Version = new Version();
-        await version.loadVersionFile(Application.VERSION_FILENAME);
+        await version.loadVersionFile(path.join(this.path, Application.VERSION_FILENAME));
 
         return version;
     }
