@@ -26,6 +26,8 @@ import db from '../../database/database-manager';
 
 var logger = require('log4js').getLogger("app");
 import { User } from '../../models/user/User';
+import { app } from "../../fonaments/abstract-application";
+import { DatabaseService } from "../../database/database.service";
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -515,7 +517,8 @@ export class FwCloud extends Model {
                     reject(error);
 
                 try {
-                    await getManager().transaction(async transactionalManager => {
+                    const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
+                    await databaseService.connection.transaction(async transactionalManager => {
                         await transactionalManager.query("SET FOREIGN_KEY_CHECKS = 0");
                         await transactionalManager.query("DELETE I.* from  interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud);
                         await transactionalManager.query("DELETE II.* from  interface__ipobj II inner join ipobj G On  G.id=II.ipobj where G.fwcloud" + sqlcloud);
