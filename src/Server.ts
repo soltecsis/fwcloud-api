@@ -25,6 +25,7 @@ import https from 'https';
 import http from 'http';
 import * as fs from 'fs';
 import io from 'socket.io';
+import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
 
 export class Server {
     private _application: Application;
@@ -38,6 +39,7 @@ export class Server {
 
     public async start(): Promise<any> {
         try {
+            this.validateApplicationConfiguration();
             if (this.isHttps()) {
                 this._server = this.startHttpsServer();
             } else {
@@ -97,6 +99,24 @@ export class Server {
                 if (this._config.get('env') === 'dev') console.log('user disconnected', socket.id);
             });
         });
+    }
+
+    protected validateApplicationConfiguration() {
+        if (!this._application.config.get('session').secret) {
+            throw new ConfigurationErrorException("Configuration Error: Session secret must be defined in .env");
+        }
+
+        if (!this._application.config.get('db').pass) {
+            throw new ConfigurationErrorException("Configuration Error: Database password must be defined in .env");
+        }
+
+        if (!this._application.config.get('crypt').secret) {
+            throw new ConfigurationErrorException("Configuration Error: Encryption secret must be defined in .env");
+        }
+
+        if (process.env.CORS_WHITELIST) {
+            this._application.config.set('CORS.whitelist', process.env.CORS_WHITELIST.replace(/ +/g, '').split(','));
+        }
     }
 
     public onError(error: Error) {
