@@ -30,10 +30,16 @@ import { AuthorizationException } from "../../exceptions/authorization-exception
 import { RequestValidation } from "../../validation/request-validation";
 import { ValidationException } from "../../exceptions/validation-exception";
 import { ResponseBuilder } from "../response-builder";
+import { URLHelper } from "./url-helper";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
 declare function optionalParams(params:number, params2: string): void;
+
+let _runningURLHelper: URLHelper = null;
+export function _URL<T extends URLHelper>(): T {
+    return <T>_runningURLHelper;
+}
 
 
 export class RouterService extends Service {
@@ -53,6 +59,8 @@ export class RouterService extends Service {
         this._router = this._express;
         this._list = [];
 
+        _runningURLHelper = new URLHelper(this);
+
         return this;
     }
 
@@ -63,6 +71,16 @@ export class RouterService extends Service {
             const route: Route = this.registerRoute(routes[i]);
             this._list.push(route);
         }
+    }
+
+    public findRouteByName(name: string): Route {
+        for(let i = 0; i < this._list.length; i++) {
+            if (this._list[i].name === name) {
+                return this._list[i];
+            }
+        }
+        
+        return null;
     }
 
     protected parseRoutes(routesDefinition: RouteCollectionable): Array<Route> {

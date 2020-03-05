@@ -5,6 +5,8 @@ import { Request, Response, NextFunction, Application } from "express";
 import { RequestValidation } from "../../validation/request-validation";
 import { Gate } from "./gate";
 import { AbstractApplication, app } from "../../abstract-application";
+import { ParamNotValidException } from "./exceptions/param-not-valid.exception";
+import { ParamMissingException } from "./exceptions/param-missing.exception";
 
 export class ControllerHandlerSignature {
     controller: typeof Controller;
@@ -107,5 +109,32 @@ export class Route {
     public setGates(gates: Array<typeof Gate>): Route {
         this._gates = gates;
         return this;
+    }
+
+    public generateURL(params: object = {}): string {
+        let url: string = this._pathParams.toString();
+
+        for (let param in params) {
+            if (Object.prototype.hasOwnProperty.call(params, param)) {
+
+                if (new RegExp('\/').test(params[param])) {
+                    throw new ParamNotValidException(param, params[param], this);
+                }
+
+                url = url.replace(new RegExp('\:' + param), params[param]);
+
+            }
+        }
+
+        //TODO: Should use the regexp path restrictions in order to validate params
+        // are valid
+        url = url.replace(new RegExp('\\(.+\\)'), "");
+
+        const occurrences = url.match(new RegExp('\:[A-Za-z0-9]+'));
+        if (occurrences && occurrences.length > 0) {
+            throw new ParamMissingException(occurrences, this);
+        }
+
+        return url;
     }
 }

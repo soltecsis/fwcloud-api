@@ -51,7 +51,7 @@ export class BackupController extends Controller {
     public async show(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.id));
+        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
 
         return ResponseBuilder.buildResponse().status(200).body(backup);
     }
@@ -62,7 +62,7 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async create(request: Request): Promise<ResponseBuilder> {
+    public async store(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         const backup: Backup = await this._backupService.create(request.inputs.get('comment'));
 
@@ -77,7 +77,7 @@ export class BackupController extends Controller {
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
-        const backup: Backup = await this._backupService.findOne(parseInt(request.params.id));
+        const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         await this._backupService.restore(backup);
 
@@ -93,7 +93,7 @@ export class BackupController extends Controller {
     public async delete(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOne(parseInt(request.params.id));
+        const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         await this._backupService.delete(backup);
 
