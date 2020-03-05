@@ -316,23 +316,4 @@ try {
   process.exit();
 }
 
-if (!config.get('session').secret) {
-  console.log("Configuration Error: Session secret must be defined in .env");
-  process.exit();  
-}
-
-if (!config.get('db').pass) {
-  console.log("Configuration Error: Database password must be defined in .env");
-  process.exit();  
-}
-
-if (!config.get('crypt').secret) {
-  console.log("Configuration Error: Encryption secret must be defined in .env");
-  process.exit();  
-}
-
-if(process.env.CORS_WHITELIST) {
-  config.set('CORS.whitelist',process.env.CORS_WHITELIST.replace(/ +/g,'').split(','));
-}
-
 module.exports = config;
