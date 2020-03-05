@@ -40,20 +40,20 @@ describe(describeName('Version E2E tests'), () => {
     describe(describeName('VersionController@show'), () => {
         it('guest user should not see the version', async () => {
             return await request(app.express)
-                .get('/version')
+                .get('/api/version')
                 .expect(401);
         });
 
         it('regular user should not see version', async () => {
             return await request(app.express)
-                .get('/version')
+                .get('/api/version')
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(401)
         });
 
         it('admin user should see the version', async () => {
             return await request(app.express)
-                .get('/version')
+                .get('/api/version')
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {

@@ -22,7 +22,7 @@
 
 import { Service } from "../../services/service";
 import { Request, Response, NextFunction } from "express";
-import { RouteCollection as RouteDefinition } from "./route-collection";
+import { RouteCollection as RouteDefinition, RouteCollectionable } from "./route-collection";
 import { Routes } from "../../../routes/routes";
 import { RouterParser } from "./router-parser";
 import { Route } from "./route";
@@ -56,8 +56,8 @@ export class RouterService extends Service {
         return this;
     }
 
-    public registerRoutes(): void {
-        const routes: Array<Route> = this.parseRoutes();
+    public registerRoutes(routesDefinition: RouteCollectionable): void {
+        const routes: Array<Route> = this.parseRoutes(routesDefinition);
 
         for(let i = 0; i < routes.length; i++) {
             const route: Route = this.registerRoute(routes[i]);
@@ -65,10 +65,10 @@ export class RouterService extends Service {
         }
     }
 
-    protected parseRoutes(): Array<Route> {
+    protected parseRoutes(routesDefinition: RouteCollectionable): Array<Route> {
 
         const parser = new RouterParser();
-        const routes: RouteDefinition = new Routes();
+        const routes: RouteDefinition = new routesDefinition();
 
         routes.parse(parser);
         parser.commitCurrentRoute();
