@@ -11,7 +11,7 @@ function readTestEnvContent(): string {
     return fse.readFileSync(testEnvPath).toString();
 }
 
-describe.only('KeysGenerateCommand tests', () => {
+describe('KeysGenerateCommand tests', () => {
     beforeEach(() => {
         const app: Application = testSuite.app;
         fse.copyFileSync(path.join(app.path, '.env.example'), path.join(app.path, testEnvPath));
