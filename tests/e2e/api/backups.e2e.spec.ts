@@ -9,6 +9,7 @@ import { Application } from "../../../src/Application";
 import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
 import { RepositoryService } from "../../../src/database/repository.service";
+import { _URL } from "../../../src/fonaments/http/router/router.service";
 
 let app: Application;
 let backupService: BackupService;
@@ -58,13 +59,13 @@ describe(describeName('Backup E2E tests'), () => {
 
         it('guest user should not see the backup index', async () => {
             return await request(app.express)
-                .get('/api/backups')
+                .get(_URL().getURL('backups.index'))
                 .expect(401);
         });
 
         it('regular user should not see backup index', async () => {
             return await request(app.express)
-                .get('/api/backups')
+                .get(_URL().getURL('backups.index'))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(401)
         });
@@ -77,7 +78,7 @@ describe(describeName('Backup E2E tests'), () => {
             const backup2: Backup = await backupService.create();
 
             return await request(app.express)
-                .get('/api/backups')
+                .get(_URL().getURL('backups.index'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
@@ -93,7 +94,7 @@ describe(describeName('Backup E2E tests'), () => {
             const backup: Backup = await backupService.create();
 
             await request(app.express)
-                .get(`/api/backups/${backup.id}`)
+                .get(_URL().getURL('backups.show', {backup: backup.id}))
                 .expect(401)
         });
 
@@ -102,7 +103,7 @@ describe(describeName('Backup E2E tests'), () => {
             const backup: Backup = await backupService.create();
 
             await request(app.express)
-                .get(`/api/backups/${backup.id}`)
+                .get(_URL().getURL('backups.show', {backup: backup.id}))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(401)
         });
@@ -112,7 +113,7 @@ describe(describeName('Backup E2E tests'), () => {
             const backup: Backup = await backupService.create();
 
             await request(app.express)
-                .get(`/api/backups/${backup.id}`)
+                .get(_URL().getURL('backups.show', {backup: backup.id}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
@@ -122,7 +123,7 @@ describe(describeName('Backup E2E tests'), () => {
 
         it('404 exception should be thrown if a backup does not exist', async () => {
             await request(app.express)
-                .get(`/api/backups/${moment().add(2, 'd').valueOf().toString()}`)
+                .get(_URL().getURL('backups.show', {backup: moment().add(2, 'd').valueOf().toString()}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(404);
         });
@@ -131,13 +132,13 @@ describe(describeName('Backup E2E tests'), () => {
     describe(describeName('BackupController@create'), async () => {
         it('guest user should not create a backup', async () => {
             await request(app.express)
-                .post(`/api/backups`)
+                .post(_URL().getURL('backups.store'))
                 .expect(401)
         });
 
         it('regular user should not create a backup', async () => {
             await request(app.express)
-                .post(`/api/backups`)
+                .post(_URL().getURL('backups.store'))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(401)
@@ -146,7 +147,7 @@ describe(describeName('Backup E2E tests'), () => {
         it('admin user should create a backup', async () => {
             const existingBackups: Array<Backup> = await (await (app.getService<BackupService>(BackupService.name))).getAll();
             await request(app.express)
-                .post(`/api/backups`)
+                .post(_URL().getURL('backups.store'))
                 .send({
                     comment: 'test comment'
                 })
@@ -164,20 +165,20 @@ describe(describeName('Backup E2E tests'), () => {
     describe(describeName('BackupConfigController@show'), async () => {
         it('guest user should not see backup config', async () => {
             await request(app.express)
-                .get(`/api/backups/config`)
+                .get(_URL().getURL('backups.config.show'))
                 .expect(401)
         });
 
         it('regular user should not see backup config', async () => {
             await request(app.express)
-                .get(`/api/backups/config`)
+                .get(_URL().getURL('backups.config.show'))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(401)
         });
 
         it('admin user should see backup config', async () => {
             await request(app.express)
-                .get(`/api/backups/config`)
+                .get(_URL().getURL('backups.config.show'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
@@ -189,13 +190,13 @@ describe(describeName('Backup E2E tests'), () => {
     describe(describeName('BackupConfigController@update'), async () => {
         it('guest user should not update backup config', async () => {
             await request(app.express)
-                .put(`/api/backups/config`)
+                .put(_URL().getURL('backups.config.update'))
                 .expect(401)
         });
 
         it('regular user should not update backup config', async () => {
             await request(app.express)
-                .put(`/api/backups/config`)
+                .put(_URL().getURL('backups.config.update'))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(401)
@@ -203,7 +204,7 @@ describe(describeName('Backup E2E tests'), () => {
 
         it.skip('admin user should update backup config', async () => {
             await request(app.express)
-                .put(`/api/backups/config`)
+                .put(_URL().getURL('backups.config.update'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .send({

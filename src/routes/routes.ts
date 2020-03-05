@@ -33,28 +33,26 @@ export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
 
-        router.prefix('/api', (router: RouterParser) => {
-            //Admin routes
-            router.gates([isAdmin], (router) => {
+        //Admin routes
+        router.gates([isAdmin], (router) => {
 
-                router.prefix('/backups', (router: RouterParser) => {
-                    //Backups
-                    router.get('/', BackupController, 'index').name('backups.index');
-                    router.post('/', BackupController, 'create', CreateBackupValidator).name('backups.store');
-                    router.get('/:id(\\d+)', BackupController, 'show').name('backups.show');
-                    router.post('/:id(\\d+)/restore', BackupController, 'restore').name('backups.restore');
-                    router.delete('/:id(\\d+)', BackupController, 'delete').name('backups.delete');
+            router.prefix('/backups', (router: RouterParser) => {
+                //Backups
+                router.get('/', BackupController, 'index').name('backups.index');
+                router.post('/', BackupController, 'store', CreateBackupValidator).name('backups.store');
+                router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
+                router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
+                router.delete('/:backup(\\d+)', BackupController, 'delete').name('backups.delete');
 
-                    // Backups Config
-                    router.prefix('/config', (router: RouterParser) => {
-                        router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
-                        router.get('/', BackupConfigController, 'show').name('backups.config.show');
-                    });
+                // Backups Config
+                router.prefix('/config', (router: RouterParser) => {
+                    router.get('/', BackupConfigController, 'show').name('backups.config.show');
+                    router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
                 });
-
-                //Version
-                router.get('/version', VersionController, 'show').name('version.show');
             });
+
+            //Version
+            router.get('/version', VersionController, 'show').name('versions.show');
         });
     }
 }
