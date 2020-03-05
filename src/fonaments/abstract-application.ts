@@ -35,6 +35,7 @@ import { Middleware, Middlewareable } from "./http/middleware/Middleware";
 import { ServiceProvider } from "./services/service-provider";
 import { Service } from "./services/service";
 import { RepositoryServiceProvider } from "../database/repository.provider";
+import { Routes } from "../routes/routes";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -128,7 +129,7 @@ export abstract class AbstractApplication {
 
   protected async registerRoutes() {
     const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
-    routerService.registerRoutes();
+    routerService.registerRoutes(Routes);
   };
 
   protected startServiceContainer() {

@@ -22,6 +22,11 @@
 
 import { RouterParser } from "./router-parser";
 
+type RouteCollectionClass = typeof RouteCollection;
+
+export interface RouteCollectionable extends RouteCollectionClass {}
+
+
 export abstract class RouteCollection {
 
     public parse(router: RouterParser): void {
