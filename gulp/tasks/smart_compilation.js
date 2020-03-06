@@ -7,7 +7,7 @@ const log = require('fancy-log');
 let compiled_list = [];
 let source_list = [];
 
-class MyEmitter extends EventEmitter {
+class SmartObserver extends EventEmitter {
     constructor() {
         super();
         this.compiled_list = false;
@@ -48,22 +48,22 @@ class MyEmitter extends EventEmitter {
     }
 }
 
-const myEmitter = new MyEmitter();
+const observer = new SmartObserver();
 
-myEmitter.on('compiled_list', async () => {
-    myEmitter.compiled_list = true;
-    const uncompiled = myEmitter.detectUncompiledFiles();
-    myEmitter.compileUncompiledFiles(uncompiled);
+observer.on('compiled_list', async () => {
+    observer.compiled_list = true;
+    const uncompiled = observer.detectUncompiledFiles();
+    observer.compileUncompiledFiles(uncompiled);
 });
 
-myEmitter.on('source_list', async () => {
-    myEmitter.source_list = true;
-    const uncompiled = myEmitter.detectUncompiledFiles();
-    myEmitter.compileUncompiledFiles(uncompiled);
+observer.on('source_list', async () => {
+    observer.source_list = true;
+    const uncompiled = observer.detectUncompiledFiles();
+    observer.compileUncompiledFiles(uncompiled);
 });
 
-myEmitter.on('full_compilation', async () => {
-    myEmitter.compileAll();
+observer.on('full_compilation', async () => {
+    observer.compileAll();
 });
 
 var findSources = function (dir, regexp, done) {
@@ -103,12 +103,12 @@ async function main() {
             item.file = item.file.replace(path.join(process.cwd(), 'dist', 'tests/'), '');
             return item;
         });
-        myEmitter.emit('source_list');
+        observer.emit('source_list');
     });
 
 
     if (!fs.existsSync(buildPath)) {
-        myEmitter.emit('full_compilation');
+        observer.emit('full_compilation');
         return;
     }
 
@@ -119,7 +119,7 @@ async function main() {
             item.file = item.file.replace(path.join(process.cwd(), 'dist', 'tests/'), '');
             return item;
         });
-        myEmitter.emit('compiled_list');
+        observer.emit('compiled_list');
     });
 }
 
