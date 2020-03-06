@@ -2,6 +2,8 @@ import { AbstractApplication } from "../../../src/fonaments/abstract-application
 import { Backup } from "../../../src/backups/backup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { testSuite, expect, describeName } from "../../mocha/global-setup";
+import * as fs from "fs";
+import * as path from "path";
 
 let app: AbstractApplication;
 
@@ -18,13 +20,24 @@ describe(describeName('BackupService tests'), async() => {
         const b2: Backup = new Backup();
 
         await b1.create(service.config.data_dir);
-        await new Promise(resolve => setTimeout(resolve, 1000));
         await b2.create(service.config.data_dir);
 
         expect(await service.getAll()).to.be.deep.equal([b1, b2]);
     });
 
-    it.skip('getAll should return an empty array if any backup is persisted', async() => {
+    it('getAll should return all backups can be loaded', async () => {
+        const b1: Backup = new Backup();
+        const b2: Backup = new Backup();
+
+        await b1.create(service.config.data_dir);
+        await b2.create(service.config.data_dir);
+
+        fs.unlinkSync(path.join(b1.path, Backup.METADATA_FILENAME));
+
+        expect(await service.getAll()).to.be.deep.equal([b2]);
+    });
+
+    it('getAll should return an empty array if any backup is persisted', async() => {
         expect(await service.getAll()).to.have.length(0);
     });
 

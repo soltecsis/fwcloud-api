@@ -92,7 +92,9 @@ export class BackupService extends Service {
             let backupPath: string = path.join(this.getBackupDirectory(), entry);
 
             if (fs.statSync(backupPath).isDirectory()) {
-                dirs.push(await new Backup().load(backupPath));
+                try {
+                    dirs.push(await new Backup().load(backupPath));
+                } catch(e) {}
             }
         }
 
