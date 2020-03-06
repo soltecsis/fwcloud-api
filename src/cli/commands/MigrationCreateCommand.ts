@@ -22,12 +22,10 @@
 
 import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from "../../config/config"
-import * as version from '../../../version.json';
 import * as Path from 'path';
-import {CommandUtils} from "typeorm/commands/CommandUtils";
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
+import { Application } from "../../Application";
+import { DatabaseService } from "../../database/database.service";
 
 
 /**
@@ -52,26 +50,24 @@ export class MigrationCreateCommand implements yargs.CommandModule {
             .option('t', {
                 alias: 'tag',
                 describe: 'Version which migration belongs to.',
-                default: version.version
+                default: null
             });            
     }
 
     async handler(args: yargs.Arguments) {
-        let connection: Connection | undefined = undefined;
-        let configDB = config.get('db');
+        const app: Application = await Application.run();
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        let version = args.tag ? args.tag as string : app.getVersion().version;
 
         try {
             let directory: string = args.dir ? args.dir.toString() : null;
 
+
+
             // if directory is not set then try to open tsconfig and find default path there
             if (!directory) {
                 try {
-                    const connectionOptionsReader = new ConnectionOptionsReader({
-                        root: process.cwd(),
-                        configName: args.config as any
-                    });
-                    const connectionOptions = await connectionOptionsReader.get(args.connection as any);
-                    directory = configDB.migration_directory;
+                    directory = databaseService.config.migration_directory
                 } catch (err) { }
             }
 

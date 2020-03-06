@@ -6,6 +6,8 @@ const killProcess = require('tree-kill');
 const { spawn } = require('child_process');
 const gulp = require('gulp');
 
+const smart_compilation = require('./gulp/tasks/smart_compilation');
+
 const projectPath = __dirname;
 const buildPath = Path.join(projectPath, 'dist');
 
@@ -56,3 +58,4 @@ function reload() {
 }
 
 exports.reload = reload;
+exports.smartCompilation = smart_compilation;
