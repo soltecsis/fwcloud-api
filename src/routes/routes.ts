@@ -54,11 +54,13 @@ export class Routes extends RouteCollection {
 
             //Version
             router.get('/version', VersionController, 'show').name('versions.show');
+        });
 
-            //Snapshots
-            router.prefix('/snapshots', (router: RouterParser) => {
-                router.get('/', SnapshotController, 'index').name('snapshots.index');
-            });
+
+        //Snapshots
+        router.prefix('/snapshots', (router: RouterParser) => {
+            router.get('/', SnapshotController, 'index').name('snapshots.index');
+            router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
         });
     }
 }

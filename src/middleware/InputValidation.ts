@@ -25,13 +25,17 @@ import fwcError from '../utils/error_table';
 import { Request, Response, NextFunction } from "express";
 
 export class InputValidation extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         // The FWCloud.net API only supports these HTTP methods.
-        if (req.method !== 'POST' && req.method !== 'GET' && req.method !== 'PUT' && req.method !== 'DELETE')
-            return res.status(400).json(fwcError.NOT_ACCEPTED_METHOD);
+        if (req.method !== 'POST' && req.method !== 'GET' && req.method !== 'PUT' && req.method !== 'DELETE') {
+            res.status(400).json(fwcError.NOT_ACCEPTED_METHOD);
+            return;
+        }
 
-        if ((req.method === 'GET' || req.method === 'DELETE') && Object.keys(req.body).length !== 0)
-            return res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
+        if ((req.method === 'GET' || req.method === 'DELETE') && Object.keys(req.body).length !== 0){
+            res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
+            return;
+        }
 
         const item1 = req.url.split('/')[1];
         const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface',
@@ -40,8 +44,10 @@ export class InputValidation extends Middleware {
         const item1_new_route_system = ['backups', 'version', 'snapshots'];
 
         // Verify that item1 is in the valid list.
-        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1))
-            return res.status(404).json(fwcError.BAD_API_CALL);
+        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1)) {
+            res.status(404).json(fwcError.BAD_API_CALL);
+            return;
+        }
 
         if (item1_new_route_system.includes(item1)) {
             return next();

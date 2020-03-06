@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from "typeorm";
 import db from '../../database/database-manager';
 
 var logger = require('log4js').getLogger("app");
@@ -67,6 +67,14 @@ export class FwCloud extends Model {
 
     @Column()
     comment: string;
+
+    @ManyToMany(type => User, user => user.fwclouds)
+    @JoinTable({
+        name: 'user__fwcloud',
+        joinColumn: { name: 'fwcloud'},
+        inverseJoinColumn: { name: 'user'}
+    })
+    users: Array<User>
 
     public getTableName(): string {
         return tableName;

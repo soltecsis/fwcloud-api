@@ -42,6 +42,10 @@ export class Snapshot implements Responsable {
         this._exists = false;
     }
 
+    get fwcloud(): FwCloud {
+        return this._fwcloud;
+    }
+
     get id(): number {
         return this._id;
     }

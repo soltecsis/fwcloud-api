@@ -2,6 +2,7 @@ import { Service } from "../fonaments/services/service";
 import { Snapshot } from "./snapshot";
 import * as fs from "fs";
 import * as path from "path";
+import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 export type SnapshotConfig = {
     data_dir: string
@@ -12,6 +13,7 @@ export class SnapshotService extends Service {
 
     public async build(): Promise<SnapshotService> {
         this._config = this._app.config.get('snapshot');
+
         return this;
     }
 
@@ -38,6 +40,16 @@ export class SnapshotService extends Service {
         });
 
         return results.length > 0 ? results[0] : null;
+    }
+
+    public async findOneOrDie(id: number): Promise<Snapshot> {
+        let snapshot: Snapshot = await this.findOne(id);
+
+        if (!snapshot) {
+            throw new NotFoundException();
+        }
+
+        return snapshot;
     }
 
     public async remove(snapshot: Snapshot): Promise<Snapshot> {

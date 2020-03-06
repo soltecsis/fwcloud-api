@@ -26,7 +26,7 @@ import ejs from 'ejs';
 import * as path from 'path';
 
 export class EJS extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         this.app.express.set('views', path.join(this.app.path, 'dist', 'src', 'views'));
         this.app.express.engine('html', ejs.renderFile);
         this.app.express.set('view engine', 'html');

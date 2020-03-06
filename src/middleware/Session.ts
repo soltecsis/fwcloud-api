@@ -26,7 +26,7 @@ import FileStore from 'session-file-store';
 import { Request, Response, NextFunction } from "express";
 
 export class Session extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         const config = {
             name: this.app.config.get('session').name,
             secret: this.app.config.get('session').secret,

@@ -25,7 +25,7 @@ import helmet from 'helmet';
 import { Request, Response, NextFunction } from "express";
 
 export class Helmet extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         this.app.express.use(helmet());
         next();
     }

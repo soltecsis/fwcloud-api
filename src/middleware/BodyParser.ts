@@ -25,7 +25,7 @@ import bodyParser from 'body-parser';
 import { Request, Response, NextFunction } from "express";
 
 export class BodyParser extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction): void {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         (bodyParser.json())(req, res, next);
     }
 

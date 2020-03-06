@@ -26,7 +26,7 @@ import cors from 'cors';
 import { Request, Response, NextFunction } from "express";
 
 export class CORS extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         const options = {
             credentials: true,
             origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {

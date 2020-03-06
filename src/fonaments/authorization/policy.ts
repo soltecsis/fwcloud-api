@@ -23,11 +23,15 @@
 import { AuthorizationService } from "./authorization.service";
 import { app } from "../abstract-application";
 
-export abstract class AuthorizationResponse {
+export abstract class Authorization {
     protected _authorizationService: AuthorizationService;
     
-    async authorize(): Promise<void> {
+    public async authorize(): Promise<void> {
         this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
+    }
+
+    public can(): boolean {
+        return false;
     }
     
     static revoke() {
@@ -39,16 +43,24 @@ export abstract class AuthorizationResponse {
     }
 }
 
-export class Authorized extends AuthorizationResponse {
+export class Authorized extends Authorization {
     public async authorize() {
         await super.authorize();
     }
+
+    public can(): boolean {
+        return true;
+    }
 }
 
-export class Unauthorized extends AuthorizationResponse {
+export class Unauthorized extends Authorization {
     public async authorize() {
         await super.authorize();
         this._authorizationService.revokeAuthorization();
+    }
+
+    public can(): boolean {
+        return false;
     }
 }
 
@@ -57,14 +69,6 @@ export class Policy {
     protected authorized: boolean;
 
     constructor() {
-        this.authorized = false;
-    }
-    
-    protected async authorize(): Promise<void> {
-        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
-        if (!this.authorized) {
-            this._authorizationService.revokeAuthorization();
-        }
         this.authorized = false;
     }
 }
