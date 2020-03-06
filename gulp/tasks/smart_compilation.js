@@ -39,7 +39,7 @@ class SmartObserver extends EventEmitter {
             return;
         }
         log(uncompiled.length + ' compiled files outdated. Needs compilation...');
-        await compilationTask(uncompiled);
+        await compilationTask();
     }
 
     async compileAll() {
@@ -83,7 +83,11 @@ var findSources = function (dir, regexp, done) {
                     });
                 } else {
                     if (stat && regexp.test(file)) {
-                        results.push({ file: file.replace(regexp, ''), timestamp: stat.mtimeMs });
+                        results.push({
+                            original: file,
+                            file: file.replace(regexp, ''), 
+                            timestamp: stat.mtimeMs 
+                        });
                     }
                     if (!--pending) done(null, results);
                 }
