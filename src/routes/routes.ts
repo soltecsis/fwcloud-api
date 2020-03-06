@@ -28,6 +28,7 @@ import { UpdateBackupConfigValidator } from "../validators/update-backup-config.
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
+import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 
 export class Routes extends RouteCollection {
 
@@ -53,6 +54,11 @@ export class Routes extends RouteCollection {
 
             //Version
             router.get('/version', VersionController, 'show').name('versions.show');
+
+            //Snapshots
+            router.prefix('/snapshots', (router: RouterParser) => {
+                router.get('/', SnapshotController, 'index').name('snapshots.index');
+            });
         });
     }
 }

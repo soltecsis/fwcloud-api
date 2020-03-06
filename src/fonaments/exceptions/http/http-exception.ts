@@ -41,7 +41,7 @@ export class HttpException extends Error implements Responsable {
         this.info = this.message;
     }
     
-    toResponse(): Object {
+    toResponse(): object {
         return this.generateResponse();
     }
 

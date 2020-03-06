@@ -47,6 +47,7 @@ import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { Version } from './version/version';
 import * as path from "path";
+import { SnapshotServiceProvider } from './snapshots/snapshot.provider';
 
 export class Application extends AbstractApplication {
     static VERSION_FILENAME = 'version.json';
@@ -92,7 +93,8 @@ export class Application extends AbstractApplication {
     protected providers(): Array<typeof ServiceProvider> {
         return [
             CronServiceProvider,
-            BackupServiceProvider
+            BackupServiceProvider,
+            SnapshotServiceProvider
         ]
     }
 

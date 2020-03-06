@@ -82,7 +82,9 @@ describe(describeName('Backup E2E tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
-                    response.body = [backup1.toResponse(), backup2.toResponse()]
+                    expect(response.body.data).to.be.deep.equal(
+                        JSON.parse(JSON.stringify([backup1.toResponse(), backup2.toResponse()]))
+                    )
                 });
         });
     });

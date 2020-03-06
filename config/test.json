@@ -14,6 +14,9 @@
         "user": "fwcdbusr",
         "pass": "fwcdbusr"
     },
+    "snapshot": {
+        "data_dir": "tests/playground/SNAPSHOT"
+    },
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },

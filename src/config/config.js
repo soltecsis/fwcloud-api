@@ -274,7 +274,6 @@ const config = convict({
       default: './lib/easy-rsa/easyrsa3/easyrsa',
     },
   },
-
   // Backup configuration.
   backup: {
     data_dir: {
@@ -303,7 +302,16 @@ const config = convict({
       format: Number,
       default: 30
     }
-  }  
+  },
+  // Snapshot configuration.
+  snapshot: {
+    data_dir: {
+      doc: 'Directory for store the snapshots.',
+      format: String,
+      default: './SNAPSHOTS',
+      env: 'SNAPSHOT_DATA_DIR'
+    },
+  }    
 });
 
 

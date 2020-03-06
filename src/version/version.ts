@@ -36,7 +36,7 @@ export class Version implements Responsable {
         throw new VersionFileNotFoundException(versionFilePath);
     }
 
-    toResponse(): Object {
+    toResponse(): object {
         return {
             version: this.version,
             date: this.date.utc()
