@@ -34,17 +34,15 @@ import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 const logger = require('log4js').getLogger("app");
 
-export interface BackupConfig {
+export interface BackupUpdateableConfig {
     schedule: string,
     max_copies: number,
-    max_days: number,
-    data_dir: string,
-    config_file: string
+    max_days: number
 };
 
 export class BackupService extends Service {
 
-    protected _config: BackupConfig;
+    protected _config: any;
     protected _db: DatabaseService;
     protected _cronService: CronService;
 
@@ -57,7 +55,7 @@ export class BackupService extends Service {
     }
 
     public async build(): Promise<BackupService> {
-        this._config = await this.readConfig(this._app.config.get('backup'));
+        this._config = await this.loadCustomizedConfig(this._app.config.get('backup'));
         this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
         this._cronService = await this._app.getService<CronService>(CronService.name);
         let backupDirectory: string = this._config.data_dir;
@@ -148,7 +146,7 @@ export class BackupService extends Service {
         throw new BackupNotFoundException(backup.path);
     }
 
-    public async delete(backup: Backup): Promise<Backup> {
+    public async destroy(backup: Backup): Promise<Backup> {
         return await backup.destroy();
     }
 
@@ -219,16 +217,24 @@ export class BackupService extends Service {
         return deletedBackups;
     }
 
-    public async updateConfig(config: BackupConfig): Promise<BackupConfig> {
-        const cronTime: CronTime = new CronTime(config.schedule);
+    public getCustomizedConfig(): BackupUpdateableConfig {
+        return {
+            max_copies: this._config.max_copies,
+            max_days: this._config.max_days,
+            schedule: this._config.schedule
+        };
+    }
+
+    public async updateConfig(custom_config: BackupUpdateableConfig): Promise<BackupUpdateableConfig> {
+        custom_config = await this.writeCustomizedConfig(custom_config);
+        this._config = await this.loadCustomizedConfig(this._config);
+        
+        const cronTime: CronTime = new CronTime(this._config.schedule);
         this._runningJob.setTime(cronTime);
         this._runningJob.start();
+        logger.info(`New backup cron task schedule: ${custom_config.schedule}`);
 
-        logger.info(`New backup cron task schedule: ${config.schedule}`);
-
-        await this.writeConfig(config);
-        this._config = config;
-        return this._config;
+        return custom_config;
     }
 
     /**
@@ -238,12 +244,12 @@ export class BackupService extends Service {
         return path.join(this._app.path, this._config.data_dir);
     }
 
-    protected async readConfig(default_config: BackupConfig): Promise<BackupConfig> {
+    protected async loadCustomizedConfig(base_config: any): Promise<any> {
         return new Promise(async (resolve, reject) => {
             try {
-                let config: BackupConfig = default_config;
+                let config: any = base_config;
                 
-                const backupConfigFile: string = path.join(default_config.data_dir, default_config.config_file);
+                const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
                 if (fs.existsSync(backupConfigFile)) {
                     const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
                     config = Object.assign(config, backupConfig);
@@ -254,15 +260,15 @@ export class BackupService extends Service {
         });
     }
 
-    protected async writeConfig(config: BackupConfig): Promise<BackupConfig> {
+    protected async writeCustomizedConfig(custom_config: BackupUpdateableConfig): Promise<BackupUpdateableConfig> {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!fs.existsSync(this._config.data_dir))
                     await fse.mkdirp(this._config.data_dir);
 
                 const backupConfigFile = path.join(this._config.data_dir, this._config.config_file);
-                fs.writeFileSync(backupConfigFile, JSON.stringify(config), 'utf8');
-                resolve();
+                fs.writeFileSync(backupConfigFile, JSON.stringify(custom_config), 'utf8');
+                resolve(custom_config);
             } catch (error) { reject(error) }
         });
     }

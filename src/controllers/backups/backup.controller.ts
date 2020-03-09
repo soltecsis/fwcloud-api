@@ -90,13 +90,13 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async delete(request: Request): Promise<ResponseBuilder> {
+    public async destroy(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
+        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
 
-        await this._backupService.delete(backup);
+        await this._backupService.destroy(backup);
 
-        return ResponseBuilder.buildResponse().status(200).body(backup);
+        return ResponseBuilder.buildResponse().status(204);
     }
 }
