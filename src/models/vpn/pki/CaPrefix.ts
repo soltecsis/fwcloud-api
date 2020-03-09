@@ -24,8 +24,8 @@
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import Model from '../../Model';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import modelEventService from '../../ModelEventService';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Ca } from './Ca';
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'ca_prefix';
@@ -37,10 +37,13 @@ export class CaPrefix extends Model {
     id: number;
 
     @Column()
-    ca: number;
-
-    @Column()
     name: string;
+
+    @ManyToOne(type => Ca, ca => ca.prefixes)
+    @JoinColumn({
+        name: 'ca'
+    })
+    ca: Ca
 
     public getTableName(): string {
         return tableName;

@@ -23,8 +23,9 @@
 import db from '../../database/database-manager';
 import Model from '../Model';
 import modelEventService from '../ModelEventService';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
+import { Ca } from '../vpn/pki/Ca';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
@@ -81,6 +82,12 @@ export class User extends Model {
 
     @ManyToMany(type => FwCloud, fwcloud => fwcloud.users)
     fwclouds: Array<FwCloud>;
+
+    @OneToMany(type => Ca, ca => ca.created_by)
+    created_cas: Array<Ca>;
+
+    @OneToMany(type => Ca, ca => ca.updated_by)
+    updated_cas: Array<Ca>;
 
     public getTableName(): string {
         return tableName;

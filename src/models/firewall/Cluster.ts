@@ -23,9 +23,10 @@
 import Model from "../Model";
 import db from '../../database/database-manager'
 import { Firewall } from "./Firewall";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
+import { FwCloud } from "../fwcloud/FwCloud";
 
 
 var logger = require('log4js').getLogger("app");
@@ -37,9 +38,6 @@ export class Cluster extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    fwcloud: number;
 
     @Column()
     name: string;
@@ -58,6 +56,12 @@ export class Cluster extends Model {
 
     @Column()
     updated_by: number;
+
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.clusters)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwcloud: FwCloud;
 
     public getTableName(): string {
         return tableName;

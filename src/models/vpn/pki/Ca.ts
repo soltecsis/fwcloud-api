@@ -21,7 +21,10 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { CaPrefix } from "./CaPrefix";
+import { FwCloud } from "../../fwcloud/FwCloud";
+import { User } from "../../user/User";
 var config = require('../../../config/config');
 const fwcError = require('../../../utils/error_table');
 const spawn = require('child-process-promise').spawn;
@@ -37,16 +40,15 @@ export class Ca extends Model {
     id: number;
 
     @Column()
-    fwcloud: number;
-
-    @Column()
     cn: string;
 
-    @Column()
+    @Column({
+        unsigned: true
+    })
     days: number;
 
     @Column()
-    commnent: string;
+    comment: string;
 
     @Column()
     status: number;
@@ -57,11 +59,26 @@ export class Ca extends Model {
     @Column()
     updated_at: Date;
 
-    @Column()
-    created_by: number;
+    @ManyToOne(type => User, user => user.created_cas)
+    @JoinColumn({
+        name: 'created_by'
+    })
+    created_by: User;
 
-    @Column()
-    updated_by: number;
+    @ManyToOne(type => User, user => user.updated_cas)
+    @JoinColumn({
+        name: 'updated_by'
+    })
+    updated_by: User;
+
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.cas)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwcloud: FwCloud;
+
+    @OneToMany(type => CaPrefix, caPrefix => caPrefix.ca)
+    prefixes: Array<CaPrefix>
 
     public getTableName(): string {
         return tableName;

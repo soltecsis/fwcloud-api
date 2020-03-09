@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -32,6 +32,7 @@ var utilsModel = require("../../utils/utils.js");
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
+import { FwCloud } from "../fwcloud/FwCloud";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -43,12 +44,6 @@ export class Firewall extends Model {
 
 	@PrimaryGeneratedColumn()
 	id: number;
-
-	@Column()
-	cluster: number;
-
-	@Column()
-	fwcloud: number;
 
 	@Column()
 	name: string;
@@ -97,6 +92,15 @@ export class Firewall extends Model {
 
 	@Column()
 	options: number;
+
+	@Column()
+	cluster: number;
+
+	@ManyToOne(type => FwCloud, fwcloud => fwcloud.firewalls)
+	@JoinColumn({
+		name: 'fwcloud'
+	})
+	fwcloud: FwCloud;
 
 	
 	public getTableName(): string {

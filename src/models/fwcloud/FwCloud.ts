@@ -21,13 +21,16 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany } from "typeorm";
 import db from '../../database/database-manager';
 
 var logger = require('log4js').getLogger("app");
 import { User } from '../../models/user/User';
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
+import { Ca } from "../vpn/pki/Ca";
+import { Cluster } from "../firewall/Cluster";
+import { Firewall } from "../firewall/Firewall";
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -75,6 +78,15 @@ export class FwCloud extends Model {
         inverseJoinColumn: { name: 'user'}
     })
     users: Array<User>
+
+    @OneToMany(type => Ca, ca => ca.fwcloud)
+    cas: Array<Ca>;
+
+    @OneToMany(type => Cluster, cluster => cluster.fwcloud)
+    clusters: Array<Cluster>;
+
+    @OneToMany(type => Firewall, firewall => firewall.fwcloud)
+    firewalls: Array<Firewall>;
 
     public getTableName(): string {
         return tableName;
