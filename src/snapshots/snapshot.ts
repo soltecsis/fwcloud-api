@@ -5,24 +5,22 @@ import { FSHelper } from "../utils/fs-helper";
 import moment from "moment";
 import * as path from "path";
 import * as fs from "fs";
-import { timingSafeEqual } from "crypto";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
+import { Application } from "../Application";
 
 export type SnapshotData = {
     name: string,
+    version: string,
+    comment: string,
     fwcloud_id: number,
     date: number,
-    comment: string,
     data: object
 };
 
 
 export class Snapshot implements Responsable {
     protected _id: number;
-    name: string;
-    comment: string;
-    protected _date: Moment;
     protected _fwcloud: FwCloud;
     
     protected _path: string;
@@ -33,10 +31,7 @@ export class Snapshot implements Responsable {
 
     protected constructor() {
         this._id = null;
-        this.name = null;
-        this.comment = null;
         this._fwcloud = null;
-        this._date = null;
         this._path = null;
         this._path = null;
         this._exists = false;
@@ -50,8 +45,12 @@ export class Snapshot implements Responsable {
         return this._id;
     }
 
+    get version(): string {
+        return this._data.version;
+    }
+
     get date(): Moment {
-        return this._date;
+        return moment(this._data.date);
     }
 
     get path(): string {
@@ -62,15 +61,17 @@ export class Snapshot implements Responsable {
         return this._exists;
     }
 
+    get data(): SnapshotData {
+        return this._data;
+    }
+
     public static async create(fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        snapshot.name = name;
-        snapshot.comment = comment;
-
+        
         await this.generateSnapshotDirectoryIfDoesNotExist();
         
 
-        const result: Snapshot = await snapshot.save(fwcloud);
+        const result: Snapshot = await snapshot.save(fwcloud, name, comment);
 
         return await Snapshot.load(result.path);
     }
@@ -80,9 +81,7 @@ export class Snapshot implements Responsable {
         const snapshotData: SnapshotData = JSON.parse(fs.readFileSync(snapshotPath).toString());
 
         this._id = parseInt(path.basename(snapshotPath));
-        this.name = snapshotData.name;
-        this._date = moment(snapshotData.date);
-        this.comment = snapshotData.comment;
+        this._data = snapshotData;
         this._path = snapshotPath;
         this._fwcloud = await repository.for(FwCloud).findOne(snapshotData.fwcloud_id);
         this._exists = true;
@@ -90,11 +89,21 @@ export class Snapshot implements Responsable {
         return this;
     }
 
+    public async update(snapshotData: {name: string, comment: string}): Promise<Snapshot> {
+        this._data.name = snapshotData.name;
+        this._data.comment = snapshotData.comment;
+
+        fs.writeFileSync(this._path, JSON.stringify(this._data, null, 2));
+
+        return this;
+        
+    }
+
     public static async load(snapshotPath: string): Promise<Snapshot> {
         return new Snapshot().loadSnapshot(snapshotPath);
     }
 
-    public async remove(): Promise<Snapshot> {
+    public async destroy(): Promise<Snapshot> {
         if (this._exists) {
             await FSHelper.remove(this._path);
             this._exists = false;
@@ -103,21 +112,21 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    protected async save(fwcloud: FwCloud): Promise<Snapshot> {
-        this._date = moment();
+    protected async save(fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         this._fwcloud = fwcloud;
-        this._id = this._date.valueOf();
+        this._id = moment().valueOf();
         this._path = path.join(app().config.get('snapshot').data_dir, this._id.toString() + '.json');
         this._data = {
-            name: this.name,
-            comment: this.comment,
-            date: this._date.valueOf(),
+            name: name,
+            comment: comment,
             fwcloud_id: this._fwcloud.id,
+            version: app<Application>().getVersion().version,
+            date: this._id,
             data: {}
         }
 
         fs.writeFileSync(this._path, JSON.stringify(this._data, null, 2));
-
+        
         return this;
     }
 
@@ -130,9 +139,9 @@ export class Snapshot implements Responsable {
     toResponse(): object {
         return {
             id: this._id,
-            name: this.name,
-            date: this._date === null? null : this._date.utc(),
-            comment: this.comment
+            name: this._data.name,
+            date: this._data && this._data.date === null? null : moment(this._data.date).utc(),
+            comment: this._data.comment
         }
     }
     

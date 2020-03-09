@@ -21,31 +21,30 @@
 */
 
 import { AuthorizationService } from "./authorization.service";
-import { app } from "../abstract-application";
+import { AuthorizationException } from "../exceptions/authorization-exception";
 
 export abstract class Authorization {
-    protected _authorizationService: AuthorizationService;
-    
-    public async authorize(): Promise<void> {
-        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
-    }
-
     public can(): boolean {
         return false;
     }
+
+    public authorize(): void {
+        return;
+    }
     
-    static revoke() {
-        return new Unauthorized();
+    static revoke(): Unauthorized {
+        return new Unauthorized;
     }
 
-    static grant() {
-        return new Authorized();
+    static grant(): Authorized {
+        return new Authorized;
     }
 }
 
 export class Authorized extends Authorization {
-    public async authorize() {
-        await super.authorize();
+
+    public authorize(): void {
+        return;
     }
 
     public can(): boolean {
@@ -54,9 +53,9 @@ export class Authorized extends Authorization {
 }
 
 export class Unauthorized extends Authorization {
-    public async authorize() {
-        await super.authorize();
-        this._authorizationService.revokeAuthorization();
+    public authorize(): void {
+        const exception = new AuthorizationException();
+        throw exception;
     }
 
     public can(): boolean {

@@ -61,6 +61,9 @@ export class Routes extends RouteCollection {
         router.prefix('/snapshots', (router: RouterParser) => {
             router.get('/', SnapshotController, 'index').name('snapshots.index');
             router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
+            router.post('/', SnapshotController, 'store').name('snapshots.store');
+            router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
+            router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
         });
     }
 }

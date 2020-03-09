@@ -7,6 +7,7 @@ import { User } from "../../../src/models/user/User";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { generateSession, attachSession } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 
 let app: Application;
 let loggedUser: User;
@@ -152,6 +153,179 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.show', {snapshot: 1}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(404);
-        })
+        });
+    });
+
+    describe(describeName('SnapshotController@store'), () => {
+        it('guest user should no create a new snapshot', async() => {
+            await request(app.express)
+                .post(_URL().getURL('snapshots.store'))
+                .expect(401);
+        });
+
+        it('regular user should no create a new snapshot if the user does not belong to fwcloud', async() => {
+            await request(app.express)
+                .post(_URL().getURL('snapshots.store'))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(401);
+        });
+
+        it('regular user should create a new snapshot if the user belongs to the fwcloud', async() => {
+            loggedUser.fwclouds = [fwCloud];
+            repository.for(User).save(loggedUser);
+
+            await request(app.express)
+                .post(_URL().getURL('snapshots.store'))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(201)
+                .expect(async (response) => {
+                    expect(response.body.data).to.haveOwnProperty('id');
+
+                    const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
+                    
+                    expect(snapshotService.findOne(response.body.data.id)).not.to.be.null;
+                })
+        });
+
+        it('admin user should create a new snapshot', async() => {
+            await request(app.express)
+                .post(_URL().getURL('snapshots.store'))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(adminUserSessionId))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .expect(201)
+                .expect(async (response) => {
+                    expect(response.body.data).to.haveOwnProperty('id');
+
+                    const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
+                    
+                    expect(snapshotService.findOne(response.body.data.id)).not.to.be.null;
+                })
+        });
+    });
+
+    describe(describeName('SnapshotController@update'), () => {
+        let  s1: Snapshot;
+
+        beforeEach(async() => {
+            s1 = await Snapshot.create(fwCloud, 'test1', 'comment1');
+        });
+
+        it('guest user should not update an snapshot', async() => {
+
+            await request(app.express)
+                .put(_URL().getURL('snapshots.update', {snapshot: s1.id}))
+                .expect(401)
+        });
+
+        it('regular user should not update an snapshot if the user does not belong to the fwcloud', async() => {
+            await request(app.express)
+                .put(_URL().getURL('snapshots.update', {snapshot: s1.id}))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(401)
+        });
+
+        it('regular user should update an snapshot if the user belongs to the fwcloud', async() => {
+            loggedUser.fwclouds = [fwCloud];
+            repository.for(User).save(loggedUser);
+
+            await request(app.express)
+                .put(_URL().getURL('snapshots.update', {snapshot: s1.id}))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(200)
+                .expect((response) => {
+                    expect(response.body.data.id).to.be.deep.equal(s1.id);
+                    expect(response.body.data.name).to.be.deep.equal('name_test');
+                    expect(response.body.data.comment).to.be.deep.equal('comment_test');
+                });
+        });
+
+        it('admin user should update an snapshot', async() => {
+            await request(app.express)
+                .put(_URL().getURL('snapshots.update', {snapshot: s1.id}))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    fwcloud_id: fwCloud.id
+                })
+                .set('Cookie', attachSession(adminUserSessionId))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .expect(200)
+                .expect((response) => {
+                    expect(response.body.data.id).to.be.deep.equal(s1.id);
+                    expect(response.body.data.name).to.be.deep.equal('name_test');
+                    expect(response.body.data.comment).to.be.deep.equal('comment_test');
+                });
+        });
+    });
+
+    describe(describeName('SnapshotController@destroy'), () => {
+        let  s1: Snapshot;
+
+        beforeEach(async() => {
+            s1 = await Snapshot.create(fwCloud, 'test1', 'comment1');
+        });
+
+        it('guest user should not destroy an snapshot', async() => {
+
+            await request(app.express)
+                .delete(_URL().getURL('snapshots.destroy', {snapshot: s1.id}))
+                .expect(401)
+        });
+
+        it('regular user should not destroy an snapshot if the user does not belong to the fwcloud', async() => {
+            await request(app.express)
+                .delete(_URL().getURL('snapshots.destroy', {snapshot: s1.id}))
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(401)
+        });
+
+        it('regular user should destroy an snapshot if the user belongs to the fwcloud', async() => {
+            loggedUser.fwclouds = [fwCloud];
+            repository.for(User).save(loggedUser);
+
+            await request(app.express)
+                .delete(_URL().getURL('snapshots.destroy', {snapshot: s1.id}))
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(204);
+        });
+
+        it('admin user should update an snapshot', async() => {
+            await request(app.express)
+                .delete(_URL().getURL('snapshots.destroy', {snapshot: s1.id}))
+                .set('Cookie', attachSession(adminUserSessionId))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .expect(204);
+        });
     });
 });

@@ -36,9 +36,16 @@ describe(describeName('Snapshot Service tests'), () => {
         expect(await service.findOne(s1.id)).to.be.deep.eq(s1);
     });
 
+    it('update should return an updated snapshot', async() => {
+        const s1: Snapshot = await Snapshot.create(fwCloud, 'test');
+
+        expect((await service.update(s1, {name: 'name', comment: 'comment'})).data.name).to.be.deep.eq(s1.data.name);
+        expect((await service.update(s1, {name: 'name', comment: 'comment'})).data.comment).to.be.deep.eq(s1.data.comment);
+    });
+
     it('remove snapshot should remove the snapshot', async() => {
         const s1: Snapshot = await Snapshot.create(fwCloud, 'test');
         
-        expect((await service.remove(s1)).exists).to.be.false;
+        expect((await service.destroy(s1)).exists).to.be.false;
     });
 })

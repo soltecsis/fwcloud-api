@@ -1,8 +1,9 @@
 import { Service } from "../fonaments/services/service";
-import { Snapshot } from "./snapshot";
+import { Snapshot, SnapshotData } from "./snapshot";
 import * as fs from "fs";
 import * as path from "path";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
+import { FwCloud } from "../models/fwcloud/FwCloud";
 
 export type SnapshotConfig = {
     data_dir: string
@@ -52,7 +53,15 @@ export class SnapshotService extends Service {
         return snapshot;
     }
 
-    public async remove(snapshot: Snapshot): Promise<Snapshot> {
-        return await snapshot.remove();
+    public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Snapshot> {
+        return await Snapshot.create(fwcloud, name, comment)
+    }
+
+    public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {
+        return await snapshot.update(newData);
+    }
+
+    public async destroy(snapshot: Snapshot): Promise<Snapshot> {
+        return await snapshot.destroy();
     }
 }
