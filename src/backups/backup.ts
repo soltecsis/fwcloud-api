@@ -32,8 +32,7 @@ import { BackupNotFoundException } from "./exceptions/backup-not-found-exception
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
-import { timingSafeEqual } from "crypto";
-import { stringify } from "querystring";
+import { Application } from "../Application";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -53,6 +52,7 @@ export class Backup implements Responsable {
     protected _backupPath: string;
     protected _dumpFilename: string;
     protected _comment: string;
+    protected _version: string;
 
     constructor() {
         this._id = null;
@@ -62,15 +62,21 @@ export class Backup implements Responsable {
         this._backupPath = null;
         this._dumpFilename = null;
         this._comment = null;
+        this._version = null;
     }
 
     toResponse(): Object {
         return {
             id: this._id,
+            version: this._version,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment
         }
+    }
+
+    get version(): string {
+        return this._version;
     }
 
     /**
@@ -102,6 +108,10 @@ export class Backup implements Responsable {
         return this._backupPath;
     }
 
+    get comment(): string {
+        return this._comment;
+    }
+
     public setComment(comment: string) {
         this._comment = comment; 
     }
@@ -126,7 +136,9 @@ export class Backup implements Responsable {
             this._date = moment(metadata.timestamp);
             this._id = metadata.timestamp;
             this._name = metadata.name;
+            this._comment = metadata.comment;
             this._exists = true;
+            this._version = metadata.version;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath): backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
@@ -217,7 +229,7 @@ export class Backup implements Responsable {
         const metadata: BackupMetadata = {
             name: this._name,
             timestamp: this._date.valueOf(),
-            version: '0.0.0',
+            version: app<Application>().getVersion().version,
             comment: this._comment
         };
 
