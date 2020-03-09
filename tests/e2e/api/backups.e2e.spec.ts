@@ -129,7 +129,7 @@ describe(describeName('Backup E2E tests'), () => {
         });
     });
 
-    describe(describeName('BackupController@create'), async () => {
+    describe(describeName('BackupController@store'), async () => {
         it('guest user should not create a backup', async () => {
             await request(app.express)
                 .post(_URL().getURL('backups.store'))
@@ -162,6 +162,50 @@ describe(describeName('Backup E2E tests'), () => {
         });
     });
 
+    describe(describeName('BackupController@destroy'), async () => {
+        let backup: Backup;
+
+        beforeEach(async() => {
+            const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
+            backup = await backupService.create();
+        });
+
+        it('guest user should not destroy a backup', async () => {
+            await request(app.express)
+                .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                .expect(401)
+        });
+
+        it('regular user should not destroy a backup', async () => {
+            await request(app.express)
+                .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(401)
+        });
+
+        it('admin user should destroy a backup', async () => {
+            
+            await request(app.express)
+                .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(204);
+        });
+
+        it('404 should be returned if the backup does not exist', async() => {
+            await request(app.express)
+                .delete(_URL().getURL('backups.destroy', {backup: 0}))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(404);
+        })
+    });
+
+});
+
+describe(describeName('Backup Config E2E tests'), () => {
+
     describe(describeName('BackupConfigController@show'), async () => {
         it('guest user should not see backup config', async () => {
             await request(app.express)
@@ -182,7 +226,11 @@ describe(describeName('Backup E2E tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
-                    expect(response.body.data).to.be.deep.equal(backupService.config);
+                    expect(response.body.data).to.be.deep.equal({
+                        max_days: backupService.config.max_days,
+                        max_copies: backupService.config.max_copies,
+                        schedule: backupService.config.schedule
+                    });
                 });
         });
     });
@@ -202,19 +250,24 @@ describe(describeName('Backup E2E tests'), () => {
                 .expect(401)
         });
 
-        it.skip('admin user should update backup config', async () => {
+        it('admin user should update backup config', async () => {
             await request(app.express)
                 .put(_URL().getURL('backups.config.update'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .send({
-                    "default_max_copies": 100
+                    "schedule": backupService.config.schedule,
+                    "max_days": 10,
+                    "max_copies": 100
                 })
                 .expect(201)
                 .expect(response => {
                     expect(response.body.data).to.be.deep.equal(backupService.config);
-                    expect(response.body.data.default_max_copies).to.be.deep.equal(100);
+                    expect(response.body.data.max_copies).to.be.deep.equal(100);
                 });
+
+            expect(backupService.config.data_dir).not.to.be.undefined;
+            expect(backupService.config.config_file).not.to.be.undefined;
         });
     });
 

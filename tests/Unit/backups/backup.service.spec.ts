@@ -62,7 +62,7 @@ describe(describeName('BackupService tests'), async() => {
         let backup: Backup = new Backup();
         await backup.create(service.config.data_dir);
 
-        backup = await service.delete(backup);
+        backup = await service.destroy(backup);
 
         expect(backup.exists()).to.be.false;
     });

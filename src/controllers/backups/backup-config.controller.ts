@@ -21,7 +21,7 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
-import { BackupService } from "../../backups/backup.service";
+import { BackupService, BackupUpdateableConfig } from "../../backups/backup.service";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
 
@@ -39,7 +39,7 @@ export class BackupConfigController extends Controller {
      * @param response 
      */
     public async show(request: Request): Promise<ResponseBuilder> {
-        const config = this._backupService.config;
+        const config: BackupUpdateableConfig = this._backupService.getCustomizedConfig();
 
         return ResponseBuilder.buildResponse().status(200).body(config);
     }

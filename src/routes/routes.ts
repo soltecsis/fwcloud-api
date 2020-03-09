@@ -42,7 +42,7 @@ export class Routes extends RouteCollection {
                 router.post('/', BackupController, 'store', CreateBackupValidator).name('backups.store');
                 router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
                 router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
-                router.delete('/:backup(\\d+)', BackupController, 'delete').name('backups.delete');
+                router.delete('/:backup(\\d+)', BackupController, 'destroy').name('backups.destroy');
 
                 // Backups Config
                 router.prefix('/config', (router: RouterParser) => {
