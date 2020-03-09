@@ -245,11 +245,12 @@ export class BackupService extends Service {
     }
 
     protected async loadCustomizedConfig(base_config: any): Promise<any> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             try {
                 let config: any = base_config;
                 
                 const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
+
                 if (fs.existsSync(backupConfigFile)) {
                     const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
                     config = Object.assign(config, backupConfig);

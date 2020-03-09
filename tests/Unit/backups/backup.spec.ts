@@ -1,12 +1,12 @@
 import { Backup } from "../../../src/backups/backup";
-import { AbstractApplication } from "../../../src/fonaments/abstract-application";
 import * as fs from "fs";
 import * as path from "path";
 import { DatabaseService } from "../../../src/database/database.service";
 import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
+import { Application } from "../../../src/Application";
 
-let app: AbstractApplication;
+let app: Application;
 let service: BackupService;
 
 beforeEach(async() => {
@@ -50,12 +50,25 @@ describe(describeName('Backup tests'), () => {
         expect(metadata).to.be.deep.equal({
             name: backup.name,
             timestamp: backup.timestamp,
-            version: '0.0.0',
+            version: app.getVersion().version,
             comment: 'test comment',
         });
     });
 
-    it('store() should import the database', async() => {
+    it('load() should load the metadata file', async() => {
+        let backup: Backup = new Backup();
+        backup.setComment('test comment');
+        backup = await backup.create(service.config.data_dir);
+
+        const b2: Backup = await new Backup().load(backup.path);
+
+        expect(b2.name).to.be.deep.equal(backup.name);
+        expect(b2.timestamp).to.be.deep.equal(backup.timestamp);
+        expect(b2.version).to.be.deep.equal(backup.version);
+        expect(b2.comment).to.be.deep.equal(backup.comment);
+    })
+
+    it('restore() should import the database', async() => {
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
         let backup: Backup = new Backup();
         backup = await backup.create(service.config.data_dir);
@@ -84,4 +97,17 @@ describe(describeName('Backup tests'), () => {
 
         expect(backup.path.startsWith(service.config.data_dir)).to.be.true;
     });
+
+    it('toResponse() should return all required properties', async() => {
+        let backup: Backup = new Backup();
+        backup = await backup.create(service.config.data_dir);
+
+        expect(backup.toResponse()).to.be.deep.eq({
+            id: backup.id,
+            name: backup.name,
+            date: backup.date.utc(),
+            comment: backup.comment,
+            version: backup.version
+        })
+    })
 });
