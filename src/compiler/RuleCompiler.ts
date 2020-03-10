@@ -566,7 +566,7 @@ export class RuleCompiler {
             try {
                 let data: any = await PolicyCompilation.getPolicy_c(fwcloud, firewall, rule);
                 if (data && data.length > 0) {
-                    if (data[0].c_status_recompile === 0)
+                    if (parseInt(data[0].c_status_recompile) === 0)
                         resolve(data[0].c_compiled);
                     else
                         resolve(await this.rule_compile(fwcloud, firewall, type, rule));
