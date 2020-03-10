@@ -1,13 +1,16 @@
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { Ca } from "../models/vpn/pki/Ca";
+import { FwCloud } from "../../models/fwcloud/FwCloud";
+import { Ca } from "../../models/vpn/pki/Ca";
 import { Cluster } from "cluster";
-import { Firewall } from "../models/firewall/Firewall";
+import { Firewall } from "../../models/firewall/Firewall";
+import { DeepPartial } from "typeorm";
+import { SnapshotData } from "../snapshot";
 
-export class ExportResult {
-    fwclouds: Array<Partial<FwCloud>>;
-    cas: Array<Partial<Ca>>;
-    clusters: Array<Partial<Cluster>>;
-    firewalls: Array<Partial<Firewall>>;
+export class ExportResult implements SnapshotData{
+    
+    fwclouds: Array<DeepPartial<FwCloud>>;
+    cas: Array<DeepPartial<Ca>>;
+    clusters: Array<DeepPartial<Cluster>>;
+    firewalls: Array<DeepPartial<Firewall>>;
 
     constructor() {
         this.fwclouds = [];

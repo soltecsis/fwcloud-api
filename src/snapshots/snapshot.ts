@@ -8,6 +8,18 @@ import * as fs from "fs";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
+import { DeepPartial } from "typeorm";
+import { Ca } from "../models/vpn/pki/Ca";
+import { Cluster } from "cluster";
+import { Firewall } from "../models/firewall/Firewall";
+import { FwCloudExporter } from "./exporters/fwcloud-exporter";
+
+export interface SnapshotData {
+    fwclouds: Array<DeepPartial<FwCloud>>;
+    cas: Array<DeepPartial<Ca>>;
+    clusters: Array<DeepPartial<Cluster>>;
+    firewalls: Array<DeepPartial<Firewall>>;
+};
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -20,6 +32,7 @@ export type SnapshotMetadata = {
 export class Snapshot implements Responsable {
 
     static METADATA_FILENAME = 'snapshot.json';
+    static DATA_FILENAME = 'data.json';
     static PKI_DIRECTORY = 'pki';
 
     protected _id: number;
@@ -32,6 +45,8 @@ export class Snapshot implements Responsable {
     protected _path: string;
     protected _exists: boolean;
 
+    protected _data: SnapshotData;
+
     protected constructor() {
         this._id = null;
         this._date = null;
@@ -41,6 +56,7 @@ export class Snapshot implements Responsable {
         this._path = null;
         this._exists = false;
         this._version = null;
+        this._data = null;
     }
 
     get name(): string {
@@ -85,8 +101,12 @@ export class Snapshot implements Responsable {
 
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
         const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
+        const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
+
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
+        
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
+        const snapshotData: SnapshotData = JSON.parse(fs.readFileSync(dataPath).toString());
 
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
@@ -96,6 +116,7 @@ export class Snapshot implements Responsable {
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
         this._exists = true;
+        this._data = snapshotData;
 
         return this;
     }
@@ -141,8 +162,21 @@ export class Snapshot implements Responsable {
         this.saveMetadataFile();
 
         await this.copyFwCloudPkiDirectory();
+
+        await this.exportFwCloud();
         
         return this;
+    }
+
+    protected async exportFwCloud(): Promise<void> {
+        const exporter = new FwCloudExporter(this.fwcloud);
+        const result = await exporter.export()
+
+        fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(result, null, 2));
+    }
+
+    protected async importFwCloud(): Promise<void> {
+        //TODO
     }
 
     protected saveMetadataFile(): void {

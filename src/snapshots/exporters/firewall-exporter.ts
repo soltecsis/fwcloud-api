@@ -1,5 +1,5 @@
 import { EntityExporter } from "./entity-exporter";
-import { ExportResult } from "../export-result";
+import { ExportResult } from "./export-result";
 import { Firewall } from "../../models/firewall/Firewall";
 
 export class FirewallExporter extends EntityExporter {

@@ -1,8 +1,7 @@
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { EntityExporter } from "./entity-exporter";
-import { Ca } from "../../models/vpn/pki/Ca";
 import { CaExporter } from "./ca-exporter";
-import { ExportResult } from "../export-result";
+import { ExportResult } from "./export-result";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { ClusterExporter } from "./cluster-exporter";

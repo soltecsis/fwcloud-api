@@ -1,6 +1,6 @@
 import { EntityExporter } from "./entity-exporter";
 import { Ca } from "../../models/vpn/pki/Ca";
-import { ExportResult } from "../export-result";
+import { ExportResult } from "./export-result";
 
 export class CaExporter extends EntityExporter {
     constructor(ca: Ca) {

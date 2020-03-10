@@ -2,7 +2,7 @@ import { getMetadataArgsStorage } from "typeorm"
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs"
 import Model from "../../models/Model";
 import { FwCloudExporter } from "./fwcloud-exporter";
-import { ExportResult } from "../export-result";
+import { ExportResult } from "./export-result";
 
 export abstract class EntityExporter {
     protected _entity: Function;
