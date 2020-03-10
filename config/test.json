@@ -20,6 +20,9 @@
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },
+    "policy": {
+        "data_dir": "tests/playground/DATA/policy"
+    },
     "https": {
         "enable": false
     }

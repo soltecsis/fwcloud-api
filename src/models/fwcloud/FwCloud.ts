@@ -23,6 +23,7 @@
 import Model from "../Model";
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany } from "typeorm";
 import db from '../../database/database-manager';
+import * as path from "path";
 
 var logger = require('log4js').getLogger("app");
 import { User } from '../../models/user/User';
@@ -90,6 +91,14 @@ export class FwCloud extends Model {
 
     public getTableName(): string {
         return tableName;
+    }
+
+    public getPkiDirectoryPath(): string {
+        if (this.id) {
+            return path.join(app().config.get('pki').data_dir, this.id.toString());
+        }
+
+        return null;
     }
 
     /**

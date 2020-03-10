@@ -20,6 +20,7 @@ export type SnapshotMetadata = {
 export class Snapshot implements Responsable {
 
     static METADATA_FILENAME = 'snapshot.json';
+    static PKI_DIRECTORY = 'pki';
 
     protected _id: number;
     protected _date: Moment;
@@ -138,6 +139,8 @@ export class Snapshot implements Responsable {
         await FSHelper.mkdir(this._path);
 
         this.saveMetadataFile();
+
+        await this.copyFwCloudPkiDirectory();
         
         return this;
     }
@@ -152,6 +155,12 @@ export class Snapshot implements Responsable {
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+    }
+
+    protected async copyFwCloudPkiDirectory(): Promise<void> {
+        if (await FSHelper.directoryExists(this.fwcloud.getPkiDirectoryPath())) {
+            await FSHelper.copyDirectory(this.fwcloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
+        }
     }
 
     protected static async generateSnapshotDirectoryIfDoesNotExist() {

@@ -23,4 +23,8 @@ export class FSHelper {
     public static async remove(path: string): Promise<void> {
         return fse.remove(path);
     }
+
+    public static async copyDirectory(source: string, destination: string): Promise<void> {
+        return fse.copy(source, destination);
+    }
 }

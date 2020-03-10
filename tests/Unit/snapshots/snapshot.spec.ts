@@ -7,6 +7,7 @@ import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
+import { FSHelper } from "../../../src/utils/fs-helper";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -42,6 +43,19 @@ describe(describeName('Snapshot tests'), () => {
             fwcloud_id: snapshot.fwcloud.id,
 
         });
+    });
+
+    it('create should copy the pki fwcloud directory if it exists', async() => {
+        if (FSHelper.directoryExists(app.config.get('pki').data_dir)) {
+            await FSHelper.mkdir(path.join(app.config.get('pki').data_dir, fwCloud.id.toString()))
+        }
+
+        fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test.txt'), "test file content");
+
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        expect(fs.statSync(path.join(snapshot.path, 'pki', 'test.txt')).isFile());
+        expect(fs.readFileSync(path.join(snapshot.path, 'pki', 'test.txt')).toString()).to.be.deep.eq('test file content');
     });
 
     it('snaphost id should be the snapshot directory name which is the date timestamp', async () => {

@@ -34,6 +34,7 @@ import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
 import { timingSafeEqual } from "crypto";
 import { stringify } from "querystring";
+import { FSHelper } from "../utils/fs-helper";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -288,8 +289,10 @@ export class Backup implements Responsable {
 
         for (let item of item_list) {
             const dst_dir = path.join(this._backupPath, config.get(item).data_dir);
-            await fse.mkdirp(dst_dir);
-            await fse.copy(config.get(item).data_dir, dst_dir);
+            if (await FSHelper.directoryExists(config.get(item).data_dir)) {
+                await fse.mkdirp(dst_dir);
+                await fse.copy(config.get(item).data_dir, dst_dir);
+            }
         }
     }
 
@@ -307,8 +310,11 @@ export class Backup implements Responsable {
             const dst_dir: string = config.get(item).data_dir;
 
             fse.removeSync(dst_dir);
-            await fse.mkdirp(dst_dir);
-            await fse.copy(src_dir, dst_dir);
+
+            if (await FSHelper.directoryExists(src_dir)) {
+                await fse.mkdirp(dst_dir);
+                await fse.copy(src_dir, dst_dir);   
+            }
         }
     }
 }
