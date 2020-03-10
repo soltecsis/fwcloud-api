@@ -1,18 +1,22 @@
 import { describeName, expect, testSuite } from "../../mocha/global-setup"
 import * as fs from "fs";
+import * as path from "path";
 import { Application } from "../../../src/Application";
-import { Snapshot, SnapshotData } from "../../../src/snapshots/snapshot";
+import { Snapshot } from "../../../src/snapshots/snapshot";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 
 let app: Application;
 let fwCloud: FwCloud;
 let fwcloudRepository: Repository<FwCloud>;
+let service: SnapshotService;
 
 describe(describeName('Snapshot tests'), () => {
     beforeEach(async () => {
         app = testSuite.app;
+        service = await app.getService<SnapshotService>(SnapshotService.name);
         const repository: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwcloudRepository = repository.for(FwCloud);
 
@@ -24,46 +28,37 @@ describe(describeName('Snapshot tests'), () => {
 
     });
 
-    it('create should create the snapshot directory if it does not exist', async () => {
-        expect(fs.existsSync(app.config.get('snapshot').data_dir)).to.be.false;
+    it('create should create the snapshot directory', async () => {
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-        await Snapshot.create(fwCloud, 'test');
+        expect(fs.statSync(snapshot.path).isDirectory()).to.be.true;
+        expect(fs.statSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).isFile()).to.be.true;
 
-        expect(fs.existsSync(app.config.get('snapshot').data_dir)).to.be.true;
+        expect(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).toString())).to.be.deep.equal({
+            timestamp: snapshot.date.valueOf(),
+            name: snapshot.name,
+            comment: snapshot.comment,
+            version: snapshot.version,
+            fwcloud_id: snapshot.fwcloud.id,
+
+        });
     });
 
-    it('create should generate an id to the snapshot file', async () => {
-        const snapshot: Snapshot = await Snapshot.create(fwCloud, 'test');
-        
-        expect(snapshot.id).to.be.deep.eq(snapshot.date.valueOf());
-    });
+    it('snaphost id should be the snapshot directory name which is the date timestamp', async () => {
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-    it('create should generate a json file', async () => {
-        const snapshot: Snapshot = await Snapshot.create(fwCloud, 'test');
-
-        expect(fs.existsSync(snapshot.path)).to.be.true;
-    });
-
-    it('json file generated should include snapshot metadata', async() => {
-        const snapshot: Snapshot = await Snapshot.create(fwCloud, 'test', 'comment');
-
-        const snapshotData: any = JSON.parse(fs.readFileSync(snapshot.path).toString());
-
-        expect(snapshotData.name).to.be.deep.equal(snapshot.data.name)
-        expect(snapshotData.date).to.be.deep.equal(snapshot.date.valueOf())
-        expect(snapshotData.fwcloud_id).to.be.deep.equal(snapshot.fwcloud.id)
-        expect(snapshotData.comment).to.be.deep.equal(snapshot.data.comment)
-        expect(snapshotData.version).to.be.deep.equal(snapshot.version)
-    });
+        expect(snapshot.id).to.be.deep.equal(parseInt(path.basename(snapshot.path)));
+        expect(snapshot.id).to.be.deep.equal(snapshot.date.valueOf());
+    })
 
     it('load should load a snapshot from filesystem', async () => {
-        const snapshot: Snapshot = await Snapshot.create(fwCloud, 'test');
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         expect(await Snapshot.load(snapshot.path)).to.be.deep.equal(snapshot);
     });
 
     it('update should update a snapshot name and comment', async() => {
-        let snapshot: Snapshot = await Snapshot.create(fwCloud, 'name', 'comment');
+        let snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'name', 'comment');
 
         const data: {name: string, comment: string} = {
             name: 'test',
@@ -72,12 +67,12 @@ describe(describeName('Snapshot tests'), () => {
         
         await snapshot.update(data);
 
-        expect((await Snapshot.load(snapshot.path)).data.name).to.be.deep.equal('test');
-        expect((await Snapshot.load(snapshot.path)).data.comment).to.be.deep.equal('test');
+        expect((await Snapshot.load(snapshot.path)).name).to.be.deep.equal('test');
+        expect((await Snapshot.load(snapshot.path)).comment).to.be.deep.equal('test');
     });
 
     it('delete should remove the snapshot if it exists', async () => {
-        const snapshot: Snapshot = await Snapshot.create(fwCloud, 'test');
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         await snapshot.destroy();
 

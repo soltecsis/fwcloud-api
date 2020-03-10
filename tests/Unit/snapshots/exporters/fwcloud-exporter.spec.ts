@@ -13,7 +13,7 @@ import { FirewallExporter } from "../../../../src/snapshots/exporters/firewall-e
 let app: Application;
 let repositoryService: RepositoryService;
 
-describe.only(describeName('FwCloud exporter tests'), () => {
+describe(describeName('FwCloud exporter tests'), () => {
     let fwcloud: FwCloud;
 
     beforeEach(async() => {
@@ -59,7 +59,7 @@ describe.only(describeName('FwCloud exporter tests'), () => {
             .to.be.deep.equal(new ClusterExporter(cluster).exportedEntity())
     });
 
-    it.only('export should include the firewall referenced elements', async () => {
+    it('export should include the firewall referenced elements', async () => {
         let firewall: Firewall = repositoryService.for(Firewall).create({
             name: 'firewall_test',
             fwcloud: fwcloud

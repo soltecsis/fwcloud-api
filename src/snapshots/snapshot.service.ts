@@ -1,5 +1,5 @@
 import { Service } from "../fonaments/services/service";
-import { Snapshot, SnapshotData } from "./snapshot";
+import { Snapshot } from "./snapshot";
 import * as fs from "fs";
 import * as path from "path";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
@@ -15,7 +15,15 @@ export class SnapshotService extends Service {
     public async build(): Promise<SnapshotService> {
         this._config = this._app.config.get('snapshot');
 
+        if (!fs.existsSync(this._config.data_dir)) {
+            fs.mkdirSync(this._config.data_dir);
+        }
+
         return this;
+    }
+
+    get config(): SnapshotConfig {
+        return this._config;
     }
 
     public async getAll(): Promise<Array<Snapshot>> {
@@ -25,7 +33,7 @@ export class SnapshotService extends Service {
         for (let entry of entires) {
             let snapshotPath: string = path.join(this._config.data_dir, entry);
 
-            if (fs.statSync(snapshotPath).isFile()) {
+            if (fs.statSync(snapshotPath).isDirectory()) {
                 snapshots.push(await Snapshot.load(snapshotPath));
             }
         }
@@ -54,7 +62,7 @@ export class SnapshotService extends Service {
     }
 
     public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Snapshot> {
-        return await Snapshot.create(fwcloud, name, comment)
+        return await Snapshot.create(this.config.data_dir, fwcloud, name, comment)
     }
 
     public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {

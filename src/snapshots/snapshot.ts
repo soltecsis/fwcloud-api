@@ -9,32 +9,45 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
 
-export type SnapshotData = {
+export type SnapshotMetadata = {
+    timestamp: number,
     name: string,
-    version: string,
     comment: string,
-    fwcloud_id: number,
-    date: number,
-    data: object
+    version: string,
+    fwcloud_id: number
 };
 
-
 export class Snapshot implements Responsable {
+
+    static METADATA_FILENAME = 'snapshot.json';
+
     protected _id: number;
+    protected _date: Moment;
+    protected _name: string;
+    protected _comment: string;
     protected _fwcloud: FwCloud;
+    protected _version: string;
     
     protected _path: string;
-    protected _snapshotDirectory: string;
-
     protected _exists: boolean;
-    protected _data: SnapshotData;
 
     protected constructor() {
         this._id = null;
+        this._date = null;
+        this._name = null;
+        this._comment = null;
         this._fwcloud = null;
         this._path = null;
-        this._path = null;
         this._exists = false;
+        this._version = null;
+    }
+
+    get name(): string {
+        return this._name;
+    }
+
+    get comment(): string {
+        return this._comment;
     }
 
     get fwcloud(): FwCloud {
@@ -46,11 +59,11 @@ export class Snapshot implements Responsable {
     }
 
     get version(): string {
-        return this._data.version;
+        return this._version;
     }
 
     get date(): Moment {
-        return moment(this._data.date);
+        return this._date;
     }
 
     get path(): string {
@@ -61,39 +74,36 @@ export class Snapshot implements Responsable {
         return this._exists;
     }
 
-    get data(): SnapshotData {
-        return this._data;
-    }
-
-    public static async create(fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
+    public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
         
-        await this.generateSnapshotDirectoryIfDoesNotExist();
-        
-
-        const result: Snapshot = await snapshot.save(fwcloud, name, comment);
+        const result: Snapshot = await snapshot.save(snapshot_directory, fwcloud, name, comment);
 
         return await Snapshot.load(result.path);
     }
 
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
+        const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-        const snapshotData: SnapshotData = JSON.parse(fs.readFileSync(snapshotPath).toString());
+        const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
 
         this._id = parseInt(path.basename(snapshotPath));
-        this._data = snapshotData;
+        this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwcloud = await repository.for(FwCloud).findOne(snapshotData.fwcloud_id);
+        this._fwcloud = await repository.for(FwCloud).findOne(snapshotMetadata.fwcloud_id);
+        this._name = snapshotMetadata.name;
+        this._comment = snapshotMetadata.comment;
+        this._version = snapshotMetadata.version;
         this._exists = true;
 
         return this;
     }
 
     public async update(snapshotData: {name: string, comment: string}): Promise<Snapshot> {
-        this._data.name = snapshotData.name;
-        this._data.comment = snapshotData.comment;
+        this._name = snapshotData.name;
+        this._comment = snapshotData.comment;
 
-        fs.writeFileSync(this._path, JSON.stringify(this._data, null, 2));
+        this.saveMetadataFile();
 
         return this;
         
@@ -112,22 +122,36 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    protected async save(fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
+    protected async save(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         this._fwcloud = fwcloud;
-        this._id = moment().valueOf();
-        this._path = path.join(app().config.get('snapshot').data_dir, this._id.toString() + '.json');
-        this._data = {
-            name: name,
-            comment: comment,
-            fwcloud_id: this._fwcloud.id,
-            version: app<Application>().getVersion().version,
-            date: this._id,
-            data: {}
+        this._date = moment();
+        this._id = this._date.valueOf();
+        this._path = path.join(snapshot_directory, this._id.toString());
+        this._name = name;
+        this._comment = comment;
+        this._version = app<Application>().getVersion().version;
+
+        if(await FSHelper.directoryExists(this._path)) {
+            throw new Error('Snapshot with id = ' + this._id + ' already exists');
         }
 
-        fs.writeFileSync(this._path, JSON.stringify(this._data, null, 2));
+        await FSHelper.mkdir(this._path);
+
+        this.saveMetadataFile();
         
         return this;
+    }
+
+    protected saveMetadataFile(): void {
+        const metadata: SnapshotMetadata = {
+            timestamp: this._date.valueOf(),
+            name: this._name,
+            comment: this._comment,
+            version: this._version,
+            fwcloud_id: this._fwcloud.id
+        };
+
+        fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
     }
 
     protected static async generateSnapshotDirectoryIfDoesNotExist() {
@@ -139,9 +163,9 @@ export class Snapshot implements Responsable {
     toResponse(): object {
         return {
             id: this._id,
-            name: this._data.name,
-            date: this._data && this._data.date === null? null : moment(this._data.date).utc(),
-            comment: this._data.comment
+            date: this._date,
+            name: this._name,
+            comment: this._comment
         }
     }
     
