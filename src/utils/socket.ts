@@ -17,8 +17,8 @@ export class SocketTools {
     }
 
     public static init(req: Request): SocketTools {
-        if (req.body.socketId) {
-            const instance = new SocketTools(req.body.socketId)
+        if (req.body.socketid) {
+            const instance = new SocketTools(req.body.socketid)
             socketTool = instance;
             return socketTool;
         }

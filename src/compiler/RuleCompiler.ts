@@ -481,7 +481,7 @@ export class RuleCompiler {
                     }
                 }
 
-                if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
+                if (parseInt(data[0].special) === 1) // Special rule for ESTABLISHED,RELATED packages.
                     cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
                 else
                     cs_trail = `${stateful} -j ${action}\n`;
@@ -523,7 +523,7 @@ export class RuleCompiler {
                             `${cs}`;
                     }
 
-                    if (data[0].mark_code) {
+                    if (parseInt(data[0].mark_code) !== 0) {
                         table = '-t mangle';
 
                         action = `MARK --set-mark ${data[0].mark_code}`;
