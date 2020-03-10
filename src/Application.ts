@@ -46,6 +46,7 @@ import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { Version } from './version/version';
+import io from 'socket.io';
 import * as path from "path";
 
 export class Application extends AbstractApplication {
@@ -53,6 +54,8 @@ export class Application extends AbstractApplication {
 
     protected _version: Version;
     private _logger: Logger;
+
+    protected _socketio: any;
 
     public static async run(): Promise<Application> {
         try {
@@ -70,6 +73,10 @@ export class Application extends AbstractApplication {
         return this._logger;
     }
 
+    get socketio(): io.Server {
+        return this._socketio;
+    }
+
     public getVersion(): Version {
         return this._version;
     }
@@ -81,6 +88,11 @@ export class Application extends AbstractApplication {
         this._version = await this.loadVersion();
 
         return this;
+    }
+
+    public setSocketIO(socketIO: io.Server): io.Server {
+        this._socketio = socketIO;
+        return this._socketio;
     }
 
     public async close(): Promise<void> {
