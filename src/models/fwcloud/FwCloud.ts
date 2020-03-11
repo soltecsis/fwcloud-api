@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne } from "typeorm";
 import db from '../../database/database-manager';
 import * as path from "path";
 
@@ -32,6 +32,7 @@ import { DatabaseService } from "../../database/database.service";
 import { Ca } from "../vpn/pki/Ca";
 import { Cluster } from "../firewall/Cluster";
 import { Firewall } from "../firewall/Firewall";
+import { FwcTree } from "../tree/fwc-tree.model";
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -88,6 +89,9 @@ export class FwCloud extends Model {
 
     @OneToMany(type => Firewall, firewall => firewall.fwcloud)
     firewalls: Array<Firewall>;
+
+    @OneToMany(type => FwcTree, fwcTree => fwcTree.fwCloud)
+    fwcTrees: Array<FwcTree>
 
     public getTableName(): string {
         return tableName;

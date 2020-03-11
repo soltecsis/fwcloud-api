@@ -10,6 +10,8 @@ import { ClusterExporter } from "../../../../src/snapshots/exporters/cluster-exp
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FirewallExporter } from "../../../../src/snapshots/exporters/firewall-exporter";
 import { SnapshotData } from "../../../../src/snapshots/snapshot-data";
+import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
+import { FwcTreeExporter } from "../../../../src/snapshots/exporters/fwc-tree-exporter";
 
 let app: Application;
 let repositoryService: RepositoryService;
@@ -74,5 +76,19 @@ describe(describeName('FwCloud exporter tests'), () => {
 
         expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.Firewall[0])
             .to.be.deep.equal(new FirewallExporter(new SnapshotData, firewall).exportToJSON())
+    });
+
+    it('export should include the fwcTree referenced elements', async () => {
+        let tree: FwcTree = repositoryService.for(FwcTree).create({
+            name: 'tree_test',
+            node_order: 1,
+            fwCloud: {id: fwcloud.id}
+        });
+
+        tree = await repositoryService.for(FwcTree).save(tree);
+        tree = await repositoryService.for(FwcTree).findOne(tree.id);
+
+        expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.FwcTree[0])
+            .to.be.deep.equal(new FwcTreeExporter(new SnapshotData, tree).exportToJSON())
     });
 })
