@@ -34,6 +34,7 @@ import { Cluster } from "../firewall/Cluster";
 import { Firewall } from "../firewall/Firewall";
 import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "../ipobj/IPObj";
+import { Mark } from "../ipobj/Mark";
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -96,6 +97,9 @@ export class FwCloud extends Model {
 
     @OneToMany(type => IPObj, ipobj => ipobj.fwCloud )
     ipObjs: Array<IPObj>;
+
+    @OneToMany(type => Mark, mark => mark.fwCloud)
+    marks: Array<Mark>;
 
     public getTableName(): string {
         return tableName;

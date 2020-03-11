@@ -21,8 +21,9 @@
 */
 
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, getRepository } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn } from "typeorm";
 import modelEventService from "../ModelEventService";
+import { FwCloud } from "../fwcloud/FwCloud";
 
 const fwcError = require('../../utils/error_table');
 
@@ -36,9 +37,6 @@ export class Mark extends Model {
 
     @Column()
     code: number;
-
-    @Column()
-    fwcloud: number;
 
     @Column()
     name: string;
@@ -57,6 +55,12 @@ export class Mark extends Model {
 
     @Column()
     updated_by: number;
+
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.marks)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwCloud: FwCloud;
 
     public getTableName(): string {
         return tableName;

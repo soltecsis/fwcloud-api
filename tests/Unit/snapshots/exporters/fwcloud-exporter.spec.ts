@@ -14,6 +14,8 @@ import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
 import { FwcTreeExporter } from "../../../../src/snapshots/exporters/fwc-tree-exporter";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjExporter } from "../../../../src/snapshots/exporters/ip-obj-exporter";
+import { Mark } from "../../../../src/models/ipobj/Mark";
+import { MarkExporter } from "../../../../src/snapshots/exporters/mark-exporter";
 
 let app: Application;
 let repositoryService: RepositoryService;
@@ -109,5 +111,19 @@ describe(describeName('FwCloud exporter tests'), () => {
             .to.be.deep.equal(new IPObjExporter(new SnapshotData, ipobj).exportToJSON());
 
         expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.IPObj).to.have.length(1);
+    });
+
+    it('export should include the fwcTree referenced elements', async () => {
+        let mark: Mark = repositoryService.for(Mark).create({
+            code: 100,
+            name: 'test',
+            fwCloud: {id: fwcloud.id}
+        });
+
+        mark = await repositoryService.for(Mark).save(mark);
+        mark = await repositoryService.for(Mark).findOne(mark.id);
+
+        expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.Mark[0])
+            .to.be.deep.equal(new MarkExporter(new SnapshotData, mark).exportToJSON());
     });
 })
