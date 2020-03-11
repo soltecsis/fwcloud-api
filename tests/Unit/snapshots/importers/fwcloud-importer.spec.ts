@@ -1,7 +1,6 @@
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { Application } from "../../../../src/Application";
 import { RepositoryService } from "../../../../src/database/repository.service";
-import { before } from "mocha";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { FwCloudImporter } from "../../../../src/snapshots/importers/fwcloud-importer";
 import { ImportMapping } from "../../../../src/snapshots/import-mapping";
