@@ -31,4 +31,22 @@ export default class ObjectHelpers {
 
         return result;
     }
+
+    public static contains(inner: object, container: object): boolean {
+        if (typeof inner != typeof container)
+            return false;
+        if (Array.isArray(inner) && Array.isArray(container)) {
+            // assuming same order at least
+            for (var i=0, j=0, la=inner.length, lb=container.length; i<la && j<lb;j++)
+                if (ObjectHelpers.contains(inner[i], container[j]))
+                    i++;
+            return i==la;
+        } else if (Object(inner) === inner) {
+            for (var p in inner)
+                if (!(p in container && ObjectHelpers.contains(inner[p], container[p])))
+                    return false;
+            return true;
+        } else
+            return inner === container;
+    }
 }

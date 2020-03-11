@@ -165,8 +165,8 @@ export class Snapshot implements Responsable {
     }
 
     protected async exportFwCloud(): Promise<void> {
-        const exporter = new FwCloudExporter(this.fwcloud);
-        const result = await exporter.export()
+        const result = new SnapshotData();
+        new FwCloudExporter(result, this.fwcloud);
 
         fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(result, null, 2));
     }

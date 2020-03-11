@@ -3,17 +3,11 @@ import { Ca } from "../../models/vpn/pki/Ca";
 import { SnapshotData } from "../snapshot-data";
 
 export class CaExporter extends EntityExporter<Ca> {
-    constructor(ca: Ca) {
-        super();
-        this.setInstance(ca);
-    }
-
-    public async export(): Promise<SnapshotData> {
+    public async exportEntity(): Promise<SnapshotData> {
         const result = new SnapshotData();
         
-        result.data.Ca = [this.exportedEntity()];
+        result.data.Ca = [this.exportToJSON()];
     
         return result;
     }
-    
 }

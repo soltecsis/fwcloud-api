@@ -4,12 +4,17 @@ import Model from "../../models/Model";
 import { FwCloudExporter } from "./fwcloud-exporter";
 import { SnapshotData } from "../snapshot-data";
 
-
-export abstract class EntityExporter<T extends Model> {
+export class EntityExporter<T extends Model> {
     protected _entity: Function;
     protected _instance: T;
+    protected _result: SnapshotData;
 
     protected _ignoreProperties = [];
+
+    constructor(result: SnapshotData, instance: T) {
+        this._result = result;
+        this.setInstance(instance);
+    }
 
     private _exporters = {
         FwCloud: FwCloudExporter
@@ -26,9 +31,19 @@ export abstract class EntityExporter<T extends Model> {
         })
     }
 
-    public async abstract export(): Promise<SnapshotData>;
+    public async export(): Promise<SnapshotData> {
+        if (!this._result.hasItem(this._entity, this._instance)) {
+            return await this.exportEntity();
+        }
 
-    public exportedEntity<T>(): Partial<T> {
+        return this._result;
+    }
+
+    protected async exportEntity(): Promise<SnapshotData> {
+        throw new Error('Not implemented');
+    };
+
+    public exportToJSON<T>(): Partial<T> {
         const result = {};
         const propertyReferences: Array<ColumnMetadataArgs> = this.getEntityColumns();
 
