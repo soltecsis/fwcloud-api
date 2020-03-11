@@ -4,9 +4,10 @@ import Model from "../../models/Model";
 import { FwCloudExporter } from "./fwcloud-exporter";
 import { ExportResult } from "./export-result";
 
-export abstract class EntityExporter {
+
+export abstract class EntityExporter<T extends Model> {
     protected _entity: Function;
-    protected _instance: any; //TODO: Should be improved
+    protected _instance: T;
 
     protected _ignoreProperties = [];
 
@@ -14,7 +15,7 @@ export abstract class EntityExporter {
         FwCloud: FwCloudExporter
     }
 
-    protected setInstance<T extends Model>(instance: T){
+    protected setInstance(instance: T){
         this._instance = instance;
         this._entity = instance.constructor;
     };

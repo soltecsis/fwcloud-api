@@ -7,10 +7,10 @@ import { RepositoryService } from "../../database/repository.service";
 import { ClusterExporter } from "./cluster-exporter";
 import { FirewallExporter } from "./firewall-exporter";
 
-export class FwCloudExporter extends EntityExporter{
+export class FwCloudExporter extends EntityExporter<FwCloud> {
     constructor(fwCloud: FwCloud) {
         super();
-        this.setInstance<FwCloud>(fwCloud);
+        this.setInstance(fwCloud);
     }
 
     public async export(): Promise<ExportResult> {

@@ -2,7 +2,7 @@ import { EntityExporter } from "./entity-exporter";
 import { ExportResult } from "./export-result";
 import { Firewall } from "../../models/firewall/Firewall";
 
-export class FirewallExporter extends EntityExporter {
+export class FirewallExporter extends EntityExporter<Firewall> {
     constructor(firewall: Firewall) {
         super();
         this.setInstance(firewall);

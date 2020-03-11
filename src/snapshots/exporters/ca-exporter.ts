@@ -2,7 +2,7 @@ import { EntityExporter } from "./entity-exporter";
 import { Ca } from "../../models/vpn/pki/Ca";
 import { ExportResult } from "./export-result";
 
-export class CaExporter extends EntityExporter {
+export class CaExporter extends EntityExporter<Ca> {
     constructor(ca: Ca) {
         super();
         this.setInstance(ca);

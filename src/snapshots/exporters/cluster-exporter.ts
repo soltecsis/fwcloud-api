@@ -2,7 +2,7 @@ import { EntityExporter } from "./entity-exporter";
 import { ExportResult } from "./export-result";
 import { Cluster } from "../../models/firewall/Cluster";
 
-export class ClusterExporter extends EntityExporter {
+export class ClusterExporter extends EntityExporter<Cluster> {
     constructor(cluster: Cluster) {
         super();
         this.setInstance(cluster);
