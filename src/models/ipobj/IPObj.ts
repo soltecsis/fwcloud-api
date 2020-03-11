@@ -27,7 +27,7 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
@@ -47,9 +47,6 @@ export class IPObj extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    fwcloud: number;
 
     @Column()
     interface: number;
@@ -123,8 +120,18 @@ export class IPObj extends Model {
     @Column()
     updated_by: number;
 
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.ipObjs)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwCloud: FwCloud;
+
     public getTableName(): string {
         return tableName;
+    }
+
+    public isStandard(): boolean {
+        return this.id >= 10000;
     }
 
     public async onUpdate() {

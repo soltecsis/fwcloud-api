@@ -12,6 +12,8 @@ import { FirewallExporter } from "../../../../src/snapshots/exporters/firewall-e
 import { SnapshotData } from "../../../../src/snapshots/snapshot-data";
 import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
 import { FwcTreeExporter } from "../../../../src/snapshots/exporters/fwc-tree-exporter";
+import { IPObj } from "../../../../src/models/ipobj/IPObj";
+import { IPObjExporter } from "../../../../src/snapshots/exporters/ip-obj-exporter";
 
 let app: Application;
 let repositoryService: RepositoryService;
@@ -90,5 +92,22 @@ describe(describeName('FwCloud exporter tests'), () => {
 
         expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.FwcTree[0])
             .to.be.deep.equal(new FwcTreeExporter(new SnapshotData, tree).exportToJSON())
+    });
+
+    it('export should include the fwcTree referenced elements', async () => {
+        let ipobj: IPObj = repositoryService.for(IPObj).create({
+            id: 1,
+            name: 'tree_test',
+            type: 1,
+            fwCloud: {id: fwcloud.id}
+        });
+
+        ipobj = await repositoryService.for(IPObj).save(ipobj);
+        ipobj = await repositoryService.for(IPObj).findOne(ipobj.id);
+
+        expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.IPObj[0])
+            .to.be.deep.equal(new IPObjExporter(new SnapshotData, ipobj).exportToJSON());
+
+        expect((await new FwCloudExporter(new SnapshotData, fwcloud).export()).data.IPObj).to.have.length(1);
     });
 })

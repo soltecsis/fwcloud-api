@@ -7,11 +7,12 @@ import { RepositoryService } from "../../database/repository.service";
 import { ClusterExporter } from "./cluster-exporter";
 import { FirewallExporter } from "./firewall-exporter";
 import { FwcTreeExporter } from "./fwc-tree-exporter";
+import { IPObjExporter } from "./ip-obj-exporter";
 
 export class FwCloudExporter extends EntityExporter<FwCloud> {
     protected async exportEntity(): Promise<SnapshotData> {
         this._instance = await ( await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._instance.id, {relations: [
-            'cas', 'clusters', 'firewalls', 'fwcTrees'
+            'cas', 'clusters', 'firewalls', 'fwcTrees', 'ipObjs'
         ]});
 
         this._result.addItem(FwCloud, this.exportToJSON());
@@ -30,6 +31,12 @@ export class FwCloudExporter extends EntityExporter<FwCloud> {
 
         for(let i = 0; i < this._instance.fwcTrees.length; i++) {
             this._result.merge(await new FwcTreeExporter(this._result, this._instance.fwcTrees[i]).exportEntity());
+        }
+
+        for(let i = 0; i < this._instance.ipObjs.length; i++) {
+            if(!this._instance.ipObjs[i].isStandard()) {
+                this._result.merge(await new IPObjExporter(this._result, this._instance.ipObjs[i]).exportEntity());
+            }
         }
             
         return this._result;
