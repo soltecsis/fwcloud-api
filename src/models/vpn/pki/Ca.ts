@@ -25,6 +25,7 @@ import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMan
 import { CaPrefix } from "./CaPrefix";
 import { FwCloud } from "../../fwcloud/FwCloud";
 import { User } from "../../user/User";
+import { Crt } from "./Crt";
 var config = require('../../../config/config');
 const fwcError = require('../../../utils/error_table');
 const spawn = require('child-process-promise').spawn;
@@ -76,6 +77,9 @@ export class Ca extends Model {
         name: 'fwcloud'
     })
     fwcloud: FwCloud;
+
+    @OneToMany(type => Crt, crt => crt.ca)
+    crts: Array<Crt>
 
     @OneToMany(type => CaPrefix, caPrefix => caPrefix.ca)
     prefixes: Array<CaPrefix>

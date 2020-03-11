@@ -21,7 +21,8 @@
 */
 
 import Model from "../../Model";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Ca } from "./Ca";
 
 const fwcError = require('../../../utils/error_table')
 
@@ -32,9 +33,6 @@ export class Crt extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    ca: number;
 
     @Column()
     cn: string;
@@ -59,6 +57,12 @@ export class Crt extends Model {
 
     @Column()
     updated_by: Date;
+
+    @ManyToOne(type => Ca, ca => ca.crts)
+    @JoinColumn({
+        name: 'ca'
+    })
+    ca: Ca;
 
 
     public getTableName(): string {
