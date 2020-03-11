@@ -1,5 +1,5 @@
 import { EntityExporter } from "./entity-exporter";
-import { ExportResult } from "./export-result";
+import { SnapshotData } from "../snapshot-data";
 import { Firewall } from "../../models/firewall/Firewall";
 
 export class FirewallExporter extends EntityExporter<Firewall> {
@@ -8,10 +8,10 @@ export class FirewallExporter extends EntityExporter<Firewall> {
         this.setInstance(firewall);
     }
     
-    public async export(): Promise<ExportResult> {
-        const result = new ExportResult();
+    public async export(): Promise<SnapshotData> {
+        const result = new SnapshotData();
         
-        result.firewalls.push(this.exportedEntity());
+        result.data.Firewall = [this.exportedEntity()];
 
         return result;
     }

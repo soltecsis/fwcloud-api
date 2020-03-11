@@ -1,5 +1,5 @@
 import { EntityExporter } from "./entity-exporter";
-import { ExportResult } from "./export-result";
+import { SnapshotData } from "../snapshot-data";
 import { Cluster } from "../../models/firewall/Cluster";
 
 export class ClusterExporter extends EntityExporter<Cluster> {
@@ -8,9 +8,10 @@ export class ClusterExporter extends EntityExporter<Cluster> {
         this.setInstance(cluster);
     }
 
-    public async export(): Promise<ExportResult> {
-        const result = new ExportResult();
-        result.clusters.push(this.exportedEntity())
+    public async export(): Promise<SnapshotData> {
+        const result = new SnapshotData();
+
+        result.data.Cluster = [this.exportedEntity()];
         
         return result;
     }

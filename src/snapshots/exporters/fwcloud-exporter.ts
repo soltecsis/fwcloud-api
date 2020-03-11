@@ -1,7 +1,7 @@
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { EntityExporter } from "./entity-exporter";
 import { CaExporter } from "./ca-exporter";
-import { ExportResult } from "./export-result";
+import { SnapshotData } from "../snapshot-data";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { ClusterExporter } from "./cluster-exporter";
@@ -13,13 +13,13 @@ export class FwCloudExporter extends EntityExporter<FwCloud> {
         this.setInstance(fwCloud);
     }
 
-    public async export(): Promise<ExportResult> {
+    public async export(): Promise<SnapshotData> {
         this._instance = await ( await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._instance.id, {relations: [
             'cas', 'clusters', 'firewalls'
         ]});
 
-        const result = new ExportResult();
-        result.fwclouds.push(this.exportedEntity());
+        const result = new SnapshotData();
+        result.data.FwCloud = [this.exportedEntity()];
         
         for(let i = 0; i < this._instance.cas.length; i++) {
             result.merge(await new CaExporter(this._instance.cas[i]).export());

@@ -2,7 +2,7 @@ import { getMetadataArgsStorage } from "typeorm"
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs"
 import Model from "../../models/Model";
 import { FwCloudExporter } from "./fwcloud-exporter";
-import { ExportResult } from "./export-result";
+import { SnapshotData } from "../snapshot-data";
 
 
 export abstract class EntityExporter<T extends Model> {
@@ -26,7 +26,7 @@ export abstract class EntityExporter<T extends Model> {
         })
     }
 
-    public async abstract export(): Promise<ExportResult>;
+    public async abstract export(): Promise<SnapshotData>;
 
     public exportedEntity<T>(): Partial<T> {
         const result = {};

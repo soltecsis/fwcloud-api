@@ -13,13 +13,9 @@ import { Ca } from "../models/vpn/pki/Ca";
 import { Cluster } from "cluster";
 import { Firewall } from "../models/firewall/Firewall";
 import { FwCloudExporter } from "./exporters/fwcloud-exporter";
-
-export interface SnapshotData {
-    fwclouds: Array<DeepPartial<FwCloud>>;
-    cas: Array<DeepPartial<Ca>>;
-    clusters: Array<DeepPartial<Cluster>>;
-    firewalls: Array<DeepPartial<Firewall>>;
-};
+import Model from "../models/Model";
+import { SnapshotData } from "./snapshot-data";
+import { Importer } from "./importer";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -176,7 +172,8 @@ export class Snapshot implements Responsable {
     }
 
     protected async importFwCloud(): Promise<void> {
-        //TODO
+        const importer = new Importer();
+        importer.import(this._data);
     }
 
     protected saveMetadataFile(): void {

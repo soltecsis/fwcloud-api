@@ -16,11 +16,7 @@ describe(describeName('Import mapping tests'), () => {
         mapper.newItem(FwCloud, old_id, new_id);
 
         expect(mapper.maps).to.be.deep.eq({
-            caprefixes: {},
-            clusters: {},
-            cas: {},
-            firewalls: {},
-            fwclouds: {
+            FwCloud: {
                 0: 1
             }
         })
@@ -31,11 +27,7 @@ describe(describeName('Import mapping tests'), () => {
         mapper.newItem(FwCloud, 0, 2);
 
         expect(mapper.maps).to.be.deep.eq({
-            caprefixes: {},
-            clusters: {},
-            cas: {},
-            firewalls: {},
-            fwclouds: {
+            FwCloud: {
                 0: 2
             }
         });

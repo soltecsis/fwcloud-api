@@ -31,7 +31,7 @@ describe(describeName('FwCloud exporter tests'), () => {
     });
 
     it('export should export the fwcloud', async() => {
-        expect((await new FwCloudExporter(fwcloud).export()).fwclouds[0]).to.be.deep.equal(new FwCloudExporter(fwcloud).exportedEntity())
+        expect((await new FwCloudExporter(fwcloud).export()).data.FwCloud[0]).to.be.deep.equal(new FwCloudExporter(fwcloud).exportedEntity())
     });
 
     it('export should include the ca referenced elements', async () => {
@@ -43,7 +43,7 @@ describe(describeName('FwCloud exporter tests'), () => {
         ca = await repositoryService.for(Ca).save(ca);
         ca = await repositoryService.for(Ca).findOne(ca.id);
 
-        expect((await new FwCloudExporter(fwcloud).export()).cas[0]).to.be.deep.equal(new CaExporter(ca).exportedEntity())
+        expect((await new FwCloudExporter(fwcloud).export()).data.Ca[0]).to.be.deep.equal(new CaExporter(ca).exportedEntity())
     });
 
     it('export should include the cluster referenced elements', async () => {
@@ -55,7 +55,7 @@ describe(describeName('FwCloud exporter tests'), () => {
         cluster = await repositoryService.for(Cluster).save(cluster);
         cluster = await repositoryService.for(Cluster).findOne(cluster.id);
 
-        expect((await new FwCloudExporter(fwcloud).export()).clusters[0])
+        expect((await new FwCloudExporter(fwcloud).export()).data.Cluster[0])
             .to.be.deep.equal(new ClusterExporter(cluster).exportedEntity())
     });
 
@@ -68,7 +68,7 @@ describe(describeName('FwCloud exporter tests'), () => {
         firewall = await repositoryService.for(Firewall).save(firewall);
         firewall = await repositoryService.for(Firewall).findOne(firewall.id);
 
-        expect((await new FwCloudExporter(fwcloud).export()).firewalls[0])
+        expect((await new FwCloudExporter(fwcloud).export()).data.Firewall[0])
             .to.be.deep.equal(new FirewallExporter(firewall).exportedEntity())
     });
 })

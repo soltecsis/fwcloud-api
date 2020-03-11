@@ -1,6 +1,6 @@
 import { EntityExporter } from "./entity-exporter";
 import { CaPrefix } from "../../models/vpn/pki/CaPrefix";
-import { ExportResult } from "./export-result";
+import { SnapshotData } from "../snapshot-data";
 
 export class CaPrefixExporter extends EntityExporter<CaPrefix> {
     constructor(caPrefix: CaPrefix) {
@@ -8,8 +8,12 @@ export class CaPrefixExporter extends EntityExporter<CaPrefix> {
         this.setInstance(caPrefix);
     }
 
-    public async export(): Promise<ExportResult> {
-        return new ExportResult();
+    public async export(): Promise<SnapshotData> {
+        const result = new SnapshotData();
+
+        result.data.CaPrefix = [this.exportedEntity()];
+
+        return result;
     }
     
 }
