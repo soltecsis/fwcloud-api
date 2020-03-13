@@ -32,6 +32,7 @@ import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
+import { IPObjType } from './IPObjType';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -47,9 +48,6 @@ export class IPObj extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    interface: number;
 
     @Column()
     name: string;
@@ -125,6 +123,18 @@ export class IPObj extends Model {
         name: 'fwcloud'
     })
     fwCloud: FwCloud;
+
+    @ManyToOne(type => IPObjType, ipObjType => ipObjType.ipObjs)
+    @JoinColumn({
+        name: 'type'
+    })
+    ipObjType: IPObjType;
+
+    @ManyToOne(type => Interface, _interface => _interface.ipObjs)
+    @JoinColumn({
+        name: 'interface'
+    })
+    interface: Interface
 
     public getTableName(): string {
         return tableName;

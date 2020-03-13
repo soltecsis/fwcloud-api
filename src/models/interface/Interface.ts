@@ -29,7 +29,7 @@ import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import modelEventService from "../ModelEventService";
-import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn } from "typeorm";
+import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
@@ -78,6 +78,9 @@ export class Interface extends Model {
         name: 'firewall'
     })
     firewall: Firewall;
+
+    @OneToMany(type => IPObj, ipObj => ipObj.interface)
+    ipObjs: Array<IPObj>;
 
     public getTableName(): string {
         return tableName;
