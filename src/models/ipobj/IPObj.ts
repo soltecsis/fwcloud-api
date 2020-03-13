@@ -27,12 +27,13 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { IPObjType } from './IPObjType';
+import { OpenVPNOptions } from '../vpn/openvpn/openvpn-options.model';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -135,6 +136,9 @@ export class IPObj extends Model {
         name: 'interface'
     })
     interface: Interface
+
+    @OneToMany(type => OpenVPNOptions, options => options.ipObj)
+    optionsList: Array<OpenVPNOptions>;
 
     public getTableName(): string {
         return tableName;

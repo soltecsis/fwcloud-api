@@ -109,6 +109,9 @@ export class Firewall extends Model {
 	@OneToMany(type => Interface, _interface => _interface.firewall)
 	interfaces: Array<Interface>
 
+	@OneToMany(type => OpenVPN, openVPN => openVPN.firewall)
+	openVPNs: Array<OpenVPN>;
+
 	
 	public getTableName(): string {
 		return tableName;

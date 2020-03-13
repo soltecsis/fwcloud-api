@@ -21,8 +21,9 @@
 */
 
 import Model from "../../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Ca } from "./Ca";
+import { OpenVPN } from "../openvpn/OpenVPN";
 
 const fwcError = require('../../../utils/error_table')
 
@@ -63,6 +64,9 @@ export class Crt extends Model {
         name: 'ca'
     })
     ca: Ca;
+
+    @OneToMany(type => OpenVPN, openVPN => openVPN.crt)
+    openVPNs: Array<OpenVPN>;
 
 
     public getTableName(): string {

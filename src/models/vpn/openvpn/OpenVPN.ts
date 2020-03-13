@@ -24,11 +24,13 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
+import { Crt } from "../pki/Crt";
+import { OpenVPNOptions } from "./openvpn-options.model";
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 const fwcError = require('../../../utils/error_table');
@@ -42,15 +44,6 @@ export class OpenVPN extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    openvpn: number;
-
-    @Column()
-    firewall: number;
-
-    @Column()
-    crt: number;
 
     @Column()
     install_dir: string;
@@ -78,6 +71,31 @@ export class OpenVPN extends Model {
 
     @Column()
     installed_at: Date;
+
+    @ManyToOne(type => OpenVPN, openVPN => openVPN.childs)
+    @JoinColumn({
+        name: 'openvpn'
+    })
+    parent: OpenVPN
+
+    @OneToMany(type => OpenVPN, openVPN => openVPN.parent)
+    childs: Array<OpenVPN>
+
+    @ManyToOne(type => Firewall, firewall => firewall.openVPNs)
+    @JoinColumn({
+        name: 'firewall'
+    })
+    firewall: Firewall;
+
+    @ManyToOne(type => Crt, crt => crt.openVPNs)
+    @JoinColumn({
+        name: 'crt'
+    })
+    crt: Crt;
+
+    @OneToOne(type => OpenVPNOptions, options => options.openvpn)
+    options: OpenVPNOptions
+
 
     public getTableName(): string {
         return tableName;
