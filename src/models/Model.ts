@@ -20,6 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { DeepPartial, getMetadataArgsStorage } from "typeorm";
+import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
+
 export interface IModel {
     getTableName(): string;
 }
@@ -29,6 +33,38 @@ export default abstract class Model implements IModel {
 
     public static methodExists(method: string): boolean {
         return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
+    }
+
+    public toJSON<T>(): DeepPartial<T> {
+        const result = {};
+        const propertyReferences: Array<ColumnMetadataArgs> = this.getEntityColumns();
+
+        for(let i = 0; i < propertyReferences.length; i++) {
+            const propertyName: string = propertyReferences[i].propertyName;
+                result[propertyName] = this.hasOwnProperty(propertyName) ?
+                this[propertyName] : null;
+        }
+
+        return result;
+    }
+
+    public getEntityColumns(): Array<ColumnMetadataArgs> {
+        return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
+            return column.target === this.constructor;
+        })
+    }
+
+    public getEntityRelations(): Array<RelationMetadataArgs> {
+        return getMetadataArgsStorage().relations.filter((relation: RelationMetadataArgs) => {
+            const type = <any>relation.type;
+            return relation.target === this.constructor || type().constructor === this.constructor;
+        })
+    }
+
+    public getPrimaryKeys(): Array<ColumnMetadataArgs> {
+        return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
+            return column.target === this.constructor && column.options.primary === true;
+        })
     }
 
     public async onCreate(): Promise<void> { }

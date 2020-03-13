@@ -8,14 +8,11 @@ import * as fs from "fs";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
-import { DeepPartial } from "typeorm";
-import { Ca } from "../models/vpn/pki/Ca";
-import { Cluster } from "cluster";
-import { Firewall } from "../models/firewall/Firewall";
-import { FwCloudExporter } from "./exporters/fwcloud-exporter";
-import Model from "../models/Model";
 import { SnapshotData } from "./snapshot-data";
 import { Importer } from "./importer";
+import { EntityExporter } from "./exporters/entity-exporter";
+import { Exporter } from "./exporter";
+import { DependencyExporter } from "./dependency-exporter/dependency-exporter";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -29,6 +26,7 @@ export class Snapshot implements Responsable {
 
     static METADATA_FILENAME = 'snapshot.json';
     static DATA_FILENAME = 'data.json';
+    static DEPENDENCY_FILENAME = 'dep.json';
     static PKI_DIRECTORY = 'pki';
 
     protected _id: number;
@@ -89,9 +87,8 @@ export class Snapshot implements Responsable {
 
     public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        
         const result: Snapshot = await snapshot.save(snapshot_directory, fwcloud, name, comment);
-
+        
         return await Snapshot.load(result.path);
     }
 
@@ -102,7 +99,9 @@ export class Snapshot implements Responsable {
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
         
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
-        const snapshotData: SnapshotData = JSON.parse(fs.readFileSync(dataPath).toString());
+        const dataContent: string = fs.readFileSync(dataPath).toString();
+
+        const snapshotData: SnapshotData = JSON.parse(dataContent);
 
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
@@ -166,14 +165,23 @@ export class Snapshot implements Responsable {
 
     protected async exportFwCloud(): Promise<void> {
         const result = new SnapshotData();
-        new FwCloudExporter(result, this.fwcloud);
+        const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwcloud.constructor.name);
+        const exporter = new exporterTarget(result, this.fwcloud);
+        await exporter.export();
+
 
         fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(result, null, 2));
+
+        await this.exportFwCloudDependencyList();
     }
 
-    protected async importFwCloud(): Promise<void> {
-        const importer = new Importer();
-        importer.import(this._data);
+    protected async exportFwCloudDependencyList(): Promise<void> {
+        const result = new SnapshotData();
+        const exporter = new DependencyExporter(result);
+        await exporter.export(FwCloud);
+
+
+        fs.writeFileSync(path.join(this._path, Snapshot.DEPENDENCY_FILENAME), JSON.stringify(result, null, 2));
     }
 
     protected saveMetadataFile(): void {

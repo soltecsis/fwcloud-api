@@ -131,7 +131,7 @@ export class IPObj extends Model {
     }
 
     public isStandard(): boolean {
-        return this.id >= 10000;
+        return this.id >= 10000 && this.id < 100000;
     }
 
     public async onUpdate() {

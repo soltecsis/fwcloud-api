@@ -1,24 +1,65 @@
 import Model from "../models/Model";
 
+export type IdMap = {old: any, new: any}
+export type EntityMap = {[property_name: string]: Array<IdMap>};
+export type ImportMap = {[entity_name: string]: EntityMap}
+
 export class ImportMapping {
     
-    maps: {[k: string]: {[k2: number]: number}} = {}
+    maps: ImportMap = {}
 
-    public newItem(model: typeof Model, old_id: number, new_id: number): void {
-        const propertyName: string = model.name;
-
-        if (!this.maps[propertyName]) {
-            this.maps[propertyName] = {};
+    public newItem(tableName: string, map: {[property_name: string]: IdMap}): void {
+        if (!this.maps[tableName]) {
+            this.maps[tableName] = {};
         }
 
-        this.maps[propertyName][old_id] = new_id;
+        for(let propertyName in map) {
+            if (!this.maps[tableName][propertyName]) {
+                this.maps[tableName][propertyName] = [];
+            }
+
+            const index: number = this.findIndexOfItem(tableName, propertyName, {old: map[propertyName].old});
+
+            if( index < 0) {
+                this.maps[tableName][propertyName].push({old: map[propertyName].old, new: map[propertyName].new});
+            } else {
+                this.maps[tableName][propertyName][index] = {old: map[propertyName].old, new: map[propertyName].new};
+            }
+        }
 
         return;
     }
 
-    public getItem(model: typeof Model, old_id: number): number {
-        const propertyName: string = model.name;
+    public findItem(tableName: string, propertyName: string, match: Partial<IdMap>): IdMap {
+        if (this.maps[tableName] && this.maps[tableName][propertyName]) {
+            
+            const matches: Array<IdMap> = this.maps[tableName][propertyName].filter((element: IdMap) => {
+                let found: boolean = true;
+                
+                if (match.new) {
+                    if (match.new !== element.new) { found = false;}
+                }
 
-        return this.maps[propertyName] && this.maps[propertyName][old_id] ? this.maps[propertyName][old_id] : null;
+                if (match.old) {
+                    if (match.old !== element.old) { found = false;}
+                }
+
+                return found;
+            });
+
+            return matches.length > 0 ? matches[0]: null;
+        }
+
+        return null;
+    }
+
+    public findIndexOfItem(tableName: string, propertyName: string, match: Partial<IdMap>): number {
+        const element: IdMap = this.findItem(tableName, propertyName, match);
+
+        if (element) {
+            return this.maps[tableName] && this.maps[tableName][propertyName].indexOf(element);
+        }
+
+        return -1;
     }
 }

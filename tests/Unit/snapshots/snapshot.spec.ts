@@ -26,6 +26,7 @@ describe(describeName('Snapshot tests'), () => {
         });
 
         fwCloud = await fwcloudRepository.save(fwCloud);
+        fwCloud = await fwcloudRepository.findOne(fwCloud.id);
 
     });
 
@@ -41,11 +42,10 @@ describe(describeName('Snapshot tests'), () => {
             comment: snapshot.comment,
             version: snapshot.version,
             fwcloud_id: snapshot.fwcloud.id,
-
         });
     });
 
-    it('create should copy the pki fwcloud directory if it exists', async() => {
+    it('create should copy the pki fwcloud directory if it exists', async () => {
         if (FSHelper.directoryExists(app.config.get('pki').data_dir)) {
             await FSHelper.mkdir(path.join(app.config.get('pki').data_dir, fwCloud.id.toString()))
         }
@@ -71,14 +71,14 @@ describe(describeName('Snapshot tests'), () => {
         expect(await Snapshot.load(snapshot.path)).to.be.deep.equal(snapshot);
     });
 
-    it('update should update a snapshot name and comment', async() => {
+    it('update should update a snapshot name and comment', async () => {
         let snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'name', 'comment');
 
-        const data: {name: string, comment: string} = {
+        const data: { name: string, comment: string } = {
             name: 'test',
             comment: 'test'
         };
-        
+
         await snapshot.update(data);
 
         expect((await Snapshot.load(snapshot.path)).name).to.be.deep.equal('test');
@@ -93,4 +93,5 @@ describe(describeName('Snapshot tests'), () => {
         expect(fs.existsSync(snapshot.path)).to.be.false;
         expect(snapshot.exists).to.be.false;
     });
+
 })

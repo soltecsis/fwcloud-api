@@ -31,11 +31,15 @@ describe(describeName('Snapshot data tests'), () => {
         ];
 
         s1.data = {
-            FwCloud: fwClouds
+            fwcloud: {
+                FwCloud: fwClouds
+            }
         }
 
         s2.data = {
-            Ca: cas
+            ca: {
+                Ca: cas
+            }
         }
 
         expect(s1.merge(s2).data).to.be.deep.eq({
