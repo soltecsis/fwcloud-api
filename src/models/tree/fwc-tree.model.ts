@@ -1,6 +1,7 @@
 import Model from "../Model";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
+import { IPObjType } from "../ipobj/IPObjType";
 
 const tableName: string = 'fwc_tree';
 
@@ -37,6 +38,12 @@ export class FwcTree extends Model {
 
     @OneToMany(type => FwcTree, fwcTree => fwcTree.parent)
     childs: Array<FwcTree>;
+
+    @ManyToOne(type => IPObjType, ipObjType => ipObjType.fwcTrees)
+    @JoinColumn({
+        name: 'obj_type'
+    })
+    ipObjType: IPObjType;
 
 
     public getTableName(): string {

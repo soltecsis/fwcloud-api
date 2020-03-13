@@ -22,7 +22,8 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
+import { FwcTree } from "../tree/fwc-tree.model";
 
 const tableName: string = 'ipobj_type';
 
@@ -37,6 +38,9 @@ export class IPObjType extends Model {
 
     @Column()
     protocol_number: number;
+
+    @OneToMany(type => FwcTree, fwcTree => fwcTree.ipObjType)
+    fwcTrees: Array<FwcTree>;
 
     public getTableName(): string {
         return tableName;
