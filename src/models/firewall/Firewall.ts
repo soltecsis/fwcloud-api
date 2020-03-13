@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -105,6 +105,9 @@ export class Firewall extends Model {
 		name: "cluster"
 	})
 	cluster: Cluster;
+
+	@OneToMany(type => Interface, _interface => _interface.firewall)
+	interfaces: Array<Interface>
 
 	
 	public getTableName(): string {
