@@ -33,9 +33,9 @@ export class FwcTree extends Model {
     @JoinColumn({
         name: 'id_parent'
     })
-    id_parent: FwcTree
+    parent: FwcTree
 
-    @OneToMany(type => FwcTree, fwcTree => fwcTree.id_parent)
+    @OneToMany(type => FwcTree, fwcTree => fwcTree.parent)
     childs: Array<FwcTree>;
 
 
