@@ -21,7 +21,7 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import db from '../../database/database-manager';
 
 import Logger from 'log4js';
@@ -47,9 +47,6 @@ export class PolicyGroup extends Model {
 	comment: string;
 
 	@Column()
-	firewall: number;
-
-	@Column()
 	idgroup: number;
 
 	@CreateDateColumn()
@@ -66,6 +63,21 @@ export class PolicyGroup extends Model {
 
 	@Column()
 	groupstyle: string;
+
+	@ManyToOne(type => Firewall, firewall => firewall.policyGroups)
+	@JoinColumn({
+		name: 'firewall'
+	})
+	firewall: Firewall;
+
+	@ManyToOne(type => PolicyGroup, policyGroup => policyGroup.childs)
+	@JoinColumn({
+		name: 'policy_g'
+	})
+	parent: PolicyGroup
+
+	@OneToMany(type => PolicyGroup, policyGroup => policyGroup.parent)
+	childs: Array<PolicyGroup>
 
 	public getTableName(): string {
 		return tableName;

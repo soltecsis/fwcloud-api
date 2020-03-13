@@ -25,19 +25,19 @@ import { PolicyGroup } from "../models/policy/PolicyGroup";
 
 @EntityRepository(PolicyGroup)
 export default class PolicyGroupRepository extends Repository<PolicyGroup> {
-    
+
     public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
         return await this.update(id, {
-            firewall: firewallId
+            firewall: { id: firewallId }
         });
     }
 
     public async moveFirewallGroupsToFirewall(firewallId: number, destinationFirewallId: number): Promise<UpdateResult> {
-        return await this.update({firewall: firewallId}, {firewall: destinationFirewallId});
+        return await this.update({ firewall: { id: firewallId } }, { firewall: { id: destinationFirewallId } });
     }
 
     public async deleteFirewallGroups(firewallId: number): Promise<DeleteResult> {
-        return await this.delete({firewall: firewallId});
+        return await this.delete({ firewall: { id: firewallId } });
     };
 
     /**
@@ -58,7 +58,7 @@ export default class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async cloneFirewallPolicyGroups(firewallId: number): Promise<any> {
-        const policyGroups: Array<PolicyGroup> = await this.find({firewall: firewallId});
+        const policyGroups: Array<PolicyGroup> = await this.find({ firewall: { id: firewallId } });
 
         return await Promise.all(policyGroups.map((policyGroup: PolicyGroup) => {
             this.clone(policyGroup);
@@ -66,6 +66,6 @@ export default class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
-        return (await this.find({firewall: firewallId, idgroup: groupId})).length > 0
+        return (await this.find({ firewall: { id: firewallId }, idgroup: groupId })).length > 0
     }
 }

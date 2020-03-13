@@ -26,12 +26,13 @@ var logger = require('log4js').getLogger("app");
 
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
-import { PrimaryColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, Column, Entity, ManyToOne, JoinColumn } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 import { IPObj } from '../../models/ipobj/IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import modelEventService from "../ModelEventService";
+import { PolicyType } from "./PolicyType";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -57,6 +58,12 @@ export class PolicyPosition extends Model {
 
     @Column()
     single_object: number;
+
+    @ManyToOne(type => PolicyType, type => type.policyPositions)
+    @JoinColumn({
+        name: 'policy_type'
+    })
+    policyType: PolicyType
 
     public getTableName(): string {
         return tableName;
