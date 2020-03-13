@@ -23,7 +23,7 @@
 import Model from "../Model";
 import db from '../../database/database-manager'
 import { Firewall } from "./Firewall";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
 import { FwCloud } from "../fwcloud/FwCloud";
@@ -62,6 +62,10 @@ export class Cluster extends Model {
         name: 'fwcloud'
     })
     fwcloud: FwCloud;
+
+    @OneToMany(type => Firewall, firewall => firewall.cluster)
+    firewalls: Array<Firewall>
+
 
     public getTableName(): string {
         return tableName;

@@ -33,6 +33,7 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
 import { FwCloud } from "../fwcloud/FwCloud";
+import { Cluster } from "./Cluster";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -93,14 +94,17 @@ export class Firewall extends Model {
 	@Column()
 	options: number;
 
-	@Column()
-	cluster: number;
-
 	@ManyToOne(type => FwCloud, fwcloud => fwcloud.firewalls)
 	@JoinColumn({
 		name: 'fwcloud'
 	})
 	fwcloud: FwCloud;
+
+	@ManyToOne(type => Cluster, cluster => cluster.firewalls)
+	@JoinColumn({
+		name: "cluster"
+	})
+	cluster: Cluster;
 
 	
 	public getTableName(): string {
