@@ -31,7 +31,7 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository } from "typeorm";
+import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
 import { app } from "../../fonaments/abstract-application";
@@ -103,6 +103,9 @@ export class PolicyRule extends Model {
 
     @Column()
     updated_by: number;
+
+    @OneToOne(type => PolicyCompilation, policyCompilation => policyCompilation.rule)
+    compilation: PolicyCompilation;
 
     private static clon_data: any;
 
