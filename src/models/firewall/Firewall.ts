@@ -34,6 +34,9 @@ import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
 import { FwCloud } from "../fwcloud/FwCloud";
 import { Cluster } from "./Cluster";
+import { Policy } from "../../fonaments/authorization/policy";
+import { RoutingRule } from "../routing/routing-rule.model";
+import { RoutingGroup } from "../routing/routing-group.model";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -114,6 +117,15 @@ export class Firewall extends Model {
 
 	@OneToMany(type => PolicyGroup, policyGroup => policyGroup.firewall)
 	policyGroups: Array<PolicyGroup>;
+
+	@OneToMany(type => PolicyRule, policyRule => policyRule.firewall)
+	policyRules: Array<PolicyRule>;
+
+	@OneToMany(type => RoutingGroup, routingGroup => routingGroup.firewall)
+	routingGroup: Array<RoutingGroup>;
+
+	@OneToMany(type => RoutingRule, routingRule => routingRule.firewall)
+	routingRules: Array<RoutingRule>;
 
 	
 	public getTableName(): string {

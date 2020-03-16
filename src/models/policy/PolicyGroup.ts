@@ -79,6 +79,9 @@ export class PolicyGroup extends Model {
 	@OneToMany(type => PolicyGroup, policyGroup => policyGroup.parent)
 	childs: Array<PolicyGroup>
 
+	@OneToMany(type => PolicyRule, policyRule => policyRule.policyGroup)
+	policyRules: Array<PolicyRule>;
+
 	public getTableName(): string {
 		return tableName;
 	}

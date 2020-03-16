@@ -21,9 +21,10 @@
 */
 
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { FwCloud } from "../fwcloud/FwCloud";
+import { PolicyRule } from "../policy/PolicyRule";
 
 const fwcError = require('../../utils/error_table');
 
@@ -61,6 +62,9 @@ export class Mark extends Model {
         name: 'fwcloud'
     })
     fwCloud: FwCloud;
+
+    @OneToMany(type => PolicyRule, policyRule => policyRule.mark)
+    policyRules: Array<PolicyRule>;
 
     public getTableName(): string {
         return tableName;

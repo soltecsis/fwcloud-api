@@ -28,7 +28,7 @@ beforeEach(async () => {
             username: 'loggedUser',
             email: 'loggedUser@fwcloud.test',
             password: randomString(10),
-            customer: 1,
+            customer: {id: 1},
             role: 0,
             enabled: 1,
             confirmation_token: randomString(10)
@@ -41,7 +41,7 @@ beforeEach(async () => {
             username: 'admin',
             email: 'admin@fwcloud.test',
             password: randomString(10),
-            customer: 1,
+            customer: {id: 1},
             role: 1,
             enabled: 1,
             confirmation_token: randomString(10)
