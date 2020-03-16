@@ -34,6 +34,13 @@ const config = convict({
     env: 'NODE_ENV'
   },
 
+  maintenance_mode: {
+    doc: 'Application maintenance mode',
+    format: Boolean,
+    default: false,
+    env: MAINTENANCE_MODE
+  },
+
   // Server bind parameters.
   listen: {
     ip: {

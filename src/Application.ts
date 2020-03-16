@@ -48,6 +48,7 @@ import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { Version } from './version/version';
 import io from 'socket.io';
 import * as path from "path";
+import { MaintenanceMiddleware } from './middleware/maintenance.middleware';
 
 export class Application extends AbstractApplication {
     static VERSION_FILENAME = 'version.json';
@@ -115,6 +116,7 @@ export class Application extends AbstractApplication {
             RequestBuilder,
             Compression,
             MethodOverride,
+            MaintenanceMiddleware,
             AttachDatabaseConnection,
             Session,
             CORS,

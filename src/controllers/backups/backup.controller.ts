@@ -95,6 +95,8 @@ export class BackupController extends Controller {
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
+        this._app.config.set('maintenance_mode', true);
+
         this._backupService.restore(backup)
             .on('start', (payload) => {
                 socket.event(payload);
@@ -104,6 +106,7 @@ export class BackupController extends Controller {
             })
             .on('end', async (payload) => {
                 socket.end(payload);
+                this._app.config.set('maintenance_mode', false);
             });;
 
         return ResponseBuilder.buildResponse().status(201).body(backup);
