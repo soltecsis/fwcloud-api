@@ -4,6 +4,7 @@ import { BackupService } from "../../../src/backups/backup.service";
 import { testSuite, expect, describeName } from "../../mocha/global-setup";
 import * as fs from "fs";
 import * as path from "path";
+import sinon from "sinon";
 
 let app: AbstractApplication;
 
@@ -84,22 +85,23 @@ describe(describeName('BackupService tests'), async() => {
         expect(await service.applyRetentionPolicy()).to.have.length(expectedRemoved)
     });
 
-    it.skip('backup should be removed if retention policy by expiration date is enabled', async () => {
-        /*const b1: Backup = new Backup();
+    it('backup should be removed if retention policy by expiration date is enabled', async () => {
+        const b1: Backup = new Backup();
         const b2: Backup = new Backup();
 
         service['_config'].default_max_copies = 0;
         service['_config'].default_max_days = 1;
 
-        let spy = jest.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2017, 1, 14)).valueOf());
-        await b1.create(path.join(process.cwd(), playground));
-        spy = jest.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2017, 1, 15)).valueOf());
-        await b2.create(path.join(process.cwd(), playground));
+        let stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 14)).valueOf());
+        await b1.create(service.config.data_dir);
+        stubDate.restore();
 
-        spy.mockRestore();
+        stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 15)).valueOf());
+        await b2.create(service.config.data_dir);
+        stubDate.restore();
 
 
-        expect(await service.applyRetentionPolicy()).toHaveLength(2)*/
+        expect(await service.applyRetentionPolicy()).to.have.length(2);
     });
 
     it('update config should update the custom config parameters', async () => {
