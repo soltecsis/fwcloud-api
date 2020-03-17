@@ -90,8 +90,8 @@ export class Server {
     }
 
     private bootstrapSocketIO() {
-        const _io = io(this._server);
-        //this._application.express.set('socketio', _io);
+        const _io: io.Server = io(this._server);
+        this._application.setSocketIO(_io);
 
         _io.on('connection', socket => {
             if (this._config.get('env') === 'dev') console.log('user connected', socket.id);

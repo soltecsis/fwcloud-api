@@ -35,11 +35,10 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  * @type /models/compile/
  */
 import { RuleCompiler } from './RuleCompiler'
-
 import { Firewall } from '../models/firewall/Firewall';
+import { SocketTools } from '../utils/socket';
 
 const sshTools = require('../utils/ssh');
-const socketTools = require('../utils/socket');
 
 var config = require('../config/config');
 
@@ -93,14 +92,14 @@ export class PolicyScript {
             PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
                 if (error) return reject(error);
 
-                socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+                SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
                 for (var ps = "", i = 0; i < data.length; i++) {
-                    socketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
+                    SocketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
                     if (data[i].comment)
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
-                    if (!(data[i].c_status_recompile)) // The compiled string in the database is ok.
+                    if (parseInt(data[i].c_status_recompile)) // The compiled string in the database is ok.
                         ps += data[i].c_compiled;
                     else { // We must compile the rule.
                         try {
@@ -118,30 +117,30 @@ export class PolicyScript {
 
     public static install(req, SSHconn, firewall) {
         return new Promise(async (resolve, reject) => {
-            socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
             try {
-                socketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
+                SocketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
                 await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
 
                 // Enable bash depuration if it is selected in firewalls/cluster options.
                 const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
                 const bash_debug = (options & 0x0008) ? ' -x' : '';
 
-                socketTools.msg("Installing firewall script.\n");
+                SocketTools.msg("Installing firewall script.\n");
                 await sshTools.runCommand(SSHconn, "sudo bash" + bash_debug + " ./" + config.get('policy').script_name + " install");
 
-                socketTools.msg("Loading firewall policy.\n");
+                SocketTools.msg("Loading firewall policy.\n");
                 const data = await sshTools.runCommand(SSHconn, "sudo bash" + bash_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
                     "bash" + bash_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
                     "else bash" + bash_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
 
-                socketTools.msg(data);
-                socketTools.msgEnd();
+                SocketTools.msg(data);
+                SocketTools.msgEnd();
                 resolve("DONE");
             } catch (error) {
-                socketTools.msg(`ERROR: ${error}\n`);
-                socketTools.msgEnd();
+                SocketTools.msg(`ERROR: ${error}\n`);
+                SocketTools.msgEnd();
                 reject(error);
             }
         });
