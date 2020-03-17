@@ -64,6 +64,10 @@ export class ResponseBuilder {
         return this;
     }
 
+    public toJSON(): object {
+        return this._payload;
+    }
+
     protected buildResponse(payload: any): Object {
         if (payload instanceof Error) {
             return this.buildErrorResponse(payload);

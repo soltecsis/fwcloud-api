@@ -31,6 +31,7 @@ import { CronTime, CronJob } from "cron";
 import { CronService } from "./cron/cron.service";
 import * as fse from "fs-extra";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
+import { Progress } from "../fonaments/http/progress/progress";
 
 const logger = require('log4js').getLogger("app");
 
@@ -68,7 +69,7 @@ export class BackupService extends Service {
         this._task = async () => {
             try {
                 logger.info("Starting BACKUP job.");
-                const backup = await this.create();
+                const backup = await new Backup().create(this._config.data_dir);
                 logger.info(`BACKUP job completed: ${backup.id}`);
             } catch (error) { logger.error("BACKUP job ERROR: ", error.message) }
         }
@@ -126,21 +127,20 @@ export class BackupService extends Service {
     /**
      * Creates a new backup
      */
-    public async create(comment?: string): Promise<Backup> {
+    public create(comment?: string): Progress<Backup> {
         const backup: Backup = new Backup();
         backup.setComment(comment ? comment : null);
-        await backup.create(this._config.data_dir);
-        await this.applyRetentionPolicy();
-        return backup;
+        
+        return backup.progressCreate(this._config.data_dir);
     }
 
     /**
      * 
      * @param backup Restores an existing backup
      */
-    public async restore(backup: Backup): Promise<Backup> {
+    public restore(backup: Backup): Progress<Backup> {
         if (backup.exists()) {
-            return await backup.restore();
+            return backup.progressRestore();
         }
 
         throw new BackupNotFoundException(backup.path);

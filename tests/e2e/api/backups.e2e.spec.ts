@@ -73,9 +73,8 @@ describe(describeName('Backup E2E tests'), () => {
         it('admin user should see backup index', async () => {
             const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
 
-            const backup1: Backup = await backupService.create();
-            await sleep(1000);
-            const backup2: Backup = await backupService.create();
+            const backup1: Backup = await new Backup().create(backupService.config.data_dir);
+            const backup2: Backup = await new Backup().create(backupService.config.data_dir);
 
             return await request(app.express)
                 .get(_URL().getURL('backups.index'))
@@ -91,7 +90,7 @@ describe(describeName('Backup E2E tests'), () => {
 
         it('guest user should not see a backup', async () => {
             const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
-            const backup: Backup = await backupService.create();
+            const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
             await request(app.express)
                 .get(_URL().getURL('backups.show', {backup: backup.id}))
@@ -100,7 +99,7 @@ describe(describeName('Backup E2E tests'), () => {
 
         it('regular user should not see a backup', async () => {
             const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
-            const backup: Backup = await backupService.create();
+            const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
             await request(app.express)
                 .get(_URL().getURL('backups.show', {backup: backup.id}))
@@ -110,7 +109,7 @@ describe(describeName('Backup E2E tests'), () => {
 
         it('admin user should see a backup', async () => {
             const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
-            const backup: Backup = await backupService.create();
+            const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
             await request(app.express)
                 .get(_URL().getURL('backups.show', {backup: backup.id}))
@@ -166,8 +165,7 @@ describe(describeName('Backup E2E tests'), () => {
         let backup: Backup;
 
         beforeEach(async() => {
-            const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
-            backup = await backupService.create();
+            backup = await new Backup().create(backupService.config.data_dir);
         });
 
         it('guest user should not destroy a backup', async () => {

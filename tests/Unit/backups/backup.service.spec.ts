@@ -53,7 +53,7 @@ describe(describeName('BackupService tests'), async() => {
     });
 
     it('create should create a backup', async() => {
-        const backup: Backup = await service.create();
+        const backup: Backup = await new Backup().create(service.config.data_dir);
 
         expect(backup.exists()).to.be.true;
     });
