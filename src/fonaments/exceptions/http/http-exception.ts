@@ -28,17 +28,13 @@ export class HttpException extends Error implements Responsable {
     
     protected _app: AbstractApplication;
 
-    public info: string;
     public status: number;
-    public message: string;
     private _exception: string;
 
     constructor() {
         super();
         this._app = app();
         this._exception = this.constructor.name;
-        this.message = this._exception;
-        this.info = this.message;
     }
     
     toResponse(): Object {
@@ -52,9 +48,6 @@ export class HttpException extends Error implements Responsable {
     private generateResponse(): Object {
         return {
             error: ObjectHelpers.merge({
-                status: this.status,
-                information: this.info,
-                message: this.message,
                 exception: this._exception,
             }, this.printStack(), this.response())
         }
@@ -64,10 +57,22 @@ export class HttpException extends Error implements Responsable {
         const obj: any = {};
 
         if (this.shouldPrintStack()) {
-            obj.stack = this.stack;
+            obj.stack = this.getObjectStack();
         }
 
         return obj;
+    }
+
+    protected getObjectStack(): object {
+        const results: Array<string> = [];
+        const stackLines: Array<string> = this.stack.split("\n");
+
+        for(let i = 0; i < stackLines.length; i++ ) {
+            const line: string = stackLines[i].trim();
+            results.push(line);
+        }
+
+        return results;
     }
 
     private shouldPrintStack(): boolean {

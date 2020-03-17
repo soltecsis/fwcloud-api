@@ -26,6 +26,22 @@ import { InternalServerException } from "../exceptions/internal-server-exception
 import { HttpException } from "../exceptions/http/http-exception";
 import { AbstractApplication, app } from "../abstract-application";
 import { isArray } from "util";
+import { HttpCodeResponse } from "./http-code-response";
+import ObjectHelpers from "../../utils/object-helpers";
+
+interface Envelope {
+    status: number,
+    message: string,
+    data?: object,
+    error: {
+        exception: string,
+        stack?: string,
+        caused_by?: {
+            exception: string,
+            stack?: string
+        }
+    }
+}
 
 export class ResponseBuilder {
     protected _status: number;
@@ -47,7 +63,7 @@ export class ResponseBuilder {
     }
 
     public body(payload: any): ResponseBuilder {
-        this._payload = this.buildResponse(payload);
+        this._payload = this.buildPayload(payload);
 
         return this;
     }
@@ -59,24 +75,33 @@ export class ResponseBuilder {
             this._response.status(this._status);
         }
 
-        this._response.send(this._payload);
+        this._response.send(this.buildMessage());
 
         return this;
     }
 
-    public toJSON(): object {
-        return this._payload;
-    }
-
-    protected buildResponse(payload: any): Object {
-        if (payload instanceof Error) {
-            return this.buildErrorResponse(payload);
+    protected buildMessage(): object {
+        let envelope: Partial<Envelope> = {
+            status: this._status,
+            message: HttpCodeResponse.get(this._status),
         }
 
-        return {data: this.buildDataResponse(payload)};
+        return ObjectHelpers.merge(envelope, this._payload);
     }
 
-    protected buildDataResponse(payload: Object): Object {
+    public toJSON(): object {
+        return this.buildMessage();
+    }
+
+    protected buildPayload(payload: any): Object {
+        if (payload instanceof Error) {
+            return this.buildErrorPayload(payload);
+        }
+
+        return {data: this.buildDataPayload(payload)};
+    }
+
+    protected buildDataPayload(payload: Object): Object {
         if (payload === null || payload === undefined) {
             return {};
         }
@@ -102,19 +127,13 @@ export class ResponseBuilder {
         return result;
     }
 
-    protected buildErrorResponse(payload: Error): Object {
+    protected buildErrorPayload(payload: Error): Object {
         if (payload instanceof HttpException) {
+            this._status = payload.status;
             return payload.toResponse();
         }
 
-        if (this._app.config.get('env') !== 'prod') {
-            return {
-                message: payload.message,
-                stack: payload.stack
-            };
-        }
-
         // In case the exception is not an http exception we generate a 500 exception
-        return this.buildErrorResponse(new InternalServerException());
+        return this.buildErrorPayload(new InternalServerException());
     }
 }
