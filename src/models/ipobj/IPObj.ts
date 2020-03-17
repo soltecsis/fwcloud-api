@@ -140,6 +140,9 @@ export class IPObj extends Model {
     @OneToMany(type => OpenVPNOptions, options => options.ipObj)
     optionsList: Array<OpenVPNOptions>;
 
+    @OneToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.ipObjs)
+    ipObjGroups!: Array<IPObjGroup>;
+
     public getTableName(): string {
         return tableName;
     }

@@ -22,9 +22,10 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany, JoinTable } from "typeorm";
 import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "./IPObj";
+import { PolicyPosition } from "../policy/PolicyPosition";
 
 const tableName: string = 'ipobj_type';
 
@@ -45,6 +46,18 @@ export class IPObjType extends Model {
 
     @OneToMany(type => IPObj, ipObj => ipObj.ipObjType)
     ipObjs: Array<IPObj>;
+
+    @OneToMany(type => PolicyPosition, policyPosition => policyPosition.ipObjTypes)
+    @JoinTable({
+        name: 'ipobj_type__policy_position',
+        joinColumn: {
+            name: 'type'
+        },
+        inverseJoinColumn: {
+            name: 'position'
+        }
+    })
+    policyPositions: Array<PolicyPosition>;
 
     public getTableName(): string {
         return tableName;

@@ -22,11 +22,12 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository } from "typeorm";
+import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository, ManyToOne, JoinTable } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObjGroup } from "./IPObjGroup";
 import { RepositoryService } from "../../database/repository.service";
 import { app } from "../../fonaments/abstract-application";
+import { IPObj } from "./IPObj";
 
 const tableName: string = 'ipobj__ipobjg';
 
@@ -53,6 +54,24 @@ export class IPObjToIPObjGroup extends Model {
 
     @Column()
     updated_by: number;
+
+    @ManyToOne(type => IPObj, ipObj => ipObj.ipObjGroups)
+    @JoinTable({
+        name: 'ipobj__ipobjg',
+        joinColumn: {
+            name: 'ipobj'
+        }
+    })
+    ipObj!: IPObj;
+
+    @ManyToOne(type => IPObjGroup, ipObjGroup => ipObjGroup.ipObjs)
+    @JoinTable({
+        name: 'ipobj__ipobjg',
+        joinColumn: {
+            name: 'ipobj_g'
+        }
+    })
+    ipObjGroup!: IPObjGroup;
 
     
     public getTableName(): string {

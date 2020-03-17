@@ -31,7 +31,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import modelEventService from "../ModelEventService";
-import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository } from "typeorm";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
@@ -57,6 +57,9 @@ export class IPObjGroup extends Model {
 
     @Column()
     updated_at: Date;
+
+    @OneToMany(type => IPObj, ipObj => ipObj.ipObjGroups)
+    ipObjs!: Array<IPObjGroup>;
 
     public getTableName(): string {
         return tableName;
