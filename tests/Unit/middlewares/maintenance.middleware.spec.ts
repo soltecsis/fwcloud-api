@@ -10,7 +10,7 @@ describe(describeName('Maintenance middleware test'), () => {
         app = testSuite.app;
     });
 
-    it.only('should return 503 if the application is in maintenance mode', async() => {
+    it('should return 503 if the application is in maintenance mode', async() => {
         app.config.set('maintenance_mode', true);
 
         await request(app.express)
