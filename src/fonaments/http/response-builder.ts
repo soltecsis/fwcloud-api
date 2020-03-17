@@ -30,22 +30,22 @@ import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
 
-interface Envelope {
+interface ResponseBody {
     status: number,
     response: string,
     data?: object,
-    error?: ErrorResponse
+    error?: ErrorBody
 }
 
-export interface ErrorResponse {
+export interface ErrorBody {
     [k: string]: any,
-    exception?: ExceptionResponse,
+    exception?: ExceptionBody,
 }
 
-export interface ExceptionResponse {
+export interface ExceptionBody {
     name: string,
     stack: Array<string>,
-    caused_by?: ExceptionResponse
+    caused_by?: ExceptionBody
 }
 
 export class ResponseBuilder {
@@ -85,16 +85,16 @@ export class ResponseBuilder {
         return this;
     }
 
-    protected buildMessage(): Envelope {
-        let envelope: Partial<Envelope> = {
+    protected buildMessage(): ResponseBody {
+        let envelope: Partial<ResponseBody> = {
             status: this._status,
             response: HttpCodeResponse.get(this._status),
         }
 
-        return <Envelope>ObjectHelpers.merge(envelope, this._payload);
+        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload);
     }
 
-    public toJSON(): Envelope {
+    public toJSON(): ResponseBody {
         return this.buildMessage();
     }
 
@@ -135,7 +135,7 @@ export class ResponseBuilder {
         return result;
     }
 
-    protected buildErrorPayload(payload: FwCloudError): ErrorResponse {
+    protected buildErrorPayload(payload: FwCloudError): ErrorBody {
         if (payload instanceof HttpException) {
             this._status = payload.status;
             return payload.toResponse();

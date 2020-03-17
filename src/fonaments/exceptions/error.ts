@@ -1,4 +1,4 @@
-import { ExceptionResponse } from "../http/response-builder";
+import { ExceptionBody } from "../http/response-builder";
 import { AbstractApplication, app } from "../abstract-application";
 
 export class FwCloudError extends Error {
@@ -20,8 +20,8 @@ export class FwCloudError extends Error {
         return this;
     }
     
-    public getExceptionDetails(): ExceptionResponse {
-        const result: Partial<ExceptionResponse> = {
+    public getExceptionDetails(): ExceptionBody {
+        const result: Partial<ExceptionBody> = {
             name: this.constructor.name,
             stack: this.stackToArray()
         }
@@ -30,7 +30,7 @@ export class FwCloudError extends Error {
             result.caused_by = this._caused_by.getExceptionDetails();
         }
 
-        return <ExceptionResponse>result;
+        return <ExceptionBody>result;
     }
 
     protected stackToArray(): Array<string> {

@@ -23,7 +23,7 @@
 import { Responsable } from "../../contracts/responsable";
 import ObjectHelpers from "../../../utils/object-helpers";
 import { app, AbstractApplication } from "../../abstract-application";
-import { ExceptionResponse, ErrorResponse } from "../../http/response-builder";
+import { ExceptionBody, ErrorBody } from "../../http/response-builder";
 import { FwCloudError } from "../error";
 
 export class HttpException extends FwCloudError implements Responsable {
@@ -35,7 +35,7 @@ export class HttpException extends FwCloudError implements Responsable {
         this._app = app();
     }
 
-    toResponse(): ErrorResponse {
+    toResponse(): ErrorBody {
         return this.generateResponse();
     }
 
@@ -43,8 +43,8 @@ export class HttpException extends FwCloudError implements Responsable {
         return {}
     }
 
-    private generateResponse(): ErrorResponse {
-        return <ErrorResponse>ObjectHelpers.merge(
+    private generateResponse(): ErrorBody {
+        return <ErrorBody>ObjectHelpers.merge(
             this.response(),
             this.shouldAttachExceptionDetails() ? { exception: this.getExceptionDetails() } : null
         );
