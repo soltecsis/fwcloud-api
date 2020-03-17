@@ -37,9 +37,9 @@ export class SocketManager {
     }
 
     protected emit(scope: string, data: any, status: number) {
-        const payload: object = ResponseBuilder.buildResponse().status(status).body(data).toJSON();
+        const message: object = ResponseBuilder.buildResponse().status(status).body(data).toJSON();
         if (this._socket) {
-            this._socket.emit(this._scope, payload);
+            this._socket.emit(this._scope, message);
         }
     }
 }
