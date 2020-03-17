@@ -38,7 +38,7 @@ const config = convict({
     doc: 'Application maintenance mode',
     format: Boolean,
     default: false,
-    env: MAINTENANCE_MODE
+    env: "MAINTENANCE_MODE"
   },
 
   // Server bind parameters.
