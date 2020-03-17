@@ -28,19 +28,24 @@ import { AbstractApplication, app } from "../abstract-application";
 import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
+import { FwCloudError } from "../exceptions/error";
 
 interface Envelope {
     status: number,
-    message: string,
+    response: string,
     data?: object,
-    error?: {
-        exception: string,
-        stack?: string,
-        caused_by?: {
-            exception: string,
-            stack?: string
-        }
-    }
+    error?: ErrorResponse
+}
+
+export interface ErrorResponse {
+    [k: string]: any,
+    exception?: ExceptionResponse,
+}
+
+export interface ExceptionResponse {
+    name: string,
+    stack: Array<string>,
+    caused_by?: ExceptionResponse
 }
 
 export class ResponseBuilder {
@@ -83,7 +88,7 @@ export class ResponseBuilder {
     protected buildMessage(): Envelope {
         let envelope: Partial<Envelope> = {
             status: this._status,
-            message: HttpCodeResponse.get(this._status),
+            response: HttpCodeResponse.get(this._status),
         }
 
         return <Envelope>ObjectHelpers.merge(envelope, this._payload);
@@ -94,8 +99,11 @@ export class ResponseBuilder {
     }
 
     protected buildPayload(payload: any): Object {
-        if (payload instanceof Error) {
-            return this.buildErrorPayload(payload);
+        if (payload.constructor === Error) {
+            payload = new FwCloudError().fromError(payload);
+        }
+        if (payload instanceof FwCloudError) {
+            return {error: this.buildErrorPayload(payload)};
         }
 
         return {data: this.buildDataPayload(payload)};
@@ -127,13 +135,13 @@ export class ResponseBuilder {
         return result;
     }
 
-    protected buildErrorPayload(payload: Error): Object {
+    protected buildErrorPayload(payload: FwCloudError): ErrorResponse {
         if (payload instanceof HttpException) {
             this._status = payload.status;
             return payload.toResponse();
         }
 
         // In case the exception is not an http exception we generate a 500 exception
-        return this.buildErrorPayload(new InternalServerException());
+        return this.buildErrorPayload(new InternalServerException(payload.message, payload));
     }
 }

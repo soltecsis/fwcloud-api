@@ -23,21 +23,19 @@
 import { Responsable } from "../../contracts/responsable";
 import ObjectHelpers from "../../../utils/object-helpers";
 import { app, AbstractApplication } from "../../abstract-application";
+import { ExceptionResponse, ErrorResponse } from "../../http/response-builder";
+import { FwCloudError } from "../error";
 
-export class HttpException extends Error implements Responsable {
+export class HttpException extends FwCloudError implements Responsable {
     
-    protected _app: AbstractApplication;
-
     public status: number;
-    private _exception: string;
-
-    constructor() {
-        super();
-        this._app = app();
-        this._exception = this.constructor.name;
-    }
     
-    toResponse(): Object {
+    constructor(message: string = null, caused_by: FwCloudError = null) {
+        super(message, caused_by);
+        this._app = app();
+    }
+
+    toResponse(): ErrorResponse {
         return this.generateResponse();
     }
 
@@ -45,37 +43,14 @@ export class HttpException extends Error implements Responsable {
         return {}
     }
 
-    private generateResponse(): Object {
-        return {
-            error: ObjectHelpers.merge({
-                exception: this._exception,
-            }, this.printStack(), this.response())
-        }
+    private generateResponse(): ErrorResponse {
+        return <ErrorResponse>ObjectHelpers.merge(
+            this.response(),
+            this.shouldAttachExceptionDetails() ? { exception: this.getExceptionDetails() } : null
+        );
     }
 
-    private printStack(): Object {
-        const obj: any = {};
-
-        if (this.shouldPrintStack()) {
-            obj.stack = this.getObjectStack();
-        }
-
-        return obj;
-    }
-
-    protected getObjectStack(): object {
-        const results: Array<string> = [];
-        const stackLines: Array<string> = this.stack.split("\n");
-
-        for(let i = 0; i < stackLines.length; i++ ) {
-            const line: string = stackLines[i].trim();
-            results.push(line);
-        }
-
-        return results;
-    }
-
-    private shouldPrintStack(): boolean {
+    private shouldAttachExceptionDetails(): boolean {
         return this._app.config.get('env') !== 'prod';
     }
 }

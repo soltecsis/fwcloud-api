@@ -124,7 +124,7 @@ export class RouterService extends Service {
                 const result: ResponseBuilder = await controllerInstance[route.controllerSignature.method](request);
 
                 if (!result) {
-                    throw new Error('Controller handler ' + route.controllerSignature.controller + '@' + route.controllerSignature.method + ' does not return a response');                    
+                    throw new Error('Controller handler ' + route.controllerSignature.controller.name + '@' + route.controllerSignature.method + ' does not return a response');                    
                 }
 
                 return result.send(response);
