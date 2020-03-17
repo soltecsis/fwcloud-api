@@ -28,7 +28,7 @@ describe(describeName('Http exception tests'), () => {
         app.config.set('env', 'test');
     });
 
-    it('exception name should be retrieve from the caused_by exception', async () => {
+    it('exception name should be retrieved from the caused_by exception', async () => {
         expect(new HttpException(null, new NotFoundException()).toResponse().exception.name).to.be.deep.eq(HttpException.name);
         expect(new HttpException(null, new NotFoundException()).toResponse().exception.caused_by.name).to.be.deep.eq(NotFoundException.name);
     })
