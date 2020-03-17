@@ -33,7 +33,7 @@ interface Envelope {
     status: number,
     message: string,
     data?: object,
-    error: {
+    error?: {
         exception: string,
         stack?: string,
         caused_by?: {
@@ -80,16 +80,16 @@ export class ResponseBuilder {
         return this;
     }
 
-    protected buildMessage(): object {
+    protected buildMessage(): Envelope {
         let envelope: Partial<Envelope> = {
             status: this._status,
             message: HttpCodeResponse.get(this._status),
         }
 
-        return ObjectHelpers.merge(envelope, this._payload);
+        return <Envelope>ObjectHelpers.merge(envelope, this._payload);
     }
 
-    public toJSON(): object {
+    public toJSON(): Envelope {
         return this.buildMessage();
     }
 
