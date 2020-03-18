@@ -30,6 +30,7 @@ import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
 import { SocketController } from "../controllers/socket.controller";
+import { AttachSocketValidator } from "../validators/attach-socket.validator";
 
 export class Routes extends RouteCollection {
 
@@ -38,7 +39,7 @@ export class Routes extends RouteCollection {
         router.gates([isLoggedIn], (router) => {
 
             router.prefix('/sockets', (router: RouterParser) => {
-                router.post('/', SocketController, 'attach').name('sockets.attach');
+                router.post('/', SocketController, 'attach', AttachSocketValidator).name('sockets.attach');
             });
 
             //Admin routes
@@ -59,12 +60,10 @@ export class Routes extends RouteCollection {
                     });
                 });
 
-
+                //Version
+                router.get('/version', VersionController, 'show').name('versions.show');
             });
         });
-
-        //Version
-        router.get('/version', VersionController, 'show').name('versions.show');
 
     }
 }
