@@ -29,6 +29,7 @@ import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
+import { SocketManager } from "../../sockets/socket-manager";
 
 interface ResponseBody {
     status: number,
@@ -54,6 +55,9 @@ export class ResponseBuilder {
     protected _app: AbstractApplication;
     protected _response: Response;
 
+    // Only used in handled request which uses a sockets
+    protected _event_id: string;
+
     private constructor() {
         this._app = app();
     }
@@ -64,6 +68,11 @@ export class ResponseBuilder {
 
     public status(status: number): ResponseBuilder {
         this._status = status;
+        return this;
+    }
+
+    public socket(socket: SocketManager): ResponseBuilder {
+        this._event_id = socket.event_id;
         return this;
     }
 
@@ -91,7 +100,15 @@ export class ResponseBuilder {
             response: HttpCodeResponse.get(this._status),
         }
 
-        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload);
+        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
+    }
+
+    protected attachEvent(): {event_id: string} {
+        if (this._event_id) {
+            return {event_id: this._event_id}
+        }
+
+        return null;
     }
 
     public toJSON(): ResponseBody {

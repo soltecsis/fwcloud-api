@@ -1,8 +1,8 @@
 export const HTTP_CODES: {[code: number]: string} = {
     100: "Continue",
     101: "Switching Protocols",
-    102: " Processing",
-    103: " Early Hints",
+    102: "Processing",
+    103: "Early Hints",
     
     200: "OK",
     201: "Created",

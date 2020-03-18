@@ -65,7 +65,7 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async store(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.body.socketid, 'backups:create')
+        const socket: SocketManager = SocketManager.init(request.session.socketid)
 
         //TODO: Authorization
         const progress: Progress<Backup> = this._backupService.create(request.inputs.get('comment'))
@@ -80,7 +80,7 @@ export class BackupController extends Controller {
                 socket.end(payload);
             });
 
-        return ResponseBuilder.buildResponse().status(201).body(progress.response);
+        return ResponseBuilder.buildResponse().status(201).socket(socket).body(progress.response);
     }
 
     /**
@@ -90,7 +90,7 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.body.socketid, 'backups:restore')
+        const socket: SocketManager = SocketManager.init(request.body.socketid)
 
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
@@ -109,7 +109,7 @@ export class BackupController extends Controller {
                 this._app.config.set('maintenance_mode', false);
             });;
 
-        return ResponseBuilder.buildResponse().status(201).body(backup);
+        return ResponseBuilder.buildResponse().status(201).socket(socket).body(backup);
     }
 
     /**
