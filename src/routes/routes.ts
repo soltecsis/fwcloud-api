@@ -28,31 +28,43 @@ import { UpdateBackupConfigValidator } from "../validators/update-backup-config.
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
+import { isLoggedIn } from "../gates/isLoggedIn";
+import { SocketController } from "../controllers/socket.controller";
 
 export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
 
-        //Admin routes
-        router.gates([isAdmin], (router) => {
+        router.gates([isLoggedIn], (router) => {
 
-            router.prefix('/backups', (router: RouterParser) => {
-                //Backups
-                router.get('/', BackupController, 'index').name('backups.index');
-                router.post('/', BackupController, 'store', CreateBackupValidator).name('backups.store');
-                router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
-                router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
-                router.delete('/:backup(\\d+)', BackupController, 'destroy').name('backups.destroy');
-
-                // Backups Config
-                router.prefix('/config', (router: RouterParser) => {
-                    router.get('/', BackupConfigController, 'show').name('backups.config.show');
-                    router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
-                });
+            router.prefix('/sockets', (router: RouterParser) => {
+                router.post('/', SocketController, 'attach').name('sockets.attach');
             });
 
-            //Version
-            router.get('/version', VersionController, 'show').name('versions.show');
+            //Admin routes
+            router.gates([isAdmin], (router) => {
+
+                router.prefix('/backups', (router: RouterParser) => {
+                    //Backups
+                    router.get('/', BackupController, 'index').name('backups.index');
+                    router.post('/', BackupController, 'store', CreateBackupValidator).name('backups.store');
+                    router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
+                    router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
+                    router.delete('/:backup(\\d+)', BackupController, 'destroy').name('backups.destroy');
+
+                    // Backups Config
+                    router.prefix('/config', (router: RouterParser) => {
+                        router.get('/', BackupConfigController, 'show').name('backups.config.show');
+                        router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
+                    });
+                });
+
+
+            });
         });
+
+        //Version
+        router.get('/version', VersionController, 'show').name('versions.show');
+
     }
 }
