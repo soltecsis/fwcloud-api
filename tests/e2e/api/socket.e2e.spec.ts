@@ -38,7 +38,7 @@ beforeEach(async() => {
 
 describe(describeName('Socket E2E tests'), () => {
 
-    describe.only(describeName('SocketController@attach'), () => {
+    describe(describeName('SocketController@attach'), () => {
         it('guest user should not attach a socket', async () => {
             return await request(app.express)
                 .post(_URL().getURL('sockets.attach'))
