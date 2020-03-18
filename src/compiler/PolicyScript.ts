@@ -99,7 +99,7 @@ export class PolicyScript {
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
                     if (data[i].comment)
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
-                    if (parseInt(data[i].c_status_recompile)) // The compiled string in the database is ok.
+                    if (!parseInt(data[i].c_status_recompile)) // The compiled string in the database is ok.
                         ps += data[i].c_compiled;
                     else { // We must compile the rule.
                         try {
