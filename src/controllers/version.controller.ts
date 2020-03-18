@@ -7,7 +7,7 @@ import { ResponseBuilder } from "../fonaments/http/response-builder";
 
 export class VersionController extends Controller {
     public async show(request: Request): Promise<ResponseBuilder> {
-        const version: Version = app<Application>().getVersion()
+        const version: Version = app<Application>().version
         
         return ResponseBuilder.buildResponse().status(200).body(version);
     }

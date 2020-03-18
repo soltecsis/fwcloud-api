@@ -45,25 +45,24 @@ import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
-import { Version } from './version/version';
-import io from 'socket.io';
-import * as path from "path";
 import { MaintenanceMiddleware } from './middleware/maintenance.middleware';
+import { DatabaseServiceProvider } from './database/database.provider';
+import { RepositoryServiceProvider } from './database/repository.provider';
+import { RouterServiceProvider } from './fonaments/http/router/router.provider';
+import { AuthorizationServiceProvider } from './fonaments/authorization/authorization.provider';
+import { AuthorizationMiddleware } from './fonaments/authorization/authorization.middleware';
+import { RouterService } from './fonaments/http/router/router.service';
+import { Routes } from './routes/routes';
 
 export class Application extends AbstractApplication {
-    static VERSION_FILENAME = 'version.json';
-
-    protected _version: Version;
     private _logger: Logger;
-
-    protected _socketio: any;
 
     public static async run(): Promise<Application> {
         try {
             const app: Application = new Application();
             await app.bootstrap();
             return app;
-        } catch(e) {
+        } catch (e) {
             console.error('Application can not start: ' + e.message);
             console.error(e.stack);
             process.exit(1);
@@ -74,36 +73,25 @@ export class Application extends AbstractApplication {
         return this._logger;
     }
 
-    get socketio(): io.Server {
-        return this._socketio;
-    }
-
-    public getVersion(): Version {
-        return this._version;
-    }
-
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
         this._logger = await this.registerLogger();
         await this.startDatabaseService()
-        this._version = await this.loadVersion();
-
         return this;
-    }
-
-    public setSocketIO(socketIO: io.Server): io.Server {
-        this._socketio = socketIO;
-        return this._socketio;
     }
 
     public async close(): Promise<void> {
         //log4js.shutdown(async () => {
-            await super.close();
+        await super.close();
         //});
     }
 
     protected providers(): Array<typeof ServiceProvider> {
         return [
+            DatabaseServiceProvider,
+            RepositoryServiceProvider,
+            RouterServiceProvider,
+            AuthorizationServiceProvider,
             CronServiceProvider,
             BackupServiceProvider
         ]
@@ -117,10 +105,11 @@ export class Application extends AbstractApplication {
             Compression,
             MethodOverride,
             MaintenanceMiddleware,
+            AuthorizationMiddleware,
             AttachDatabaseConnection,
             Session,
             CORS,
-            this.config.get('env') !== 'test' ? Authorization: AuthorizationTest,
+            this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
             ConfirmationToken,
             InputValidation,
             AccessControl
@@ -147,7 +136,8 @@ export class Application extends AbstractApplication {
     }
 
     protected async registerRoutes() {
-        await super.registerRoutes();
+        const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
+        routerService.registerRoutes(Routes);
 
         //OLD Routes
         this._express.use('/user', require('./routes/user/user'));
@@ -180,13 +170,6 @@ export class Application extends AbstractApplication {
         this._express.use('/vpn/openvpn', require('./routes/vpn/openvpn/openvpn'));
         this._express.use('/vpn/openvpn/prefix', require('./routes/vpn/openvpn/prefix'));
         this._express.use('/backup', require('./routes/backup/backup'));
-    }
-
-    protected async loadVersion(): Promise<Version> {
-        const version: Version = new Version();
-        await version.loadVersionFile(path.join(this.path, Application.VERSION_FILENAME));
-
-        return version;
     }
 
     private async startDatabaseService() {
