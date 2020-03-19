@@ -28,8 +28,8 @@ async function loadApplication(): Promise<Application> {
     return application;
 }
 
-function startServer(app: Application): Server {
-    const server: Server = new Server(app);
+function startServer(app: Application, type: 'api_server' | 'web_server'): Server {
+    const server: Server = new Server(app,type);
     server.start();
 
     return server;
@@ -39,7 +39,8 @@ function startServer(app: Application): Server {
 async function start() {
     const app = await loadApplication();
 
-    const server: Server = startServer(app);
+    const api_server: Server = startServer(app,'api_server');
+    const web_server: Server = startServer(app,'web_server');
 }
 
 

@@ -17,7 +17,11 @@
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },
-    "https": {
-        "enable": false
+    "api_server": {
+        "https": false
+    },
+    "web_server": {
+      "https" : false,
+      "port" : 80    
     }
 }

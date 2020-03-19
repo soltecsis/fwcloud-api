@@ -31,24 +31,24 @@ export class Server {
     private _application: Application;
     private _config;
     private _server: https.Server | http.Server;
+    private _type: 'api_server' | 'web_server';
 
-    constructor(app: Application) {
+    constructor(app: Application, type: 'api_server' | 'web_server') {
         this._application = app;
         this._config = app.config;
+        this._type = type;
     }
 
     public async start(): Promise<any> {
         try {
             this.validateApplicationConfiguration();
-            if (this.isHttps()) {
-                this._server = this.startHttpsServer();
-            } else {
-                this._server = this.startHttpServer();
+
+            if (this._config.get(this._type).enabled) {
+                this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
+                this.bootstrapEvents();
+                this.bootstrapSocketIO();
             }
-
-            this.bootstrapSocketIO();
-            this.bootstrapEvents();
-
+            else console.log(`Server ${this._type} not started because it is not enabled.`);
         } catch (error) {
             console.error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
             process.exit(1);
@@ -63,9 +63,9 @@ export class Server {
             cert: string,
             ca: string | null
         } = {
-            key: fs.readFileSync(this._config.get('https').key).toString(),
-            cert: fs.readFileSync(this._config.get('https').cert).toString(),
-            ca: this._config.get('https').ca_bundle ? fs.readFileSync(this._config.get('https').ca_bundle).toString() : null
+            key: fs.readFileSync(this._config.get(this._type).key).toString(),
+            cert: fs.readFileSync(this._config.get(this._type).cert).toString(),
+            ca: this._config.get(this._type).ca_bundle ? fs.readFileSync(this._config.get(this._type).ca_bundle).toString() : null
         }
 
         return https.createServer(tlsOptions, this._application.express);
@@ -77,16 +77,12 @@ export class Server {
 
     private bootstrapEvents() {
         this._server.listen(
-            this._config.get('listen').port,
-            this._config.get('listen').ip
+            this._config.get(this._type).port,
+            this._config.get(this._type).ip
         );
-        this._server.on('error', (error) => {
-            this.onError(error);
-        });
-        this._server.on('listening', () => {
-            this.onListening();
-        });
 
+        this._server.on('error', error => this.onError(error));        
+        this._server.on('listening', () => this.onListening());
     }
 
     private bootstrapSocketIO() {
@@ -125,14 +121,14 @@ export class Server {
     }
 
     public onListening() {
-        var addr = this._server.address();
+        let addr = this._server.address();
         var bind = typeof addr === 'string'
-            ? 'pipe ' + addr
-            : 'port ' + addr.port;
-        console.log('Listening on ' + bind);
+            ? addr
+            : `${addr.address}:${addr.port}`;
+        console.log(`Listening on ${bind}`);
     }
 
     public isHttps(): boolean {
-        return this._config.get('https').enable;
+        return this._config.get(this._type).https;
     }
 }

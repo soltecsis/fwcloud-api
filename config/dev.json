@@ -1,6 +1,10 @@
 {
-  "https": {
-    "enable" : false    
+  "api_server": {
+    "https" : false    
+  },
+  "web_server": {
+    "https" : false,
+    "port" : 80    
   },
   "session": {
     "force_HTTPS" : false    
