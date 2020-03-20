@@ -31,7 +31,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import modelEventService from "../ModelEventService";
-import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany } from "typeorm";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
@@ -60,6 +60,12 @@ export class IPObjGroup extends Model {
 
     @OneToMany(type => IPObj, ipObj => ipObj.ipObjGroups)
     ipObjs!: Array<IPObjGroup>;
+
+    @ManyToMany(type => OpenVPN, openVPN => openVPN.ipObjGroups)
+    openVPNs: Array<OpenVPN>;
+
+    @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
+    openVPNPrefixes: Array<OpenVPNPrefix>;
 
     public getTableName(): string {
         return tableName;

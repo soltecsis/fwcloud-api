@@ -21,9 +21,10 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -39,6 +40,18 @@ export class OpenVPNPrefix extends Model {
 
     @Column()
     name: string;
+
+    @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNPrefixes)
+    @JoinTable({
+        name: 'openvpn_prefix__ipobj_g',
+        joinColumn: {
+            name: 'prefix'
+        },
+        inverseJoinColumn: {
+            name: 'ipobj_g'
+        }
+    })
+    ipObjGroups: Array<IPObjGroup>;
 
     public getTableName(): string {
         return tableName;

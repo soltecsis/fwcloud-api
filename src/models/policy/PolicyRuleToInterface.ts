@@ -23,12 +23,14 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity, Between, Not, Repository } from 'typeorm';
+import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
-import { Policy } from '../../fonaments/authorization/policy';
+import { PolicyRule } from './PolicyRule';
+import { Interface } from '../interface/Interface';
+import { PolicyPosition } from './PolicyPosition';
 
 var asyncMod = require('async');
 var logger = require('log4js').getLogger("app");
@@ -61,6 +63,24 @@ export class PolicyRuleToInterface extends Model {
 
     @Column()
     updated_by: number;
+
+    @OneToMany(type => Interface, _interface => _interface.policyRules)
+    @JoinColumn({
+        name: 'interface'
+    })
+    policyRuleInterface: Interface;
+
+    @OneToMany(type => PolicyRule, policyRule => policyRule.interfaces)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
+
+    @OneToMany(type => PolicyPosition, policyPosition => policyPosition.policyRules)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
 
     public getTableName(): string {
         return tableName;

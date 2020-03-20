@@ -22,10 +22,12 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity, OneToMany, JoinTable } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany, JoinTable, JoinColumn } from "typeorm";
 import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "./IPObj";
 import { PolicyPosition } from "../policy/PolicyPosition";
+import { IPObjTypeToRoutingPosition } from "./ipobj_type-to-routing_position.model";
+import { RoutingPosition } from "../routing/routing-position.model";
 
 const tableName: string = 'ipobj_type';
 
@@ -58,6 +60,9 @@ export class IPObjType extends Model {
         }
     })
     policyPositions: Array<PolicyPosition>;
+
+    @OneToMany(type => IPObjTypeToRoutingPosition, ipObjTypeToRoutingPosition => ipObjTypeToRoutingPosition.ipObjType)
+    routingPositions: Array<RoutingPosition>;
 
     public getTableName(): string {
         return tableName;

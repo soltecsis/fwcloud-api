@@ -24,13 +24,14 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
 import { OpenVPNOptions } from "./openvpn-options.model";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 const fwcError = require('../../../utils/error_table');
@@ -95,6 +96,18 @@ export class OpenVPN extends Model {
 
     @OneToOne(type => OpenVPNOptions, options => options.openvpn)
     options: OpenVPNOptions
+
+    @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNs)
+    @JoinTable({
+        name: 'openvpn__ipobj_g',
+        joinColumn: {
+            name: 'openvpn'
+        },
+        inverseJoinColumn: {
+            name: 'ipobj_g'
+        }
+    })
+    ipObjGroups: Array<IPObjGroup>;
 
 
     public getTableName(): string {

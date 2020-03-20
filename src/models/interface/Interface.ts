@@ -29,10 +29,11 @@ import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import modelEventService from "../ModelEventService";
-import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
+import { PolicyRule } from "../policy/PolicyRule";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -81,6 +82,18 @@ export class Interface extends Model {
 
     @OneToMany(type => IPObj, ipObj => ipObj.interface)
     ipObjs: Array<IPObj>;
+
+    @OneToMany(type => IPObj, ipObj => ipObj.hostInterfaces)
+    @JoinTable({
+        name: 'interface__ipobj',
+        joinColumn: {
+            name: 'interface'
+        }
+    })
+    hosts: Array<IPObj>;
+
+    @ManyToOne(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
+    policyRules: Array<PolicyRule>;
 
     public getTableName(): string {
         return tableName;

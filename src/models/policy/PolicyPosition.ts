@@ -34,6 +34,8 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import modelEventService from "../ModelEventService";
 import { PolicyType } from "./PolicyType";
 import { IPObjType } from "../ipobj/IPObjType";
+import { PolicyRuleToInterface } from "./PolicyRuleToInterface";
+import { PolicyRule } from "./PolicyRule";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -68,6 +70,9 @@ export class PolicyPosition extends Model {
 
     @OneToMany(type => IPObjType, ipObjType => ipObjType.policyPositions)
     ipObjTypes: Array<IPObjType>;
+
+    @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyPosition)
+    policyRules: Array<PolicyRule>;
 
     public getTableName(): string {
         return tableName;

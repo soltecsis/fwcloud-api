@@ -27,10 +27,11 @@ import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import modelEventService from '../ModelEventService';
 import { PolicyRuleToInterface } from './PolicyRuleToInterface';
-import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository } from 'typeorm';
+import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
+import { IPObj } from '../ipobj/IPObj';
 var asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -72,6 +73,18 @@ export class PolicyRuleToIPObj extends Model {
 
     @Column()
     updated_by: number;
+    
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.ipObjs)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
+
+    @ManyToOne(type => IPObj, ipObj => ipObj.policyRules)
+    @JoinColumn({
+        name: 'ipobj'
+    })
+    ipObj: IPObj;
 
     public getTableName(): string {
         return tableModel;
