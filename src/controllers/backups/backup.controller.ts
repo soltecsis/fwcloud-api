@@ -65,7 +65,7 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async store(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.session.socketid)
+        const socket: SocketManager = SocketManager.init(request.session.socket_id)
 
         //TODO: Authorization
         const progress: Progress<Backup> = this._backupService.create(request.inputs.get('comment'))
@@ -90,7 +90,7 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.body.socketid)
+        const socket: SocketManager = SocketManager.init(request.body.socket_id)
 
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
