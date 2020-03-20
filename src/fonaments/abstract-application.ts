@@ -26,14 +26,14 @@ import * as fs from 'fs';
 import Query from "../database/Query";
 import { RequestInputs } from "./http/request-inputs";
 import { ServiceContainer } from "./services/service-container";
-import { RouterService } from "./http/router/router.service";
-import { Middleware, Middlewareable } from "./http/middleware/Middleware";
+import { Middleware } from "./http/middleware/Middleware";
 import { ServiceProvider } from "./services/service-provider";
 import { Service } from "./services/service";
-import { Routes } from "../routes/routes";
 import io from 'socket.io';
 import * as path from "path";
 import { Version } from "../version/version";
+import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
+import { SocketMiddleware } from "./http/sockets/socket-middleware";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -101,6 +101,10 @@ export abstract class AbstractApplication {
 
   public setSocketIO(socketIO: io.Server): io.Server {
     this._socketio = socketIO;
+
+    const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
+    sessionMiddleware.register(this);
+
     return this._socketio;
   }
 

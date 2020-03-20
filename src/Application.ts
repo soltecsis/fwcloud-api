@@ -30,7 +30,7 @@ import { EJS } from "./middleware/EJS";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
-import { Session } from "./middleware/Session";
+import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
 import { CORS } from './middleware/CORS';
 import { Authorization } from './middleware/Authorization';
 import { ConfirmationToken } from './middleware/ConfirmationToken';
@@ -107,7 +107,7 @@ export class Application extends AbstractApplication {
             MaintenanceMiddleware,
             AuthorizationMiddleware,
             AttachDatabaseConnection,
-            Session,
+            SessionMiddleware,
             CORS,
             this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
             ConfirmationToken,
