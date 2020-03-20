@@ -20,7 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from "express";
+import express from 'express';
+import httpProxy from 'http-proxy';
 
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
@@ -198,19 +199,62 @@ export class Application extends AbstractApplication {
 
 
 export class WebSrvApplication {
-    protected _express: express.Application;
-    protected _config: any;  
+    private _express: any;
+    private _config: any;
+    private _proxy: any;  
 
     protected constructor() {
         try {
-          this._express = express();
-          this._config = require('./config/config');
+            this._express = express();
+            this._config = require('./config/config');
 
-          // Document root for the web server.
-          this._express.use(express.static(this._config.get('web_server').docroot));
+            // Proxy requests to fwcloud-api.
+            this._proxy = httpProxy.createProxyServer({ 
+                target: this._config.get('web_server').api_url, 
+                ws: true 
+            });
+            this.proxySetup();
+
         } catch (e) {
           console.error('Web Server Application startup failed: ' + e.message);
           process.exit(e);
+        }
+    }
+
+    private proxySetup(): void {
+        try {
+            // Proxy API calls.
+            this._express.all('/api/*', (req, res) => {
+                //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
+                if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
+                this._proxy.web(req, res);
+            });
+
+            // Proxy shocket.io calls.
+            this._express.all('/socket.io/*', (req, res) => {
+                //console.log(`Proxing request: ${req.url}`);
+                this._proxy.web(req, res);
+            });
+  
+            // Proxy websockets
+            this._express.on('upgrade', (req, socket, head) => {
+                //console.log(`Proxying upgrade request: ${req.url}`);
+                this._proxy.ws(req, socket, head);
+            });
+
+            this._proxy.on('error', (err, req, res) => {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end(`ERROR: Proxing request: ${req.url}`);
+                console.error(`ERROR: Proxing request: ${req.url} - `,err)
+            });
+
+            // Document root for the web server static files.
+            this._express.use(express.static(this._config.get('web_server').docroot));
+            
+        } catch(e) {
+            console.error('Application can not start: ' + e.message);
+            console.error(e.stack);
+            process.exit(1);
         }
     }
 

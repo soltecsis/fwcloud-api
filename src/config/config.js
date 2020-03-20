@@ -107,6 +107,18 @@ const config = convict({
       default: '/opt/fwcloud-ui/dist',
       env: 'WEBSRV_DOCROOT'
     },
+    api_url: {
+      doc: 'Web server document root path.',
+      format: String,
+      default: 'http://localhost:3000',
+      env: 'WEBSRV_API_URL'
+    },
+    remove_api_string_from_url: {
+      doc: 'Remove the heading string /api before proxying the request to the API server.',
+      format: Boolean,
+      default: true,
+      env: 'WEBSRV_REMOVE_API_STRING_FROM_URL'
+    },
     ip: {
       doc: 'Web server IP.',
       format: 'ipaddress',
