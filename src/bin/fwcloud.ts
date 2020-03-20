@@ -20,27 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from '../Application';
+import { Application, WebSrvApplication } from '../Application';
 import { Server } from '../Server';
 
-async function loadApplication(): Promise<Application> {
+async function loadApiApplication(): Promise<Application> {
     const application = await Application.run();
     return application;
 }
 
-function startServer(app: Application, type: 'api_server' | 'web_server'): Server {
+async function loadWebApplication(): Promise<WebSrvApplication> {
+    const application = await WebSrvApplication.run();
+    return application;
+}
+
+function startServer(app: Application | WebSrvApplication, type: 'api_server' | 'web_server'): Server {
     const server: Server = new Server(app,type);
     server.start();
 
     return server;
 }
 
-
 async function start() {
-    const app = await loadApplication();
+    const apiApp = await loadApiApplication();
+    const api_server: Server = startServer(apiApp,'api_server');
 
-    const api_server: Server = startServer(app,'api_server');
-    const web_server: Server = startServer(app,'web_server');
+    const webApp = await loadWebApplication();
+    const web_server: Server = startServer(webApp,'web_server');
 }
 
 

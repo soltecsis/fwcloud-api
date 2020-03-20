@@ -20,6 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import express from "express";
+
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
 
@@ -192,4 +194,42 @@ export class Application extends AbstractApplication {
     private async startDatabaseService() {
         await db.connect(this);
     }
+}
+
+
+export class WebSrvApplication {
+    protected _express: express.Application;
+    protected _config: any;  
+
+    protected constructor() {
+        try {
+          this._express = express();
+          this._config = require('./config/config');
+
+          // Document root for the web server.
+          this._express.use(express.static(this._config.get('web_server').docroot));
+        } catch (e) {
+          console.error('Web Server Application startup failed: ' + e.message);
+          process.exit(e);
+        }
+    }
+
+    public static async run(): Promise<WebSrvApplication> {
+        try {
+            const app: WebSrvApplication = new WebSrvApplication();
+            return app;
+        } catch(e) {
+            console.error('Application can not start: ' + e.message);
+            console.error(e.stack);
+            process.exit(1);
+        }
+    }
+
+    get express(): express.Application {
+        return this._express;
+    }    
+
+    get config(): any {
+        return this._config;
+    }    
 }

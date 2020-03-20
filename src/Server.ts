@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from "./Application";
+import { Application, WebSrvApplication } from "./Application";
 import https from 'https';
 import http from 'http';
 import * as fs from 'fs';
@@ -28,12 +28,12 @@ import io from 'socket.io';
 import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
 
 export class Server {
-    private _application: Application;
+    private _application: Application | WebSrvApplication;
     private _config;
     private _server: https.Server | http.Server;
     private _type: 'api_server' | 'web_server';
 
-    constructor(app: Application, type: 'api_server' | 'web_server') {
+    constructor(app: Application | WebSrvApplication, type: 'api_server' | 'web_server') {
         this._application = app;
         this._config = app.config;
         this._type = type;
@@ -46,9 +46,9 @@ export class Server {
             if (this._config.get(this._type).enabled) {
                 this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
                 this.bootstrapEvents();
-                this.bootstrapSocketIO();
+                if (this._type === 'api_server') this.bootstrapSocketIO();
             }
-            else console.log(`Server ${this._type} not started because it is not enabled.`);
+            else console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
         } catch (error) {
             console.error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
             process.exit(1);
@@ -87,7 +87,7 @@ export class Server {
 
     private bootstrapSocketIO() {
         const _io: io.Server = io(this._server);
-        this._application.setSocketIO(_io);
+        (<Application>this._application).setSocketIO(_io);
 
         _io.on('connection', socket => {
             if (this._config.get('env') === 'dev') console.log('user connected', socket.id);
@@ -125,7 +125,7 @@ export class Server {
         var bind = typeof addr === 'string'
             ? addr
             : `${addr.address}:${addr.port}`;
-        console.log(`Listening on ${bind}`);
+        console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ${bind}`);
     }
 
     public isHttps(): boolean {
