@@ -34,6 +34,7 @@ import { Firewall } from "../firewall/Firewall";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { PolicyRule } from "../policy/PolicyRule";
+import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -92,8 +93,11 @@ export class Interface extends Model {
     })
     hosts: Array<IPObj>;
 
-    @ManyToOne(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
-    policyRules: Array<PolicyRule>;
+    @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
+    policyRuleToInterfaces: Array<PolicyRuleToInterface>;
+
+    @OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRuleInterface)
+    routingRuleToInterfaces: Array<PolicyRuleToInterface>;
 
     public getTableName(): string {
         return tableName;

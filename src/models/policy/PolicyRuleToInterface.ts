@@ -23,7 +23,7 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn } from 'typeorm';
+import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
@@ -64,19 +64,19 @@ export class PolicyRuleToInterface extends Model {
     @Column()
     updated_by: number;
 
-    @OneToMany(type => Interface, _interface => _interface.policyRules)
+    @ManyToOne(type => Interface, _interface => _interface.policyRuleToInterfaces)
     @JoinColumn({
         name: 'interface'
     })
     policyRuleInterface: Interface;
 
-    @OneToMany(type => PolicyRule, policyRule => policyRule.interfaces)
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToInterfaces)
     @JoinColumn({
         name: 'rule'
     })
     policyRule: PolicyRule;
 
-    @OneToMany(type => PolicyPosition, policyPosition => policyPosition.policyRules)
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToInterfaces)
     @JoinColumn({
         name: 'position'
     })

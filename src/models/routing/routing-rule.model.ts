@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinTable, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinTable, JoinColumn, OneToMany } from "typeorm";
 import Model from "../Model";
 import { Firewall } from "../firewall/Firewall";
 import { RoutingGroup } from "./routing-group.model";
+import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
 
 const tableName: string = 'routing_r';
 
@@ -46,6 +47,9 @@ export class RoutingRule extends Model {
         name: 'idgroup'
     })
     routingGroup: Array<RoutingGroup>;
+
+    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.routingRule)
+    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
 
     @ManyToOne(type => Firewall, firewall => firewall.routingRules)
     @JoinColumn({

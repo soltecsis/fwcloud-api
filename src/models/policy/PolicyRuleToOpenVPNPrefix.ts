@@ -21,12 +21,14 @@
 */
 
 import Model from "../Model";
-import { Column, getRepository, Entity, PrimaryColumn, Repository } from "typeorm";
+import { Column, getRepository, Entity, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
+import { PolicyPosition } from "./PolicyPosition";
+import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
 
 const tableName: string = 'policy_r__openvpn_prefix';
 
@@ -56,6 +58,24 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     @Column()
     updated_by: number;
+
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
+
+    @ManyToOne(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'openvpn'
+    })
+    openVPNPrefix: OpenVPNPrefix;
+
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
 
     public getTableName(): string {
         return tableName;

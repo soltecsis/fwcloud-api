@@ -35,6 +35,7 @@ import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneT
 import { FwCloud } from "../fwcloud/FwCloud";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
+import { RoutingRuleToIPObj } from "../routing/routing-rule-to-ipobj.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -66,6 +67,10 @@ export class IPObjGroup extends Model {
 
     @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
     openVPNPrefixes: Array<OpenVPNPrefix>;
+
+    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObjGroup)
+    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+
 
     public getTableName(): string {
         return tableName;

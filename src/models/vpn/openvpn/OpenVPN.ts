@@ -32,6 +32,7 @@ import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
 import { OpenVPNOptions } from "./openvpn-options.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { PolicyRule } from "../../policy/PolicyRule";
 const sshTools = require('../../../utils/ssh');
 const socketTools = require('../../../utils/socket');
 const fwcError = require('../../../utils/error_table');
@@ -108,6 +109,9 @@ export class OpenVPN extends Model {
         }
     })
     ipObjGroups: Array<IPObjGroup>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.openVPN)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
 
 
     public getTableName(): string {

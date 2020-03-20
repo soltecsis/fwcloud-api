@@ -21,10 +21,11 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { PolicyRuleToOpenVPNPrefix } from "../../policy/PolicyRuleToOpenVPNPrefix";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -52,6 +53,9 @@ export class OpenVPNPrefix extends Model {
         }
     })
     ipObjGroups: Array<IPObjGroup>;
+
+    @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.openVPNPrefix)
+    policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
     public getTableName(): string {
         return tableName;

@@ -36,6 +36,9 @@ import { PolicyType } from "./PolicyType";
 import { IPObjType } from "../ipobj/IPObjType";
 import { PolicyRuleToInterface } from "./PolicyRuleToInterface";
 import { PolicyRule } from "./PolicyRule";
+import { PolicyRuleToOpenVPNPrefix } from "./PolicyRuleToOpenVPNPrefix";
+import { PolicyRuleToIPObj } from "./PolicyRuleToIPObj";
+import { PolicyRuleToOpenVPN } from "./PolicyRuleToOpenVPN";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -72,7 +75,17 @@ export class PolicyPosition extends Model {
     ipObjTypes: Array<IPObjType>;
 
     @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyPosition)
-    policyRules: Array<PolicyRule>;
+    policyRuleToInterfaces: Array<PolicyRuleToInterface>;
+
+    @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.policyPosition)
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.policyPosition)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
+    @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyPosition)
+    policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
 
     public getTableName(): string {
         return tableName;

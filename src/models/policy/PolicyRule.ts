@@ -41,6 +41,8 @@ import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
 import { Interface } from "../interface/Interface";
 import { IPObj } from "../ipobj/IPObj";
+import { OpenVPN } from "../vpn/openvpn/OpenVPN";
+import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -131,10 +133,20 @@ export class PolicyRule extends Model {
     policyType: PolicyType;
 
     @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRule)
-    interfaces: Array<Interface>;
+    policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
     @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.policyRule)
-    ipObjs: Array<IPObj>;
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.policyRule)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
+    @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyRule)
+    policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
+    @OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.policyRule)
+    routingRuleToInterfaces: Array<PolicyRuleToInterface>;
+    
 
 
     private static clon_data: any;

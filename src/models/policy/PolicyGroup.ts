@@ -72,7 +72,7 @@ export class PolicyGroup extends Model {
 
 	@ManyToOne(type => PolicyGroup, policyGroup => policyGroup.childs)
 	@JoinColumn({
-		name: 'policy_g'
+		name: 'idgroup'
 	})
 	parent: PolicyGroup
 

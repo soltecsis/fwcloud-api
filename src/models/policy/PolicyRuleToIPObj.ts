@@ -32,6 +32,7 @@ import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { IPObj } from '../ipobj/IPObj';
+import { PolicyPosition } from './PolicyPosition';
 var asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -74,17 +75,23 @@ export class PolicyRuleToIPObj extends Model {
     @Column()
     updated_by: number;
     
-    @ManyToOne(type => PolicyRule, policyRule => policyRule.ipObjs)
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToIPObjs)
     @JoinColumn({
         name: 'rule'
     })
     policyRule: PolicyRule;
 
-    @ManyToOne(type => IPObj, ipObj => ipObj.policyRules)
+    /*@ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
     @JoinColumn({
         name: 'ipobj'
     })
-    ipObj: IPObj;
+    ipObj: IPObj;*/
+
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
 
     public getTableName(): string {
         return tableModel;

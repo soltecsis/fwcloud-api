@@ -35,6 +35,7 @@ import { RepositoryService } from '../../database/repository.service';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOptions } from '../vpn/openvpn/openvpn-options.model';
 import { PolicyRule } from '../policy/PolicyRule';
+import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -147,8 +148,11 @@ export class IPObj extends Model {
     @OneToMany(type => Interface, _interface => _interface.hosts)
     hostInterfaces: Array<Interface>;
 
-    @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
-    policyRules: Array<PolicyRule>;
+    /*@OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;*/
+
+    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObj)
+    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
 
     public getTableName(): string {
         return tableName;
