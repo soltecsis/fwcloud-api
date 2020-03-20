@@ -57,7 +57,7 @@ export class MigrationCreateCommand implements yargs.CommandModule {
     async handler(args: yargs.Arguments) {
         const app: Application = await Application.run();
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-        let version = args.tag ? args.tag as string : app.getVersion().version;
+        let version = args.tag ? args.tag as string : app.version.version;
 
         try {
             let directory: string = args.dir ? args.dir.toString() : null;

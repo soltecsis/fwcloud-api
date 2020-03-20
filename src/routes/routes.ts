@@ -29,7 +29,6 @@ import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
-import { SocketController } from "../controllers/socket.controller";
 import { AttachSocketValidator } from "../validators/attach-socket.validator";
 
 export class Routes extends RouteCollection {
@@ -37,10 +36,6 @@ export class Routes extends RouteCollection {
     public routes(router: RouterParser): void {
 
         router.gates([isLoggedIn], (router) => {
-
-            router.prefix('/sockets', (router: RouterParser) => {
-                router.post('/', SocketController, 'attach', AttachSocketValidator).name('sockets.attach');
-            });
 
             //Admin routes
             router.gates([isAdmin], (router) => {
