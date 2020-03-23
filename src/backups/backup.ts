@@ -34,7 +34,7 @@ import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { ProgressSteps } from "../fonaments/http/progress/progress-event";
+import { ProgressSteps } from "../fonaments/http/progress/progress-steps";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {

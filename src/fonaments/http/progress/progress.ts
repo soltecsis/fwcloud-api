@@ -1,5 +1,5 @@
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressSteps } from "./progress-event";
+import { ProgressSteps } from "./progress-steps";
 
 export type progressEventName = 'start' | 'step' | 'event' | 'end';
 
