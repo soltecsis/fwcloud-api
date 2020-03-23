@@ -34,7 +34,7 @@ import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { ProgressEvent } from "../fonaments/http/progress/progress-event";
+import { ProgressSteps } from "../fonaments/http/progress/progress-event";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -165,15 +165,14 @@ export class Backup implements Responsable {
      * @param backupDirectory Backup path
      */
     progressCreate(backupDirectory: string): Progress<Backup> {
-        const progress = new Progress(this, 'backups:create');
-        const progressEvent: ProgressEvent = new ProgressEvent(3);
+        const progress = new Progress<Backup>(4);
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.version;
         this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
-        progress.emit('event', progressEvent.incrementStep(200, 'Creating backup'));
+        progress.start('Creating backup');
 
         this.createDirectorySync();
         this.exportMetadataFileSync();
@@ -181,20 +180,22 @@ export class Backup implements Responsable {
         const p1: Promise<DumpReturn> = this.exportDatabase();
         
         p1.then(_ => {
-            progress.emit('event', progressEvent.incrementStep(200, 'Database exported'));
+            progress.step('Database exported');
         });
 
         const p2: Promise<void> = this.exportDataDirectories();
         
         p2.then(_ => {
-            progress.emit('event', progressEvent.incrementStep(200, 'Data directories exported'));
+            progress.step('Data directories exported');
         });
 
         Promise.all([p1, p2]).then( (_) => {
             this.load(this._backupPath).then(_ => {
-                progress.emit('end', progressEvent.incrementStep(200, 'Backup created'));
+                progress.end('Backup created');
             });
         });
+
+        progress.response = this;
 
         return progress;
     }
@@ -211,15 +212,14 @@ export class Backup implements Responsable {
     }
 
     progressRestore(): Progress<Backup> {
-        const progress = new Progress(this, 'backups:restore');
-        const progressEvent: ProgressEvent = new ProgressEvent(3);
+        const progress = new Progress<Backup>(3);
 
         if (this._exists) {
-            progress.emit('event', progressEvent.incrementStep(200, 'Restoring backup'));
+            progress.start('Restoring backup');
 
             const p1: Promise<unknown> = this.importDatabase()
             p1.then(_ => {
-                progress.emit('event', progressEvent.incrementStep(200, 'Database restored'));
+                progress.step('Database restored');
 
                 //TODO: Make all firewalls pending of compile and install.
 
@@ -231,12 +231,14 @@ export class Backup implements Responsable {
 
             const p2: Promise<void> = this.importDataDirectories();
             p2.then(_ => {
-                progress.emit('event', progressEvent.incrementStep(200, 'Data directories restored'));
+                progress.step('Data directories restored');
             });
 
             Promise.all([p1, p2]).then( (_) => {
-                progress.emit('end', progressEvent.incrementStep(200, 'Backup restored'));
+                progress.end('Backup restored');
             });
+
+            progress.response = this;
 
             return progress;
         }
