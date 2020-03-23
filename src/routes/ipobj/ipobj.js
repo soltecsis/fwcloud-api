@@ -188,7 +188,7 @@ router.post("/",
 		};
 
 		try {
-			const id = await IPObj.insertIpobj(req, ipobjData);
+			const id = await IPObj.insertIpobj(req.dbCon, ipobjData);
 			await IPObj.UpdateHOST(id);
 			await IPObj.UpdateINTERFACE(id);
 

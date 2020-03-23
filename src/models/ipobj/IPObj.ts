@@ -625,15 +625,15 @@ export class IPObj extends Model {
      * #### JSON RESPONSE ERROR:
      *      {result: false, "insertId": ''}
      * */
-    public static insertIpobj(req, ipobjData) {
+    public static insertIpobj(dbCon, ipobjData) {
         return new Promise((resolve, reject) => {
             // The IDs for the user defined IP Objects begin from the value 100000. 
             // IDs values from 0 to 99999 are reserved for standard IP Objects.
-            req.dbCon.query(`SELECT ID FROM ${tableName} ORDER BY ID DESC LIMIT 1`, (error, result) => {
+            dbCon.query(`SELECT ID FROM ${tableName} ORDER BY ID DESC LIMIT 1`, (error, result) => {
                 if (error) return reject(error);
 
                 ipobjData.id = ((result[0].ID >= 100000) ? (result[0].ID + 1) : 100000);
-                req.dbCon.query(`INSERT INTO ${tableName} SET ?`, ipobjData, (error, result) => {
+                dbCon.query(`INSERT INTO ${tableName} SET ?`, ipobjData, (error, result) => {
                     if (error) return reject(error);
                     resolve(result.insertId);
                 });
