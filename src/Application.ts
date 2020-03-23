@@ -20,6 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import express from 'express';
+import httpProxy from 'http-proxy';
+
 import log4js, { Logger } from 'log4js';
 import log4js_extend from 'log4js-extend';
 
