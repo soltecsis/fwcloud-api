@@ -22,7 +22,7 @@ export class RoutingRuleToIPObj extends Model {
     position: number;
 
     @Column()
-    position_orer: number;
+    position_order: number;
 
     @Column()
     created_at: Date;

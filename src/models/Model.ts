@@ -26,6 +26,8 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
 
 export interface IModel {
     getTableName(): string;
+    getEntityColumns(): Array<ColumnMetadataArgs>;
+    getEntityRelations(): Array<RelationMetadataArgs>;
 }
 
 export default abstract class Model implements IModel {

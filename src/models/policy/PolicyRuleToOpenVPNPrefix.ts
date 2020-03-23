@@ -67,7 +67,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     @ManyToOne(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.policyRuleToOpenVPNPrefixes)
     @JoinColumn({
-        name: 'openvpn'
+        name: 'prefix'
     })
     openVPNPrefix: OpenVPNPrefix;
 

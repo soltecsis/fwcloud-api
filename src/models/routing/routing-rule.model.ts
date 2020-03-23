@@ -49,7 +49,7 @@ export class RoutingRule extends Model {
     routingGroup: Array<RoutingGroup>;
 
     @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.routingRule)
-    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+    routingRuleToIPObjs!: Array<RoutingRuleToIPObj>;
 
     @ManyToOne(type => Firewall, firewall => firewall.routingRules)
     @JoinColumn({

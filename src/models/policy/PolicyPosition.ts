@@ -26,7 +26,7 @@ var logger = require('log4js').getLogger("app");
 
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
-import { PrimaryColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { PrimaryColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 import { IPObj } from '../../models/ipobj/IPObj';
@@ -71,7 +71,7 @@ export class PolicyPosition extends Model {
     })
     policyType: PolicyType
 
-    @OneToMany(type => IPObjType, ipObjType => ipObjType.policyPositions)
+    @ManyToMany(type => IPObjType, ipObjType => ipObjType.policyPositions)
     ipObjTypes: Array<IPObjType>;
 
     @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyPosition)

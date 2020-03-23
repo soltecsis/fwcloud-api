@@ -84,14 +84,8 @@ export class Interface extends Model {
     @OneToMany(type => IPObj, ipObj => ipObj.interface)
     ipObjs: Array<IPObj>;
 
-    @OneToMany(type => IPObj, ipObj => ipObj.hostInterfaces)
-    @JoinTable({
-        name: 'interface__ipobj',
-        joinColumn: {
-            name: 'interface'
-        }
-    })
-    hosts: Array<IPObj>;
+    @OneToMany(type => InterfaceIPObj, interfaceIPObj => interfaceIPObj.hostInterface)
+    hosts!: Array<InterfaceIPObj>;
 
     @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
     policyRuleToInterfaces: Array<PolicyRuleToInterface>;

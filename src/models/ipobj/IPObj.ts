@@ -27,7 +27,7 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
@@ -142,11 +142,11 @@ export class IPObj extends Model {
     @OneToMany(type => OpenVPNOptions, options => options.ipObj)
     optionsList: Array<OpenVPNOptions>;
 
-    @OneToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.ipObjs)
-    ipObjGroups!: Array<IPObjGroup>;
+    @OneToMany(type => IPObjToIPObjGroup, ipObjToIPObjGroup => ipObjToIPObjGroup.ipObj)
+    ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
 
-    @OneToMany(type => Interface, _interface => _interface.hosts)
-    hostInterfaces: Array<Interface>;
+    @OneToMany(type => InterfaceIPObj, interfaceIPObj => interfaceIPObj.hostIPObj)
+    hosts!: Array<InterfaceIPObj>;
 
     /*@OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;*/
@@ -159,7 +159,7 @@ export class IPObj extends Model {
     }
 
     public isStandard(): boolean {
-        return this.id >= 10000 && this.id < 100000;
+        return this.id < 100000;
     }
 
     public async onUpdate() {

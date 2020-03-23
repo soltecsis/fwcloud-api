@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity, OneToMany, JoinTable, JoinColumn } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany, JoinTable, JoinColumn, ManyToMany } from "typeorm";
 import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "./IPObj";
 import { PolicyPosition } from "../policy/PolicyPosition";
@@ -49,7 +49,7 @@ export class IPObjType extends Model {
     @OneToMany(type => IPObj, ipObj => ipObj.ipObjType)
     ipObjs: Array<IPObj>;
 
-    @OneToMany(type => PolicyPosition, policyPosition => policyPosition.ipObjTypes)
+    @ManyToMany(type => PolicyPosition, policyPosition => policyPosition.ipObjTypes)
     @JoinTable({
         name: 'ipobj_type__policy_position',
         joinColumn: {

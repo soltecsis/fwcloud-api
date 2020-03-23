@@ -31,7 +31,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import modelEventService from "../ModelEventService";
-import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany } from "typeorm";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany, ManyToOne } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
@@ -59,8 +59,8 @@ export class IPObjGroup extends Model {
     @Column()
     updated_at: Date;
 
-    @OneToMany(type => IPObj, ipObj => ipObj.ipObjGroups)
-    ipObjs!: Array<IPObjGroup>;
+    @OneToMany(type => IPObjToIPObjGroup, ipObjToIPObjGroup => ipObjToIPObjGroup.ipObjGroup)
+    ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
 
     @ManyToMany(type => OpenVPN, openVPN => openVPN.ipObjGroups)
     openVPNs: Array<OpenVPN>;
@@ -74,6 +74,10 @@ export class IPObjGroup extends Model {
 
     public getTableName(): string {
         return tableName;
+    }
+
+    public isStandard(): boolean {
+        return this.id < 100000;
     }
     
     public async onUpdate() {
