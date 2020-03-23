@@ -764,7 +764,7 @@ export class OpenVPN extends Model {
                                         options: null
                                     };
 
-                                    const ipobjId = await IPObj.insertIpobj(req, ipobjData);
+                                    const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
                                     await Tree.newNode(req.dbCon, req.body.fwcloud, `${interface_name} (${net.firstAddress})`, nodeId, 'OIA', ipobjId, 5);
                                 }
                             }

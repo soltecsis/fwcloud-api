@@ -87,7 +87,7 @@ export class Server {
         });
 
         this._server.on('listening', () => {
-            console.log('Listening on ' + this.getFullURL())
+            console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL())
         })
     }
 
@@ -134,8 +134,8 @@ export class Server {
     }
 
     protected getFullURL(): string {
-        return (this.isHttps() ? 'https' : 'http') + '://' + this._application.config.get('api_server').ip 
+        return (this.isHttps() ? 'https' : 'http') + '://' + this._application.config.get(this._type).ip 
         + ':' 
-        + this._application.config.get('api_server').port;
+        + this._application.config.get(this._type).port;
     }
 }
