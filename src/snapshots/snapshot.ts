@@ -172,7 +172,7 @@ export class Snapshot implements Responsable {
 
         fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(result, null, 2));
 
-        await this.exportFwCloudDependencyList();
+        //await this.exportFwCloudDependencyList();
     }
 
     protected async exportFwCloudDependencyList(): Promise<void> {

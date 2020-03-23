@@ -35,24 +35,30 @@ export class EntityExporter {
     }
 
     protected async exportEntity(): Promise<SnapshotData> {
-        this._result.addItem(this._instance);
+        if (!this.shouldIgnoreThisInstance(this._instance)) {
+            this._result.addItem(this._instance);
 
-        const relations: Array<RelationMetadataArgs> = this._instance.getEntityRelations();
+            const relations: Array<RelationMetadataArgs> = this._instance.getEntityRelations();
 
-        const primaryKeysMetadata: Array<ColumnMetadataArgs> = this._instance.getPrimaryKeys();
+            const primaryKeysMetadata: Array<ColumnMetadataArgs> = this._instance.getPrimaryKeys();
 
-        const repository: Repository<typeof Model> = (await app().getService<RepositoryService>(RepositoryService.name)).for(this._entity);
+            const repository: Repository<typeof Model> = (await app().getService<RepositoryService>(RepositoryService.name)).for(this._entity);
 
-        const obj = await repository.findOne(this.generateFindOnePrimaryKeys(primaryKeysMetadata, this._instance.toJSON()), this.generateFindOptionsWithAllRelations(relations));
+            const obj = await repository.findOne(this.generateFindOnePrimaryKeys(primaryKeysMetadata, this._instance.toJSON()), this.generateFindOptionsWithAllRelations(relations));
 
-        for(let i = 0; i < relations.length; i++) {
-            if (!this.shouldIgnoreRelation(relations[i])) {
-                this._result.merge(await this.exportRelationEntity(obj, relations[i]));
+            for(let i = 0; i < relations.length; i++) {
+                if (!this.shouldIgnoreRelation(relations[i])) {
+                    this._result.merge(await this.exportRelationEntity(obj, relations[i]));
+                }
             }
         }
 
         return this._result;
     };
+
+    protected shouldIgnoreThisInstance(instance: any): boolean {
+        return false;
+    }
 
     protected shouldIgnoreRelation(relation: RelationMetadataArgs): boolean {
         return this._ignoreRelations.indexOf(relation.propertyName) >= 0
@@ -67,7 +73,7 @@ export class EntityExporter {
             }
             
             for(let i = 0; i < obj[relation.propertyName].length; i++) {
-                const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(obj[relation.propertyName].constructor.name);
+                const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(obj[relation.propertyName][i].constructor.name);
                 const exporter = new exporterDefinition(this._result, obj[relation.propertyName][i]);
                 await exporter.export();
             }
@@ -76,7 +82,8 @@ export class EntityExporter {
         }
 
         if (obj[relation.propertyName]) {
-            const exporter = new EntityExporter(this._result, obj[relation.propertyName])
+            const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(obj[relation.propertyName].constructor.name);
+            const exporter = new exporterDefinition(this._result, obj[relation.propertyName]);
             await exporter.export();
         }
 
