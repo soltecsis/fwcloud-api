@@ -72,7 +72,7 @@ export class BackupController extends Controller {
             .on('start', (payload) => {
                 socket.event(payload);
             })
-            .on('event', (payload) => {
+            .on('step', (payload) => {
                 socket.event(payload);
             })
             .on('end', async (payload) => {
@@ -101,7 +101,7 @@ export class BackupController extends Controller {
             .on('start', (payload) => {
                 socket.event(payload);
             })
-            .on('event', (payload) => {
+            .on('step', (payload) => {
                 socket.event(payload);
             })
             .on('end', async (payload) => {
