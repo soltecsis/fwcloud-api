@@ -21,32 +21,31 @@
 */
 
 import { Application } from '../Application';
-import { AbstractWebServer } from '../servers/web-server';
-import { HttpServer } from '../servers/http-server';
-import { HttpsServer } from '../servers/https-server';
+import { Server } from '../Server';
+import { WebServerApplication } from '../web-server-application';
 
-async function loadApplication(): Promise<Application> {
+async function loadApiApplication(): Promise<Application> {
     const application = await Application.run();
     return application;
 }
 
-async function startServer(app: Application): Promise<AbstractWebServer> {
-    let server: AbstractWebServer;
-    if (app.config.get('https').enable) {
-        server = new HttpsServer(app);
-    } else {
-        server = new HttpServer(app);
-    }
-    
-    await server.run();
+async function loadWebApplication(): Promise<WebServerApplication> {
+    const application = await WebServerApplication.run();
+    return application;
+}
 
+function startServer(app: Application | WebServerApplication, type: 'api_server' | 'web_server'): Server {
+    const server: Server = new Server(app,type);
+    server.start();
     return server;
 }
 
 async function start() {
-    const app = await loadApplication();
+    const apiApp = await loadApiApplication();
+    const api_server: Server = startServer(apiApp,'api_server');
 
-    await startServer(app);
+    const webApp = await loadWebApplication();
+    const web_server: Server = startServer(webApp,'web_server');
 }
 
 
