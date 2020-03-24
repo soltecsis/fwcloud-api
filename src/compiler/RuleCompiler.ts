@@ -564,6 +564,9 @@ export class RuleCompiler {
     public static get(fwcloud, firewall, type, rule) {
         return new Promise(async (resolve, reject) => {
             try {
+                // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
+                // is solved.
+                /*
                 let data: any = await PolicyCompilation.getPolicy_c(fwcloud, firewall, rule);
                 if (data && data.length > 0) {
                     if (parseInt(data[0].c_status_recompile) === 0)
@@ -573,6 +576,8 @@ export class RuleCompiler {
                 }
                 else
                     resolve("");
+                */
+                resolve(await this.rule_compile(fwcloud, firewall, type, rule));
 
             } catch (error) { reject(error) }
         });
