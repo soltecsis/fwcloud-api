@@ -100,13 +100,17 @@ describe(describeName('Snapshot tests'), () => {
         expect(snapshot.exists).to.be.false;
     });
 
-    it('import should import a fwcloud as a new fwcloud', async () => {
+    it('restore should restore a fwcloud as a new fwcloud', async () => {
         const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
-        await snaphost.import();
-        
-        const importedFwCloud: Array<FwCloud> = await fwcloudRepository.find({where: {name: 'fwcloud - ' + snaphost.id}})
 
-        expect(importedFwCloud).to.has.length(1);
+        fwCloud.name = 'fwcloud';
+        await fwcloudRepository.save(fwCloud);
+
+        await snaphost.restore();
+        
+        const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id)
+
+        expect(importedFwCloud.name).not.to.be.deep.equal(fwCloud.name);
     })
 
 })

@@ -22,7 +22,7 @@
 
 export default class ObjectHelpers {
 
-    public static merge(...objects: Object[]): Object {
+    public static merge(...objects: object[]): object {
         let result = {};
 
         objects.forEach(element => {

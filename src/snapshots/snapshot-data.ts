@@ -78,7 +78,7 @@ export class SnapshotData {
             this.data[tableName][entityName] = [];
         }
 
-        this.data[tableName][entityName].push(entity.toJSON());
+        this.data[tableName][entityName].push(entity.toJSON({removeNullFields: true}));
     }
 
     merge(other: SnapshotData): SnapshotData {

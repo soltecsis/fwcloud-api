@@ -23,11 +23,20 @@
 import { DeepPartial, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
+import ObjectHelpers from "../utils/object-helpers";
 
 export interface IModel {
     getTableName(): string;
     getEntityColumns(): Array<ColumnMetadataArgs>;
     getEntityRelations(): Array<RelationMetadataArgs>;
+}
+
+export interface ToJSONOptions {
+    removeNullFields: boolean;
+}
+
+const defaultToJSONOptions: ToJSONOptions = {
+    removeNullFields: false
 }
 
 export default abstract class Model implements IModel {
@@ -37,14 +46,22 @@ export default abstract class Model implements IModel {
         return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
     }
 
-    public toJSON<T>(): DeepPartial<T> {
+    public toJSON<T>(options: ToJSONOptions = defaultToJSONOptions): DeepPartial<T> {
         const result = {};
         const propertyReferences: Array<ColumnMetadataArgs> = this.getEntityColumns();
 
+        options = <ToJSONOptions>ObjectHelpers.merge(defaultToJSONOptions, options);
+
         for(let i = 0; i < propertyReferences.length; i++) {
             const propertyName: string = propertyReferences[i].propertyName;
-                result[propertyName] = this.hasOwnProperty(propertyName) ?
-                this[propertyName] : null;
+            if (this.hasOwnProperty(propertyName) && this[propertyName]) {
+                result[propertyName] = this[propertyName];
+                continue;
+            }
+
+            if (this.hasOwnProperty(propertyName) && !this[propertyName] && options.removeNullFields === false) {
+                result[propertyName] = null;
+            }
         }
 
         return result;

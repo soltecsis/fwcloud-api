@@ -71,7 +71,7 @@ export class SnapshotService extends Service {
     }
 
     public restore(snapshot: Snapshot): Progress<Snapshot> {
-        return snapshot.progressImport();
+        return snapshot.progressRestore();
     }
 
     public async destroy(snapshot: Snapshot): Promise<Snapshot> {

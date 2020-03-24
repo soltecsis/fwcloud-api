@@ -40,7 +40,7 @@ describe(describeName('Entity exporter tests'), () => {
         const result = new SnapshotData;
         const exporter = await new EntityExporter(result, fwcloud).export()
         
-        expect(result.data.fwcloud.FwCloud[0]).to.be.deep.equal(fwcloud.toJSON());
-        expect(result.data.ca.Ca[0]).to.be.deep.equal(ca.toJSON());
+        expect(result.data.fwcloud.FwCloud[0]).to.be.deep.equal(fwcloud.toJSON({removeNullFields: true}));
+        expect(result.data.ca.Ca[0]).to.be.deep.equal(ca.toJSON({removeNullFields: true}));
     });
 })

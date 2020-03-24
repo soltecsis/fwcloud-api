@@ -15,6 +15,9 @@ import { Exporter } from "./exporter";
 import { DependencyExporter } from "./dependency-exporter/dependency-exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { pbkdf2 } from "crypto";
+import { QueryRunner } from "typeorm";
+import { DatabaseService } from "../database/database.service";
+import { BulkDatabaseOperations } from "./bulk-database-operations";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -37,7 +40,7 @@ export class Snapshot implements Responsable {
     protected _comment: string;
     protected _fwcloud: FwCloud;
     protected _version: string;
-    
+
     protected _path: string;
     protected _exists: boolean;
 
@@ -94,9 +97,9 @@ export class Snapshot implements Responsable {
     public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
         const progress: Progress<Snapshot> = snapshot.save(snapshot_directory, fwcloud, name, comment);
-        
+
         return new Promise<Snapshot>((resolve, reject) => {
-            progress.on('end', async(_) => {
+            progress.on('end', async (_) => {
                 resolve(await Snapshot.load(progress.response.path))
             });
         });
@@ -107,8 +110,8 @@ export class Snapshot implements Responsable {
         return snapshot.save(snapshot_directory, fwcloud, name, comment);
     }
 
-    public async import(): Promise<Snapshot> {
-        const progress: Progress<Snapshot> = this.progressImport();
+    public async restore(): Promise<Snapshot> {
+        const progress: Progress<Snapshot> = this.progressRestore();
 
         return new Promise<Snapshot>((resolve, reject) => {
             progress.on('end', (_) => {
@@ -117,17 +120,20 @@ export class Snapshot implements Responsable {
         });
     }
 
-    public progressImport(): Progress<Snapshot> {
-        const progress: Progress<Snapshot> = new Progress<Snapshot>(2);
+    public progressRestore(): Progress<Snapshot> {
+        const progress: Progress<Snapshot> = new Progress<Snapshot>(3);
 
-        progress.start('Importing snapshot');
+        progress.start('Restoring snapshot');
 
-        const importer = new Importer();
-
-        const p1: Promise<void> = importer.import(this);
+        let p1: Promise<void> = this.removeDatabaseData();
 
         p1.then((_) => {
-            progress.end('');
+            progress.step('FwCloud removed');
+
+            const p2: Promise<void> = this.restoreDatabaseData();
+            p2.then((_) => {
+                progress.end('FwCloud restored');
+            })
         })
 
         progress.response = this;
@@ -140,7 +146,7 @@ export class Snapshot implements Responsable {
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
 
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-        
+
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
         const dataContent: string = fs.readFileSync(dataPath).toString();
 
@@ -159,14 +165,14 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    public async update(snapshotData: {name: string, comment: string}): Promise<Snapshot> {
+    public async update(snapshotData: { name: string, comment: string }): Promise<Snapshot> {
         this._name = snapshotData.name;
         this._comment = snapshotData.comment;
 
         this.saveMetadataFile();
 
         return this;
-        
+
     }
 
     public static async load(snapshotPath: string): Promise<Snapshot> {
@@ -178,7 +184,7 @@ export class Snapshot implements Responsable {
             await FSHelper.remove(this._path);
             this._exists = false;
         }
-        
+
         return this;
     }
 
@@ -195,7 +201,7 @@ export class Snapshot implements Responsable {
 
         progress.start('Creating snapshot');
 
-        if(FSHelper.directoryExistsSync(this._path)) {
+        if (FSHelper.directoryExistsSync(this._path)) {
             throw new Error('Snapshot with id = ' + this._id + ' already exists');
         }
 
@@ -208,13 +214,13 @@ export class Snapshot implements Responsable {
             progress.step('FwCloud data directories exported');
         });
 
-        const p2: Promise<void> = this.exportFwCloud();
+        const p2: Promise<void> = this.saveDataFile();
 
         p2.then(_ => {
             progress.step('FwCloud database exported');
         });
 
-        Promise.all([p1, p2]).then( (_) => {
+        Promise.all([p1, p2]).then((_) => {
             progress.response = this;
             progress.end('Snapshot created', null, this);
         });
@@ -224,26 +230,30 @@ export class Snapshot implements Responsable {
         return progress;
     }
 
-    protected async exportFwCloud(): Promise<void> {
+    protected async removeDatabaseData(): Promise<void> {
+        const data: SnapshotData = await this.getFwCloudJSONData();
+
+        return new BulkDatabaseOperations(data, 'delete').run();
+    }
+
+    protected async restoreDatabaseData(): Promise<void> {
+        return new BulkDatabaseOperations(this._data, 'insert').run();
+    }
+
+    protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
         const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwcloud.constructor.name);
         this._fwcloud = await (await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._fwcloud.id);
         const exporter = new exporterTarget(result, this._fwcloud);
         await exporter.export();
 
-
-        fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(result, null, 2));
-
-        //await this.exportFwCloudDependencyList();
+        return result;
     }
 
-    protected async exportFwCloudDependencyList(): Promise<void> {
-        const result = new SnapshotData();
-        const exporter = new DependencyExporter(result);
-        await exporter.export(FwCloud);
+    protected async saveDataFile(): Promise<void> {
+        const data: SnapshotData = await this.getFwCloudJSONData();
 
-
-        fs.writeFileSync(path.join(this._path, Snapshot.DEPENDENCY_FILENAME), JSON.stringify(result, null, 2));
+        fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(data, null, 2));
     }
 
     protected saveMetadataFile(): void {
@@ -269,7 +279,7 @@ export class Snapshot implements Responsable {
             FSHelper.mkdir(app().config.get('snapshot').data_dir);
         }
     }
-    
+
     toResponse(): object {
         return {
             id: this._id,
@@ -278,6 +288,6 @@ export class Snapshot implements Responsable {
             comment: this._comment
         }
     }
-    
+
 
 }
