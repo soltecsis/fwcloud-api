@@ -64,6 +64,16 @@ describe(describeName('Snapshot tests'), () => {
         expect(fs.statSync(path.join(snaphost.path, Snapshot.DATA_FILENAME)).isFile()).to.be.true;
     })
 
+    it('create should set the imported flag to false', async() => {
+        const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+        expect(snaphost.imported).to.be.false;
+    })
+
+    it('create should set the imported_at to null', async() => {
+        const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+        expect(snaphost.imported_at).to.be.null;
+    })
+
     it('snaphost id should be the snapshot directory name which is the date timestamp', async () => {
         const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
