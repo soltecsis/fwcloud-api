@@ -1,31 +1,36 @@
 import { QueryRunner, DeepPartial } from "typeorm";
 import { ImportMapping } from "./import-mapping";
-import { SnapshotData } from "./snapshot-data";
-import { app } from "../fonaments/abstract-application";
 import { DatabaseService } from "../database/database.service";
 import Model from "../models/Model";
 import { EntityImporter } from "./importers/entity-importer";
+import { Snapshot } from "./snapshot";
+import { FwCloudImporter } from "./importers/fwcloud-importer";
 
-const IMPORTERS: {[entity_name: string]: typeof EntityImporter} = {};
+const IMPORTERS: {[entity_name: string]: any} = {
+    FwCloud: FwCloudImporter
+};
 
 export class Importer {
     protected _queryRunner: QueryRunner;
     protected _mapper: ImportMapping;
     protected _databaseService: DatabaseService;
+    protected _snapshot: Snapshot;
 
     constructor() {
         this._queryRunner = null;
         this._mapper = null;
         this._databaseService = null;
+        this._snapshot = null;
     }
 
-    public async import(data: SnapshotData): Promise<void> {
+    public async import(snapshot: Snapshot): Promise<void> {
         this._mapper = new ImportMapping();
+        this._snapshot = snapshot;
 
         try {
-            for(let tableName in data.data) {
-                for(let entityName in data.data[tableName]) {
-                    await this.importEntity(tableName, entityName, data.data[tableName][entityName]);
+            for(let tableName in this._snapshot.data.data) {
+                for(let entityName in this._snapshot.data.data[tableName]) {
+                    await this.importEntity(tableName, entityName, this._snapshot.data.data[tableName][entityName]);
                 }
             }
         } catch(e) {
@@ -37,9 +42,9 @@ export class Importer {
         let importer: any;
 
         if(IMPORTERS[entityName]) {
-            importer = new IMPORTERS[entityName]();
+            importer = new IMPORTERS[entityName](this._snapshot);
         } else {
-            importer = new EntityImporter();
+            importer = new EntityImporter(this._snapshot);
         }
 
         for(let i = 0; i < entities.length; i++) {

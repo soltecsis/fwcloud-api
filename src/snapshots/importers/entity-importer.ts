@@ -6,12 +6,18 @@ import { ImportMapping, IdMap, EntityMap } from "../import-mapping";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
+import { Snapshot } from "../snapshot";
 
 type ModelClass = typeof Model;
-interface Modelable extends ModelClass {};
+export interface Modelable extends ModelClass {};
 
-export class EntityImporter<T extends Modelable> {
-    _instance: Model;
+export class EntityImporter<T extends Model> {
+    protected _instance: T;
+    protected _snapshot: Snapshot;
+
+    constructor(snapshot: Snapshot) {
+        this._snapshot = snapshot;
+    }
 
     public async import(tableName: string, entityName: string, data: DeepPartial<T>, mapper: ImportMapping, ... context: Array<any>): Promise<void> {
         
@@ -37,6 +43,7 @@ export class EntityImporter<T extends Modelable> {
             delete data[propertyName];
         }
 
+        data = this.customAttributeChanges(data);
 
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         const entityRepository: Repository<any> = repositoryService.for(target);
@@ -53,6 +60,10 @@ export class EntityImporter<T extends Modelable> {
 
             mapper.newItem(this._instance.getTableName(), map);
         }
+    }
+
+    protected customAttributeChanges(data: DeepPartial<T>): DeepPartial<T> {
+        return data;
     }
 
     protected getEntity(tableName: string, entityName: string): any {

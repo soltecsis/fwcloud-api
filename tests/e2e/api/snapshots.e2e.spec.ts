@@ -106,7 +106,6 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         beforeEach(async() => {
             s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
-            
         });
 
 
@@ -285,6 +284,54 @@ describe(describeName('Snapshot E2E tests'), () => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                     expect(response.body.data.name).to.be.deep.equal('name_test');
                     expect(response.body.data.comment).to.be.deep.equal('comment_test');
+                });
+        });
+    });
+
+    describe(describeName('SnapshotController@restore'), () => {
+        let  s1: Snapshot;
+
+        beforeEach(async() => {
+            s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
+        });
+
+        it('guest user should not restore an snapshot', async() => {
+
+            await request(app.express)
+                .put(_URL().getURL('snapshots.restore', {snapshot: s1.id}))
+                .expect(401)
+        });
+
+        it('regular user should not restore an snapshot if the user does not belong to the fwcloud', async() => {
+            await request(app.express)
+                .put(_URL().getURL('snapshots.restore', {snapshot: s1.id}))
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(401)
+        });
+
+        it('regular user should restore an snapshot if the user belongs to the fwcloud', async() => {
+            loggedUser.fwclouds = [fwCloud];
+            repository.for(User).save(loggedUser);
+
+            await request(app.express)
+                .put(_URL().getURL('snapshots.restore', {snapshot: s1.id}))
+                .set('Cookie', attachSession(loggedUserSessionId))
+                .set('x-fwc-confirm-token', loggedUser.confirmation_token)
+                .expect(200)
+                .expect((response) => {
+                    expect(response.body.data.id).to.be.deep.equal(s1.id);
+                });
+        });
+
+        it('admin user should restore an snapshot', async() => {
+            await request(app.express)
+                .put(_URL().getURL('snapshots.restore', {snapshot: s1.id}))
+                .set('Cookie', attachSession(adminUserSessionId))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .expect(200)
+                .expect((response) => {
+                    expect(response.body.data.id).to.be.deep.equal(s1.id);
                 });
         });
     });

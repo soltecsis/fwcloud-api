@@ -58,6 +58,12 @@ describe(describeName('Snapshot tests'), () => {
         expect(fs.readFileSync(path.join(snapshot.path, 'pki', 'test.txt')).toString()).to.be.deep.eq('test file content');
     });
 
+    it('create should export the fwcloud into the data file', async () => {
+        const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        expect(fs.statSync(path.join(snaphost.path, Snapshot.DATA_FILENAME)).isFile()).to.be.true;
+    })
+
     it('snaphost id should be the snapshot directory name which is the date timestamp', async () => {
         const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
@@ -93,5 +99,14 @@ describe(describeName('Snapshot tests'), () => {
         expect(fs.existsSync(snapshot.path)).to.be.false;
         expect(snapshot.exists).to.be.false;
     });
+
+    it('import should import a fwcloud as a new fwcloud', async () => {
+        const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+        await snaphost.import();
+        
+        const importedFwCloud: Array<FwCloud> = await fwcloudRepository.find({where: {name: 'fwcloud - ' + snaphost.id}})
+
+        expect(importedFwCloud).to.has.length(1);
+    })
 
 })

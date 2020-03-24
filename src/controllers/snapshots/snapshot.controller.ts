@@ -61,6 +61,16 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(snapshot);
     }
 
+    public async restore(request: Request): Promise<ResponseBuilder> {
+        let snapshot: Snapshot = await this._snapshotService.findOneOrDie(parseInt(request.params.snapshot));
+
+        (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
+
+        const progress: Progress<Snapshot> = this._snapshotService.restore(snapshot);
+
+        return ResponseBuilder.buildResponse().status(200).progress(progress, request.session.socket_id);
+    }
+
     public async destroy(request: Request): Promise<ResponseBuilder> {
         let snapshot: Snapshot = await this._snapshotService.findOneOrDie(parseInt(request.params.snapshot));
 

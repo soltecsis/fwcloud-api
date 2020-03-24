@@ -70,6 +70,10 @@ export class SnapshotService extends Service {
         return await snapshot.update(newData);
     }
 
+    public restore(snapshot: Snapshot): Progress<Snapshot> {
+        return snapshot.progressImport();
+    }
+
     public async destroy(snapshot: Snapshot): Promise<Snapshot> {
         return await snapshot.destroy();
     }

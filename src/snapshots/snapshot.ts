@@ -87,6 +87,10 @@ export class Snapshot implements Responsable {
         return this._exists;
     }
 
+    get data(): SnapshotData {
+        return this._data;
+    }
+
     public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
         const progress: Progress<Snapshot> = snapshot.save(snapshot_directory, fwcloud, name, comment);
@@ -101,6 +105,34 @@ export class Snapshot implements Responsable {
     public static progressCreate(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Progress<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
         return snapshot.save(snapshot_directory, fwcloud, name, comment);
+    }
+
+    public async import(): Promise<Snapshot> {
+        const progress: Progress<Snapshot> = this.progressImport();
+
+        return new Promise<Snapshot>((resolve, reject) => {
+            progress.on('end', (_) => {
+                resolve(progress.response);
+            });
+        });
+    }
+
+    public progressImport(): Progress<Snapshot> {
+        const progress: Progress<Snapshot> = new Progress<Snapshot>(2);
+
+        progress.start('Importing snapshot');
+
+        const importer = new Importer();
+
+        const p1: Promise<void> = importer.import(this);
+
+        p1.then((_) => {
+            progress.end('');
+        })
+
+        progress.response = this;
+
+        return progress;
     }
 
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
@@ -195,7 +227,8 @@ export class Snapshot implements Responsable {
     protected async exportFwCloud(): Promise<void> {
         const result = new SnapshotData();
         const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwcloud.constructor.name);
-        const exporter = new exporterTarget(result, this.fwcloud);
+        this._fwcloud = await (await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._fwcloud.id);
+        const exporter = new exporterTarget(result, this._fwcloud);
         await exporter.export();
 
 
