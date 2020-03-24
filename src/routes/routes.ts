@@ -60,7 +60,6 @@ export class Routes extends RouteCollection {
             });
         });
 
-<<<<<<< HEAD
 
         //Snapshots
         router.prefix('/snapshots', (router: RouterParser) => {
@@ -70,7 +69,5 @@ export class Routes extends RouteCollection {
             router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
             router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
         });
-=======
->>>>>>> origin/develop
     }
 }
