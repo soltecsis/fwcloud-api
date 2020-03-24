@@ -22,7 +22,6 @@
     },
     "web_server": {
       "https" : false,
-      "port" : 80,
       "api_url": "http://localhost:3000"
     }
 }
