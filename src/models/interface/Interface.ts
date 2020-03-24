@@ -478,7 +478,7 @@ export class Interface extends Model {
                 };
 
                 // Create the IPv4 loopbackup interface address.
-                connection.query('INSERT INTO ' + tableName + ' SET ?', interfaceData, (error, result) => {
+                connection.query('INSERT INTO ' + tableName + ' SET ?', interfaceData, async (error, result) => {
                     if (error) return reject(error);
 
                     const interfaceId = result.insertId;
@@ -506,11 +506,8 @@ export class Interface extends Model {
                         options: null,
                         comment: 'IPv4 loopback interface address.'
                     };
-
-                    connection.query('INSERT INTO ipobj SET ?', ipobjData, (error, result) => {
-                        if (error) return reject(error);
-                        resolve(interfaceId);
-                    });
+                    await IPObj.insertIpobj(connection, ipobjData);
+                    resolve(interfaceId);
                 });
             });
         });

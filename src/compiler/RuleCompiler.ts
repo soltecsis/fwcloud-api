@@ -305,7 +305,7 @@ export class RuleCompiler {
 
     /*----------------------------------------------------------------------------------------------------------------------*/
     public static nat_action(policy_type, trans_addr, trans_port, rule_ip_version) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
             if (trans_addr.length > 1 || trans_port.length > 1)
                 return reject(fwcError.other('Translated fields must contain a maximum of one item'));
 
@@ -424,7 +424,7 @@ export class RuleCompiler {
                 let cs_trail = ""; 
                 let stateful = ""; 
                 let table = ""; 
-                let action = ""; 
+                let action:string = ""; 
 
                 // Since now, all the compilation process for IPv6 is the same that the one for IPv4.
                 if (policy_type >= POLICY_TYPE_INPUT_IPv6) {
@@ -436,12 +436,12 @@ export class RuleCompiler {
                 if (policy_type === POLICY_TYPE_SNAT) { // SNAT
                     table = "-t nat";
                     cs += table + " -A POSTROUTING ";
-                    const action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
+                    action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
                 }
                 else if (policy_type === POLICY_TYPE_DNAT) { // DNAT
                     table = "-t nat";
                     cs += table + " -A PREROUTING ";
-                    const action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
+                    action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
                 }
                 else { // Filter policy
                     if (data.length != 1 || !(data[0].positions)
@@ -481,7 +481,7 @@ export class RuleCompiler {
                     }
                 }
 
-                if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
+                if (parseInt(data[0].special) === 1) // Special rule for ESTABLISHED,RELATED packages.
                     cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
                 else
                     cs_trail = `${stateful} -j ${action}\n`;
@@ -523,7 +523,7 @@ export class RuleCompiler {
                             `${cs}`;
                     }
 
-                    if (data[0].mark_code) {
+                    if (parseInt(data[0].mark_code) !== 0) {
                         table = '-t mangle';
 
                         action = `MARK --set-mark ${data[0].mark_code}`;
@@ -566,7 +566,7 @@ export class RuleCompiler {
             try {
                 let data: any = await PolicyCompilation.getPolicy_c(fwcloud, firewall, rule);
                 if (data && data.length > 0) {
-                    if (data[0].c_status_recompile === 0)
+                    if (parseInt(data[0].c_status_recompile) === 0)
                         resolve(data[0].c_compiled);
                     else
                         resolve(await this.rule_compile(fwcloud, firewall, type, rule));

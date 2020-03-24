@@ -25,7 +25,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Tree } from '../tree/Tree';
 import { Entity, PrimaryColumn, Column } from "typeorm";
-const socketTools = require('../../utils/socket');
+import { SocketTools } from '../../utils/socket';
 const fwcError = require('../../utils/error_table');
 
 var dbCon;
@@ -67,7 +67,7 @@ export class Repair extends Model {
 
     public static initData(req) {
         return new Promise(async resolve => {
-            socketTools.init(req); // Init the socket used for message notification by the socketTools module.
+            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
             dbCon = req.dbCon;
             fwcloud = req.body.fwcloud;
             resolve();
@@ -91,23 +91,23 @@ export class Repair extends Model {
                 let ca_found = 0;
                 for (let node of nodes) {
                     if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
-                        socketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
+                        SocketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
                         firewalls_found = 1;
                     }
                     else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
-                        socketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
+                        SocketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
                         objects_found = 1;
                     }
                     else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
-                        socketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
+                        SocketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
                         services_found = 1;
                     }
                     else if (node.name === 'CA' && node.node_type === 'FCA') {
-                        socketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
+                        SocketTools.msg("Root node found: " + JSON.stringify(node) + "\n");
                         ca_found = 1;
                     }
                     else {
-                        socketTools.msg('<font color="red">Deleting invalid root node: ' + JSON.stringify(node) + '</font>\n');
+                        SocketTools.msg('<font color="red">Deleting invalid root node: ' + JSON.stringify(node) + '</font>\n');
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                     }
 
@@ -123,7 +123,7 @@ export class Repair extends Model {
 
                 // The properties id_obj and obj_type must be null. If not we can repair it.
                 if (update_obj_to_null) {
-                    socketTools.msg('<font color="red">Repairing root nodes (setting id_obj and obj_type to null).</font>\n');
+                    SocketTools.msg('<font color="red">Repairing root nodes (setting id_obj and obj_type to null).</font>\n');
                     sql = 'update ' + tableName + ' set id_obj=NULL,obj_type=NULL' +
                         ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent is null';
                     dbCon.query(sql, (error, result) => {
@@ -169,11 +169,11 @@ export class Repair extends Model {
                             // For security we allo a maximum deep of 100.
                             if (id_ancestor === -1 || id_ancestor === node.id || (++deep) > 100) {
                                 if (id_ancestor === -1)
-                                    socketTools.msg('<font color="red">Ancestor not found, deleting node: ' + JSON.stringify(node) + '</font>\n');
+                                    SocketTools.msg('<font color="red">Ancestor not found, deleting node: ' + JSON.stringify(node) + '</font>\n');
                                 else if (id_ancestor === node.id)
-                                    socketTools.msg('<font color="red">Deleting node in a loop: ' + JSON.stringify(node) + '</font>\n');
+                                    SocketTools.msg('<font color="red">Deleting node in a loop: ' + JSON.stringify(node) + '</font>\n');
                                 else if (deep > 100)
-                                    socketTools.msg('<font color="red">Deleting a too much deep node: ' + JSON.stringify(node) + '</font>\n');
+                                    SocketTools.msg('<font color="red">Deleting a too much deep node: ' + JSON.stringify(node) + '</font>\n');
 
                                 await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                                 break;
@@ -189,7 +189,7 @@ export class Repair extends Model {
                             }
                         }
                         if (!root_node_found) {
-                            socketTools.msg('<font color="red">Root node for this node is not correct. Deleting node: ' + JSON.stringify(node) + '</font>\n');
+                            SocketTools.msg('<font color="red">Root node for this node is not correct. Deleting node: ' + JSON.stringify(node) + '</font>\n');
                             await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                             continue;
                         }
@@ -214,13 +214,13 @@ export class Repair extends Model {
                     let nodeId = rootNode.id;
 
                     if (nodes.length === 0) // No node found for this firewall.
-                        socketTools.msg('<font color="red">No node found for firewall: ' + JSON.stringify(firewall) + '</font>\n');
+                        SocketTools.msg('<font color="red">No node found for firewall: ' + JSON.stringify(firewall) + '</font>\n');
                     else {
                         if (nodes.length === 1) { // The common case, firewall referenced by only one node three.
                             if (nodes[0].parent_node_type === 'FDF' || nodes[0].parent_node_type === 'FD')
                                 nodeId = nodes[0].id_parent;
                         } else if (nodes.length !== 1)
-                            socketTools.msg('<font color="red">Found several nodes for firewall: ' + JSON.stringify(firewall) + '>/font>\n');
+                            SocketTools.msg('<font color="red">Found several nodes for firewall: ' + JSON.stringify(firewall) + '>/font>\n');
 
                         // Remove nodes for this firewall.
                         for (let node of nodes)
@@ -228,7 +228,7 @@ export class Repair extends Model {
                     }
 
                     // Regenerate the tree.
-                    socketTools.msg("Regenerating tree for firewall: " + JSON.stringify(firewall) + "\n");
+                    SocketTools.msg("Regenerating tree for firewall: " + JSON.stringify(firewall) + "\n");
                     await Tree.insertFwc_Tree_New_firewall(fwcloud, nodeId, firewall.id);
                 } catch (err) { reject(err) }
                 resolve();
@@ -268,13 +268,13 @@ export class Repair extends Model {
                     let nodeId = rootNode.id;
 
                     if (nodes.length === 0) // No node found for this cluster.
-                        socketTools.msg('<font color="red">No node found for cluster: ' + JSON.stringify(cluster) + '</font>\n');
+                        SocketTools.msg('<font color="red">No node found for cluster: ' + JSON.stringify(cluster) + '</font>\n');
                     else {
                         if (nodes.length === 1) { // The common case, cluster referenced by only one node three.
                             if (nodes[0].parent_node_type === 'FDF' || nodes[0].parent_node_type === 'FD')
                                 nodeId = nodes[0].id_parent;
                         } else if (nodes.length !== 1)
-                            socketTools.msg('<font color="red">Found several nodes for cluster: ' + JSON.stringify(cluster) + '</font>\n');
+                            SocketTools.msg('<font color="red">Found several nodes for cluster: ' + JSON.stringify(cluster) + '</font>\n');
 
                         // Remove nodes for this cluster.
                         for (let node of nodes)
@@ -282,7 +282,7 @@ export class Repair extends Model {
                     }
 
                     // Regenerate the tree.
-                    socketTools.msg("Regenerating tree for cluster: " + JSON.stringify(cluster) + "\n");
+                    SocketTools.msg("Regenerating tree for cluster: " + JSON.stringify(cluster) + "\n");
                     await Tree.insertFwc_Tree_New_cluster(fwcloud, nodeId, cluster.id);
                 } catch (err) { reject(err) }
                 resolve();
@@ -317,7 +317,7 @@ export class Repair extends Model {
                 let sql = '';
                 if (node.node_type === 'FW') {
                     if (node.obj_type !== 0) { // Verify that object type is correct.
-                        socketTools.msg('<font color="red">Deleting node with bad obj_type: ' + JSON.stringify(node) + '</font>\n');
+                        SocketTools.msg('<font color="red">Deleting node with bad obj_type: ' + JSON.stringify(node) + '</font>\n');
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         return resolve(false);
                     }
@@ -325,7 +325,7 @@ export class Repair extends Model {
                 }
                 else if (node.node_type === 'CL') {
                     if (node.obj_type !== 100) { // Verify that object type is correct.
-                        socketTools.msg('<font color="red">Deleting node with bad obj_type: ' + JSON.stringify(node) + '</font>\n');
+                        SocketTools.msg('<font color="red">Deleting node with bad obj_type: ' + JSON.stringify(node) + '</font>\n');
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         return resolve(false);
                     }
@@ -338,7 +338,7 @@ export class Repair extends Model {
                     if (error) return reject(error);
 
                     if (rows.length !== 1) {
-                        socketTools.msg('<font color="red">Referenced object not found. Deleting node: ' + JSON.stringify(node) + '</font>\n');
+                        SocketTools.msg('<font color="red">Referenced object not found. Deleting node: ' + JSON.stringify(node) + '</font>\n');
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         resolve(false);
                     } else resolve(true);
@@ -359,7 +359,7 @@ export class Repair extends Model {
                     for (let node of nodes) {
                         // Into a folder we can have only more folders, firewalls or clusters.
                         if (node.node_type !== 'FD' && node.node_type !== 'FW' && node.node_type !== 'CL') {
-                            socketTools.msg('<font color="red">This node type can not be into a folder. Deleting it: ' + JSON.stringify(node) + '</font>\n');
+                            SocketTools.msg('<font color="red">This node type can not be into a folder. Deleting it: ' + JSON.stringify(node) + '</font>\n');
                             await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         }
 
@@ -367,7 +367,7 @@ export class Repair extends Model {
                         if (node.node_type === 'FW' || node.node_type === 'CL')
                             await this.checkNode(node);
                         else { // Recursively check the folders nodes.
-                            socketTools.msg('Checking folder node: ' + JSON.stringify(node) + '\n');
+                            SocketTools.msg('Checking folder node: ' + JSON.stringify(node) + '\n');
                             await this.checkFirewallsFoldersContent(node);
                         }
                     }

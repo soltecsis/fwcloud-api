@@ -26,16 +26,14 @@ import * as fs from 'fs';
 import Query from "../database/Query";
 import { RequestInputs } from "./http/request-inputs";
 import { ServiceContainer } from "./services/service-container";
-import { RouterService } from "./http/router/router.service";
-import { RouterServiceProvider } from "./http/router/router.provider";
-import { AuthorizationServiceProvider } from "./authorization/authorization.provider";
-import { AuthorizationMiddleware } from "./authorization/authorization.middleware";
-import { DatabaseServiceProvider } from "../database/database.provider";
-import { Middleware, Middlewareable } from "./http/middleware/Middleware";
+import { Middleware } from "./http/middleware/Middleware";
 import { ServiceProvider } from "./services/service-provider";
 import { Service } from "./services/service";
-import { RepositoryServiceProvider } from "../database/repository.provider";
-import { Routes } from "../routes/routes";
+import io from 'socket.io';
+import * as path from "path";
+import { Version } from "../version/version";
+import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
+import { SocketMiddleware } from "./http/sockets/socket-middleware";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -52,25 +50,14 @@ export function app<T extends AbstractApplication>(): T {
 
 
 export abstract class AbstractApplication {
+  static VERSION_FILENAME = 'version.json';
+
   protected _express: express.Application;
+  protected _socketio: any;
   protected _config: any;
   protected _path: string;
   protected _services: ServiceContainer;
-
-  private _providers: Array<typeof ServiceProvider> = [
-    DatabaseServiceProvider,
-    RepositoryServiceProvider,
-    RouterServiceProvider,
-    AuthorizationServiceProvider
-  ];
-
-  private _premiddlewares: Array<Middlewareable> = [
-    AuthorizationMiddleware
-  ];
-
-  private _postmiddlewares: Array<Middlewareable> = [
-
-  ];
+  protected _version: Version;
 
   protected constructor(path: string = process.cwd()) {
     try {
@@ -92,6 +79,10 @@ export abstract class AbstractApplication {
     return this._express;
   }
 
+  get socketio(): io.Server {
+    return this._socketio;
+  }
+
   get config(): any {
     return this._config;
   }
@@ -100,11 +91,25 @@ export abstract class AbstractApplication {
     return this._path;
   }
 
+  get version(): Version {
+    return this._version;
+  }
+
   public async getService<T extends Service>(name: string): Promise<T> {
     return await this._services.get(name);
   }
 
+  public setSocketIO(socketIO: io.Server): io.Server {
+    this._socketio = socketIO;
+
+    const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
+    sessionMiddleware.register(this);
+
+    return this._socketio;
+  }
+
   public async bootstrap(): Promise<AbstractApplication> {
+    this._version = await this.loadVersion();
     this.generateDirectories();
     this.startServiceContainer();
     this.registerProviders();
@@ -118,19 +123,19 @@ export abstract class AbstractApplication {
     await this.stopServiceContainer();
   }
 
-  protected registerProviders(): void {
-    const providersArray: Array<any> = this._providers.concat(this.providers());
+  protected async loadVersion(): Promise<Version> {
+    const version: Version = new Version();
+    await version.loadVersionFile(path.join(this.path, AbstractApplication.VERSION_FILENAME));
 
-    for (let i = 0; i < providersArray.length; i++) {
-      const provider: ServiceProvider = new providersArray[i]()
+    return version;
+  }
+
+  protected registerProviders(): void {
+    for (let i = 0; i < this.providers().length; i++) {
+      const provider: ServiceProvider = new (this.providers()[i])()
       provider.register(this._services);
     }
   }
-
-  protected async registerRoutes() {
-    const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
-    routerService.registerRoutes(Routes);
-  };
 
   protected startServiceContainer() {
     this._services = new ServiceContainer(this);
@@ -140,6 +145,8 @@ export abstract class AbstractApplication {
     await this._services.close();
   }
 
+  protected abstract async registerRoutes(): Promise<void>;
+
   /**
    * Register all middlewares
    */
@@ -147,7 +154,7 @@ export abstract class AbstractApplication {
     let middlewares: Array<any> = [];
 
     if (group === 'before') {
-      middlewares = this._premiddlewares.concat(this.beforeMiddlewares());
+      middlewares = this.beforeMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();
         middleware.register(this);
@@ -155,7 +162,7 @@ export abstract class AbstractApplication {
     }
 
     if (group === 'after') {
-      middlewares = this.afterMiddlewares().concat(this._postmiddlewares);
+      middlewares = this.afterMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();
         middleware.register(this);
@@ -166,23 +173,17 @@ export abstract class AbstractApplication {
   /**
    * Returns an array of Middleware classes to be registered before the routes handlers
    */
-  protected beforeMiddlewares(): Array<any> {
-    return [];
-  }
+  protected abstract beforeMiddlewares(): Array<any>;
 
   /**
    * Returns an array of Middleware classes to be registered after the routes handlers
    */
-  protected afterMiddlewares(): Array<any> {
-    return [];
-  }
+  protected abstract afterMiddlewares(): Array<any>;
 
   /**
    * Returns an array of ServiceProviders classes to be bound
    */
-  protected providers(): Array<any> {
-    return [];
-  }
+  protected abstract providers(): Array<any>;
 
   /**
    * Creates autogenerated directories

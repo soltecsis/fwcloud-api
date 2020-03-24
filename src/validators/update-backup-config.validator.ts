@@ -5,9 +5,9 @@ export class UpdateBackupConfigValidator extends RequestValidation {
 
     public rules(): JoiObject {
         return object({
-            default_schedule: string().required(),
-            default_max_days: number().required(),
-            default_max_copies: number().required()
+            schedule: string().required(),
+            max_days: number().required(),
+            max_copies: number().required()
         });
     }
 }

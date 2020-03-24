@@ -26,29 +26,30 @@ import http from 'http';
 import * as fs from 'fs';
 import io from 'socket.io';
 import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
+import { WebServerApplication } from "./web-server-application";
 
 export class Server {
-    private _application: Application;
+    private _application: Application | WebServerApplication;
     private _config;
     private _server: https.Server | http.Server;
+    private _type: 'api_server' | 'web_server';
 
-    constructor(app: Application) {
+    constructor(app: Application | WebServerApplication, type: 'api_server' | 'web_server') {
         this._application = app;
         this._config = app.config;
+        this._type = type;
     }
 
     public async start(): Promise<any> {
         try {
             this.validateApplicationConfiguration();
-            if (this.isHttps()) {
-                this._server = this.startHttpsServer();
-            } else {
-                this._server = this.startHttpServer();
+
+            if (this._config.get(this._type).enabled) {
+                this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
+                this.bootstrapEvents();
+                if (this._type === 'api_server') this.bootstrapSocketIO();
             }
-
-            this.bootstrapSocketIO();
-            this.bootstrapEvents();
-
+            else console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
         } catch (error) {
             console.error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
             process.exit(1);
@@ -63,9 +64,9 @@ export class Server {
             cert: string,
             ca: string | null
         } = {
-            key: fs.readFileSync(this._config.get('https').key).toString(),
-            cert: fs.readFileSync(this._config.get('https').cert).toString(),
-            ca: this._config.get('https').ca_bundle ? fs.readFileSync(this._config.get('https').ca_bundle).toString() : null
+            key: fs.readFileSync(this._config.get(this._type).key).toString(),
+            cert: fs.readFileSync(this._config.get(this._type).cert).toString(),
+            ca: this._config.get(this._type).ca_bundle ? fs.readFileSync(this._config.get(this._type).ca_bundle).toString() : null
         }
 
         return https.createServer(tlsOptions, this._application.express);
@@ -77,26 +78,35 @@ export class Server {
 
     private bootstrapEvents() {
         this._server.listen(
-            this._config.get('listen').port,
-            this._config.get('listen').ip
+            this._config.get(this._type).port,
+            this._config.get(this._type).ip
         );
-        this._server.on('error', (error) => {
-            this.onError(error);
-        });
-        this._server.on('listening', () => {
-            this.onListening();
+
+        this._server.on('error', (error: Error) => {
+            throw error;
         });
 
+        this._server.on('listening', () => {
+            console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL())
+        })
     }
 
     private bootstrapSocketIO() {
-        const _io = io();
-        this._application.express.set('socketio', _io);
+        const _io: io.Server = io(this._server);
+        (<Application>this._application).setSocketIO(_io);
 
         _io.on('connection', socket => {
-            if (this._config.get('env') === 'dev') console.log('user connected', socket.id);
+            socket.request.session.socket_id = socket.id;
+            socket.request.session.save();
+
+            if (this._application.config.get('env') === 'dev') {
+                console.log('user connected', socket.id);
+            }
+            
             socket.on('disconnect', () => {
-                if (this._config.get('env') === 'dev') console.log('user disconnected', socket.id);
+                if (this._application.config.get('env') === 'dev') {
+                    console.log('user disconnected', socket.id);
+                }
             });
         });
     }
@@ -119,20 +129,13 @@ export class Server {
         }
     }
 
-    public onError(error: Error) {
-        console.error(error.message);
-        throw error;
-    }
-
-    public onListening() {
-        var addr = this._server.address();
-        var bind = typeof addr === 'string'
-            ? 'pipe ' + addr
-            : 'port ' + addr.port;
-        console.log('Listening on ' + bind);
-    }
-
     public isHttps(): boolean {
-        return this._config.get('https').enable;
+        return this._config.get(this._type).https;
+    }
+
+    protected getFullURL(): string {
+        return (this.isHttps() ? 'https' : 'http') + '://' + this._application.config.get(this._type).ip 
+        + ':' 
+        + this._application.config.get(this._type).port;
     }
 }

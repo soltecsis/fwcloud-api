@@ -23,10 +23,7 @@
 import { ServiceContainer, ServiceBound } from "./service-container";
 import { AbstractApplication } from "../abstract-application";
 
-export interface IServiceProvider {
-    register(serviceContainer: ServiceContainer): void;
-}
-export abstract class ServiceProvider implements IServiceProvider {
+export abstract class ServiceProvider {
     protected app: AbstractApplication;
 
     constructor(app: AbstractApplication) {

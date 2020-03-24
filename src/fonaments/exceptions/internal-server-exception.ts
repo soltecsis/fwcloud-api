@@ -21,12 +21,11 @@
 */
 
 import { HttpException } from "./http/http-exception";
+import { FwCloudError } from "./error";
 
 export class InternalServerException extends HttpException {
-    constructor() {
-        super();
-        this.message = 'Internal Server Error';
+    constructor(message: string = null, caused_by: FwCloudError = null) {
+        super(message, caused_by);
         this.status = 500;
-        this.name = this.constructor.name;
     }
 }

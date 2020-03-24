@@ -27,14 +27,14 @@ import { app } from "../fonaments/abstract-application";
 import { DatabaseService, DatabaseConfig } from "../database/database.service";
 import moment, { Moment } from "moment";
 
-import mysqldump from "mysqldump";
+import mysqldump, { DumpReturn } from "mysqldump";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
-import { timingSafeEqual } from "crypto";
-import { stringify } from "querystring";
 import { FSHelper } from "../utils/fs-helper";
+import { Application } from "../Application";
+import { Progress } from "../fonaments/http/progress/progress";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -54,6 +54,7 @@ export class Backup implements Responsable {
     protected _backupPath: string;
     protected _dumpFilename: string;
     protected _comment: string;
+    protected _version: string;
 
     constructor() {
         this._id = null;
@@ -63,15 +64,21 @@ export class Backup implements Responsable {
         this._backupPath = null;
         this._dumpFilename = null;
         this._comment = null;
+        this._version = null;
     }
 
     toResponse(): Object {
         return {
             id: this._id,
+            version: this._version,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment
         }
+    }
+
+    get version(): string {
+        return this._version;
     }
 
     /**
@@ -103,8 +110,12 @@ export class Backup implements Responsable {
         return this._backupPath;
     }
 
+    get comment(): string {
+        return this._comment;
+    }
+
     public setComment(comment: string) {
-        this._comment = comment; 
+        this._comment = comment;
     }
 
     /**
@@ -127,8 +138,10 @@ export class Backup implements Responsable {
             this._date = moment(metadata.timestamp);
             this._id = metadata.timestamp;
             this._name = metadata.name;
+            this._comment = metadata.comment;
             this._exists = true;
-            this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath): backupPath;
+            this._version = metadata.version;
+            this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
         }
@@ -151,44 +164,101 @@ export class Backup implements Responsable {
      * 
      * @param backupDirectory Backup path
      */
-    async create(backupDirectory: string): Promise<Backup> {
+    progressCreate(backupDirectory: string): Progress<Backup> {
+        const progress = new Progress<Backup>(4);
         this._date = moment();
+        this._id = moment().valueOf();
+        this._version = app<Application>().version.version;
         this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
-        this.createDirectory();
-        this.exportMetadataFile();
-        await this.exportDatabase();
-        await this.exportDataDirectories();
+        progress.start('Creating backup');
 
-        await this.load(this._backupPath);
-        return this;
+        this.createDirectorySync();
+        this.exportMetadataFileSync();
+
+        const p1: Promise<DumpReturn> = this.exportDatabase();
+        
+        p1.then(_ => {
+            progress.step('Database exported');
+        });
+
+        const p2: Promise<void> = this.exportDataDirectories();
+        
+        p2.then(_ => {
+            progress.step('Data directories exported');
+        });
+
+        Promise.all([p1, p2]).then( (_) => {
+            this.load(this._backupPath).then(_ => {
+                progress.end('Backup created');
+            });
+        });
+
+        progress.response = this;
+
+        return progress;
     }
 
-    /**
-     * Restores an existing backup
-     */
-    async restore(): Promise<Backup> {
+    public async create(backupDirectory: string): Promise<Backup> {
+
+        const progress: Progress<Backup> = this.progressCreate(backupDirectory);
+
+        return new Promise<Backup>((resolve, reject) => {
+            progress.on('end', (_) => {
+                resolve(progress.response);
+            });
+        });
+    }
+
+    progressRestore(): Progress<Backup> {
+        const progress = new Progress<Backup>(3);
+
         if (this._exists) {
+            progress.start('Restoring backup');
 
-            try {
-                await this.importDatabase();
-
-                await this.importDataDirectories();
+            const p1: Promise<unknown> = this.importDatabase()
+            p1.then(_ => {
+                progress.step('Database restored');
 
                 //TODO: Make all firewalls pending of compile and install.
 
                 //TODO: Make all VPNs pending of install.
 
                 //TODO: Clean all policy compilation cache.
-                return this;
-            } catch (e) {
-                console.error(e);
-                throw e;
-            }
-        }
+            });
 
+
+            const p2: Promise<void> = this.importDataDirectories();
+            p2.then(_ => {
+                progress.step('Data directories restored');
+            });
+
+            Promise.all([p1, p2]).then( (_) => {
+                progress.end('Backup restored');
+            });
+
+            progress.response = this;
+
+            return progress;
+        }
+        
         throw new BackupNotFoundException(this._backupPath);
+        
+    }
+
+    /**
+     * Restores an existing backup
+     */
+    async restore(): Promise<Backup> {
+
+        const progress: Progress<Backup> = this.progressRestore();
+
+        return new Promise<Backup>((resolve, reject) => {
+            progress.on('end', (_) => {
+                resolve(progress.response);
+            });
+        });
     }
 
     /**
@@ -206,7 +276,7 @@ export class Backup implements Responsable {
     /**
      * Creates the backup directory
      */
-    protected createDirectory(): void {
+    protected createDirectorySync(): void {
         if (fs.existsSync(this._backupPath)) {
             fse.removeSync(this._backupPath);
         }
@@ -214,11 +284,11 @@ export class Backup implements Responsable {
         fs.mkdirSync(this._backupPath);
     }
 
-    protected exportMetadataFile(): void {
+    protected exportMetadataFileSync(): void {
         const metadata: BackupMetadata = {
             name: this._name,
             timestamp: this._date.valueOf(),
-            version: '0.0.0',
+            version: app<Application>().version.version,
             comment: this._comment
         };
 
@@ -228,24 +298,20 @@ export class Backup implements Responsable {
     /**
      * Exports the database into a file
      */
-    protected async exportDatabase(): Promise<void> {
+    protected async exportDatabase(): Promise<DumpReturn> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const dbConfig: DatabaseConfig = databaseService.config;
 
-        try {
-            await mysqldump({
-                connection: {
-                    host: dbConfig.host,
-                    port: dbConfig.port,
-                    user: dbConfig.user,
-                    password: dbConfig.pass,
-                    database: dbConfig.name,
-                },
-                dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),
-            });
-        } catch (e) {
-            console.error(e);
-        }
+        return await mysqldump({
+            connection: {
+                host: dbConfig.host,
+                port: dbConfig.port,
+                user: dbConfig.user,
+                password: dbConfig.pass,
+                database: dbConfig.name,
+            },
+            dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),
+        });
     }
 
     /**

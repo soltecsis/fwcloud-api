@@ -34,8 +34,6 @@ export class ValidationException extends HttpException {
     constructor(protected _error: JoiValidationError) {
         super();
         this.status = 422;
-        this.info = 'Unprocessable Entity';
-        this.message = this.info;
         this._errors = [];
 
         _error.details.forEach((detail: ValidationErrorItem) => {

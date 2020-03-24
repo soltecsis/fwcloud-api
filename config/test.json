@@ -23,7 +23,12 @@
     "policy": {
         "data_dir": "tests/playground/DATA/policy"
     },
-    "https": {
-        "enable": false
+    "api_server": {
+        "https": false
+    },
+    "web_server": {
+      "https" : false,
+      "port" : 80,
+      "api_url": "http://localhost:3000"
     }
 }

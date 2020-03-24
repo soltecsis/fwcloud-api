@@ -26,12 +26,37 @@ import { InternalServerException } from "../exceptions/internal-server-exception
 import { HttpException } from "../exceptions/http/http-exception";
 import { AbstractApplication, app } from "../abstract-application";
 import { isArray } from "util";
+import { HttpCodeResponse } from "./http-code-response";
+import ObjectHelpers from "../../utils/object-helpers";
+import { FwCloudError } from "../exceptions/error";
+import { SocketManager } from "../../sockets/socket-manager";
+
+interface ResponseBody {
+    status: number,
+    response: string,
+    data?: object,
+    error?: ErrorBody
+}
+
+export interface ErrorBody {
+    [k: string]: any,
+    exception?: ExceptionBody,
+}
+
+export interface ExceptionBody {
+    name: string,
+    stack: Array<string>,
+    caused_by?: ExceptionBody
+}
 
 export class ResponseBuilder {
     protected _status: number;
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
+
+    // Only used in handled request which uses a sockets
+    protected _event_id: string;
 
     private constructor() {
         this._app = app();
@@ -46,8 +71,13 @@ export class ResponseBuilder {
         return this;
     }
 
+    public socket(socket: SocketManager): ResponseBuilder {
+        this._event_id = socket.event_id;
+        return this;
+    }
+
     public body(payload: any): ResponseBuilder {
-        this._payload = this.buildResponse(payload);
+        this._payload = this.buildPayload(payload);
 
         return this;
     }
@@ -59,20 +89,44 @@ export class ResponseBuilder {
             this._response.status(this._status);
         }
 
-        this._response.send(this._payload);
+        this._response.send(this.buildMessage());
 
         return this;
     }
 
-    protected buildResponse(payload: any): Object {
-        if (payload instanceof Error) {
-            return this.buildErrorResponse(payload);
+    protected buildMessage(): ResponseBody {
+        let envelope: Partial<ResponseBody> = {
+            status: this._status,
+            response: HttpCodeResponse.get(this._status),
         }
 
-        return {data: this.buildDataResponse(payload)};
+        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
     }
 
-    protected buildDataResponse(payload: Object): Object {
+    protected attachEvent(): {event_id: string} {
+        if (this._event_id) {
+            return {event_id: this._event_id}
+        }
+
+        return null;
+    }
+
+    public toJSON(): ResponseBody {
+        return this.buildMessage();
+    }
+
+    protected buildPayload(payload: any): Object {
+        if (payload.constructor === Error) {
+            payload = new FwCloudError().fromError(payload);
+        }
+        if (payload instanceof FwCloudError) {
+            return {error: this.buildErrorPayload(payload)};
+        }
+
+        return {data: this.buildDataPayload(payload)};
+    }
+
+    protected buildDataPayload(payload: Object): Object {
         if (payload === null || payload === undefined) {
             return {};
         }
@@ -98,19 +152,13 @@ export class ResponseBuilder {
         return result;
     }
 
-    protected buildErrorResponse(payload: Error): Object {
+    protected buildErrorPayload(payload: FwCloudError): ErrorBody {
         if (payload instanceof HttpException) {
+            this._status = payload.status;
             return payload.toResponse();
         }
 
-        if (this._app.config.get('env') !== 'prod') {
-            return {
-                message: payload.message,
-                stack: payload.stack
-            };
-        }
-
         // In case the exception is not an http exception we generate a 500 exception
-        return this.buildErrorResponse(new InternalServerException());
+        return this.buildErrorPayload(new InternalServerException(payload.message, payload));
     }
 }
