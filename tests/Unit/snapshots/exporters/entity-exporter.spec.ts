@@ -36,7 +36,7 @@ describe(describeName('Entity exporter tests'), () => {
         ca = await repositoryService.for(Ca).findOne(ca.id);
     });
 
-    it.only('export should export the fwcloud', async() => {
+    it('export should export the fwcloud', async() => {
         const result = new SnapshotData;
         const exporter = await new EntityExporter(result, fwcloud).export()
         

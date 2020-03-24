@@ -7,6 +7,7 @@ import { Request } from "express";
 import { NotFoundException } from "../../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { RepositoryService } from "../../database/repository.service";
+import { Progress } from "../../fonaments/http/progress/progress";
 
 export class SnapshotController extends Controller {
 
@@ -45,9 +46,9 @@ export class SnapshotController extends Controller {
 
         (await SnapshotPolicy.create(fwcloud, request.session.user)).authorize();
 
-        const snapshot: Snapshot = await this._snapshotService.store(request.inputs.get('name'), request.inputs.get('commnet', null), fwcloud);
+        const progress: Progress<Snapshot> = this._snapshotService.store(request.inputs.get('name'), request.inputs.get('commnet', null), fwcloud);
 
-        return ResponseBuilder.buildResponse().status(201).body(snapshot);
+        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     public async update(request: Request): Promise<ResponseBuilder> {

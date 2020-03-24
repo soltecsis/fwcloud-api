@@ -34,8 +34,9 @@ export class Progress<T> {
         return this.emit('step', this._status.incrementStep(status, message));
     }
 
-    public end(message: string, status: number = 200): boolean {
-        return this.emit('end', this._status.incrementStep(status, message));
+    public end(message: string, status: number = null, ...args: object[] ): boolean {
+        status = status ? status: 200;
+        return this.emit('end', this._status.incrementStep(status, message), args);
     }
 
     public emit(event: progressEventName, progressEvent: ProgressSteps, ... args: object[]): boolean {

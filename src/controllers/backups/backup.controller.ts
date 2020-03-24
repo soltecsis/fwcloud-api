@@ -65,22 +65,13 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async store(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.session.socket_id)
-
         //TODO: Authorization
         const progress: Progress<Backup> = this._backupService.create(request.inputs.get('comment'))
-            .on('start', (payload) => {
-                socket.event(payload);
-            })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
             .on('end', async (payload) => {
                 await this._backupService.applyRetentionPolicy();
-                socket.end(payload);
             });
 
-        return ResponseBuilder.buildResponse().status(201).socket(socket).body(progress.response);
+        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     /**
@@ -90,26 +81,17 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.body.socket_id)
-
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         this._app.config.set('maintenance_mode', true);
 
-        this._backupService.restore(backup)
-            .on('start', (payload) => {
-                socket.event(payload);
-            })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
+        const progress = this._backupService.restore(backup)
             .on('end', async (payload) => {
-                socket.end(payload);
                 this._app.config.set('maintenance_mode', false);
-            });;
+            });
 
-        return ResponseBuilder.buildResponse().status(201).socket(socket).body(backup);
+        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     /**

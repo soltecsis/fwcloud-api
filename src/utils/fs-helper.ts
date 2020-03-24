@@ -1,10 +1,22 @@
-import { promises as fs, Stats, PathLike } from "fs";
+import * as fs from "fs";
 import * as fse from "fs-extra";
 
 export class FSHelper {
-    public static async directoryExists(path: PathLike): Promise<boolean> {
+    public static async directoryExists(path: fs.PathLike): Promise<boolean> {
+        return new Promise<boolean>((resolve, reject) => {
+            fs.stat(path, (error: Error, stats: fs.BigIntStats) => {
+                if (error) {
+                    return resolve(false);
+                }
+
+                return resolve(stats.isDirectory());
+            });
+        })
+    }
+
+    public static directoryExistsSync(path: fs.PathLike): boolean {
         try {
-            const stat: Stats = await fs.stat(path);
+            const stat: fs.Stats = fs.statSync(path);
             
             if (!stat || !stat.isDirectory()) {
                 throw new Error();
@@ -18,6 +30,10 @@ export class FSHelper {
 
     public static async mkdir(path: string): Promise<void> {
         return fse.mkdirp(path);
+    }
+
+    public static async mkdirSync(path: string): Promise<void> {
+        return fse.mkdirpSync(path);
     }
 
     public static async remove(path: string): Promise<void> {

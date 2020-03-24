@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Progress } from "../fonaments/http/progress/progress";
 
 export type SnapshotConfig = {
     data_dir: string
@@ -61,8 +62,8 @@ export class SnapshotService extends Service {
         return snapshot;
     }
 
-    public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Snapshot> {
-        return await Snapshot.create(this.config.data_dir, fwcloud, name, comment)
+    public store(name: string, comment: string, fwcloud: FwCloud): Progress<Snapshot> {
+        return Snapshot.progressCreate(this.config.data_dir, fwcloud, name, comment)
     }
 
     public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {

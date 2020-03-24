@@ -30,21 +30,30 @@ describe(describeName('Snapshot data tests'), () => {
             repositoryService.for(Ca).create({})
         ];
 
+        const fwCloud3: DeepPartial<FwCloud> = repositoryService.for(FwCloud).create({name: 'test3'});
+
         s1.data = {
             fwcloud: {
-                FwCloud: fwClouds
+                FwCloud: [].concat(fwClouds)
             }
         }
 
         s2.data = {
+            fwcloud: {
+                FwCloud: [fwCloud3]
+            },
             ca: {
                 Ca: cas
             }
         }
 
         expect(s1.merge(s2).data).to.be.deep.eq({
-            FwCloud: fwClouds,
-            Ca: cas
+            fwcloud: {
+                FwCloud: fwClouds.concat([fwCloud3])
+            },
+            ca: {
+                Ca: cas
+            }
         });
     });
 });

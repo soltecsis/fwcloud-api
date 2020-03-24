@@ -40,6 +40,8 @@ describe(describeName('Snapshot Service tests'), () => {
         const s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '1');
         const s2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '2');
 
+        const expected = await service.getAll();
+
         expect(await service.getAll()).to.be.deep.equal([s1, s2]);
     });
 

@@ -54,8 +54,8 @@ describe(describeName('Snapshot E2E tests'), () => {
     describe(describeName('SnapshotController@index'), () => {
 
         it('guest user should not see the snapshot list', async () => {
-            const s1: Snapshot = await snapshotService.store('test', null, fwCloud)
-            const s2: Snapshot = await snapshotService.store('test2', null, fwCloud);
+            const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
+            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
 
             await request(app.express)
                 .get(_URL().getURL('snapshots.index'))
@@ -68,8 +68,8 @@ describe(describeName('Snapshot E2E tests'), () => {
             });
             fwCloud2 = await repository.for(FwCloud).save(fwCloud2);
 
-            const s1: Snapshot = await snapshotService.store('test', null, fwCloud)
-            const s2: Snapshot = await snapshotService.store('test2', null, fwCloud2);
+            const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
+            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
 
             loggedUser.fwclouds = [fwCloud2];
             repository.for(User).save(loggedUser);
@@ -86,8 +86,8 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('admin user should see the snapshot list', async () => {
-            const s1: Snapshot = await snapshotService.store('test', null, fwCloud)
-            const s2: Snapshot = await snapshotService.store('test2', null, fwCloud);
+            const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null);
+            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null);
 
             await request(app.express)
                 .get(_URL().getURL('snapshots.index'))
@@ -105,7 +105,8 @@ describe(describeName('Snapshot E2E tests'), () => {
         let  s1: Snapshot;
 
         beforeEach(async() => {
-            s1 = await snapshotService.store('test1', null, fwCloud)
+            s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
+            
         });
 
 
@@ -225,7 +226,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         let  s1: Snapshot;
 
         beforeEach(async() => {
-            s1 = await snapshotService.store('test1', null, fwCloud)
+            s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
         });
 
         it('guest user should not update an snapshot', async() => {
@@ -292,7 +293,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         let  s1: Snapshot;
 
         beforeEach(async() => {
-            s1 = await snapshotService.store('test1', 'comment1', fwCloud)
+            s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', 'comment1')
         });
 
         it('guest user should not destroy an snapshot', async() => {

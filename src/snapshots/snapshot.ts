@@ -13,6 +13,8 @@ import { Importer } from "./importer";
 import { EntityExporter } from "./exporters/entity-exporter";
 import { Exporter } from "./exporter";
 import { DependencyExporter } from "./dependency-exporter/dependency-exporter";
+import { Progress } from "../fonaments/http/progress/progress";
+import { pbkdf2 } from "crypto";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -87,9 +89,18 @@ export class Snapshot implements Responsable {
 
     public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        const result: Snapshot = await snapshot.save(snapshot_directory, fwcloud, name, comment);
+        const progress: Progress<Snapshot> = snapshot.save(snapshot_directory, fwcloud, name, comment);
         
-        return await Snapshot.load(result.path);
+        return new Promise<Snapshot>((resolve, reject) => {
+            progress.on('end', async(_) => {
+                resolve(await Snapshot.load(progress.response.path))
+            });
+        });
+    }
+
+    public static progressCreate(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Progress<Snapshot> {
+        const snapshot: Snapshot = new Snapshot;
+        return snapshot.save(snapshot_directory, fwcloud, name, comment);
     }
 
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
@@ -139,28 +150,46 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    protected async save(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
+    protected save(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Progress<Snapshot> {
+        const progress = new Progress<Snapshot>(4);
+
         this._fwcloud = fwcloud;
         this._date = moment();
         this._id = this._date.valueOf();
         this._path = path.join(snapshot_directory, this._id.toString());
         this._name = name;
         this._comment = comment;
-        this._version = app<Application>().getVersion().version;
+        this._version = app<Application>().version.version;
 
-        if(await FSHelper.directoryExists(this._path)) {
+        progress.start('Creating snapshot');
+
+        if(FSHelper.directoryExistsSync(this._path)) {
             throw new Error('Snapshot with id = ' + this._id + ' already exists');
         }
 
-        await FSHelper.mkdir(this._path);
-
+        FSHelper.mkdirSync(this._path);
         this.saveMetadataFile();
 
-        await this.copyFwCloudPkiDirectory();
+        const p1: Promise<void> = this.copyFwCloudPkiDirectory();
 
-        await this.exportFwCloud();
-        
-        return this;
+        p1.then(_ => {
+            progress.step('FwCloud data directories exported');
+        });
+
+        const p2: Promise<void> = this.exportFwCloud();
+
+        p2.then(_ => {
+            progress.step('FwCloud database exported');
+        });
+
+        Promise.all([p1, p2]).then( (_) => {
+            progress.response = this;
+            progress.end('Snapshot created', null, this);
+        });
+
+        progress.response = this;
+
+        return progress;
     }
 
     protected async exportFwCloud(): Promise<void> {
