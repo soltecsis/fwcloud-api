@@ -119,7 +119,7 @@ export class RouterService extends Service {
                 await this.validateInput(route, request);
 
                 const controllerInstance = new route.controllerSignature.controller(this._app);
-                await controllerInstance.make();
+                await controllerInstance.make(request);
 
                 const result: ResponseBuilder = await controllerInstance[route.controllerSignature.method](request);
 

@@ -381,7 +381,7 @@ const config = convict({
     data_dir: {
       doc: 'Directory for store the snapshots.',
       format: String,
-      default: './SNAPSHOTS',
+      default: './DATA/snapshots',
       env: 'SNAPSHOT_DATA_DIR'
     },
   }    

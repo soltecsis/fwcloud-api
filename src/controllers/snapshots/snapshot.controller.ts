@@ -13,14 +13,16 @@ export class SnapshotController extends Controller {
 
     protected _snapshotService: SnapshotService;
     protected _repositoryService: RepositoryService;
+    protected _fwCloud: FwCloud;
 
-    public async make() {
+    public async make(request: Request) {
         this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
         this._repositoryService = await this._app.getService<RepositoryService>(RepositoryService.name);
+        this._fwCloud = await this._repositoryService.for(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
     }
 
     public async index(request: Request): Promise<ResponseBuilder> {
-        const snapshots: Array<Snapshot> = await this._snapshotService.getAll();
+        const snapshots: Array<Snapshot> = await this._snapshotService.getAll(this._fwCloud);
 
         const result: Array<Snapshot> = [];
 
@@ -34,7 +36,7 @@ export class SnapshotController extends Controller {
     }
 
     public async show(request: Request): Promise<ResponseBuilder> {
-        const snapshot: Snapshot = await this._snapshotService.findOneOrFail(parseInt(request.params.snapshot));
+        const snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
         if (!(await SnapshotPolicy.read(snapshot, request.session.user)).can()) {
             throw new NotFoundException();
@@ -44,17 +46,15 @@ export class SnapshotController extends Controller {
     }
 
     public async store(request: Request): Promise<ResponseBuilder> {
-        const fwcloud: FwCloud = await (this._repositoryService.for(FwCloud).findOneOrFail(request.body.fwcloud_id));
+        (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
-        (await SnapshotPolicy.create(fwcloud, request.session.user)).authorize();
-
-        const progress: Progress<Snapshot> = await this._snapshotService.store(request.inputs.get('name'), request.inputs.get('commnet', null), fwcloud);
+        const progress: Progress<Snapshot> = await this._snapshotService.store(request.inputs.get('name'), request.inputs.get('commnet', null), this._fwCloud);
 
         return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     public async update(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(parseInt(request.params.snapshot));
+        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
         (await SnapshotPolicy.update(snapshot, request.session.user)).authorize();
 
@@ -64,7 +64,7 @@ export class SnapshotController extends Controller {
     }
 
     public async restore(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(parseInt(request.params.snapshot));
+        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
         (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
 
@@ -74,7 +74,7 @@ export class SnapshotController extends Controller {
     }
 
     public async destroy(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(parseInt(request.params.snapshot));
+        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
         (await SnapshotPolicy.destroy(snapshot, request.session.user)).authorize();
 

@@ -128,7 +128,7 @@ export class Route {
 
         //TODO: Should use the regexp path restrictions in order to validate params
         // are valid
-        url = url.replace(new RegExp('\\(.+\\)'), "");
+        url = url.replace(/ *\([^)]*\)*/g, "");
 
         const occurrences = url.match(new RegExp('\:[A-Za-z0-9]+'));
         if (occurrences && occurrences.length > 0) {

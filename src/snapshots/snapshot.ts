@@ -209,7 +209,7 @@ export class Snapshot implements Responsable {
         this._fwcloud = fwcloud;
         this._date = moment();
         this._id = this._date.valueOf();
-        this._path = path.join(snapshot_directory, this._id.toString());
+        this._path = path.join(snapshot_directory, fwcloud.id.toString(), this._id.toString());
         this._name = name ? name: this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;

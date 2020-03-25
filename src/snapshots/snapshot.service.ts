@@ -5,6 +5,7 @@ import * as path from "path";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { Progress } from "../fonaments/http/progress/progress";
+import { FSHelper } from "../utils/fs-helper";
 
 export type SnapshotConfig = {
     data_dir: string
@@ -27,12 +28,17 @@ export class SnapshotService extends Service {
         return this._config;
     }
 
-    public async getAll(): Promise<Array<Snapshot>> {
+    public async getAll(fwcloud: FwCloud): Promise<Array<Snapshot>> {
         const snapshots: Array<Snapshot> = [];
+        const snapshotsDirectory: string = path.join(this.config.data_dir, fwcloud.id.toString());
 
-        const entires: Array<string> = fs.readdirSync(this._config.data_dir);
+        if(!FSHelper.directoryExistsSync(snapshotsDirectory)) {
+            return snapshots;
+        }
+
+        const entires: Array<string> = fs.readdirSync(snapshotsDirectory);
         for (let entry of entires.reverse()) {
-            let snapshotPath: string = path.join(this._config.data_dir, entry);
+            let snapshotPath: string = path.join(snapshotsDirectory, entry);
 
             if (fs.statSync(snapshotPath).isDirectory()) {
                 try {
@@ -44,8 +50,8 @@ export class SnapshotService extends Service {
         return snapshots;
     }
     
-    public async findOne(id: number): Promise<Snapshot> {
-        let snapshots: Array<Snapshot> = await this.getAll();
+    public async findOne(fwcloud: FwCloud, id: number): Promise<Snapshot> {
+        let snapshots: Array<Snapshot> = await this.getAll(fwcloud);
 
         const results = snapshots.filter((snapshot: Snapshot) => {
             return snapshot.id === id;
@@ -54,8 +60,8 @@ export class SnapshotService extends Service {
         return results.length > 0 ? results[0] : null;
     }
 
-    public async findOneOrFail(id: number): Promise<Snapshot> {
-        let snapshot: Snapshot = await this.findOne(id);
+    public async findOneOrFail(fwcloud: FwCloud, id: number): Promise<Snapshot> {
+        let snapshot: Snapshot = await this.findOne(fwcloud, id);
 
         if (!snapshot) {
             throw new NotFoundException();

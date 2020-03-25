@@ -58,17 +58,18 @@ export class Routes extends RouteCollection {
                 //Version
                 router.get('/version', VersionController, 'show').name('versions.show');
             });
-        });
 
-
-        //Snapshots
-        router.prefix('/snapshots', (router: RouterParser) => {
-            router.get('/', SnapshotController, 'index').name('snapshots.index');
-            router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
-            router.post('/', SnapshotController, 'store').name('snapshots.store');
-            router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
-            router.put('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
-            router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
+            //Snapshots
+            router.prefix('/fwclouds/:fwcloud(\\d+)', (router: RouterParser) => {
+                router.prefix('/snapshots', (router: RouterParser) => {
+                    router.get('/', SnapshotController, 'index').name('snapshots.index');
+                    router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
+                    router.post('/', SnapshotController, 'store').name('snapshots.store');
+                    router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
+                    router.put('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
+                    router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
+                });
+            });
         });
     }
 }
