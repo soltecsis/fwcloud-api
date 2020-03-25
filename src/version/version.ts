@@ -41,6 +41,7 @@ export class Version implements Responsable {
     toResponse(): object {
         return {
             version: this.tag,
+            schema: this.schema,
             date: this.date.utc()
         }
     }

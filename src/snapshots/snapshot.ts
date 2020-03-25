@@ -13,13 +13,16 @@ import { EntityExporter } from "./exporters/entity-exporter";
 import { Exporter } from "./exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseOperations } from "./bulk-database-operations";
+import { DatabaseService } from "../database/database.service";
+import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 
 export type SnapshotMetadata = {
     timestamp: number,
     name: string,
     comment: string,
     version: string,
-    fwcloud_id: number
+    fwcloud_id: number,
+    schema: string
 };
 
 export class Snapshot implements Responsable {
@@ -36,10 +39,14 @@ export class Snapshot implements Responsable {
     protected _fwcloud: FwCloud;
     protected _version: string;
 
+    protected _schema: string;
+
     protected _path: string;
     protected _exists: boolean;
 
     protected _data: SnapshotData;
+
+    protected _compatible: boolean;
 
     protected constructor() {
         this._id = null;
@@ -51,6 +58,8 @@ export class Snapshot implements Responsable {
         this._exists = false;
         this._version = null;
         this._data = null;
+        this._schema = null;
+        this._compatible = null;
     }
 
     get name(): string {
@@ -89,20 +98,24 @@ export class Snapshot implements Responsable {
         return this._data;
     }
 
-    public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
+    get schema(): string {
+        return this._schema;
+    }
+
+    public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        const progress: Progress<Snapshot> = snapshot.save(snapshot_directory, fwcloud, name, comment);
+        const progress: Progress<Snapshot> = await snapshot.save(snapshot_directory, fwcloud, name, comment);
 
         return new Promise<Snapshot>((resolve, reject) => {
             progress.on('end', async (_) => {
-                resolve(await Snapshot.load(progress.response.path))
+                resolve(await Snapshot.load(progress.response.path));
             });
         });
     }
 
-    public static progressCreate(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Progress<Snapshot> {
+    public static async progressCreate(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const snapshot: Snapshot = new Snapshot;
-        return snapshot.save(snapshot_directory, fwcloud, name, comment);
+        return await snapshot.save(snapshot_directory, fwcloud, name, comment);
     }
 
     public async restore(): Promise<Snapshot> {
@@ -119,6 +132,10 @@ export class Snapshot implements Responsable {
         const progress: Progress<Snapshot> = new Progress<Snapshot>(3);
 
         progress.start('Restoring snapshot');
+
+        if(!this._compatible) {
+            throw new SnapshotNotCompatibleException(this);
+        }
 
         let p1: Promise<void> = this.removeDatabaseData();
 
@@ -156,6 +173,8 @@ export class Snapshot implements Responsable {
         this._version = snapshotMetadata.version;
         this._exists = true;
         this._data = snapshotData;
+        this._schema = snapshotMetadata.schema
+        this._compatible = await this.checkisSchemaCompatible(this._schema);
         
         return this;
     }
@@ -183,16 +202,19 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    protected save(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Progress<Snapshot> {
+    protected async save(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const progress = new Progress<Snapshot>(4);
 
         this._fwcloud = fwcloud;
         this._date = moment();
         this._id = this._date.valueOf();
         this._path = path.join(snapshot_directory, this._id.toString());
-        this._name = name;
+        this._name = name ? name: this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;
+        this._schema = await databaseService.getDatabaseSchemaVersion();
+        this._compatible = true;
         
         progress.start('Creating snapshot');
 
@@ -257,7 +279,9 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            fwcloud_id: this._fwcloud.id
+            schema: this._schema,
+            fwcloud_id: this._fwcloud.id,
+            
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
@@ -275,12 +299,23 @@ export class Snapshot implements Responsable {
         }
     }
 
+    protected async checkisSchemaCompatible(schema: string) {
+        const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        const currentSchemaVersion: string = await databaseService.getDatabaseSchemaVersion();
+
+        return currentSchemaVersion === schema;
+    }
+
     toResponse(): object {
         return {
             id: this._id,
-            date: this._date,
             name: this._name,
-            comment: this._comment
+            comment: this._comment,
+            fwcloud_id: this._fwcloud.id,
+            date: this._date,
+            version: this._version,
+            schema: this._schema,
+            compatible: this._compatible,
         }
     }
 }

@@ -114,7 +114,7 @@ export class BackupService extends Service {
         return matches.length > 0 ? matches[0] : null;
     }
 
-    public async findOneOrDie(id: number): Promise<Backup> {
+    public async findOneOrFail(id: number): Promise<Backup> {
         const backup: Backup = await this.findOne(id);
 
         if (backup) {

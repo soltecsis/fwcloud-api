@@ -72,7 +72,7 @@ export class ResponseBuilder {
         if (this._status) {
             throw new Error('Status already defined for the given response');
         }
-        
+
         this._status = status;
         return this;
     }
@@ -92,21 +92,35 @@ export class ResponseBuilder {
         return this;
     }
 
+    public error(error: Error): ResponseBuilder {
+        if (this._payload) {
+            throw new Error('Message already defined for the given response');
+        }
+
+        if (!(error instanceof FwCloudError)) {
+            error = new FwCloudError().fromError(error);
+        }
+
+        this._payload = { error: this.buildErrorPayload(<FwCloudError>error) };
+
+        return this;
+    }
+
     public progress(progress: Progress<any>, socket_id: string, customEventHandler?: (p: Progress<any>) => void): ResponseBuilder {
         const socket: SocketManager = SocketManager.init(this._socket_id);
-        this._event_id =socket.event_id;
+        this._event_id = socket.event_id;
         this._socket_id = socket_id;
-        
+
         if (!customEventHandler) {
             progress.on('start', (payload) => {
                 socket.event(payload);
             })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
-            .on('end', async (payload) => {
-                socket.end(payload);
-            });
+                .on('step', (payload) => {
+                    socket.event(payload);
+                })
+                .on('end', async (payload) => {
+                    socket.end(payload);
+                });
         } else {
             customEventHandler(progress);
         }
@@ -152,14 +166,6 @@ export class ResponseBuilder {
     }
 
     protected buildPayload(payload: any): Object {
-        if (payload.constructor === Error) {
-            payload = new FwCloudError().fromError(payload);
-        }
-
-        if (payload instanceof FwCloudError) {
-            return { error: this.buildErrorPayload(payload) };
-        }
-
         return { data: this.buildDataPayload(payload) };
     }
 

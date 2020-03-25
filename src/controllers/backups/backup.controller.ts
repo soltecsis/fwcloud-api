@@ -53,7 +53,7 @@ export class BackupController extends Controller {
     public async show(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
+        const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         return ResponseBuilder.buildResponse().status(200).body(backup);
     }
@@ -103,7 +103,7 @@ export class BackupController extends Controller {
     public async destroy(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
+        const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         await this._backupService.destroy(backup);
 

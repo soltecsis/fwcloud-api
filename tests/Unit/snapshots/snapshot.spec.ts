@@ -2,12 +2,14 @@ import { describeName, expect, testSuite } from "../../mocha/global-setup"
 import * as fs from "fs";
 import * as path from "path";
 import { Application } from "../../../src/Application";
-import { Snapshot } from "../../../src/snapshots/snapshot";
+import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
+import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
+import { utc } from "moment";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -39,6 +41,7 @@ describe(describeName('Snapshot tests'), () => {
         expect(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).toString())).to.be.deep.equal({
             timestamp: snapshot.date.valueOf(),
             name: snapshot.name,
+            schema: snapshot.schema,
             comment: snapshot.comment,
             version: snapshot.version,
             fwcloud_id: snapshot.fwcloud.id,
@@ -62,6 +65,12 @@ describe(describeName('Snapshot tests'), () => {
         const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         expect(fs.statSync(path.join(snaphost.path, Snapshot.DATA_FILENAME)).isFile()).to.be.true;
+    })
+
+    it('create with an empty name should use the date as a name', async () => {
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud);
+
+        expect(snapshot.name).to.be.deep.equal(snapshot.date.utc().format());
     })
 
     it('snaphost id should be the snapshot directory name which is the date timestamp', async () => {
@@ -111,6 +120,22 @@ describe(describeName('Snapshot tests'), () => {
         const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id)
 
         expect(importedFwCloud.name).not.to.be.deep.equal(fwCloud.name);
+    });
+
+    it('restore should throw an exception if the snapshot is not compatible', async () => {
+        let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
+        metadata.schema = 'test';
+        fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+
+        snaphost = await Snapshot.load(snaphost.path);
+
+        async function t() {
+            return snaphost.restore();
+        }
+        
+        await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
     })
 
 })

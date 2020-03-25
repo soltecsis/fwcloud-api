@@ -31,11 +31,13 @@ export class SnapshotService extends Service {
         const snapshots: Array<Snapshot> = [];
 
         const entires: Array<string> = fs.readdirSync(this._config.data_dir);
-        for (let entry of entires) {
+        for (let entry of entires.reverse()) {
             let snapshotPath: string = path.join(this._config.data_dir, entry);
 
             if (fs.statSync(snapshotPath).isDirectory()) {
-                snapshots.push(await Snapshot.load(snapshotPath));
+                try {
+                    snapshots.push(await Snapshot.load(snapshotPath));
+                } catch(e) {}
             }
         }
 
@@ -52,7 +54,7 @@ export class SnapshotService extends Service {
         return results.length > 0 ? results[0] : null;
     }
 
-    public async findOneOrDie(id: number): Promise<Snapshot> {
+    public async findOneOrFail(id: number): Promise<Snapshot> {
         let snapshot: Snapshot = await this.findOne(id);
 
         if (!snapshot) {
@@ -62,8 +64,8 @@ export class SnapshotService extends Service {
         return snapshot;
     }
 
-    public store(name: string, comment: string, fwcloud: FwCloud): Progress<Snapshot> {
-        return Snapshot.progressCreate(this.config.data_dir, fwcloud, name, comment)
+    public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Progress<Snapshot>> {
+        return await Snapshot.progressCreate(this.config.data_dir, fwcloud, name, comment)
     }
 
     public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {

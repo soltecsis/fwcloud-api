@@ -1,5 +1,5 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { Snapshot } from "../../../src/snapshots/snapshot";
+import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import request = require("supertest");
 import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
@@ -8,6 +8,8 @@ import { RepositoryService } from "../../../src/database/repository.service";
 import { generateSession, attachSession } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
+import * as fs from "fs";
+import * as path from "path";
 
 let app: Application;
 let loggedUser: User;
@@ -62,6 +64,21 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .expect(401);
         });
 
+        it('regular user should not see any snapshot if the snapshot belongs to other fwclouds', async () => {
+            const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
+            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
+
+            await request(app.express)
+                .get(_URL().getURL('snapshots.index'))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(200)
+                .expect(response => {
+                    expect(response.body.data).to.be.deep.eq(
+                        JSON.parse(JSON.stringify([]))
+                    )
+                });
+        });
+
         it('regular user should see the snapshot which cloud is assigned to the user', async () => {
             let fwCloud2: FwCloud = repository.for(FwCloud).create({
                 name: 'fwcloud_test'
@@ -69,7 +86,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             fwCloud2 = await repository.for(FwCloud).save(fwCloud2);
 
             const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
-            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
+            const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud2, 'test2', null)
 
             loggedUser.fwclouds = [fwCloud2];
             repository.for(User).save(loggedUser);
@@ -95,7 +112,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .expect(200)
                 .expect((response) => {
                     expect(response.body.data).to.be.deep.equal(
-                        JSON.parse(JSON.stringify([s1.toResponse(), s2.toResponse()]))
+                        JSON.parse(JSON.stringify([s2.toResponse(), s1.toResponse()]))
                     )
                 })
         });
@@ -334,6 +351,18 @@ describe(describeName('Snapshot E2E tests'), () => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                 });
         });
+
+        it('restore should throw an exception if the snapshot is not compatible', async () => {
+            const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME)).toString());
+            metadata.schema = 'test';
+            fs.writeFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+
+            await request(app.express)
+                .put(_URL().getURL('snapshots.restore', {snapshot: s1.id}))
+                .set('Cookie', attachSession(adminUserSessionId))
+                .set('x-fwc-confirm-token', adminUser.confirmation_token)
+                .expect(422)
+        })
     });
 
     describe(describeName('SnapshotController@destroy'), () => {
