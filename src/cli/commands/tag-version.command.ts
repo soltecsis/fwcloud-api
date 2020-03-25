@@ -28,7 +28,7 @@ import moment = require("moment");
 import * as path from "path";
 import { Version } from "../../version/version";
 import { Application } from "../../Application";
-import { SchemaVersion } from "../../version/schema-version";
+import { DatabaseService } from "../../database/database.service";
 
 
 /**
@@ -51,6 +51,7 @@ export class TagVersionCommand implements yargs.CommandModule {
     async handler(args: yargs.Arguments) {
         try {
             const app: Application = await Application.run();
+            const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
             if (!semver.valid(args.t as string)) {
                 throw new VersionTagIsNotValidException(args.t as string);
@@ -59,9 +60,7 @@ export class TagVersionCommand implements yargs.CommandModule {
             const version: Version = new Version();
             version.tag = args.t as string;
             version.date = moment();
-
-            const schemaVersion: SchemaVersion = await SchemaVersion.make();
-            version.schema = schemaVersion.getVersion();
+            version.schema = await databaseService.getDatabaseSchemaVersion();
 
             await version.saveVersionFile(path.join(app.path, Application.VERSION_FILENAME));
 

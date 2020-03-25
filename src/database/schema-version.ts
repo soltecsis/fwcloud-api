@@ -1,4 +1,4 @@
-import { DatabaseService } from "../database/database.service";
+import { DatabaseService } from "./database.service";
 import { app } from "../fonaments/abstract-application";
 import mysqldump, { DumpReturn } from "mysqldump";
 import * as crypto from "crypto";
