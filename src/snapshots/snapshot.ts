@@ -19,9 +19,7 @@ export type SnapshotMetadata = {
     name: string,
     comment: string,
     version: string,
-    fwcloud_id: number,
-    imported: boolean,
-    imported_at: string
+    fwcloud_id: number
 };
 
 export class Snapshot implements Responsable {
@@ -37,8 +35,6 @@ export class Snapshot implements Responsable {
     protected _comment: string;
     protected _fwcloud: FwCloud;
     protected _version: string;
-    protected _imported: boolean;
-    protected _imported_at: Moment;
 
     protected _path: string;
     protected _exists: boolean;
@@ -55,8 +51,6 @@ export class Snapshot implements Responsable {
         this._exists = false;
         this._version = null;
         this._data = null;
-        this._imported = false;
-        this._imported_at = null;
     }
 
     get name(): string {
@@ -93,14 +87,6 @@ export class Snapshot implements Responsable {
 
     get data(): SnapshotData {
         return this._data;
-    }
-
-    get imported(): boolean {
-        return this._imported;
-    }
-
-    get imported_at(): Moment {
-        return this._imported_at;
     }
 
     public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string, comment: string = null): Promise<Snapshot> {
@@ -170,9 +156,7 @@ export class Snapshot implements Responsable {
         this._version = snapshotMetadata.version;
         this._exists = true;
         this._data = snapshotData;
-        this._imported = snapshotMetadata.imported;
-        this._imported_at = snapshotMetadata.imported_at ? moment(snapshotMetadata.imported_at) : null;
-
+        
         return this;
     }
 
@@ -209,9 +193,7 @@ export class Snapshot implements Responsable {
         this._name = name;
         this._comment = comment;
         this._version = app<Application>().version.version;
-        this._imported = false;
-        this._imported_at = null;
-
+        
         progress.start('Creating snapshot');
 
         if (FSHelper.directoryExistsSync(this._path)) {
@@ -275,9 +257,7 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            fwcloud_id: this._fwcloud.id,
-            imported: this._imported,
-            imported_at: this._imported_at ? this._imported_at.utc().toString() : null
+            fwcloud_id: this._fwcloud.id
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
@@ -300,9 +280,7 @@ export class Snapshot implements Responsable {
             id: this._id,
             date: this._date,
             name: this._name,
-            comment: this._comment,
-            imported: this._imported,
-            imported_at: this._imported_at ? this._imported_at.utc().toString() : null
+            comment: this._comment
         }
     }
 }
