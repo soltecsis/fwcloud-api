@@ -50,7 +50,7 @@ describe(describeName('Backup tests'), () => {
         expect(metadata).to.be.deep.equal({
             name: backup.name,
             timestamp: backup.timestamp,
-            version: app.version.version,
+            version: app.version.tag,
             comment: 'test comment',
         });
     });

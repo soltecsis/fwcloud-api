@@ -28,6 +28,7 @@ import moment = require("moment");
 import * as path from "path";
 import { Version } from "../../version/version";
 import { Application } from "../../Application";
+import { SchemaVersion } from "../../version/schema-version";
 
 
 /**
@@ -55,7 +56,12 @@ export class TagVersionCommand implements yargs.CommandModule {
                 throw new VersionTagIsNotValidException(args.t as string);
             }
 
-            const version: Version = new Version(args.t as string, moment());
+            const version: Version = new Version();
+            version.tag = args.t as string;
+            version.date = moment();
+
+            const schemaVersion: SchemaVersion = await SchemaVersion.make();
+            version.schema = schemaVersion.getVersion();
 
             await version.saveVersionFile(path.join(app.path, Application.VERSION_FILENAME));
 

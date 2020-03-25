@@ -192,7 +192,7 @@ export class Snapshot implements Responsable {
         this._path = path.join(snapshot_directory, this._id.toString());
         this._name = name;
         this._comment = comment;
-        this._version = app<Application>().version.version;
+        this._version = app<Application>().version.tag;
         
         progress.start('Creating snapshot');
 

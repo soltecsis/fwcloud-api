@@ -168,7 +168,7 @@ export class Backup implements Responsable {
         const progress = new Progress<Backup>(4);
         this._date = moment();
         this._id = moment().valueOf();
-        this._version = app<Application>().version.version;
+        this._version = app<Application>().version.tag;
         this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
@@ -288,7 +288,7 @@ export class Backup implements Responsable {
         const metadata: BackupMetadata = {
             name: this._name,
             timestamp: this._date.valueOf(),
-            version: app<Application>().version.version,
+            version: app<Application>().version.tag,
             comment: this._comment
         };
 
