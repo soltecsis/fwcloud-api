@@ -63,8 +63,8 @@ describe(describeName('Snapshot tests'), () => {
 
         const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-        expect(fs.statSync(path.join(snapshot.path, 'pki', 'test.txt')).isFile());
-        expect(fs.readFileSync(path.join(snapshot.path, 'pki', 'test.txt')).toString()).to.be.deep.eq('test file content');
+        expect(fs.statSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).isFile());
+        expect(fs.readFileSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).toString()).to.be.deep.eq('test file content');
     });
 
     it('create should export the fwcloud into the data file', async () => {

@@ -226,7 +226,7 @@ export class Snapshot implements Responsable {
         FSHelper.mkdirSync(this._path);
         this.saveMetadataFile();
 
-        const p1: Promise<void> = this.copyFwCloudPkiDirectory();
+        const p1: Promise<void> = this.copyFwCloudDataDirectories();
 
         p1.then(_ => {
             progress.step('FwCloud data directories exported');

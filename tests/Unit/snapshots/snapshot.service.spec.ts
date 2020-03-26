@@ -34,7 +34,7 @@ describe(describeName('Snapshot Service tests'), () => {
     });
 
     it('service instance should generate the snapshots directory', async() => {
-        await FSHelper.remove(service.config.data_dir); 
+        await FSHelper.rmDirectory(service.config.data_dir); 
 
         expect(await FSHelper.directoryExists(service.config.data_dir)).to.be.false;
 

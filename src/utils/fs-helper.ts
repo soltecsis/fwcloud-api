@@ -36,11 +36,17 @@ export class FSHelper {
         return fse.mkdirpSync(path);
     }
 
-    public static async remove(path: string): Promise<void> {
+    public static async rmDirectory(path: string): Promise<void> {
         return fse.remove(path);
     }
 
     public static async copyDirectory(source: string, destination: string): Promise<void> {
         return fse.copy(source, destination);
+    }
+
+    public static async copyDirectoryIfExists(source: string, destination: string): Promise<void> {
+        if (await this.directoryExists(source)) {
+            return FSHelper.copyDirectory(source, destination);
+        }
     }
 }

@@ -23,6 +23,9 @@
     "policy": {
         "data_dir": "tests/playground/DATA/policy"
     },
+    "pki": {
+        "data_dir": "tests/playground/DATA/pki"
+    },
     "api_server": {
         "https": false
     },
