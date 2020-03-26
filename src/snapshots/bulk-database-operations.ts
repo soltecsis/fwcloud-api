@@ -1,7 +1,9 @@
 import { SnapshotData } from "./snapshot-data";
 import { DatabaseService } from "../database/database.service";
 import { app } from "../fonaments/abstract-application";
-import { QueryRunner } from "typeorm";
+import { QueryRunner, getMetadataArgsStorage, DeepPartial } from "typeorm";
+import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
+import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 export class BulkDatabaseOperations {
     protected _data: SnapshotData;
@@ -30,7 +32,9 @@ export class BulkDatabaseOperations {
                             }
 
                             if (this._operation === 'delete') {
-                                await qr.manager.delete(table, this._data.data[table][className][i]);
+                                //Delete queries based only on primary keys colums. Other colums could have changed
+                                const criteria = this.getPrimaryKeysData(table, className, this._data.data[table][className][i]);
+                                await qr.manager.delete(table, criteria);
                             }
                         }
                     }
@@ -47,5 +51,36 @@ export class BulkDatabaseOperations {
             await qr.release();
             resolve();
         });
+    }
+
+    protected getPrimaryKeysData(tableName: string, entityName: string, data: DeepPartial<any>): DeepPartial<any> {
+        let argsEntity: TableMetadataArgs = this.getEntity(tableName, entityName);
+        const target = <any>argsEntity.target;
+        const instance = new target();
+        const result: DeepPartial<any> = {};
+
+        const primaryKeysMetadata: Array<ColumnMetadataArgs> = instance.getPrimaryKeys();
+
+        if (primaryKeysMetadata.length <= 0) {
+            return data;
+        }
+
+        for(let i = 0; i < primaryKeysMetadata.length; i++) {
+            const propertyName = primaryKeysMetadata[i].propertyName;
+            if (data[propertyName]) {
+                result[propertyName] = data[propertyName];
+            }
+        }
+
+        return result;
+    }
+
+    protected getEntity(tableName: string, entityName: string): any {
+        const matches: Array<TableMetadataArgs> = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
+            const target = <any>item.target;
+            return tableName === item.name && entityName === target.name;
+        });
+
+        return matches.length > 0 ? matches[0]: null;
     }
 }
