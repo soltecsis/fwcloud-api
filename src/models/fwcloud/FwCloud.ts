@@ -113,6 +113,14 @@ export class FwCloud extends Model {
         return null;
     }
 
+    public getPolicyDirectoryPath(): string {
+        if (this.id) {
+            return path.join(app().config.get('policy').data_dir, this.id.toString());
+        }
+
+        return null;
+    }
+
     /**
      * Get Fwcloud by User
      *  

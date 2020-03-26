@@ -30,7 +30,8 @@ export class Snapshot implements Responsable {
     static METADATA_FILENAME = 'snapshot.json';
     static DATA_FILENAME = 'data.json';
     static DEPENDENCY_FILENAME = 'dep.json';
-    static PKI_DIRECTORY = 'pki';
+    static PKI_DIRECTORY = path.join('_data', 'pki');
+    static POLICY_DIRECTORY = path.join('_data', 'policy');
 
     protected _id: number;
     protected _date: Moment;
@@ -195,7 +196,7 @@ export class Snapshot implements Responsable {
 
     public async destroy(): Promise<Snapshot> {
         if (this._exists) {
-            await FSHelper.remove(this._path);
+            await FSHelper.rmDirectory(this._path);
             this._exists = false;
         }
 
@@ -281,16 +282,20 @@ export class Snapshot implements Responsable {
             version: this._version,
             schema: this._schema,
             fwcloud_id: this._fwcloud.id,
-            
+
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
     }
 
-    protected async copyFwCloudPkiDirectory(): Promise<void> {
-        if (await FSHelper.directoryExists(this.fwcloud.getPkiDirectoryPath())) {
-            await FSHelper.copyDirectory(this.fwcloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
-        }
+    protected async copyFwCloudDataDirectories(): Promise<void> {
+        await FSHelper.copyDirectoryIfExists(this.fwcloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
+        await FSHelper.copyDirectoryIfExists(this.fwcloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
+    }
+
+    protected async removeFwCloudDataDirectories(): Promise<void> {
+        await FSHelper.rmDirectory(this.fwcloud.getPkiDirectoryPath());
+        await FSHelper.rmDirectory(this.fwcloud.getPolicyDirectoryPath());
     }
 
     protected static async generateSnapshotDirectoryIfDoesNotExist() {
