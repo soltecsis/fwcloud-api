@@ -4,6 +4,7 @@ import { app } from "../fonaments/abstract-application";
 import { QueryRunner, getMetadataArgsStorage, DeepPartial } from "typeorm";
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { RepositoryService } from "../database/repository.service";
 
 export class BulkDatabaseOperations {
     protected _data: SnapshotData;
@@ -22,13 +23,15 @@ export class BulkDatabaseOperations {
             await qr.startTransaction();
 
             try {
+                const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
                 await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
                 for (let table in this._data.data) {
                     for (let className in this._data.data[table]) {
                         for (let i = 0; i < this._data.data[table][className].length; i++) {
                             if (this._operation === 'insert') {
-                                await qr.manager.insert(table, this._data.data[table][className][i]);
+                                const row: any = repositoryService.for(this.getEntity(table, className).target).create(this._data.data[table][className][i]);
+                                await qr.manager.getRepository(this.getEntity(table, className).target).save(row);
                             }
 
                             if (this._operation === 'delete') {

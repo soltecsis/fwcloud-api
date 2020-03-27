@@ -146,25 +146,37 @@ describe(describeName('Snapshot tests'), () => {
         await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
     });
 
-    it.skip('restore should mark as uncompiled all fwcloud firewalls', async () => {
+    it('restore should mark as uncompiled all fwcloud firewalls', async () => {
         let firewall: Firewall = repositoryService.for(Firewall).create({
             name: 'firewall_test',
             status: 1,
             fwCloudId: fwCloud.id
         });
 
-        await repositoryService.for(Firewall).save(firewall);
+        let firewall2: Firewall = repositoryService.for(Firewall).create({
+            name: 'firewall_test2',
+            status: 1,
+            fwCloudId: fwCloud.id
+        });
+
+        await repositoryService.for(Firewall).save([firewall, firewall2]);
         firewall = await repositoryService.for(Firewall).findOne(firewall.id);
+        firewall2 = await repositoryService.for(Firewall).findOne(firewall2.id);
 
         let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         await snaphost.restore();
 
         firewall = await repositoryService.for(Firewall).findOne(firewall.id);
+        firewall2 = await repositoryService.for(Firewall).findOne(firewall.id);
 
         expect(firewall.status).to.be.deep.eq(0);
         expect(firewall.compiled_at).to.be.null;
         expect(firewall.installed_at).to.be.null;
+
+        expect(firewall2.status).to.be.deep.eq(0);
+        expect(firewall2.compiled_at).to.be.null;
+        expect(firewall2.installed_at).to.be.null;
     });
 
 })

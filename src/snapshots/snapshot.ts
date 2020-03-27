@@ -15,6 +15,7 @@ import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseOperations } from "./bulk-database-operations";
 import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
+import { Firewall } from "../models/firewall/Firewall";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -145,7 +146,11 @@ export class Snapshot implements Responsable {
 
             const p2: Promise<void> = this.restoreDatabaseData();
             p2.then((_) => {
-                progress.end('FwCloud restored');
+                let p3: Promise<void> = this.resetCompiledStatus();
+
+                p3.then((_) => {
+                    progress.end('FwCloud snapshot restored');
+                })
             })
         })
 
@@ -309,6 +314,15 @@ export class Snapshot implements Responsable {
         const currentSchemaVersion: string = await databaseService.getDatabaseSchemaVersion();
 
         return currentSchemaVersion === schema;
+    }
+
+    protected async resetCompiledStatus(): Promise<void> {
+        const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
+        const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, {relations: ['clusters', 'firewalls']});
+
+        for(let i = 0; i < fwcloud.firewalls.length; i++) {
+            await fwcloud.firewalls[i].resetCompilationStatus();
+        };
     }
 
     toResponse(): object {

@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -38,6 +38,7 @@ import { Policy } from "../../fonaments/authorization/policy";
 import { RoutingRule } from "../routing/routing-rule.model";
 import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
+import { app } from "../../fonaments/abstract-application";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -137,6 +138,14 @@ export class Firewall extends Model {
 	
 	public getTableName(): string {
 		return tableName;
+	}
+
+	public async resetCompilationStatus(): Promise<Firewall> {
+		this.status = 0;
+		this.compiled_at = null;
+		this.installed_at = null;
+
+		return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
 	}
 
 	/**
