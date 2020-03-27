@@ -43,7 +43,7 @@ export class ModelEventService {
             const modelInstances: Model[] = await this.getEntities(model, criteria);
             
             for(let i = 0; i < modelInstances.length; i++) {
-                await modelInstances[i][method]();
+                if (modelInstances[i]) await modelInstances[i][method]();
             }
         }
 

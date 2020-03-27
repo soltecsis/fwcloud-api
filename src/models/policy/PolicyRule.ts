@@ -827,7 +827,7 @@ export class PolicyRule extends Model {
                             await modelEventService.emit('update', PolicyRule, {
                                 firewall: firewall,
                                 type: type,
-                                rule_order: MoreThan(result[0].rule_order)
+                                rule_order: MoreThan(free_rule_order)
                             });
                             resolve(free_rule_order);
                         });
