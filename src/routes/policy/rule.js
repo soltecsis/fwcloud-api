@@ -167,55 +167,36 @@ async (req, res) => {
 /* Update Active policy_r  */
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
-(req, res) => {
+async (req, res) => {
 	//Save data into object
 	var idfirewall = req.body.firewall;
 	var type = req.body.type;
 	var active = req.body.active;
 	var rulesIds = req.body.rulesIds;
-	if (active !== 1)
-		active = 0;
-	db.lockTableCon("policy_r", " WHERE firewall=" + idfirewall + " AND type=" + type, () => {
-		db.startTXcon(() => {
-			for (var rule of rulesIds) {
-				PolicyRule.updatePolicy_r_Active(idfirewall, rule, type, active, (error, data) => {
-					if (error)
-						logger.debug("ERROR UPDATING ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-					if (data && data.result) {
-						logger.debug("UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-					} else
-						logger.debug("NOT UPDATED ACTIVE STATUS for RULE: " + rule + "  Active: " + active);
-				});
-			}
-			db.endTXcon(() => {});
-		});
+	if (active !== 1) active = 0;
+
+	try {
+		for (var rule of rulesIds) {
+			await PolicyRule.updatePolicy_r_Active(idfirewall, rule, type, active);
+		}
 		res.status(204).end();
-	});
+	} catch(error) { res.status(400).json(error) }
 });
 
 
 /* Update Style policy_r  */
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
-(req, res) => {
+async (req, res) => {
 	var style = req.body.style;
 	var rulesIds = req.body.rulesIds;
-	db.lockTableCon("policy_r", " WHERE firewall=" + req.body.firewall + " AND type=" + req.body.type, () => {
-		db.startTXcon(() => {
-			for (var rule of rulesIds) {
-				PolicyRule.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style, (error, data) => {
-					if (error)
-						logger.debug("ERROR UPDATING STYLE for RULE: " + rule + "  STYLE: " + style);
-					if (data && data.result) {
-						logger.debug("UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-					} else
-						logger.debug("NOT UPDATED STYLE for RULE: " + rule + "  STYLE: " + style);
-				});
-			}
-			db.endTXcon(() => {});
-		});
-	});
-	res.status(204).end();
+
+	try {
+		for (var rule of rulesIds) {
+			await PolicyRule.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style);
+		}
+		res.status(204).end();
+	} catch(error) { res.status(400).json(error) }
 });
 
 
