@@ -47,11 +47,11 @@ export default class PolicyGroupRepository extends Repository<PolicyGroup> {
      */
     public async clone(original: PolicyGroup): Promise<PolicyGroup> {
         const cloned: PolicyGroup = this.create({
-            firewall: original.firewall,
+            firewallId: original.firewall.id,
             name: original.name,
             comment: original.comment,
             groupstyle: original.groupstyle,
-            idgroup: original.idgroup
+            parentId: original.parentId
         });
 
         return await this.save(cloned);
@@ -66,6 +66,6 @@ export default class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
-        return (await this.find({ firewall: { id: firewallId }, idgroup: groupId })).length > 0
+        return (await this.find({ firewallId: firewallId, parentId: groupId })).length > 0
     }
 }

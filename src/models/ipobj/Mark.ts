@@ -57,6 +57,9 @@ export class Mark extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+    
     @ManyToOne(type => FwCloud, fwcloud => fwcloud.marks)
     @JoinColumn({
         name: 'fwcloud'

@@ -79,7 +79,7 @@ export class User extends Model {
     updated_by: number;
 
     @ManyToMany(type => FwCloud, fwcloud => fwcloud.users)
-    fwclouds: Array<FwCloud>;
+    fwClouds: Array<FwCloud>;
 
     @OneToMany(type => Ca, ca => ca.created_by)
     created_cas: Array<Ca>;
@@ -87,6 +87,9 @@ export class User extends Model {
     @OneToMany(type => Ca, ca => ca.updated_by)
     updated_cas: Array<Ca>;
 
+    @Column({name: 'customer'})
+    customerId: number;
+    
     @ManyToOne(type => Customer, customer => customer.users)
     @JoinColumn({
         name: 'customer'

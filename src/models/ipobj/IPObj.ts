@@ -56,9 +56,6 @@ export class IPObj extends Model {
     name: string;
 
     @Column()
-    type: number;
-
-    @Column()
     protocol: number;
 
     @Column()
@@ -121,11 +118,17 @@ export class IPObj extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+
     @ManyToOne(type => FwCloud, fwcloud => fwcloud.ipObjs)
     @JoinColumn({
         name: 'fwcloud'
     })
     fwCloud: FwCloud;
+
+    @Column({name: 'type'})
+    ipObjTypeId: number;
 
     @ManyToOne(type => IPObjType, ipObjType => ipObjType.ipObjs)
     @JoinColumn({
@@ -133,6 +136,9 @@ export class IPObj extends Model {
     })
     ipObjType: IPObjType;
 
+    @Column({name: 'interface'})
+    interfaceId: number;
+    
     @ManyToOne(type => Interface, _interface => _interface.ipObjs)
     @JoinColumn({
         name: 'interface'
@@ -173,7 +179,7 @@ export class IPObj extends Model {
 
         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipobj: this.id});
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipObjId: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }

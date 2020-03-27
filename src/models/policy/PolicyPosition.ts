@@ -39,6 +39,7 @@ import { PolicyRule } from "./PolicyRule";
 import { PolicyRuleToOpenVPNPrefix } from "./PolicyRuleToOpenVPNPrefix";
 import { PolicyRuleToIPObj } from "./PolicyRuleToIPObj";
 import { PolicyRuleToOpenVPN } from "./PolicyRuleToOpenVPN";
+import { IPObjTypeToPolicyPosition } from "../ipobj/IPObjTypeToPolicyPosition";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -65,6 +66,9 @@ export class PolicyPosition extends Model {
     @Column()
     single_object: number;
 
+    @Column({name: 'policy_type'})
+    policyTypeId: number;
+    
     @ManyToOne(type => PolicyType, type => type.policyPositions)
     @JoinColumn({
         name: 'policy_type'
@@ -85,6 +89,9 @@ export class PolicyPosition extends Model {
 
     @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyPosition)
     policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
+    @OneToMany(type => IPObjTypeToPolicyPosition, model => model.policyPosition)
+    ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
 
 
     public getTableName(): string {

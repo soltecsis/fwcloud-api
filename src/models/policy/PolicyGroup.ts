@@ -46,9 +46,6 @@ export class PolicyGroup extends Model {
 	@Column()
 	comment: string;
 
-	@Column()
-	idgroup: number;
-
 	@CreateDateColumn()
 	created_at: Date;
 
@@ -64,11 +61,17 @@ export class PolicyGroup extends Model {
 	@Column()
 	groupstyle: string;
 
+	@Column({name: 'firewall'})
+	firewallId: number;
+
 	@ManyToOne(type => Firewall, firewall => firewall.policyGroups)
 	@JoinColumn({
 		name: 'firewall'
 	})
 	firewall: Firewall;
+
+	@Column({name: 'idgroup'})
+	parentId: number;
 
 	@ManyToOne(type => PolicyGroup, policyGroup => policyGroup.childs)
 	@JoinColumn({

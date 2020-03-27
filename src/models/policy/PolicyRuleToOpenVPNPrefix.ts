@@ -84,19 +84,19 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     public async onCreate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     //Add new policy_r__openvpn_prefix

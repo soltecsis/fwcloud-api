@@ -10,18 +10,20 @@ import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { utc } from "moment";
+import { Firewall } from "../../../src/models/firewall/Firewall";
 
 let app: Application;
 let fwCloud: FwCloud;
 let fwcloudRepository: Repository<FwCloud>;
 let service: SnapshotService;
+let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot tests'), () => {
     beforeEach(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
-        const repository: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-        fwcloudRepository = repository.for(FwCloud);
+        repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
+        fwcloudRepository = repositoryService.for(FwCloud);
 
         fwCloud = fwcloudRepository.create({
             name: 'testCloud'
@@ -50,7 +52,7 @@ describe(describeName('Snapshot tests'), () => {
             schema: snapshot.schema,
             comment: snapshot.comment,
             version: snapshot.version,
-            fwcloud_id: snapshot.fwcloud.id,
+            fwcloud_id: snapshot.fwCloud.id,
         });
     });
 
@@ -142,6 +144,27 @@ describe(describeName('Snapshot tests'), () => {
         }
         
         await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
-    })
+    });
+
+    it.skip('restore should mark as uncompiled all fwcloud firewalls', async () => {
+        let firewall: Firewall = repositoryService.for(Firewall).create({
+            name: 'firewall_test',
+            status: 1,
+            fwCloudId: fwCloud.id
+        });
+
+        await repositoryService.for(Firewall).save(firewall);
+        firewall = await repositoryService.for(Firewall).findOne(firewall.id);
+
+        let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        await snaphost.restore();
+
+        firewall = await repositoryService.for(Firewall).findOne(firewall.id);
+
+        expect(firewall.status).to.be.deep.eq(0);
+        expect(firewall.compiled_at).to.be.null;
+        expect(firewall.installed_at).to.be.null;
+    });
 
 })

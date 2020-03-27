@@ -8,12 +8,23 @@ const tableName: string = 'openvpn_opt';
 @Entity(tableName)
 export class OpenVPNOptions extends Model {
 
-    @PrimaryColumn()
+    @PrimaryColumn({name: 'openvpn'})
+    openVPNId: number;
+
     @OneToOne(type => OpenVPN, openVPN => openVPN.options)
     @JoinColumn({
         name: 'openvpn'
     })
-    openvpn: number;
+    openVPN: OpenVPN;
+
+    @Column({name: 'ipobj'})
+    ipObjId: number;
+
+    @ManyToOne(type => IPObj, ipObj => ipObj.optionsList)
+    @JoinColumn({
+        name: 'ipobj'
+    })
+    ipObj: IPObj;
 
     @Column()
     name: string;
@@ -29,12 +40,6 @@ export class OpenVPNOptions extends Model {
 
     @Column()
     comment: string
-
-    @ManyToOne(type => IPObj, ipObj => ipObj.optionsList)
-    @JoinColumn({
-        name: 'ipobj'
-    })
-    ipObj: IPObj;
 
     public getTableName(): string {
         return tableName;

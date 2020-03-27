@@ -32,6 +32,9 @@ export class RoutingGroup extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'firewall'})
+    firewallId: number;
+    
     @ManyToOne(type => Firewall, firewall => firewall.routingRules)
     @JoinColumn({
         name: 'firewall'

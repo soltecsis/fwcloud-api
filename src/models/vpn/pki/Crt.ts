@@ -59,6 +59,9 @@ export class Crt extends Model {
     @Column()
     updated_by: Date;
 
+    @Column({name: 'ca'})
+    caId: number;
+    
     @ManyToOne(type => Ca, ca => ca.crts)
     @JoinColumn({
         name: 'ca'

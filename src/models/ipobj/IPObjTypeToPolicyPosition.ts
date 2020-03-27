@@ -23,7 +23,9 @@
 import Model from "../Model";
 import db from '../../database/database-manager';
 import modelEventService from "../ModelEventService";
-import { Entity, PrimaryColumn } from "typeorm";
+import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import { IPObjType } from "./IPObjType";
+import { PolicyPosition } from "../policy/PolicyPosition";
 
 var logger = require('log4js').getLogger("app");
 
@@ -32,11 +34,24 @@ const tableName: string = 'ipobj_type__policy_position';
 @Entity(tableName)
 export class IPObjTypeToPolicyPosition extends Model {
 
-    @PrimaryColumn()
-    type: number;
+    @PrimaryColumn({name: 'type'})
+    ipObjTypeId: number;
 
-    @PrimaryColumn()
-    position: number;
+    @ManyToOne(type => IPObjType, model => model.ipObjTypeToPolicyPositions)
+    @JoinColumn({
+        name: 'type'
+    })
+    ipObjType: IPObjType;
+
+
+    @PrimaryColumn({name: 'position'})
+    policyPositionId: number;
+
+    @ManyToOne(type => PolicyPosition, model => model.ipObjTypeToPolicyPositions)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
 
     public getTableName(): string {
         return tableName;

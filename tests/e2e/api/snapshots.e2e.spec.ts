@@ -88,7 +88,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
             const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud2, 'test2', null)
 
-            loggedUser.fwclouds = [fwCloud2];
+            loggedUser.fwClouds = [fwCloud2];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
@@ -140,7 +140,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('regular user should see a snapshot if regular user belongs to the fwcloud', async() => {
-            loggedUser.fwclouds = [fwCloud];
+            loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             const url = _URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id});
@@ -191,7 +191,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
@@ -199,7 +199,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('regular user should create a new snapshot if the user belongs to the fwcloud', async() => {
-            loggedUser.fwclouds = [fwCloud];
+            loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
@@ -207,7 +207,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
@@ -227,7 +227,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
@@ -262,7 +262,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
@@ -270,7 +270,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('regular user should update an snapshot if the user belongs to the fwcloud', async() => {
-            loggedUser.fwclouds = [fwCloud];
+            loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
@@ -278,7 +278,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
@@ -296,7 +296,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
-                    fwcloud_id: fwCloud.id
+                    fwCloudId: fwCloud.id
                 })
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
@@ -332,7 +332,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('regular user should restore an snapshot if the user belongs to the fwcloud', async() => {
-            loggedUser.fwclouds = [fwCloud];
+            loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
@@ -392,7 +392,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         it('regular user should destroy an snapshot if the user belongs to the fwcloud', async() => {
-            loggedUser.fwclouds = [fwCloud];
+            loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)

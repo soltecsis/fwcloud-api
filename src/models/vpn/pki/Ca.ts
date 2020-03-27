@@ -72,11 +72,14 @@ export class Ca extends Model {
     })
     updated_by: User;
 
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+
     @ManyToOne(type => FwCloud, fwcloud => fwcloud.cas)
     @JoinColumn({
         name: 'fwcloud'
     })
-    fwcloud: FwCloud;
+    fwCloud: FwCloud;
 
     @OneToMany(type => Crt, crt => crt.ca)
     crts: Array<Crt>

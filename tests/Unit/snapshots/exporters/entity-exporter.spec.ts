@@ -27,7 +27,7 @@ describe(describeName('Entity exporter tests'), () => {
         fwcloud = await fwcloudRepository.findOne(fwcloud.id);
 
         ca = repositoryService.for(Ca).create({
-            fwcloud: { id: fwcloud.id },
+            fwCloudId: fwcloud.id,
             cn: 'test',
             days: 10
         });

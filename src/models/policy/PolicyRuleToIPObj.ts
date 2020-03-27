@@ -42,23 +42,23 @@ const tableModel: string = "policy_r__ipobj";
 @Entity(tableModel)
 export class PolicyRuleToIPObj extends Model {
 
-    @PrimaryGeneratedColumn()
-    id_pi: number;
+    @PrimaryGeneratedColumn({name: 'id_pi'})
+    id: number;
 
-    @Column()
-    rule: number;
+    @Column({name: 'rule'})
+    policyRuleId: number;
 
-    @Column()
-    ipobj: number;
+    @Column({name: 'ipobj'})
+    ipObjId: number;
 
-    @Column()
-    ipobj_g: number;
+    @Column({name: 'ipobj_g'})
+    ipObjGroupId: number;
 
-    @Column()
-    interface: number;
+    @Column({name: 'interface'})
+    interfaceId: number;
 
-    @Column()
-    position: number;
+    @Column({name: 'position'})
+    policyPositionId: number;
 
     @Column()
     position_order: number;
@@ -100,19 +100,19 @@ export class PolicyRuleToIPObj extends Model {
     public async onCreate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Get All policy_r__ipobj by Policy_r (rule)
@@ -735,11 +735,11 @@ export class PolicyRuleToIPObj extends Model {
                         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
                         const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            rule: rule,
-                            ipobj: ipobj,
-                            ipobj_g: ipobj_g,
-                            position: position,
-                            interface: _interface
+                            policyRuleId: rule,
+                            ipObjId: ipobj,
+                            ipObjGroupId: ipobj_g,
+                            policyPositionId: position,
+                            interfaceId: _interface
                         });
                         const sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
@@ -782,7 +782,7 @@ export class PolicyRuleToIPObj extends Model {
                         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
                         const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            rule: rule,
+                            policyRuleId: rule,
                         });
                         var sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule);

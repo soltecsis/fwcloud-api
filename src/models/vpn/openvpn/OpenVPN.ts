@@ -74,6 +74,9 @@ export class OpenVPN extends Model {
     @Column()
     installed_at: Date;
 
+    @Column({name: 'openvpn'})
+    parentId: number;
+
     @ManyToOne(type => OpenVPN, openVPN => openVPN.childs)
     @JoinColumn({
         name: 'openvpn'
@@ -83,11 +86,17 @@ export class OpenVPN extends Model {
     @OneToMany(type => OpenVPN, openVPN => openVPN.parent)
     childs: Array<OpenVPN>
 
+    @Column({name: 'firewall'})
+    firewallId: number;
+
     @ManyToOne(type => Firewall, firewall => firewall.openVPNs)
     @JoinColumn({
         name: 'firewall'
     })
     firewall: Firewall;
+
+    @Column({name: 'crt'})
+    crtId: number;
 
     @ManyToOne(type => Crt, crt => crt.openVPNs)
     @JoinColumn({
@@ -95,7 +104,7 @@ export class OpenVPN extends Model {
     })
     crt: Crt;
 
-    @OneToOne(type => OpenVPNOptions, options => options.openvpn)
+    @OneToOne(type => OpenVPNOptions, options => options.openVPN)
     options: OpenVPNOptions
 
     @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNs)

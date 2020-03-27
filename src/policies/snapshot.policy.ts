@@ -11,8 +11,8 @@ export class SnapshotPolicy extends Policy {
             return Authorization.grant();
         }
 
-        if (snapshot.fwcloud) {
-            const match = user.fwclouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwcloud.id});
+        if (snapshot.fwCloud) {
+            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwCloud.id});
 
             return match.length > 0 ? Authorization.grant() : Authorization.revoke();
         }
@@ -24,7 +24,7 @@ export class SnapshotPolicy extends Policy {
             return Authorization.grant();
         }
 
-        const match = user.fwclouds.filter((_fwcloud) => { return _fwcloud.id === fwcloud.id});
+        const match = user.fwClouds.filter((_fwcloud) => { return _fwcloud.id === fwcloud.id});
 
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
@@ -34,8 +34,8 @@ export class SnapshotPolicy extends Policy {
             return Authorization.grant();
         }
 
-        if (snapshot.fwcloud) {
-            const match = user.fwclouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwcloud.id});
+        if (snapshot.fwCloud) {
+            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwCloud.id});
 
             return match.length > 0 ? Authorization.grant() : Authorization.revoke();
         }
@@ -47,8 +47,8 @@ export class SnapshotPolicy extends Policy {
             return Authorization.grant();
         }
 
-        if (snapshot.fwcloud) {
-            const match = user.fwclouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwcloud.id});
+        if (snapshot.fwCloud) {
+            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwCloud.id});
 
             return match.length > 0 ? Authorization.grant() : Authorization.revoke();
         }
@@ -60,8 +60,8 @@ export class SnapshotPolicy extends Policy {
             return Authorization.grant();
         }
 
-        if (snapshot.fwcloud) {
-            const match = user.fwclouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwcloud.id});
+        if (snapshot.fwCloud) {
+            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === snapshot.fwCloud.id});
 
             return match.length > 0 ? Authorization.grant() : Authorization.revoke();
         }

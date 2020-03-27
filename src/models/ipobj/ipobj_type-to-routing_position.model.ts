@@ -7,12 +7,11 @@ const tableName: string = 'ipobj_type__routing_position';
 
 @Entity(tableName)
 export class IPObjTypeToRoutingPosition extends Model {
-    @PrimaryColumn()
-    type: number;
+    @PrimaryColumn({name: 'type'})
+    ipObjTypeId: number;
 
-    @PrimaryColumn()
-    position: number;
-
+    @PrimaryColumn({name: 'position'})
+    routingPositionId: number;
 
     @ManyToOne(type => IPObjType, ipObjType => ipObjType.routingPositions)
     @JoinColumn({

@@ -27,7 +27,6 @@ import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
 import { Progress } from "../../fonaments/http/progress/progress";
-import { SocketManager } from "../../sockets/socket-manager";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;

@@ -9,14 +9,14 @@ const tableName: string = 'routing_r__ipobj';
 @Entity(tableName)
 export class RoutingRuleToIPObj extends Model {
     
-    @PrimaryColumn()
-    rule: number;
+    @PrimaryColumn({name: 'rule'})
+    routingRuleId: number;
 
-    @PrimaryColumn()
-    ipobj: number;
+    @PrimaryColumn({name: 'ipobj'})
+    ipObjId: number;
 
-    @PrimaryColumn()
-    ipobj_g: number;
+    @PrimaryColumn({name: 'ipobj_g'})
+    ipObjGroupId: number;
 
     @Column()
     position: number;

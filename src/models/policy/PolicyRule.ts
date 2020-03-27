@@ -55,9 +55,6 @@ export class PolicyRule extends Model {
     id: number;
 
     @Column()
-    idgroup: number;
-
-    @Column()
     rule_order: number;
 
     @Column()
@@ -105,8 +102,11 @@ export class PolicyRule extends Model {
     @Column()
     updated_by: number;
 
-    @OneToOne(type => PolicyCompilation, policyCompilation => policyCompilation.rule)
+    @OneToOne(type => PolicyCompilation, policyCompilation => policyCompilation.policyRule)
     compilation: PolicyCompilation;
+
+    @Column({name: 'idgroup'})
+    policyGroupId: number;
 
     @ManyToOne(type => PolicyGroup, policyGroup => policyGroup.policyRules)
     @JoinColumn({
@@ -114,17 +114,26 @@ export class PolicyRule extends Model {
     })
     policyGroup: PolicyGroup;
 
+    @Column({name: 'firewall'})
+    firewallId: number;
+
     @ManyToOne(type => Firewall, firewall => firewall.policyRules)
     @JoinColumn({
         name: 'firewall'
     })
     firewall: Firewall;
 
+    @Column({name: 'mark'})
+    markId: number;
+
     @ManyToOne(type => Mark, mark => mark.policyRules)
     @JoinColumn({
         name: 'mark'
     })
     mark: Mark;
+
+    @Column({name: 'type'})
+    policyTypeId: number;
 
     @ManyToOne(type => PolicyType, policyType => policyType.policyRules)
     @JoinColumn({
@@ -143,9 +152,6 @@ export class PolicyRule extends Model {
 
     @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyRule)
     policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
-
-    @OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.policyRule)
-    routingRuleToInterfaces: Array<PolicyRuleToInterface>;
     
 
 
@@ -154,7 +160,7 @@ export class PolicyRule extends Model {
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.id}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.id}, {status_compiled: 0});
     }
 
     public getTableName(): string {

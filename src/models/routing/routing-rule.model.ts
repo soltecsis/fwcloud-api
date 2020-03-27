@@ -3,6 +3,7 @@ import Model from "../Model";
 import { Firewall } from "../firewall/Firewall";
 import { RoutingGroup } from "./routing-group.model";
 import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
+import { RoutingRuleToInterface } from "./routing-rule-to-interface.model";
 
 const tableName: string = 'routing_r';
 
@@ -12,8 +13,11 @@ export class RoutingRule extends Model {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    idgroup: number;
+    @Column({name: 'idgroup'})
+    routingGroupId: number;
+
+    @Column({name: 'firewall'})
+    firewallId: number;
 
     @Column()
     rule_order: number;
@@ -50,6 +54,9 @@ export class RoutingRule extends Model {
 
     @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.routingRule)
     routingRuleToIPObjs!: Array<RoutingRuleToIPObj>;
+
+    @OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRule)
+    routingRuleToInterfaces!: Array<RoutingRuleToInterface>;
 
     @ManyToOne(type => Firewall, firewall => firewall.routingRules)
     @JoinColumn({

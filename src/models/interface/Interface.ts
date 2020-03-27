@@ -75,6 +75,9 @@ export class Interface extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'firewall'})
+    firewallId: number;
+    
     @ManyToOne(type => Firewall, firewall => firewall.interfaces)
     @JoinColumn({
         name: 'firewall'
@@ -101,14 +104,14 @@ export class Interface extends Model {
         const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = (await app().getService<RepositoryService>(RepositoryService.name))
             .for(PolicyRuleToInterface);
 
-        const policyRuleToInterfaces: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({interface: this.id});
+        const policyRuleToInterfaces: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({interfaceId: this.id});
         for(let i = 0; i < policyRuleToInterfaces.length; i++) {
             await modelEventService.emit('update', PolicyRuleToInterface, policyRuleToInterfaces[i])
         }
 
         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = (await app().getService<RepositoryService>(RepositoryService.name))
             .for(PolicyRuleToIPObj);
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({interface: this.id});
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({interfaceId: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }

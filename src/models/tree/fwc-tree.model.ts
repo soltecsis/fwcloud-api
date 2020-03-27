@@ -20,9 +20,17 @@ export class FwcTree extends Model {
     @Column()
     node_type: string
 
-    id_obj;
+    @Column({name: 'id_parent'})
+    parentId: number;
 
-    obj_type;
+    @Column({name: 'id_obj'})
+    ipObjId: number;
+
+    @Column({name: 'obj_type'})
+    ipObjTypeId: number;
+
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
 
     @ManyToOne(type => FwCloud, fwcloud => fwcloud.fwcTrees)
     @JoinColumn({

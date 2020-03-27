@@ -1,18 +1,18 @@
 import Model from "../Model";
 import { PrimaryColumn, Column, ManyToOne, JoinColumn, Entity } from "typeorm";
-import { PolicyRule } from "../policy/PolicyRule";
 import { Interface } from "../interface/Interface";
+import { RoutingRule } from "./routing-rule.model";
 
 const tableName: string = 'routing_r__interface';
 
 @Entity(tableName)
 export class RoutingRuleToInterface extends Model {
 
-    @PrimaryColumn()
-    rule: number;
+    @PrimaryColumn({name: 'rule'})
+    routingRuleId: number;
 
-    @PrimaryColumn()
-    interface: number;
+    @PrimaryColumn({name: 'interface'})
+    interfaceId: number;
 
     @Column()
     interface_order: string;
@@ -34,13 +34,13 @@ export class RoutingRuleToInterface extends Model {
     @JoinColumn({
         name: 'interface'
     })
-    routingRuleInterface: Interface
+    routingRuleInterface: Interface;
 
-    @ManyToOne(type => PolicyRule, policyRule => policyRule.routingRuleToInterfaces)
+    @ManyToOne(type => RoutingRule, policyRule => policyRule.routingRuleToInterfaces)
     @JoinColumn({
         name: 'rule'
     })
-    policyRule: PolicyRule
+    routingRule: RoutingRule;
 
 
     public getTableName(): string {

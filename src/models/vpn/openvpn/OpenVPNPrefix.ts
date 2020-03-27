@@ -36,8 +36,8 @@ export class OpenVPNPrefix extends Model {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    openvpn: number;
+    @Column({name: 'openvpn'})
+    openVPNId: number;
 
     @Column()
     name: string;

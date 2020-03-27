@@ -37,7 +37,7 @@ export class Snapshot implements Responsable {
     protected _date: Moment;
     protected _name: string;
     protected _comment: string;
-    protected _fwcloud: FwCloud;
+    protected _fwCloud: FwCloud;
     protected _version: string;
 
     protected _schema: string;
@@ -54,7 +54,7 @@ export class Snapshot implements Responsable {
         this._date = null;
         this._name = null;
         this._comment = null;
-        this._fwcloud = null;
+        this._fwCloud = null;
         this._path = null;
         this._exists = false;
         this._version = null;
@@ -71,8 +71,8 @@ export class Snapshot implements Responsable {
         return this._comment;
     }
 
-    get fwcloud(): FwCloud {
-        return this._fwcloud;
+    get fwCloud(): FwCloud {
+        return this._fwCloud;
     }
 
     get id(): number {
@@ -103,9 +103,9 @@ export class Snapshot implements Responsable {
         return this._schema;
     }
 
-    public static async create(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
+    public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        const progress: Progress<Snapshot> = await snapshot.save(snapshot_directory, fwcloud, name, comment);
+        const progress: Progress<Snapshot> = await snapshot.save(snapshot_directory, fwCloud, name, comment);
 
         return new Promise<Snapshot>((resolve, reject) => {
             progress.on('end', async (_) => {
@@ -114,9 +114,9 @@ export class Snapshot implements Responsable {
         });
     }
 
-    public static async progressCreate(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
+    public static async progressCreate(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const snapshot: Snapshot = new Snapshot;
-        return await snapshot.save(snapshot_directory, fwcloud, name, comment);
+        return await snapshot.save(snapshot_directory, fwCloud, name, comment);
     }
 
     public async restore(): Promise<Snapshot> {
@@ -168,7 +168,7 @@ export class Snapshot implements Responsable {
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwcloud = await repository.for(FwCloud).findOne(snapshotMetadata.fwcloud_id);
+        this._fwCloud = await repository.for(FwCloud).findOne(snapshotMetadata.fwcloud_id);
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
@@ -203,14 +203,14 @@ export class Snapshot implements Responsable {
         return this;
     }
 
-    protected async save(snapshot_directory: string, fwcloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
+    protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const progress = new Progress<Snapshot>(4);
 
-        this._fwcloud = fwcloud;
+        this._fwCloud = fwCloud;
         this._date = moment();
         this._id = this._date.valueOf();
-        this._path = path.join(snapshot_directory, fwcloud.id.toString(), this._id.toString());
+        this._path = path.join(snapshot_directory, fwCloud.id.toString(), this._id.toString());
         this._name = name ? name: this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;
@@ -260,9 +260,9 @@ export class Snapshot implements Responsable {
 
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
-        const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwcloud.constructor.name);
-        this._fwcloud = await (await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._fwcloud.id);
-        const exporter = new exporterTarget(result, this._fwcloud);
+        const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwCloud.constructor.name);
+        this._fwCloud = await (await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._fwCloud.id);
+        const exporter = new exporterTarget(result, this._fwCloud);
         await exporter.export();
 
         return result;
@@ -281,7 +281,7 @@ export class Snapshot implements Responsable {
             comment: this._comment,
             version: this._version,
             schema: this._schema,
-            fwcloud_id: this._fwcloud.id,
+            fwcloud_id: this._fwCloud.id,
 
         };
 
@@ -289,13 +289,13 @@ export class Snapshot implements Responsable {
     }
 
     protected async copyFwCloudDataDirectories(): Promise<void> {
-        await FSHelper.copyDirectoryIfExists(this.fwcloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
-        await FSHelper.copyDirectoryIfExists(this.fwcloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
+        await FSHelper.copyDirectoryIfExists(this.fwCloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
+        await FSHelper.copyDirectoryIfExists(this.fwCloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
     }
 
     protected async removeFwCloudDataDirectories(): Promise<void> {
-        await FSHelper.rmDirectory(this.fwcloud.getPkiDirectoryPath());
-        await FSHelper.rmDirectory(this.fwcloud.getPolicyDirectoryPath());
+        await FSHelper.rmDirectory(this.fwCloud.getPkiDirectoryPath());
+        await FSHelper.rmDirectory(this.fwCloud.getPolicyDirectoryPath());
     }
 
     protected static async generateSnapshotDirectoryIfDoesNotExist() {
@@ -316,7 +316,7 @@ export class Snapshot implements Responsable {
             id: this._id,
             name: this._name,
             comment: this._comment,
-            fwcloud_id: this._fwcloud.id,
+            fwcloud_id: this._fwCloud.id,
             date: this._date,
             version: this._version,
             schema: this._schema,

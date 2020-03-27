@@ -75,7 +75,7 @@ export class FwCloud extends Model {
     @Column()
     comment: string;
 
-    @ManyToMany(type => User, user => user.fwclouds)
+    @ManyToMany(type => User, user => user.fwClouds)
     @JoinTable({
         name: 'user__fwcloud',
         joinColumn: { name: 'fwcloud'},
@@ -83,19 +83,19 @@ export class FwCloud extends Model {
     })
     users: Array<User>
 
-    @OneToMany(type => Ca, ca => ca.fwcloud)
+    @OneToMany(type => Ca, ca => ca.fwCloud)
     cas: Array<Ca>;
 
-    @OneToMany(type => Cluster, cluster => cluster.fwcloud)
+    @OneToMany(type => Cluster, cluster => cluster.fwCloud)
     clusters: Array<Cluster>;
 
-    @OneToMany(type => Firewall, firewall => firewall.fwcloud)
+    @OneToMany(type => Firewall, firewall => firewall.fwCloud)
     firewalls: Array<Firewall>;
 
     @OneToMany(type => FwcTree, fwcTree => fwcTree.fwCloud)
     fwcTrees: Array<FwcTree>;
 
-    @OneToMany(type => IPObj, ipobj => ipobj.fwCloud )
+    @OneToMany(type => IPObj, ipobj => ipobj.fwCloud)
     ipObjs: Array<IPObj>;
 
     @OneToMany(type => Mark, mark => mark.fwCloud)

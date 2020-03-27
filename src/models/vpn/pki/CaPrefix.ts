@@ -39,6 +39,9 @@ export class CaPrefix extends Model {
     @Column()
     name: string;
 
+    @Column({name: 'ca'})
+    caId: number;
+
     @ManyToOne(type => Ca, ca => ca.prefixes)
     @JoinColumn({
         name: 'ca'

@@ -34,12 +34,14 @@ const tableName: string = 'policy_c';
 @Entity(tableName)
 export class PolicyCompilation extends Model {
 
-	@PrimaryColumn()
+	@PrimaryColumn({name: 'rule'})
+	policyRuleId: number;
+
 	@OneToOne(type => PolicyRule, policyRule => policyRule.compilation)
 	@JoinColumn({
 		name: 'rule'
 	})
-	rule: number;
+	policyRule: PolicyRule;
 
 	@Column()
 	rule_compiled: string;

@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -37,6 +37,7 @@ import { Cluster } from "./Cluster";
 import { Policy } from "../../fonaments/authorization/policy";
 import { RoutingRule } from "../routing/routing-rule.model";
 import { RoutingGroup } from "../routing/routing-group.model";
+import { DatabaseService } from "../../database/database.service";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -97,11 +98,17 @@ export class Firewall extends Model {
 	@Column()
 	options: number;
 
+	@Column({name: 'fwcloud'})
+	fwCloudId: number;
+
 	@ManyToOne(type => FwCloud, fwcloud => fwcloud.firewalls)
 	@JoinColumn({
 		name: 'fwcloud'
 	})
-	fwcloud: FwCloud;
+	fwCloud: FwCloud;
+
+	@Column({name: 'cluster'})
+	clusterId: number;
 
 	@ManyToOne(type => Cluster, cluster => cluster.firewalls)
 	@JoinColumn({

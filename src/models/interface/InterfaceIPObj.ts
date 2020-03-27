@@ -58,13 +58,19 @@ export class InterfaceIPObj extends Model {
 	@Column()
 	updated_by: number;
 
-	@ManyToOne(type => Interface, _interface => _interface.hosts)
+	@Column({name: 'interface'})
+	hostInterfaceId: number;
+
+	@ManyToOne(type => Interface, model => model.hosts)
 	@JoinColumn({
 		name: 'interface'
 	})
 	hostInterface: Interface;
 
-	@ManyToOne(type => IPObj, ipObj => ipObj.hosts)
+	@Column({name: 'ipobj'})
+	ipObjId: number;
+	
+	@ManyToOne(type => IPObj, model => model.hosts)
 	@JoinColumn({
 		name: 'ipobj'
 	})

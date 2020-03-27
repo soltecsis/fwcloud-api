@@ -55,12 +55,18 @@ export class IPObjToIPObjGroup extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'ipobj'})
+    ipObjId: number;
+
     @ManyToOne(type => IPObj, ipObj => ipObj.ipObjToIPObjGroups)
     @JoinColumn({
         name: 'ipobj'
     })
     ipObj!: IPObj;
 
+    @Column({name: 'ipobj_g'})
+    ipObjGroupId: number;
+    
     @ManyToOne(type => IPObjGroup, ipObjGroup => ipObjGroup.ipObjToIPObjGroups)
     @JoinColumn({
         name: 'ipobj_g'
