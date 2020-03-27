@@ -199,7 +199,6 @@ export class PolicyRuleToInterface extends Model {
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToInterface, {rule: rule});
                 resolve();
             });
         });
