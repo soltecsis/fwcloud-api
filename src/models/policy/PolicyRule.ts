@@ -818,6 +818,7 @@ export class PolicyRule extends Model {
                     if (error) return reject(error);
 
                     if (result.length === 1) {
+                        let result_rule_order = result[0].rule_order;
                         let free_rule_order = result[0].rule_order + 1;
                         sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                             ' WHERE firewall=' + firewall + ' AND type=' + type +
@@ -827,7 +828,7 @@ export class PolicyRule extends Model {
                             await modelEventService.emit('update', PolicyRule, {
                                 firewall: firewall,
                                 type: type,
-                                rule_order: MoreThan(result[0].rule_order)
+                                rule_order: MoreThan(result_rule_order)
                             });
                             resolve(free_rule_order);
                         });

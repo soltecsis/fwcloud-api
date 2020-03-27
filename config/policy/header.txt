@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #############################################
 ##                                         ##
 ##  FWCloud.net                            ##
@@ -42,7 +42,11 @@ default_filter_policy() {
 }
 
 load_nat_modules() {
-  MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
+  if [ ! -f "/etc/issue" -a -f "/etc/openwrt_version" ]; then
+    MODULES_DIR="/lib/modules/`uname -r`/"
+  else
+    MODULES_DIR="/lib/modules/`uname -r`/kernel/net/"
+  fi
   MODULES=$(find $MODULES_DIR -name '*nat*'| sed  -e 's/^.*\///' -e 's/\([^\.]\)\..*/\1/')
   for module in $MODULES; do
     if $LSMOD | grep ${module} >/dev/null; then continue; fi
