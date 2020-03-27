@@ -4,7 +4,6 @@
   },
   "web_server": {
     "https" : true,
-    "port" : 443,
     "api_url": "https://localhost:3000"
   },
   "session": {

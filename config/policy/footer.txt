@@ -47,9 +47,14 @@ case "$ACTION" in
   install)
     chmod 700 "$0"
 
-    if [ "`cat /etc/issue | grep EdgeOS`" ]; then
-      chown root:vyattacfg "$0"
-      INSTALL_DIR="/config/scripts/post-config.d"
+    if [ -f "/etc/issue" ]; then
+      if [ "`cat /etc/issue | grep EdgeOS`" ]; then
+        chown root:vyattacfg "$0"
+        INSTALL_DIR="/config/scripts/post-config.d"
+      else
+        chown root:root "$0"
+        INSTALL_DIR="/etc/fwcloud"
+      fi
     else
       chown root:root "$0"
       INSTALL_DIR="/etc/fwcloud"
@@ -60,7 +65,19 @@ case "$ACTION" in
       chown root:root "$INSTALL_DIR"
     }
 
-    mv "$0" "$INSTALL_DIR"
+    if [ -f "/etc/openwrt_version" ]; then
+      # Change the Unix Shell to /bin/sh because OpenWRT doesn't has bash.
+      sed "s/^\#\!\/bin\/sh/\#\!\/bin\/sh \/etc\/rc.common/g" "$0" > "$INSTALL_DIR/$0"
+      chmod 700 "$INSTALL_DIR/$0"
+      rm -f "$0"
+
+      if [ ! -f "/etc/rc.d/S19fwcloud" -a -d "/etc/rc.d" ]; then
+        cd /etc/rc.d
+        ln -s ../fwcloud/fwcloud.sh S19fwcloud
+      fi
+    else
+      mv "$0" "$INSTALL_DIR"
+    fi
 
     if [ "$SYSTEMCTL" -a ! -f "$SYSTEMD_FILE" ]; then
       create_systemd_service
