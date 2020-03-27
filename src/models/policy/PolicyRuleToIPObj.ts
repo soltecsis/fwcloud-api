@@ -462,7 +462,7 @@ export class PolicyRuleToIPObj extends Model {
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToIPObj, new_rule);
+                await modelEventService.emit('create', PolicyRuleToIPObj, result.insertId);
                 resolve();
             });
         });
