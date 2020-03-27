@@ -57,7 +57,9 @@ export class ModelEventService {
         }
         
         if (typeof criteria === 'number') {
-            return [await this.getEntityById(model, criteria)];
+            const entity: Model = await this.getEntityById(model, criteria);
+
+            return entity ? [entity] : [];
         }
         
         return await this.getEntitiesByCriteria(model, criteria);
