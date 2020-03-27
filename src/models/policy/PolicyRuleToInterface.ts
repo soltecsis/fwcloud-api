@@ -400,7 +400,7 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('delete', PolicyRuleToInterface, models);
+                                    //await modelEventService.emit('delete', PolicyRuleToInterface, models);
                                     this.OrderList(999999, rule, position, old_order, _interface);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
