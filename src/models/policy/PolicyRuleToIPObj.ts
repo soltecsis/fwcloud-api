@@ -729,7 +729,7 @@ export class PolicyRuleToIPObj extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('delete', PolicyRuleToIPObj, models);
+                                    //await modelEventService.emit('delete', PolicyRuleToIPObj, models);
                                     this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
