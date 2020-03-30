@@ -98,4 +98,22 @@ describe.only(describeName('PolicyRule tests'), () => {
             expect(policyRule.idgroup).to.be.deep.eq(null);
         })
     });
+
+    describe(describeName('PolicyRule updateStyle'), () => {
+        it.only('updateStyle should update the style', async () => {
+            let policyRule: PolicyRule = await repositoryService.for(PolicyRule).save({
+                rule_order: 1,
+                action: 1,
+                style: 'oldStyle'
+            });
+
+            policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
+
+            await policyRule.updateStyle("newStyle");
+
+            policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
+
+            expect(policyRule.style).to.be.deep.eq("newStyle");
+        });
+    })
 });

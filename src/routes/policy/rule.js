@@ -188,12 +188,16 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
+	const repository = await app().getService(RepositoryService.name);
 	var style = req.body.style;
 	var rulesIds = req.body.rulesIds;
 
 	try {
-		for (var rule of rulesIds) {
-			await PolicyRule.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style);
+		for (var ruleId of rulesIds) {
+			const policyRule = await repository.for(PolicyRule).findOne(ruleId);
+			if (policyRule) {
+				await policyRule.updateStyle(style);
+			}
 		}
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }

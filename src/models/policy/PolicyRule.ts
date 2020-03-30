@@ -683,6 +683,16 @@ export class PolicyRule extends Model {
         });
     }
 
+    /**
+     * Updates the rule style
+     * 
+     * @param style string
+     */
+    public async updateStyle(style: string): Promise<this> {
+        this.style = style;
+        return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
+    }
+
     //Update policy_r Active
     public static updatePolicy_r_Active(firewall, id, type, active) {
         return new Promise((resolve, reject) => {
