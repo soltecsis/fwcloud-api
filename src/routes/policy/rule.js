@@ -32,6 +32,7 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { In } from 'typeorm';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -188,17 +189,12 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
+	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
 	var style = req.body.style;
-	var rulesIds = req.body.rulesIds;
+	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
 
 	try {
-		for (var ruleId of rulesIds) {
-			const policyRule = await repository.for(PolicyRule).findOne(ruleId);
-			if (policyRule) {
-				await policyRule.updateStyle(style);
-			}
-		}
+		await policyRuleRepository.updateStyle(policyRules, style);
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });

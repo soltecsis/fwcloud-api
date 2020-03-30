@@ -45,7 +45,7 @@ describe.only(describeName('PolicyRule tests'), () => {
             expect(policyRule.idgroup).to.be.deep.eq(policyGroupNew.id);
         });
 
-        it('changeGroup should throw an exception if the rule firewall is not the same as the group firewall', async () => {
+        it('changeGroup should not change a group if the rule firewall is not the same as the group firewall', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
@@ -67,12 +67,12 @@ describe.only(describeName('PolicyRule tests'), () => {
             });
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
+                
+            await policyRule.changeGroup(policyGroupNew);
 
-            async function t() {
-                return await policyRule.changeGroup(policyGroupNew);
-            }
+            policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
             
-            await expect(t()).to.be.rejected;
+            expect(policyRule.idgroup).to.be.deep.eq(policyGroupOld.id);
         });
 
         it('changeRule should unassign the group if is called with null', async () => {
@@ -100,7 +100,7 @@ describe.only(describeName('PolicyRule tests'), () => {
     });
 
     describe(describeName('PolicyRule updateStyle'), () => {
-        it.only('updateStyle should update the style', async () => {
+        it('updateStyle should update the style', async () => {
             let policyRule: PolicyRule = await repositoryService.for(PolicyRule).save({
                 rule_order: 1,
                 action: 1,

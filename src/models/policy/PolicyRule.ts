@@ -37,6 +37,7 @@ import { RuleCompiler } from "../../compiler/RuleCompiler";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { DatabaseService } from "../../database/database.service";
+import { PolicyRuleRepository } from "./policy-rule.repository";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -650,37 +651,8 @@ export class PolicyRule extends Model {
      * @param group PolicyGroup
      */
     public async changeGroup(group: PolicyGroup = null): Promise<this> {
-        if (group && group.firewall !== this.firewall) {
-            throw Error('PolicyRule can not be assigned to a group wich does not belong to the same firewall');
-        }
-        
-        this.idgroup = group && group.id ? group.id: null;
-        return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
-    }
-
-    //Update policy_r Style
-    public static updatePolicy_r_Style(firewall, id, type, style) {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error) return reject(error);
-
-                var sql = `UPDATE ${tableName} SET
-                    style=${connection.escape(style)}
-                    WHERE id=${connection.escape(id)} and firewall=${connection.escape(firewall)} AND type=${connection.escape(type)}`;
-                connection.query(sql, async (error, result) => {
-                    if (error) return reject(error);
-                    if (result.affectedRows > 0) {
-                        await modelEventService.emit('update', PolicyRule, {
-                            id: id,
-                            firewall: firewall,
-                            type: type
-                        })
-                        resolve({ "result": true });
-                    } else
-                        resolve({ "result": false });
-                });
-            });
-        });
+        const policyRuleRepository: PolicyRuleRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRule);
+        return await policyRuleRepository.assignToGroup([this], group)[0];
     }
 
     /**
@@ -689,8 +661,8 @@ export class PolicyRule extends Model {
      * @param style string
      */
     public async updateStyle(style: string): Promise<this> {
-        this.style = style;
-        return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
+        const policyRuleRepository: PolicyRuleRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRule);
+        return await policyRuleRepository.updateStyle([this], style)[0];
     }
 
     //Update policy_r Active

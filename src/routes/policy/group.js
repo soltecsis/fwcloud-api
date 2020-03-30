@@ -28,6 +28,8 @@ import db from '../../database/database-manager';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
+import { In } from 'typeorm';
+import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 const fwcError = require('../../utils/error_table');
 
 
@@ -44,20 +46,15 @@ router.post('/', async (req, res) => {
 	policyGroup.firewall = body.firewall;
 
 	const policyGroupRepository = repository.for(PolicyGroup);
+	const policyRuleRepository = repository.for(PolicyRule);
 
 	try {
 		policyGroup = policyGroupRepository.create(policyGroup);
 		policyGroup = await policyGroupRepository.save(policyGroup);
 
 		if (body.rulesIds.length > 0) {
-
-			//Add rules to group
-			for (var ruleId of body.rulesIds) {
-				const policyRule = await repository.for(PolicyRule).findOne(ruleId);
-				if (policyRule) {
-					await policyRule.changeGroup(policyGroup);
-				}
-			}
+			const policyRules = await policyRuleRepository.find({where: {id: In(body.rulesIds)}});
+			policyRuleRepository.assignToGroup(policyRules, policyGroup);
 		}
 		res.status(200).json({ "insertId": policyGroup.id });
 	} catch (e) {
