@@ -128,7 +128,7 @@ const config = convict({
     port: {
       doc: 'Web server port.',
       format: 'port',
-      default: 443,
+      default: 3030,
       env: 'WEBSRV_PORT'
     },
     cert: {

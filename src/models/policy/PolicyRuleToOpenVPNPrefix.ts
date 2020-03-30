@@ -195,9 +195,6 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
                 (SELECT ${new_rule}, prefix, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
-                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, {
-                    rule: rule
-                });
                 if (error) return reject(error);
                 resolve();
             });

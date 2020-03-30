@@ -22,17 +22,50 @@
 
 import { Service } from "../fonaments/services/service";
 import { DatabaseService } from "./database.service";
-import { getRepository, ObjectType, EntitySchema, Repository } from "typeorm";
+import { getRepository, ObjectType, EntitySchema, Repository, getCustomRepository } from "typeorm";
+import { PolicyRule } from "../models/policy/PolicyRule";
+import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
 
+type RepositoryMapItem = {"entityClass": Function, "repository": Function};
 export class RepositoryService extends Service {
     protected _databaseService: DatabaseService;
+
+    protected _customRepositories: Array<RepositoryMapItem> = [
+         {
+             "entityClass": PolicyRule,
+             "repository": PolicyRuleRepository
+         }
+    ]
 
     public async build(): Promise<RepositoryService> {
         this._databaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
         return this;
     }
 
-    public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): Repository<Entity> {
+    public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
+        if(this.hasCustomRepository(entityClass)) {
+            return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.connection.name);
+        }
         return getRepository(entityClass, this._databaseService.connection.name);
+    }
+
+    protected hasCustomRepository<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): boolean {
+        const matches: Array<RepositoryMapItem> = this._customRepositories.filter((item: RepositoryMapItem) => {
+            return item.entityClass === entityClass;
+        });
+
+        return matches.length > 0;
+    }
+
+    protected getCustomRepositoryFor<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): Function {
+        const matches: Array<RepositoryMapItem> = this._customRepositories.filter((item: RepositoryMapItem) => {
+            return item.entityClass === entityClass;
+        });
+
+        if (matches.length > 0) {
+            return matches[0].repository;
+        }
+
+        return null;
     }
 }

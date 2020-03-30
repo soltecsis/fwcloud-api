@@ -93,7 +93,7 @@ async(req, res) => {
 			if (data) {
 				if (data.result) {
 					PolicyRule.compilePolicy_r(rule, (error, datac) => {});
-					PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
+					if (rule != new_rule) PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
 
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
@@ -128,7 +128,7 @@ async(req, res) => {
 					PolicyRuleToIPObj.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
 							PolicyRule.compilePolicy_r(rule, (error, datac) => {});
-							PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
+							if (rule != new_rule) PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
 
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {

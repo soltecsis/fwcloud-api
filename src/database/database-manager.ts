@@ -85,17 +85,6 @@ export class DatabaseManager {
         done();
     };
 
-    public lockTableCon(table: string, where: string, done: () => void) {
-        this.getQuery().query("SELECT count(*) from " + table + " " + where + " FOR UPDATE;", (error, result) => {
-            if (error)
-                logger.debug("DATABASE ERROR IN LOCK TABLE : " + error);
-            else
-                logger.debug("TABLE " + table + " LOCKED");
-        });
-        done();
-    };
-
-
     public startTX(cn: Query, done: () => void) {
         cn.query("START TRANSACTION;", (error, result) => {
             if (error)

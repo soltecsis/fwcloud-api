@@ -39,10 +39,6 @@ import { RepositoryService } from "../../database/repository.service";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
-import { Interface } from "../interface/Interface";
-import { IPObj } from "../ipobj/IPObj";
-import { OpenVPN } from "../vpn/openvpn/OpenVPN";
-import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -694,134 +690,6 @@ export class PolicyRule extends Model {
         });
     };
 
-
-    //Update policy_r from user
-    public static updatePolicy_r_Group(firewall, oldgroup, newgroup, id, callback) {
-
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-
-            var sql = 'UPDATE ' + tableName + ' SET ' +
-                'idgroup = ' + connection.escape(newgroup) + ' ' +
-                ' WHERE id = ' + id + " and firewall=" + firewall;
-            if (oldgroup !== null)
-                sql += "  AND idgroup=" + oldgroup;
-            logger.debug(sql);
-            connection.query(sql, async (error, result) => {
-                if (error) {
-                    logger.error(error);
-                    callback(error, null);
-                } else {
-                    if (result.affectedRows > 0) {
-                        if (oldgroup !== null) {
-                            await modelEventService.emit('update', PolicyRule, {
-                                id: id,
-                                firewall: firewall,
-                                idgroup: oldgroup
-                            })
-                        } else {
-                            await modelEventService.emit('update', PolicyRule, {
-                                id: id,
-                                firewall: firewall
-                            })
-                        }
-                        callback(null, { "result": true });
-                    } else
-                        callback(null, { "result": false });
-                }
-            });
-        });
-    };
-    //Update policy_r Style
-    public static updatePolicy_r_Style(firewall, id, type, style, callback) {
-
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-
-            var sql = 'UPDATE ' + tableName + ' SET ' +
-                'style = ' + connection.escape(style) + ' ' +
-                ' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall) + " AND type=" + connection.escape(type);
-            connection.query(sql, async (error, result) => {
-                if (error) {
-                    logger.error(error);
-                    callback(error, null);
-                } else {
-                    if (result.affectedRows > 0) {
-                        await modelEventService.emit('update', PolicyRule, {
-                            id: id,
-                            firewall: firewall,
-                            type: type
-                        })
-                        callback(null, { "result": true });
-                    } else
-                        callback(null, { "result": false });
-                }
-            });
-        });
-    }
-
-    //Update policy_r Active
-    public static updatePolicy_r_Active(firewall, id, type, active, callback) {
-
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-
-            var sql = `UPDATE ${tableName} SET active=${active}
-			WHERE id=${id} and firewall=${firewall} AND type=${type}
-			AND special=0`; // We can not enable/disable special rules.
-
-            connection.query(sql, async (error, result) => {
-                if (error) {
-                    logger.error(error);
-                    callback(error, null);
-                } else {
-                    if (result.affectedRows > 0) {
-                        await modelEventService.emit('update', PolicyRule, {
-                            id: id,
-                            firewall: firewall,
-                            type: type
-                        })
-                        callback(null, { "result": true });
-                    } else
-                        callback(null, { "result": false });
-                }
-            });
-
-        });
-    };
-
-    //Update policy_r from user
-    public static updatePolicy_r_GroupAll(firewall, idgroup, callback) {
-
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-
-            var sql = 'UPDATE ' + tableName + ' SET ' +
-                'idgroup = NULL' + ' ' +
-                ' WHERE idgroup = ' + idgroup + " and firewall=" + firewall;
-
-            connection.query(sql, async (error, result) => {
-                if (error) {
-                    logger.error(error);
-                    callback(error, null);
-                } else {
-                    if (result.affectedRows > 0) {
-                        await modelEventService.emit('update', PolicyRule, {
-                            idgroup: idgroup,
-                            firewall: firewall
-                        });
-                        callback(null, { "result": true });
-                    } else
-                        callback(null, { "result": false });
-                }
-            });
-        });
-    };
-
     public static makeBeforeRuleOrderGap(firewall, type, rule) {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
@@ -869,6 +737,7 @@ export class PolicyRule extends Model {
                     if (error) return reject(error);
 
                     if (result.length === 1) {
+                        let result_rule_order = result[0].rule_order;
                         let free_rule_order = result[0].rule_order + 1;
                         sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                             ' WHERE firewall=' + firewall + ' AND type=' + type +
@@ -878,7 +747,7 @@ export class PolicyRule extends Model {
                             await modelEventService.emit('update', PolicyRule, {
                                 firewall: firewall,
                                 type: type,
-                                rule_order: MoreThan(result[0].rule_order)
+                                rule_order: MoreThan(result_rule_order)
                             });
                             resolve(free_rule_order);
                         });

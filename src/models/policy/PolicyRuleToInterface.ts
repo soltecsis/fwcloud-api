@@ -219,7 +219,6 @@ export class PolicyRuleToInterface extends Model {
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToInterface, {rule: rule});
                 resolve();
             });
         });
@@ -421,7 +420,7 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('delete', PolicyRuleToInterface, models);
+                                    //await modelEventService.emit('delete', PolicyRuleToInterface, models);
                                     this.OrderList(999999, rule, position, old_order, _interface);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {

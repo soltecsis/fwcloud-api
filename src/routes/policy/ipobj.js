@@ -138,8 +138,10 @@ async (req, res) => {
 			if (data) {
 				if (data.result) {
 					PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-					accessData.rule = new_rule;
-					PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+					if (accessData.rule != new_rule) {
+						accessData.rule = new_rule;
+						PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+					}
 
 					// If after the move we have empty rule positions, then remove them from the negate position list.
 					try {
@@ -176,8 +178,10 @@ async (req, res) => {
 					PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
 							PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-							accessData.rule = new_rule;
-							PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+							if (accessData.rule != new_rule) {
+								accessData.rule = new_rule;
+								PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+							}
 
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {

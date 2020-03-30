@@ -123,17 +123,17 @@ export class PolicyScript {
                 SocketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
                 await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
 
-                // Enable bash depuration if it is selected in firewalls/cluster options.
+                // Enable sh depuration if it is selected in firewalls/cluster options.
                 const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
-                const bash_debug = (options & 0x0008) ? ' -x' : '';
+                const sh_debug = (options & 0x0008) ? ' -x' : '';
 
                 SocketTools.msg("Installing firewall script.\n");
-                await sshTools.runCommand(SSHconn, "sudo bash" + bash_debug + " ./" + config.get('policy').script_name + " install");
+                await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " ./" + config.get('policy').script_name + " install");
 
                 SocketTools.msg("Loading firewall policy.\n");
-                const data = await sshTools.runCommand(SSHconn, "sudo bash" + bash_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
-                    "bash" + bash_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
-                    "else bash" + bash_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
+                const data = await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
+                    "sh" + sh_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
+                    "else sh" + sh_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
 
                 SocketTools.msg(data);
                 SocketTools.msgEnd();
