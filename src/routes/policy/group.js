@@ -38,16 +38,15 @@ router.post('/', async (req, res) => {
 	const repository = await app().getService(RepositoryService.name);
 	var body = req.body;
 
-	let policyGroup = new PolicyGroup();
-	policyGroup.name = body.name;
-	policyGroup.comment = body.comment;
-	policyGroup.firewall = body.firewall;
-
 	const policyGroupRepository = repository.for(PolicyGroup);
 	const policyRuleRepository = repository.for(PolicyRule);
 
 	try {
-		policyGroup = policyGroupRepository.create(policyGroup);
+		policyGroup = policyGroupRepository.create({
+			name: body.name,
+			comment: body.comment,
+			firewallId: body.firewall
+		});
 		policyGroup = await policyGroupRepository.save(policyGroup);
 
 		if (body.rulesIds.length > 0) {

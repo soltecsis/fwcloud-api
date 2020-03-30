@@ -2,28 +2,45 @@ import { Repository, In, EntityRepository } from "typeorm";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyGroup } from "./PolicyGroup";
 import Model from "../Model";
+import { isArray } from "util";
 
 @EntityRepository(PolicyRule)
 export class PolicyRuleRepository extends Repository<PolicyRule> {
 
-    public async updateStyle(policyRules: Array<PolicyRule>, style: string): Promise<Array<PolicyRule>> {
-        const ids = policyRules.map((policyRule: PolicyRule) => {
-            return policyRule.id;
-        });
+    /**
+     * Updates one or multiple PolicyRule styles
+     * 
+     * @param policyRule 
+     * @param style 
+     */
+    public async updateStyle(policyRule: PolicyRule, style: string): Promise<PolicyRule>;
+    public async updateStyle(policyRules: Array<PolicyRule>, style: string): Promise<PolicyRule>;
+    public async updateStyle(oneOrMany: PolicyRule | Array<PolicyRule>, style: string): Promise<PolicyRule | Array<PolicyRule>> {
+        
+        const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany: [oneOrMany];
 
         await this.createQueryBuilder().update(PolicyRule)
         .set({style: style})
-        .whereInIds(ids).execute();
+        .whereInIds(this.getIdsFromEntityCollection(entities)).execute();
 
-        return await this.find({ where: {
-            id: In(ids)
-        }});
+        return await this.reloadEntities(oneOrMany);
     }
 
-    public async assignToGroup(policyRules: Array<PolicyRule>, newPolicyGroup: PolicyGroup = null): Promise<Array<PolicyRule>> {
-        const criterias: any = {};
-
-        criterias.id = In(this.getIdsFromEntityCollection(policyRules));
+    /**
+     * Assign one or multiple policyRule to a PolicyGroup. If policyGroup is null, then policyRule is unassigned.
+     * 
+     * @param policyRule 
+     * @param newPolicyGroup 
+     */
+    public async assignToGroup(policyRule: PolicyRule, newPolicyGroup: PolicyGroup): Promise<PolicyRule>
+    public async assignToGroup(policyRules: Array<PolicyRule>, newPolicyGroup: PolicyGroup): Promise<Array<PolicyRule>>;
+    public async assignToGroup(oneOrMany: PolicyRule | Array<PolicyRule>, newPolicyGroup: PolicyGroup = null): Promise<PolicyRule | Array<PolicyRule>> {
+        
+        const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany: [oneOrMany];
+        
+        const criterias: any = {
+            id: In(this.getIdsFromEntityCollection(entities))
+        };
 
         if (newPolicyGroup && newPolicyGroup.firewall) {
             criterias.firewall = newPolicyGroup.firewall;
@@ -34,20 +51,53 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
         .where(criterias)
         .execute();
 
-        return await this.find({where: In(this.getIdsFromEntityCollection(policyRules))});
+        return await this.reloadEntities(oneOrMany);
     }
 
-    public async updateActive(policyRules: Array<PolicyRule>, active: 0 | 1): Promise<Array<PolicyRule>> {
+    /**
+     * Updates one or array of policyRule active flag
+     * 
+     * @param policyRule 
+     * @param active 
+     */
+    public async updateActive(policyRule: PolicyRule, active: 0 | 1): Promise<PolicyRule>;
+    public async updateActive(policyRules: Array<PolicyRule>, active: 0 | 1): Promise<Array<PolicyRule>>;
+    public async updateActive(oneOrMany: PolicyRule | Array<PolicyRule>, active: 0 | 1): Promise<PolicyRule | Array<PolicyRule>> {
+
+        const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany: [oneOrMany];
+
         await this.createQueryBuilder().update(PolicyRule)
         .set({active: active})
         .where({
-            id: In(this.getIdsFromEntityCollection(policyRules)),
+            id: In(this.getIdsFromEntityCollection(entities)),
             special: 0
         }).execute();
 
-        return await this.find({where: In(this.getIdsFromEntityCollection(policyRules))})
+        return await this.reloadEntities(oneOrMany);
     }
 
+    /**
+     * Reloads an entitiy or an array of them
+     * 
+     * @param oneOrMany One Entity or Array of them
+     */
+    protected async reloadEntities(oneOrMany: PolicyRule | Array<PolicyRule>): Promise<PolicyRule | Array<PolicyRule>> {
+        if (isArray(oneOrMany)) {
+            return await this.find({
+                where: {
+                    id: In(this.getIdsFromEntityCollection(oneOrMany))
+                }
+            });
+        }
+
+        return this.findOne(oneOrMany.id);
+    }
+
+    /**
+     * Extract ids from an array of policyRules
+     * 
+     * @param policyRules 
+     */
     protected getIdsFromEntityCollection(policyRules: Array<Model>): Array<any> {
         return policyRules.map((policyRule: PolicyRule) => {
             return policyRule.id;
