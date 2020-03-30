@@ -16,6 +16,7 @@ import { BulkDatabaseOperations } from "./bulk-database-operations";
 import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../models/firewall/Firewall";
+import { FirewallRepository } from "../models/firewall/firewall.repository";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -320,9 +321,7 @@ export class Snapshot implements Responsable {
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
         const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, {relations: ['clusters', 'firewalls']});
 
-        for(let i = 0; i < fwcloud.firewalls.length; i++) {
-            await fwcloud.firewalls[i].resetCompilationStatus();
-        };
+        (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
     }
 
     toResponse(): object {

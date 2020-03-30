@@ -35,6 +35,12 @@ import StringHelper from "../utils/StringHelper";
 import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
+import { FwCloud } from "../models/fwcloud/FwCloud";
+import { RepositoryService } from "../database/repository.service";
+import { Repository } from "typeorm";
+import { FirewallRepository } from "../models/firewall/firewall.repository";
+import { Firewall } from "../models/firewall/Firewall";
+import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -178,18 +184,18 @@ export class Backup implements Responsable {
         this.exportMetadataFileSync();
 
         const p1: Promise<DumpReturn> = this.exportDatabase();
-        
+
         p1.then(_ => {
             progress.step('Database exported');
         });
 
         const p2: Promise<void> = this.exportDataDirectories();
-        
+
         p2.then(_ => {
             progress.step('Data directories exported');
         });
 
-        Promise.all([p1, p2]).then( (_) => {
+        Promise.all([p1, p2]).then((_) => {
             this.load(this._backupPath).then(_ => {
                 progress.end('Backup created');
             });
@@ -218,14 +224,8 @@ export class Backup implements Responsable {
             progress.start('Restoring backup');
 
             const p1: Promise<unknown> = this.importDatabase()
-            p1.then(_ => {
+            p1.then(async (_) => {
                 progress.step('Database restored');
-
-                //TODO: Make all firewalls pending of compile and install.
-
-                //TODO: Make all VPNs pending of install.
-
-                //TODO: Clean all policy compilation cache.
             });
 
 
@@ -234,7 +234,7 @@ export class Backup implements Responsable {
                 progress.step('Data directories restored');
             });
 
-            Promise.all([p1, p2]).then( (_) => {
+            Promise.all([p1, p2]).then((_) => {
                 progress.end('Backup restored');
             });
 
@@ -242,9 +242,9 @@ export class Backup implements Responsable {
 
             return progress;
         }
-        
+
         throw new BackupNotFoundException(this._backupPath);
-        
+
     }
 
     /**
@@ -302,7 +302,7 @@ export class Backup implements Responsable {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const dbConfig: DatabaseConfig = databaseService.config;
 
-        return await mysqldump({
+        return mysqldump({
             connection: {
                 host: dbConfig.host,
                 port: dbConfig.port,
@@ -340,8 +340,24 @@ export class Backup implements Responsable {
                 }
             });
 
-            await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
-            resolve();
+            try {
+                await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
+
+                //Change compilation status from firewalls
+                const firewallRepository: FirewallRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(Firewall);
+                const firewalls: Array<Firewall> = await firewallRepository.find();
+                await firewallRepository.markAsUncompiled(firewalls);
+
+                //Remove all compiled rules
+                const policyCompilationRepository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+                const policyCompilations: Array<PolicyCompilation> = await policyCompilationRepository.find();
+                await policyCompilationRepository.remove(policyCompilations);
+
+                //TODO: Make all VPNs pending of install.
+                resolve();
+            } catch(e) {
+                reject(e);
+            }
         });
     }
 
@@ -379,7 +395,7 @@ export class Backup implements Responsable {
 
             if (await FSHelper.directoryExists(src_dir)) {
                 await fse.mkdirp(dst_dir);
-                await fse.copy(src_dir, dst_dir);   
+                await fse.copy(src_dir, dst_dir);
             }
         }
     }

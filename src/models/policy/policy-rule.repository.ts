@@ -1,8 +1,9 @@
-import { Repository, In, EntityRepository } from "typeorm";
+import { In, EntityRepository } from "typeorm";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyGroup } from "./PolicyGroup";
 import Model from "../Model";
 import { isArray } from "util";
+import { Repository } from "../../database/repository";
 
 @EntityRepository(PolicyRule)
 export class PolicyRuleRepository extends Repository<PolicyRule> {
@@ -74,33 +75,5 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
         }).execute();
 
         return await this.reloadEntities(oneOrMany);
-    }
-
-    /**
-     * Reloads an entitiy or an array of them
-     * 
-     * @param oneOrMany One Entity or Array of them
-     */
-    protected async reloadEntities(oneOrMany: PolicyRule | Array<PolicyRule>): Promise<PolicyRule | Array<PolicyRule>> {
-        if (isArray(oneOrMany)) {
-            return await this.find({
-                where: {
-                    id: In(this.getIdsFromEntityCollection(oneOrMany))
-                }
-            });
-        }
-
-        return this.findOne(oneOrMany.id);
-    }
-
-    /**
-     * Extract ids from an array of policyRules
-     * 
-     * @param policyRules 
-     */
-    protected getIdsFromEntityCollection(policyRules: Array<Model>): Array<any> {
-        return policyRules.map((policyRule: PolicyRule) => {
-            return policyRule.id;
-        });
     }
 }
