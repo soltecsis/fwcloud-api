@@ -133,14 +133,13 @@ router.put("/del", async (req, res) => {
 	var id = req.body.id;
 
 	logger.debug("Removed all Policy from Group " + id);
-	const policyGroups = await repository.for(PolicyGroup).find({firewall: idfirewall, id: id});
+	const policyGroup = await repository.for(PolicyGroup).findOne(id);
 
 	try {
-		policyGroups.forEach(async policyGroup => {
-			await PolicyRule.updatePolicy_r_GroupAll(idfirewall, id);
-			await repository.for(PolicyGroup).delete(policyGroup.id);
-		});
-		res.status(204).end();
+		if (policyGroup) {
+			await repository.for(PolicyGroup).remove(policyGroup);
+			res.status(204).end();
+		}
 	} catch(error) { res.status(400).json(fwcError.NOT_FOUND) }
 });
 

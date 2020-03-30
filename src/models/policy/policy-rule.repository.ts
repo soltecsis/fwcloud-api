@@ -37,6 +37,17 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
         return await this.find({where: In(this.getIdsFromEntityCollection(policyRules))});
     }
 
+    public async updateActive(policyRules: Array<PolicyRule>, active: 0 | 1): Promise<Array<PolicyRule>> {
+        await this.createQueryBuilder().update(PolicyRule)
+        .set({active: active})
+        .where({
+            id: In(this.getIdsFromEntityCollection(policyRules)),
+            special: 0
+        }).execute();
+
+        return await this.find({where: In(this.getIdsFromEntityCollection(policyRules))})
+    }
+
     protected getIdsFromEntityCollection(policyRules: Array<Model>): Array<any> {
         return policyRules.map((policyRule: PolicyRule) => {
             return policyRule.id;
