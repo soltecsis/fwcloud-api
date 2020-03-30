@@ -36,6 +36,7 @@ import modelEventService from "../ModelEventService";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
+import { DatabaseService } from "../../database/database.service";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -643,38 +644,20 @@ export class PolicyRule extends Model {
         });
     };
 
+    /**
+     * Assigns the policyRule group. If group is null, then the group is unassigned
+     * 
+     * @param group PolicyGroup
+     */
+    public async changeGroup(group: PolicyGroup = null): Promise<this> {
+        if (group && group.firewall !== this.firewall) {
+            throw Error('PolicyRule can not be assigned to a group wich does not belong to the same firewall');
+        }
+        
+        this.idgroup = group && group.id ? group.id: null;
+        return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
+    }
 
-    //Update policy_r from user
-    public static updatePolicy_r_Group(firewall, oldgroup, newgroup, id, callback) {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error) return reject(error);
-
-                var sql = `UPDATE ${tableName} SET
-                    idgroup=${connection.escape(newgroup)} WHERE id=${id} and firewall=${firewall}`;
-                if (oldgroup !== null) sql += ` AND idgroup=${oldgroup}`;
-                connection.query(sql, async (error, result) => {
-                    if (error) return reject(error);
-                    if (result.affectedRows > 0) {
-                        if (oldgroup !== null) {
-                            await modelEventService.emit('update', PolicyRule, {
-                                id: id,
-                                firewall: firewall,
-                                idgroup: oldgroup
-                            })
-                        } else {
-                            await modelEventService.emit('update', PolicyRule, {
-                                id: id,
-                                firewall: firewall
-                            })
-                        }
-                        resolve({ "result": true });
-                    } else
-                        resolve({ "result": false });
-                });
-            });
-        });
-    };
     //Update policy_r Style
     public static updatePolicy_r_Style(firewall, id, type, style) {
         return new Promise((resolve, reject) => {

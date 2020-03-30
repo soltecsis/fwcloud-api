@@ -52,10 +52,11 @@ router.post('/', async (req, res) => {
 		if (body.rulesIds.length > 0) {
 
 			//Add rules to group
-			for (var rule of body.rulesIds) {
-				PolicyRule.updatePolicy_r_Group(body.firewall, null, policyGroup.id, rule, (error, data) => {
-					logger.debug("ADDED to Group " + policyGroup.id + " POLICY: " + rule);
-				});
+			for (var ruleId of body.rulesIds) {
+				const policyRule = await repository.for(PolicyRule).findOne(ruleId);
+				if (policyRule) {
+					await policyRule.changeGroup(policyGroup);
+				}
 			}
 		}
 		res.status(200).json({ "insertId": policyGroup.id });
@@ -149,12 +150,10 @@ router.put("/del", async (req, res) => {
 
 /* Remove rules from Group */
 router.put("/rules/del", async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	try {
-		const policyGroup = await repository.for(PolicyGroup).findOne(req.body.id);
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
-		await policyGroup.deleteIfEmpty(req.dbCon, req.body.firewall);
+		await PolicyGroup.deleteIfEmptyPolicy_g(req.dbCon, req.body.firewall, req.body.id);
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
@@ -169,12 +168,15 @@ async function removeRules(idfirewall, idgroup, rulesIds) {
 	});
 }
 
-function ruleRemove(idfirewall, idgroup, rule) {
-	return new Promise((resolve, reject) => {
-		PolicyRule.updatePolicy_r_Group(idfirewall, idgroup, null, rule, (error, data) => {
-			if (error) return reject(error);
-			resolve();
-		});
+async function ruleRemove(ruleidfirewall, idgroup, rule) {
+	return new Promise(async (resolve, reject) => {
+		const repository = await app().getService(RepositoryService.name);
+		let policyRule = await repository.for(PolicyRule).findOne(rule);
+		
+		if(policyRule) {
+			policyRule = await policyRule.changeGroup(null);
+			return resolve();
+		}
 	});
 }
 
