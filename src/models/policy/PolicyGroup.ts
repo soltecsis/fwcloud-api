@@ -21,7 +21,7 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, BeforeRemove, Repository } from 'typeorm';
 import db from '../../database/database-manager';
 
 import Logger from 'log4js';
@@ -29,6 +29,9 @@ import Model from '../Model';
 import modelEventService from '../ModelEventService';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
+import { PolicyRuleRepository } from './policy-rule.repository';
+import { app } from '../../fonaments/abstract-application';
+import { RepositoryService } from '../../database/repository.service';
 
 const logger = Logger.getLogger("app");
 
@@ -69,6 +72,16 @@ export class PolicyGroup extends Model {
 
 	public getTableName(): string {
 		return tableName;
+	}
+
+	@BeforeRemove()
+	async unassignPolicyRulesBeforeRemove() {
+		const policyRuleRepository: PolicyRuleRepository = await (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRule);
+		const policyRules: Array<PolicyRule> = await policyRuleRepository.find({where: {
+			idgroup: this.id
+		}});
+
+		await policyRuleRepository.assignToGroup(policyRules, null);
 	}
 
 	//Get All policy_g by firewall

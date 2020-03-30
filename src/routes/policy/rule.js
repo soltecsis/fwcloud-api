@@ -32,6 +32,7 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { In } from 'typeorm';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -168,17 +169,18 @@ async (req, res) => {
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	//Save data into object
-	var idfirewall = req.body.firewall;
-	var type = req.body.type;
-	var active = req.body.active;
-	var rulesIds = req.body.rulesIds;
-	if (active !== 1) active = 0;
+	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
+	rules = await policyRuleRepository.find({
+		where: {
+			id: In(req.body.rulesIds),
+			firewall: req.body.firewall,
+			type: req.body.type,
+		}
+	});
+	const active = req.body.active !== 1 ? 0 : req.body.active;
 
 	try {
-		for (var rule of rulesIds) {
-			await PolicyRule.updatePolicy_r_Active(idfirewall, rule, type, active);
-		}
+		await policyRuleRepository.updateActive(rules, active)
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
@@ -188,13 +190,12 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
+	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
 	var style = req.body.style;
-	var rulesIds = req.body.rulesIds;
+	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
 
 	try {
-		for (var rule of rulesIds) {
-			await PolicyRule.updatePolicy_r_Style(req.body.firewall, rule, req.body.type, style);
-		}
+		await policyRuleRepository.updateStyle(policyRules, style);
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
