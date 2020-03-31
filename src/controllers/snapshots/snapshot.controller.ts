@@ -80,6 +80,6 @@ export class SnapshotController extends Controller {
 
         snapshot = await this._snapshotService.destroy(snapshot);
 
-        return ResponseBuilder.buildResponse().status(204).body(snapshot);
+        return ResponseBuilder.buildResponse().status(200).body(snapshot);
     }
 }

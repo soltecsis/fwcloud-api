@@ -1,6 +1,6 @@
 import { Moment } from "moment";
 import { Responsable } from "../fonaments/contracts/responsable";
-import { app } from "../fonaments/abstract-application";
+import { app, AbstractApplication } from "../fonaments/abstract-application";
 import { FSHelper } from "../utils/fs-helper";
 import moment from "moment";
 import * as path from "path";
@@ -159,7 +159,7 @@ export class Snapshot implements Responsable {
 
         progress.start('Restoring snapshot');
 
-        if(!this._compatible) {
+        if (!this._compatible) {
             throw new SnapshotNotCompatibleException(this);
         }
 
@@ -211,7 +211,7 @@ export class Snapshot implements Responsable {
         this._data = snapshotData;
         this._schema = snapshotMetadata.schema
         this._compatible = await this.checkisSchemaCompatible(this._schema);
-        
+
         return this;
     }
 
@@ -267,12 +267,12 @@ export class Snapshot implements Responsable {
         this._date = moment();
         this._id = this._date.valueOf();
         this._path = path.join(snapshot_directory, fwCloud.id.toString(), this._id.toString());
-        this._name = name ? name: this._date.utc().format();
+        this._name = name ? name : this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;
         this._schema = await databaseService.getDatabaseSchemaVersion();
         this._compatible = true;
-        
+
         progress.start('Creating snapshot');
 
         if (FSHelper.directoryExistsSync(this._path)) {
@@ -399,17 +399,23 @@ export class Snapshot implements Responsable {
      * Resets the firewalls compilation & installation status
      */
     protected async resetCompiledStatus(): Promise<void> {
-        const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-        const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, {relations: ['clusters', 'firewalls']});
+        return new Promise<void>(async (resolve, reject) => {
+            const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
+            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, { relations: ['clusters', 'firewalls'] });
 
-        (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
+            await (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
+
+            return resolve();
+        });
     }
 
     /**
      * Repairs the fwc_tree table
      */
     protected async repair(): Promise<void> {
-        return await SnapshotRepair.repair(this.fwCloud);
+        if(app().config.get('env') !== 'test') {
+            return SnapshotRepair.repair(this.fwCloud);
+        }
     }
 
     toResponse(): object {

@@ -190,7 +190,7 @@ describe(describeName('Backup E2E tests'), () => {
                 .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(204);
+                .expect(200);
         });
 
         it('404 should be returned if the backup does not exist', async() => {

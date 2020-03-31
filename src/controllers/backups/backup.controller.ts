@@ -102,10 +102,10 @@ export class BackupController extends Controller {
     public async destroy(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+        let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
-        await this._backupService.destroy(backup);
+        backup = await this._backupService.destroy(backup);
 
-        return ResponseBuilder.buildResponse().status(204);
+        return ResponseBuilder.buildResponse().status(200).body(backup);
     }
 }

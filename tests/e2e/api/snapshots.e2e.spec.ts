@@ -319,13 +319,13 @@ describe(describeName('Snapshot E2E tests'), () => {
         it('guest user should not restore an snapshot', async() => {
 
             await request(app.express)
-                .put(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .expect(401)
         });
 
         it('regular user should not restore an snapshot if the user does not belong to the fwcloud', async() => {
             await request(app.express)
-                .put(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(401)
@@ -336,7 +336,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .put(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(200)
@@ -347,7 +347,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         it('admin user should restore an snapshot', async() => {
             await request(app.express)
-                .put(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(200)
@@ -362,7 +362,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             fs.writeFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
             await request(app.express)
-                .put(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(422)
@@ -399,15 +399,15 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
-                .expect(204);
+                .expect(200);
         });
 
-        it('admin user should update an snapshot', async() => {
+        it('admin user should destroy an snapshot', async() => {
             await request(app.express)
                 .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
-                .expect(204);
+                .expect(200);
         });
     });
 });

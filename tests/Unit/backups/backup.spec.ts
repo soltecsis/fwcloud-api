@@ -105,7 +105,7 @@ describe(describeName('Backup tests'), () => {
 
         firewall = await firewallRepository.findOne(firewall.id);
 
-        expect(firewall.status).to.be.deep.eq(0);
+        expect(firewall.status).to.be.deep.eq(3);
         expect(firewall.installed_at).to.be.null;
         expect(firewall.compiled_at).to.be.null;
 
