@@ -44,7 +44,7 @@ export class EntityExporter {
 
             const repository: Repository<typeof Model> = (await app().getService<RepositoryService>(RepositoryService.name)).for(this._entity);
 
-            const obj = await repository.findOne(this.generateFindOnePrimaryKeys(primaryKeysMetadata, this._instance.toJSON()), this.generateFindOptionsWithAllRelations(relations));
+            const obj = await repository.findOne(this.generateWhereCriteriaForFindOnePrimaryKeys(primaryKeysMetadata, this._instance.toJSON()), this.generateFindOptionsWithAllRelations(relations));
 
             for(let i = 0; i < relations.length; i++) {
                 if (!this.shouldIgnoreRelation(relations[i])) {
@@ -56,44 +56,67 @@ export class EntityExporter {
         return this._result;
     };
 
+    /**
+     * Returns whether the given instance should be exported
+     * @param instance 
+     */
     protected shouldIgnoreThisInstance(instance: any): boolean {
         return false;
     }
 
+    /**
+     * Returns whether the given relation with the entity should be exported
+     * @param relation 
+     */
     protected shouldIgnoreRelation(relation: RelationMetadataArgs): boolean {
         return this._ignoreRelations.indexOf(relation.propertyName) >= 0
     }
 
-    protected async exportRelationEntity(obj: any, relation : RelationMetadataArgs): Promise<SnapshotData> {
+    /**
+     * Export relation entities from the given instance
+     * 
+     * @param instance 
+     * @param relation 
+     */
+    protected async exportRelationEntity(instance, relation : RelationMetadataArgs): Promise<SnapshotData> {
         if (relation.relationType === 'one-to-many' || relation.relationType === 'many-to-many') {
-            let relatedObjects: Array<typeof Model> | typeof Model = obj[relation.propertyName];
+            let relatedObjects: Array<typeof Model> | typeof Model = instance[relation.propertyName];
             
-            if (this.shouldFilterRelation(relation.propertyName)) {
-                relatedObjects = await this._customRelationFilters[relation.propertyName](obj[relation.propertyName]);
+            if (this.hasCustomRelations(relation.propertyName)) {
+                relatedObjects = await this._customRelationFilters[relation.propertyName](instance[relation.propertyName]);
             }
             
-            for(let i = 0; i < obj[relation.propertyName].length; i++) {
-                const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(obj[relation.propertyName][i].constructor.name);
-                const exporter = new exporterDefinition(this._result, obj[relation.propertyName][i]);
+            for(let i = 0; i < instance[relation.propertyName].length; i++) {
+                const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(instance[relation.propertyName][i].constructor.name);
+                const exporter = new exporterDefinition(this._result, instance[relation.propertyName][i]);
                 await exporter.export();
             }
 
             return this._result;
         }
 
-        if (obj[relation.propertyName]) {
-            const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(obj[relation.propertyName].constructor.name);
-            const exporter = new exporterDefinition(this._result, obj[relation.propertyName]);
+        if (instance[relation.propertyName]) {
+            const exporterDefinition: typeof EntityExporter = new Exporter().buildExporterFor(instance[relation.propertyName].constructor.name);
+            const exporter = new exporterDefinition(this._result, instance[relation.propertyName]);
             await exporter.export();
         }
 
         return this._result;
     }
 
-    protected shouldFilterRelation(propertyName: string): boolean {
+    /**
+     * Returns whether the given entity should customize the given propertyName which is a relation
+     * @param propertyName 
+     */
+    protected hasCustomRelations(propertyName: string): boolean {
         return this._customRelationFilters.hasOwnProperty(propertyName);
     }
 
+    /**
+     * Returns the relation array for perform an relation eager loading.
+     * 
+     * @param relations 
+     */
     protected generateFindOptionsWithAllRelations(relations: Array<RelationMetadataArgs>): FindOneOptions<typeof Model> {
         const options: FindManyOptions<typeof Model> = {
             relations: []
@@ -107,7 +130,12 @@ export class EntityExporter {
         return options;
     }
 
-    protected generateFindOnePrimaryKeys(primaryKeys: Array<ColumnMetadataArgs>, data: DeepPartial<Model>): {[k:string]: any} {
+    /**
+     * For the given primary key properties, generates the where criteria for QueryBuilder in orer to perform a FindOne operation
+     * @param primaryKeys 
+     * @param data 
+     */
+    protected generateWhereCriteriaForFindOnePrimaryKeys(primaryKeys: Array<ColumnMetadataArgs>, data: DeepPartial<Model>): {[k:string]: any} {
         const where = {}
 
         for(let i = 0; i < primaryKeys.length; i++) {

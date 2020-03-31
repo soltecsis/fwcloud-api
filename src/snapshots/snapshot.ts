@@ -106,6 +106,14 @@ export class Snapshot implements Responsable {
         return this._schema;
     }
 
+    /**
+     * Create a backup using promises
+     * 
+     * @param snapshot_directory Path without the fwcloud.id directory
+     * @param fwCloud 
+     * @param name
+     * @param comment 
+     */
     public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
         const progress: Progress<Snapshot> = await snapshot.save(snapshot_directory, fwCloud, name, comment);
@@ -117,11 +125,22 @@ export class Snapshot implements Responsable {
         });
     }
 
+    /**
+     * Create a backup using progress
+     * 
+     * @param snapshot_directory Path without the fwcloud.id directory
+     * @param fwCloud 
+     * @param name 
+     * @param comment 
+     */
     public static async progressCreate(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const snapshot: Snapshot = new Snapshot;
         return await snapshot.save(snapshot_directory, fwCloud, name, comment);
     }
 
+    /**
+     * Restore using promises
+     */
     public async restore(): Promise<Snapshot> {
         const progress: Progress<Snapshot> = this.progressRestore();
 
@@ -132,6 +151,9 @@ export class Snapshot implements Responsable {
         });
     }
 
+    /**
+     * Restore using progress
+     */
     public progressRestore(): Progress<Snapshot> {
         const progress: Progress<Snapshot> = new Progress<Snapshot>(3);
 
@@ -162,6 +184,11 @@ export class Snapshot implements Responsable {
         return progress;
     }
 
+    /**
+     * Load an snapshot using the path provided
+     * 
+     * @param snapshotPath The path must contain the fwcloud.id directory
+     */
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
         const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
@@ -188,6 +215,11 @@ export class Snapshot implements Responsable {
         return this;
     }
 
+    /**
+     * Update the snapshot metadata
+     * 
+     * @param snapshotData 
+     */
     public async update(snapshotData: { name: string, comment: string }): Promise<Snapshot> {
         this._name = snapshotData.name;
         this._comment = snapshotData.comment;
@@ -198,10 +230,18 @@ export class Snapshot implements Responsable {
 
     }
 
+    /**
+     * Statically load an snapshot
+     * 
+     * @param snapshotPath 
+     */
     public static async load(snapshotPath: string): Promise<Snapshot> {
         return new Snapshot().loadSnapshot(snapshotPath);
     }
 
+    /**
+     * Removes an snapshot from the filesystem
+     */
     public async destroy(): Promise<Snapshot> {
         if (this._exists) {
             await FSHelper.rmDirectory(this._path);
@@ -211,6 +251,14 @@ export class Snapshot implements Responsable {
         return this;
     }
 
+    /**
+     * Saves the instance into the filesystem
+     * 
+     * @param snapshot_directory Path without the fwcloud.id directory
+     * @param fwCloud 
+     * @param name 
+     * @param comment 
+     */
     protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const progress = new Progress<Snapshot>(4);
@@ -256,16 +304,25 @@ export class Snapshot implements Responsable {
         return progress;
     }
 
+    /**
+     * Removes all data related with the fwcloud from the database
+     */
     protected async removeDatabaseData(): Promise<void> {
         const data: SnapshotData = await this.getFwCloudJSONData();
 
         return new BulkDatabaseOperations(data, 'delete').run();
     }
 
+    /**
+     * Restore all snapshot data into the database
+     */
     protected async restoreDatabaseData(): Promise<void> {
         return new BulkDatabaseOperations(this._data, 'insert').run();
     }
 
+    /**
+     * Get all fwcloud data related from the database
+     */
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
         const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwCloud.constructor.name);
@@ -276,12 +333,18 @@ export class Snapshot implements Responsable {
         return result;
     }
 
+    /**
+     * Persist all fwcloud related data from database into the data file
+     */
     protected async saveDataFile(): Promise<void> {
         const data: SnapshotData = await this.getFwCloudJSONData();
 
         fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(data, null, 2));
     }
 
+    /**
+     * Persist the metadatafile into the filesystem
+     */
     protected saveMetadataFile(): void {
         const metadata: SnapshotMetadata = {
             timestamp: this._date.valueOf(),
@@ -296,22 +359,35 @@ export class Snapshot implements Responsable {
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
     }
 
+    /**
+     * Copy all FwCloud DATA directory into the snapshot
+     */
     protected async copyFwCloudDataDirectories(): Promise<void> {
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
     }
 
+    /**
+     * Removes all DATA fwcloud directory
+     */
     protected async removeFwCloudDataDirectories(): Promise<void> {
         await FSHelper.rmDirectory(this.fwCloud.getPkiDirectoryPath());
         await FSHelper.rmDirectory(this.fwCloud.getPolicyDirectoryPath());
     }
 
+    /**
+     * Creates the snapshot/fwcloud.id directory if it does not exists (is the first snapshot for the given fwcloud)
+     */
     protected static async generateSnapshotDirectoryIfDoesNotExist() {
         if (!await FSHelper.directoryExists(app().config.get('snapshot').data_dir)) {
             FSHelper.mkdir(app().config.get('snapshot').data_dir);
         }
     }
 
+    /**
+     * Checks if the given schemaVersion is the same as the schemaVersion generated by the databaseService
+     * @param schema 
+     */
     protected async checkisSchemaCompatible(schema: string) {
         const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const currentSchemaVersion: string = await databaseService.getDatabaseSchemaVersion();
@@ -319,6 +395,9 @@ export class Snapshot implements Responsable {
         return currentSchemaVersion === schema;
     }
 
+    /**
+     * Resets the firewalls compilation & installation status
+     */
     protected async resetCompiledStatus(): Promise<void> {
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
         const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, {relations: ['clusters', 'firewalls']});
@@ -326,6 +405,9 @@ export class Snapshot implements Responsable {
         (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
     }
 
+    /**
+     * Repairs the fwc_tree table
+     */
     protected async repair(): Promise<void> {
         return await SnapshotRepair.repair(this.fwCloud);
     }
