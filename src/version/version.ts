@@ -36,7 +36,9 @@ export class Version implements Responsable {
 
                 return this;
             }
-        } catch(e) {}
+        } catch(e) {
+            throw e;
+        }
 
         throw new VersionFileNotFoundException(versionFilePath);
     }
