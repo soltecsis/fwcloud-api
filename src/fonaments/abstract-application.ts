@@ -64,10 +64,6 @@ export abstract class AbstractApplication {
       this._path = path;
       this._express = express();
       this._config = require('../config/config');
-      if (this._config.get('env') !== 'test') {
-        console.log('Loading application from ' + this._path);
-        console.log('Running application in env = ' + this._config.get('env'));
-      }
       _runningApplication = this;
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
@@ -109,13 +105,22 @@ export abstract class AbstractApplication {
   }
 
   public async bootstrap(): Promise<AbstractApplication> {
-    this._version = await this.loadVersion();
     this.generateDirectories();
     this.startServiceContainer();
     this.registerProviders();
+    this._version = await this.loadVersion();
     this.registerMiddlewares('before');
     await this.registerRoutes();
     this.registerMiddlewares('after');
+
+    if (this._config.get('env') !== 'test') {
+      console.log('\n\n');
+      console.log(`FwCloud v${this.version.tag} (${this.config.get('env')})`);
+      console.log('Schema version: ' + this.version.schema);
+      console.log('Loaded application from ' + this._path);
+      console.log('\n\n');
+    }
+
     return this;
   }
 

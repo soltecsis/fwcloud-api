@@ -2,6 +2,8 @@ import moment, { Moment } from "moment";
 import { promises as fs} from "fs";
 import { VersionFileNotFoundException } from "./exceptions/version-file-not-found.exception";
 import { Responsable } from "../fonaments/contracts/responsable";
+import { app } from "../fonaments/abstract-application";
+import { DatabaseService } from "../database/database.service";
 
 export class Version implements Responsable {
     tag: string;
@@ -15,7 +17,7 @@ export class Version implements Responsable {
     }
 
     public async saveVersionFile(versionFilePath: string): Promise<Version> {
-        const fileData: string = JSON.stringify({version: this.tag, date: this.date.utc(), schema: this.schema}, null, 2);
+        const fileData: string = JSON.stringify({version: this.tag, date: this.date.utc()}, null, 2);
 
         await fs.writeFile(versionFilePath, fileData);
 
@@ -30,6 +32,7 @@ export class Version implements Responsable {
                 const jsonContent: {version: string, date: string} = JSON.parse(content);
                 this.tag = jsonContent.version;
                 this.date = moment(jsonContent.date) || moment();
+                this.schema = await (await app().getService<DatabaseService>(DatabaseService.name)).getDatabaseSchemaVersion();
 
                 return this;
             }

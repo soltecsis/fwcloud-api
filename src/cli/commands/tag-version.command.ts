@@ -51,8 +51,7 @@ export class TagVersionCommand implements yargs.CommandModule {
     async handler(args: yargs.Arguments) {
         try {
             const app: Application = await Application.run();
-            const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-
+            
             if (!semver.valid(args.t as string)) {
                 throw new VersionTagIsNotValidException(args.t as string);
             }
@@ -60,7 +59,6 @@ export class TagVersionCommand implements yargs.CommandModule {
             const version: Version = new Version();
             version.tag = args.t as string;
             version.date = moment();
-            version.schema = await databaseService.getDatabaseSchemaVersion();
 
             await version.saveVersionFile(path.join(app.path, Application.VERSION_FILENAME));
 

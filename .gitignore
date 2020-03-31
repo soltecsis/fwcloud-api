@@ -25,7 +25,6 @@ sessions/
 .env
 config/tls/
 BACKUP/
-SNAPSHOTS/
 
 *.fwb
 *.swp
