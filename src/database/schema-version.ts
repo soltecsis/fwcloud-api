@@ -20,6 +20,13 @@ export class SchemaVersion {
                 user: dbConfig.user,
                 password: dbConfig.pass,
                 database: dbConfig.name,
+            },
+            dump: {
+                data: false,
+                trigger: false,
+                schema: {
+                    autoIncrement: false,
+                }
             }
         });
 
