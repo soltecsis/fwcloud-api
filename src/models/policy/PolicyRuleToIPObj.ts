@@ -81,6 +81,8 @@ export class PolicyRuleToIPObj extends Model {
     })
     policyRule: PolicyRule;
 
+    /**
+    * Pending foreign keys.
     @ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
     @JoinColumn({
         name: 'ipobj'
@@ -98,6 +100,7 @@ export class PolicyRuleToIPObj extends Model {
         name: 'ipobj_g'
     })
     ipObjGroup: IPObjGroup;
+    */
 
     @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToIPObjs)
     @JoinColumn({

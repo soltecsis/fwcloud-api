@@ -565,6 +565,8 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     referencedColumnNames: ['id'],
                     referencedTableName: 'policy_r'
                 },
+                /**
+                 * Pending foreign keys.
                 {
                     columnNames: ['ipobj'],
                     referencedColumnNames: ['id'],
@@ -579,7 +581,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     columnNames: ['interface'],
                     referencedColumnNames: ['id'],
                     referencedTableName: 'interface'
-                },
+                },*/
             ]
         }));
 

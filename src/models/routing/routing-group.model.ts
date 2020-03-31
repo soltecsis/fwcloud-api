@@ -41,6 +41,8 @@ export class RoutingGroup extends Model {
     })
     firewall: Firewall;
 
+    /**
+    * Pending foreign keys.
     @ManyToOne(type => RoutingGroup, model => model.childs)
     @JoinColumn({
         name: 'idgroup'
@@ -49,6 +51,7 @@ export class RoutingGroup extends Model {
 
     @OneToMany(type => RoutingGroup, model => model.parent)
     childs: Array<RoutingGroup>;
+    */
 
     @OneToMany(type => RoutingRule, routingRule => routingRule.routingGroup)
     routingRules: Array<RoutingRule>;

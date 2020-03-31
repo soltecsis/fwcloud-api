@@ -154,8 +154,11 @@ export class IPObj extends Model {
     @OneToMany(type => InterfaceIPObj, interfaceIPObj => interfaceIPObj.hostIPObj)
     hosts!: Array<InterfaceIPObj>;
 
+    /**
+    * Pending foreign keys.
     @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+    */
 
     @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObj)
     routingRuleToIPObjs: Array<RoutingRuleToIPObj>;

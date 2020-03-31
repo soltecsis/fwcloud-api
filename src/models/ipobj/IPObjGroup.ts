@@ -71,9 +71,11 @@ export class IPObjGroup extends Model {
     @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObjGroup)
     routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
 
+    /**
+    * Pending foreign keys.
     @OneToMany(type => PolicyRuleToIPObj, model => model.ipObjGroup)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-
+    */
 
     public getTableName(): string {
         return tableName;
