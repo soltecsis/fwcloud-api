@@ -172,7 +172,7 @@ export class IPObj extends Model {
         
         const ipObjToIPObjGroupRepository: Repository<IPObjToIPObjGroup> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjToIPObjGroup);
-        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipobj: this.id});
+        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipObjGroupId: this.id});
         for(let i = 0; i < ipobj_to_ipobj_group.length; i++) {
             await modelEventService.emit('update', IPObjToIPObjGroup, ipobj_to_ipobj_group[i])
         }

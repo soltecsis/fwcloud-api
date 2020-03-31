@@ -54,8 +54,8 @@ export class PolicyPosition extends Model {
     @Column()
     name: string;
 
-    @Column()
-    policy_type: number;
+    @Column({name: 'policy_type'})
+    policyTypeId: number;
 
     @Column()
     position_order: number;
@@ -65,9 +65,6 @@ export class PolicyPosition extends Model {
 
     @Column()
     single_object: number;
-
-    @Column({name: 'policy_type'})
-    policyTypeId: number;
     
     @ManyToOne(type => PolicyType, type => type.policyPositions)
     @JoinColumn({

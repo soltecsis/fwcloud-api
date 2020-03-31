@@ -37,11 +37,11 @@ const tableName: string = 'interface__ipobj';
 @Entity(tableName)
 export class InterfaceIPObj extends Model {
 
-	@PrimaryColumn()
-	interface: number;
+	@PrimaryColumn({name: 'interface'})
+	interfaceId: number;
 
-	@PrimaryColumn()
-	ipobj: number;
+	@PrimaryColumn({name: 'ipobj'})
+	ipObjId: number;
 
 	@Column()
 	interface_order: string;
@@ -58,17 +58,11 @@ export class InterfaceIPObj extends Model {
 	@Column()
 	updated_by: number;
 
-	@Column({name: 'interface'})
-	hostInterfaceId: number;
-
 	@ManyToOne(type => Interface, model => model.hosts)
 	@JoinColumn({
 		name: 'interface'
 	})
 	hostInterface: Interface;
-
-	@Column({name: 'ipobj'})
-	ipObjId: number;
 	
 	@ManyToOne(type => IPObj, model => model.hosts)
 	@JoinColumn({
@@ -225,11 +219,11 @@ export class InterfaceIPObj extends Model {
 							const interfaceIPObjRepository: Repository<InterfaceIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(InterfaceIPObj);
 							const interfaceToIpObjs: InterfaceIPObj[] = await interfaceIPObjRepository.find({
-								interface: _interface
+								interfaceId: _interface
 							})
 
 							for(let i = 0; i < interfaceToIpObjs.length; i++) {
-								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipobj);
+								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipObjId);
 							}
 							resolve({ "result": true });
 						} else {

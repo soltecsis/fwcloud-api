@@ -24,7 +24,7 @@
 import db from '../../database/database-manager';
 import Model from "../Model";
 import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull } from 'typeorm';
-import modelEventService from '../ModelEventService';
+import Query from '../../database/Query';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 var logger = require('log4js').getLogger("app");
@@ -319,82 +319,82 @@ export class Tree extends Model {
         });
     }
 
-    public static createObjectsTree(req) {
+    public static createObjectsTree(dbCon: Query, fwCloudId: number) {
         return new Promise(async (resolve, reject) => {
             try {
                 let ids: any = {};
                 let id: any;
 
                 // OBJECTS
-                ids.OBJECTS = await this.newNode(req.dbCon, req.body.fwcloud, 'OBJECTS', null, 'FDO', null, null);
+                ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
 
                 // OBJECTS / Addresses
-                ids.Addresses = await this.newNode(req.dbCon, req.body.fwcloud, 'Addresses', ids.OBJECTS, 'OIA', null, 5);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.Addresses, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'OIA', 5);
+                ids.Addresses = await this.newNode(dbCon, fwCloudId, 'Addresses', ids.OBJECTS, 'OIA', null, 5);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Addresses, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
 
                 // OBJECTS / Addresses Ranges
-                ids.AddressesRanges = await this.newNode(req.dbCon, req.body.fwcloud, 'Address Ranges', ids.OBJECTS, 'OIR', null, 6);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.AddressesRanges, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'OIR', 6);
+                ids.AddressesRanges = await this.newNode(dbCon, fwCloudId, 'Address Ranges', ids.OBJECTS, 'OIR', null, 6);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.AddressesRanges, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
 
                 // OBJECTS / Networks
-                ids.Networks = await this.newNode(req.dbCon, req.body.fwcloud, 'Networks', ids.OBJECTS, 'OIN', null, 7);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.Networks, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'OIN', 7);
+                ids.Networks = await this.newNode(dbCon, fwCloudId, 'Networks', ids.OBJECTS, 'OIN', null, 7);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Networks, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
 
                 // OBJECTS / DNS
-                ids.DNS = await this.newNode(req.dbCon, req.body.fwcloud, 'DNS', ids.OBJECTS, 'ONS', null, 9);
+                ids.DNS = await this.newNode(dbCon, fwCloudId, 'DNS', ids.OBJECTS, 'ONS', null, 9);
 
                 // OBJECTS / Hosts
-                await this.newNode(req.dbCon, req.body.fwcloud, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
+                await this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
 
                 // OBJECTS / Marks
-                ids.Marks = await this.newNode(req.dbCon, req.body.fwcloud, 'Iptables Marks', ids.OBJECTS, 'MRK', null, 30);
+                ids.Marks = await this.newNode(dbCon, fwCloudId, 'Iptables Marks', ids.OBJECTS, 'MRK', null, 30);
 
                 // OBJECTS / Groups
-                ids.Groups = await this.newNode(req.dbCon, req.body.fwcloud, 'Groups', ids.OBJECTS, 'OIG', null, 20);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.Groups, 'STD', null, null);
-                await this.createStdGroupsTree(req.dbCon, id, 'OIG', 20);
+                ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.OBJECTS, 'OIG', null, 20);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+                await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
                 resolve(ids);
             } catch (error) { return reject(error) }
         });
     }
 
-    public static createServicesTree(req) {
+    public static createServicesTree(dbCon: Query, fwCloudId: number) {
         return new Promise(async (resolve, reject) => {
             try {
                 let ids: any = {};
                 let id;
 
                 // SERVICES
-                ids.SERVICES = await this.newNode(req.dbCon, req.body.fwcloud, 'SERVICES', null, 'FDS', null, null);
+                ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
 
                 // SERVICES / IP
-                ids.IP = await this.newNode(req.dbCon, req.body.fwcloud, 'IP', ids.SERVICES, 'SOI', null, 1);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.IP, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'SOI', 1);
+                ids.IP = await this.newNode(dbCon, fwCloudId, 'IP', ids.SERVICES, 'SOI', null, 1);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.IP, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
 
                 // SERVICES / ICMP
-                ids.ICMP = await this.newNode(req.dbCon, req.body.fwcloud, 'ICMP', ids.SERVICES, 'SOM', null, 3);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.ICMP, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'SOM', 3);
+                ids.ICMP = await this.newNode(dbCon, fwCloudId, 'ICMP', ids.SERVICES, 'SOM', null, 3);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.ICMP, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
 
                 // SERVICES / TCP
-                ids.TCP = await this.newNode(req.dbCon, req.body.fwcloud, 'TCP', ids.SERVICES, 'SOT', null, 2);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.TCP, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'SOT', 2);
+                ids.TCP = await this.newNode(dbCon, fwCloudId, 'TCP', ids.SERVICES, 'SOT', null, 2);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.TCP, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
 
                 // SERVICES / UDP
-                ids.UDP = await this.newNode(req.dbCon, req.body.fwcloud, 'UDP', ids.SERVICES, 'SOU', null, 4);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.UDP, 'STD', null, null);
-                await this.createStdObjectsTree(req.dbCon, id, 'SOU', 4);
+                ids.UDP = await this.newNode(dbCon, fwCloudId, 'UDP', ids.SERVICES, 'SOU', null, 4);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.UDP, 'STD', null, null);
+                await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
 
                 // SERVICES / Groups
-                ids.Groups = await this.newNode(req.dbCon, req.body.fwcloud, 'Groups', ids.SERVICES, 'SOG', null, 21);
-                id = await this.newNode(req.dbCon, req.body.fwcloud, 'Standard', ids.Groups, 'STD', null, null);
-                await this.createStdGroupsTree(req.dbCon, id, 'SOG', 21);
+                ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.SERVICES, 'SOG', null, 21);
+                id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+                await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
 
                 resolve(ids);
             } catch (error) { return reject(error) }
@@ -408,10 +408,10 @@ export class Tree extends Model {
                 await this.newNode(req.dbCon, req.body.fwcloud, 'FIREWALLS', null, 'FDF', null, null);
 
                 // OBJECTS
-                await this.createObjectsTree(req);
+                await this.createObjectsTree(req.dbCon, req.body.fwcloud);
 
                 // SERVICES
-                await this.createServicesTree(req);
+                await this.createServicesTree(req.dbCon, req.body.fwcloud);
 
                 // Creating root node for CA (Certification Authorities).
                 await this.newNode(req.dbCon, req.body.fwcloud, 'CA', null, 'FCA', null, null);

@@ -26,6 +26,7 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Tree } from '../tree/Tree';
 import { Entity, PrimaryColumn, Column } from "typeorm";
 import { SocketTools } from '../../utils/socket';
+import Query from "../../database/Query";
 const fwcError = require('../../utils/error_table');
 
 var dbCon;
@@ -75,7 +76,7 @@ export class Repair extends Model {
     }
 
     //Ontain all root nodes.
-    public static checkRootNodes() {
+    public static checkRootNodes(dbCon: Query) {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT id,name,node_type,id_obj,obj_type FROM ' + tableName +
                 ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent is null';

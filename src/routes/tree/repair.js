@@ -50,7 +50,7 @@ router.put('/', async (req, res) =>{
 
     SocketTools.msg('<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
 
-    const rootNodes = await Repair.checkRootNodes();
+    const rootNodes = await Repair.checkRootNodes(req.dbCon);
 
     // Verify that all tree not root nodes are part of a tree.
     SocketTools.msg('<font color="blue">Checking tree struture.</font>\n');

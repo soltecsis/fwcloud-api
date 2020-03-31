@@ -17,6 +17,7 @@ import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
+import { SnapshotRepair } from "./repair";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -148,10 +149,11 @@ export class Snapshot implements Responsable {
             const p2: Promise<void> = this.restoreDatabaseData();
             p2.then((_) => {
                 let p3: Promise<void> = this.resetCompiledStatus();
+                let p4: Promise<void> = this.repair();
 
-                p3.then((_) => {
+                Promise.all([p3, p4]).then((_) => {
                     progress.end('FwCloud snapshot restored');
-                })
+                });
             })
         })
 
@@ -322,6 +324,10 @@ export class Snapshot implements Responsable {
         const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, {relations: ['clusters', 'firewalls']});
 
         (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
+    }
+
+    protected async repair(): Promise<void> {
+        return await SnapshotRepair.repair(this.fwCloud);
     }
 
     toResponse(): object {

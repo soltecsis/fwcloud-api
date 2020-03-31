@@ -13,7 +13,7 @@ export class FirewallRepository extends Repository<Firewall> {
         await this.createQueryBuilder().update(Firewall)
         .where({id: In(this.getIdsFromEntityCollection(entities))})
         .set({
-            status: 0,
+            status: 3,
             installed_at: null,
             compiled_at: null
         }).execute();
