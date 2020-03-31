@@ -31,13 +31,14 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository } from "typeorm";
+import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
-import { DatabaseService } from "../../database/database.service";
-import { PolicyRuleRepository } from "./policy-rule.repository";
+import { PolicyType } from "./PolicyType";
+import { Firewall } from "../firewall/Firewall";
+import { Mark } from "../ipobj/Mark";
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
 
@@ -48,12 +49,6 @@ export class PolicyRule extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    idgroup: number;
-
-    @Column()
-    firewall: number;
 
     @Column()
     rule_order: number;
@@ -89,9 +84,6 @@ export class PolicyRule extends Model {
     negate: string;
 
     @Column()
-    mark: number;
-
-    @Column()
     special: number;
 
     @Column()
@@ -106,12 +98,65 @@ export class PolicyRule extends Model {
     @Column()
     updated_by: number;
 
+    @OneToOne(type => PolicyCompilation, policyCompilation => policyCompilation.policyRule)
+    compilation: PolicyCompilation;
+
+    @Column({name: 'idgroup'})
+    policyGroupId: number;
+
+    @ManyToOne(type => PolicyGroup, policyGroup => policyGroup.policyRules)
+    @JoinColumn({
+        name: 'idgroup'
+    })
+    policyGroup: PolicyGroup;
+
+    @Column({name: 'firewall'})
+    firewallId: number;
+
+    @ManyToOne(type => Firewall, firewall => firewall.policyRules)
+    @JoinColumn({
+        name: 'firewall'
+    })
+    firewall: Firewall;
+
+    @Column({name: 'mark'})
+    markId: number;
+
+    @ManyToOne(type => Mark, mark => mark.policyRules)
+    @JoinColumn({
+        name: 'mark'
+    })
+    mark: Mark;
+
+    @Column({name: 'type'})
+    policyTypeId: number;
+
+    @ManyToOne(type => PolicyType, policyType => policyType.policyRules)
+    @JoinColumn({
+        name: 'type'
+    })
+    policyType: PolicyType;
+
+    @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRule)
+    policyRuleToInterfaces: Array<PolicyRuleToInterface>;
+
+    @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.policyRule)
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.policyRule)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
+    @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyRule)
+    policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+    
+
+
     private static clon_data: any;
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.id}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.id}, {status_compiled: 0});
     }
 
     public getTableName(): string {

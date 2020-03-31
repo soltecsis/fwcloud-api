@@ -20,7 +20,25 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
     describe(describeName('PolicyRuleRepository updateActive'), () => {
 
-        it('updateActive should update multiple policyRule active flag', async() => {
+        it ('updateActive should update the policyRule active flag', async () => {
+            let policyRule: PolicyRule = policyRuleRepository.create({
+                rule_order: 1,
+                action: 1,
+                active: 0,
+                special: 0
+            });
+
+            policyRule = await policyRuleRepository.save(policyRule);
+
+            const result: PolicyRule = await policyRuleRepository.updateActive(policyRule, 1);
+
+            policyRule = await policyRuleRepository.findOne(policyRule.id);
+
+            expect(result.active).to.be.deep.eq(1);
+            expect(policyRule.active).to.be.deep.eq(1);
+        });
+
+        it('updateActive should update multiple policyRule active flag', async () => {
             const policyRules: Array<PolicyRule> = [
                 await policyRuleRepository.save({
                     rule_order: 1,
@@ -32,7 +50,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
                     rule_order: 1,
                     action: 1,
                     active: 0,
-                    special:0,
+                    special: 0,
                 })
             ];
 
@@ -42,7 +60,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
             expect(result[1].active).to.be.deep.eq(1);
         });
 
-        it('updateActive should not update a policyRule active flag if is an special rule', async() => {
+        it('updateActive should not update a policyRule active flag if is an special rule', async () => {
             const policyRule: PolicyRule = await policyRuleRepository.save({
                 rule_order: 1,
                 action: 1,
@@ -58,12 +76,12 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
     describe(describeName('PolicyRuleRepository assignGroup'), () => {
 
-        it('changeGroup_should_change_the_policy_rule_group', async () => {
+        it('changeGroup should change the policy rule group', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
                     name: 'firewall'
-                })).id
+                }))
             });
             const policyGroupNew: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupNew',
@@ -79,11 +97,50 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
 
-            await policyRuleRepository.assignToGroup([policyRule], policyGroupNew);
+            const result = await policyRuleRepository.assignToGroup(policyRule, policyGroupNew);
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
 
-            expect(policyRule.idgroup).to.be.deep.eq(policyGroupNew.id);
+            expect(result).to.be.instanceOf(PolicyRule);
+            expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
+        });
+
+        it('changeGroup should change multiple policy rule group', async () => {
+            const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
+                name: 'groupOld',
+                firewall: (await repositoryService.for(Firewall).save({
+                    name: 'firewall'
+                }))
+            });
+            const policyGroupNew: PolicyGroup = await repositoryService.for(PolicyGroup).save({
+                name: 'groupNew',
+                firewall: policyGroupOld.firewall
+            });
+
+            let policyRule: PolicyRule = await repositoryService.for(PolicyRule).create({
+                rule_order: 1,
+                idgroup: policyGroupOld.id,
+                action: 1,
+                firewall: policyGroupOld.firewall
+            });
+            let policyRule2: PolicyRule = await repositoryService.for(PolicyRule).create({
+                rule_order: 1,
+                idgroup: policyGroupOld.id,
+                action: 1,
+                firewall: policyGroupOld.firewall
+            });
+
+            policyRule = await repositoryService.for(PolicyRule).save(policyRule, {reload: true});
+            policyRule2 = await repositoryService.for(PolicyRule).save(policyRule2, {reload: true});
+
+            const result = await policyRuleRepository.assignToGroup([policyRule, policyRule2], policyGroupNew);
+
+            policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
+            policyRule2 = await repositoryService.for(PolicyRule).findOne(policyRule2.id);
+
+            expect(result).to.have.length(2);
+            expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
+            expect(policyRule2.policyGroupId).to.be.deep.eq(policyGroupNew.id);
         });
 
         it('changeGroup should not change a group if the rule firewall is not the same as the group firewall', async () => {
@@ -91,29 +148,30 @@ describe(describeName('PolicyRuleRepository tests'), () => {
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
                     name: 'firewall'
-                })).id
+                }))
             });
 
             const policyGroupNew: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupNew',
                 firewall: (await repositoryService.for(Firewall).save({
                     name: 'firewall'
-                })).id
+                }))
             });
 
-            let policyRule: PolicyRule = await repositoryService.for(PolicyRule).save({
+            let policyRule: PolicyRule = await repositoryService.for(PolicyRule).create({
                 rule_order: 1,
-                idgroup: policyGroupOld.id,
-                action: 1
+                policyGroup: policyGroupOld,
+                action: 1,
+                firewall: policyGroupOld.firewall
             });
 
-            policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
-                
+            policyRule = await repositoryService.for(PolicyRule).save(policyRule, { reload: true });
+
             await policyRuleRepository.assignToGroup([policyRule], policyGroupNew);
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
-            
-            expect(policyRule.idgroup).to.be.deep.eq(policyGroupOld.id);
+
+            expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupOld.id);
         });
 
         it('changeRule should unassign the group if is called with null', async () => {
@@ -121,9 +179,9 @@ describe(describeName('PolicyRuleRepository tests'), () => {
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
                     name: 'firewall'
-                })).id
+                }))
             });
-            
+
             let policyRule: PolicyRule = await repositoryService.for(PolicyRule).save({
                 rule_order: 1,
                 idgroup: policyGroupOld.id,
@@ -136,7 +194,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
 
-            expect(policyRule.idgroup).to.be.deep.eq(null);
+            expect(policyRule.policyGroupId).to.be.deep.eq(null);
         })
     });
 
@@ -150,12 +208,34 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
 
-            await policyRuleRepository.updateStyle([policyRule], "newStyle");
+            const result = await policyRuleRepository.updateStyle(policyRule, "newStyle");
 
             policyRule = await repositoryService.for(PolicyRule).findOne(policyRule.id);
 
+            expect(result).to.be.instanceOf(PolicyRule);
             expect(policyRule.style).to.be.deep.eq("newStyle");
         });
+
+        it('updateStyle should update multiple policyRule styles', async () => {
+            let policyRules: Array<PolicyRule> = [
+                await repositoryService.for(PolicyRule).save(repositoryService.for(PolicyRule).create({
+                    rule_order: 1,
+                    action: 1,
+                    style: 'oldStyle'
+                }), { reload: true }),
+                await repositoryService.for(PolicyRule).save(repositoryService.for(PolicyRule).create({
+                    rule_order: 1,
+                    action: 1,
+                    style: 'oldStyle'
+                }), { reload: true }),
+            ];
+
+            const result = await policyRuleRepository.updateStyle(policyRules, "newStyle");
+
+            expect(result).to.have.length(2);
+            expect(result[0].style).to.be.deep.eq('newStyle');
+            expect(result[1].style).to.be.deep.eq('newStyle'); 
+        })
     })
 
 })

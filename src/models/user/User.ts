@@ -23,7 +23,10 @@
 import db from '../../database/database-manager';
 import Model from '../Model';
 import modelEventService from '../ModelEventService';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { Ca } from '../vpn/pki/Ca';
+import { Customer } from './Customer';
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
@@ -35,9 +38,6 @@ export class User extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    customer: number;
 
     @Column()
     name: string;
@@ -77,6 +77,24 @@ export class User extends Model {
 
     @Column()
     updated_by: number;
+
+    @ManyToMany(type => FwCloud, fwcloud => fwcloud.users)
+    fwClouds: Array<FwCloud>;
+
+    @OneToMany(type => Ca, ca => ca.created_by)
+    created_cas: Array<Ca>;
+
+    @OneToMany(type => Ca, ca => ca.updated_by)
+    updated_cas: Array<Ca>;
+
+    @Column({name: 'customer'})
+    customerId: number;
+    
+    @ManyToOne(type => Customer, customer => customer.users)
+    @JoinColumn({
+        name: 'customer'
+    })
+    customer: Customer;
 
     public getTableName(): string {
         return tableName;

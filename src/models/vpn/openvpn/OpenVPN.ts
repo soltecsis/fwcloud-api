@@ -24,11 +24,15 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
+import { Crt } from "../pki/Crt";
+import { OpenVPNOptions } from "./openvpn-options.model";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { PolicyRule } from "../../policy/PolicyRule";
 const sshTools = require('../../../utils/ssh');
 import { SocketTools } from '../../../utils/socket';
 const fwcError = require('../../../utils/error_table');
@@ -42,15 +46,6 @@ export class OpenVPN extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    openvpn: number;
-
-    @Column()
-    firewall: number;
-
-    @Column()
-    crt: number;
 
     @Column()
     install_dir: string;
@@ -78,6 +73,55 @@ export class OpenVPN extends Model {
 
     @Column()
     installed_at: Date;
+
+    @Column({name: 'openvpn'})
+    parentId: number;
+
+    @ManyToOne(type => OpenVPN, openVPN => openVPN.childs)
+    @JoinColumn({
+        name: 'openvpn'
+    })
+    parent: OpenVPN
+
+    @OneToMany(type => OpenVPN, openVPN => openVPN.parent)
+    childs: Array<OpenVPN>
+
+    @Column({name: 'firewall'})
+    firewallId: number;
+
+    @ManyToOne(type => Firewall, firewall => firewall.openVPNs)
+    @JoinColumn({
+        name: 'firewall'
+    })
+    firewall: Firewall;
+
+    @Column({name: 'crt'})
+    crtId: number;
+
+    @ManyToOne(type => Crt, crt => crt.openVPNs)
+    @JoinColumn({
+        name: 'crt'
+    })
+    crt: Crt;
+
+    @OneToOne(type => OpenVPNOptions, options => options.openVPN)
+    options: OpenVPNOptions
+
+    @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNs)
+    @JoinTable({
+        name: 'openvpn__ipobj_g',
+        joinColumn: {
+            name: 'openvpn'
+        },
+        inverseJoinColumn: {
+            name: 'ipobj_g'
+        }
+    })
+    ipObjGroups: Array<IPObjGroup>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.openVPN)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
 
     public getTableName(): string {
         return tableName;

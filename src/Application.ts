@@ -48,6 +48,7 @@ import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
 import { AuthorizationTest } from './middleware/AuthorizationTest';
+import { SnapshotServiceProvider } from './snapshots/snapshot.provider';
 import { MaintenanceMiddleware } from './middleware/maintenance.middleware';
 import { DatabaseServiceProvider } from './database/database.provider';
 import { RepositoryServiceProvider } from './database/repository.provider';
@@ -96,7 +97,8 @@ export class Application extends AbstractApplication {
             RouterServiceProvider,
             AuthorizationServiceProvider,
             CronServiceProvider,
-            BackupServiceProvider
+            BackupServiceProvider,
+            SnapshotServiceProvider
         ]
     }
 

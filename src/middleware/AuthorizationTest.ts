@@ -25,6 +25,9 @@ import { Request, Response, NextFunction } from "express";
 import { AuthorizationException } from "../fonaments/exceptions/authorization-exception";
 import * as fs from "fs";
 import * as path from "path";
+import { app } from "../fonaments/abstract-application";
+import { RepositoryService } from "../database/repository.service";
+import { User } from "../models/user/User";
 
 type SessionData = {
     user_id: number,
@@ -33,7 +36,7 @@ type SessionData = {
 };
 
 export class AuthorizationTest extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction): void {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         //const logger = this.app.logger;
 
         // Exclude the login route.
@@ -60,6 +63,7 @@ export class AuthorizationTest extends Middleware {
                 req.session.customer_id = session_data.customer_id;
                 req.session.user_id = session_data.user_id;
                 req.session.username = session_data.username;
+                req.session.user = await (await app().getService<RepositoryService>(RepositoryService.name)).for(User).findOne(session_data.user_id, { relations: ["fwClouds"] });
 
                 // If we arrive here, then the session is correct.
                 //logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");

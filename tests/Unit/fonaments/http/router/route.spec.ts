@@ -46,4 +46,11 @@ describe(describeName('Route tests'), () => {
 
         expect(route.generateURL({is: 'isnot'})).to.be.deep.eq('/this/isnot/test/path');
     });
+
+    it('generateURL should remove multiple parenthesis', () => {
+        const route = new Route();
+        route.setPathParams('/this/:is(\\d+)/test/:path(\\d+)');
+
+        expect(route.generateURL({is: 'isnot', path: 'notpath'})).to.be.deep.eq('/this/isnot/test/notpath');    
+    })
 });

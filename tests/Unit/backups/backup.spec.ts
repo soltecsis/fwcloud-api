@@ -5,11 +5,16 @@ import { DatabaseService } from "../../../src/database/database.service";
 import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
+import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import { RepositoryService } from "../../../src/database/repository.service";
+import { Repository } from "typeorm";
+import { Firewall } from "../../../src/models/firewall/Firewall";
+import moment from "moment";
 
 let app: Application;
 let service: BackupService;
 
-beforeEach(async() => {
+beforeEach(async () => {
     app = testSuite.app;
     service = await app.getService<BackupService>(BackupService.name);
 })
@@ -28,7 +33,7 @@ describe(describeName('Backup tests'), () => {
         expect(fs.existsSync(backup.path)).to.be.true;
     });
 
-    it('create() should create a dump file', async() => {
+    it('create() should create a dump file', async () => {
         let backup: Backup = new Backup();
         backup = await backup.create(service.config.data_dir);
         expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.true;
@@ -42,7 +47,7 @@ describe(describeName('Backup tests'), () => {
         let backup: Backup = new Backup();
         backup.setComment('test comment');
         backup = await backup.create(service.config.data_dir);
-        
+
         expect(fs.existsSync(path.join(backup.path, Backup.METADATA_FILENAME))).to.be.true;
 
         const metadata: object = JSON.parse(fs.readFileSync(path.join(backup.path, Backup.METADATA_FILENAME)).toString());
@@ -50,12 +55,12 @@ describe(describeName('Backup tests'), () => {
         expect(metadata).to.be.deep.equal({
             name: backup.name,
             timestamp: backup.timestamp,
-            version: app.version.version,
+            version: app.version.tag,
             comment: 'test comment',
         });
     });
 
-    it('load() should load the metadata file', async() => {
+    it('load() should load the metadata file', async () => {
         let backup: Backup = new Backup();
         backup.setComment('test comment');
         backup = await backup.create(service.config.data_dir);
@@ -68,7 +73,7 @@ describe(describeName('Backup tests'), () => {
         expect(b2.comment).to.be.deep.equal(backup.comment);
     })
 
-    it('restore() should import the database', async() => {
+    it('restore() should import the database', async () => {
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
         let backup: Backup = new Backup();
         backup = await backup.create(service.config.data_dir);
@@ -82,7 +87,31 @@ describe(describeName('Backup tests'), () => {
         await databaseService.emptyDatabase();
     });
 
-    it('delete() should remove the backup', async() => {
+    it('restore() should remove compilation status from firewalls', async () => {
+        const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
+        const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
+        const firewallRepository: Repository<Firewall> = repositoryService.for(Firewall);
+
+        let fwCloud: FwCloud = fwCloudRepository.create({ name: 'test' });
+        fwCloud = await fwCloudRepository.save(fwCloud, { reload: true });
+
+        let firewall: Firewall = firewallRepository.create({ name: 'test', fwCloud: fwCloud, status: 1, installed_at: moment().utc().format(), compiled_at: moment().utc().format() });
+        firewall = await firewallRepository.save(firewall, { reload: true });
+
+        let backup: Backup = new Backup();
+        backup = await backup.create(service.config.data_dir);
+
+        backup = await backup.restore();
+
+        firewall = await firewallRepository.findOne(firewall.id);
+
+        expect(firewall.status).to.be.deep.eq(3);
+        expect(firewall.installed_at).to.be.null;
+        expect(firewall.compiled_at).to.be.null;
+
+    })
+
+    it('delete() should remove the backup', async () => {
         let backup: Backup = new Backup();
         backup = await backup.create(service.config.data_dir);
 
@@ -91,14 +120,14 @@ describe(describeName('Backup tests'), () => {
         expect(fs.existsSync(backup.path)).to.be.false;
     });
 
-    it('load() an absolute path should transform the path to relative', async() => {
+    it('load() an absolute path should transform the path to relative', async () => {
         let backup: Backup = new Backup();
         backup = await backup.create(path.join(process.cwd(), service.config.data_dir));
 
         expect(backup.path.startsWith(service.config.data_dir)).to.be.true;
     });
 
-    it('toResponse() should return all required properties', async() => {
+    it('toResponse() should return all required properties', async () => {
         let backup: Backup = new Backup();
         backup = await backup.create(service.config.data_dir);
 

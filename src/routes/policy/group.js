@@ -24,12 +24,10 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import db from '../../database/database-manager';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { In } from 'typeorm';
-import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 const fwcError = require('../../utils/error_table');
 
 
@@ -40,16 +38,15 @@ router.post('/', async (req, res) => {
 	const repository = await app().getService(RepositoryService.name);
 	var body = req.body;
 
-	let policyGroup = new PolicyGroup();
-	policyGroup.name = body.name;
-	policyGroup.comment = body.comment;
-	policyGroup.firewall = body.firewall;
-
 	const policyGroupRepository = repository.for(PolicyGroup);
 	const policyRuleRepository = repository.for(PolicyRule);
 
 	try {
-		policyGroup = policyGroupRepository.create(policyGroup);
+		policyGroup = policyGroupRepository.create({
+			name: body.name,
+			comment: body.comment,
+			firewallId: body.firewall
+		});
 		policyGroup = await policyGroupRepository.save(policyGroup);
 
 		if (body.rulesIds.length > 0) {

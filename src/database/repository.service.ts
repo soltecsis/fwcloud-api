@@ -25,6 +25,8 @@ import { DatabaseService } from "./database.service";
 import { getRepository, ObjectType, EntitySchema, Repository, getCustomRepository } from "typeorm";
 import { PolicyRule } from "../models/policy/PolicyRule";
 import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
+import { Firewall } from "../models/firewall/Firewall";
+import { FirewallRepository } from "../models/firewall/firewall.repository";
 
 type RepositoryMapItem = {"entityClass": Function, "repository": Function};
 export class RepositoryService extends Service {
@@ -34,6 +36,10 @@ export class RepositoryService extends Service {
          {
              "entityClass": PolicyRule,
              "repository": PolicyRuleRepository
+         },
+         {
+             "entityClass": Firewall,
+             "repository": FirewallRepository
          }
     ]
 

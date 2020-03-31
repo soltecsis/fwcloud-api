@@ -21,8 +21,10 @@
 */
 
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, getRepository } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
+import { FwCloud } from "../fwcloud/FwCloud";
+import { PolicyRule } from "../policy/PolicyRule";
 
 const fwcError = require('../../utils/error_table');
 
@@ -36,9 +38,6 @@ export class Mark extends Model {
 
     @Column()
     code: number;
-
-    @Column()
-    fwcloud: number;
 
     @Column()
     name: string;
@@ -57,6 +56,18 @@ export class Mark extends Model {
 
     @Column()
     updated_by: number;
+
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+    
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.marks)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwCloud: FwCloud;
+
+    @OneToMany(type => PolicyRule, policyRule => policyRule.mark)
+    policyRules: Array<PolicyRule>;
 
     public getTableName(): string {
         return tableName;

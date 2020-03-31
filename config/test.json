@@ -14,8 +14,17 @@
         "user": "fwcdbusr",
         "pass": "fwcdbusr"
     },
+    "snapshot": {
+        "data_dir": "tests/playground/SNAPSHOT"
+    },
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
+    },
+    "policy": {
+        "data_dir": "tests/playground/DATA/policy"
+    },
+    "pki": {
+        "data_dir": "tests/playground/DATA/pki"
     },
     "api_server": {
         "https": false

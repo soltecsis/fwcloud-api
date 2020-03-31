@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -32,6 +32,13 @@ var utilsModel = require("../../utils/utils.js");
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
+import { FwCloud } from "../fwcloud/FwCloud";
+import { Cluster } from "./Cluster";
+import { Policy } from "../../fonaments/authorization/policy";
+import { RoutingRule } from "../routing/routing-rule.model";
+import { RoutingGroup } from "../routing/routing-group.model";
+import { DatabaseService } from "../../database/database.service";
+import { app } from "../../fonaments/abstract-application";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -43,12 +50,6 @@ export class Firewall extends Model {
 
 	@PrimaryGeneratedColumn()
 	id: number;
-
-	@Column()
-	cluster: number;
-
-	@Column()
-	fwcloud: number;
 
 	@Column()
 	name: string;
@@ -98,9 +99,53 @@ export class Firewall extends Model {
 	@Column()
 	options: number;
 
+	@Column({name: 'fwcloud'})
+	fwCloudId: number;
+
+	@ManyToOne(type => FwCloud, fwcloud => fwcloud.firewalls)
+	@JoinColumn({
+		name: 'fwcloud'
+	})
+	fwCloud: FwCloud;
+
+	@Column({name: 'cluster'})
+	clusterId: number;
+
+	@ManyToOne(type => Cluster, cluster => cluster.firewalls)
+	@JoinColumn({
+		name: "cluster"
+	})
+	cluster: Cluster;
+
+	@OneToMany(type => Interface, _interface => _interface.firewall)
+	interfaces: Array<Interface>
+
+	@OneToMany(type => OpenVPN, openVPN => openVPN.firewall)
+	openVPNs: Array<OpenVPN>;
+
+	@OneToMany(type => PolicyGroup, policyGroup => policyGroup.firewall)
+	policyGroups: Array<PolicyGroup>;
+
+	@OneToMany(type => PolicyRule, policyRule => policyRule.firewall)
+	policyRules: Array<PolicyRule>;
+
+	@OneToMany(type => RoutingGroup, routingGroup => routingGroup.firewall)
+	routingGroup: Array<RoutingGroup>;
+
+	@OneToMany(type => RoutingRule, routingRule => routingRule.firewall)
+	routingRules: Array<RoutingRule>;
+
 	
 	public getTableName(): string {
 		return tableName;
+	}
+
+	public async resetCompilationStatus(): Promise<Firewall> {
+		this.status = 0;
+		this.compiled_at = null;
+		this.installed_at = null;
+
+		return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
 	}
 
 	/**

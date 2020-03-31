@@ -173,7 +173,7 @@ async (req, res) => {
 	rules = await policyRuleRepository.find({
 		where: {
 			id: In(req.body.rulesIds),
-			firewall: req.body.firewall,
+			firewallId: req.body.firewall,
 			type: req.body.type,
 		}
 	});

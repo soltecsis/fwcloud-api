@@ -27,11 +27,15 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
+import { IPObjType } from './IPObjType';
+import { OpenVPNOptions } from '../vpn/openvpn/openvpn-options.model';
+import { PolicyRule } from '../policy/PolicyRule';
+import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -49,16 +53,7 @@ export class IPObj extends Model {
     id: number;
 
     @Column()
-    fwcloud: number;
-
-    @Column()
-    interface: number;
-
-    @Column()
     name: string;
-
-    @Column()
-    type: number;
 
     @Column()
     protocol: number;
@@ -123,22 +118,71 @@ export class IPObj extends Model {
     @Column()
     updated_by: number;
 
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+
+    @ManyToOne(type => FwCloud, fwcloud => fwcloud.ipObjs)
+    @JoinColumn({
+        name: 'fwcloud'
+    })
+    fwCloud: FwCloud;
+
+    @Column({name: 'type'})
+    ipObjTypeId: number;
+
+    @ManyToOne(type => IPObjType, ipObjType => ipObjType.ipObjs)
+    @JoinColumn({
+        name: 'type'
+    })
+    ipObjType: IPObjType;
+
+    @Column({name: 'interface'})
+    interfaceId: number;
+    
+    @ManyToOne(type => Interface, _interface => _interface.ipObjs)
+    @JoinColumn({
+        name: 'interface'
+    })
+    interface: Interface
+
+    @OneToMany(type => OpenVPNOptions, options => options.ipObj)
+    optionsList: Array<OpenVPNOptions>;
+
+    @OneToMany(type => IPObjToIPObjGroup, ipObjToIPObjGroup => ipObjToIPObjGroup.ipObj)
+    ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
+
+    @OneToMany(type => InterfaceIPObj, interfaceIPObj => interfaceIPObj.hostIPObj)
+    hosts!: Array<InterfaceIPObj>;
+
+    /**
+    * Pending foreign keys.
+    @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+    */
+
+    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObj)
+    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+
     public getTableName(): string {
         return tableName;
+    }
+
+    public isStandard(): boolean {
+        return this.id < 100000;
     }
 
     public async onUpdate() {
         
         const ipObjToIPObjGroupRepository: Repository<IPObjToIPObjGroup> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjToIPObjGroup);
-        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipobj: this.id});
+        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipObjGroupId: this.id});
         for(let i = 0; i < ipobj_to_ipobj_group.length; i++) {
             await modelEventService.emit('update', IPObjToIPObjGroup, ipobj_to_ipobj_group[i])
         }
 
         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipobj: this.id});
+        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipObjId: this.id});
         for(let i = 0; i < policyRuleToIPObjs.length; i++) {
             await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
         }

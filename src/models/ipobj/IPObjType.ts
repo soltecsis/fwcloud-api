@@ -22,7 +22,13 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany, JoinTable, JoinColumn, ManyToMany } from "typeorm";
+import { FwcTree } from "../tree/fwc-tree.model";
+import { IPObj } from "./IPObj";
+import { PolicyPosition } from "../policy/PolicyPosition";
+import { IPObjTypeToRoutingPosition } from "./ipobj_type-to-routing_position.model";
+import { RoutingPosition } from "../routing/routing-position.model";
+import { IPObjTypeToPolicyPosition } from "./IPObjTypeToPolicyPosition";
 
 const tableName: string = 'ipobj_type';
 
@@ -37,6 +43,30 @@ export class IPObjType extends Model {
 
     @Column()
     protocol_number: number;
+
+    @OneToMany(type => FwcTree, fwcTree => fwcTree.ipObjType)
+    fwcTrees: Array<FwcTree>;
+
+    @OneToMany(type => IPObj, ipObj => ipObj.ipObjType)
+    ipObjs: Array<IPObj>;
+
+    @ManyToMany(type => PolicyPosition, policyPosition => policyPosition.ipObjTypes)
+    @JoinTable({
+        name: 'ipobj_type__policy_position',
+        joinColumn: {
+            name: 'type'
+        },
+        inverseJoinColumn: {
+            name: 'position'
+        }
+    })
+    policyPositions: Array<PolicyPosition>;
+
+    @OneToMany(type => IPObjTypeToRoutingPosition, ipObjTypeToRoutingPosition => ipObjTypeToRoutingPosition.ipObjType)
+    routingPositions: Array<RoutingPosition>;
+
+    @OneToMany(type => IPObjTypeToPolicyPosition, model => model.ipObjType)
+    ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
 
     public getTableName(): string {
         return tableName;

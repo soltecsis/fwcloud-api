@@ -25,7 +25,7 @@ import { Request, Response, NextFunction } from "express";
 import { RequestInputs } from "../fonaments/http/request-inputs";
 
 export class RequestBuilder extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         req.inputs = new RequestInputs(req);
         next();
     }

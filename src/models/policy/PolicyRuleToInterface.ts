@@ -23,12 +23,14 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity, Between, Not, Repository } from 'typeorm';
+import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
-import { Policy } from '../../fonaments/authorization/policy';
+import { PolicyRule } from './PolicyRule';
+import { Interface } from '../interface/Interface';
+import { PolicyPosition } from './PolicyPosition';
 
 var asyncMod = require('async');
 var logger = require('log4js').getLogger("app");
@@ -38,14 +40,14 @@ const tableName: string = "policy_r__interface";
 @Entity(tableName)
 export class PolicyRuleToInterface extends Model {
 
-    @PrimaryColumn()
-    rule: number;
+    @PrimaryColumn({name: 'rule'})
+    policyRuleId: number;
 
-    @PrimaryColumn()
-    interface: number;
+    @PrimaryColumn({name: 'interface'})
+    interfaceId: number;
 
-    @PrimaryColumn()
-    position: number;
+    @PrimaryColumn({name: 'position'})
+    policyPositionId: number;
 
     @Column()
     position_order: number;
@@ -62,23 +64,41 @@ export class PolicyRuleToInterface extends Model {
     @Column()
     updated_by: number;
 
+    @ManyToOne(type => Interface, _interface => _interface.policyRuleToInterfaces)
+    @JoinColumn({
+        name: 'interface'
+    })
+    policyRuleInterface: Interface;
+
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToInterfaces)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
+
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToInterfaces)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
+
     public getTableName(): string {
         return tableName;
     }
 
     public async onCreate() {
         const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({rule: this.rule}, {status_compiled: 0});
+        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({rule: this.rule}, {status_compiled: 0});
+        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({rule: this.rule}, {status_compiled: 0});
+        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Get All policy_r__interface by policy_r
@@ -389,9 +409,9 @@ export class PolicyRuleToInterface extends Model {
                         const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
                         const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
-                            rule: rule,
-                            interface: _interface,
-                            position: position
+                            policyRuleId: rule,
+                            interfaceId: _interface,
+                            policyPosition: position
                         });
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(_interface) + ' AND position=' + connection.escape(position);
                         logger.debug(sql);
@@ -431,7 +451,7 @@ export class PolicyRuleToInterface extends Model {
                         const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
                         const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
-                            rule: rule
+                            policyRuleId: rule
                         });
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
                         connection.query(sql, async (error, result) => {

@@ -27,7 +27,6 @@ import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
 import { Progress } from "../../fonaments/http/progress/progress";
-import { SocketManager } from "../../sockets/socket-manager";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -53,7 +52,7 @@ export class BackupController extends Controller {
     public async show(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
+        const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         return ResponseBuilder.buildResponse().status(200).body(backup);
     }
@@ -65,22 +64,13 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async store(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.session.socket_id)
-
         //TODO: Authorization
         const progress: Progress<Backup> = this._backupService.create(request.inputs.get('comment'))
-            .on('start', (payload) => {
-                socket.event(payload);
-            })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
             .on('end', async (payload) => {
                 await this._backupService.applyRetentionPolicy();
-                socket.end(payload);
             });
 
-        return ResponseBuilder.buildResponse().status(201).socket(socket).body(progress.response);
+        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     /**
@@ -90,26 +80,17 @@ export class BackupController extends Controller {
      * @param response 
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
-        const socket: SocketManager = SocketManager.init(request.body.socket_id)
-
         //TODO: Authorization
         const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         this._app.config.set('maintenance_mode', true);
 
-        this._backupService.restore(backup)
-            .on('start', (payload) => {
-                socket.event(payload);
-            })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
+        const progress = this._backupService.restore(backup)
             .on('end', async (payload) => {
-                socket.end(payload);
                 this._app.config.set('maintenance_mode', false);
-            });;
+            });
 
-        return ResponseBuilder.buildResponse().status(201).socket(socket).body(backup);
+        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
 
     /**
@@ -121,10 +102,10 @@ export class BackupController extends Controller {
     public async destroy(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
-        const backup: Backup = await this._backupService.findOneOrDie(parseInt(request.params.backup));
+        let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
-        await this._backupService.destroy(backup);
+        backup = await this._backupService.destroy(backup);
 
-        return ResponseBuilder.buildResponse().status(204);
+        return ResponseBuilder.buildResponse().status(200).body(backup);
     }
 }

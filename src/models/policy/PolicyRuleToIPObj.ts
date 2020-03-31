@@ -27,10 +27,12 @@ import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import modelEventService from '../ModelEventService';
 import { PolicyRuleToInterface } from './PolicyRuleToInterface';
-import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository } from 'typeorm';
+import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
+import { IPObj } from '../ipobj/IPObj';
+import { PolicyPosition } from './PolicyPosition';
 var asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 var logger = require('log4js').getLogger("app");
@@ -40,23 +42,23 @@ const tableModel: string = "policy_r__ipobj";
 @Entity(tableModel)
 export class PolicyRuleToIPObj extends Model {
 
-    @PrimaryGeneratedColumn()
-    id_pi: number;
+    @PrimaryGeneratedColumn({name: 'id_pi'})
+    id: number;
 
-    @Column()
-    rule: number;
+    @Column({name: 'rule'})
+    policyRuleId: number;
 
-    @Column()
-    ipobj: number;
+    @Column({name: 'ipobj'})
+    ipObjId: number;
 
-    @Column()
-    ipobj_g: number;
+    @Column({name: 'ipobj_g'})
+    ipObjGroupId: number;
 
-    @Column()
-    interface: number;
+    @Column({name: 'interface'})
+    interfaceId: number;
 
-    @Column()
-    position: number;
+    @Column({name: 'position'})
+    policyPositionId: number;
 
     @Column()
     position_order: number;
@@ -72,6 +74,39 @@ export class PolicyRuleToIPObj extends Model {
 
     @Column()
     updated_by: number;
+    
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
+
+    /**
+    * Pending foreign keys.
+    @ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'ipobj'
+    })
+    ipObj: IPObj;
+
+    @ManyToOne(type => Interface, model => model.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'interface'
+    })
+    interface: Interface;
+
+    @ManyToOne(type => IPObjGroup, model => model.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'ipobj_g'
+    })
+    ipObjGroup: IPObjGroup;
+    */
+
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
 
     public getTableName(): string {
         return tableModel;
@@ -80,19 +115,19 @@ export class PolicyRuleToIPObj extends Model {
     public async onCreate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Get All policy_r__ipobj by Policy_r (rule)
@@ -714,11 +749,11 @@ export class PolicyRuleToIPObj extends Model {
                         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
                         const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            rule: rule,
-                            ipobj: ipobj,
-                            ipobj_g: ipobj_g,
-                            position: position,
-                            interface: _interface
+                            policyRuleId: rule,
+                            ipObjId: ipobj,
+                            ipObjGroupId: ipobj_g,
+                            policyPositionId: position,
+                            interfaceId: _interface
                         });
                         const sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
@@ -761,7 +796,7 @@ export class PolicyRuleToIPObj extends Model {
                         const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
                         const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            rule: rule,
+                            policyRuleId: rule,
                         });
                         var sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule);

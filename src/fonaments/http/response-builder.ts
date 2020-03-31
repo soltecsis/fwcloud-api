@@ -30,6 +30,7 @@ import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
 import { SocketManager } from "../../sockets/socket-manager";
+import { Progress } from "./progress/progress";
 
 interface ResponseBody {
     status: number,
@@ -54,6 +55,7 @@ export class ResponseBuilder {
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
+    protected _socket_id: string;
 
     // Only used in handled request which uses a sockets
     protected _event_id: string;
@@ -67,6 +69,10 @@ export class ResponseBuilder {
     }
 
     public status(status: number): ResponseBuilder {
+        if (this._status) {
+            throw new Error('Status already defined for the given response');
+        }
+
         this._status = status;
         return this;
     }
@@ -77,17 +83,61 @@ export class ResponseBuilder {
     }
 
     public body(payload: any): ResponseBuilder {
+        if (this._payload) {
+            throw new Error('Message already defined for the given response');
+        }
+
         this._payload = this.buildPayload(payload);
+
+        return this;
+    }
+
+    public error(error: Error): ResponseBuilder {
+        if (this._payload) {
+            throw new Error('Message already defined for the given response');
+        }
+
+        if (!(error instanceof FwCloudError)) {
+            error = new FwCloudError().fromError(error);
+        }
+
+        this._payload = { error: this.buildErrorPayload(<FwCloudError>error) };
+
+        return this;
+    }
+
+    public progress(progress: Progress<any>, socket_id: string, customEventHandler?: (p: Progress<any>) => void): ResponseBuilder {
+        const socket: SocketManager = SocketManager.init(this._socket_id);
+        this._event_id = socket.event_id;
+        this._socket_id = socket_id;
+
+        if (!customEventHandler) {
+            progress.on('start', (payload) => {
+                socket.event(payload);
+            })
+                .on('step', (payload) => {
+                    socket.event(payload);
+                })
+                .on('end', async (payload) => {
+                    socket.end(payload);
+                });
+        } else {
+            customEventHandler(progress);
+        }
+
+        this.body(progress.response);
 
         return this;
     }
 
     public send(response: Response): ResponseBuilder {
         this._response = response;
-        
-        if (this._status) {
-            this._response.status(this._status);
+
+        if (!this._status) {
+            throw new Error('Status not defined for the given response');
         }
+
+        this._response.status(this._status);
 
         this._response.send(this.buildMessage());
 
@@ -103,9 +153,9 @@ export class ResponseBuilder {
         return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
     }
 
-    protected attachEvent(): {event_id: string} {
+    protected attachEvent(): { event_id: string } {
         if (this._event_id) {
-            return {event_id: this._event_id}
+            return { event_id: this._event_id }
         }
 
         return null;
@@ -116,14 +166,7 @@ export class ResponseBuilder {
     }
 
     protected buildPayload(payload: any): Object {
-        if (payload.constructor === Error) {
-            payload = new FwCloudError().fromError(payload);
-        }
-        if (payload instanceof FwCloudError) {
-            return {error: this.buildErrorPayload(payload)};
-        }
-
-        return {data: this.buildDataPayload(payload)};
+        return { data: this.buildDataPayload(payload) };
     }
 
     protected buildDataPayload(payload: Object): Object {
@@ -145,7 +188,7 @@ export class ResponseBuilder {
     protected buildArrayDataResponse(payload: Array<any>): Array<Object> {
         const result: Array<Object> = [];
 
-        for(let i = 0; i < payload.length; i++) {
+        for (let i = 0; i < payload.length; i++) {
             result.push(isResponsable(payload[i]) ? payload[i].toResponse() : payload[i]);
         }
 

@@ -26,12 +26,20 @@ var logger = require('log4js').getLogger("app");
 
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
-import { PrimaryColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany } from "typeorm";
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 import { IPObj } from '../../models/ipobj/IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import modelEventService from "../ModelEventService";
+import { PolicyType } from "./PolicyType";
+import { IPObjType } from "../ipobj/IPObjType";
+import { PolicyRuleToInterface } from "./PolicyRuleToInterface";
+import { PolicyRule } from "./PolicyRule";
+import { PolicyRuleToOpenVPNPrefix } from "./PolicyRuleToOpenVPNPrefix";
+import { PolicyRuleToIPObj } from "./PolicyRuleToIPObj";
+import { PolicyRuleToOpenVPN } from "./PolicyRuleToOpenVPN";
+import { IPObjTypeToPolicyPosition } from "../ipobj/IPObjTypeToPolicyPosition";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -46,8 +54,8 @@ export class PolicyPosition extends Model {
     @Column()
     name: string;
 
-    @Column()
-    policy_type: number;
+    @Column({name: 'policy_type'})
+    policyTypeId: number;
 
     @Column()
     position_order: number;
@@ -57,6 +65,31 @@ export class PolicyPosition extends Model {
 
     @Column()
     single_object: number;
+    
+    @ManyToOne(type => PolicyType, type => type.policyPositions)
+    @JoinColumn({
+        name: 'policy_type'
+    })
+    policyType: PolicyType
+
+    @ManyToMany(type => IPObjType, ipObjType => ipObjType.policyPositions)
+    ipObjTypes: Array<IPObjType>;
+
+    @OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyPosition)
+    policyRuleToInterfaces: Array<PolicyRuleToInterface>;
+
+    @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.policyPosition)
+    policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
+
+    @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.policyPosition)
+    policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
+    @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.policyPosition)
+    policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
+    @OneToMany(type => IPObjTypeToPolicyPosition, model => model.policyPosition)
+    ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
+
 
     public getTableName(): string {
         return tableName;

@@ -21,7 +21,7 @@ describe(describeName('PolicyRule tests'), () => {
     it('removing a policy group should unassign all policy rules which belongs to the group', async () => {
         let group: PolicyGroup = policyGroupRepository.create({
             name: 'test',
-            firewall: (await repositoryService.for(Firewall).save({name: 'test'})).id
+            firewall: (await repositoryService.for(Firewall).save({name: 'test'}))
         });
 
         group = await policyGroupRepository.save(group, {reload: true});
@@ -29,14 +29,14 @@ describe(describeName('PolicyRule tests'), () => {
         let rule: PolicyRule = await repositoryService.for(PolicyRule).save({
             rule_order: 0,
             action: 1,
-            idgroup: group.id
+            policyGroup: group
         });
 
         await policyGroupRepository.remove(group);
 
         rule = await repositoryService.for(PolicyRule).findOne(rule.id);
 
-        expect(rule.idgroup).to.be.null;
+        expect(rule.policyGroupId).to.be.null;
 
     })
 });

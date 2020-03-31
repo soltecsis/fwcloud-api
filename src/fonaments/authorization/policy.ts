@@ -21,34 +21,45 @@
 */
 
 import { AuthorizationService } from "./authorization.service";
-import { app } from "../abstract-application";
+import { AuthorizationException } from "../exceptions/authorization-exception";
 
-export abstract class AuthorizationResponse {
-    protected _authorizationService: AuthorizationService;
-    
-    async authorize(): Promise<void> {
-        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
-    }
-    
-    static revoke() {
-        return new Unauthorized();
+export abstract class Authorization {
+    public can(): boolean {
+        return false;
     }
 
-    static grant() {
-        return new Authorized();
+    public authorize(): void {
+        return;
+    }
+    
+    static revoke(): Unauthorized {
+        return new Unauthorized;
+    }
+
+    static grant(): Authorized {
+        return new Authorized;
     }
 }
 
-export class Authorized extends AuthorizationResponse {
-    public async authorize() {
-        await super.authorize();
+export class Authorized extends Authorization {
+
+    public authorize(): void {
+        return;
+    }
+
+    public can(): boolean {
+        return true;
     }
 }
 
-export class Unauthorized extends AuthorizationResponse {
-    public async authorize() {
-        await super.authorize();
-        this._authorizationService.revokeAuthorization();
+export class Unauthorized extends Authorization {
+    public authorize(): void {
+        const exception = new AuthorizationException();
+        throw exception;
+    }
+
+    public can(): boolean {
+        return false;
     }
 }
 
@@ -57,14 +68,6 @@ export class Policy {
     protected authorized: boolean;
 
     constructor() {
-        this.authorized = false;
-    }
-    
-    protected async authorize(): Promise<void> {
-        this._authorizationService = await app().getService<AuthorizationService>(AuthorizationService.name);
-        if (!this.authorized) {
-            this._authorizationService.revokeAuthorization();
-        }
         this.authorized = false;
     }
 }

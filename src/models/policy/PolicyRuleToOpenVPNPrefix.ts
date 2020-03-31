@@ -21,12 +21,14 @@
 */
 
 import Model from "../Model";
-import { Column, getRepository, Entity, PrimaryColumn, Repository } from "typeorm";
+import { Column, getRepository, Entity, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
+import { PolicyPosition } from "./PolicyPosition";
+import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
 
 const tableName: string = 'policy_r__openvpn_prefix';
 
@@ -57,6 +59,24 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     @Column()
     updated_by: number;
 
+    @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'position'
+    })
+    policyPosition: PolicyPosition;
+
+    @ManyToOne(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'prefix'
+    })
+    openVPNPrefix: OpenVPNPrefix;
+
+    @ManyToOne(type => PolicyRule, policyRule => policyRule.policyRuleToOpenVPNPrefixes)
+    @JoinColumn({
+        name: 'rule'
+    })
+    policyRule: PolicyRule;
+
     public getTableName(): string {
         return tableName;
     }
@@ -64,19 +84,19 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     public async onCreate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({rule: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
     }
 
     //Add new policy_r__openvpn_prefix

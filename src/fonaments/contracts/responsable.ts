@@ -21,7 +21,7 @@
 */
 
 export interface Responsable {
-   toResponse(): Object;
+   toResponse(): object;
 }
 
 export function isResponsable(value: any): value is Responsable {

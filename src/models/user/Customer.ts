@@ -21,8 +21,9 @@
 */
 
 import Model from "../Model";
-import { PrimaryColumn, PrimaryGeneratedColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, PrimaryGeneratedColumn, Column, Entity, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
+import { User } from "./User";
 const tableName: string = "customer";
 
 @Entity(tableName)
@@ -57,6 +58,9 @@ export class Customer extends Model {
 
     @Column()
     updated_by: number;
+
+    @OneToMany(type => User, user => user.customer)
+    users: Array<User>;
 
     public getTableName(): string {
         return tableName;

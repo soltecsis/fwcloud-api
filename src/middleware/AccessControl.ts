@@ -25,7 +25,7 @@ import accessCtrl from '../authorization/access_control';
 import { Request, Response, NextFunction } from "express";
 
 export class AccessControl extends Middleware {
-    public handle(req: Request, res: Response, next: NextFunction) {
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         accessCtrl.check(req, res, next);
     }
 

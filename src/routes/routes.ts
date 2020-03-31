@@ -28,8 +28,8 @@ import { UpdateBackupConfigValidator } from "../validators/update-backup-config.
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
+import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
-import { AttachSocketValidator } from "../validators/attach-socket.validator";
 
 export class Routes extends RouteCollection {
 
@@ -58,7 +58,18 @@ export class Routes extends RouteCollection {
                 //Version
                 router.get('/version', VersionController, 'show').name('versions.show');
             });
-        });
 
+            //Snapshots
+            router.prefix('/fwclouds/:fwcloud(\\d+)', (router: RouterParser) => {
+                router.prefix('/snapshots', (router: RouterParser) => {
+                    router.get('/', SnapshotController, 'index').name('snapshots.index');
+                    router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
+                    router.post('/', SnapshotController, 'store').name('snapshots.store');
+                    router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
+                    router.post('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
+                    router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
+                });
+            });
+        });
     }
 }

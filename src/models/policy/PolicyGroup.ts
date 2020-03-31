@@ -21,7 +21,7 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, BeforeRemove, Repository } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, ManyToOne, JoinColumn, OneToMany, BeforeRemove } from 'typeorm';
 import db from '../../database/database-manager';
 
 import Logger from 'log4js';
@@ -49,12 +49,6 @@ export class PolicyGroup extends Model {
 	@Column()
 	comment: string;
 
-	@Column()
-	firewall: number;
-
-	@Column()
-	idgroup: number;
-
 	@CreateDateColumn()
 	created_at: Date;
 
@@ -70,6 +64,30 @@ export class PolicyGroup extends Model {
 	@Column()
 	groupstyle: string;
 
+	@Column({name: 'firewall'})
+	firewallId: number;
+
+	@ManyToOne(type => Firewall, firewall => firewall.policyGroups)
+	@JoinColumn({
+		name: 'firewall'
+	})
+	firewall: Firewall;
+
+	@Column({name: 'idgroup'})
+	parentId: number;
+
+	@ManyToOne(type => PolicyGroup, policyGroup => policyGroup.childs)
+	@JoinColumn({
+		name: 'idgroup'
+	})
+	parent: PolicyGroup
+
+	@OneToMany(type => PolicyGroup, policyGroup => policyGroup.parent)
+	childs: Array<PolicyGroup>
+
+	@OneToMany(type => PolicyRule, policyRule => policyRule.policyGroup)
+	policyRules: Array<PolicyRule>;
+
 	public getTableName(): string {
 		return tableName;
 	}
@@ -78,7 +96,7 @@ export class PolicyGroup extends Model {
 	async unassignPolicyRulesBeforeRemove() {
 		const policyRuleRepository: PolicyRuleRepository = await (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRule);
 		const policyRules: Array<PolicyRule> = await policyRuleRepository.find({where: {
-			idgroup: this.id
+			policyGroupId: this.id
 		}});
 
 		await policyRuleRepository.assignToGroup(policyRules, null);

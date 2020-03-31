@@ -21,7 +21,9 @@
 */
 
 import Model from "../../Model";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Ca } from "./Ca";
+import { OpenVPN } from "../openvpn/OpenVPN";
 
 const fwcError = require('../../../utils/error_table')
 
@@ -32,9 +34,6 @@ export class Crt extends Model {
 
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column()
-    ca: number;
 
     @Column()
     cn: string;
@@ -59,6 +58,18 @@ export class Crt extends Model {
 
     @Column()
     updated_by: Date;
+
+    @Column({name: 'ca'})
+    caId: number;
+    
+    @ManyToOne(type => Ca, ca => ca.crts)
+    @JoinColumn({
+        name: 'ca'
+    })
+    ca: Ca;
+
+    @OneToMany(type => OpenVPN, openVPN => openVPN.crt)
+    openVPNs: Array<OpenVPN>;
 
 
     public getTableName(): string {

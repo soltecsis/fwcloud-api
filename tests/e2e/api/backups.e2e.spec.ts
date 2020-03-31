@@ -28,7 +28,7 @@ beforeEach(async () => {
             username: 'loggedUser',
             email: 'loggedUser@fwcloud.test',
             password: randomString(10),
-            customer: 1,
+            customer: {id: 1},
             role: 0,
             enabled: 1,
             confirmation_token: randomString(10)
@@ -41,7 +41,7 @@ beforeEach(async () => {
             username: 'admin',
             email: 'admin@fwcloud.test',
             password: randomString(10),
-            customer: 1,
+            customer: {id: 1},
             role: 1,
             enabled: 1,
             confirmation_token: randomString(10)
@@ -81,7 +81,9 @@ describe(describeName('Backup E2E tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .expect(response => {
-                    response.body = [backup1.toResponse(), backup2.toResponse()]
+                    expect(response.body.data).to.be.deep.equal(
+                        JSON.parse(JSON.stringify([backup1.toResponse(), backup2.toResponse()]))
+                    )
                 });
         });
     });
@@ -188,7 +190,7 @@ describe(describeName('Backup E2E tests'), () => {
                 .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(204);
+                .expect(200);
         });
 
         it('404 should be returned if the backup does not exist', async() => {

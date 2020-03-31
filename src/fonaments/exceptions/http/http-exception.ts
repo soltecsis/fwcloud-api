@@ -22,8 +22,8 @@
 
 import { Responsable } from "../../contracts/responsable";
 import ObjectHelpers from "../../../utils/object-helpers";
-import { app, AbstractApplication } from "../../abstract-application";
-import { ExceptionBody, ErrorBody } from "../../http/response-builder";
+import { app } from "../../abstract-application";
+import { ErrorBody } from "../../http/response-builder";
 import { FwCloudError } from "../error";
 
 export class HttpException extends FwCloudError implements Responsable {

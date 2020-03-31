@@ -22,8 +22,10 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryColumn, Column, Entity } from "typeorm";
+import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
+import { PolicyPosition } from "./PolicyPosition";
+import { PolicyRule } from "./PolicyRule";
 var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'policy_type';
@@ -42,6 +44,12 @@ export class PolicyType extends Model {
 
     @Column()
     show_action: number;
+
+    @OneToMany(type => PolicyPosition, position => position.policyType)
+    policyPositions: Array<PolicyPosition>
+
+    @OneToMany(type => PolicyRule, policyRule => policyRule.policyType)
+    policyRules: Array<PolicyRule>;
 
     public getTableName(): string {
         return tableName;

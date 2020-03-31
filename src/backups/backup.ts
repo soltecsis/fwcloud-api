@@ -32,9 +32,15 @@ import { BackupNotFoundException } from "./exceptions/backup-not-found-exception
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
 import StringHelper from "../utils/StringHelper";
+import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { ProgressSteps } from "../fonaments/http/progress/progress-steps";
+import { FwCloud } from "../models/fwcloud/FwCloud";
+import { RepositoryService } from "../database/repository.service";
+import { Repository } from "typeorm";
+import { FirewallRepository } from "../models/firewall/firewall.repository";
+import { Firewall } from "../models/firewall/Firewall";
+import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -168,7 +174,7 @@ export class Backup implements Responsable {
         const progress = new Progress<Backup>(4);
         this._date = moment();
         this._id = moment().valueOf();
-        this._version = app<Application>().version.version;
+        this._version = app<Application>().version.tag;
         this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
@@ -178,18 +184,18 @@ export class Backup implements Responsable {
         this.exportMetadataFileSync();
 
         const p1: Promise<DumpReturn> = this.exportDatabase();
-        
+
         p1.then(_ => {
             progress.step('Database exported');
         });
 
         const p2: Promise<void> = this.exportDataDirectories();
-        
+
         p2.then(_ => {
             progress.step('Data directories exported');
         });
 
-        Promise.all([p1, p2]).then( (_) => {
+        Promise.all([p1, p2]).then((_) => {
             this.load(this._backupPath).then(_ => {
                 progress.end('Backup created');
             });
@@ -218,14 +224,8 @@ export class Backup implements Responsable {
             progress.start('Restoring backup');
 
             const p1: Promise<unknown> = this.importDatabase()
-            p1.then(_ => {
+            p1.then(async (_) => {
                 progress.step('Database restored');
-
-                //TODO: Make all firewalls pending of compile and install.
-
-                //TODO: Make all VPNs pending of install.
-
-                //TODO: Clean all policy compilation cache.
             });
 
 
@@ -234,7 +234,7 @@ export class Backup implements Responsable {
                 progress.step('Data directories restored');
             });
 
-            Promise.all([p1, p2]).then( (_) => {
+            Promise.all([p1, p2]).then((_) => {
                 progress.end('Backup restored');
             });
 
@@ -242,9 +242,9 @@ export class Backup implements Responsable {
 
             return progress;
         }
-        
+
         throw new BackupNotFoundException(this._backupPath);
-        
+
     }
 
     /**
@@ -288,7 +288,7 @@ export class Backup implements Responsable {
         const metadata: BackupMetadata = {
             name: this._name,
             timestamp: this._date.valueOf(),
-            version: app<Application>().version.version,
+            version: app<Application>().version.tag,
             comment: this._comment
         };
 
@@ -302,7 +302,7 @@ export class Backup implements Responsable {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const dbConfig: DatabaseConfig = databaseService.config;
 
-        return await mysqldump({
+        return mysqldump({
             connection: {
                 host: dbConfig.host,
                 port: dbConfig.port,
@@ -340,8 +340,24 @@ export class Backup implements Responsable {
                 }
             });
 
-            await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
-            resolve();
+            try {
+                await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
+
+                //Change compilation status from firewalls
+                const firewallRepository: FirewallRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(Firewall);
+                const firewalls: Array<Firewall> = await firewallRepository.find();
+                await firewallRepository.markAsUncompiled(firewalls);
+
+                //Remove all compiled rules
+                const policyCompilationRepository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
+                const policyCompilations: Array<PolicyCompilation> = await policyCompilationRepository.find();
+                await policyCompilationRepository.remove(policyCompilations);
+
+                //TODO: Make all VPNs pending of install.
+                resolve();
+            } catch(e) {
+                reject(e);
+            }
         });
     }
 
@@ -355,8 +371,10 @@ export class Backup implements Responsable {
 
         for (let item of item_list) {
             const dst_dir = path.join(this._backupPath, config.get(item).data_dir);
-            await fse.mkdirp(dst_dir);
-            await fse.copy(config.get(item).data_dir, dst_dir);
+            if (await FSHelper.directoryExists(config.get(item).data_dir)) {
+                await fse.mkdirp(dst_dir);
+                await fse.copy(config.get(item).data_dir, dst_dir);
+            }
         }
     }
 
@@ -374,8 +392,11 @@ export class Backup implements Responsable {
             const dst_dir: string = config.get(item).data_dir;
 
             fse.removeSync(dst_dir);
-            await fse.mkdirp(dst_dir);
-            await fse.copy(src_dir, dst_dir);
+
+            if (await FSHelper.directoryExists(src_dir)) {
+                await fse.mkdirp(dst_dir);
+                await fse.copy(src_dir, dst_dir);
+            }
         }
     }
 }

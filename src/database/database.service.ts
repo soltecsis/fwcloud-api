@@ -27,6 +27,7 @@ import * as fs from "fs";
 import { timingSafeEqual } from "crypto";
 import moment = require("moment");
 import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
+import { SchemaVersion } from "./schema-version";
 
 export interface DatabaseConfig {
     host: string,
@@ -165,6 +166,11 @@ export class DatabaseService extends Service {
         }
 
         return;
+    }
+
+    public async getDatabaseSchemaVersion(): Promise<string> {
+        const schemaVersion: SchemaVersion = await SchemaVersion.make();
+        return schemaVersion.getVersion();
     }
 
     protected async importSQLFile(path: string): Promise<void> {

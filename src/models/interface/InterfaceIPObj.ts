@@ -22,11 +22,12 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository, Repository } from "typeorm";
+import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository, Repository, ManyToOne, JoinColumn } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { IPObj } from "../ipobj/IPObj";
 import { RepositoryService } from "../../database/repository.service";
 import { app } from "../../fonaments/abstract-application";
+import { Interface } from "./Interface";
 
 var logger = require('log4js').getLogger("app");
 
@@ -36,11 +37,11 @@ const tableName: string = 'interface__ipobj';
 @Entity(tableName)
 export class InterfaceIPObj extends Model {
 
-	@PrimaryColumn()
-	interface: number;
+	@PrimaryColumn({name: 'interface'})
+	interfaceId: number;
 
-	@PrimaryColumn()
-	ipobj: number;
+	@PrimaryColumn({name: 'ipobj'})
+	ipObjId: number;
 
 	@Column()
 	interface_order: string;
@@ -56,6 +57,18 @@ export class InterfaceIPObj extends Model {
 
 	@Column()
 	updated_by: number;
+
+	@ManyToOne(type => Interface, model => model.hosts)
+	@JoinColumn({
+		name: 'interface'
+	})
+	hostInterface: Interface;
+	
+	@ManyToOne(type => IPObj, model => model.hosts)
+	@JoinColumn({
+		name: 'ipobj'
+	})
+	hostIPObj: IPObj;
 
 	public getTableName(): string {
 		return tableName;
@@ -206,11 +219,11 @@ export class InterfaceIPObj extends Model {
 							const interfaceIPObjRepository: Repository<InterfaceIPObj> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(InterfaceIPObj);
 							const interfaceToIpObjs: InterfaceIPObj[] = await interfaceIPObjRepository.find({
-								interface: _interface
+								interfaceId: _interface
 							})
 
 							for(let i = 0; i < interfaceToIpObjs.length; i++) {
-								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipobj);
+								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipObjId);
 							}
 							resolve({ "result": true });
 						} else {
