@@ -34,6 +34,7 @@ import * as path from "path";
 import { Version } from "../version/version";
 import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
+import { FSHelper } from "../utils/fs-helper";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -207,9 +208,8 @@ export abstract class AbstractApplication {
      * Create the data directories, just in case them aren't there.
      */
     try {
-      fs.mkdirSync('./DATA');
-      fs.mkdirSync(this._config.get('policy').data_dir);
-      fs.mkdirSync(this._config.get('pki').data_dir);
+      FSHelper.mkdirSync(this._config.get('policy').data_dir);
+      FSHelper.mkdirSync(this._config.get('pki').data_dir);
     } catch (e) {
       if (e.code !== 'EEXIST') {
         console.error("Could not create the data directory. ERROR: ", e);
