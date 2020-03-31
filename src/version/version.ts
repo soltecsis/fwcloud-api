@@ -32,7 +32,7 @@ export class Version implements Responsable {
                 const jsonContent: {version: string, date: string} = JSON.parse(content);
                 this.tag = jsonContent.version;
                 this.date = moment(jsonContent.date) || moment();
-                this.schema = await (await app().getService<DatabaseService>(DatabaseService.name)).getDatabaseSchemaVersion();
+                this.schema = await this.getSchemaVersion();
 
                 return this;
             }
@@ -41,6 +41,14 @@ export class Version implements Responsable {
         }
 
         throw new VersionFileNotFoundException(versionFilePath);
+    }
+
+    protected async getSchemaVersion(): Promise<string> {
+        try {
+            return await (await app().getService<DatabaseService>(DatabaseService.name)).getDatabaseSchemaVersion();
+        } catch(e) {
+            return null;
+        }
     }
 
     toResponse(): object {
