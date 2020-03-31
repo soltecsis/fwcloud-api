@@ -81,11 +81,23 @@ export class PolicyRuleToIPObj extends Model {
     })
     policyRule: PolicyRule;
 
-    /*@ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
+    @ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
     @JoinColumn({
         name: 'ipobj'
     })
-    ipObj: IPObj;*/
+    ipObj: IPObj;
+
+    @ManyToOne(type => Interface, model => model.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'interface'
+    })
+    interface: Interface;
+
+    @ManyToOne(type => IPObjGroup, model => model.policyRuleToIPObjs)
+    @JoinColumn({
+        name: 'ipobj_g'
+    })
+    ipObjGroup: IPObjGroup;
 
     @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToIPObjs)
     @JoinColumn({

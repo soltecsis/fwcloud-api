@@ -564,7 +564,22 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
                     columnNames: ['rule'],
                     referencedColumnNames: ['id'],
                     referencedTableName: 'policy_r'
-                }
+                },
+                {
+                    columnNames: ['ipobj'],
+                    referencedColumnNames: ['id'],
+                    referencedTableName: 'ipobj'
+                },
+                {
+                    columnNames: ['ipobj_g'],
+                    referencedColumnNames: ['id'],
+                    referencedTableName: 'ipobj_g'
+                },
+                {
+                    columnNames: ['interface'],
+                    referencedColumnNames: ['id'],
+                    referencedTableName: 'interface'
+                },
             ]
         }));
 

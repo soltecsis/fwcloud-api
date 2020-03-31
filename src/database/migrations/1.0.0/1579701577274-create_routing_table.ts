@@ -97,6 +97,12 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
             ]
         }));
 
+        await queryRunner.createForeignKey('routing_g', new TableForeignKey({
+            columnNames: ['idgroup'],
+            referencedTableName: 'routing_g',
+            referencedColumnNames: ['id']
+        }));
+
         //routing_position
         await queryRunner.createTable(new Table({
             name: 'routing_position',

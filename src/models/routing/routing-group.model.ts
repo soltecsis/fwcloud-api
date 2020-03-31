@@ -17,8 +17,8 @@ export class RoutingGroup extends Model {
     @Column()
     comment: string;
 
-    @Column()
-    idgroup: number;
+    @Column({name: 'idgroup'})
+    parentId: number;
 
     @Column()
     created_at: Date;
@@ -40,6 +40,15 @@ export class RoutingGroup extends Model {
         name: 'firewall'
     })
     firewall: Firewall;
+
+    @ManyToOne(type => RoutingGroup, model => model.childs)
+    @JoinColumn({
+        name: 'idgroup'
+    })
+    parent: RoutingGroup;
+
+    @OneToMany(type => RoutingGroup, model => model.parent)
+    childs: Array<RoutingGroup>;
 
     @OneToMany(type => RoutingRule, routingRule => routingRule.routingGroup)
     routingRules: Array<RoutingRule>;
