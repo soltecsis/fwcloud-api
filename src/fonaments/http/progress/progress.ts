@@ -1,5 +1,5 @@
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressSteps } from "./progress-steps";
+import { ProgressState } from "./progress-state";
 
 export type progressEventName = 'start' | 'step' | 'event' | 'end';
 
@@ -7,10 +7,10 @@ export class Progress<T> {
     protected _response: T;
     protected _eventEmitter: EventEmitter;
 
-    protected _status: ProgressSteps;
+    protected _state: ProgressState;
 
     constructor(steps: number) {
-        this._status = new ProgressSteps(steps);
+        this._state = new ProgressState(steps);
         this._eventEmitter = new EventEmitter();
     }
 
@@ -23,23 +23,23 @@ export class Progress<T> {
     }
 
     public start(message: string, status: number = 102): boolean {
-        return this.emit('start', this._status.incrementStep(status, message));
+        return this.emit('start', this._state.incrementStep(status, message));
     }
 
     public event(message: string): boolean {
-        return this.emit('event', this._status.setMessage(message));
+        return this.emit('event', this._state.setMessage(message));
     }
 
     public step(message: string, status: number = 102): boolean {
-        return this.emit('step', this._status.incrementStep(status, message));
+        return this.emit('step', this._state.incrementStep(status, message));
     }
 
     public end(message: string, status: number = null, ...args: object[] ): boolean {
         status = status ? status: 200;
-        return this.emit('end', this._status.incrementStep(status, message), args);
+        return this.emit('end', this._state.incrementStep(status, message), args);
     }
 
-    public emit(event: progressEventName, progressEvent: ProgressSteps, ... args: object[]): boolean {
+    public emit(event: progressEventName, progressEvent: ProgressState, ... args: object[]): boolean {
         return this._eventEmitter.emit(event, progressEvent, args);
     }
 

@@ -1,7 +1,7 @@
 import { Responsable } from "../../contracts/responsable";
 import { object } from "joi";
 
-export class ProgressSteps implements Responsable {
+export class ProgressState implements Responsable {
     protected _steps: number;
     protected _currentStep: number;
     
@@ -36,23 +36,23 @@ export class ProgressSteps implements Responsable {
         return response;
     }
 
-    public setStep(step: number, status: number = 200, message?: string): ProgressSteps {
+    public setStep(step: number, status: number = 200, message?: string): ProgressState {
         this._currentStep = (step <= this._steps) ? step: this._steps;
         this._status = status;
         if (message) {
             this._message = message;
         }
 
-        return new ProgressSteps(this._steps, this._currentStep, this._message, this._status);
+        return new ProgressState(this._steps, this._currentStep, this._message, this._status);
     }
 
-    public setMessage(message: string): ProgressSteps {
+    public setMessage(message: string): ProgressState {
         this._message = message;
 
-        return new ProgressSteps(this._steps, this._currentStep, this._message, this._status);
+        return new ProgressState(this._steps, this._currentStep, this._message, this._status);
     }
 
-    public incrementStep(status: number = 200, message?: string): ProgressSteps {
+    public incrementStep(status: number = 200, message?: string): ProgressState {
         return this.setStep(this._currentStep + 1, status, message);
     }
 }
