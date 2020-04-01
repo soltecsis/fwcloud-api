@@ -41,6 +41,7 @@ import { Repository } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
+import { Task } from "../fonaments/http/progress/task";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -171,37 +172,22 @@ export class Backup implements Responsable {
      * @param backupDirectory Backup path
      */
     progressCreate(backupDirectory: string): Progress<Backup> {
-        const progress = new Progress<Backup>(4);
+        const progress = new Progress<Backup>(this);
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
         this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
-        progress.start('Creating backup');
-
         this.createDirectorySync();
         this.exportMetadataFileSync();
 
-        const p1: Promise<DumpReturn> = this.exportDatabase();
-
-        p1.then(_ => {
-            progress.step('Database exported');
-        });
-
-        const p2: Promise<void> = this.exportDataDirectories();
-
-        p2.then(_ => {
-            progress.step('Data directories exported');
-        });
-
-        Promise.all([p1, p2]).then((_) => {
-            this.load(this._backupPath).then(_ => {
-                progress.end('Backup created');
+        progress.procedure('Creating backup', (task: Task) => {
+            task.parallel((task: Task) => {
+                task.addTask(() => { return this.exportDatabase(); }, 'Database exported');
+                task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories exported');
             });
-        });
-
-        progress.response = this;
+        }, 'Backup created');
 
         return progress;
     }
@@ -211,34 +197,22 @@ export class Backup implements Responsable {
         const progress: Progress<Backup> = this.progressCreate(backupDirectory);
 
         return new Promise<Backup>((resolve, reject) => {
-            progress.on('end', (_) => {
-                resolve(progress.response);
+            progress.on('end', async (_) => {
+                resolve(await this.load(progress.response.path));
             });
         });
     }
 
     progressRestore(): Progress<Backup> {
-        const progress = new Progress<Backup>(3);
+        const progress = new Progress<Backup>(this);
 
         if (this._exists) {
-            progress.start('Restoring backup');
-
-            const p1: Promise<unknown> = this.importDatabase()
-            p1.then(async (_) => {
-                progress.step('Database restored');
-            });
-
-
-            const p2: Promise<void> = this.importDataDirectories();
-            p2.then(_ => {
-                progress.step('Data directories restored');
-            });
-
-            Promise.all([p1, p2]).then((_) => {
-                progress.end('Backup restored');
-            });
-
-            progress.response = this;
+            progress.procedure('Restoring backup', (task: Task) => {
+                task.parallel((task: Task) => {
+                    task.addTask(() => { return this.importDatabase(); }, 'Database restored');
+                    task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                })
+            }, 'Backup restored');
 
             return progress;
         }
@@ -355,7 +329,7 @@ export class Backup implements Responsable {
 
                 //TODO: Make all VPNs pending of install.
                 resolve();
-            } catch(e) {
+            } catch (e) {
                 reject(e);
             }
         });

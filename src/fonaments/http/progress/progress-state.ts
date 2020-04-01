@@ -9,11 +9,11 @@ export class ProgressState implements Responsable {
     protected _data?: object;
     protected _status: number;
 
-    constructor(steps: number, currentStep: number = 0, message: string = null, status: number = 200) {
-        this._steps = steps;
-        this._currentStep = currentStep;
+    constructor(steps: number, currentStep: number = 0, status: number = 200, message: string = null) {
         this._message = message;
         this._status = status;
+        this._steps = steps;
+        this._currentStep = currentStep;
     }
 
     get percentage(): number {
@@ -36,23 +36,11 @@ export class ProgressState implements Responsable {
         return response;
     }
 
-    public setStep(step: number, status: number = 200, message?: string): ProgressState {
-        this._currentStep = (step <= this._steps) ? step: this._steps;
+    public updateState(message: string = null, status: number = 200, incrementStep: boolean = false): ProgressState {
+        this._message = message ? message : this._message;
         this._status = status;
-        if (message) {
-            this._message = message;
-        }
+        this._currentStep = incrementStep ? this._currentStep + 1 : this._currentStep;
 
-        return new ProgressState(this._steps, this._currentStep, this._message, this._status);
-    }
-
-    public setMessage(message: string): ProgressState {
-        this._message = message;
-
-        return new ProgressState(this._steps, this._currentStep, this._message, this._status);
-    }
-
-    public incrementStep(status: number = 200, message?: string): ProgressState {
-        return this.setStep(this._currentStep + 1, status, message);
+        return new ProgressState(this._steps, this._currentStep, this._status, this._message);
     }
 }

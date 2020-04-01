@@ -40,6 +40,7 @@ import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compat
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
+import { Task } from "../fonaments/http/progress/task";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -177,31 +178,20 @@ export class Snapshot implements Responsable {
      * Restore using progress
      */
     public progressRestore(): Progress<Snapshot> {
-        const progress: Progress<Snapshot> = new Progress<Snapshot>(3);
-
-        progress.start('Restoring snapshot');
+        const progress: Progress<Snapshot> = new Progress<Snapshot>(this);
 
         if (!this._compatible) {
             throw new SnapshotNotCompatibleException(this);
         }
 
-        let p1: Promise<void> = this.removeDatabaseData();
-
-        p1.then((_) => {
-            progress.step('FwCloud removed');
-
-            const p2: Promise<void> = this.restoreDatabaseData();
-            p2.then((_) => {
-                let p3: Promise<void> = this.resetCompiledStatus();
-                let p4: Promise<void> = this.repair();
-
-                Promise.all([p3, p4]).then((_) => {
-                    progress.end('FwCloud snapshot restored');
-                });
-            })
-        })
-
-        progress.response = this;
+        progress.procedure('Restoring snapshot', (task: Task) => {
+            task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
+            task.addTask(() => { return this.restoreDatabaseData(); }, 'FwCloud restored');
+            task.parallel((task: Task) => {
+                task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
+                task.addTask(() => { return this.repair(); }, 'FwCloud repaired');
+            });
+        }, 'FwCloud snapshot restored');
 
         return progress;
     }
@@ -283,7 +273,7 @@ export class Snapshot implements Responsable {
      */
     protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const progress = new Progress<Snapshot>(4);
+        const progress = new Progress<Snapshot>(this);
 
         this._fwCloud = fwCloud;
         this._date = moment();
@@ -295,8 +285,6 @@ export class Snapshot implements Responsable {
         this._schema = await databaseService.getDatabaseSchemaVersion();
         this._compatible = true;
 
-        progress.start('Creating snapshot');
-
         if (FSHelper.directoryExistsSync(this._path)) {
             throw new Error('Snapshot with id = ' + this._id + ' already exists');
         }
@@ -304,24 +292,14 @@ export class Snapshot implements Responsable {
         FSHelper.mkdirSync(this._path);
         this.saveMetadataFile();
 
-        const p1: Promise<void> = this.copyFwCloudDataDirectories();
 
-        p1.then(_ => {
-            progress.step('FwCloud data directories exported');
-        });
 
-        const p2: Promise<void> = this.saveDataFile();
-
-        p2.then(_ => {
-            progress.step('FwCloud database exported');
-        });
-
-        Promise.all([p1, p2]).then((_) => {
-            progress.response = this;
-            progress.end('Snapshot created', null, this);
-        });
-
-        progress.response = this;
+        progress.procedure('Creating snapshot', (task: Task) => {
+            task.parallel((task: Task) => {
+                task.addTask(() => { return this.copyFwCloudDataDirectories(); }, 'FwCloud data directories exported');
+                task.addTask(() => { return this.saveDataFile(); }, 'FwCloud database exported');
+            });
+        }, 'Snapshot created');
 
         return progress;
     }
@@ -435,7 +413,7 @@ export class Snapshot implements Responsable {
      * Repairs the fwc_tree table
      */
     protected async repair(): Promise<void> {
-        if(app().config.get('env') !== 'test') {
+        if (app().config.get('env') !== 'test') {
             return SnapshotRepair.repair(this.fwCloud);
         }
     }
