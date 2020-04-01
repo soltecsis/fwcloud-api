@@ -413,9 +413,14 @@ export class Snapshot implements Responsable {
      * Repairs the fwc_tree table
      */
     protected async repair(): Promise<void> {
-        if (app().config.get('env') !== 'test') {
-            return SnapshotRepair.repair(this.fwCloud);
-        }
+        return new Promise(async (resolve, reject) => {
+            try {
+                await SnapshotRepair.repair(this.fwCloud);
+            } catch (e) {}
+            finally {
+                resolve();
+            }
+        });
     }
 
     toResponse(): object {
