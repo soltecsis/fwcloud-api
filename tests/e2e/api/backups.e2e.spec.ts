@@ -80,7 +80,7 @@ describe(describeName('Backup E2E tests'), () => {
                 .get(_URL().getURL('backups.index'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.equal(
                         JSON.parse(JSON.stringify([backup1.toResponse(), backup2.toResponse()]))
                     )
@@ -117,7 +117,7 @@ describe(describeName('Backup E2E tests'), () => {
                 .get(_URL().getURL('backups.show', {backup: backup.id}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     response.body.data = backup.toResponse()
                 });
         });
@@ -155,7 +155,7 @@ describe(describeName('Backup E2E tests'), () => {
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(201)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data.comment).to.be.deep.equal('test comment')
                 })
 
@@ -225,7 +225,7 @@ describe(describeName('Backup Config E2E tests'), () => {
                 .get(_URL().getURL('backups.config.show'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.equal({
                         max_days: backupService.config.max_days,
                         max_copies: backupService.config.max_copies,
@@ -261,7 +261,7 @@ describe(describeName('Backup Config E2E tests'), () => {
                     "max_copies": 100
                 })
                 .expect(201)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.equal(backupService.config);
                     expect(response.body.data.max_copies).to.be.deep.equal(100);
                 });

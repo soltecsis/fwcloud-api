@@ -72,7 +72,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud.id}))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.eq(
                         JSON.parse(JSON.stringify([]))
                     )
@@ -95,7 +95,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud2.id}))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.eq(
                         JSON.parse(JSON.stringify([s2.toResponse()]))
                     )
@@ -110,7 +110,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud.id}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect((response) => {
+                .then((response) => {
                     expect(response.body.data).to.be.deep.equal(
                         JSON.parse(JSON.stringify([s2.toResponse(), s1.toResponse()]))
                     )
@@ -149,7 +149,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.equal(
                         JSON.parse(JSON.stringify(s1.toResponse()))
                     )
@@ -161,7 +161,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     expect(response.body.data).to.be.deep.equal(
                         JSON.parse(JSON.stringify(s1.toResponse()))
                     )
@@ -212,12 +212,16 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(201)
-                .expect(async (response) => {
+                .then(async (response) => {
                     expect(response.body.data).to.haveOwnProperty('id');
 
                     const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
                     
-                    expect(snapshotService.findOne(fwCloud, response.body.data.id)).not.to.be.null;
+                    let persisted: Snapshot = await snapshotService.findOne(fwCloud, response.body.data.id);
+
+                    expect(persisted).not.to.be.null;
+                    expect(persisted.comment).to.be.deep.eq('comment_test');
+                    expect(persisted.name).to.be.deep.eq('name_test');
                 })
         });
 
@@ -232,7 +236,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(201)
-                .expect(async (response) => {
+                .then(async (response) => {
                     expect(response.body.data).to.haveOwnProperty('id');
 
                     const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
@@ -283,7 +287,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(200)
-                .expect((response) => {
+                .then((response) => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                     expect(response.body.data.name).to.be.deep.equal('name_test');
                     expect(response.body.data.comment).to.be.deep.equal('comment_test');
@@ -301,7 +305,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(200)
-                .expect((response) => {
+                .then((response) => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                     expect(response.body.data.name).to.be.deep.equal('name_test');
                     expect(response.body.data.comment).to.be.deep.equal('comment_test');
@@ -340,7 +344,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(200)
-                .expect((response) => {
+                .then((response) => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                 });
         });
@@ -351,7 +355,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(200)
-                .expect((response) => {
+                .then((response) => {
                     expect(response.body.data.id).to.be.deep.equal(s1.id);
                 });
         });

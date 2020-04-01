@@ -24,10 +24,14 @@ import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Snapshot } from "../snapshots/snapshot";
 import { User } from "../models/user/User";
 import { FwCloud } from "../models/fwcloud/FwCloud";
+import { app } from "../fonaments/abstract-application";
+import { RepositoryService } from "../database/repository.service";
 
 export class SnapshotPolicy extends Policy {
 
     static async read(snapshot: Snapshot, user: User): Promise<Authorization> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        user = await repositoryService.for(User).findOneOrFail(user.id, {relations: ['fwClouds']});
         
         if (user.role === 1) {
             return Authorization.grant();
@@ -42,6 +46,9 @@ export class SnapshotPolicy extends Policy {
     }
 
     static async create(fwcloud: FwCloud, user: User): Promise<Authorization> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        user = await repositoryService.for(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -52,6 +59,9 @@ export class SnapshotPolicy extends Policy {
     }
 
     static async update(snapshot: Snapshot, user: User): Promise<Authorization> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        user = await repositoryService.for(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -65,6 +75,9 @@ export class SnapshotPolicy extends Policy {
     }
 
     static async restore(snapshot: Snapshot, user: User): Promise<Authorization> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        user = await repositoryService.for(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -78,6 +91,9 @@ export class SnapshotPolicy extends Policy {
     }
 
     static async destroy(snapshot: Snapshot, user: User): Promise<Authorization> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        user = await repositoryService.for(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
         if (user.role === 1) {
             return Authorization.grant();
         }
