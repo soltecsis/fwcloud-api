@@ -57,7 +57,7 @@ describe(describeName('Version E2E tests'), () => {
                 .get(_URL().getURL('versions.show'))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
-                .expect(response => {
+                .then(response => {
                     response.body.data = app.version.toResponse()
                 });
         });

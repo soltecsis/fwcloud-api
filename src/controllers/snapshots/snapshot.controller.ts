@@ -48,7 +48,11 @@ export class SnapshotController extends Controller {
     public async store(request: Request): Promise<ResponseBuilder> {
         (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
-        const progress: Progress<Snapshot> = await this._snapshotService.store(request.inputs.get('name'), request.inputs.get('commnet', null), this._fwCloud);
+        const progress: Progress<Snapshot> = await this._snapshotService.store(
+            request.inputs.get('name'), 
+            request.inputs.get('comment', null), 
+            this._fwCloud
+        );
 
         return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
     }
