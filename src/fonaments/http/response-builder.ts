@@ -107,20 +107,20 @@ export class ResponseBuilder {
     }
 
     public progress(progress: Progress<any>, socket_id: string, customEventHandler?: (p: Progress<any>) => void): ResponseBuilder {
+        this._socket_id = socket_id;
         const socket: SocketManager = SocketManager.init(this._socket_id);
         this._event_id = socket.event_id;
-        this._socket_id = socket_id;
 
         if (!customEventHandler) {
             progress.on('start', (payload) => {
                 socket.event(payload);
             })
-                .on('step', (payload) => {
-                    socket.event(payload);
-                })
-                .on('end', async (payload) => {
-                    socket.end(payload);
-                });
+            .on('step', (payload) => {
+                socket.event(payload);
+            })
+            .on('end', async (payload) => {
+                socket.end(payload);
+            });
         } else {
             customEventHandler(progress);
         }
