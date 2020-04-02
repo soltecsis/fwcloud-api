@@ -237,13 +237,8 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .then(async (response) => {
                     expect(response.body.data).to.haveOwnProperty('id');
 
-                    const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
-                    
-                    let persisted: Snapshot = await snapshotService.findOne(fwCloud, response.body.data.id);
-
-                    expect(persisted).not.to.be.null;
-                    expect(persisted.comment).to.be.deep.eq('comment_test');
-                    expect(persisted.name).to.be.deep.eq('name_test');
+                    expect(response.body.data.comment).to.be.deep.eq('comment_test');
+                    expect(response.body.data.name).to.be.deep.eq('name_test');
                 })
         });
 
@@ -261,9 +256,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .then(async (response) => {
                     expect(response.body.data).to.haveOwnProperty('id');
 
-                    const snapshotService =  await app.getService<SnapshotService>(SnapshotService.name);
-                    
-                    expect(snapshotService.findOne(fwCloud, response.body.data.id)).not.to.be.null;
+                    expect(response.body.data).not.to.be.null;
                 })
         });
     });
