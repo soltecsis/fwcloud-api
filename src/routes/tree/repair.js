@@ -75,7 +75,7 @@ router.put('/', async (req, res) =>{
         SocketTools.msg('<font color="blue">Checking objects tree.</font>\n');
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        const ids = await Tree.createObjectsTree(req);
+        const ids = await Tree.createObjectsTree(req.dbCon,req.body.fwcloud);
 
         SocketTools.msg('<font color="blue">Checking addresses objects.</font>\n');
         await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
@@ -104,7 +104,7 @@ router.put('/', async (req, res) =>{
         SocketTools.msg('<font color="blue">Checking services tree.</font>\n');
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
-        const ids = await Tree.createServicesTree(req);
+        const ids = await Tree.createServicesTree(req.dbCon,req.body.fwcloud);
 
         SocketTools.msg('<font color="blue">Checking IP services.</font>\n');
         await Repair.checkNonStdIPObj(ids.IP,'SOI',1);
