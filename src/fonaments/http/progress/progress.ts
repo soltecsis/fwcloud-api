@@ -53,20 +53,25 @@ export class Progress<T> {
         this._state = new ProgressState(task.getSteps() + 1, 0, 102, startText);
         
         this._internalEvents.on('step', (message: string) => {
-            this._externalEvents.emit('step', this._state.updateState(message, 102, true));
+            this._externalEvents.emit('message', this._state.updateState(message, 102, true));
         });
 
         this._internalEvents.on('event', (message: string) => {
-            this._externalEvents.emit('event', this._state.updateState(message, 102, false));
+            this._externalEvents.emit('message', this._state.updateState(message, 102, false));
         });
 
         this._externalEvents.emit('start', this._state);
+        
         task.run().then(() => {
+            this._externalEvents.emit('message', this._state.updateState(finishedText, 200, false));
             this._externalEvents.emit('end', this._state.updateState(finishedText, 200, true));
+        }).catch((e) => {
+            this._externalEvents.emit('message', this._state.updateState(finishedText, 500, false));
+            throw e;
         });
     }
 
-    public on(event: progressEventName, listener: (...args: any[]) => void): this {
+    public on(event: "message" | "end", listener: (...args: any[]) => void): this {
         this._externalEvents.on(event, listener);
         return this;
     }

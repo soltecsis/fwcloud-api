@@ -42,6 +42,10 @@ export class ProgressState implements Responsable {
         return Math.floor((this._currentStep * 100) / this._steps);
     }
 
+    get status(): number {
+        return this._status;
+    }
+
     toResponse(): object {
         const response: any = {
             step: this._currentStep,
