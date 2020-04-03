@@ -74,10 +74,12 @@ export class Task implements ITask {
     protected emitFinishedTask(task: Task): void {
         if (task.stepable) {
             this._eventEmitter.emit('step', task.finishedText);
+            return;
         }
 
         if (task.finishedText) {
             this._eventEmitter.emit('event', task.finishedText);
+            return;
         }
     }
 }

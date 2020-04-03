@@ -30,7 +30,7 @@ export class BackupServiceProvider extends ServiceProvider {
     
     public register(serviceContainer: ServiceContainer): ServiceBound {
         return serviceContainer.singleton(BackupService.name, async(app: AbstractApplication): Promise<BackupService> => {
-            return await BackupService.make(app);
+            return BackupService.make(app);
         });
     }
 

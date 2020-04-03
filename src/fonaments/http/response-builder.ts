@@ -112,14 +112,8 @@ export class ResponseBuilder {
         this._event_id = socket.event_id;
 
         if (!customEventHandler) {
-            progress.on('start', (payload) => {
-                socket.event(payload);
-            })
-            .on('step', (payload) => {
-                socket.event(payload);
-            })
-            .on('end', async (payload) => {
-                socket.end(payload);
+            progress.on('message', (payload) => {
+                socket.send(payload);
             });
         } else {
             customEventHandler(progress);

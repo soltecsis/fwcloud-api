@@ -93,7 +93,7 @@ export abstract class AbstractApplication {
   }
 
   public async getService<T extends Service>(name: string): Promise<T> {
-    return await this._services.get(name);
+    return this._services.get(name);
   }
 
   public setSocketIO(socketIO: io.Server): io.Server {

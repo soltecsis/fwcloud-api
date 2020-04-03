@@ -94,8 +94,7 @@ export class ServiceContainer {
     public async get<T extends Service>(name: string): Promise<T> {
         if (this.isBound(name)) {
             const service = this.find(name);
-            const target = service.target
-
+            
             if (service.singleton && service.instance === null) {
                 service.instance = await service.target(this.app);
             }
@@ -104,7 +103,7 @@ export class ServiceContainer {
                 return <T>service.instance;
             }
 
-            return <T>await service.target(this.app);
+            return <Promise<T>>service.target(this.app);
         }
 
         return null;
