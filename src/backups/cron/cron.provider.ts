@@ -28,7 +28,7 @@ import { AbstractApplication } from "../../fonaments/abstract-application";
 export class CronServiceProvider extends ServiceProvider {
     public register(serviceContainer: ServiceContainer): ServiceBound {
         return serviceContainer.singleton(CronService.name, async(app: AbstractApplication): Promise<CronService> => {
-            return await CronService.make(app);
+            return CronService.make(app);
         });
     }
 
