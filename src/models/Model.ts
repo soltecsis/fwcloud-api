@@ -54,7 +54,7 @@ export default abstract class Model implements IModel {
 
         for(let i = 0; i < propertyReferences.length; i++) {
             const propertyName: string = propertyReferences[i].propertyName;
-            if (this.hasOwnProperty(propertyName) && this[propertyName]) {
+            if (this.hasOwnProperty(propertyName) && this[propertyName] !== null) {
                 result[propertyName] = this[propertyName];
                 continue;
             }

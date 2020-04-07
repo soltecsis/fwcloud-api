@@ -94,7 +94,7 @@ export class Interface extends Model {
     policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
     @OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRuleInterface)
-    routingRuleToInterfaces: Array<PolicyRuleToInterface>;
+    routingRuleToInterfaces: Array<RoutingRuleToInterface>;
 
     /**
     * Pending foreign keys.
