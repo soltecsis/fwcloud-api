@@ -34,10 +34,13 @@ export class Progress<T> {
 
     protected _state: ProgressState;
 
+    protected _failed: boolean;
+
     constructor(response: T) {
         this._response = response;
         this._externalEvents = new EventEmitter();
         this._internalEvents = new EventEmitter();
+        this._failed = false;
     }
 
     get response(): T {
@@ -48,27 +51,39 @@ export class Progress<T> {
         this._response = response;
     }
 
-    public procedure(startText: string, procedure: GroupDescription, finishedText: string = null): void {
-        const task = new SequencedTask(this._internalEvents, procedure, finishedText);
-        this._state = new ProgressState(task.getSteps() + 1, 0, 102, startText);
-        
-        this._internalEvents.on('step', (message: string) => {
-            this._externalEvents.emit('message', this._state.updateState(message, 102, true));
-        });
+    public async procedure(startText: string, procedure: GroupDescription, finishedText: string = null): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const task = new SequencedTask(this._internalEvents, procedure, finishedText);
+            this._state = new ProgressState(task.getSteps() + 1, 0, 102, startText);
+            
+            this._internalEvents.on('step', (message: string) => {
+                this.emitExternalEvent('message', this._state.updateState(message, 102, true));
+            });
 
-        this._internalEvents.on('event', (message: string) => {
-            this._externalEvents.emit('message', this._state.updateState(message, 102, false));
-        });
+            this._internalEvents.on('event', (message: string) => {
+                this.emitExternalEvent('message', this._state.updateState(message, 102, false));
+            });
 
-        this._externalEvents.emit('start', this._state);
-        
-        task.run().then(() => {
-            this._externalEvents.emit('message', this._state.updateState(finishedText, 200, false));
-            this._externalEvents.emit('end', this._state.updateState(finishedText, 200, true));
-        }).catch((e) => {
-            this._externalEvents.emit('message', this._state.updateState(finishedText, 500, false));
-            throw e;
+            this.emitExternalEvent('start', this._state);
+            
+            task.run().then(() => {
+                this.emitExternalEvent('message', this._state.updateState(finishedText, 200, false));
+                this.emitExternalEvent('end', this._state.updateState(finishedText, 200, true));
+                return resolve();
+            }).catch((e) => {
+                this.emitExternalEvent('message', this._state.updateState('Error', 500, false));
+                this._failed = true;
+                return resolve();
+            });
         });
+    }
+
+    protected emitExternalEvent(event: 'start' | 'message' | 'end', data: object): boolean {
+        if (!this._failed) {
+            return this._externalEvents.emit(event, data);
+        }
+
+        return false;
     }
 
     public on(event: "message" | "end", listener: (...args: any[]) => void): this {
