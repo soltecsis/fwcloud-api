@@ -68,7 +68,7 @@ export class FSHelper {
 
     public static async copyDirectoryIfExists(source: string, destination: string): Promise<void> {
         if (await this.directoryExists(source)) {
-            return FSHelper.copyDirectory(source, destination);
+            return await FSHelper.copyDirectory(source, destination);
         }
     }
 }
