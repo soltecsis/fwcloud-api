@@ -50,7 +50,7 @@ export class PolicyRuleExporter extends TableExporter {
             return `${alias}.firewallId IN ` + new FirewallExporter()
                 .getFilterBuilder(subquery, 'firewall', fwCloudId).getQuery()
         })
-        .where((qb) => {
+        .orWhere((qb) => {
             const subquery = qb.subQuery().from(Mark, 'mark').select('mark.id');
 
             return `${alias}.markId IN ` + new MarkExporter()
