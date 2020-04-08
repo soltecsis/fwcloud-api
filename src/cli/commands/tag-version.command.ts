@@ -45,7 +45,12 @@ export class TagVersionCommand implements yargs.CommandModule {
                 alias: "tag",
                 describe: "Version tag.",
                 demand: true
-            });            
+            })
+            .option("s", {
+                alias: "schema",
+                describe: "Schema version tag.",
+                demand: true
+            });
     }
 
     async handler(args: yargs.Arguments) {
@@ -56,8 +61,13 @@ export class TagVersionCommand implements yargs.CommandModule {
                 throw new VersionTagIsNotValidException(args.t as string);
             }
 
+            if (!semver.valid(args.s as string)) {
+                throw new VersionTagIsNotValidException(args.s as string);
+            }
+
             const version: Version = new Version();
             version.tag = args.t as string;
+            version.schema = args.s as string;
             version.date = moment();
 
             await version.saveVersionFile(path.join(app.path, Application.VERSION_FILENAME));

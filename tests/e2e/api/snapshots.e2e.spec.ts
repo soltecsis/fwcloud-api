@@ -377,7 +377,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         it('restore should throw an exception if the snapshot is not compatible', async () => {
             const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME)).toString());
-            metadata.schema = 'test';
+            metadata.schema = '0.0.0';
             fs.writeFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
             await request(app.express)

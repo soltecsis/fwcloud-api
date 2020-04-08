@@ -41,6 +41,7 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
 import { TableExporterResults } from "./exporter/table-exporter";
+import * as semver from "semver";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -282,7 +283,7 @@ export class Snapshot implements Responsable {
         this._name = name ? name : this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;
-        this._schema = await databaseService.getDatabaseSchemaVersion();
+        this._schema = app<Application>().version.schema;
         this._compatible = true;
 
         if (FSHelper.directoryExistsSync(this._path)) {
@@ -392,10 +393,9 @@ export class Snapshot implements Responsable {
      * @param schema 
      */
     protected async checkisSchemaCompatible(schema: string) {
-        const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const currentSchemaVersion: string = await databaseService.getDatabaseSchemaVersion();
+        const currentSchemaVersion: string = app().version.schema;
 
-        return currentSchemaVersion === schema;
+        return semver.eq(schema, currentSchemaVersion);
     }
 
     /**
