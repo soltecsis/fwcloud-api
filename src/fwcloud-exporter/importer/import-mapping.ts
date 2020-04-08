@@ -20,8 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../models/Model";
-
 export type IdMap = {old: any, new: any}
 export type EntityMap = {[property_name: string]: Array<IdMap>};
 export type ImportMap = {[entity_name: string]: EntityMap}
@@ -83,5 +81,12 @@ export class ImportMapping {
         }
 
         return -1;
+    }
+
+
+    //TODO
+    public refreshId(tableName: string, propertyName: string, old: any): number {
+        //Is old value already mapped? If it is mapped, then returned mapped value. Otherwise, provides a new id. 
+        return null;
     }
 }

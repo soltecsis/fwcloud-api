@@ -31,7 +31,7 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
 import { SnapshotData } from "./snapshot-data";
-import { Exporter } from "./exporter/exporter";
+import { Exporter } from "../fwcloud-exporter/exporter/exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseOperations } from "./bulk-database-operations";
 import { DatabaseService } from "../database/database.service";
@@ -40,7 +40,7 @@ import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
-import { TableExporterResults } from "./exporter/table-exporter";
+import { TableExporterResults } from "../fwcloud-exporter/exporter/table-exporter";
 import * as semver from "semver";
 
 export type SnapshotMetadata = {
