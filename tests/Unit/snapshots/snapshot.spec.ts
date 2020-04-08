@@ -156,7 +156,7 @@ describe(describeName('Snapshot tests'), () => {
         let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
-        metadata.schema = 'test';
+        metadata.schema = '0.0.0';
         fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
         snaphost = await Snapshot.load(snaphost.path);

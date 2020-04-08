@@ -36,7 +36,11 @@ describe(describeName('Database Service tests'), () => {
         databaseService = await app.getService<DatabaseService>(DatabaseService.name);
     });
 
-    describe(describeName('getDatabaseSchemaVersion()'), () => {
+    /**
+     * Schema version is generated based on version.json value now. Thus, getDatabaseSchemaVersion() is deprecated. 
+     * @deprecated
+     */
+    /*describe(describeName('getDatabaseSchemaVersion()'), () => {
         
         it('should return the same schema version after insert data', async() => {
             const versionBefore: string = await databaseService.getDatabaseSchemaVersion();
@@ -49,6 +53,5 @@ describe(describeName('Database Service tests'), () => {
 
             expect(versionAfter).to.be.deep.eq(versionBefore);
         });
-
-    })
+    })*/
 });

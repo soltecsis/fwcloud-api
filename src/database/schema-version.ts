@@ -25,6 +25,10 @@ import { app } from "../fonaments/abstract-application";
 import mysqldump, { DumpReturn } from "mysqldump";
 import * as crypto from "crypto";
 
+/**
+ * This class generates a hash based on the schema as it was a schema version
+ * @deprecated
+ */
 export class SchemaVersion {
     protected _dump: DumpReturn;
     protected _version: string;

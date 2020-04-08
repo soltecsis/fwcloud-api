@@ -168,11 +168,6 @@ export class DatabaseService extends Service {
         return;
     }
 
-    public async getDatabaseSchemaVersion(): Promise<string> {
-        const schemaVersion: SchemaVersion = await SchemaVersion.make();
-        return schemaVersion.getVersion();
-    }
-
     protected async importSQLFile(path: string): Promise<void> {
         const queryRunner: QueryRunner = this._connection.createQueryRunner();
         const queries = fs.readFileSync(path, { encoding: 'UTF-8' })
@@ -222,6 +217,4 @@ export class DatabaseService extends Service {
 
         return tables;
     }
-
-
 }

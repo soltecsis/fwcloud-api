@@ -24,8 +24,6 @@ import moment, { Moment } from "moment";
 import { promises as fs} from "fs";
 import { VersionFileNotFoundException } from "./exceptions/version-file-not-found.exception";
 import { Responsable } from "../fonaments/contracts/responsable";
-import { app } from "../fonaments/abstract-application";
-import { DatabaseService } from "../database/database.service";
 
 export class Version implements Responsable {
     tag: string;
@@ -39,7 +37,7 @@ export class Version implements Responsable {
     }
 
     public async saveVersionFile(versionFilePath: string): Promise<Version> {
-        const fileData: string = JSON.stringify({version: this.tag, date: this.date.utc()}, null, 2);
+        const fileData: string = JSON.stringify({version: this.tag, date: this.date.utc(), schema: this.schema }, null, 2);
 
         await fs.writeFile(versionFilePath, fileData);
 
@@ -51,10 +49,10 @@ export class Version implements Responsable {
         try {
             if ((await fs.stat(versionFilePath)).isFile()) {
                 const content: string = (await fs.readFile(versionFilePath)).toString();
-                const jsonContent: {version: string, date: string} = JSON.parse(content);
+                const jsonContent: {version: string, date: string, schema: string } = JSON.parse(content);
                 this.tag = jsonContent.version;
                 this.date = moment(jsonContent.date) || moment();
-                this.schema = await this.getSchemaVersion();
+                this.schema = jsonContent.schema
 
                 return this;
             }
@@ -63,14 +61,6 @@ export class Version implements Responsable {
         }
 
         throw new VersionFileNotFoundException(versionFilePath);
-    }
-
-    protected async getSchemaVersion(): Promise<string> {
-        try {
-            return await (await app().getService<DatabaseService>(DatabaseService.name)).getDatabaseSchemaVersion();
-        } catch(e) {
-            return null;
-        }
     }
 
     toResponse(): object {
