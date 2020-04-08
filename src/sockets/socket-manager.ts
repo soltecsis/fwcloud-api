@@ -59,6 +59,7 @@ export class SocketManager {
 
             this._socket.on(this.event_id, (_) => {
                 this._isListening = true;
+                this.emitMessages();
             })
         }
     }
