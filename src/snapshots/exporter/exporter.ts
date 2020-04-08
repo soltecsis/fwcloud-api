@@ -26,6 +26,7 @@ import { PolicyRuleToOpenVPNExporter } from "./policy-rule-to-openvpn.exporter";
 import { PolicyRuleToOpenVPNPrefixExporter } from "./policy-rule-to-openvpn-prefix.exporter";
 import { OpenVPNToIPObjGroupExporter } from "./openvpn-to-ipobj-group.exporter";
 import { OpenVPNPrefixToIPObjGroupExporter } from "./openvpn-prefix-to-ipobj-group.exporter";
+import { FwcTreeExporter } from "./fwc-tree.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -50,7 +51,8 @@ const EXPORTERS = [
     new PolicyRuleToOpenVPNPrefixExporter(),
     new PolicyRuleToOpenVPNExporter(),
     new PolicyRuleExporter(),
-    new OpenVPNToIPObjGroupExporter()
+    new OpenVPNToIPObjGroupExporter(),
+    new FwcTreeExporter()
 ];
 
 export class Exporter {
