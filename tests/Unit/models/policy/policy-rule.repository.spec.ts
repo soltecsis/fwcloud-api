@@ -98,7 +98,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
 
     describe(describeName('PolicyRuleRepository assignGroup'), () => {
 
-        it('changeGroup should change the policy rule group', async () => {
+        it('assignGroup should change the policy rule group', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
@@ -127,7 +127,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
         });
 
-        it('changeGroup should change multiple policy rule group', async () => {
+        it('assignGroup should change multiple policy rule group', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
@@ -165,7 +165,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
             expect(policyRule2.policyGroupId).to.be.deep.eq(policyGroupNew.id);
         });
 
-        it('changeGroup should not change a group if the rule firewall is not the same as the group firewall', async () => {
+        it('assignGroup should not change a group if the rule firewall is not the same as the group firewall', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({
@@ -196,7 +196,7 @@ describe(describeName('PolicyRuleRepository tests'), () => {
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupOld.id);
         });
 
-        it('changeRule should unassign the group if is called with null', async () => {
+        it('assignGroup should unassign the group if is called with null', async () => {
             const policyGroupOld: PolicyGroup = await repositoryService.for(PolicyGroup).save({
                 name: 'groupOld',
                 firewall: (await repositoryService.for(Firewall).save({

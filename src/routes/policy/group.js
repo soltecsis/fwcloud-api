@@ -167,7 +167,7 @@ async function ruleRemove(ruleidfirewall, idgroup, rule) {
 		let policyRule = await repository.for(PolicyRule).findOne(rule);
 		
 		if(policyRule) {
-			policyRule = await policyRule.changeGroup(null);
+			policyRule = await repository.for(PolicyRule).assignToGroup(policyRule, null);
 			return resolve();
 		}
 	});
