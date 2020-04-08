@@ -55,11 +55,15 @@ export class ParalellizedTask extends Task {
                 promises.push(promise);
                 promise.then(() => {
                     this.emitFinishedTask(this._tasks[i]);
+                }).catch(e => {
+                    return reject(e);
                 });
             }
 
             Promise.all(promises).then(() => {
                 return resolve();
+            }).catch(e => {
+                return reject(e);
             })
         });
     }

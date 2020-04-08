@@ -22,7 +22,7 @@
 
 import { Moment } from "moment";
 import { Responsable } from "../fonaments/contracts/responsable";
-import { app, AbstractApplication } from "../fonaments/abstract-application";
+import { app } from "../fonaments/abstract-application";
 import { FSHelper } from "../utils/fs-helper";
 import moment from "moment";
 import * as path from "path";
@@ -31,8 +31,7 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
 import { SnapshotData } from "./snapshot-data";
-import { EntityExporter } from "./exporters/entity-exporter";
-import { Exporter } from "./exporter";
+import { Exporter } from "./exporter/exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseOperations } from "./bulk-database-operations";
 import { DatabaseService } from "../database/database.service";
@@ -41,6 +40,7 @@ import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
+import { TableExporterResults } from "./exporter/table-exporter";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -325,21 +325,24 @@ export class Snapshot implements Responsable {
      */
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
-        const exporterTarget: typeof EntityExporter = new Exporter().buildExporterFor(this.fwCloud.constructor.name);
-        this._fwCloud = await (await app().getService<RepositoryService>(RepositoryService.name)).for(FwCloud).findOne(this._fwCloud.id);
-        const exporter = new exporterTarget(result, this._fwCloud);
-        await exporter.export();
 
-        return result;
+        const data: TableExporterResults = await new Exporter().export(this.fwCloud.id);
+        
+        return result.addResults(data);
     }
 
     /**
      * Persist all fwcloud related data from database into the data file
      */
     protected async saveDataFile(): Promise<void> {
-        const data: SnapshotData = await this.getFwCloudJSONData();
-
-        fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(data, null, 2));
+        return new Promise<void>((resolve, reject) => {
+            this.getFwCloudJSONData().then((data: SnapshotData) => {
+                fs.writeFileSync(path.join(this._path, Snapshot.DATA_FILENAME), JSON.stringify(data, null, 2));
+                return resolve();
+            }).catch(e => {
+                return reject(e);
+            });
+        });
     }
 
     /**
@@ -416,7 +419,7 @@ export class Snapshot implements Responsable {
         return new Promise(async (resolve, reject) => {
             try {
                 await SnapshotRepair.repair(this.fwCloud);
-            } catch (e) {}
+            } catch (e) { }
             finally {
                 resolve();
             }

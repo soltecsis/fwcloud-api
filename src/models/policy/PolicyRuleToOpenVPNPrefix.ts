@@ -35,14 +35,14 @@ const tableName: string = 'policy_r__openvpn_prefix';
 @Entity(tableName)
 export class PolicyRuleToOpenVPNPrefix extends Model {
 
-    @PrimaryColumn()
-    rule: number;
+    @PrimaryColumn({name: 'rule'})
+    policyRuleId: number;
 
-    @PrimaryColumn()
-    prefix: number;
+    @PrimaryColumn({name: 'prefix'})
+    openVPNPrefixId: number;
 
-    @PrimaryColumn()
-    position: number;
+    @PrimaryColumn({name: 'position'})
+    policyPositionId: number;
 
     @Column()
     position_order: number;
@@ -84,19 +84,19 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     public async onCreate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onUpdate() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     public async onDelete() {
         const policyCompilationRepository: Repository<PolicyCompilation> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.rule}, {status_compiled: 0});
+        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Add new policy_r__openvpn_prefix
@@ -160,9 +160,9 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             const policyRuleToOpenVPNPrefixRepository: Repository<PolicyRuleToOpenVPNPrefix> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPNPrefix);
             const models: PolicyRuleToOpenVPNPrefix[] = await policyRuleToOpenVPNPrefixRepository.find({
-                rule: req.body.rule,
-                prefix: req.body.prefix,
-                position: req.body.position
+                policyRuleId: req.body.rule,
+                openVPNPrefix: req.body.prefix,
+                policyPosition: req.body.position
             });
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
@@ -178,7 +178,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             const policyRuleToOpenVPNPrefixRepository: Repository<PolicyRuleToOpenVPNPrefix> = 
 								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPNPrefix);
             const models: PolicyRuleToOpenVPNPrefix[] = await policyRuleToOpenVPNPrefixRepository.find({
-                rule: rule
+                policyRuleId: rule
             });
             dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);

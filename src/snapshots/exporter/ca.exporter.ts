@@ -20,11 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityExporter } from "./entity-exporter";
-import { IPObjType } from "../../models/ipobj/IPObjType";
+import { TableExporter } from "./table-exporter";
+import { Connection, SelectQueryBuilder } from "typeorm";
+import { Ca } from "../../models/vpn/pki/Ca";
+import Model from "../../models/Model";
 
-export class IPObjTypeExporter extends EntityExporter {
-    shouldIgnoreThisInstance(ipObjType: IPObjType): boolean {
-        return true;
+export class CaExporter extends TableExporter {
+    protected getEntity(): typeof Model {
+        return Ca;
+    }
+
+    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
+        return qb
+        .where(`${alias}.fwCloudId = :id`, {
+            id: fwCloudId
+        });
     }
 }

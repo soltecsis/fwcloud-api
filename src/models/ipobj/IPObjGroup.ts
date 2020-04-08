@@ -51,6 +51,15 @@ export class IPObjGroup extends Model {
     id: number;
 
     @Column()
+    name: string;
+
+    @Column()
+    comment: string;
+
+    @Column({name: 'type'})
+    type: number;
+
+    @Column()
     fwcloud: number;
 
     @Column()
