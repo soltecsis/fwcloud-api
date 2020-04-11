@@ -36,6 +36,7 @@ import { RepositoryService } from "../../database/repository.service";
 import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 import { string } from "joi";
+import { FwCloudError } from "../../fonaments/exceptions/error";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -728,15 +729,7 @@ export class Interface extends Model {
 	};
 
 
-	/* Convert the 'ip a' data to a json of the type:
-	{
-		"enp0s8": {
-			"mac": "08:00:27:ab:89:b9",
-			"ipv4": ["192.168.56.101/24"],
-			"ipv6": []
-		}
-	}	
-	*/
+	// Convert the 'ip a' data to a json response.
 	public static ifsDataToJson(rawData: string) {
 		return new Promise((resolve, reject) => {
 				interface ifData_type {
@@ -745,12 +738,33 @@ export class Interface extends Model {
 					ipv4: string[],
 					ipv6: string[]
 				};
+
+				let match: RegExpMatchArray;
+				let ifsRawData: string[] = [];
 				let ifsData: ifData_type[] = [];
+				let n: number = 0;
+				let prev_length: number = 0;
+				let currentData: string = "";
 
 				try {
-					let match: RegExpMatchArray;
-					// Search for the next interface name.
-					while (match = rawData.match(/\n[0-9]{1,4}\: /)) {
+					// Set the pointer over the first interface.
+					// If we don't found it return empty result.
+					if (!(match = rawData.match(/\n[0-9]{1,4}\: /))) return resolve([]);
+					rawData = rawData.substring(match.index+1);
+
+					// First see how many interfaces we have in the raw data received and fill 
+					// the ifsRawData array with the raw data for each interface.
+					for (;match = rawData.match(/\n[0-9]{1,4}\: /); n++) {
+						prev_length = match[0].length;
+						if (n === 0) continue;
+
+						ifsRawData.push(rawData.substring(prev_length-1,match.index));
+						rawData = rawData.substring(match.index+1);
+					}
+					ifsRawData.push(rawData.substring(prev_length-1,rawData.length));
+
+					// Process the raw data of each interface.
+					for (let i: number = 0; i<n; i++) {
 						let ifData: ifData_type = {
 							name: '',
 							mac: '',
@@ -758,13 +772,34 @@ export class Interface extends Model {
 							ipv6: []
 						};
 
+						currentData = ifsRawData[i];
+
 						// Get the interface name.
-						rawData = rawData.substring(match.index + match[0].length);
-						match = rawData.match(/\: /);
-						ifData.name = rawData.substring(0,match.index);
+						if (!(match = currentData.match(/\: /))) 
+							continue; // If the pattern is not found we have bad data.							
+						ifData.name = currentData.substring(0,match.index);
 
 						// Now the MAC address.
-						//match = rawData.match(/\: /);
+						if (match = currentData.match(/\n    link\/ether /)) {
+							currentData = currentData.substring(match.index + match[0].length);
+							ifData.mac = currentData.substring(0,17);
+						} 
+
+						// The IPv4 address array.
+						while(match = currentData.match(/\n    inet /)) {
+							currentData = currentData.substring(match.index + match[0].length);
+							if (!(match = currentData.match(/ /))) 
+								break; // If the pattern is not found we have bad data.	
+							ifData.ipv4.push(currentData.substring(0,match.index));
+						}
+
+						// The IPv6 address array.
+						while(match = currentData.match(/\n    inet6 /)) {
+							currentData = currentData.substring(match.index + match[0].length);
+							if (!(match = currentData.match(/ /))) 
+								break; // If the pattern is not found we have bad data.	
+							ifData.ipv6.push(currentData.substring(0,match.index));
+						}					
 
 						ifsData.push(ifData);
 					}

@@ -236,8 +236,8 @@ router.put('/autodiscover', async(req, res) => {
 			username: req.body.sshuser,
 			password: req.body.sshpass
 		}
-    const rawData = await Firewall.getInterfacesData(SSHconn);
-
+		const rawData = await Firewall.getInterfacesData(SSHconn);
+		
 		// Proces raw interfaces data and convert into a json object.
 		const ifsData = await Interface.ifsDataToJson(rawData);
 
