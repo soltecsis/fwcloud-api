@@ -43,6 +43,8 @@ const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
+const sshTools = require('../../utils/ssh');
+
 const tableName: string = 'firewall';
 
 @Entity(tableName)
@@ -1091,4 +1093,16 @@ export class Firewall extends Model {
 		});
 	};
 
+
+	public static getInterfacesData(SSHconn) {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const data: any = await sshTools.runCommand(SSHconn, "sudo ip a");
+				
+				// Before answer, parse data to see if we have get a valid answer.
+
+				resolve(data);
+			} catch (error) { reject(error) }
+		});
+	}
 }

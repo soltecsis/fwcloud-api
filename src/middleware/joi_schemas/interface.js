@@ -63,6 +63,13 @@ schema.validate = req => {
 				schema = schema.append({ id: sharedSch.id, type: sharedSch.interface_type });
 			else if (req.url === '/interface/restricted')
 				schema = schema.append({ id: sharedSch.id, host: sharedSch.id.optional() });
+			else if (req.url === '/interface/autodiscover') {
+				schema = schema.append({ 
+					ip: sharedSch.ipv4,
+					port: Joi.number().port(), 
+					sshuser: sharedSch.linux_user, 
+					sshpass: sharedSch.linux_pass });
+			}
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {

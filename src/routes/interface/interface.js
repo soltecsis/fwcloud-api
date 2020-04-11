@@ -226,4 +226,23 @@ router.put('/where', async(req, res) => {
 // API call for check deleting restrictions.
 router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(204).end());
 
+
+/* Get all network interface information from a firewall.  */
+router.put('/autodiscover', async(req, res) => {
+  try {
+		const SSHconn = {
+			host: req.body.ip,
+			port: req.body.port,
+			username: req.body.sshuser,
+			password: req.body.sshpass
+		}
+		const rawData = await Firewall.getInterfacesData(SSHconn);
+		
+		// Proces raw interfaces data and convert into a json object.
+		const ifsData = await Interface.ifsDataToJson(rawData);
+
+		res.status(200).json(ifsData);
+	} catch(error) { res.status(400).json(error) }
+});
+
 module.exports = router;
