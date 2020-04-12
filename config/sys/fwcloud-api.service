@@ -1,12 +1,13 @@
 [Unit]
-Description=FWCloud-API
+Description=fwcloud-api
+
 [Service]
-ExecStart= /usr/bin/node /opt/fwcloud-api/dist/bin/fwcloud.js
+ExecStart=/usr/bin/npm start
 WorkingDirectory=/opt/fwcloud-api/
 Restart=always
-StandardOutput=/opt/fwcloud/logs/out.log
-StandardError=/opt/fwcloud/logs/error.log
-SyslogIdentifier=FWCloud-API
+StandardOutput=/opt/fwcloud-api/logs/out.log
+StandardError=/opt/fwcloud-api/logs/error.log
+SyslogIdentifier=fwcloud-api
 User=fwcloud
 Group=fwcloud
 
