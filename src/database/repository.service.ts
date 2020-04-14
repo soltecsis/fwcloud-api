@@ -27,6 +27,8 @@ import { PolicyRule } from "../models/policy/PolicyRule";
 import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
+import { PolicyGroup } from "../models/policy/PolicyGroup";
+import PolicyGroupRepository from "../repositories/PolicyGroupRepository";
 
 type RepositoryMapItem = {"entityClass": Function, "repository": Function};
 export class RepositoryService extends Service {
@@ -40,6 +42,10 @@ export class RepositoryService extends Service {
          {
              "entityClass": Firewall,
              "repository": FirewallRepository
+         },
+         {
+             "entityClass": PolicyGroup,
+             "repository": PolicyGroupRepository
          }
     ]
 

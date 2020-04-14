@@ -348,7 +348,7 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			if (pasteOffset!=0 && moveRule.idgroup) {
 				const policyGroup = await repository.for(PolicyGroup).findOne(moveRule.idgroup);
 				if (policyGroup) {
-					await policyGroup.deleteIfEmpty(dbCon, firewall);
+					await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
 				}
 			}
 
