@@ -32,7 +32,7 @@ let policyGroupRepository: PolicyGroupRepository;
 let app: AbstractApplication;
 let repositoryService: RepositoryService;
 
-describe.only(describeName('PolicyGroupRepository tests'), () => {
+describe(describeName('PolicyGroupRepository tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
