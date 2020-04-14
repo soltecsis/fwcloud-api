@@ -37,6 +37,7 @@ export class WebServerApplication {
             // Proxy requests to fwcloud-api.
             this._proxy = httpProxy.createProxyServer({
                 target: this._config.get('web_server').api_url,
+                secure: false,
                 ws: true
             });
             this.proxySetup();
