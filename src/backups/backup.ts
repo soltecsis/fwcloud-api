@@ -176,7 +176,7 @@ export class Backup implements Responsable {
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
-        this._name = this._date.format('YYYY-MM-DD HH:MM:ss');
+        this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
         this.createDirectorySync();
