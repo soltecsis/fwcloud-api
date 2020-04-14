@@ -12,7 +12,7 @@ User=fwcloud
 Group=fwcloud
 
 # Restart service after 10 seconds if node service crashes
-RestartSec=10
+# RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
