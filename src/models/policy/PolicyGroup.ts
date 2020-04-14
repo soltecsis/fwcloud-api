@@ -268,25 +268,6 @@ export class PolicyGroup extends Model {
 		});
 	};
 
-	//Delete policy group if it is empty.
-	public static deleteIfEmptyPolicy_g(dbCon, firewall, group) {
-		return new Promise((resolve, reject) => {
-			let sql = 'SELECT count(*) AS n FROM policy_r WHERE idgroup=' + group + ' AND firewall=' + firewall;
-			dbCon.query(sql, (error, rows) => {
-				if (error) return reject(error);
-
-				// Only delete if the group is empty.
-				if (rows[0].n > 0) return resolve();
-
-				sql = 'DELETE FROM ' + tableName + ' WHERE id=' + group;
-				dbCon.query(sql, (error, rows) => {
-					if (error) return reject(error);
-					resolve();
-				});
-			});
-		});
-	};
-
 
 	//Clone policy groups
 	public static clonePolicyGroups(idFirewall, idNewFirewall) {

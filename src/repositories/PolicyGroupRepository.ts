@@ -22,6 +22,7 @@
 
 import { Repository, UpdateResult, DeleteResult, InsertResult, EntityRepository } from "typeorm";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
+import { PolicyRule } from "../models/policy/PolicyRule";
 
 @EntityRepository(PolicyGroup)
 export default class PolicyGroupRepository extends Repository<PolicyGroup> {
@@ -39,6 +40,21 @@ export default class PolicyGroupRepository extends Repository<PolicyGroup> {
     public async deleteFirewallGroups(firewallId: number): Promise<DeleteResult> {
         return await this.delete({ firewall: { id: firewallId } });
     };
+
+    /**
+     * Removes a policyGroup if it is empty
+     * 
+     * @param policyGroup 
+     */
+    public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup>
+    {
+        if((await this.createQueryBuilder().relation(PolicyGroup, "policyRules").of(policyGroup).loadMany()).length === 0) {
+            await this.delete(policyGroup);
+            return policyGroup;
+        }
+
+        return policyGroup;
+    }
 
     /**
      * Clone a policy group

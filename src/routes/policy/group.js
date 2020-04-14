@@ -29,6 +29,7 @@ import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { In } from 'typeorm';
 const fwcError = require('../../utils/error_table');
+const app = require('../../fonaments/abstract-application').app;
 
 
 var logger = require('log4js').getLogger("app");
@@ -143,10 +144,14 @@ router.put("/del", async (req, res) => {
 
 /* Remove rules from Group */
 router.put("/rules/del", async (req, res) => {
+	const repository = await app().getService(RepositoryService.name);
 	try {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
-		await PolicyGroup.deleteIfEmptyPolicy_g(req.dbCon, req.body.firewall, req.body.id);
+		const policyGroup = await repository.for(PolicyGroup).findOne(req.body.id);
+		if (policyGroup) {
+			await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
+		}
 		res.status(204).end();
 	} catch (error) { res.status(400).json(error) }
 });
