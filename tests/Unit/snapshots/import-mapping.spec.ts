@@ -20,17 +20,39 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/snapshots/import-mapping";
+import { describeName, expect, testSuite } from "../../mocha/global-setup";
+import { ImportMapping } from "../../../src/fwcloud-exporter/importer/mapper/import-mapping";
+import { IdManager } from "../../../src/fwcloud-exporter/importer/mapper/id-manager";
+import { DatabaseService } from "../../../src/database/database.service";
 
 let mapper: ImportMapping;
+let databaseService: DatabaseService;
 
-describe(describeName('Import mapping tests'), () => {
-    beforeEach(() => {
-        mapper = new ImportMapping();
+describe.only(describeName('Import mapping tests'), () => {
+    
+    beforeEach(async() => {
+        databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     });
 
-    it('newItem should add a id mapping', () => {
+    it('ImportMapping.newId() should map the old id with a new id', async () => {
+        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+            {tableName: 'fwcloud', entityName: 'FwCloud'}
+        ]));
+
+        const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
+
+        expect(newId).to.be.deep.eq(1);
+        expect(mapper.maps).to.be.deep.eq({
+            'fwcloud': {
+                'id': [{
+                    old: 0,
+                    new: 1
+                }]
+            }
+        })
+    });
+
+    /*it('newItem should add a id mapping', () => {
         const old_id: number = 0;
         const new_id: number = 1;
 
@@ -59,5 +81,5 @@ describe(describeName('Import mapping tests'), () => {
 
         expect(mapper.findItem("FwCloud", "id", {old: 0}).new).to.be.deep.equal(3);
         expect(mapper.findItem("FwCloud", "id", {new: 3}).old).to.be.deep.equal(0);
-    });
+    });*/
 });

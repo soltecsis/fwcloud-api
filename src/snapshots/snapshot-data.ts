@@ -23,7 +23,7 @@
 import { DeepPartial } from "typeorm";
 import Model from "../models/Model";
 import ObjectHelpers from "../utils/object-helpers";
-import { TableExporterResults } from "../fwcloud-exporter/exporter/table-exporter";
+import { TableExporterResults } from "../fwcloud-exporter/exporter/exporter-results";
 
 export class SnapshotData {
     data: TableExporterResults;

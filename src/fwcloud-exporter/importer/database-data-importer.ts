@@ -1,44 +1,57 @@
 import { SnapshotData } from "../../snapshots/snapshot-data";
-import { TableExporterResults } from "../exporter/table-exporter";
-import { ImportMapping } from "./import-mapping";
+import { ImportMapping } from "./mapper/import-mapping";
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
-import { getMetadataArgsStorage } from "typeorm";
+import { getMetadataArgsStorage, QueryRunner } from "typeorm";
 import Model from "../../models/Model";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { app } from "../../fonaments/abstract-application";
+import { DatabaseService } from "../../database/database.service";
+import { ExporterResults, TableExporterResults } from "../exporter/exporter-results";
+import { FwCloud } from "../../models/fwcloud/FwCloud";
+import { IdManager } from "./mapper/id-manager";
+import { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
 
 export class DatabaseDataImporter {
-    protected _data: TableExporterResults;
+    protected _data: ExporterResults;
 
-    protected _refreshIds: boolean;
-
-    constructor(data: SnapshotData, refreshIds: boolean) {
-        this._data = data.data;
-        this._refreshIds = refreshIds;
+    constructor(data: ExporterResults) {
+        this._data = data;
     }
 
     public async import(): Promise<FwCloud> {
-        let data: TableExporterResults = this._data;
+        let data: ExporterResults = this._data;
+        const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         
-        if (this._refreshIds) {
-            data = await this.processIdRefresh(this._data);
-        }
+        data = await this.processIdRefresh(queryRunner, this._data);
+
+        return null;
     }
 
-    protected async processIdRefresh(data: TableExporterResults): Promise<TableExporterResults> {
-        const mapper: ImportMapping = new ImportMapping();
-        const result: TableExporterResults = {};
+    protected async processIdRefresh(queryRunner: QueryRunner, data: ExporterResults): Promise<ExporterResults> {
+        const idManager: IdManager = await IdManager.make(queryRunner, data.getTableWithEntities())
+        const mapper: ImportMapping = new ImportMapping(idManager);
+        const result: ExporterResults = new ExporterResults();
 
-        for(let tableName in data) {
-            const entityName: string = data[tableName].entity;
-            const rows: Array<object> = data[tableName].data;
+        const exportResult: TableExporterResults = data.getAll();
+        for(let tableName in exportResult) {
+            const entityName: string = exportResult[tableName].entity;
+            const rows: Array<object> = exportResult[tableName].data;
             let rowsRefreshed: Array<Object> = [];
             
             if (entityName) {
-                rowsRefreshed = await this.processTableIdRefreshWithEntity(mapper, tableName, entityName, rows);
+                try {
+                    rowsRefreshed = await this.processTableIdRefreshWithEntity(mapper, tableName, entityName, rows);
+                } catch (e) {
+                    console.error(e);
+                }
             } else {
-                rowsRefreshed = await this.processTableIdRefresh(mapper, tableName, rows);
+                //rowsRefreshed = await this.processTableIdRefresh(mapper, tableName, rows);
             }
+
+            result.addResults(tableName, entityName, rowsRefreshed);
         }
+
+        return result;
     }
 
     protected async processTableIdRefreshWithEntity(mapper: ImportMapping, tableName: string, entityName: string, rows: Array<object>): Promise<Array<object>> {
@@ -46,35 +59,38 @@ export class DatabaseDataImporter {
         const entity: typeof Model = this.getEntitiyDefinition(tableName, entityName);
         const sampleInstance: Model = new (entity as any)();
         const primaryKeys = sampleInstance.getPrimaryKeys();
-        const foreignKeys = null;//sampleInstance.getForeignKeys();
-
+        
         const result: Array<object> = [];
 
         for(let i = 0; i < rows.length; i++) {
             const row: object = rows[i];
             
             for(let attributeName in row) {
-                if (this.belongsToGivenKeys(attributeName, primaryKeys)) {
-                    // This attribute is a primary key and must be refreshed
-                    row[attributeName] = mapper.refreshId(tableName, attributeName, row[attributeName]);
+                if (this.belongsToGivenKeys(attributeName, primaryKeys) && !sampleInstance.isForeignKey(attributeName)) {
+                    row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
                 }
 
-                if (this.belongsToGivenKeys(attributeName, foreignKeys)) {
-                    // This attribute contains a other table foreign key. We should refresh it too
-                    // but in this case we should guess the foreign table first
-                    const foreignTableName: string = this.getForeignData(tableName, attributeName).table;
-                    const foreignPropertyName: string = this.getForeignData(tableName, attributeName).reference;
+                if (sampleInstance.isForeignKey(attributeName)) {
+                    //We need to know which entitiy is referenced
+                    const relation = sampleInstance.getRelationFromPropertyName(attributeName);
+                    if(relation) {
+                        const type: any = relation.type;
+                        const relatedEntity: Model = <any>new (type())()
+                        const relatedTableName: string = relatedEntity.getTableName();
+                        const primaryKey: ColumnMetadataArgs = relatedEntity.getPrimaryKeys()[0];
 
-                    row[attributeName] = mapper.refreshId(foreignTableName, foreignPropertyName, row[attributeName]);
+                        row[attributeName] = mapper.getMappedId(relatedTableName, primaryKey.propertyName, row[attributeName]);
+                    }
                 }
             }
+            result.push(row);
         }
         
-
+        return result;
     }
 
     protected async processTableIdRefresh(mapper: ImportMapping, tableName: string, rows: Array<object>): Promise<Array<object>> {
-
+        return null;
     }
 
     /**
@@ -92,9 +108,9 @@ export class DatabaseDataImporter {
         return matches.length > 0 ? <any>matches[0].target : null;
     }
 
-    protected belongsToGivenKeys(propertyName: string, keys: Array<ColumnMetadataArgs>): boolean {
+    protected belongsToGivenKeys(propertyName: string, keys: Array<ColumnMetadataArgs | JoinColumnMetadataArgs>): boolean {
         return keys.filter((item: ColumnMetadataArgs) => {
-            item.propertyName === propertyName;
+            return item.propertyName === propertyName;
         }).length > 0;
     }
 

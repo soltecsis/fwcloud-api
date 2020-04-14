@@ -23,32 +23,33 @@
 import { Connection } from "typeorm";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
-import { FwCloudExporter } from "./fwcloud-exporter";
-import { TableExporter, TableExporterResults } from "./table-exporter";
+import { FwCloudExporter } from "./exporters/fwcloud.exporter";
+import { TableExporter } from "./exporters/table-exporter";
 import ObjectHelpers from "../../utils/object-helpers";
-import { FirewallExporter } from "./firewall.exporter";
-import { CaExporter } from "./ca.exporter";
-import { CaPrefixExporter } from "./ca-prefix.exporter";
-import { ClusterExporter } from "./cluster.exporter";
-import { CrtExporter } from "./crt.exporter";
-import { InterfaceExporter } from "./interface.exporter";
-import { IPObjExporter } from "./ipobj.exporter";
-import { IPObjToIPObjGroupExporter } from "./ipobj-to-ipobj-group.exporter";
-import { IPObjGroupExporter } from "./ipobj-group.exporter";
-import { MarkExporter } from "./mark.exporter";
-import { OpenVPNExporter } from "./openvpn.exporter";
-import { OpenVPNOptionsExporter } from "./openvpn-options.exporter";
-import { OpenVPNPrefixExporter } from "./openvpn-prefix.exporter";
-import { PolicyGroupExporter } from "./policy-group.exporter";
-import { PolicyRuleExporter } from "./policy-rule.exporter";
-import { InterfaceToIPObjExporter } from "./interface-to-ipobj.exporter";
-import { PolicyRuleToInterfaceExporter } from "./policy-rule-to-interface.exporter";
-import { PolicyRuleToIPObjExporter } from "./policy-rule-to-ipobj.exporter";
-import { PolicyRuleToOpenVPNExporter } from "./policy-rule-to-openvpn.exporter";
-import { PolicyRuleToOpenVPNPrefixExporter } from "./policy-rule-to-openvpn-prefix.exporter";
-import { OpenVPNToIPObjGroupExporter } from "./openvpn-to-ipobj-group.exporter";
-import { OpenVPNPrefixToIPObjGroupExporter } from "./openvpn-prefix-to-ipobj-group.exporter";
-import { FwcTreeExporter } from "./fwc-tree.exporter";
+import { FirewallExporter } from "./exporters/firewall.exporter";
+import { CaExporter } from "./exporters/ca.exporter";
+import { CaPrefixExporter } from "./exporters/ca-prefix.exporter";
+import { ClusterExporter } from "./exporters/cluster.exporter";
+import { CrtExporter } from "./exporters/crt.exporter";
+import { InterfaceExporter } from "./exporters/interface.exporter";
+import { IPObjExporter } from "./exporters/ipobj.exporter";
+import { IPObjToIPObjGroupExporter } from "./exporters/ipobj-to-ipobj-group.exporter";
+import { IPObjGroupExporter } from "./exporters/ipobj-group.exporter";
+import { MarkExporter } from "./exporters/mark.exporter";
+import { OpenVPNExporter } from "./exporters/openvpn.exporter";
+import { OpenVPNOptionsExporter } from "./exporters/openvpn-options.exporter";
+import { OpenVPNPrefixExporter } from "./exporters/openvpn-prefix.exporter";
+import { PolicyGroupExporter } from "./exporters/policy-group.exporter";
+import { PolicyRuleExporter } from "./exporters/policy-rule.exporter";
+import { InterfaceToIPObjExporter } from "./exporters/interface-to-ipobj.exporter";
+import { PolicyRuleToInterfaceExporter } from "./exporters/policy-rule-to-interface.exporter";
+import { PolicyRuleToIPObjExporter } from "./exporters/policy-rule-to-ipobj.exporter";
+import { PolicyRuleToOpenVPNExporter } from "./exporters/policy-rule-to-openvpn.exporter";
+import { PolicyRuleToOpenVPNPrefixExporter } from "./exporters/policy-rule-to-openvpn-prefix.exporter";
+import { OpenVPNToIPObjGroupExporter } from "./exporters/openvpn-to-ipobj-group.exporter";
+import { OpenVPNPrefixToIPObjGroupExporter } from "./exporters/openvpn-prefix-to-ipobj-group.exporter";
+import { FwcTreeExporter } from "./exporters/fwc-tree.exporter";
+import { ExporterResults } from "./exporter-results";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -78,17 +79,16 @@ const EXPORTERS = [
 ];
 
 export class Exporter {
-    protected _result: TableExporterResults;
+    protected _result: ExporterResults;
 
-    public async export(fwcloudId: number): Promise<TableExporterResults> {
+    public async export(fwcloudId: number): Promise<ExporterResults> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const connection: Connection = databaseService.connection;
-        this._result = {};
+        this._result = new ExporterResults();
 
         for(let i = 0; i < EXPORTERS.length; i++) {
             const exporter: TableExporter = EXPORTERS[i];
-            const data = await exporter.export(connection, fwcloudId);
-            this._result = <TableExporterResults>ObjectHelpers.merge(this._result, data);
+            await exporter.export(this._result, connection, fwcloudId);
         }
 
 

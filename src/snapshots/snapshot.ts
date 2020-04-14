@@ -40,8 +40,10 @@ import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
-import { TableExporterResults } from "../fwcloud-exporter/exporter/table-exporter";
 import * as semver from "semver";
+import { TableExporterResults } from "../fwcloud-exporter/exporter/exporter-results";
+import { QueryRunner } from "typeorm";
+import { Importer } from "../fwcloud-exporter/importer/importer";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -186,7 +188,7 @@ export class Snapshot implements Responsable {
         }
 
         progress.procedure('Restoring snapshot', (task: Task) => {
-            task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
+            //task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
             task.addTask(() => { return this.restoreDatabaseData(); }, 'FwCloud restored');
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
@@ -318,7 +320,11 @@ export class Snapshot implements Responsable {
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(): Promise<void> {
-        return new BulkDatabaseOperations(this._data, 'insert').run();
+        const importer: Importer = new Importer();
+        
+        await importer.import(this.path);
+        
+        //return new BulkDatabaseOperations(this._data, 'insert').run();
     }
 
     /**
@@ -327,7 +333,7 @@ export class Snapshot implements Responsable {
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
 
-        const data: TableExporterResults = await new Exporter().export(this.fwCloud.id);
+        const data: TableExporterResults = (await new Exporter().export(this.fwCloud.id)).getAll();
         
         return result.addResults(data);
     }
