@@ -25,6 +25,8 @@ import Model from "../../../models/Model";
 import { Connection, QueryRunner } from "typeorm";
 import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { OpenVPNExporter } from "./openvpn.exporter";
+import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+import { IPObjGroupExporter } from "./ipobj-group.exporter";
 
 export class OpenVPNToIPObjGroupExporter extends TableExporter {
     protected getEntity(): typeof Model {
@@ -39,7 +41,11 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
         const qr: QueryRunner = connection.createQueryRunner();
         
         const data = await qr.query(`SELECT * FROM ${this.getTableName()} 
-        WHERE openvpn IN ${this.getOpenVPNIds(connection, fwCloudId)[0]}`, this.getOpenVPNIds(connection, fwCloudId)[1]);
+        WHERE openvpn IN ${this.getOpenVPNIds(connection, fwCloudId)[0]}
+        OR ipobj_g IN ${this.getIpObjGruopIds(connection, fwCloudId)[0]}`, 
+        this.getOpenVPNIds(connection, fwCloudId)[1].concat(
+            this.getIpObjGruopIds(connection, fwCloudId)[1]
+        ));
     
         await qr.release();
 
@@ -49,5 +55,10 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     protected getOpenVPNIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
         const subquery = connection.createQueryBuilder().subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
         return new OpenVPNExporter().getFilterBuilder(subquery, 'openvpn', fwCloudId).getQueryAndParameters();
+    }
+
+    protected getIpObjGruopIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
+        const subquery = connection.createQueryBuilder().subQuery().from(IPObjGroup, 'ipobj_g').select('ipobj_g.id');
+        return new IPObjGroupExporter().getFilterBuilder(subquery, 'ipobj_g', fwCloudId).getQueryAndParameters();
     }
 }

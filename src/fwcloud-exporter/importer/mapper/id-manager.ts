@@ -38,12 +38,11 @@ export class IdManager {
             // a primary key (only foreign keys).
             if (entityName) {
                 const model: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-                const sampleInstance: Model = new (<any>model)();
-                const primaryKeys: Array<ColumnMetadataArgs> = sampleInstance.getPrimaryKeys();
+                const primaryKeys: Array<ColumnMetadataArgs> = model.getPrimaryKeys();
                 
                 for (let i = 0; i < primaryKeys.length; i++) {
 
-                    if (!sampleInstance.isJoinColumn(primaryKeys[i].propertyName)) {
+                    if (!model.isJoinColumn(primaryKeys[i].propertyName)) {
                         const primaryKeyPropertyName: string = primaryKeys[i].propertyName;
                         // TypeORM might apply some kind of propertyName mapping. 
                         const originalColumnName: string = primaryKeys[i].options.name ? primaryKeys[i].options.name : primaryKeyPropertyName;

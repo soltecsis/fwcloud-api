@@ -139,7 +139,7 @@ describe(describeName('Snapshot tests'), () => {
         expect(snapshot.exists).to.be.false;
     });
 
-    it('restore should restore a fwcloud as a new fwcloud', async () => {
+    it.skip('restore should restore a fwcloud as a new fwcloud', async () => {
         const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         fwCloud.name = 'fwcloud';

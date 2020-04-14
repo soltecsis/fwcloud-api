@@ -26,6 +26,8 @@ import { IPObjToIPObjGroup } from "../../../models/ipobj/IPObjToIPObjGroup";
 import { SelectQueryBuilder } from "typeorm";
 import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
+import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+import { IPObjGroupExporter } from "./ipobj-group.exporter";
 
 export class IPObjToIPObjGroupExporter extends TableExporter {
     protected getEntity(): typeof Model {
@@ -40,11 +42,11 @@ export class IPObjToIPObjGroupExporter extends TableExporter {
             return `${alias}.ipObjId IN` + new IPObjExporter()
                 .getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         })
-        /*.orWhere((qb) => {
+        .orWhere((qb) => {
             const subquery = qb.subQuery().from(IPObjGroup, 'ipobj_g').select('ipobj_g.id');
 
             return `${alias}.ipObjGroupId IN` + new IPObjGroupExporter()
                 .getFilterBuilder(subquery, 'ipobj_g', fwCloudId).getQuery()
-        });*/
+        });
     }
 }

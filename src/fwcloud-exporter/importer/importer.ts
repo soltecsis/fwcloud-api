@@ -10,23 +10,13 @@ import { ExporterResults } from "../exporter/exporter-results";
 export class Importer {
     protected _fwcloudId: number = null;
 
-    public async import(path: string): Promise<Progress<Snapshot>> { 
-        try {
-            const snapshot: Snapshot = await Snapshot.load(path);
-            const progress: Progress<Snapshot> = new Progress<Snapshot>(snapshot);
+    public async import(path: string): Promise<Snapshot> { 
+        const snapshot: Snapshot = await Snapshot.load(path);
+        const progress: Progress<Snapshot> = new Progress<Snapshot>(snapshot);
 
-            progress.procedure('Importing FwCloud', (task: Task) => {
-                task.addTask(async () => { 
-                    const fwCloud = await this.importDatabaseData(snapshot.data);
-                    this._fwcloudId = fwCloud.id;
-                    return fwCloud;
-                }, 'FwCloud database imported');
-            }, 'FwCloud imported');
+        const fwCloud = await this.importDatabaseData(snapshot.data);
 
-            return progress;
-        } catch(e) {
-            throw new NotFoundException();
-        }
+        return snapshot;
     }
 
     public importDatabaseData(data: SnapshotData): Promise<FwCloud> {

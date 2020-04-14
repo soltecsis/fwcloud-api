@@ -31,6 +31,10 @@ export class ExporterResults {
         return this;
     }
 
+    public getTableResults(tableName: string): {entity: string, data: Array<Object>} {
+        return this._results.hasOwnProperty(tableName) ? this._results[tableName] : null;
+    }
+
     public getTableWithEntities(): Array<{tableName: string, entityName: string}> {
         const names: Array<{tableName: string, entityName: string}> = [];
 

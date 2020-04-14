@@ -25,7 +25,6 @@ import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
 import { FwCloudExporter } from "./exporters/fwcloud.exporter";
 import { TableExporter } from "./exporters/table-exporter";
-import ObjectHelpers from "../../utils/object-helpers";
 import { FirewallExporter } from "./exporters/firewall.exporter";
 import { CaExporter } from "./exporters/ca.exporter";
 import { CaPrefixExporter } from "./exporters/ca-prefix.exporter";

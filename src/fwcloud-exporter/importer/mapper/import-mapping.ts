@@ -21,6 +21,7 @@
 */
 
 import { IdManager } from "./id-manager";
+import { ExporterResults } from "../../exporter/exporter-results";
 
 export type IdMap = {old: any, new: any}
 export type EntityMap = {[propertyName: string]: Array<IdMap>};
@@ -29,9 +30,11 @@ export type ImportMap = {[tableName: string]: EntityMap}
 export class ImportMapping {
     _idManager: IdManager;
     maps: ImportMap = {}
+    _data: ExporterResults;
 
-    constructor(idManager: IdManager) {
+    constructor(idManager: IdManager, data: ExporterResults) {
         this._idManager = idManager;
+        this._data = data;
     }
 
     /**
@@ -61,8 +64,25 @@ export class ImportMapping {
         if (matched.length === 1) {
             return matched[0].new;
         }
+        
+        if (this.shouldGenerateNewId(tableName, propertyName, old)) {
+            return this.generateNewId(tableName, propertyName, old);
+        }
 
-        return this.generateNewId(tableName, propertyName, old);
+        this.maps[tableName][propertyName].push({old: old, new: old});
+        return old;
+    }
+
+    protected shouldGenerateNewId(tableName: string, propertyName: string, value: any): boolean {
+        const tableData: {entity: string, data: Array<object>} = this._data.getTableResults(tableName);
+        if (tableData) {
+            return this._data.getTableResults(tableName).data.filter((item: object) => {
+                return item.hasOwnProperty(propertyName) && item[propertyName] === value;
+            }).length > 0;
+        }
+
+        return false;
+        
     }
 
     /**
