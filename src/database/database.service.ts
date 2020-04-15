@@ -125,7 +125,7 @@ export class DatabaseService extends Service {
     public async isDatabaseEmpty(): Promise<boolean> {
         const queryRunner: QueryRunner = this._connection.createQueryRunner();
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
-
+        await queryRunner.release();
         return result.length === 0;
     }
 
@@ -195,6 +195,8 @@ export class DatabaseService extends Service {
         } catch (e) {
             await queryRunner.rollbackTransaction();
             throw e;
+        } finally {
+            await queryRunner.release();
         }
     }
 

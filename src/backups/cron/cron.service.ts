@@ -31,9 +31,17 @@ export class CronService extends Service {
         this._jobs = [];
         return this;
     }
+
+    public async close(): Promise<void> {
+        for(let i = 0; i < this._jobs.length; i++) {
+            this._jobs[i].stop();
+        }
+    }
     
 
     public addJob(cronTime: string | Date | Moment, onTick: CronCommand, onComplete?: CronCommand, start?: boolean, timeZone?: string, context?: any, runOnInit?: boolean, utcOffset?: string | number, unrefTimeout?: boolean) {
-        return new CronJob(cronTime, onTick, onComplete, start, timeZone, context, runOnInit, utcOffset, unrefTimeout);
+        const job: CronJob = new CronJob(cronTime, onTick, onComplete, start, timeZone, context, runOnInit, utcOffset, unrefTimeout);
+        this._jobs.push(job);
+        return job;
     }
 }
