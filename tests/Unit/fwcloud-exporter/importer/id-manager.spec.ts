@@ -1,5 +1,5 @@
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { IdManager } from "../../../../src/fwcloud-exporter/importer/mapper/id-manager";
+import { IdManager } from "../../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { RepositoryService } from "../../../../src/database/repository.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";

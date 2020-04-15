@@ -5,7 +5,7 @@ import { SnapshotData } from "../../snapshots/snapshot-data";
 import { Task } from "../../fonaments/http/progress/task";
 import { DatabaseDataImporter } from "./database-data-importer";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { ExporterResults } from "../exporter/exporter-results";
+import { ExporterResult } from "../exporter/exporter-result";
 
 export class Importer {
     protected _fwcloudId: number = null;
@@ -20,7 +20,7 @@ export class Importer {
     }
 
     public importDatabaseData(data: SnapshotData): Promise<FwCloud> {
-        const databaseDataImporter: DatabaseDataImporter = new DatabaseDataImporter(new ExporterResults().fromSnapshotData(data));
+        const databaseDataImporter: DatabaseDataImporter = new DatabaseDataImporter(new ExporterResult().fromSnapshotData(data));
         return databaseDataImporter.import();
     }
 }

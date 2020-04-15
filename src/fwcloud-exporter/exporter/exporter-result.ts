@@ -1,15 +1,16 @@
 import { SnapshotData } from "../../snapshots/snapshot-data";
 
-export type TableExporterResults = { [tableName: string]: { entity: string, data: Array<object> } };
+export type ExporterTableResult = { entity: string, data: Array<object> };
+export type ExporterResultData = { [tableName: string]: ExporterTableResult };
 
-export class ExporterResults {
-    protected _results: TableExporterResults;
+export class ExporterResult {
+    protected _results: ExporterResultData;
 
     constructor() {
         this._results = {};
     }
 
-    public getAll(): TableExporterResults {
+    public getAll(): ExporterResultData {
         return this._results;
     }
 
@@ -18,7 +19,7 @@ export class ExporterResults {
         return this;
     }
 
-    public addResults(tableName: string, entityName: string, data: Array<object>): this {
+    public addTableData(tableName: string, entityName: string, data: Array<object>): this {
         if(this._results[tableName]) {
             throw new Error('Exporting a table which already has been exported');
         }
@@ -31,7 +32,7 @@ export class ExporterResults {
         return this;
     }
 
-    public getTableResults(tableName: string): {entity: string, data: Array<Object>} {
+    public getTableResults(tableName: string): ExporterTableResult {
         return this._results.hasOwnProperty(tableName) ? this._results[tableName] : null;
     }
 

@@ -22,7 +22,7 @@
 
 import Model from "../../../models/Model";
 import { Connection, QueryBuilder, SelectQueryBuilder } from "typeorm";
-import { ExporterResults } from "../exporter-results";
+import { ExporterResult } from "../exporter-result";
 
 export class TableExporter {
     protected _entity: typeof Model;
@@ -48,8 +48,8 @@ export class TableExporter {
         throw new Error('getEntity() not implemented for ' + this.constructor.name);
     }
 
-    public async export(results: ExporterResults, connection: Connection, fwCloudId: number): Promise<ExporterResults> {
-        results.addResults(this.getTableName(), this.getEntityName(), await this.getRows(connection, fwCloudId));
+    public async export(results: ExporterResult, connection: Connection, fwCloudId: number): Promise<ExporterResult> {
+        results.addTableData(this.getTableName(), this.getEntityName(), await this.getRows(connection, fwCloudId));
 
         return results;
     }

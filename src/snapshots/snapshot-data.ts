@@ -23,10 +23,10 @@
 import { DeepPartial } from "typeorm";
 import Model from "../models/Model";
 import ObjectHelpers from "../utils/object-helpers";
-import { TableExporterResults } from "../fwcloud-exporter/exporter/exporter-results";
+import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
 
 export class SnapshotData {
-    data: TableExporterResults;
+    data: ExporterResultData;
 
     constructor() {
         this.data = {};
@@ -55,8 +55,8 @@ export class SnapshotData {
         return matches.length > 0;
     }
 
-    addResults(results: TableExporterResults): SnapshotData {
-        this.data = <TableExporterResults>ObjectHelpers.merge(this.data, results);
+    addResults(results: ExporterResultData): SnapshotData {
+        this.data = <ExporterResultData>ObjectHelpers.merge(this.data, results);
         return this;
     }
 }

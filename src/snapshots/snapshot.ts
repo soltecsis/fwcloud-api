@@ -41,7 +41,7 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
 import * as semver from "semver";
-import { TableExporterResults } from "../fwcloud-exporter/exporter/exporter-results";
+import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
 import { QueryRunner } from "typeorm";
 import { Importer } from "../fwcloud-exporter/importer/importer";
 
@@ -333,7 +333,7 @@ export class Snapshot implements Responsable {
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
 
-        const data: TableExporterResults = (await new Exporter().export(this.fwCloud.id)).getAll();
+        const data: ExporterResultData = (await new Exporter().export(this.fwCloud.id)).getAll();
         
         return result.addResults(data);
     }

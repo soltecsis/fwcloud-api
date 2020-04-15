@@ -21,10 +21,10 @@
 */
 
 import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/fwcloud-exporter/importer/mapper/import-mapping";
-import { IdManager } from "../../../src/fwcloud-exporter/importer/mapper/id-manager";
+import { ImportMapping } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/import-mapping";
+import { IdManager } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../src/database/database.service";
-import { ExporterResults } from "../../../src/fwcloud-exporter/exporter/exporter-results";
+import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
 
 let mapper: ImportMapping;
 let databaseService: DatabaseService;
@@ -36,8 +36,8 @@ describe(describeName('Import mapping tests'), () => {
     });
 
     it('ImportMapping.newId() should map the old id with a new id', async () => {
-        const results: ExporterResults = new ExporterResults();
-        results.addResults('fwcloud', 'FwCloud', [{id: 0}])
+        const results: ExporterResult = new ExporterResult();
+        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
         const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
             {tableName: 'fwcloud', entityName: 'FwCloud'}
         ]), results);
@@ -56,8 +56,8 @@ describe(describeName('Import mapping tests'), () => {
     });
 
     it('ImportMapping.newId() should not map a new id if the id is not exported', async () => {
-        const results: ExporterResults = new ExporterResults();
-        results.addResults('fwcloud', 'FwCloud', [{id: 0}])
+        const results: ExporterResult = new ExporterResult();
+        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
         const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
             {tableName: 'fwcloud', entityName: 'FwCloud'}
         ]), results);
@@ -76,7 +76,7 @@ describe(describeName('Import mapping tests'), () => {
     });
 
     it('ImportMapping.newId() should not map a new id if the table is not exported', async () => {
-        const results: ExporterResults = new ExporterResults();
+        const results: ExporterResult = new ExporterResult();
         
         const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), []), results);
 

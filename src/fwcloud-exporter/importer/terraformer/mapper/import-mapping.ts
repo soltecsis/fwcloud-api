@@ -21,7 +21,7 @@
 */
 
 import { IdManager } from "./id-manager";
-import { ExporterResults } from "../../exporter/exporter-results";
+import { ExporterResult } from "../../../exporter/exporter-result";
 
 export type IdMap = {old: any, new: any}
 export type EntityMap = {[propertyName: string]: Array<IdMap>};
@@ -30,9 +30,9 @@ export type ImportMap = {[tableName: string]: EntityMap}
 export class ImportMapping {
     _idManager: IdManager;
     maps: ImportMap = {}
-    _data: ExporterResults;
+    _data: ExporterResult;
 
-    constructor(idManager: IdManager, data: ExporterResults) {
+    constructor(idManager: IdManager, data: ExporterResult) {
         this._idManager = idManager;
         this._data = data;
     }

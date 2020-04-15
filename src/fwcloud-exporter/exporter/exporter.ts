@@ -48,7 +48,7 @@ import { PolicyRuleToOpenVPNPrefixExporter } from "./exporters/policy-rule-to-op
 import { OpenVPNToIPObjGroupExporter } from "./exporters/openvpn-to-ipobj-group.exporter";
 import { OpenVPNPrefixToIPObjGroupExporter } from "./exporters/openvpn-prefix-to-ipobj-group.exporter";
 import { FwcTreeExporter } from "./exporters/fwc-tree.exporter";
-import { ExporterResults } from "./exporter-results";
+import { ExporterResult } from "./exporter-result";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -78,12 +78,12 @@ const EXPORTERS = [
 ];
 
 export class Exporter {
-    protected _result: ExporterResults;
+    protected _result: ExporterResult;
 
-    public async export(fwcloudId: number): Promise<ExporterResults> {
+    public async export(fwcloudId: number): Promise<ExporterResult> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
         const connection: Connection = databaseService.connection;
-        this._result = new ExporterResults();
+        this._result = new ExporterResult();
 
         for(let i = 0; i < EXPORTERS.length; i++) {
             const exporter: TableExporter = EXPORTERS[i];

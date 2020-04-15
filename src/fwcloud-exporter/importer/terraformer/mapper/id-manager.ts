@@ -1,4 +1,4 @@
-import Model from "../../../models/Model";
+import Model from "../../../../models/Model";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { QueryRunner } from "typeorm";
 import { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
