@@ -24,9 +24,18 @@ import { Request, Response, NextFunction } from "express";
 import { ResponseBuilder } from "../fonaments/http/response-builder";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { ErrorMiddleware } from "../fonaments/http/middleware/Middleware";
+import { CorsException } from "./exceptions/cors.exception";
+import fwcError from '../utils/error_table';
 
 export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {
+        
+        //TODO
+        if (error instanceof CorsException) {
+            res.status(400).send(fwcError.NOT_ALLOWED_CORS);
+            return;
+        }
+
         const status: number = error instanceof HttpException ? error.status : 500;
         
         return ResponseBuilder.buildResponse().status(status).error(error).send(res);
