@@ -35,7 +35,7 @@ describe(describeName('CORS middleware test'), () => {
     });
 
     it('should return 400 when request is rejected by CORS', async() => {
-        let stubDate = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
+        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
         
 
         await request(app.express)
@@ -45,17 +45,17 @@ describe(describeName('CORS middleware test'), () => {
                 expect(response.body.msg).to.be.deep.eq(fwcError.NOT_ALLOWED_CORS.msg)
             });
 
-        stubDate.restore();
+        stub.restore();
     });
 
     it('should not return 400 when request is allowed by CORS', async() => {
-        let stubDate = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
+        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
         
 
         await request(app.express)
             .post(_URL().getURL('versions.show'))
             .expect(401);
 
-        stubDate.restore();
+        stub.restore();
     });
 })
