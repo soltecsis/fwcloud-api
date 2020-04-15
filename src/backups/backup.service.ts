@@ -69,7 +69,9 @@ export class BackupService extends Service {
         this._task = async () => {
             try {
                 logger.info("Starting BACKUP job.");
-                const backup = await new Backup().create(this._config.data_dir);
+                const backup = new Backup();
+                backup.setComment('Cron backup');
+                await backup.create(this._config.data_dir);
                 logger.info(`BACKUP job completed: ${backup.id}`);
             } catch (error) { logger.error("BACKUP job ERROR: ", error.message) }
         }

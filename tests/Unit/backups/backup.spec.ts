@@ -79,6 +79,7 @@ describe(describeName('Backup tests'), () => {
             name: backup.name,
             timestamp: backup.timestamp,
             version: app.version.tag,
+            schema: app.version.schema,
             comment: 'test comment',
         });
     });
@@ -159,7 +160,8 @@ describe(describeName('Backup tests'), () => {
             name: backup.name,
             date: backup.date.utc(),
             comment: backup.comment,
-            version: backup.version
+            version: backup.version,
+            schema: backup.schema
         })
     })
 });
