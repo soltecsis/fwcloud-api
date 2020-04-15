@@ -36,12 +36,13 @@ import moment from "moment";
 let app: Application;
 let service: BackupService;
 
-beforeEach(async () => {
-    app = testSuite.app;
-    service = await app.getService<BackupService>(BackupService.name);
-})
-
 describe(describeName('Backup tests'), () => {
+    
+    beforeEach(async () => {
+        app = testSuite.app;
+        service = await app.getService<BackupService>(BackupService.name);
+    })
+
     it('exists should return false if the backup is not persisted', async () => {
         const backup: Backup = new Backup();
         expect(backup.exists()).to.be.false;

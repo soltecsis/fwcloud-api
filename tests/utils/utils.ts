@@ -22,11 +22,14 @@
 
 import { User } from "../../src/models/user/User";
 import * as path from 'path';
-import { app } from "../../src/fonaments/abstract-application";
+import { AbstractApplication } from "../../src/fonaments/abstract-application";
 import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
+import { RepositoryService } from "../../src/database/repository.service";
+import { DeepPartial } from "typeorm";
+import { testSuite } from "../mocha/global-setup";
 
 export function randomString(length: number = 10) {
     var result = '';
@@ -38,9 +41,27 @@ export function randomString(length: number = 10) {
     return result;
 }
 
+export async function createUser(user: DeepPartial<User>): Promise<User> {
+    const _app = testSuite.app;
+    const repository: RepositoryService = await _app.getService<RepositoryService>(RepositoryService.name);
+    
+    const result: User = repository.for(User).create({
+        username: user.username ? user.username : randomString(10),
+        email: randomString(10) + '@fwcloud.test',
+        password: randomString(10),
+        customer: {id: 1},
+        role: user.role ? user.role : 0,
+        enabled: 1,
+        confirmation_token: randomString(10)
+    });
+
+    return await repository.for(User).save(result);
+}
+
 export function generateSession(user: User): string {
+    const _app = testSuite.app;
     const session_id: string = randomString(10);
-    const session_path: string = path.join(app().config.get('session').files_path, session_id + '.json');
+    const session_path: string = path.join(_app.config.get('session').files_path, session_id + '.json');
 
     fs.writeFileSync(session_path, JSON.stringify({
         "cookie": {
@@ -60,7 +81,8 @@ export function generateSession(user: User): string {
 }
 
 export function attachSession(id: string): string {
-    return cookie.serialize(app().config.get('session').name, signature.sign(id, app().config.get('crypt').secret), {});
+    const _app = testSuite.app;
+    return cookie.serialize(_app.config.get('session').name, signature.sign(id, _app.config.get('crypt').secret), {});
 }
 
 export async function sleep(ms: number): Promise<void> {

@@ -27,7 +27,7 @@ import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { User } from "../../../src/models/user/User";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { generateSession, attachSession } from "../../utils/utils";
+import { generateSession, attachSession, createUser } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
@@ -50,29 +50,17 @@ describe(describeName('Snapshot E2E tests'), () => {
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
         repository = await app.getService<RepositoryService>(RepositoryService.name);
 
-        fwCloud = repository.for(FwCloud).create({
-            name: 'fwcloud_test'
-        });
+        fwCloud = await repository.for(FwCloud).save(
+            repository.for(FwCloud).create({
+                name: 'fwcloud_test'
+            })
+        );
 
-        fwCloud = await repository.for(FwCloud).save(fwCloud);
+        loggedUser = await createUser({ role: 0 });
+        loggedUserSessionId = generateSession(loggedUser);
 
-        try {
-            loggedUser = (await repository.for(User).find({
-                where: {
-                    'email': 'loggedUser@fwcloud.test'
-                }
-            }))[0];
-            loggedUserSessionId = generateSession(loggedUser);
-
-            adminUser = (await repository.for(User).find({
-                where: {
-                    'email': 'admin@fwcloud.test'
-                }
-            }))[0];
-            adminUserSessionId = generateSession(adminUser);
-
-
-        } catch (e) { console.error(e) }
+        adminUser = await createUser({ role: 1 });
+        adminUserSessionId = generateSession(adminUser);
     });
 
     describe(describeName('SnapshotController@index'), () => {
@@ -82,7 +70,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud.id}))
+                .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud.id }))
                 .expect(401);
         });
 
@@ -91,7 +79,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null)
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud.id}))
+                .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud.id }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
                 .then(response => {
@@ -114,7 +102,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud2.id}))
+                .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud2.id }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
                 .then(response => {
@@ -129,7 +117,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null);
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.index', {fwcloud: fwCloud.id}))
+                .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud.id }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .then((response) => {
@@ -141,34 +129,34 @@ describe(describeName('Snapshot E2E tests'), () => {
     });
 
     describe(describeName('SnapshotController@show'), () => {
-        let  s1: Snapshot;
+        let s1: Snapshot;
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
         });
 
 
         it('guest user should not see a snapshot', async () => {
             await request(app.express)
-                .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .get(_URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .expect(401);
         });
 
-        it('regular user should not see a snapshot if regular user does not belong to the fwcloud', async() => {
+        it('regular user should not see a snapshot if regular user does not belong to the fwcloud', async () => {
             await request(app.express)
-                .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .get(_URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(404);
         });
 
-        it('regular user should see a snapshot if regular user belongs to the fwcloud', async() => {
+        it('regular user should see a snapshot if regular user belongs to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
-            const url = _URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id});
+            const url = _URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id });
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .get(_URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
                 .expect(200)
                 .then(response => {
@@ -178,9 +166,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                 });
         });
 
-        it('admin user should see a snapshot', async() => {
+        it('admin user should see a snapshot', async () => {
             await request(app.express)
-                .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .get(_URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .then(response => {
@@ -194,22 +182,22 @@ describe(describeName('Snapshot E2E tests'), () => {
             await s1.destroy();
 
             await request(app.express)
-                .get(_URL().getURL('snapshots.show', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .get(_URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(404);
         });
     });
 
     describe(describeName('SnapshotController@store'), () => {
-        it('guest user should no create a new snapshot', async() => {
+        it('guest user should no create a new snapshot', async () => {
             await request(app.express)
-                .post(_URL().getURL('snapshots.store', {fwcloud: fwCloud.id}))
+                .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                 .expect(401);
         });
 
-        it('regular user should no create a new snapshot if the user does not belong to fwcloud', async() => {
+        it('regular user should no create a new snapshot if the user does not belong to fwcloud', async () => {
             await request(app.express)
-                .post(_URL().getURL('snapshots.store', {fwcloud: fwCloud.id}))
+                .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -220,12 +208,12 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .expect(401);
         });
 
-        it('regular user should create a new snapshot if the user belongs to the fwcloud', async() => {
+        it('regular user should create a new snapshot if the user belongs to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .post(_URL().getURL('snapshots.store', {fwcloud: fwCloud.id}))
+                .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -242,9 +230,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                 })
         });
 
-        it('admin user should create a new snapshot', async() => {
+        it('admin user should create a new snapshot', async () => {
             await request(app.express)
-                .post(_URL().getURL('snapshots.store', {fwcloud: fwCloud.id}))
+                .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -262,22 +250,22 @@ describe(describeName('Snapshot E2E tests'), () => {
     });
 
     describe(describeName('SnapshotController@update'), () => {
-        let  s1: Snapshot;
+        let s1: Snapshot;
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
         });
 
-        it('guest user should not update an snapshot', async() => {
+        it('guest user should not update an snapshot', async () => {
 
             await request(app.express)
-                .put(_URL().getURL('snapshots.update', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .expect(401)
         });
 
-        it('regular user should not update an snapshot if the user does not belong to the fwcloud', async() => {
+        it('regular user should not update an snapshot if the user does not belong to the fwcloud', async () => {
             await request(app.express)
-                .put(_URL().getURL('snapshots.update', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -288,12 +276,12 @@ describe(describeName('Snapshot E2E tests'), () => {
                 .expect(401)
         });
 
-        it('regular user should update an snapshot if the user belongs to the fwcloud', async() => {
+        it('regular user should update an snapshot if the user belongs to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .put(_URL().getURL('snapshots.update', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -309,9 +297,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                 });
         });
 
-        it('admin user should update an snapshot', async() => {
+        it('admin user should update an snapshot', async () => {
             await request(app.express)
-                .put(_URL().getURL('snapshots.update', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .send({
                     name: 'name_test',
                     comment: 'comment_test',
@@ -329,33 +317,33 @@ describe(describeName('Snapshot E2E tests'), () => {
     });
 
     describe(describeName('SnapshotController@restore'), () => {
-        let  s1: Snapshot;
+        let s1: Snapshot;
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
         });
 
-        it('guest user should not restore an snapshot', async() => {
+        it('guest user should not restore an snapshot', async () => {
 
             await request(app.express)
-                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .expect(401)
         });
 
-        it('regular user should not restore an snapshot if the user does not belong to the fwcloud', async() => {
+        it('regular user should not restore an snapshot if the user does not belong to the fwcloud', async () => {
             await request(app.express)
-                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(401)
         });
 
-        it('regular user should restore an snapshot if the user belongs to the fwcloud', async() => {
+        it('regular user should restore an snapshot if the user belongs to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(200)
@@ -364,9 +352,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                 });
         });
 
-        it('admin user should restore an snapshot', async() => {
+        it('admin user should restore an snapshot', async () => {
             await request(app.express)
-                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(200)
@@ -381,7 +369,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             fs.writeFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
             await request(app.express)
-                .post(_URL().getURL('snapshots.restore', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(422)
@@ -389,41 +377,41 @@ describe(describeName('Snapshot E2E tests'), () => {
     });
 
     describe(describeName('SnapshotController@destroy'), () => {
-        let  s1: Snapshot;
+        let s1: Snapshot;
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', 'comment1')
         });
 
-        it('guest user should not destroy an snapshot', async() => {
+        it('guest user should not destroy an snapshot', async () => {
 
             await request(app.express)
-                .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .delete(_URL().getURL('snapshots.destroy', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .expect(401)
         });
 
-        it('regular user should not destroy an snapshot if the user does not belong to the fwcloud', async() => {
+        it('regular user should not destroy an snapshot if the user does not belong to the fwcloud', async () => {
             await request(app.express)
-                .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .delete(_URL().getURL('snapshots.destroy', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(401)
         });
 
-        it('regular user should destroy an snapshot if the user belongs to the fwcloud', async() => {
+        it('regular user should destroy an snapshot if the user belongs to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             repository.for(User).save(loggedUser);
 
             await request(app.express)
-                .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .delete(_URL().getURL('snapshots.destroy', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(loggedUserSessionId))
                 .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                 .expect(200);
         });
 
-        it('admin user should destroy an snapshot', async() => {
+        it('admin user should destroy an snapshot', async () => {
             await request(app.express)
-                .delete(_URL().getURL('snapshots.destroy', {fwcloud: fwCloud.id, snapshot: s1.id}))
+                .delete(_URL().getURL('snapshots.destroy', { fwcloud: fwCloud.id, snapshot: s1.id }))
                 .set('Cookie', attachSession(adminUserSessionId))
                 .set('x-fwc-confirm-token', adminUser.confirmation_token)
                 .expect(200);
