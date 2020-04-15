@@ -49,6 +49,7 @@ export interface BackupMetadata {
     timestamp: number;
     version: string;
     comment: string;
+    schema: string;
 }
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
@@ -62,6 +63,7 @@ export class Backup implements Responsable {
     protected _dumpFilename: string;
     protected _comment: string;
     protected _version: string;
+    protected _schema: string;
 
     constructor() {
         this._id = null;
@@ -72,12 +74,14 @@ export class Backup implements Responsable {
         this._dumpFilename = null;
         this._comment = null;
         this._version = null;
+        this._schema = null;
     }
 
     toResponse(): Object {
         return {
             id: this._id,
             version: this._version,
+            schema: this._schema,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment
@@ -86,6 +90,10 @@ export class Backup implements Responsable {
 
     get version(): string {
         return this._version;
+    }
+
+    get schema(): string {
+        return this._schema;
     }
 
     /**
@@ -148,6 +156,7 @@ export class Backup implements Responsable {
             this._comment = metadata.comment;
             this._exists = true;
             this._version = metadata.version;
+            this._schema = metadata.schema;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
@@ -176,6 +185,7 @@ export class Backup implements Responsable {
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
+        this._schema = app<Application>().version.schema;
         this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
@@ -263,6 +273,7 @@ export class Backup implements Responsable {
             name: this._name,
             timestamp: this._date.valueOf(),
             version: app<Application>().version.tag,
+            schema: app<Application>().version.schema,
             comment: this._comment
         };
 
