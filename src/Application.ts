@@ -34,7 +34,7 @@ import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
 import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
-import { CORS } from './middleware/CORS';
+import { CORS } from './middleware/cors.middleware';
 import { Authorization } from './middleware/Authorization';
 import { ConfirmationToken } from './middleware/ConfirmationToken';
 import { InputValidation } from './middleware/InputValidation';
