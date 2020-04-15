@@ -114,11 +114,11 @@ export class DatabaseService extends Service {
 
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
+            await queryRunner.release();
         } catch (e) {
             await queryRunner.rollbackTransaction();
-            throw e;
-        } finally {
             await queryRunner.release();
+            throw e;
         }
     }
 
@@ -158,11 +158,11 @@ export class DatabaseService extends Service {
 
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
+            await queryRunner.release();
         } catch (e) {
             await queryRunner.rollbackTransaction();
-            throw e;
-        } finally {
             await queryRunner.release();
+            throw e;
         }
 
         return;
@@ -192,11 +192,11 @@ export class DatabaseService extends Service {
             
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
+            await queryRunner.release();
         } catch (e) {
             await queryRunner.rollbackTransaction();
-            throw e;
-        } finally {
             await queryRunner.release();
+            throw e;
         }
     }
 
