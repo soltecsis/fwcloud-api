@@ -27,6 +27,10 @@ import { DatabaseService } from "../../src/database/database.service";
 import * as fse from "fs-extra";
 import * as path from "path";
 import StringHelper from "../../src/utils/StringHelper";
+import { User } from "../../src/models/user/User";
+import { DeepPartial } from "typeorm";
+import { RepositoryService } from "../../src/database/repository.service";
+import { randomString } from "../utils/utils";
 
 chai.should();
 chai.use(ChaiAsPromised);
@@ -78,9 +82,9 @@ before(async () => {
 });
 
 beforeEach(async () => {
-    testSuite.app = await Application.run();
     fse.removeSync(playgroundPath);
     fse.mkdirSync(playgroundPath);
+    await testSuite.runApplication();
     fse.mkdirSync(testSuite.app.config.get('session').files_path);
 })
 
@@ -97,6 +101,7 @@ afterEach(async () => {
 
         await dbService.feedDefaultData();
         await _app.close();
+        testSuite.app = null;
         fse.removeSync(playgroundPath);
     }
 })

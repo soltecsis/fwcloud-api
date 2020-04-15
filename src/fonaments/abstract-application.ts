@@ -140,6 +140,7 @@ export abstract class AbstractApplication {
     for (let i = 0; i < this.providers().length; i++) {
       const provider: ServiceProvider = new (this.providers()[i])()
       provider.register(this._services);
+      provider.bootstrap(this);
     }
   }
 

@@ -23,8 +23,7 @@
 import { User } from "../../../src/models/user/User";
 import { testSuite, describeName } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
-import { RepositoryService } from "../../../src/database/repository.service";
-import { generateSession, attachSession } from "../../utils/utils";
+import { generateSession, attachSession, createUser } from "../../utils/utils";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 
@@ -34,31 +33,17 @@ let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
 
-beforeEach(async() => {
-    app = testSuite.app;
+describe(describeName('Version E2E tests'), () => {
 
-    const repository: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
+    beforeEach(async() => {
+        app = testSuite.app;
     
-    try {
-        loggedUser = (await repository.for(User).find({
-            where: {
-                'email': 'loggedUser@fwcloud.test'
-            }
-        }))[0];
+        loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
 
-        adminUser = (await repository.for(User).find({
-            where: {
-                'email': 'admin@fwcloud.test'
-            }
-        }))[0];
+        adminUser = await createUser({role: 1});
         adminUserSessionId = generateSession(adminUser);
-
-
-    } catch (e) { console.error(e) }
-});
-
-describe(describeName('Version E2E tests'), () => {
+    });
 
     describe(describeName('VersionController@show'), () => {
         it('guest user should not see the version', async () => {

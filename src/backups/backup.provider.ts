@@ -24,7 +24,6 @@ import { ServiceProvider } from "../fonaments/services/service-provider";
 import { ServiceContainer, ServiceBound } from "../fonaments/services/service-container";
 import { BackupService } from "./backup.service";
 import { AbstractApplication } from "../fonaments/abstract-application";
-import { Service } from "../fonaments/services/service";
 
 export class BackupServiceProvider extends ServiceProvider {
     
@@ -32,6 +31,11 @@ export class BackupServiceProvider extends ServiceProvider {
         return serviceContainer.singleton(BackupService.name, async(app: AbstractApplication): Promise<BackupService> => {
             return BackupService.make(app);
         });
+    }
+
+    public async bootstrap(app: AbstractApplication) {
+        // Call to backup service in order to start cron job task
+        await app.getService<BackupService>(BackupService.name);
     }
 
 }
