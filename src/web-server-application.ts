@@ -22,6 +22,8 @@
 
 import express from 'express';
 import httpProxy from 'http-proxy';
+import { ClientRequest, OutgoingHttpHeaders } from 'http';
+import { ref } from 'joi';
 
 
 export class WebServerApplication {
@@ -67,6 +69,17 @@ export class WebServerApplication {
             this._express.on('upgrade', (req, socket, head) => {
                 //console.log(`Proxying upgrade request: ${req.url}`);
                 this._proxy.ws(req, socket, head);
+            });
+
+            // Set origin header if not exists.
+            this._proxy.on('proxyReq', (proxyReq: ClientRequest, req, res, options) => {
+                if (!proxyReq.getHeader('origin')) {
+                    const referer: string = proxyReq.getHeader('referer').toString();
+                    if (referer) {
+                        const origin = referer.substr(0,referer.indexOf('/',referer.indexOf('://')+3));
+                        proxyReq.setHeader('origin', origin);
+                    } 
+                }
             });
 
             this._proxy.on('error', (err, req, res) => {
