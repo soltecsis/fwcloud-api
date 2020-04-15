@@ -68,12 +68,18 @@ export class DatabaseService extends Service {
 
     protected async startDefaultConnection(): Promise<void> {
         this._connection = await this.createConnection();
+        if (!this._connection.isConnected) {
+            await this._connection.connect();
+        }
     }
 
     public async createConnection(): Promise<Connection> {
         try {
+            if (getConnectionManager().has('default')) {
+                return getConnectionManager().get('default');
+            }
             return await createConnection({
-                name: this._id.toString(),
+                //name: this._id.toString(),
                 type: 'mysql',
                 host: this._config.host,
                 port: this._config.port,

@@ -109,6 +109,7 @@ export abstract class AbstractApplication {
     this.generateDirectories();
     this.startServiceContainer();
     this.registerProviders();
+    await this.bootsrapServices();
     this._version = await this.loadVersion();
     this.registerMiddlewares('before');
     await this.registerRoutes();
@@ -140,7 +141,13 @@ export abstract class AbstractApplication {
     for (let i = 0; i < this.providers().length; i++) {
       const provider: ServiceProvider = new (this.providers()[i])()
       provider.register(this._services);
-      provider.bootstrap(this);
+    }
+  }
+
+  protected async bootsrapServices(): Promise<void> {
+    for (let i = 0; i < this.providers().length; i++) {
+      const provider: ServiceProvider = new (this.providers()[i])()
+      await provider.bootstrap(this);
     }
   }
 

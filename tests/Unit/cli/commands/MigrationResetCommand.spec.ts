@@ -44,6 +44,11 @@ describe('MigrationResetCommand', () => {
             $0: "migration:run",
             _: []
         });
+
+        if(!queryRunner.connection.isConnected) {
+            await queryRunner.connection.connect();
+            queryRunner = queryRunner.connection.createQueryRunner();
+        }
         
         expect(await queryRunner.getTable('ca')).to.be.undefined;
         expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;

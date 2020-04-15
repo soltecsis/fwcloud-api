@@ -27,10 +27,6 @@ import { DatabaseService } from "../../src/database/database.service";
 import * as fse from "fs-extra";
 import * as path from "path";
 import StringHelper from "../../src/utils/StringHelper";
-import { User } from "../../src/models/user/User";
-import { DeepPartial } from "typeorm";
-import { RepositoryService } from "../../src/database/repository.service";
-import { randomString } from "../utils/utils";
 
 chai.should();
 chai.use(ChaiAsPromised);
@@ -93,6 +89,10 @@ afterEach(async () => {
         let _app = testSuite.app;
         const dbService: DatabaseService = await _app.getService<DatabaseService>(DatabaseService.name);
 
+        if (!dbService.connection.isConnected) {
+            await dbService.connection.connect();
+        }
+        
         if (!await dbService.isDatabaseEmpty()) {
             await dbService.removeData();
         } else {

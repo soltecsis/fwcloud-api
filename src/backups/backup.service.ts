@@ -56,7 +56,7 @@ export class BackupService extends Service {
     }
 
     public async build(): Promise<BackupService> {
-        this._config = await this.loadCustomizedConfig(this._app.config.get('backup'));
+        this._config = this.loadCustomizedConfig(this._app.config.get('backup'));
         this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
         this._cronService = await this._app.getService<CronService>(CronService.name);
         let backupDirectory: string = this._config.data_dir;
@@ -246,21 +246,17 @@ export class BackupService extends Service {
         return path.join(this._app.path, this._config.data_dir);
     }
 
-    protected async loadCustomizedConfig(base_config: any): Promise<any> {
-        return new Promise((resolve, reject) => {
-            try {
-                let config: any = base_config;
+    protected loadCustomizedConfig(base_config: any): any {
+        let config: any = base_config;
                 
-                const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
+        const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
 
-                if (fs.existsSync(backupConfigFile)) {
-                    const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
-                    config = Object.assign(config, backupConfig);
-                }
+        if (fs.existsSync(backupConfigFile)) {
+            const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
+            config = Object.assign(config, backupConfig);
+        }
 
-                resolve(config);
-            } catch (error) { reject(error) }
-        });
+        return config;
     }
 
     protected async writeCustomizedConfig(custom_config: BackupUpdateableConfig): Promise<BackupUpdateableConfig> {
