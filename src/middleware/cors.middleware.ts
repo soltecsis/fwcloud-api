@@ -51,6 +51,11 @@ export class CORS extends Middleware {
     }
 
     public isOriginAllowed(origin: string): boolean {
+        
+        if (this.app.config.get('env') === 'test') {
+            return true;
+        }
+
         return this.app.config.get('CORS').whitelist.indexOf(origin) !== -1;
     }
 
