@@ -81,7 +81,7 @@ export class Backup implements Responsable {
         return {
             id: this._id,
             version: this._version,
-            schema: this._schema,
+            schema: this._schema ? this._schema : null,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment
