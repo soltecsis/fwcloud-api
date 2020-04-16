@@ -10,13 +10,13 @@ import { ExporterResult } from "../exporter/exporter-result";
 export class Importer {
     protected _fwcloudId: number = null;
 
-    public async import(path: string): Promise<Snapshot> { 
+    public async import(path: string): Promise<FwCloud> { 
         const snapshot: Snapshot = await Snapshot.load(path);
         const progress: Progress<Snapshot> = new Progress<Snapshot>(snapshot);
 
         const fwCloud = await this.importDatabaseData(snapshot.data);
 
-        return snapshot;
+        return fwCloud;
     }
 
     public importDatabaseData(data: SnapshotData): Promise<FwCloud> {

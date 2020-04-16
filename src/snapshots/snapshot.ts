@@ -78,6 +78,8 @@ export class Snapshot implements Responsable {
 
     protected _compatible: boolean;
 
+    protected _restoredFwCloud: FwCloud;
+
     protected constructor() {
         this._id = null;
         this._date = null;
@@ -188,8 +190,10 @@ export class Snapshot implements Responsable {
         }
 
         progress.procedure('Restoring snapshot', (task: Task) => {
-            //task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
-            task.addTask(() => { return this.restoreDatabaseData(); }, 'FwCloud restored');
+            task.addTask(() => { 
+                return this.restoreDatabaseData(); 
+            }, 'FwCloud restored');
+            task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
                 task.addTask(() => { return this.repair(); }, 'FwCloud repaired');
@@ -320,11 +324,19 @@ export class Snapshot implements Responsable {
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(): Promise<void> {
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         const importer: Importer = new Importer();
         
-        await importer.import(this.path);
-        
-        //return new BulkDatabaseOperations(this._data, 'insert').run();
+        const fwCloud: FwCloud = await importer.import(this.path);
+
+        const oldFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(this.fwCloud.id, {relations: ['users']});
+
+        fwCloud.users = oldFwCloud.users;
+        await repositoryService.for(FwCloud).save(fwCloud);
+        oldFwCloud.users = [];
+        await repositoryService.for(FwCloud).save(oldFwCloud);
+
+        this._restoredFwCloud = fwCloud;
     }
 
     /**
@@ -410,7 +422,7 @@ export class Snapshot implements Responsable {
     protected async resetCompiledStatus(): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
             const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, { relations: ['clusters', 'firewalls'] });
+            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this._restoredFwCloud.id, { relations: ['clusters', 'firewalls'] });
 
             await (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
 
@@ -424,7 +436,7 @@ export class Snapshot implements Responsable {
     protected async repair(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                await SnapshotRepair.repair(this.fwCloud);
+                //await SnapshotRepair.repair(this._restoredFwCloud);
             } catch (e) { }
             finally {
                 resolve();

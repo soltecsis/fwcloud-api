@@ -87,6 +87,7 @@ export class Exporter {
 
         for(let i = 0; i < EXPORTERS.length; i++) {
             const exporter: TableExporter = EXPORTERS[i];
+            await exporter.bootstrap(connection, fwcloudId);
             await exporter.export(this._result, connection, fwcloudId);
         }
 

@@ -23,17 +23,52 @@
 import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
 import { FwcTree } from "../../../models/tree/fwc-tree.model";
-import { SelectQueryBuilder } from "typeorm";
+import { SelectQueryBuilder, Connection, QueryRunner, QueryBuilder } from "typeorm";
+import { id } from "../../../middleware/joi_schemas/shared";
+import { app } from "../../../fonaments/abstract-application";
+import { DatabaseService } from "../../../database/database.service";
 
 export class FwcTreeExporter extends TableExporter {
+
+    protected _ids: Array<number>;
+
     protected getEntity(): typeof Model {
         return FwcTree;
     }
 
+    public async bootstrap(connection: Connection, fwcloudId: number) {
+        this._ids = await FwcTreeExporter.getNodesId(connection, fwcloudId);
+    }
+
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where(`${alias}.fwCloudId = :id`, {
-            id: fwCloudId
-        });
+        return qb.whereInIds(this._ids);
+    }
+
+    public static async getNodesId(connection: Connection, fwCloudId: number): Promise<Array<number>> {
+        const queryRunner: QueryRunner = connection.createQueryRunner();
+        let ids: Array<number> = [];
+        const parentIds: Array<{id: number}> = await queryRunner.query(`SELECT id FROM fwc_tree WHERE fwcloud = ? AND id_parent IS NULL`, [fwCloudId]);
+
+        ids = ids.concat(parentIds.map((item: {id: number}) => {
+            return item.id;
+        }));
+
+        for(let i = 0; i < parentIds.length; i++) {
+            const childIds: Array<{id: number}> = await queryRunner.query(`
+                SELECT id
+                FROM (SELECT * FROM fwc_tree ft ORDER BY id_parent , id) fwc_sorted,
+                    (select @pv := ?) initialisation
+                WHERE FIND_IN_SET(id_parent, @pv)
+                and LENGTH (@pv := concat(@pv, ',', id))
+                `, [parentIds[i].id]
+            );
+
+            ids = ids.concat(childIds.map((item: {id: number}) => {
+                return item.id;
+            }));
+        }
+
+        await queryRunner.release();
+        return ids;
     }
 }

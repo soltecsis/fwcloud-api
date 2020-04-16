@@ -27,6 +27,7 @@ import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult } from "
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RepositoryService } from "../database/repository.service";
+import Model from "../models/Model";
 
 export class BulkDatabaseOperations {
     protected _data: SnapshotData;
@@ -124,12 +125,10 @@ export class BulkDatabaseOperations {
      * @param data 
      */
     protected getPrimaryKeysData(tableName: string, entityName: string, data: DeepPartial<any>): DeepPartial<any> {
-        let argsEntity: TableMetadataArgs = this.getEntity(tableName, entityName);
-        const target = <any>argsEntity.target;
-        const instance = new target();
+        let entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
         const result: DeepPartial<any> = {};
-
-        const primaryKeysMetadata: Array<ColumnMetadataArgs> = instance.getPrimaryKeys();
+        
+        const primaryKeysMetadata: Array<ColumnMetadataArgs> = entity.getPrimaryKeys();
 
         if (primaryKeysMetadata.length <= 0) {
             return data;

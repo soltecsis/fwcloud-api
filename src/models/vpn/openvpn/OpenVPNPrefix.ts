@@ -21,7 +21,7 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany, ManyToOne } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -53,6 +53,12 @@ export class OpenVPNPrefix extends Model {
         }
     })
     ipObjGroups: Array<IPObjGroup>;
+
+    @ManyToOne(type => OpenVPN, model => model.openVPNPrefixes)
+    @JoinColumn({
+        name: 'openvpn'
+    })
+    openVPN: OpenVPN;
 
     @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.openVPNPrefix)
     policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;

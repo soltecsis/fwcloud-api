@@ -31,6 +31,10 @@ export class TableExporter {
         this._entity = this.getEntity();
     }
 
+    public async bootstrap(connection: Connection, fwCloudId: number): Promise<void> {
+        return
+    }
+
     public getTableName(): string {
         if (this._entity === null) {
             throw new Error('getTableName with custom table not implemented');
