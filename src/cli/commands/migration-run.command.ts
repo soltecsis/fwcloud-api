@@ -53,9 +53,10 @@ export class MigrationRunCommand implements yargs.CommandModule {
     async handler(args: yargs.Arguments) {
         const app: Application = await Application.run();
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
         try {
-            await databaseService.runMigrations();
+            await databaseService.runMigrations(connection);
             await app.close();
         } catch (err) {
             console.log("Error during migration run:");

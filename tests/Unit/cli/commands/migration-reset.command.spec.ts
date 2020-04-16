@@ -21,12 +21,12 @@
 */
 
 import { Table, Connection, QueryRunner } from "typeorm";
-import { MigrationResetCommand } from "../../../../src/cli/commands/MigrationResetCommand"
+import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command"
 import { Application } from "../../../../src/Application";
-import { expect, testSuite } from "../../../mocha/global-setup";
+import { expect, testSuite, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
 
-describe('MigrationResetCommand', () => {
+describe(describeName('MigrationResetCommand tests'), () => {
     let app: Application;
     let queryRunner: QueryRunner
 
@@ -44,6 +44,11 @@ describe('MigrationResetCommand', () => {
             $0: "migration:run",
             _: []
         });
+
+        if(!queryRunner.connection.isConnected) {
+            await queryRunner.connection.connect();
+            queryRunner = queryRunner.connection.createQueryRunner();
+        }
         
         expect(await queryRunner.getTable('ca')).to.be.undefined;
         expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;

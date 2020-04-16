@@ -31,3 +31,4 @@ BACKUP/
 
 # fwcloud tests
 tests/playground
+tests/.tmp
