@@ -143,7 +143,9 @@ export class DatabaseService extends Service {
             const tables: Array<string> = await this.getTables(connection);
 
             for (let i = 0; i < tables.length; i++) {
-                await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
+                if (tables[i] !== 'migrations') {
+                    await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
+                }
             }
 
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
