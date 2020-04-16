@@ -21,13 +21,12 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, createConnection, QueryRunner, Migration, MigrationExecutor, getConnectionManager } from "typeorm";
+import { Connection, createConnection, QueryRunner, Migration, MigrationExecutor, getConnectionManager, ConnectionOptions, ConnectionOptionsReader } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
-import { timingSafeEqual } from "crypto";
 import moment = require("moment");
 import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
-import { SchemaVersion } from "./schema-version";
+import ObjectHelpers from "../utils/object-helpers";
 
 export interface DatabaseConfig {
     host: string,
@@ -49,7 +48,7 @@ export class DatabaseService extends Service {
         this._connection = null;
         this._id = moment().valueOf();
 
-        await this.startDefaultConnection();
+        this._connection = await this.getConnection({name: 'default'});
         
         return this;
     }
@@ -66,53 +65,28 @@ export class DatabaseService extends Service {
         return this._connection;
     }
 
-    protected async startDefaultConnection(): Promise<void> {
-        this._connection = await this.createConnection();
-        if (!this._connection.isConnected) {
-            await this._connection.connect();
+    public async getConnection(options: Partial<ConnectionOptions>): Promise<Connection> {
+        const connectionOptions: ConnectionOptions = <ConnectionOptions>ObjectHelpers.merge(this.getDefaultConnectionConfiguration(), options);
+        let connection: Connection = null;
+
+        connection = getConnectionManager().has(options.name) ? getConnectionManager().get(options.name) : getConnectionManager().create(connectionOptions);
+        
+        if(!connection.isConnected) {
+            await connection.connect();
         }
+        
+        return connection;
     }
 
-    public async createConnection(): Promise<Connection> {
-        try {
-            if (getConnectionManager().has('default')) {
-                return getConnectionManager().get('default');
-            }
-            return await createConnection({
-                //name: this._id.toString(),
-                type: 'mysql',
-                host: this._config.host,
-                port: this._config.port,
-                database: this._config.name,
-                username: this._config.user,
-                password: this._config.pass,
-                subscribers: [],
-                synchronize: false,
-                migrationsRun: false,
-                dropSchema: false,
-                logging: ["error"],
-                migrations: this._config.migrations,
-                cli: {
-                    migrationsDir: this._config.migration_directory
-                },
-                entities: [
-                    path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
-                    FirewallTest
-                ]
-            });
-        } catch(e) {
-            throw e;
-        };
-    }
-
-    public async emptyDatabase(): Promise<void> {
-        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+    public async emptyDatabase(connection: Connection = null): Promise<void> {
+        connection = connection ? connection : this._connection;
+        const queryRunner: QueryRunner = connection.createQueryRunner();
         await queryRunner.startTransaction();
 
         try {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
-            const tables: Array<string> = await this.getTables();
+            const tables: Array<string> = await this.getTables(connection);
 
             for (let i = 0; i < tables.length; i++) {
                 await queryRunner.dropTable(tables[i]);
@@ -128,35 +102,45 @@ export class DatabaseService extends Service {
         }
     }
 
-    public async isDatabaseEmpty(): Promise<boolean> {
-        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+    public async isDatabaseEmpty(connection: Connection = null): Promise<boolean> {
+        connection = connection ? connection : this._connection;
+        
+        const queryRunner: QueryRunner = connection.createQueryRunner();
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
         await queryRunner.release();
         return result.length === 0;
     }
 
-    public async runMigrations(): Promise<Migration[]> {
-        return await this.connection.runMigrations();
+    public async runMigrations(connection: Connection = null): Promise<Migration[]> {
+        connection = connection ? connection : this._connection;
+        
+        return await connection.runMigrations();
     }
 
-    public async resetMigrations(): Promise<void> {
-        return await this.emptyDatabase();
+    public async resetMigrations(connection: Connection = null): Promise<void> {
+        connection = connection ? connection : this._connection;
+        
+        return await this.emptyDatabase(connection);
     }
 
-    public async feedDefaultData(): Promise<void> {
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'default.sql'));
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'ipobj_std.sql'));
+    public async feedDefaultData(connection: Connection = null): Promise<void> {
+        connection = connection ? connection : this._connection;
+
+        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'default.sql'), connection);
+        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'ipobj_std.sql'), connection);
     }
 
-    public async removeData(): Promise<void> {
-        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+    public async removeData(connection: Connection = null): Promise<void> {
+        connection = connection ? connection : this._connection;
+        
+        const queryRunner: QueryRunner = connection.createQueryRunner();
         
         await queryRunner.startTransaction();
 
         try {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
-            const tables: Array<string> = await this.getTables();
+            const tables: Array<string> = await this.getTables(connection);
 
             for (let i = 0; i < tables.length; i++) {
                 await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
@@ -174,8 +158,33 @@ export class DatabaseService extends Service {
         return;
     }
 
-    protected async importSQLFile(path: string): Promise<void> {
-        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+    protected getDefaultConnectionConfiguration(): ConnectionOptions {
+        return {
+            type: 'mysql',
+            host: this._config.host,
+            port: this._config.port,
+            database: this._config.name,
+            username: this._config.user,
+            password: this._config.pass,
+            subscribers: [],
+            synchronize: false,
+            migrationsRun: false,
+            dropSchema: false,
+            logging: ["error"],
+            migrations: this._config.migrations,
+            cli: {
+                migrationsDir: this._config.migration_directory
+            },
+            entities: [
+                path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
+                FirewallTest
+            ]
+        }
+    }
+
+    protected async importSQLFile(path: string, connection: Connection = null): Promise<void> {
+        connection = connection ? connection : this._connection;
+        const queryRunner: QueryRunner = connection.createQueryRunner();
         const queries = fs.readFileSync(path, { encoding: 'UTF-8' })
             .replace(new RegExp('\'', 'gm'), '"')
             .replace(new RegExp('^--.*\n', 'gm'), '')
@@ -206,8 +215,9 @@ export class DatabaseService extends Service {
         }
     }
 
-    protected async getTables(): Promise<Array<string>> {
-        const queryRunner: QueryRunner = this._connection.createQueryRunner();
+    protected async getTables(connection: Connection = null): Promise<Array<string>> {
+        connection = connection ? connection : this._connection;
+        const queryRunner: QueryRunner = connection.createQueryRunner();
 
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
 

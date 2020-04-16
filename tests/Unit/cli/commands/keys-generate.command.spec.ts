@@ -23,7 +23,7 @@
 import * as sinon from "sinon";
 import { KeysGenerateCommand } from "../../../../src/cli/commands/keys-generate.command";
 import * as fse from "fs-extra";
-import { testSuite, expect } from "../../../mocha/global-setup";
+import { testSuite, expect, describeName } from "../../../mocha/global-setup";
 import { Application } from "../../../../src/Application";
 import * as path from "path";
 
@@ -33,7 +33,7 @@ function readTestEnvContent(): string {
     return fse.readFileSync(testEnvPath).toString();
 }
 
-describe('KeysGenerateCommand tests', () => {
+describe(describeName('KeysGenerateCommand tests'), () => {
     beforeEach(() => {
         const app: Application = testSuite.app;
         fse.copyFileSync(path.join(app.path, '.env.example'), path.join(app.path, testEnvPath));

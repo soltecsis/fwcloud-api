@@ -23,6 +23,7 @@
 import * as yargs from "yargs";
 import { Application } from "../../Application";
 import { DatabaseService } from "../../database/database.service";
+import { Connection } from "typeorm";
 
 
 /**
@@ -40,9 +41,10 @@ export class MigrationResetCommand implements yargs.CommandModule {
     async handler(args: yargs.Arguments) {
         const app: Application = await Application.run();
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        const connection: Connection = await databaseService.getConnection({name: 'cli'}) 
         
         try {
-            await databaseService.resetMigrations();
+            await databaseService.resetMigrations(connection);
             await app.close();
         } catch (err) {
             console.log("Error during migration run:");

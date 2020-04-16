@@ -23,11 +23,10 @@
 
 
 import * as yargs from "yargs";
-import { MigrationResetCommand } from "./commands/MigrationResetCommand";
-import { MigrationRunCommand } from "./commands/MigrationRunCommand";
-import { InstallCommand } from "./commands/InstallCommand";
-import { MigrationCreateCommand } from "./commands/MigrationCreateCommand";
-import { MigrationRevertCommand } from "./commands/MigrationRevertCommand";
+import { MigrationResetCommand } from "./commands/migration-reset-command";
+import { MigrationRunCommand } from "./commands/migration-run.command";
+import { MigrationCreateCommand } from "./commands/migration-create.command";
+import { MigrationRevertCommand } from "./commands/migration-revert.command";
 import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 import { RouteListCommand } from "./commands/route-list.command";
 import { TagVersionCommand } from "./commands/tag-version.command";
@@ -36,7 +35,6 @@ import { KeysGenerateCommand } from "./commands/keys-generate.command";
 yargs
     .usage("Usage: $0 <command> [options]")
     .command(new MigrationResetCommand())
-    .command(new InstallCommand())
     .command(new MigrationRunCommand())
     .command(new MigrationCreateCommand())
     .command(new MigrationRevertCommand())

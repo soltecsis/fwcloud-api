@@ -24,15 +24,17 @@ import * as process from "process";
 import * as yargs from "yargs";
 import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
 import * as config from "../../config/config"
+import { Application } from "../../Application";
+import { DatabaseService } from "../../database/database.service";
 
 
 /**
  * Runs migration command.
  */
-export class MigrationRevertCommand implements yargs.CommandModule {
+export class MigrationRunCommand implements yargs.CommandModule {
 
-    command = "migration:revert";
-    describe = "Revert a migration";
+    command = "migration:run";
+    describe = "Run all migrations";
 
     builder(args: yargs.Argv) {
         return args
@@ -49,40 +51,15 @@ export class MigrationRevertCommand implements yargs.CommandModule {
     }
 
     async handler(args: yargs.Arguments) {
-        let connection: Connection | undefined = undefined;
-        let configDB = config.get('db');
+        const app: Application = await Application.run();
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
         try {
-            const connectionOptionsReader = new ConnectionOptionsReader({
-                root: process.cwd(),
-                configName: args.config as any
-            });
-
-            const connectionOptions = await connectionOptionsReader.get(args.connection as any);
-
-            Object.assign(connectionOptions, {
-                subscribers: [],
-                synchronize: false,
-                migrationsRun: false,
-                dropSchema: false,
-                logging: ["query", "error", "schema"],
-                migrations: configDB.migrations,
-                cli: {
-                    migrations_dir: configDB.migration_directory
-                }
-            });
-
-            const options = { transaction: "all" as "all" | "none" | "each" };
-
-            const connection = await createConnection(connectionOptions);
-
-            await connection.undoLastMigration(options);
-            await connection.close();
-
+            await databaseService.runMigrations(connection);
+            await app.close();
         } catch (err) {
-            if (connection) await (connection as Connection).close();
-
-            console.log("Error during migration show:");
+            console.log("Error during migration run:");
             console.error(err);
             process.exit(1);
         }

@@ -20,36 +20,31 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationCreateCommand } from "../../../../src/cli/commands/MigrationCreateCommand"
+import { MigrationCreateCommand } from "../../../../src/cli/commands/migration-create.command"
 import * as path from 'path';
 import * as fs from 'fs';
-import { expect } from "../../../mocha/global-setup";
+import { expect, describeName } from "../../../mocha/global-setup";
+import { FSHelper } from "../../../../src/utils/fs-helper";
 
-describe('MigrationCreateCommand tests', () => {
+describe(describeName('MigrationCreateCommand tests'), () => {
     const version: string = 'x.y.z';
     const migrationDirectory = path.join('tests', '.tmp');
 
-    before(() => {
+    beforeEach(() => {
         try {
             fs.mkdirSync(path.join(process.cwd(), migrationDirectory), {recursive: true});
         } catch(e) {}
     });
 
-    after(() => {
+    afterEach(async() => {
         const tmpDir: string = path.join(process.cwd(), migrationDirectory);
-        const files = fs.readdirSync(path.join(tmpDir, version));
 
-        files.forEach((file) => {
-            fs.unlinkSync(path.join(tmpDir, version, file));
-        });
-
-        fs.rmdirSync(path.join(tmpDir, version));
-        fs.rmdirSync(tmpDir);
+        await FSHelper.rmDirectory(tmpDir);
     });
     
     it('should create a migration file in the version migration directory', async() => {
         const command = await new MigrationCreateCommand().handler({
-            $0: "migration:run",
+            $0: "migration:create",
             d: migrationDirectory,
             dir: migrationDirectory,
             n: 'migration_test',
