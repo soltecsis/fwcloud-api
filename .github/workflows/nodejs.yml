@@ -17,10 +17,20 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+      mysql:
+        image: mariadb:10.1
+        ports:
+          - 8889:3306
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          MYSQL_USER: "fwcdbusr"
+          MYSQL_PASSWORD: "fwcdbusr"
+          MYSQL_DATABASE: "fwcloud"
 
     strategy:
       matrix:
         node-version: ['10', '12']
+        ports: [8888, 88889]
 
     steps:
     - uses: actions/checkout@v2
