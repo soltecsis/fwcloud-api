@@ -30,7 +30,12 @@ jobs:
     strategy:
       matrix:
         node-version: ['10', '12']
-        database-port: [8888, 8889]
+        database: [mysql, mariadb]
+        include:
+          - database: mysql
+            port: 8888
+          - database: mariadb
+            port: 8889
 
     steps:
     - uses: actions/checkout@v2
@@ -56,6 +61,6 @@ jobs:
     - name: Build FwCloud
       run: npm run build --if-present
     - name: Run tests
-      run: TYPEORM_PORT=${{ matrix.database-port }} npm run test -- --forbid-only
+      run: TYPEORM_PORT=${{ matrix.port }} npm run test -- --forbid-only
       env:
         CI: true
