@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         node-version: ['10', '12']
-        ports: [8888, 88889]
+        database-port: [8888, 8889]
 
     steps:
     - uses: actions/checkout@v2
@@ -56,6 +56,6 @@ jobs:
     - name: Build FwCloud
       run: npm run build --if-present
     - name: Run tests
-      run: npm run test -- --forbid-only
+      run: TYPEORM_PORT=${{ matrix.database-port }} npm run test -- --forbid-only
       env:
         CI: true
