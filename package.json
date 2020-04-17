@@ -13,7 +13,7 @@
     "reload": "node_modules/.bin/gulp reload",
     "smart-compilation": "node_modules/.bin/gulp smartCompilation",
     "fwcloud": "npm run smart-compilation && node --no-warnings dist/src/cli/cli.js",
-    "test": "npm run smart-compilation && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 5000 --colors dist/tests/**/*spec.js"
+    "test": "npm run smart-compilation && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 5000 --exit --colors dist/tests/**/*spec.js"
   },
   "apidoc": {
     "title": "FWCloud.net API",
