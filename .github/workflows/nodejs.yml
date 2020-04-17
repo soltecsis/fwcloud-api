@@ -17,7 +17,7 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
-      mysql:
+      mariadb:
         image: mariadb:10.1
         ports:
           - 8889:3306
