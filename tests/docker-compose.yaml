@@ -11,3 +11,15 @@ services:
       MYSQL_USER: "fwcdbusr"
       MYSQL_PASSWORD: "fwcdbusr"
       MYSQL_DATABASE: "fwcloud"
+
+  # mariadb
+  mariadb:
+    image: "mariadb:10.1"
+    container_name: "fwcloud-testing-mariadb"
+    ports:
+      - "8889:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_USER: "fwcdbusr"
+      MYSQL_PASSWORD: "fwcdbusr"
+      MYSQL_DATABASE: "fwcloud"

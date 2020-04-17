@@ -17,10 +17,20 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+      mariadb:
+        image: mariadb:10.1
+        ports:
+          - 8889:3306
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          MYSQL_USER: "fwcdbusr"
+          MYSQL_PASSWORD: "fwcdbusr"
+          MYSQL_DATABASE: "fwcloud"
 
     strategy:
       matrix:
         node-version: ['10', '12']
+        database-port: [8888, 8889]
 
     steps:
     - uses: actions/checkout@v2
@@ -46,6 +56,6 @@ jobs:
     - name: Build FwCloud
       run: npm run build --if-present
     - name: Run tests
-      run: npm run test -- --forbid-only
+      run: TYPEORM_PORT=${{ matrix.database-port }} npm run test -- --forbid-only
       env:
         CI: true
