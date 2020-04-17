@@ -21,10 +21,10 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, createConnection, QueryRunner, Migration, MigrationExecutor, getConnectionManager, ConnectionOptions, ConnectionOptionsReader } from "typeorm";
+import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
-import moment = require("moment");
+import moment from "moment";
 import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 import ObjectHelpers from "../utils/object-helpers";
 
@@ -54,7 +54,13 @@ export class DatabaseService extends Service {
     }
 
     public async close(): Promise<void> {
-        await this.connection.close();
+        const connections: Array<Connection> = getConnectionManager().connections;
+
+        for(let i = 0; i < connections.length; i++) {
+            if (connections[i].isConnected) {
+                await connections[i].close();
+            }
+        }
     }
 
     get config(): any {
