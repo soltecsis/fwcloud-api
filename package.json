@@ -41,7 +41,6 @@
     "docdash": "^1.1.1",
     "dotenv": "^8.2.0",
     "easy-tree": "0.0.3",
-    "ejs": "^3.0.1",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
     "fancy-log": "1.3.3",
@@ -53,7 +52,6 @@
     "http-proxy": "^1.18.0",
     "ip": "^1.1.5",
     "is-ip": "^3.1.0",
-    "jade": "~1.11.0",
     "joi": "^14.3.1",
     "jsdoc": "^3.6.3",
     "lockfile": "^1.0.4",
@@ -87,8 +85,7 @@
     "uuid": "7.0.2",
     "when": "^3.7.8",
     "xml2js": "^0.4.22",
-    "yargs": "^15.1.0",
-    "yuidocjs": "^0.10.2"
+    "yargs": "^15.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.9",
@@ -102,7 +99,6 @@
     "@types/express-session": "^1.15.16",
     "@types/fs-extra": "^8.1.0",
     "@types/helmet": "0.0.45",
-    "@types/jest": "25.1.0",
     "@types/joi": "^14.3.4",
     "@types/mocha": "7.0.1",
     "@types/moment-timezone": "^0.5.12",
@@ -120,11 +116,9 @@
     "cookie": "0.4.0",
     "cookie-signature": "1.1.0",
     "gulp": "4.0.2",
-    "jest": "25.1.0",
     "mocha": "7.0.1",
     "sinon": "9.0.0",
     "supertest": "4.0.2",
-    "tree-kill": "1.2.2",
-    "ts-jest": "25.0.0"
+    "tree-kill": "1.2.2"
   }
 }
