@@ -29,7 +29,6 @@ import log4js_extend from 'log4js-extend';
 import db from "./database/database-manager";
 
 import { AbstractApplication } from "./fonaments/abstract-application";
-import { EJS } from "./middleware/EJS";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
@@ -104,7 +103,6 @@ export class Application extends AbstractApplication {
 
     protected beforeMiddlewares(): Array<Middlewareable> {
         return [
-            EJS,
             BodyParser,
             RequestBuilder,
             Compression,
