@@ -64,7 +64,7 @@ const config = convict({
     port: {
       doc: 'API TCP port to bind.',
       format: 'port',
-      default: 3000,
+      default: 3131,
       env: 'APISRV_PORT'
     },
     cert: {
@@ -110,7 +110,7 @@ const config = convict({
     api_url: {
       doc: 'Web server document root path.',
       format: String,
-      default: 'http://localhost:3000',
+      default: 'http://localhost:3131',
       env: 'WEBSRV_API_URL'
     },
     remove_api_string_from_url: {
