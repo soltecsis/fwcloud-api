@@ -4,7 +4,7 @@
   "description": "Documentation for the RESTful API of the FWCloud.net project.",
   "private": true,
   "scripts": {
-    "start": "npm run build && node dist/src/bin/fwcloud.js",
+    "start": "npm run smart-compilation && node dist/src/bin/fwcloud.js",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
     "clean": "rm -fr dist/",
