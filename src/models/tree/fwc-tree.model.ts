@@ -45,8 +45,8 @@ export class FwcTree extends Model {
     @Column({name: 'id_parent'})
     parentId: number;
 
-    @Column({name: 'id_obj'})
-    ipObjId: number;
+    @Column()
+    id_obj: number;
 
     @Column({name: 'obj_type'})
     ipObjTypeId: number;

@@ -139,66 +139,85 @@ describe(describeName('Snapshot tests'), () => {
         expect(snapshot.exists).to.be.false;
     });
 
-    it.skip('restore should restore a fwcloud as a new fwcloud', async () => {
-        const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+    describe('restore()', () => {
 
-        fwCloud.name = 'fwcloud';
-        await fwcloudRepository.save(fwCloud);
+        it('restore should restore a fwcloud as a new fwcloud', async () => {
+            const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-        await snaphost.restore();
-        
-        const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id)
+            await snaphost.restore();
+            
+            const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id + 1)
 
-        expect(importedFwCloud.name).not.to.be.deep.equal(fwCloud.name);
-    });
-
-    it('restore should throw an exception if the snapshot is not compatible', async () => {
-        let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
-
-        const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
-        metadata.schema = '0.0.0';
-        fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
-
-        snaphost = await Snapshot.load(snaphost.path);
-
-        async function t() {
-            return snaphost.restore();
-        }
-        
-        await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
-    });
-
-    it('restore should mark as uncompiled all fwcloud firewalls', async () => {
-        let firewall: Firewall = repositoryService.for(Firewall).create({
-            name: 'firewall_test',
-            status: 1,
-            fwCloudId: fwCloud.id
+            expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
 
-        let firewall2: Firewall = repositoryService.for(Firewall).create({
-            name: 'firewall_test2',
-            status: 1,
-            fwCloudId: fwCloud.id
+        it('restore should throw an exception if the snapshot is not compatible', async () => {
+            let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
+            metadata.schema = '0.0.0';
+            fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+
+            snaphost = await Snapshot.load(snaphost.path);
+
+            async function t() {
+                return snaphost.restore();
+            }
+            
+            await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
         });
 
-        await repositoryService.for(Firewall).save([firewall, firewall2]);
-        firewall = await repositoryService.for(Firewall).findOne(firewall.id);
-        firewall2 = await repositoryService.for(Firewall).findOne(firewall2.id);
+        it('restore should mark as uncompiled all fwcloud firewalls', async () => {
+            let firewall: Firewall = repositoryService.for(Firewall).create({
+                name: 'firewall_test',
+                status: 1,
+                fwCloudId: fwCloud.id
+            });
 
-        let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            let firewall2: Firewall = repositoryService.for(Firewall).create({
+                name: 'firewall_test2',
+                status: 1,
+                fwCloudId: fwCloud.id
+            });
 
-        await snaphost.restore();
+            await repositoryService.for(Firewall).save([firewall, firewall2]);
+            firewall = await repositoryService.for(Firewall).findOne(firewall.id);
+            firewall2 = await repositoryService.for(Firewall).findOne(firewall2.id);
 
-        firewall = await repositoryService.for(Firewall).findOne(firewall.id);
-        firewall2 = await repositoryService.for(Firewall).findOne(firewall.id);
+            let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-        expect(firewall.status).to.be.deep.eq(3);
-        expect(firewall.compiled_at).to.be.null;
-        expect(firewall.installed_at).to.be.null;
+            await snaphost.restore();
 
-        expect(firewall2.status).to.be.deep.eq(3);
-        expect(firewall2.compiled_at).to.be.null;
-        expect(firewall2.installed_at).to.be.null;
+            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(fwCloud.id + 1);
+
+            firewall = (await repositoryService.for(Firewall).find({fwCloudId: newFwCloud.id}))[0];
+            firewall2 = (await repositoryService.for(Firewall).find({fwCloudId: newFwCloud.id}))[1];
+
+            expect(firewall.status).to.be.deep.eq(3);
+            expect(firewall.compiled_at).to.be.null;
+            expect(firewall.installed_at).to.be.null;
+
+            expect(firewall2.status).to.be.deep.eq(3);
+            expect(firewall2.compiled_at).to.be.null;
+            expect(firewall2.installed_at).to.be.null;
+        });
+
+        it('restore should migrate snapshot from the old fwcloud to the new one', async () => {
+            const snapshotService: SnapshotService = await app.getService<SnapshotService>(SnapshotService.name);
+            const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
+            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
+
+            let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            let snaphost2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            await snaphost2.restore();
+
+            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+
+            expect(fs.existsSync(snaphost1.path)).to.be.false;
+            expect(fs.existsSync(snaphost2.path)).to.be.false;
+            expect(fs.existsSync(path.join(snapshotService.config.data_dir, newFwCloud.id.toString()))).to.be.true;
+        });
     });
 
 })

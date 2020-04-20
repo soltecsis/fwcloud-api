@@ -24,9 +24,6 @@ import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
 import { FwcTree } from "../../../models/tree/fwc-tree.model";
 import { SelectQueryBuilder, Connection, QueryRunner, QueryBuilder } from "typeorm";
-import { id } from "../../../middleware/joi_schemas/shared";
-import { app } from "../../../fonaments/abstract-application";
-import { DatabaseService } from "../../../database/database.service";
 
 export class FwcTreeExporter extends TableExporter {
 
@@ -41,7 +38,11 @@ export class FwcTreeExporter extends TableExporter {
     }
 
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb.whereInIds(this._ids);
+        if (this._ids.length > 0) {
+            return qb.whereInIds(this._ids);
+        }
+        
+        return qb;
     }
 
     public static async getNodesId(connection: Connection, fwCloudId: number): Promise<Array<number>> {

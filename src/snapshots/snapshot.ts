@@ -44,6 +44,7 @@ import * as semver from "semver";
 import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
 import { QueryRunner } from "typeorm";
 import { Importer } from "../fwcloud-exporter/importer/importer";
+import { SnapshotService } from "./snapshot.service";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -197,6 +198,9 @@ export class Snapshot implements Responsable {
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
                 task.addTask(() => { return this.repair(); }, 'FwCloud repaired');
+                task.addTask(() => { 
+                    return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
+                }, 'Snapshots migrated');
             });
         }, 'FwCloud snapshot restored');
 
@@ -442,6 +446,12 @@ export class Snapshot implements Responsable {
                 resolve();
             }
         });
+    }
+
+    protected async migrateSnapshots(oldFwCloud: FwCloud, newFwCloud: FwCloud): Promise<void> {
+        const snapshotDirectory: string = (await app().getService<SnapshotService>(SnapshotService.name)).config.data_dir;
+
+        return FSHelper.moveDirectory(path.join(snapshotDirectory, oldFwCloud.id.toString()), path.join(snapshotDirectory, newFwCloud.id.toString()));
     }
 
     toResponse(): object {
