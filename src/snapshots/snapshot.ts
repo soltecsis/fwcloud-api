@@ -38,11 +38,9 @@ import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
 import * as semver from "semver";
 import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
-import { QueryRunner } from "typeorm";
 import { Importer } from "../fwcloud-exporter/importer/importer";
 import { SnapshotService } from "./snapshot.service";
 
@@ -51,7 +49,6 @@ export type SnapshotMetadata = {
     name: string,
     comment: string,
     version: string,
-    fwcloud_id: number,
     schema: string
 };
 
@@ -215,7 +212,8 @@ export class Snapshot implements Responsable {
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
         const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
-
+        const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
+        
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
 
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
@@ -226,7 +224,7 @@ export class Snapshot implements Responsable {
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwCloud = await repository.for(FwCloud).findOne(snapshotMetadata.fwcloud_id);
+        this._fwCloud = await repository.for(FwCloud).findOne(fwCloudId);
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
@@ -377,9 +375,7 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            schema: this._schema,
-            fwcloud_id: this._fwCloud.id,
-
+            schema: this._schema
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));

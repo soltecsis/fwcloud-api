@@ -31,7 +31,6 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
-import { utc } from "moment";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 
 let app: Application;
@@ -73,8 +72,7 @@ describe(describeName('Snapshot tests'), () => {
             name: snapshot.name,
             schema: snapshot.schema,
             comment: snapshot.comment,
-            version: snapshot.version,
-            fwcloud_id: snapshot.fwCloud.id,
+            version: snapshot.version
         });
     });
 
@@ -114,6 +112,14 @@ describe(describeName('Snapshot tests'), () => {
         const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         expect(await Snapshot.load(snapshot.path)).to.be.deep.equal(snapshot);
+    });
+
+    it('load should guess the fwcloud by its directory name', async () => {
+        let snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        let snaphost = await Snapshot.load(snapshot.path);
+
+        expect(snaphost.fwCloud).to.be.deep.equal(fwCloud);
     });
 
     it('update should update a snapshot name and comment', async () => {
