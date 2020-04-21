@@ -25,7 +25,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { FSHelper } from "../../../src/utils/fs-helper";
 
-describe(describeName(), () => {
+describe(describeName('FsHelper Unit Tests'), () => {
     describe('moveDirectory()', () => {
 
         it('moveDirectory should copy the directory', async () => {
