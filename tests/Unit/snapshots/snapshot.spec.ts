@@ -76,17 +76,34 @@ describe(describeName('Snapshot tests'), () => {
         });
     });
 
-    it('create should copy the pki fwcloud directory if it exists', async () => {
-        if (FSHelper.directoryExists(app.config.get('pki').data_dir)) {
-            await FSHelper.mkdir(path.join(app.config.get('pki').data_dir, fwCloud.id.toString()))
-        }
+    it('create should create a data directory in the snapshot directory', async() => {
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
+        expect(FSHelper.directoryExistsSync(path.join(snapshot.path, Snapshot.DATA_DIRECTORY))).to.be.true;
+    });
+
+    it('create should copy the pki fwcloud directory if it exists', async () => {
+        
+        FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath())
+        
         fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test.txt'), "test file content");
 
         const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
         expect(fs.statSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).isFile());
         expect(fs.readFileSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).toString()).to.be.deep.eq('test file content');
+    });
+
+    it('create should copy the policy fwcloud directory if exists', async () => {
+        
+        await FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath())
+        
+        fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), 'test.txt'), "test file content");
+
+        const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+        expect(fs.statSync(path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt')).isFile());
+        expect(fs.readFileSync(path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt')).toString()).to.be.deep.eq('test file content');  
     });
 
     it('create should export the fwcloud into the data file', async () => {
@@ -157,6 +174,14 @@ describe(describeName('Snapshot tests'), () => {
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
 
+        it('restore should remove the old fwcloud and all its dependencies', async () => {
+            const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            await snaphost.restore();
+            
+            expect(await fwcloudRepository.findOne(fwCloud.id)).to.be.undefined;
+        });
+
         it('restore should throw an exception if the snapshot is not compatible', async () => {
             let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
@@ -223,6 +248,28 @@ describe(describeName('Snapshot tests'), () => {
             expect(fs.existsSync(snaphost1.path)).to.be.false;
             expect(fs.existsSync(snaphost2.path)).to.be.false;
             expect(fs.existsSync(path.join(snapshotService.config.data_dir, newFwCloud.id.toString()))).to.be.true;
+        });
+
+        it('restore should not copy the policy directory if data directory is not present in the snapshot', async () => {
+            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
+            let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            
+            await snaphost1.restore();
+
+            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+
+            expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath())).to.be.false;
+        });
+
+        it('restore should not copy the pki directory if data directory is not present in the snapshot', async () => {
+            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
+            let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            
+            await snaphost1.restore();
+
+            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+
+            expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
         });
     });
 

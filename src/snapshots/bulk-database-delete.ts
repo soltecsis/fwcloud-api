@@ -23,21 +23,19 @@
 import { SnapshotData } from "./snapshot-data";
 import { DatabaseService } from "../database/database.service";
 import { app } from "../fonaments/abstract-application";
-import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult } from "typeorm";
+import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult, Repository, EntityRepository } from "typeorm";
 import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RepositoryService } from "../database/repository.service";
 import Model from "../models/Model";
 
-export class BulkDatabaseOperations {
+export class BulkDatabaseDelete {
     protected _data: SnapshotData;
-    protected _operation: 'insert' | 'delete'
     protected _repositoryService: RepositoryService;
     protected _databaseService: DatabaseService;
 
-    constructor(data: SnapshotData, operation: 'insert' | 'delete') {
+    constructor(data: SnapshotData) {
         this._data = data;
-        this._operation = operation;
     }
 
     public async run(): Promise<void> {
@@ -55,12 +53,10 @@ export class BulkDatabaseOperations {
                     const entity: string = this._data.data[table].entity;
                     const rows: Array<object> = this._data.data[table].data;
 
-                    for (let i = 0; i < rows.length; i++) {
-                        if (entity) {
-                            await this.processEntityRow(qr, this._operation, table, entity, rows[i]);
-                        } else {
-                            await this.processRow(qr, this._operation, table, rows[i]);
-                        }
+                    if (entity) {
+                        await this.processEntityRows(qr, table, entity, rows);
+                    } else {
+                        await this.processRows(qr, table, rows);
                     }
                 }
 
@@ -78,43 +74,30 @@ export class BulkDatabaseOperations {
         });
     }
 
-    protected async processEntityRow(queryRunner: QueryRunner, operation: 'insert' | 'delete', table: string, entity: string, row: object): Promise<object> {
-        if(operation === 'insert') {
-            return await this.processEntityRowInsertion(queryRunner, table, entity, row);
+    protected async processEntityRows(queryRunner: QueryRunner, tableName: string, entityName: string, rows: Array<object>): Promise<DeleteResult> {
+        
+        if (rows.length <= 0) {
+            return;
         }
 
-        if (operation === 'delete') {
-            return await this.processEntityRowDeletion(queryRunner, table, entity, row);
+        let entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
+
+        return await queryRunner.manager.createQueryBuilder(tableName, tableName).delete()
+            .whereInIds(rows.map((item) => {
+                const result = {};
+                for(let i = 0; i < entity.getPrimaryKeys().length; i++) {
+                    result[entity.getPrimaryKeys()[i].propertyName] = item[entity.getPrimaryKeys()[0].propertyName];
+                }
+
+                return result;
+            })).execute();
+    }
+
+    protected async processRows(queryRunner: QueryRunner, table: string, rows: Array<object>): Promise<DeleteResult> {
+        for (let i = 0; i < rows.length; i++) {
+            const row: object = rows[i];
+            return await queryRunner.manager.createQueryBuilder(table, "table").delete().where(row).execute();
         }
-    }
-
-    protected async processEntityRowInsertion(queryRunner: QueryRunner, table: string, entity: string, row: object): Promise<any> {
-        const rowData: any = this._repositoryService.for(this.getEntity(table, entity).target).create(row);
-        return await queryRunner.manager.getRepository(this.getEntity(table, entity).target).save(rowData);
-    }
-
-    protected async processEntityRowDeletion(queryRunner: QueryRunner, table: string, entity: string, row: object): Promise<DeleteResult> {
-        //Delete queries based only on primary keys colums. Other colums could have changed
-        const criteria = this.getPrimaryKeysData(table, entity, row);
-        return await queryRunner.manager.delete(table, criteria);
-    }
-
-    protected async processRow(queryRunner: QueryRunner, operation: 'insert' | 'delete', table: string, row: object): Promise<object> {
-        if(operation === 'insert') {
-            return await this.processRowInsertion(queryRunner, table, row);
-        }
-
-        if (operation === 'delete') {
-            return await this.processRowDeletion(queryRunner, table, row);
-        }
-    }
-
-    protected async processRowInsertion(queryRunner: QueryRunner, table: string, row: object): Promise<any> {
-        return await queryRunner.manager.createQueryBuilder().insert().into(table).values(row).execute();
-    }
-
-    protected async processRowDeletion(queryRunner: QueryRunner, table: string, row: object): Promise<DeleteResult> {
-        return await queryRunner.manager.createQueryBuilder(table, "table").delete().where(row).execute();
     }
 
     /**

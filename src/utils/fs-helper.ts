@@ -22,11 +22,12 @@
 
 import * as fs from "fs";
 import * as fse from "fs-extra";
+import * as path from "path";
 
 export class FSHelper {
-    public static async directoryExists(path: fs.PathLike): Promise<boolean> {
+    public static async directoryExists(directoryPath: fs.PathLike): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            fs.stat(path, (error: Error, stats: fs.BigIntStats) => {
+            fs.stat(directoryPath, (error: Error, stats: fs.BigIntStats) => {
                 if (error) {
                     return resolve(false);
                 }
@@ -36,9 +37,9 @@ export class FSHelper {
         })
     }
 
-    public static directoryExistsSync(path: fs.PathLike): boolean {
+    public static directoryExistsSync(directoryPath: fs.PathLike): boolean {
         try {
-            const stat: fs.Stats = fs.statSync(path);
+            const stat: fs.Stats = fs.statSync(directoryPath);
             
             if (!stat || !stat.isDirectory()) {
                 throw new Error();
@@ -50,16 +51,16 @@ export class FSHelper {
         return true;
     }
 
-    public static async mkdir(path: string): Promise<void> {
-        return fse.mkdirp(path);
+    public static async mkdir(directoryPath: string): Promise<void> {
+        return fse.mkdirp(directoryPath);
     }
 
-    public static async mkdirSync(path: string): Promise<void> {
-        return fse.mkdirpSync(path);
+    public static async mkdirSync(directoryPath: string): Promise<void> {
+        return fse.mkdirpSync(directoryPath);
     }
 
-    public static async rmDirectory(path: string): Promise<void> {
-        return fse.remove(path);
+    public static async rmDirectory(directoryPath: string): Promise<void> {
+        return fse.remove(directoryPath);
     }
 
     public static async copyDirectory(source: string, destination: string): Promise<void> {
@@ -80,5 +81,20 @@ export class FSHelper {
         if (await this.directoryExists(source)) {
             return await FSHelper.copyDirectory(source, destination);
         }
+    }
+
+    public static async directories(directory: string): Promise<Array<string>> {
+        return new Promise<Array<string>>((resolve, reject) => {
+            fs.readdir(directory, {withFileTypes: true}, (err: NodeJS.ErrnoException, files: fs.Dirent[]) => {
+                if (err) {
+                    return reject(err);
+                }
+
+                const directories: Array<string> = files.filter(item => item.isDirectory())
+                    .map(item => path.join(directory, item.name));
+
+                return resolve(directories);
+            });
+        });
     }
 }

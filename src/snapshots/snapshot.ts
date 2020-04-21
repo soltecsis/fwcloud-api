@@ -33,7 +33,7 @@ import { Application } from "../Application";
 import { SnapshotData } from "./snapshot-data";
 import { Exporter } from "../fwcloud-exporter/exporter/exporter";
 import { Progress } from "../fonaments/http/progress/progress";
-import { BulkDatabaseOperations } from "./bulk-database-operations";
+import { BulkDatabaseDelete } from "./bulk-database-delete";
 import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../models/firewall/Firewall";
@@ -43,6 +43,7 @@ import * as semver from "semver";
 import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
 import { Importer } from "../fwcloud-exporter/importer/importer";
 import { SnapshotService } from "./snapshot.service";
+import { BackupService } from "../backups/backup.service";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -57,8 +58,10 @@ export class Snapshot implements Responsable {
     static METADATA_FILENAME = 'snapshot.json';
     static DATA_FILENAME = 'data.json';
     static DEPENDENCY_FILENAME = 'dep.json';
-    static PKI_DIRECTORY = path.join('_data', 'pki');
-    static POLICY_DIRECTORY = path.join('_data', 'policy');
+    
+    static DATA_DIRECTORY = '_data';
+    static PKI_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'pki');
+    static POLICY_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'policy');
 
     protected _id: number;
     protected _date: Moment;
@@ -172,8 +175,12 @@ export class Snapshot implements Responsable {
 
         return new Promise<Snapshot>((resolve, reject) => {
             progress.on('end', (_) => {
-                resolve(progress.response);
+                return resolve(progress.response);
             });
+
+            progress.on('error', (e) => {
+                return reject(e);
+            })
         });
     }
 
@@ -188,13 +195,20 @@ export class Snapshot implements Responsable {
         }
 
         progress.procedure('Restoring snapshot', (task: Task) => {
+            task.addTask(async () => {
+                return new Promise<void>(async (resolve, reject) => {
+                    const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
+                    backupService.create('Before snapshot (' + this.id + ') creation (beta)').on('end', () => {
+                        return resolve();
+                    });
+                }); 
+            }, 'Backup created (only on beta)')
             task.addTask(() => { 
                 return this.restoreDatabaseData(); 
-            }, 'FwCloud restored');
-            task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
+            }, 'FwCloud restored from snapshot');
+            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
             task.parallel((task: Task) => {
-                task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
-                task.addTask(() => { return this.repair(); }, 'FwCloud repaired');
+                task.addTask(() => { return this.resetCompiledStatus(); }, 'Firewalls compilation flags reset');
                 task.addTask(() => { 
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
@@ -319,7 +333,7 @@ export class Snapshot implements Responsable {
     protected async removeDatabaseData(): Promise<void> {
         const data: SnapshotData = await this.getFwCloudJSONData();
 
-        return new BulkDatabaseOperations(data, 'delete').run();
+        return new BulkDatabaseDelete(data).run();
     }
 
     /**
@@ -385,6 +399,7 @@ export class Snapshot implements Responsable {
      * Copy all FwCloud DATA directory into the snapshot
      */
     protected async copyFwCloudDataDirectories(): Promise<void> {
+        await FSHelper.mkdirSync(path.join(this._path, Snapshot.DATA_DIRECTORY));
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
     }

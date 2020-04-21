@@ -19,5 +19,22 @@ describe(describeName(), () => {
             expect(fs.existsSync(source)).to.be.false;
         });
 
-    })
+    });
+
+    describe('directories()', () => {
+        it('directories should return an array of directory paths', async () => {
+            const directoryTest: string = path.join(playgroundPath, 'test');
+            const directory1 = path.join(directoryTest, 'test1');
+            const directory2 = path.join(directoryTest, 'test2');
+
+            fs.mkdirSync(directoryTest);
+            fs.mkdirSync(directory1);
+            fs.mkdirSync(directory2);
+
+            expect(await FSHelper.directories(directoryTest)).to.be.deep.eq([
+                directory1,
+                directory2
+            ]);
+        });
+    });
 })

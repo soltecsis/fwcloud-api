@@ -1,6 +1,5 @@
-import { QueryRunner, getMetadataArgsStorage } from "typeorm";
-import { ExporterResult, ExporterResultData, ExporterTableResult } from "../../exporter/exporter-result";
-import { IdManager } from "./mapper/id-manager";
+import { QueryRunner } from "typeorm";
+import { ExporterResult, ExporterResultData } from "../../exporter/exporter-result";
 import { ImportMapping } from "./mapper/import-mapping";
 import { TableTerraformer } from "./table-terraformer";
 import { FwcTreeTerraformer } from "./table-terraformers/fwc-tree.terraformer";
@@ -15,9 +14,11 @@ const TERRAFORMERS: {[tableName: string]: typeof TableTerraformer} = {
 
 export class Terraformer {
     protected _queryRunner: QueryRunner;
+    protected _mapper: ImportMapping;
 
-    constructor(queryRunner: QueryRunner) {
+    constructor(queryRunner: QueryRunner, mapper: ImportMapping) {
         this._queryRunner = queryRunner;
+        this._mapper = mapper;
     }
     
     /**
@@ -26,15 +27,13 @@ export class Terraformer {
      * @param exportResults 
      */
     public async terraform(exportResults: ExporterResult): Promise<ExporterResult> {
-        const idManager: IdManager = await IdManager.make(this._queryRunner, exportResults.getTableWithEntities())
-        const mapper: ImportMapping = new ImportMapping(idManager, exportResults);
         const result: ExporterResult = new ExporterResult();
 
         const data: ExporterResultData = exportResults.getAll();
         
         for(let tableName in data) {
             const entityName: string = data[tableName].entity;
-            const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(mapper, this._queryRunner);
+            const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this._queryRunner);
             const terraformedData: Array<object> = await terraformer.terraform(tableName, entityName, data[tableName].data);
             result.addTableData(tableName, entityName, terraformedData);
         }
