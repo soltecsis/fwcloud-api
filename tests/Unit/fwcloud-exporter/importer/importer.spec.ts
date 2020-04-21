@@ -41,7 +41,7 @@ describe(describeName('Importer tests'), () => {
     });
 
     describe('import()', () => {
-        it('import should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
+        it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
             const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
                 name: 'test'
             }));
@@ -66,7 +66,7 @@ describe(describeName('Importer tests'), () => {
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString())));
         });
 
-        it('import should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
+        it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
             const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
                 name: 'test'
             }));

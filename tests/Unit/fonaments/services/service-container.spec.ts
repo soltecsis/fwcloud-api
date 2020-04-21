@@ -27,68 +27,76 @@ import { Service } from "../../../../src/fonaments/services/service";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { testSuite, expect, describeName } from "../../../mocha/global-setup";
 
-let app: Application; 
-before(async() => {
+let app: Application;
+before(async () => {
     app = testSuite.app;
 });
 
-class TestService extends Service { 
+class TestService extends Service {
     public tag: string;
 }
 
 describe(describeName('Service container tests'), () => {
-    it('bind a service should include a service reference into the services array', async() => {
-        const sc = new ServiceContainer(app)
+    describe('bind()', () => {
 
-        sc.bind(TestService.name, null);
+        it('should include a service reference into the services array', async () => {
+            const sc = new ServiceContainer(app)
 
-        expect(sc.services).to.be.deep.equal([
-            {
-                singleton: false,
-                name: 'TestService',
-                target: null,
-                instance: null
-            }
-        ])
+            sc.bind(TestService.name, null);
+
+            expect(sc.services).to.be.deep.equal([
+                {
+                    singleton: false,
+                    name: 'TestService',
+                    target: null,
+                    instance: null
+                }
+            ])
+        });
     });
 
-    it('singleton a service should include a service reference with an instance', async() => {
-        const sc = new ServiceContainer(app);
-        sc.singleton<TestService>(TestService.name, async (app: AbstractApplication) => {
-            return await TestService.make(app)
+    describe('singleton()', () => {
+
+        it('should include a service reference with an instance', async () => {
+            const sc = new ServiceContainer(app);
+            sc.singleton<TestService>(TestService.name, async (app: AbstractApplication) => {
+                return await TestService.make(app)
+            });
+
+            expect(await sc.get<TestService>('TestService')).to.be.deep.equal(await TestService.make(app));
+        });
+    });
+
+    describe('get()', () => {
+        it('should return an instance of the service if the service has been registered using bind', async () => {
+            const sc = new ServiceContainer(app);
+            sc.bind(TestService.name, async (app: AbstractApplication) => await TestService.make(app));
+
+            expect(await sc.get(TestService.name)).to.be.deep.equal(await TestService.make(app));
         });
 
-        expect(await sc.get<TestService>('TestService')).to.be.deep.equal(await TestService.make(app));
-    });
+        it('should return the instance of the service if the service has been registered using singleton', async () => {
+            const sc = new ServiceContainer(app);
 
-    it('get a bound service should return an instance of the service', async() => {
-        const sc = new ServiceContainer(app);
-        sc.bind(TestService.name, async (app: AbstractApplication) => await TestService.make(app));
+            sc.singleton(TestService.name, async (app: AbstractApplication) => {
+                const c: TestService = await TestService.make(app);
+                c.tag = randomString(10);
+                return c;
+            });
 
-        expect(await sc.get(TestService.name)).to.be.deep.equal(await TestService.make(app));
-    });
-
-    it('get a singleton service should return the instance of the service', async () => {
-        const sc = new ServiceContainer(app);
-        
-        sc.singleton(TestService.name, async (app: AbstractApplication) => {
-            const c: TestService = await TestService.make(app);
-            c.tag = randomString(10);
-            return c;
+            expect((await sc.get<TestService>(TestService.name)).tag).to.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
         });
 
-        expect((await sc.get<TestService>(TestService.name)).tag).to.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
-    });
+        it('should return a new instance of the service if the service is not singleton', async () => {
+            const sc = new ServiceContainer(app);
 
-    it('get a non singleton service should return a new instance of the service', async () => {
-        const sc = new ServiceContainer(app);
-        
-        sc.bind(TestService.name, async (app: AbstractApplication) => {
-            const c: TestService = await TestService.make(app);
-            c.tag = randomString(10);
-            return c;
+            sc.bind(TestService.name, async (app: AbstractApplication) => {
+                const c: TestService = await TestService.make(app);
+                c.tag = randomString(10);
+                return c;
+            });
+
+            expect((await sc.get<TestService>(TestService.name)).tag).not.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
         });
-
-        expect((await sc.get<TestService>(TestService.name)).tag).not.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
     });
 });

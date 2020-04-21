@@ -39,7 +39,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         fse.copyFileSync(path.join(app.path, '.env.example'), path.join(app.path, testEnvPath));
     });
 
-    it('GenerateKeyCommand should trow an exception is .env file does not exists', async () => {
+    it('should trow an exception is .env file does not exists', async () => {
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value('tests/playground/env_invent');
 
         await expect(new KeysGenerateCommand().handler({
@@ -48,7 +48,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         })).to.eventually.be.rejectedWith(Error);
     });
 
-    it('GenerateKeyCommand should generate a SESSION_SECRET random key in the .env file', async() => {
+    it('should generate a SESSION_SECRET random key in the .env file', async() => {
         const stubMethod = sinon.stub(KeysGenerateCommand, <any> 'generateRandomString').returns("key");
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
 
@@ -66,7 +66,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         stubVar.restore();
     });
 
-    it('GenerateKeyCommand should not consider blank spaces', async() => {
+    it('should not consider blank spaces', async() => {
         let envData: string = await fse.readFileSync(testEnvPath).toString()
         envData = envData.replace(new RegExp('^SESSION_SECRET=(.)*\n', 'm'), `SESSION_SECRET   =\n`);
         fse.writeFileSync(testEnvPath, envData);
@@ -88,7 +88,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         stubVar.restore();
     });
 
-    it('GenerateKeyCommand should generate a CRYPT_SECRET random key in the .env file', async() => {
+    it('should generate a CRYPT_SECRET random key in the .env file', async() => {
         const stubMethod = sinon.stub(KeysGenerateCommand, <any> 'generateRandomString').returns("key");
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
 
@@ -105,7 +105,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         stubVar.restore();
     });
 
-    it('GenerateKeyCommand should overwrite SESSION_SECRET if is defined', async () => {
+    it('should overwrite SESSION_SECRET if is defined', async () => {
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
         let envData: string = await fse.readFileSync(testEnvPath).toString()
         envData = envData.replace(new RegExp('^SESSION_SECRET=(.)*\n', 'm'), `SESSION_SECRET=test\n`);
@@ -122,7 +122,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         stubVar.restore()
     });
 
-    it('GenerateKeyCommand should overwrite CRYPT_SECRET if is defined', async () => {
+    it('should overwrite CRYPT_SECRET if is defined', async () => {
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
         let envData: string = await fse.readFileSync(testEnvPath).toString()
         envData = envData.replace(new RegExp('^CRYPT_SECRET=(.)*\n', 'm'), `CRYPT_SECRET=test\n`);

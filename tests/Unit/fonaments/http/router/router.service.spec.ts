@@ -44,7 +44,7 @@ class RouteDefinitionTest extends RouteCollection {
 let service: RouterService;
 let routeGet: Route
 
-describe(describeName('Router Service tests'), () => {
+describe(describeName('RouterService Unit tests'), () => {
     beforeEach(async() => {
         service = await RouterService.make(testSuite.app);
         service.registerRoutes(RouteDefinitionTest);
@@ -57,7 +57,9 @@ describe(describeName('Router Service tests'), () => {
     });
 
 
-    it('getRouteByName should return a route by its name', async() => {
-        expect(service.findRouteByName('test.show')).to.be.deep.equal(routeGet);
+    describe('getRouteByName()', () => {
+        it('should return a route by its name', async() => {
+            expect(service.findRouteByName('test.show')).to.be.deep.equal(routeGet);
+        });
     });
 })

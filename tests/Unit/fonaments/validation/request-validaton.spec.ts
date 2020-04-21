@@ -32,9 +32,9 @@ import { testSuite } from "../../../mocha/global-setup";
 import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
 
 
-let app: Application; 
+let app: Application;
 
-beforeEach(async() => {
+beforeEach(async () => {
     app = testSuite.app;
 });
 
@@ -46,28 +46,30 @@ class RequestValidationTest extends RequestValidation {
     }
 }
 
-describe(describeName('Request tests'), () => {
-    it('should return an exception if a validation rule fails', async() => {
-        const iv = new RequestValidationTest({
-            inputs: new RequestInputs({} as Request)
-        } as Request);
+describe(describeName('RequestValidation Unit tests'), () => {
+    describe('validate()', () => {
+        it('should return an exception if a validation rule fails', async () => {
+            const iv = new RequestValidationTest({
+                inputs: new RequestInputs({} as Request)
+            } as Request);
 
-        let t = async () => {
-            return await iv.validate();
-        }
+            let t = async () => {
+                return await iv.validate();
+            }
 
-        await expect(t()).to.eventually.be.rejectedWith(Error);
-    });
+            await expect(t()).to.eventually.be.rejectedWith(Error);
+        });
 
-    it('should not return an exception if all validation rule works', async() => {
-        const iv = new RequestValidationTest({
-            inputs: new RequestInputs({
-                body: {
-                    test: 'test'
-                }
-            } as Request)
-        } as Request);
+        it('should not return an exception if all validation rule works', async () => {
+            const iv = new RequestValidationTest({
+                inputs: new RequestInputs({
+                    body: {
+                        test: 'test'
+                    }
+                } as Request)
+            } as Request);
 
-        iv.validate().should.not.be.rejected;
+            iv.validate().should.not.be.rejected;
+        });
     });
 });
