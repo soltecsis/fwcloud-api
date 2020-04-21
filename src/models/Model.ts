@@ -24,11 +24,12 @@ import { DeepPartial, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import ObjectHelpers from "../utils/object-helpers";
+import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
+import { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
+import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 
 export interface IModel {
     getTableName(): string;
-    getEntityColumns(): Array<ColumnMetadataArgs>;
-    getEntityRelations(): Array<RelationMetadataArgs>;
 }
 
 export interface ToJSONOptions {
@@ -46,9 +47,34 @@ export default abstract class Model implements IModel {
         return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
     }
 
+    public static _getTableName(): string {
+        const sampleInstance: Model = new (<any>this);
+        return sampleInstance.getTableName();
+    }
+
+    /**
+     * Returns the model class definition for the given tableName and entityName
+     * 
+     * @param tableName 
+     * @param entityName 
+     */
+    public static getEntitiyDefinition(tableName: string, entityName: string): typeof Model {
+        const matches: Array<TableMetadataArgs> = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
+            const target = <any>item.target;
+            return tableName === item.name && entityName === target.name;
+        });
+
+        return matches.length > 0 ? <any>matches[0].target : null;
+    }
+
+    /**
+     * Export all database columns as JSON
+     * 
+     * @param options 
+     */
     public toJSON<T>(options: ToJSONOptions = defaultToJSONOptions): DeepPartial<T> {
         const result = {};
-        const propertyReferences: Array<ColumnMetadataArgs> = this.getEntityColumns();
+        const propertyReferences: Array<ColumnMetadataArgs> = (<typeof Model>(<any>this.constructor)).getEntityColumns();
 
         options = <ToJSONOptions>ObjectHelpers.merge(defaultToJSONOptions, options);
 
@@ -67,23 +93,177 @@ export default abstract class Model implements IModel {
         return result;
     }
 
-    public getEntityColumns(): Array<ColumnMetadataArgs> {
+    /**
+     * Returns model properties which are Column
+     */
+    public static getEntityColumns(): Array<ColumnMetadataArgs> {
         return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
-            return column.target === this.constructor;
+            return column.target === this;
         })
     }
 
-    public getEntityRelations(): Array<RelationMetadataArgs> {
+    /**
+     * Returns model relations
+     */
+    public static getEntityRelations(): Array<RelationMetadataArgs> {
         return getMetadataArgsStorage().relations.filter((relation: RelationMetadataArgs) => {
             const type = <any>relation.type;
-            return relation.target === this.constructor || type().constructor === this.constructor;
+            return relation.target === this || type().constructor === this;
         })
     }
 
-    public getPrimaryKeys(): Array<ColumnMetadataArgs> {
+    /**
+     * Returns model primary keys
+     */
+    public static getPrimaryKeys(): Array<ColumnMetadataArgs> {
         return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
-            return column.target === this.constructor && column.options.primary === true;
+            return column.target === this && column.options.primary === true;
         })
+    }
+
+    /**
+     * Returns whether a propertyName is a primary key
+     * 
+     * @param propertyName 
+     */
+    public static isPrimaryKey(propertyName: string): boolean {
+        return this.getPrimaryKeys().filter((item: ColumnMetadataArgs) => {
+            return item.propertyName === propertyName;
+        }).length > 0;
+    }
+
+    /**
+     * Returns model join columns
+     */
+    public static getJoinColumns(): Array<JoinColumnMetadataArgs> {
+        return getMetadataArgsStorage().joinColumns.filter((item: JoinColumnMetadataArgs) => {
+            return item.target === this;
+        });
+    }
+
+    public static getJoinTables(): Array<JoinTableMetadataArgs> {
+        return getMetadataArgsStorage().joinTables.filter((item: JoinTableMetadataArgs) => {
+            return item.target === this;
+        });
+    }
+
+    /**
+     * Returns whether the property is the join column (relationName property)
+     * 
+     * @param propertyName 
+     */
+    public static isJoinColumn(propertyName: string): boolean {
+        return this.getJoinColumns().filter((item: JoinColumnMetadataArgs) => {
+            return item.propertyName === propertyName;
+        }).length > 0;
+    }
+
+    /**
+     * Returns whether a model property is a join table
+     * @param propertyName 
+     */
+    public static isJoinTable(propertyName: string): boolean {
+        return this.getJoinTables().filter((item: JoinTableMetadataArgs) => {
+            return item.propertyName === propertyName;
+        }).length > 0;
+    }
+
+    /**
+     * Returns whether the property is the property which references to other table (usually relationNameId properties)
+     * @param propertyName 
+     */
+    public static isForeignKey(propertyName: string): boolean {
+        //First get the column metadata argument of the propertyName
+        const columnMetadatas: Array<ColumnMetadataArgs> = this.getEntityColumns().filter((item: ColumnMetadataArgs) => {
+            return item.propertyName === propertyName || (item.options.name ? item.options.name === propertyName : false)
+        });
+
+        if (columnMetadatas.length === 0) {
+            return false;
+        }
+
+        if (columnMetadatas.length > 1) {
+            throw new Error('Unexpected metadata length');
+        }
+
+        return this.getJoinColumns().filter((item: JoinColumnMetadataArgs) => {
+            return item.name === (columnMetadatas[0].options.name ? columnMetadatas[0].options.name: columnMetadatas[0].propertyName);
+        }).length > 0;
+    }
+
+    /**
+     * Returns the column name of a property name which has Column annotation
+     * @param propertyName 
+     */
+    public static getOriginalColumnName(propertyName: string): string {
+        const matchingColumns: Array<ColumnMetadataArgs> = this.getEntityColumns().filter((item: ColumnMetadataArgs) => {
+            return item.propertyName === propertyName || (item.options.name ? item.options.name === propertyName : false);
+        });
+
+        if (matchingColumns.length > 1) {
+            throw new Error('Unexpected metadata length');
+        }
+
+        if (matchingColumns.length === 0) {
+            return null;
+        }
+
+        return matchingColumns[0].options.name ? matchingColumns[0].options.name : matchingColumns[0].propertyName;
+    }
+
+    /**
+     * Returns the relation from a property which is ForeignKey (usually relationNameId)
+     * @param propertyName 
+     */
+    public static getRelationFromPropertyName(propertyName: string): RelationMetadataArgs {
+        if (this.isForeignKey(propertyName)) {
+            return this.getRelationFromForeignKey(propertyName);
+        }
+
+        if (this.isJoinTable(propertyName)) {
+            return this.getRelationFromJoinTable(propertyName);
+        }
+    }
+
+    /**
+     * Returns the relation which references the foreign key propertyName
+     * 
+     * @param propertyName 
+     */
+    protected static getRelationFromForeignKey(propertyName: string): RelationMetadataArgs {
+        const originalColumName: string = this.getOriginalColumnName(propertyName);
+
+        const joinColumns: Array<JoinColumnMetadataArgs> = this.getJoinColumns().filter((item: JoinColumnMetadataArgs) => {
+            return item.name === originalColumName
+        });
+
+        if (joinColumns.length === 1 ) {
+            const matchRelations = this.getEntityRelations().filter((item: RelationMetadataArgs) => {
+                return item.propertyName === joinColumns[0].propertyName;
+            });
+
+            if (joinColumns.length === 1) {
+                return matchRelations[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the relation which references the join table propertyName
+     * @param propertyName 
+     */
+    protected static getRelationFromJoinTable(propertyName: string): RelationMetadataArgs {
+        const relations: Array<RelationMetadataArgs> = this.getEntityRelations().filter((item: RelationMetadataArgs) => {
+            return item.propertyName === propertyName
+        });
+
+        if (relations.length !== 1) {
+            throw new Error('Unexpected metadata length');
+        }
+
+        return relations[0];
     }
 
     public async onCreate(): Promise<void> { }

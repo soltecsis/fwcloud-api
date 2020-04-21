@@ -35,6 +35,7 @@ import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRule } from "../../policy/PolicyRule";
 const sshTools = require('../../../utils/ssh');
 import { SocketTools } from '../../../utils/socket';
+import { OpenVPNPrefix } from "./OpenVPNPrefix";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -121,6 +122,9 @@ export class OpenVPN extends Model {
 
     @OneToMany(type => PolicyRuleToOpenVPN, policyRuleToOpenVPN => policyRuleToOpenVPN.openVPN)
     policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
+
+    @OneToMany(type => OpenVPNPrefix, model => model.openVPN)
+    openVPNPrefixes: Array<OpenVPNPrefix>;
 
 
     public getTableName(): string {

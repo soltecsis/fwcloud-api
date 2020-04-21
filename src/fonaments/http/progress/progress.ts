@@ -67,18 +67,20 @@ export class Progress<T> {
             this.emitExternalEvent('start', this._state);
             
             task.run().then(() => {
-                this.emitExternalEvent('message', this._state.updateState(finishedText, 200, false));
-                this.emitExternalEvent('end', this._state.updateState(finishedText, 200, true));
+                const message = this._state.updateState(finishedText, 200, false);
+                this.emitExternalEvent('message', message);
+                this.emitExternalEvent('end', message);
                 return resolve();
             }).catch((e) => {
                 this.emitExternalEvent('message', this._state.updateState('Error', 500, false));
+                this.emitExternalEvent('error', e);
                 this._failed = true;
-                return resolve();
+                return reject(e);
             });
         });
     }
 
-    protected emitExternalEvent(event: 'start' | 'message' | 'end', data: object): boolean {
+    protected emitExternalEvent(event: 'start' | 'message' | 'end' | 'error', data: object): boolean {
         if (!this._failed) {
             return this._externalEvents.emit(event, data);
         }
@@ -86,7 +88,7 @@ export class Progress<T> {
         return false;
     }
 
-    public on(event: "message" | "end", listener: (...args: any[]) => void): this {
+    public on(event: "message" | "end" | "error", listener: (...args: any[]) => void): this {
         this._externalEvents.on(event, listener);
         return this;
     }

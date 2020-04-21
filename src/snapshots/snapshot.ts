@@ -31,24 +31,25 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
 import { SnapshotData } from "./snapshot-data";
-import { Exporter } from "./exporter/exporter";
+import { Exporter } from "../fwcloud-exporter/exporter/exporter";
 import { Progress } from "../fonaments/http/progress/progress";
-import { BulkDatabaseOperations } from "./bulk-database-operations";
+import { BulkDatabaseDelete } from "./bulk-database-delete";
 import { DatabaseService } from "../database/database.service";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { SnapshotRepair } from "./repair";
 import { Task } from "../fonaments/http/progress/task";
-import { TableExporterResults } from "./exporter/table-exporter";
 import * as semver from "semver";
+import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
+import { Importer } from "../fwcloud-exporter/importer/importer";
+import { SnapshotService } from "./snapshot.service";
+import { BackupService } from "../backups/backup.service";
 
 export type SnapshotMetadata = {
     timestamp: number,
     name: string,
     comment: string,
     version: string,
-    fwcloud_id: number,
     schema: string
 };
 
@@ -57,8 +58,10 @@ export class Snapshot implements Responsable {
     static METADATA_FILENAME = 'snapshot.json';
     static DATA_FILENAME = 'data.json';
     static DEPENDENCY_FILENAME = 'dep.json';
-    static PKI_DIRECTORY = path.join('_data', 'pki');
-    static POLICY_DIRECTORY = path.join('_data', 'policy');
+    
+    static DATA_DIRECTORY = '_data';
+    static PKI_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'pki');
+    static POLICY_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'policy');
 
     protected _id: number;
     protected _date: Moment;
@@ -75,6 +78,8 @@ export class Snapshot implements Responsable {
     protected _data: SnapshotData;
 
     protected _compatible: boolean;
+
+    protected _restoredFwCloud: FwCloud;
 
     protected constructor() {
         this._id = null;
@@ -170,8 +175,12 @@ export class Snapshot implements Responsable {
 
         return new Promise<Snapshot>((resolve, reject) => {
             progress.on('end', (_) => {
-                resolve(progress.response);
+                return resolve(progress.response);
             });
+
+            progress.on('error', (e) => {
+                return reject(e);
+            })
         });
     }
 
@@ -186,11 +195,23 @@ export class Snapshot implements Responsable {
         }
 
         progress.procedure('Restoring snapshot', (task: Task) => {
-            task.addTask(() => { return this.removeDatabaseData(); }, 'FwCloud removed');
-            task.addTask(() => { return this.restoreDatabaseData(); }, 'FwCloud restored');
+            task.addTask(async () => {
+                return new Promise<void>(async (resolve, reject) => {
+                    const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
+                    backupService.create('Before snapshot (' + this.id + ') creation (beta)').on('end', () => {
+                        return resolve();
+                    });
+                }); 
+            }, 'Backup created (only on beta)')
+            task.addTask(() => { 
+                return this.restoreDatabaseData(); 
+            }, 'FwCloud restored from snapshot');
+            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
             task.parallel((task: Task) => {
-                task.addTask(() => { return this.resetCompiledStatus(); }, 'FwCloud reset');
-                task.addTask(() => { return this.repair(); }, 'FwCloud repaired');
+                task.addTask(() => { return this.resetCompiledStatus(); }, 'Firewalls compilation flags reset');
+                task.addTask(() => { 
+                    return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
+                }, 'Snapshots migrated');
             });
         }, 'FwCloud snapshot restored');
 
@@ -205,7 +226,8 @@ export class Snapshot implements Responsable {
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
         const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
-
+        const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
+        
         const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
 
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
@@ -216,7 +238,7 @@ export class Snapshot implements Responsable {
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwCloud = await repository.for(FwCloud).findOne(snapshotMetadata.fwcloud_id);
+        this._fwCloud = await repository.for(FwCloud).findOne(fwCloudId);
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
@@ -311,14 +333,26 @@ export class Snapshot implements Responsable {
     protected async removeDatabaseData(): Promise<void> {
         const data: SnapshotData = await this.getFwCloudJSONData();
 
-        return new BulkDatabaseOperations(data, 'delete').run();
+        return new BulkDatabaseDelete(data).run();
     }
 
     /**
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(): Promise<void> {
-        return new BulkDatabaseOperations(this._data, 'insert').run();
+        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
+        const importer: Importer = new Importer();
+        
+        const fwCloud: FwCloud = await importer.import(this.path);
+
+        const oldFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(this.fwCloud.id, {relations: ['users']});
+
+        fwCloud.users = oldFwCloud.users;
+        await repositoryService.for(FwCloud).save(fwCloud);
+        oldFwCloud.users = [];
+        await repositoryService.for(FwCloud).save(oldFwCloud);
+
+        this._restoredFwCloud = fwCloud;
     }
 
     /**
@@ -327,7 +361,7 @@ export class Snapshot implements Responsable {
     protected async getFwCloudJSONData(): Promise<SnapshotData> {
         const result = new SnapshotData();
 
-        const data: TableExporterResults = await new Exporter().export(this.fwCloud.id);
+        const data: ExporterResultData = (await new Exporter().export(this.fwCloud.id)).getAll();
         
         return result.addResults(data);
     }
@@ -355,9 +389,7 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            schema: this._schema,
-            fwcloud_id: this._fwCloud.id,
-
+            schema: this._schema
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
@@ -367,6 +399,7 @@ export class Snapshot implements Responsable {
      * Copy all FwCloud DATA directory into the snapshot
      */
     protected async copyFwCloudDataDirectories(): Promise<void> {
+        await FSHelper.mkdirSync(path.join(this._path, Snapshot.DATA_DIRECTORY));
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPkiDirectoryPath(), path.join(this._path, Snapshot.PKI_DIRECTORY));
         await FSHelper.copyDirectoryIfExists(this.fwCloud.getPolicyDirectoryPath(), path.join(this._path, Snapshot.POLICY_DIRECTORY));
     }
@@ -404,7 +437,7 @@ export class Snapshot implements Responsable {
     protected async resetCompiledStatus(): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
             const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this.fwCloud.id, { relations: ['clusters', 'firewalls'] });
+            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this._restoredFwCloud.id, { relations: ['clusters', 'firewalls'] });
 
             await (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
 
@@ -418,12 +451,18 @@ export class Snapshot implements Responsable {
     protected async repair(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                await SnapshotRepair.repair(this.fwCloud);
+                //await SnapshotRepair.repair(this._restoredFwCloud);
             } catch (e) { }
             finally {
                 resolve();
             }
         });
+    }
+
+    protected async migrateSnapshots(oldFwCloud: FwCloud, newFwCloud: FwCloud): Promise<void> {
+        const snapshotDirectory: string = (await app().getService<SnapshotService>(SnapshotService.name)).config.data_dir;
+
+        return FSHelper.moveDirectory(path.join(snapshotDirectory, oldFwCloud.id.toString()), path.join(snapshotDirectory, newFwCloud.id.toString()));
     }
 
     toResponse(): object {

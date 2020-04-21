@@ -20,44 +20,76 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/snapshots/import-mapping";
+import { describeName, expect, testSuite } from "../../mocha/global-setup";
+import { ImportMapping } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/import-mapping";
+import { IdManager } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
+import { DatabaseService } from "../../../src/database/database.service";
+import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
 
 let mapper: ImportMapping;
+let databaseService: DatabaseService;
 
 describe(describeName('Import mapping tests'), () => {
-    beforeEach(() => {
-        mapper = new ImportMapping();
+    
+    beforeEach(async() => {
+        databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     });
 
-    it('newItem should add a id mapping', () => {
-        const old_id: number = 0;
-        const new_id: number = 1;
+    it('ImportMapping.newId() should map the old id with a new id', async () => {
+        const results: ExporterResult = new ExporterResult();
+        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
+        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+            {tableName: 'fwcloud', entityName: 'FwCloud'}
+        ]), results);
 
-        mapper.newItem("FwCloud", {id: {old: 0, new: 1}});
+        const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
 
+        expect(newId).to.be.deep.eq(1);
         expect(mapper.maps).to.be.deep.eq({
-            FwCloud: {
-                id: [{old: 0, new: 1}]
+            'fwcloud': {
+                'id': [{
+                    old: 0,
+                    new: 1
+                }]
             }
         })
     });
 
-    it('newItem should overwrite if the id is already mapped', () => {
-        mapper.newItem("FwCloud", {id: {old: 0, new: 1}});
-        mapper.newItem("FwCloud", {id: {old: 0, new: 3}});
+    it('ImportMapping.newId() should not map a new id if the id is not exported', async () => {
+        const results: ExporterResult = new ExporterResult();
+        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
+        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+            {tableName: 'fwcloud', entityName: 'FwCloud'}
+        ]), results);
 
+        const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
+
+        expect(newId).to.be.deep.eq(1);
         expect(mapper.maps).to.be.deep.eq({
-            FwCloud: {
-                id: [{old: 0, new: 3}]
+            'fwcloud': {
+                'id': [{
+                    old: 1,
+                    new: 1
+                }]
             }
-        });
+        })
     });
 
-    it('findItem should returns the mapped id', () => {
-        mapper.newItem("FwCloud", {id: {old: 0, new: 3}});
+    it('ImportMapping.newId() should not map a new id if the table is not exported', async () => {
+        const results: ExporterResult = new ExporterResult();
+        
+        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), []), results);
 
-        expect(mapper.findItem("FwCloud", "id", {old: 0}).new).to.be.deep.equal(3);
-        expect(mapper.findItem("FwCloud", "id", {new: 3}).old).to.be.deep.equal(0);
+        const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
+
+        expect(newId).to.be.deep.eq(1);
+        expect(mapper.maps).to.be.deep.eq({
+            'fwcloud': {
+                'id': [{
+                    old: 1,
+                    new: 1
+                }]
+            }
+        })
     });
 });
