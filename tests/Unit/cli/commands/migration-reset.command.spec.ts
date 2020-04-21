@@ -36,7 +36,7 @@ describe(describeName('MigrationResetCommand tests'), () => {
         queryRunner = connection.createQueryRunner();
     });
 
-    it('reset should reset the database', async() => {
+    it('should reset the database', async() => {
         expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
         expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
 

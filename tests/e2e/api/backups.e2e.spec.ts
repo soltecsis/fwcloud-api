@@ -55,9 +55,9 @@ describe(describeName('Backup E2E tests'), () => {
 
     });
 
-    describe('BackupController E2E tests', () => {
+    describe('BackupController', () => {
 
-        describe(describeName('BackupController@index'), () => {
+        describe('BackupController@index', () => {
 
             it('guest user should not see the backup index', async () => {
                 return await request(app.express)
@@ -90,7 +90,7 @@ describe(describeName('Backup E2E tests'), () => {
             });
         });
 
-        describe(describeName('BackupController@show'), () => {
+        describe('BackupController@show', () => {
 
             it('guest user should not see a backup', async () => {
                 const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
@@ -132,7 +132,8 @@ describe(describeName('Backup E2E tests'), () => {
             });
         });
 
-        describe(describeName('BackupController@store'), async () => {
+        describe('BackupController@store', async () => {
+
             it('guest user should not create a backup', async () => {
                 await request(app.express)
                     .post(_URL().getURL('backups.store'))
@@ -165,7 +166,7 @@ describe(describeName('Backup E2E tests'), () => {
             });
         });
 
-        describe(describeName('BackupController@destroy'), async () => {
+        describe('BackupController@destroy', async () => {
             let backup: Backup;
 
             beforeEach(async() => {
@@ -206,9 +207,10 @@ describe(describeName('Backup E2E tests'), () => {
         
     })
 
-    describe(describeName('BackupConfigController E2E tests'), () => {
+    describe('BackupConfigController', () => {
 
-        describe(describeName('BackupConfigController@show'), async () => {
+        describe('BackupConfigController@show', async () => {
+
             it('guest user should not see backup config', async () => {
                 await request(app.express)
                     .get(_URL().getURL('backups.config.show'))
@@ -237,7 +239,8 @@ describe(describeName('Backup E2E tests'), () => {
             });
         });
 
-        describe(describeName('BackupConfigController@update'), async () => {
+        describe('BackupConfigController@update', async () => {
+
             it('guest user should not update backup config', async () => {
                 await request(app.express)
                     .put(_URL().getURL('backups.config.update'))

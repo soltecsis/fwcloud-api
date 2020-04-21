@@ -20,42 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
+import { describeName, testSuite } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
-import sinon from "sinon";
-import { CORS } from "../../../src/middleware/cors.middleware";
-import fwcError from '../../../src/utils/error_table';
 
 let app: Application;
-describe(describeName('CORS middleware test'), () => {
+
+describe(describeName('MaintenanceMiddleware E2E test'), () => {
     beforeEach(async () => {
         app = testSuite.app;
     });
 
-    it('should return 400 when request is rejected by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
-        
+    it('should return 503 if the application is in maintenance mode', async() => {
+        app.config.set('maintenance_mode', true);
 
         await request(app.express)
             .post(_URL().getURL('versions.show'))
-            .expect(400)
-            .expect((response) => {
-                expect(response.body.msg).to.be.deep.eq(fwcError.NOT_ALLOWED_CORS.msg)
-            });
-
-        stub.restore();
-    });
-
-    it('should not return 400 when request is allowed by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
-        
-
-        await request(app.express)
-            .post(_URL().getURL('versions.show'))
-            .expect(401);
-
-        stub.restore();
+            .expect(503)
     });
 })

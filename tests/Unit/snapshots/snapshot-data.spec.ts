@@ -20,18 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { SnapshotData } from "../../../src/snapshots/snapshot-data";
+import { describeName, testSuite } from "../../mocha/global-setup";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { Application } from "../../../src/Application";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { DeepPartial } from "typeorm";
-import { Ca } from "../../../src/models/vpn/pki/Ca";
 
 let app: Application;
 let repositoryService: RepositoryService;
 
-describe(describeName('Snapshot data tests'), () => {
+describe.skip(describeName('Snapshot data tests'), () => {
     beforeEach(async() => {
         app = testSuite.app;
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);

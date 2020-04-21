@@ -30,7 +30,7 @@ import { URLHelper } from "../../../../../src/fonaments/http/router/url-helper";
 
 
 class TestController extends Controller {
-    public async test(request: Request) {}
+    public async test(request: Request) { }
 }
 
 class RouteDefinitionTest extends RouteCollection {
@@ -47,12 +47,12 @@ let routeGet: Route
 let routing: URLHelper;
 
 describe(describeName('URL tests'), () => {
-    beforeEach(async() => {
+    beforeEach(async () => {
         service = await RouterService.make(testSuite.app);
         service.registerRoutes(RouteDefinitionTest);
 
         routeGet = new Route();
-        routeGet.setControllerHandler({controller: TestController, method: 'test'})
+        routeGet.setControllerHandler({ controller: TestController, method: 'test' })
             .setHttpMethod('GET')
             .setName('test.show')
             .setPathParams('/test/get');
@@ -61,7 +61,10 @@ describe(describeName('URL tests'), () => {
     });
 
 
-    it('getRouteByName should return a route by its name', async() => {
-        expect(routing.getURL('test.show')).to.be.deep.eq('/test/get');
+    describe('getRouteByName()', () => {
+
+        it('should return a route by its name', async () => {
+            expect(routing.getURL('test.show')).to.be.deep.eq('/test/get');
+        });
     });
 });

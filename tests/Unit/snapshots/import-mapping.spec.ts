@@ -30,66 +30,69 @@ let mapper: ImportMapping;
 let databaseService: DatabaseService;
 
 describe(describeName('Import mapping tests'), () => {
-    
-    beforeEach(async() => {
+
+    beforeEach(async () => {
         databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     });
 
-    it('ImportMapping.newId() should map the old id with a new id', async () => {
-        const results: ExporterResult = new ExporterResult();
-        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
-        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
-            {tableName: 'fwcloud', entityName: 'FwCloud'}
-        ]), results);
+    describe('newId()', () => {
 
-        const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
+        it('should map the old id with a new id', async () => {
+            const results: ExporterResult = new ExporterResult();
+            results.addTableData('fwcloud', 'FwCloud', [{ id: 0 }])
+            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+                { tableName: 'fwcloud', entityName: 'FwCloud' }
+            ]), results);
 
-        expect(newId).to.be.deep.eq(1);
-        expect(mapper.maps).to.be.deep.eq({
-            'fwcloud': {
-                'id': [{
-                    old: 0,
-                    new: 1
-                }]
-            }
-        })
-    });
+            const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
 
-    it('ImportMapping.newId() should not map a new id if the id is not exported', async () => {
-        const results: ExporterResult = new ExporterResult();
-        results.addTableData('fwcloud', 'FwCloud', [{id: 0}])
-        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
-            {tableName: 'fwcloud', entityName: 'FwCloud'}
-        ]), results);
+            expect(newId).to.be.deep.eq(1);
+            expect(mapper.maps).to.be.deep.eq({
+                'fwcloud': {
+                    'id': [{
+                        old: 0,
+                        new: 1
+                    }]
+                }
+            })
+        });
 
-        const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
+        it('should not map a new id if the id is not exported', async () => {
+            const results: ExporterResult = new ExporterResult();
+            results.addTableData('fwcloud', 'FwCloud', [{ id: 0 }])
+            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+                { tableName: 'fwcloud', entityName: 'FwCloud' }
+            ]), results);
 
-        expect(newId).to.be.deep.eq(1);
-        expect(mapper.maps).to.be.deep.eq({
-            'fwcloud': {
-                'id': [{
-                    old: 1,
-                    new: 1
-                }]
-            }
-        })
-    });
+            const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 
-    it('ImportMapping.newId() should not map a new id if the table is not exported', async () => {
-        const results: ExporterResult = new ExporterResult();
-        
-        const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), []), results);
+            expect(newId).to.be.deep.eq(1);
+            expect(mapper.maps).to.be.deep.eq({
+                'fwcloud': {
+                    'id': [{
+                        old: 1,
+                        new: 1
+                    }]
+                }
+            })
+        });
 
-        const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
+        it('should not map a new id if the table is not exported', async () => {
+            const results: ExporterResult = new ExporterResult();
 
-        expect(newId).to.be.deep.eq(1);
-        expect(mapper.maps).to.be.deep.eq({
-            'fwcloud': {
-                'id': [{
-                    old: 1,
-                    new: 1
-                }]
-            }
-        })
+            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), []), results);
+
+            const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
+
+            expect(newId).to.be.deep.eq(1);
+            expect(mapper.maps).to.be.deep.eq({
+                'fwcloud': {
+                    'id': [{
+                        old: 1,
+                        new: 1
+                    }]
+                }
+            })
+        });
     });
 });
