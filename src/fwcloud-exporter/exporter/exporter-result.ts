@@ -20,25 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SnapshotData } from "../../snapshots/snapshot-data";
-
 export type ExporterTableResult = { entity: string, data: Array<object> };
 export type ExporterResultData = { [tableName: string]: ExporterTableResult };
 
 export class ExporterResult {
     protected _results: ExporterResultData;
 
-    constructor() {
-        this._results = {};
+    constructor(results: ExporterResultData = {}) {
+        this._results = results
     }
 
     public getAll(): ExporterResultData {
         return this._results;
-    }
-
-    public fromSnapshotData(snapshotData: SnapshotData): this {
-        this._results = snapshotData.data;
-        return this;
     }
 
     public addTableData(tableName: string, entityName: string, data: Array<object>): this {
