@@ -194,6 +194,17 @@ describe(describeName('Snapshot Unit Tests'), () => {
             expect(await fwcloudRepository.findOne(fwCloud.id)).to.be.undefined;
         });
 
+        it('should remove the old fwcloud data directories', async () => {
+            const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
+            FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
+
+            await snaphost.restore();
+
+            expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be.false;
+            expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to.be.false;
+        })
+
         it('should throw an exception if the snapshot is not compatible', async () => {
             let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 

@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne, BeforeRemove } from "typeorm";
 import db from '../../database/database-manager';
 import * as path from "path";
 
@@ -35,6 +35,7 @@ import { Firewall } from "../firewall/Firewall";
 import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "../ipobj/IPObj";
 import { Mark } from "../ipobj/Mark";
+import { FSHelper } from "../../utils/fs-helper";
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -103,6 +104,12 @@ export class FwCloud extends Model {
 
     public getTableName(): string {
         return tableName;
+    }
+
+    @BeforeRemove()
+    public removeDataDirectories() {
+        FSHelper.rmDirectorySync(this.getPkiDirectoryPath());
+        FSHelper.rmDirectorySync(this.getPolicyDirectoryPath());
     }
 
     public getPkiDirectoryPath(): string {
