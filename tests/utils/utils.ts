@@ -22,7 +22,6 @@
 
 import { User } from "../../src/models/user/User";
 import * as path from 'path';
-import { AbstractApplication } from "../../src/fonaments/abstract-application";
 import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
@@ -30,29 +29,20 @@ import signature from "cookie-signature";
 import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
 import { testSuite } from "../mocha/global-setup";
-
-export function randomString(length: number = 10) {
-    var result = '';
-    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for (var i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-}
+import StringHelper from "../../src/utils/StringHelper";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;
     const repository: RepositoryService = await _app.getService<RepositoryService>(RepositoryService.name);
     
     const result: User = repository.for(User).create({
-        username: user.username ? user.username : randomString(10),
-        email: randomString(10) + '@fwcloud.test',
-        password: randomString(10),
+        username: user.username ? user.username : StringHelper.randomize(10),
+        email: StringHelper.randomize(10) + '@fwcloud.test',
+        password: StringHelper.randomize(10),
         customer: {id: 1},
         role: user.role ? user.role : 0,
         enabled: 1,
-        confirmation_token: randomString(10)
+        confirmation_token: StringHelper.randomize(10)
     });
 
     return await repository.for(User).save(result);
@@ -60,7 +50,7 @@ export async function createUser(user: DeepPartial<User>): Promise<User> {
 
 export function generateSession(user: User): string {
     const _app = testSuite.app;
-    const session_id: string = randomString(10);
+    const session_id: string = StringHelper.randomize(10);
     const session_path: string = path.join(_app.config.get('session').files_path, session_id + '.json');
 
     fs.writeFileSync(session_path, JSON.stringify({

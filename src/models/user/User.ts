@@ -129,30 +129,6 @@ export class User extends Model {
         });
     }
 
-
-
-    //Update user confirmation_token
-    public static async updateUserCT(iduser, token): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error)
-                    reject(error);
-                var sql = 'UPDATE user SET ' +
-                    ' confirmation_token =  ' + connection.escape(token) +
-                    ' WHERE id = ' + connection.escape(iduser);
-                connection.query(sql, (error, result) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(true);
-                    }
-                });
-            });
-        });
-    }
-
-
-
     //Add new customer
     public static insert(req) {
         return new Promise(async (resolve, reject) => {
