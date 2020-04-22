@@ -68,7 +68,7 @@ public static deleteFolderNode(fwcloud,id) {
 				if (error) return reject(error);
 				if (result.length!==1) return reject(fwcError.NOT_FOUND);
 				if (result[0].node_type!=='FD') return reject(fwcError.other('This node is not a folder'));
-				if (result[0].childs!==0) return reject(fwcError.other('This folder node is not empty')); 
+				if (parseInt(result[0].childs)!==0) return reject(fwcError.other('This folder node is not empty')); 
 
 				sql = 'DELETE FROM ' + tableName + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
 				connection.query(sql, (error, result) => {
