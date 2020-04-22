@@ -96,6 +96,7 @@ async (req, res) => {
 	try {
 		// Delete iptables mark.
 		await Mark.deleteMark(req.dbCon,req.body.mark);
+		await Tree.deleteObjFromTree(req.body.fwcloud,req.body.mark,30);
 
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
