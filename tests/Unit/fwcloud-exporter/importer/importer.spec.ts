@@ -63,7 +63,7 @@ describe(describeName('Importer tests'), () => {
             const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: 'test'});
             const newCA: Ca = await repositoryService.for(Ca).findOne({name: 'test', cn: 'test'});
 
-            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString())));
+            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()))).to.be.true;
         });
 
         it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
@@ -86,7 +86,7 @@ describe(describeName('Importer tests'), () => {
             const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: 'test'});
             const newFirewall: Firewall = await repositoryService.for(Firewall).findOne({name: 'test'});
 
-            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString())));
+            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()))).to.be.true;
         });
     });
 });

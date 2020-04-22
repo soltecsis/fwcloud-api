@@ -89,7 +89,7 @@ export class Importer {
             const directory: string = directories[i];
             const oldCaId: number = parseInt(PathHelper.directoryName(directory));
             const newCaId: number = mapper.getMappedId(Ca._getTableName(), Ca.getPrimaryKeys()[0].propertyName, oldCaId);
-            const importDirectory: string = path.join(path.join(app().config.get('policy').data_dir, fwCloud.id.toString(), newCaId.toString()));
+            const importDirectory: string = path.join(path.join(app().config.get('pki').data_dir, fwCloud.id.toString(), newCaId.toString()));
             await FSHelper.copyDirectory(directory, importDirectory);
         }
     }

@@ -63,6 +63,10 @@ export class FSHelper {
         return fse.remove(directoryPath);
     }
 
+    public static rmDirectorySync(directoryPath: string): void {
+        return fse.removeSync(directoryPath);
+    }
+
     public static async copyDirectory(source: string, destination: string): Promise<void> {
         return fse.copy(source, destination);
     }
