@@ -31,11 +31,11 @@ export default class StringHelper {
         let result = words.length >= 1 ? words.shift() : "";
 
         if (words.length > 0) {
-            words.forEach((element:string) => {
+            words.forEach((element: string) => {
                 result = result + StringHelper.capitalize(element);
             })
         }
-        
+
         return result;
     }
 
@@ -51,6 +51,16 @@ export default class StringHelper {
     public static after(pattern: string, text: string): string {
         const splitted: Array<string> = text.split(pattern);
 
-        return splitted[splitted.length -1];
+        return splitted[splitted.length - 1];
+    }
+
+    public static randomize(length: number = 50): string {
+        var result = '';
+        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var charactersLength = characters.length;
+        for (var i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
     }
 }

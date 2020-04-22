@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SnapshotData } from "./snapshot-data";
 import { DatabaseService } from "../database/database.service";
 import { app } from "../fonaments/abstract-application";
 import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult, Repository, EntityRepository } from "typeorm";
@@ -28,13 +27,14 @@ import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RepositoryService } from "../database/repository.service";
 import Model from "../models/Model";
+import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
 
 export class BulkDatabaseDelete {
-    protected _data: SnapshotData;
+    protected _data: ExporterResultData;
     protected _repositoryService: RepositoryService;
     protected _databaseService: DatabaseService;
 
-    constructor(data: SnapshotData) {
+    constructor(data: ExporterResultData) {
         this._data = data;
     }
 
@@ -49,9 +49,9 @@ export class BulkDatabaseDelete {
             try {
                 await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-                for (let table in this._data.data) {
-                    const entity: string = this._data.data[table].entity;
-                    const rows: Array<object> = this._data.data[table].data;
+                for (let table in this._data) {
+                    const entity: string = this._data[table].entity;
+                    const rows: Array<object> = this._data[table].data;
 
                     if (entity) {
                         await this.processEntityRows(qr, table, entity, rows);

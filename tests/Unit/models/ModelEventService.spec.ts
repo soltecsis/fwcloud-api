@@ -28,10 +28,10 @@ import { Application } from '../../../src/Application';
 import modelEventService from '../../../src/models/ModelEventService'
 import { FirewallTest } from './fixtures/FirewallTest';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
-import { randomString } from "../utils/../../utils/utils"
 import { testSuite, describeName } from "../../mocha/global-setup";
 import db from "../../../src/database/database-manager";
 import { RepositoryService } from '../../../src/database/repository.service';
+import StringHelper from '../../../src/utils/string.helper';
 
 let app: Application;
 let repository: RepositoryService;
@@ -43,7 +43,7 @@ beforeEach(async () => {
 
 describe(describeName('ModelEventService tests'), () => {
     it('emit model event with a callback should run the callback', async () => {
-        const name = randomString();
+        const name = StringHelper.randomize();
         const fwcloud = await FwCloud.insertFwcloud({
             body: {
                 name: name
@@ -56,7 +56,7 @@ describe(describeName('ModelEventService tests'), () => {
             fwcloud: fwcloud
         });
 
-        const newName = randomString();
+        const newName = StringHelper.randomize();
         await modelEventService.emit('create', Firewall, id, async () => {
             return await repository.for(Firewall).update(id, { name: newName });
         });
@@ -65,7 +65,7 @@ describe(describeName('ModelEventService tests'), () => {
     });
 
     it('emit model event over a model should run a model method if exists', async () => {
-        const name = randomString();
+        const name = StringHelper.randomize();
         let firewall = repository.for(FirewallTest).create({ name: name });
         firewall = await repository.for(FirewallTest).save(firewall);
 
@@ -75,7 +75,7 @@ describe(describeName('ModelEventService tests'), () => {
     });
 
     it('emit model event using where arguments should update the models with that where-clausules', async () => {
-        const name = randomString();
+        const name = StringHelper.randomize();
         let firewall = repository.for(FirewallTest).create({ name: name });
         firewall = await repository.for(FirewallTest).save(firewall);
 
@@ -85,7 +85,7 @@ describe(describeName('ModelEventService tests'), () => {
     });
 
     it('emit model event using a model instance should update the instanced model', async() => {
-        const name = randomString();
+        const name = StringHelper.randomize();
         let firewall = repository.for(FirewallTest).create({ name: name });
         firewall = await repository.for(FirewallTest).save(firewall);
 
@@ -99,8 +99,8 @@ describe(describeName('ModelEventService tests'), () => {
     });
 
     it('emit model event using an array of model instance should update all model instances', async() => {
-        let firewall = repository.for(FirewallTest).create({ name: randomString() });
-        let firewall2 = repository.for(FirewallTest).create({ name: randomString() });
+        let firewall = repository.for(FirewallTest).create({ name: StringHelper.randomize() });
+        let firewall2 = repository.for(FirewallTest).create({ name: StringHelper.randomize() });
         
         firewall = await repository.for(FirewallTest).save(firewall);
         firewall2 = await repository.for(FirewallTest).save(firewall2);

@@ -31,7 +31,7 @@ import mysqldump, { DumpReturn } from "mysqldump";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
-import StringHelper from "../utils/StringHelper";
+import StringHelper from "../utils/string.helper";
 import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";

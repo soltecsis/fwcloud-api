@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import StringHelper from '../../../src/utils/StringHelper';
+import StringHelper from '../../../src/utils/string.helper';
 import { expect, describeName } from '../../mocha/global-setup';
 
 describe(describeName('StringHelper Unit Tests'), () => {
@@ -43,4 +43,14 @@ describe(describeName('StringHelper Unit Tests'), () => {
             expect(StringHelper.capitalize("test")).to.be.deep.equal('Test');
         });
     });
+
+    describe('randomize()', () => {
+        it('should generate a random string', () => {
+            const result: string = StringHelper.randomize();
+            
+            expect(result).to.be.string;
+            expect(result).to.have.length(50);
+            expect(StringHelper.randomize()).not.to.be.deep.eq(result);
+        });
+    })
 });

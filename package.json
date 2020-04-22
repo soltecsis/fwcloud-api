@@ -69,7 +69,6 @@
     "passport": "^0.4.1",
     "passport-local": "*",
     "proper-lockfile": "^4.1.1",
-    "random-string": "^0.2.0",
     "reflect-metadata": "0.1.13",
     "replace-in-file": "^4.2.0",
     "semver": "7.1.3",

@@ -36,7 +36,6 @@ import { Firewall } from "../../models/firewall/Firewall";
 import { FSHelper } from "../../utils/fs-helper";
 import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
-import moment from "moment";
 
 export class Importer {
     protected _mapper: ImportMapping;
@@ -56,7 +55,7 @@ export class Importer {
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         
-        let data: ExporterResult = new ExporterResult().fromSnapshotData(snapshot.data);
+        let data: ExporterResult = snapshot.data;
         
         this._idManager = await IdManager.make(queryRunner, data.getTableWithEntities())
         this._mapper = new ImportMapping(this._idManager, data);

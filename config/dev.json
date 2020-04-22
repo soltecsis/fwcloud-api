@@ -8,5 +8,6 @@
   },
   "session": {
     "force_HTTPS" : false    
-  }
+  },
+  "confirmation_token": false
 }

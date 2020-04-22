@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { randomString, generateSession, attachSession, sleep, createUser } from "../../utils/utils";
+import { generateSession, attachSession, createUser } from "../../utils/utils";
 import '../../mocha/global-setup';
 import { expect, describeName } from "../../mocha/global-setup";
 import request = require("supertest");
@@ -143,7 +143,6 @@ describe(describeName('Backup E2E tests'), () => {
             it('regular user should not create a backup', async () => {
                 await request(app.express)
                     .post(_URL().getURL('backups.store'))
-                    .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
@@ -155,7 +154,6 @@ describe(describeName('Backup E2E tests'), () => {
                     .send({
                         comment: 'test comment'
                     })
-                    .set('x-fwc-confirm-token', adminUser.confirmation_token)
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
                     .then(response => {
@@ -182,7 +180,6 @@ describe(describeName('Backup E2E tests'), () => {
             it('regular user should not destroy a backup', async () => {
                 await request(app.express)
                     .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
-                    .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
@@ -191,7 +188,6 @@ describe(describeName('Backup E2E tests'), () => {
                 
                 await request(app.express)
                     .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
-                    .set('x-fwc-confirm-token', adminUser.confirmation_token)
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200);
             });
@@ -199,7 +195,6 @@ describe(describeName('Backup E2E tests'), () => {
             it('404 should be returned if the backup does not exist', async() => {
                 await request(app.express)
                     .delete(_URL().getURL('backups.destroy', {backup: 0}))
-                    .set('x-fwc-confirm-token', adminUser.confirmation_token)
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(404);
             })
@@ -251,7 +246,6 @@ describe(describeName('Backup E2E tests'), () => {
                 await request(app.express)
                     .put(_URL().getURL('backups.config.update'))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .set('x-fwc-confirm-token', loggedUser.confirmation_token)
                     .expect(401)
             });
 
@@ -259,7 +253,6 @@ describe(describeName('Backup E2E tests'), () => {
                 await request(app.express)
                     .put(_URL().getURL('backups.config.update'))
                     .set('Cookie', [attachSession(adminUserSessionId)])
-                    .set('x-fwc-confirm-token', adminUser.confirmation_token)
                     .send({
                         "schedule": backupService.config.schedule,
                         "max_days": 10,

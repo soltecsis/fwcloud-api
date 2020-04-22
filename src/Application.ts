@@ -35,7 +35,7 @@ import { MethodOverride } from "./middleware/MethodOverride";
 import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
 import { CORS } from './middleware/cors.middleware';
 import { Authorization } from './middleware/Authorization';
-import { ConfirmationToken } from './middleware/ConfirmationToken';
+import { ConfirmationToken } from './middleware/confirmation-token.middleware';
 import { InputValidation } from './middleware/InputValidation';
 import { AccessControl } from './middleware/AccessControl';
 import { AttachDatabaseConnection } from './middleware/AttachDatabaseConnection';

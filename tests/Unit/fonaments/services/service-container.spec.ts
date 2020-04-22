@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { randomString } from "../../../utils/utils";
 import { ServiceContainer } from "../../../../src/fonaments/services/service-container"
 import { Application } from "../../../../src/Application";
 import { Service } from "../../../../src/fonaments/services/service";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { testSuite, expect, describeName } from "../../../mocha/global-setup";
+import StringHelper from "../../../../src/utils/string.helper";
 
 let app: Application;
 before(async () => {
@@ -80,7 +80,7 @@ describe(describeName('Service container tests'), () => {
 
             sc.singleton(TestService.name, async (app: AbstractApplication) => {
                 const c: TestService = await TestService.make(app);
-                c.tag = randomString(10);
+                c.tag = StringHelper.randomize(10);
                 return c;
             });
 
@@ -92,7 +92,7 @@ describe(describeName('Service container tests'), () => {
 
             sc.bind(TestService.name, async (app: AbstractApplication) => {
                 const c: TestService = await TestService.make(app);
-                c.tag = randomString(10);
+                c.tag = StringHelper.randomize(10);
                 return c;
             });
 

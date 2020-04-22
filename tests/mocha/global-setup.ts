@@ -26,7 +26,7 @@ import { Application } from "../../src/Application";
 import { DatabaseService } from "../../src/database/database.service";
 import * as fse from "fs-extra";
 import * as path from "path";
-import StringHelper from "../../src/utils/StringHelper";
+import StringHelper from "../../src/utils/string.helper";
 
 chai.should();
 chai.use(ChaiAsPromised);
