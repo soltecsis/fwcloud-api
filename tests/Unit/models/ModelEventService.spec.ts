@@ -31,7 +31,7 @@ import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import { testSuite, describeName } from "../../mocha/global-setup";
 import db from "../../../src/database/database-manager";
 import { RepositoryService } from '../../../src/database/repository.service';
-import StringHelper from '../../../src/utils/StringHelper';
+import StringHelper from '../../../src/utils/string.helper';
 
 let app: Application;
 let repository: RepositoryService;

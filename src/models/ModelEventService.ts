@@ -21,7 +21,7 @@
 */
 
 import Model from './Model';
-import StringHelper from '../utils/StringHelper';
+import StringHelper from '../utils/string.helper';
 import { RepositoryService } from '../database/repository.service';
 import { app } from '../fonaments/abstract-application';
 

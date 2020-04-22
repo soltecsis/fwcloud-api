@@ -29,7 +29,7 @@ import signature from "cookie-signature";
 import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
 import { testSuite } from "../mocha/global-setup";
-import StringHelper from "../../src/utils/StringHelper";
+import StringHelper from "../../src/utils/string.helper";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;

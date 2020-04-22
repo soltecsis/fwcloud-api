@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import StringHelper from '../../../src/utils/StringHelper';
+import StringHelper from '../../../src/utils/string.helper';
 import { expect, describeName } from '../../mocha/global-setup';
 
 describe(describeName('StringHelper Unit Tests'), () => {

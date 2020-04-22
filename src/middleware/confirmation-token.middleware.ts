@@ -23,7 +23,7 @@
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import { Request, Response, NextFunction } from "express";
 import { User } from '../models/user/User';
-import StringHelper from "../utils/StringHelper";
+import StringHelper from "../utils/string.helper";
 import { RepositoryService } from "../database/repository.service";
 import { Repository } from "typeorm";
 

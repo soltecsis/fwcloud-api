@@ -25,7 +25,7 @@ import { Application } from "../../../../src/Application";
 import { Service } from "../../../../src/fonaments/services/service";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { testSuite, expect, describeName } from "../../../mocha/global-setup";
-import StringHelper from "../../../../src/utils/StringHelper";
+import StringHelper from "../../../../src/utils/string.helper";
 
 let app: Application;
 before(async () => {
