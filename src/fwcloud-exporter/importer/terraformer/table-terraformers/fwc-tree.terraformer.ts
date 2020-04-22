@@ -33,8 +33,39 @@ export class FwcTreeTerraformer extends TableTerraformer {
 
     protected _typeToTableNameMapping: {[type: string]: string} = {
         'FIREWALL' : 'firewall',
+        
         'CLUSTER' : 'cluster',
-        'CA': 'ca'
+        
+        'CA': 'ca',
+        
+        'IP': 'ipobj',
+        'TCP': 'ipobj',
+        'ICMP': 'ipobj',
+        'UDP': 'ipobj',
+        'ADDRESS': 'ipobj',
+        'ADDRESS RANGE': 'ipobj',
+        'NETWORK': 'ipobj',
+        'HOST': 'ipobj',
+        'DNS': 'ipobj',
+
+        'INTERFACE FIREWALL': 'interface',
+        'INTERFACE HOST': 'interface',
+
+        'GROUP OBJECTS': 'ipobj_g',
+        'GROUP SERVICES': 'ipobj_g',
+
+        'IPTABLES MARKS': 'mark',
+
+        'CRT_CLIENT': 'crt',
+        'CRT_SERVER': 'crt',
+
+        'OPENVPN CONFIG': 'openvpn',
+        'OPENVPN CLI': 'openvpn',
+        'OPENVPN SRV': 'openvpn',
+
+        'CRT PREFIX FOLDER': 'ca_prefix',
+
+        'OPENVPN SERVER PREFIX': 'openvpn_prefix'
     }
 
     public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<FwcTreeTerraformer> {
@@ -68,6 +99,8 @@ export class FwcTreeTerraformer extends TableTerraformer {
                     if (tableType) {
                         return mapper.getMappedId(tableType, IPObjType.getPrimaryKeys()[0].propertyName, value);
                     }
+
+                    throw new Error('Mapping not available for type ' + matches[0]);
                 }
 
                 return value;
