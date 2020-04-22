@@ -42,6 +42,7 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
+import { PathHelper } from "../utils/path-helpers";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -54,6 +55,7 @@ export interface BackupMetadata {
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
     static METADATA_FILENAME: string = 'backup.json';
+    static DATA_DIRNAME: string = 'DATA';
 
     protected _id: number;
     protected _name: string;
@@ -352,10 +354,10 @@ export class Backup implements Responsable {
     protected async exportDataDirectories(): Promise<void> {
         const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy'];
+        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
 
         for (let item of item_list) {
-            const dst_dir = path.join(this._backupPath, config.get(item).data_dir);
+            const dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
             if (await FSHelper.directoryExists(config.get(item).data_dir)) {
                 await fse.mkdirp(dst_dir);
                 await fse.copy(config.get(item).data_dir, dst_dir);
@@ -369,11 +371,11 @@ export class Backup implements Responsable {
     protected async importDataDirectories(): Promise<void> {
         const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy'];
+        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
 
 
         for (let item of item_list) {
-            const src_dir: string = path.join(this._backupPath, config.get(item).data_dir);
+            const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
             const dst_dir: string = config.get(item).data_dir;
 
             fse.removeSync(dst_dir);

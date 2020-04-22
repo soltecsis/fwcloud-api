@@ -32,6 +32,7 @@ import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
+import { FSHelper } from "../../../src/utils/fs-helper";
 
 let app: Application;
 let service: BackupService;
@@ -67,8 +68,31 @@ describe(describeName('Backup Unit tests'), () => {
             expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.true;
         });
 
-        it.skip('should copy data files if exists', async () => {
-            //TODO
+        it('should copy pki data files if exists', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('pki').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'pki', 'test'))).to.be.true
+        });
+
+        it('should copy policy data files if exists', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('policy').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'policy', 'test'))).to.be.true
+        });
+
+        it('should copy snapshots data files if exists', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'snapshot', 'test'))).to.be.true
         });
 
         it('should generate a backup.json file with metadata', async () => {
@@ -128,6 +152,39 @@ describe(describeName('Backup Unit tests'), () => {
 
             await databaseService.emptyDatabase();
         });
+
+        it('should import pki directoies if it exists in the backup', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('pki').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('pki').data_dir, 'test'))).to.be.true
+        });
+
+        it('should import policy directoies if it exists in the backup', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('policy').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, 'test'))).to.be.true
+        })
+
+        it('should import snapshot directoies if it exists in the backup', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('snapshot').data_dir, 'test'))).to.be.true
+        })
 
         it('should remove compilation status from firewalls', async () => {
             const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
