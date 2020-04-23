@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { generateSession, attachSession, createUser } from "../../utils/utils";
+import { generateSession, attachSession, createUser, sleep } from "../../utils/utils";
 import '../../mocha/global-setup';
 import { expect, describeName } from "../../mocha/global-setup";
 import request = require("supertest");
@@ -42,15 +42,19 @@ let adminUserSessionId: string;
 
 
 describe(describeName('Backup E2E tests'), () => {
-    
+
+    before(async () => {
+        await testSuite.resetDatabaseData();
+    });
+
     beforeEach(async () => {
         app = testSuite.app;
         backupService = await app.getService<BackupService>(BackupService.name);
-        
-        loggedUser = await createUser({role: 0});
+
+        loggedUser = await createUser({ role: 0 });
         loggedUserSessionId = generateSession(loggedUser);
 
-        adminUser = await createUser({role: 1});
+        adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
     });
@@ -97,7 +101,7 @@ describe(describeName('Backup E2E tests'), () => {
                 const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
                 await request(app.express)
-                    .get(_URL().getURL('backups.show', {backup: backup.id}))
+                    .get(_URL().getURL('backups.show', { backup: backup.id }))
                     .expect(401)
             });
 
@@ -106,7 +110,7 @@ describe(describeName('Backup E2E tests'), () => {
                 const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
                 await request(app.express)
-                    .get(_URL().getURL('backups.show', {backup: backup.id}))
+                    .get(_URL().getURL('backups.show', { backup: backup.id }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
@@ -116,7 +120,7 @@ describe(describeName('Backup E2E tests'), () => {
                 const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
                 await request(app.express)
-                    .get(_URL().getURL('backups.show', {backup: backup.id}))
+                    .get(_URL().getURL('backups.show', { backup: backup.id }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(response => {
@@ -126,7 +130,7 @@ describe(describeName('Backup E2E tests'), () => {
 
             it('404 exception should be thrown if a backup does not exist', async () => {
                 await request(app.express)
-                    .get(_URL().getURL('backups.show', {backup: moment().add(2, 'd').valueOf().toString()}))
+                    .get(_URL().getURL('backups.show', { backup: moment().add(2, 'd').valueOf().toString() }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(404);
             });
@@ -156,50 +160,52 @@ describe(describeName('Backup E2E tests'), () => {
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
-                    .then(response => {
-                        expect(response.body.data.comment).to.be.deep.equal('test comment')
+                    .then(async (response) => {
+                        expect(response.body.data.comment).to.be.deep.equal('test comment');
                     })
 
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
+                //Wait until backup is created
+                await sleep(5000);
             });
         });
 
         describe('BackupController@destroy', async () => {
             let backup: Backup;
 
-            beforeEach(async() => {
+            beforeEach(async () => {
                 backup = await new Backup().create(backupService.config.data_dir);
             });
 
             it('guest user should not destroy a backup', async () => {
                 await request(app.express)
-                    .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                    .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
                     .expect(401)
             });
 
             it('regular user should not destroy a backup', async () => {
                 await request(app.express)
-                    .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                    .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
 
             it('admin user should destroy a backup', async () => {
-                
+
                 await request(app.express)
-                    .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                    .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200);
             });
 
-            it('404 should be returned if the backup does not exist', async() => {
+            it('404 should be returned if the backup does not exist', async () => {
                 await request(app.express)
-                    .delete(_URL().getURL('backups.destroy', {backup: 0}))
+                    .delete(_URL().getURL('backups.destroy', { backup: 0 }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(404);
             })
         });
-        
+
     })
 
     describe('BackupConfigController', () => {

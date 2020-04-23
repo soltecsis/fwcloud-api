@@ -27,6 +27,10 @@ import { MigrationRunCommand } from "../../../../src/cli/commands/migration-run.
 import { QueryRunner } from "typeorm";
 
 describe(describeName('MigrationRunCommand tests'), () => {
+    before(async() => {
+        await testSuite.resetDatabaseData();
+    });
+    
     it('should run the migrations', async() => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);

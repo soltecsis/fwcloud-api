@@ -47,6 +47,21 @@ class TestSuite {
         return this.app;
     }
 
+    public async resetDatabaseData(): Promise<void> {
+        
+        if (this.app === null) {
+            await this.runApplication();
+        }
+
+        if(this.app) {
+            const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+
+            await dbService.runMigrations();
+            await dbService.removeData();
+            await dbService.feedDefaultData();
+        }
+    }
+
     public async closeApplication(): Promise<void> {
         if (this.app) {
             await this.app.close();
@@ -66,10 +81,10 @@ function _getCallerFile(): string {
         const e = new Error();
         const regex = /\((.*):(\d+):(\d+)\)$/
         const match = regex.exec(e.stack.split("\n")[3]);
-        const relative_path: string = StringHelper.after(path.join(process.cwd(), "dist" , "/"), match[1]);
+        const relative_path: string = StringHelper.after(path.join(process.cwd(), "dist", "/"), match[1]);
         return relative_path;
     } catch (err) { }
-    
+
     return "undefined";
 }
 
@@ -78,36 +93,20 @@ before(async () => {
     await testSuite.runApplication();
 
     const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+
     await dbService.emptyDatabase();
-    await dbService.runMigrations();
-    await dbService.feedDefaultData();
-    await testSuite.app.close();
-    testSuite.app = null;
 });
 
 beforeEach(async () => {
     fse.removeSync(playgroundPath);
     fse.mkdirSync(playgroundPath);
+
+    await testSuite.closeApplication();
     await testSuite.runApplication();
-    fse.mkdirSync(testSuite.app.config.get('session').files_path);
-})
+});
 
 afterEach(async () => {
     if (testSuite.app) {
-        let _app = testSuite.app;
-        const dbService: DatabaseService = await _app.getService<DatabaseService>(DatabaseService.name);
-
-        if (!dbService.connection.isConnected) {
-            await dbService.connection.connect();
-        }
-        
-        await dbService.runMigrations();
-
-        await dbService.removeData();
-        
-        await dbService.feedDefaultData();
-        
         await testSuite.closeApplication();
-        fse.removeSync(playgroundPath);
     }
 })

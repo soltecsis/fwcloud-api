@@ -30,6 +30,14 @@ describe(describeName('MigrationResetCommand tests'), () => {
     let app: Application;
     let queryRunner: QueryRunner
 
+    before(async() => {
+        await testSuite.resetDatabaseData();
+    });
+
+    after(async() => {
+        await testSuite.resetDatabaseData();
+    })
+
     beforeEach(async () => {
         app = testSuite.app;
         const connection: Connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;

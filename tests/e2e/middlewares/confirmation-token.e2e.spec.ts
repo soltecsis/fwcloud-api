@@ -1,7 +1,7 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
 import { User } from "../../../src/models/user/User";
-import { createUser, generateSession, attachSession } from "../../utils/utils";
+import { createUser, generateSession, attachSession, sleep } from "../../utils/utils";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { RepositoryService } from "../../../src/database/repository.service";
@@ -40,6 +40,9 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
             })
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(201);
+        
+        //Wait until backup is created
+        await sleep(5000);
     });
 
     it('should validates a request if the confirmation_token is attached to the request', async () => {

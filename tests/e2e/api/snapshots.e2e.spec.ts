@@ -27,7 +27,7 @@ import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { User } from "../../../src/models/user/User";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { generateSession, attachSession, createUser } from "../../utils/utils";
+import { generateSession, attachSession, createUser, sleep } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
@@ -44,7 +44,11 @@ let fwCloud: FwCloud;
 let snapshotService: SnapshotService;
 
 describe(describeName('Snapshot E2E tests'), () => {
-
+    
+    before(async() => {
+        await testSuite.resetDatabaseData();
+    });
+    
     beforeEach(async () => {
         app = testSuite.app;
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
@@ -341,8 +345,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(200)
-                    .then((response) => {
+                    .then(async (response) => {
                         expect(response.body.data.id).to.be.deep.equal(s1.id);
+                        await sleep(3000);
                     });
             });
 
@@ -351,8 +356,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(200)
-                    .then((response) => {
+                    .then(async(response) => {
                         expect(response.body.data.id).to.be.deep.equal(s1.id);
+                        await sleep(3000);
                     });
             });
 

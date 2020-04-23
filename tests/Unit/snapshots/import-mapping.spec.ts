@@ -31,6 +31,10 @@ let databaseService: DatabaseService;
 
 describe(describeName('Import mapping tests'), () => {
 
+    before(async () => {
+        await testSuite.resetDatabaseData();
+    });
+    
     beforeEach(async () => {
         databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     });

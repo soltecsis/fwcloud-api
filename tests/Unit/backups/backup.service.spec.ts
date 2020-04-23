@@ -163,8 +163,8 @@ describe(describeName('BackupService Unit tests'), async() => {
                 const b1: Backup = new Backup();
                 const b2: Backup = new Backup();
 
-                service['_config'].default_max_copies = 0;
-                service['_config'].default_max_days = 1;
+                service['_config'].max_copies = 0;
+                service['_config'].max_days = 1;
 
                 let stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 14)).valueOf());
                 await b1.create(service.config.data_dir);
