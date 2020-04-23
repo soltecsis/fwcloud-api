@@ -36,7 +36,7 @@ import { IPObjToIPObjGroupExporter } from "./exporters/ipobj-to-ipobj-group.expo
 import { IPObjGroupExporter } from "./exporters/ipobj-group.exporter";
 import { MarkExporter } from "./exporters/mark.exporter";
 import { OpenVPNExporter } from "./exporters/openvpn.exporter";
-import { OpenVPNOptionsExporter } from "./exporters/openvpn-options.exporter";
+import { OpenVPNOptionExporter } from "./exporters/openvpn-option.exporter";
 import { OpenVPNPrefixExporter } from "./exporters/openvpn-prefix.exporter";
 import { PolicyGroupExporter } from "./exporters/policy-group.exporter";
 import { PolicyRuleExporter } from "./exporters/policy-rule.exporter";
@@ -63,7 +63,7 @@ const EXPORTERS = [
     new IPObjToIPObjGroupExporter(),
     new IPObjExporter(),
     new MarkExporter(),
-    new OpenVPNOptionsExporter(),
+    new OpenVPNOptionExporter(),
     new OpenVPNPrefixExporter(),
     new OpenVPNExporter(),
     new OpenVPNPrefixToIPObjGroupExporter(),

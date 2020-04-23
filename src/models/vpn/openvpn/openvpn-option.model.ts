@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinTable, ManyToMany, JoinColumn, OneToOne } from "typeorm";
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinTable, ManyToMany, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import Model from "../../Model";
 import { IPObj } from "../../ipobj/IPObj";
 import { OpenVPN } from "./OpenVPN";
@@ -28,8 +28,11 @@ import { OpenVPN } from "./OpenVPN";
 const tableName: string = 'openvpn_opt';
 
 @Entity(tableName)
-export class OpenVPNOptions extends Model {
+export class OpenVPNOption extends Model {
 
+    @PrimaryGeneratedColumn()
+    id: number;
+    
     @Column({name: 'openvpn'})
     openVPNId: number;
 
