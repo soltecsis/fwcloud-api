@@ -58,10 +58,10 @@ export default abstract class Model implements IModel {
      * @param tableName 
      * @param entityName 
      */
-    public static getEntitiyDefinition(tableName: string, entityName: string): typeof Model {
+    public static getEntitiyDefinition(tableName: string, entityName?: string): typeof Model {
         const matches: Array<TableMetadataArgs> = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
             const target = <any>item.target;
-            return tableName === item.name && entityName === target.name;
+            return tableName === item.name && ( !entityName || (entityName && entityName === target.name));
         });
 
         return matches.length > 0 ? <any>matches[0].target : null;

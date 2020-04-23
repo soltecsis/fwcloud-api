@@ -39,9 +39,9 @@ describe(describeName('Import mapping tests'), () => {
 
         it('should map the old id with a new id', async () => {
             const results: ExporterResult = new ExporterResult();
-            results.addTableData('fwcloud', 'FwCloud', [{ id: 0 }])
+            results.addTableData('fwcloud', [{ id: 0 }])
             const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
-                { tableName: 'fwcloud', entityName: 'FwCloud' }
+                'fwcloud'
             ]), results);
 
             const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
@@ -59,9 +59,9 @@ describe(describeName('Import mapping tests'), () => {
 
         it('should not map a new id if the id is not exported', async () => {
             const results: ExporterResult = new ExporterResult();
-            results.addTableData('fwcloud', 'FwCloud', [{ id: 0 }])
+            results.addTableData('fwcloud', [{ id: 0 }])
             const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
-                { tableName: 'fwcloud', entityName: 'FwCloud' }
+                'fwcloud'
             ]), results);
 
             const newId: number = mapper.getMappedId('fwcloud', 'id', 1);

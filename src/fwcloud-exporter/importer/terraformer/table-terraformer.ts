@@ -50,9 +50,11 @@ export class TableTerraformer {
      * 
      * @param exportResults 
      */
-    public async terraform(tableName: string, entityName: string, rows: Array<object>): Promise<Array<object>> {
-        if (entityName) {
-            return await this.terraformTableDataWithEntity(this._mapper, tableName, entityName, rows);
+    public async terraform(tableName: string, rows: Array<object>): Promise<Array<object>> {
+        const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+
+        if (entity) {
+            return await this.terraformTableDataWithEntity(this._mapper, tableName, entity, rows);
         } 
         
         return await this.terraformTableDataWithoutEntity(this._mapper, tableName, rows);
@@ -63,12 +65,10 @@ export class TableTerraformer {
      * 
      * @param mapper 
      * @param tableName 
-     * @param entityName 
+     * @param entity 
      * @param rows 
      */
-    protected async terraformTableDataWithEntity(mapper: ImportMapping, tableName: string, entityName: string, rows: Array<object>): Promise<Array<object>> {
-        const entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-        
+    protected async terraformTableDataWithEntity(mapper: ImportMapping, tableName: string, entity: typeof Model, rows: Array<object>): Promise<Array<object>> {
         const result: Array<object> = [];
 
         for(let i = 0; i < rows.length; i++) {

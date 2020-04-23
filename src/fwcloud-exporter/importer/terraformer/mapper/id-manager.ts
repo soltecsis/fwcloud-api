@@ -23,7 +23,6 @@
 import Model from "../../../../models/Model";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { QueryRunner } from "typeorm";
-import { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
 
 type TableIdState = { [tableName: string]: { [propertyName: string]: number } };
 
@@ -47,24 +46,23 @@ export class IdManager {
      * Builds an IdManager getting the new ids through the database
      * 
      * @param queryRunner 
-     * @param tableNameWithEntity 
+     * @param tableNames 
      */
-    public static async make(queryRunner: QueryRunner, tableNameWithEntity: Array<{ tableName: string, entityName: string }>): Promise<IdManager> {
+    public static async make(queryRunner: QueryRunner, tableNames: Array<string>): Promise<IdManager> {
         const ids: TableIdState = {};
 
-        for (let i = 0; i < tableNameWithEntity.length; i++) {
-            const tableName: string = tableNameWithEntity[i].tableName;
-            const entityName: string = tableNameWithEntity[i].entityName;
-
+        for (let i = 0; i < tableNames.length; i++) {
+            const tableName: string = tableNames[i];
+            const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+            
             // If the tableName does not have a model, we consider it is a many to many "related-table" thus it does not have
             // a primary key (only foreign keys).
-            if (entityName) {
-                const model: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-                const primaryKeys: Array<ColumnMetadataArgs> = model.getPrimaryKeys();
+            if (entity) {
+                const primaryKeys: Array<ColumnMetadataArgs> = entity.getPrimaryKeys();
                 
                 for (let i = 0; i < primaryKeys.length; i++) {
 
-                    if (!model.isJoinColumn(primaryKeys[i].propertyName)) {
+                    if (!entity.isJoinColumn(primaryKeys[i].propertyName)) {
                         if ((<Function>primaryKeys[i].options.type).name === 'Number') {
                             const primaryKeyPropertyName: string = primaryKeys[i].propertyName;
                             // TypeORM might apply some kind of propertyName mapping. 

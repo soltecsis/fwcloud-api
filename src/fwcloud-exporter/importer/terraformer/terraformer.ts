@@ -57,10 +57,9 @@ export class Terraformer {
         const data: ExporterResultData = exportResults.getAll();
         
         for(let tableName in data) {
-            const entityName: string = data[tableName].entity;
             const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this._queryRunner);
-            const terraformedData: Array<object> = await terraformer.terraform(tableName, entityName, data[tableName].data);
-            result.addTableData(tableName, entityName, terraformedData);
+            const terraformedData: Array<object> = await terraformer.terraform(tableName, data[tableName]);
+            result.addTableData(tableName, terraformedData);
         }
 
         return result;
