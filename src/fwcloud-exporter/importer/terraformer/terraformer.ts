@@ -27,12 +27,15 @@ import { TableTerraformer } from "./table-terraformer";
 import { FwcTreeTerraformer } from "./table-terraformers/fwc-tree.terraformer";
 import { IpObjGroupTerraformer } from "./table-terraformers/ipobj-group.terraformer";
 import { PolicyRuleToIpObjTerraformer } from "./table-terraformers/policy-rule-to-ipobj.terraformer";
+import { FwcTree } from "../../../models/tree/fwc-tree.model";
+import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+import { PolicyRuleToIPObj } from "../../../models/policy/PolicyRuleToIPObj";
 
-const TERRAFORMERS: {[tableName: string]: typeof TableTerraformer} = {
-    'fwc_tree' : FwcTreeTerraformer,
-    'ipboj_g' : IpObjGroupTerraformer,
-    'policy_r__ipobj': PolicyRuleToIpObjTerraformer
-}
+const TERRAFORMERS: {[tableName: string]: typeof TableTerraformer} = {};
+TERRAFORMERS[FwcTree._getTableName()] = FwcTreeTerraformer;
+TERRAFORMERS[IPObjGroup._getTableName()] = IpObjGroupTerraformer;
+TERRAFORMERS[PolicyRuleToIPObj._getTableName()] = PolicyRuleToIpObjTerraformer;
+
 
 export class Terraformer {
     protected _queryRunner: QueryRunner;

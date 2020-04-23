@@ -59,8 +59,8 @@ export class IPObjGroup extends Model {
     @Column({name: 'type'})
     type: number;
 
-    @Column()
-    fwcloud: number;
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
 
     @Column()
     created_at: Date;
