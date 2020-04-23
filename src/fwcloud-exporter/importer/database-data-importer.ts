@@ -33,14 +33,13 @@ export class DatabaseDataImporter {
             
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
             for(let tableName in data.getAll()) {
-                const entityName: string = data.getAll()[tableName].entity;
+                const entity: typeof Model = Model.getEntitiyDefinition(tableName);
 
-                if (entityName) {
-                    const entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-                    await queryRunner.manager.getRepository(entity).save(data.getAll()[tableName].data, {chunk: 10000});
+                if (entity) {
+                    await queryRunner.manager.getRepository(entity).save(data.getAll()[tableName], {chunk: 10000});
                 } else {
-                    for(let i = 0; i < data.getAll()[tableName].data.length; i++) {
-                        const row: object = data.getAll()[tableName].data[i];
+                    for(let i = 0; i < data.getAll()[tableName].length; i++) {
+                        const row: object = data.getAll()[tableName][i];
                         await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
                     }
                 }

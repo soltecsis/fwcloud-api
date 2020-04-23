@@ -21,7 +21,7 @@
 */
 
 import Model from "../../../models/Model";
-import { Connection, QueryBuilder, SelectQueryBuilder } from "typeorm";
+import { Connection, SelectQueryBuilder } from "typeorm";
 import { ExporterResult } from "../exporter-result";
 
 export class TableExporter {
@@ -53,7 +53,7 @@ export class TableExporter {
     }
 
     public async export(results: ExporterResult, connection: Connection, fwCloudId: number): Promise<ExporterResult> {
-        results.addTableData(this.getTableName(), this.getEntityName(), await this.getRows(connection, fwCloudId));
+        results.addTableData(this.getTableName(), await this.getRows(connection, fwCloudId));
 
         return results;
     }

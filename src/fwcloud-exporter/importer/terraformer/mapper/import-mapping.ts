@@ -73,10 +73,17 @@ export class ImportMapping {
         return old;
     }
 
+    /**
+     * Returns whether an id should be refreshed. Notice only exported ids must be refreshed
+     * 
+     * @param tableName 
+     * @param propertyName 
+     * @param value 
+     */
     protected shouldGenerateNewId(tableName: string, propertyName: string, value: any): boolean {
-        const tableData: {entity: string, data: Array<object>} = this._data.getTableResults(tableName);
+        const tableData: Array<object> = this._data.getTableResults(tableName);
         if (tableData) {
-            return this._data.getTableResults(tableName).data.filter((item: object) => {
+            return this._data.getTableResults(tableName).filter((item: object) => {
                 return item.hasOwnProperty(propertyName) && item[propertyName] === value;
             }).length > 0;
         }

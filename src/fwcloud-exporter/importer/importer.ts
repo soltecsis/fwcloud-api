@@ -57,7 +57,7 @@ export class Importer {
         
         let data: ExporterResult = snapshot.data;
         
-        this._idManager = await IdManager.make(queryRunner, data.getTableWithEntities())
+        this._idManager = await IdManager.make(queryRunner, data.getTableNames())
         this._mapper = new ImportMapping(this._idManager, data);
         
 
@@ -65,7 +65,7 @@ export class Importer {
         
         await DatabaseDataImporter.import(queryRunner, terraformedData);
         
-        const fwCloud: FwCloud = await repositoryService.for(FwCloud).findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()].data[0]).id);
+        const fwCloud: FwCloud = await repositoryService.for(FwCloud).findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
 
         await Importer.importDataDirectories(snapshotPath, fwCloud, this._mapper);
 

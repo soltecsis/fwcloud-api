@@ -50,9 +50,11 @@ export class TableTerraformer {
      * 
      * @param exportResults 
      */
-    public async terraform(tableName: string, entityName: string, rows: Array<object>): Promise<Array<object>> {
-        if (entityName) {
-            return await this.terraformTableDataWithEntity(this._mapper, tableName, entityName, rows);
+    public async terraform(tableName: string, rows: Array<object>): Promise<Array<object>> {
+        const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+
+        if (entity) {
+            return await this.terraformTableDataWithEntity(this._mapper, tableName, entity, rows);
         } 
         
         return await this.terraformTableDataWithoutEntity(this._mapper, tableName, rows);
@@ -63,12 +65,10 @@ export class TableTerraformer {
      * 
      * @param mapper 
      * @param tableName 
-     * @param entityName 
+     * @param entity 
      * @param rows 
      */
-    protected async terraformTableDataWithEntity(mapper: ImportMapping, tableName: string, entityName: string, rows: Array<object>): Promise<Array<object>> {
-        const entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-        
+    protected async terraformTableDataWithEntity(mapper: ImportMapping, tableName: string, entity: typeof Model, rows: Array<object>): Promise<Array<object>> {
         const result: Array<object> = [];
 
         for(let i = 0; i < rows.length; i++) {
@@ -80,8 +80,10 @@ export class TableTerraformer {
                 } else {
 
                     if (entity.isPrimaryKey(attributeName) && !entity.isForeignKey(attributeName)) {
-                        // If the attribute is a primary key, it must be terraformed
-                        row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
+                        if (entity.getPrimaryKey(attributeName).options.type === Number) {
+                            // If the attribute is a primary key, it must be terraformed
+                            row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
+                        }
                     }
 
                     if (entity.isForeignKey(attributeName)) {
@@ -94,7 +96,10 @@ export class TableTerraformer {
                             const relatedTableName: string = type._getTableName();
                             const primaryKey: ColumnMetadataArgs = type.getPrimaryKeys()[0];
 
-                            row[attributeName] = mapper.getMappedId(relatedTableName, primaryKey.propertyName, row[attributeName]);
+                            if (type.getPrimaryKey(primaryKey.propertyName).options.type === Number) {
+                                // If the attribute is a primary key, it must be terraformed
+                                row[attributeName] = mapper.getMappedId(relatedTableName, primaryKey.propertyName, row[attributeName]);
+                            }
                         }
                     }
                 }

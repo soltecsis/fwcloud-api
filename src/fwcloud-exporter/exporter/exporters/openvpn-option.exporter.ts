@@ -22,16 +22,16 @@
 
 import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
-import { OpenVPNOptions } from "../../../models/vpn/openvpn/openvpn-options.model";
+import { OpenVPNOption } from "../../../models/vpn/openvpn/openvpn-option.model";
 import { SelectQueryBuilder } from "typeorm";
 import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { OpenVPNExporter } from "./openvpn.exporter";
 import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
 
-export class OpenVPNOptionsExporter extends TableExporter {
+export class OpenVPNOptionExporter extends TableExporter {
     protected getEntity(): typeof Model {
-        return OpenVPNOptions;
+        return OpenVPNOption;
     }
 
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {

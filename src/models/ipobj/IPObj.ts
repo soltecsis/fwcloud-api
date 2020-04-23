@@ -33,7 +33,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { app } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { IPObjType } from './IPObjType';
-import { OpenVPNOptions } from '../vpn/openvpn/openvpn-options.model';
+import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 var asyncMod = require('async');
@@ -145,8 +145,8 @@ export class IPObj extends Model {
     })
     interface: Interface
 
-    @OneToMany(type => OpenVPNOptions, options => options.ipObj)
-    optionsList: Array<OpenVPNOptions>;
+    @OneToMany(type => OpenVPNOption, options => options.ipObj)
+    optionsList: Array<OpenVPNOption>;
 
     @OneToMany(type => IPObjToIPObjGroup, ipObjToIPObjGroup => ipObjToIPObjGroup.ipObj)
     ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
