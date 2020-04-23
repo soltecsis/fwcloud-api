@@ -65,17 +65,19 @@ export class IdManager {
                 for (let i = 0; i < primaryKeys.length; i++) {
 
                     if (!model.isJoinColumn(primaryKeys[i].propertyName)) {
-                        const primaryKeyPropertyName: string = primaryKeys[i].propertyName;
-                        // TypeORM might apply some kind of propertyName mapping. 
-                        const originalColumnName: string = primaryKeys[i].options.name ? primaryKeys[i].options.name : primaryKeyPropertyName;
+                        if ((<Function>primaryKeys[i].options.type).name === 'Number') {
+                            const primaryKeyPropertyName: string = primaryKeys[i].propertyName;
+                            // TypeORM might apply some kind of propertyName mapping. 
+                            const originalColumnName: string = primaryKeys[i].options.name ? primaryKeys[i].options.name : primaryKeyPropertyName;
 
-                        const queryBuilder = queryRunner.manager.createQueryBuilder(tableName, tableName).select(`MAX(${originalColumnName})`, "id");
+                            const queryBuilder = queryRunner.manager.createQueryBuilder(tableName, tableName).select(`MAX(${originalColumnName})`, "id");
 
-                        // If the table is empty, the returned value is null. We set 0 because it will be incremented afterwards
-                        const id = (await queryBuilder.execute())[0]['id'] || 0;
+                            // If the table is empty, the returned value is null. We set 0 because it will be incremented afterwards
+                            const id = (await queryBuilder.execute())[0]['id'] || 0;
 
-                        ids[tableName] = {};
-                        ids[tableName][primaryKeyPropertyName] = id ? id + 1 : 1;
+                            ids[tableName] = {};
+                            ids[tableName][primaryKeyPropertyName] = id ? id + 1 : 1;
+                        }
                     }
                 }
             }

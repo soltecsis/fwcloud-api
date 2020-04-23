@@ -105,8 +105,8 @@ export class OpenVPN extends Model {
     })
     crt: Crt;
 
-    @OneToOne(type => OpenVPNOptions, options => options.openVPN)
-    options: OpenVPNOptions
+    @OneToMany(type => OpenVPNOptions, options => options.openVPN)
+    openVPNOptions: Array<OpenVPNOptions>
 
     @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNs)
     @JoinTable({

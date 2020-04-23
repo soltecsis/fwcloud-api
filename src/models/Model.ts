@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DeepPartial, getMetadataArgsStorage } from "typeorm";
+import { DeepPartial, getMetadataArgsStorage, Column } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import ObjectHelpers from "../utils/object-helpers";
@@ -119,6 +119,18 @@ export default abstract class Model implements IModel {
         return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
             return column.target === this && column.options.primary === true;
         })
+    }
+
+    public static getPrimaryKey(propertyName: string): ColumnMetadataArgs {
+        const primaryKeys: Array<ColumnMetadataArgs> = this.getPrimaryKeys().filter((column: ColumnMetadataArgs) => {
+            return column.propertyName === propertyName;
+        });
+
+        if (primaryKeys.length === 0) {
+            return null;
+        }
+
+        return primaryKeys[0];
     }
 
     /**

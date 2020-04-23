@@ -80,8 +80,10 @@ export class TableTerraformer {
                 } else {
 
                     if (entity.isPrimaryKey(attributeName) && !entity.isForeignKey(attributeName)) {
-                        // If the attribute is a primary key, it must be terraformed
-                        row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
+                        if (entity.getPrimaryKey(attributeName).options.type === Number) {
+                            // If the attribute is a primary key, it must be terraformed
+                            row[attributeName] = mapper.getMappedId(tableName, attributeName, row[attributeName]);
+                        }
                     }
 
                     if (entity.isForeignKey(attributeName)) {
@@ -94,7 +96,10 @@ export class TableTerraformer {
                             const relatedTableName: string = type._getTableName();
                             const primaryKey: ColumnMetadataArgs = type.getPrimaryKeys()[0];
 
-                            row[attributeName] = mapper.getMappedId(relatedTableName, primaryKey.propertyName, row[attributeName]);
+                            if (type.getPrimaryKey(primaryKey.propertyName).options.type === Number) {
+                                // If the attribute is a primary key, it must be terraformed
+                                row[attributeName] = mapper.getMappedId(relatedTableName, primaryKey.propertyName, row[attributeName]);
+                            }
                         }
                     }
                 }

@@ -30,26 +30,26 @@ const tableName: string = 'openvpn_opt';
 @Entity(tableName)
 export class OpenVPNOptions extends Model {
 
-    @PrimaryColumn({name: 'openvpn'})
+    @Column({name: 'openvpn'})
     openVPNId: number;
 
-    @OneToOne(type => OpenVPN, openVPN => openVPN.options)
+    @Column({name: 'ipobj'})
+    ipObjId: number;
+
+    @Column()
+    name: string;
+
+    @ManyToOne(type => OpenVPN, openVPN => openVPN.openVPNOptions)
     @JoinColumn({
         name: 'openvpn'
     })
     openVPN: OpenVPN;
-
-    @Column({name: 'ipobj'})
-    ipObjId: number;
 
     @ManyToOne(type => IPObj, ipObj => ipObj.optionsList)
     @JoinColumn({
         name: 'ipobj'
     })
     ipObj: IPObj;
-
-    @Column()
-    name: string;
 
     @Column()
     arg: string
