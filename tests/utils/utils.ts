@@ -28,8 +28,10 @@ import cookie from "cookie";
 import signature from "cookie-signature";
 import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
-import { testSuite } from "../mocha/global-setup";
+import { testSuite, TestSuite } from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
+import { AbstractApplication } from "../../src/fonaments/abstract-application";
+import { Application } from "../../src/Application";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;
@@ -79,3 +81,21 @@ export async function sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
     return;
 }
+
+/**
+ * Run a FwCloud CLI Command and reload the application after call it. Notice CLI commands closes application
+ * 
+ * @param testSuite 
+ * @param fn 
+ */
+export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Promise<void>) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const _f = await fn();
+            await testSuite.runApplication();
+            return resolve();
+        } catch(e) {
+            return reject(e);
+        }
+    });
+};

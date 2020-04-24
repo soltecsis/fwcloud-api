@@ -36,10 +36,6 @@ describe(describeName('Importer tests'), () => {
     let repositoryService: RepositoryService;
     let snapshotService: SnapshotService;
 
-    before(async () => {
-        await testSuite.resetDatabaseData();
-    });
-
     beforeEach(async () => {
         repositoryService = await testSuite.app.getService<RepositoryService>(RepositoryService.name);
         snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);

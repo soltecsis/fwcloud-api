@@ -40,10 +40,6 @@ let service: BackupService;
 describe(describeName('Backup Unit tests'), () => {
     
     before(async() => {
-        await testSuite.resetDatabaseData();
-    });
-
-    beforeEach(async () => {
         app = testSuite.app;
         service = await app.getService<BackupService>(BackupService.name);
     });

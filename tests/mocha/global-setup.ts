@@ -35,7 +35,7 @@ export const expect = chai.expect;
 
 export const playgroundPath: string = path.join(process.cwd(), 'tests', 'playground');
 
-class TestSuite {
+export class TestSuite {
     public app: Application;
 
     public async runApplication(): Promise<Application> {
@@ -48,12 +48,11 @@ class TestSuite {
     }
 
     public async resetDatabaseData(): Promise<void> {
-        
         if (this.app === null) {
             await this.runApplication();
         }
 
-        if(this.app) {
+        if (this.app) {
             const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
 
             await dbService.runMigrations();
@@ -93,20 +92,18 @@ before(async () => {
     await testSuite.runApplication();
 
     const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-
     await dbService.emptyDatabase();
+
+    await testSuite.resetDatabaseData();
 });
 
 beforeEach(async () => {
     fse.removeSync(playgroundPath);
     fse.mkdirSync(playgroundPath);
 
-    await testSuite.closeApplication();
-    await testSuite.runApplication();
+    testSuite.app.generateDirectories();
 });
 
-afterEach(async () => {
-    if (testSuite.app) {
-        await testSuite.closeApplication();
-    }
+after(async () => {
+    await testSuite.closeApplication();
 })

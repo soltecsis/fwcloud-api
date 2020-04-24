@@ -23,10 +23,16 @@
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { testSuite, expect, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
-import { QueryRunner } from "typeorm";
+import { QueryRunner, Connection } from "typeorm";
 import { MigrationRevertCommand } from "../../../../src/cli/commands/migration-revert.command";
+import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationRevertCommand tests'), () => {
+
+    after(async() => {
+        await testSuite.resetDatabaseData();
+    });
+
     it('should revert a migration', async() => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
@@ -36,25 +42,20 @@ describe(describeName('MigrationRevertCommand tests'), () => {
         await databaseService.runMigrations();
 
         let queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+        
         const migration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();
-        
-        await new MigrationRevertCommand().handler({
-            $0: "migration:revert",
+
+        await runCLICommandIsolated(testSuite, async () => {
+            return new MigrationRevertCommand().handler({
+                $0: "migration:revert",
             _: []
-        });
-
-        if(!queryRunner.connection.isConnected) {
-            await queryRunner.connection.connect();
-            queryRunner = queryRunner.connection.createQueryRunner();
-        }
-
+        })});
+        
+        queryRunner  = databaseService.connection.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();
         
         expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 1);
-
-        await databaseService.emptyDatabase();
-
     });
 });

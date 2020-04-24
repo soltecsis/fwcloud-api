@@ -32,6 +32,7 @@ let app: AbstractApplication;
 
 describe(describeName('BackupService Unit tests'), async() => {
 
+    
     beforeEach(async() => {
         app = testSuite.app;
     });

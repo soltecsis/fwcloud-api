@@ -33,7 +33,8 @@ describe(describeName('IdManager Unit tests'), () => {
     beforeEach(async () => {
         databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
         repositoryService = await testSuite.app.getService<RepositoryService>(RepositoryService.name);
-    })
+    });
+
     describe('make()', () => {
         it('should set the next id = 1 if the table is empty', async () => {
             const idManger: IdManager = await IdManager.make(databaseService.connection.createQueryRunner(), [{

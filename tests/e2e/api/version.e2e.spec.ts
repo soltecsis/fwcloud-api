@@ -35,10 +35,6 @@ let adminUserSessionId: string;
 
 describe(describeName('Version E2E tests'), () => {
 
-    before(async () => {
-        await testSuite.resetDatabaseData();
-    });
-    
     beforeEach(async () => {
         app = testSuite.app;
 

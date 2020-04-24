@@ -6,26 +6,44 @@ import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
+import Sinon = require("sinon");
+import sinon from "sinon";
+import { Backup } from "../../../src/backups/backup";
+import { BackupService } from "../../../src/backups/backup.service";
+import * as path from "path";
+import * as fs from "fs";
 
 let app: Application;
 let adminUser: User;
 let adminUserSessionId: string;
+let stubDate: Sinon.SinonStub;
+let stubExportDatabase: Sinon.SinonStub;
 
 describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
+
     beforeEach(async () => {
         app = testSuite.app;
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
+
+        let backupService: BackupService = await app.getService<BackupService>(BackupService.name);
+
+        stubDate = sinon.stub(Date, 'now').returns(Date.now());
+        stubExportDatabase = sinon.stub(Backup.prototype, <any>"exportDatabase").callsFake(() => {
+            fs.writeFileSync(path.join(backupService.config.data_dir, Date.now().toString(), Backup.DUMP_FILENAME), "");
+        }); 
     });
+
+    afterEach(() => {
+        stubDate.restore();
+        stubExportDatabase.restore();
+    })
 
     it('should return a confirmation token if the confirmation token setting is set to true', async () => {
         app.config.set('confirmation_token', true);
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
-            .send({
-                comment: 'test comment'
-            })
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(403);
     });
@@ -35,14 +53,8 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
-            .send({
-                comment: 'test comment'
-            })
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(201);
-        
-        //Wait until backup is created
-        await sleep(5000);
     });
 
     it('should validates a request if the confirmation_token is attached to the request', async () => {
@@ -50,9 +62,6 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
-            .send({
-                comment: 'test comment'
-            })
             .set('x-fwc-confirm-token', adminUser.confirmation_token)
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(201);
@@ -63,13 +72,14 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
-            .send({
-                comment: 'test comment'
-            })
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(403)
-            .then(response => {
+            .then(async (response) => {
                 expect(response.body).to.haveOwnProperty('fwc_confirm_token');
+                
+                const userRepository: Repository<User> = (await app.getService<RepositoryService>(RepositoryService.name)).for(User);
+                adminUser = await userRepository.findOne(adminUser.id);
+                expect(response.body['fwc_confirm_token']).to.be.deep.eq(adminUser.confirmation_token)
             });
     });
 
@@ -81,9 +91,6 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
-            .send({
-                comment: 'test comment'
-            })
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(403)
             .then(async (response) => {

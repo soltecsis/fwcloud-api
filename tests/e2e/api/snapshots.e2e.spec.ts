@@ -32,6 +32,9 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
 import * as path from "path";
+import Sinon = require("sinon");
+import sinon from "sinon";
+import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
 
 let app: Application;
 let loggedUser: User;
@@ -43,11 +46,9 @@ let repository: RepositoryService;
 let fwCloud: FwCloud;
 let snapshotService: SnapshotService;
 
+let stubExportDatabase: Sinon.SinonStub;
+
 describe(describeName('Snapshot E2E tests'), () => {
-    
-    before(async() => {
-        await testSuite.resetDatabaseData();
-    });
     
     beforeEach(async () => {
         app = testSuite.app;
@@ -65,7 +66,17 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
+
+        stubExportDatabase = sinon.stub(Snapshot.prototype, <any>"exportFwCloudDatabaseData").callsFake(() => {
+            return new Promise<ExporterResult>((resolve, reject) => {
+                return resolve(new ExporterResult({}));
+            })
+        }); 
     });
+
+    afterEach(async() => {
+        stubExportDatabase.restore();
+    })
 
     describe('SnapshotController', () => {
 
@@ -347,7 +358,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .expect(200)
                     .then(async (response) => {
                         expect(response.body.data.id).to.be.deep.equal(s1.id);
-                        await sleep(3000);
                     });
             });
 
@@ -358,7 +368,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .expect(200)
                     .then(async(response) => {
                         expect(response.body.data.id).to.be.deep.equal(s1.id);
-                        await sleep(3000);
                     });
             });
 

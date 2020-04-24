@@ -34,7 +34,7 @@ let repositoryService: RepositoryService;
 
 describe(describeName('PolicyGroupRepository tests'), () => {
 
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         policyGroupRepository = repositoryService.for(PolicyGroup);
@@ -78,7 +78,6 @@ describe(describeName('PolicyGroupRepository tests'), () => {
 
                 expect(await policyGroupRepository.findOne(policyGroup.id)).to.be.instanceOf(PolicyGroup);
             });
-
         });
     });
 });

@@ -14,9 +14,9 @@ let repositoryService: RepositoryService;
 let fwCloudRepository: Repository<FwCloud>;
 
 describe(describeName('FwCloud Unit Tests'), () => {
-    beforeEach(async () => {
+    
+    before(async() => {
         app = testSuite.app;
-
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwCloudRepository = repositoryService.for(FwCloud);
     })
