@@ -39,7 +39,7 @@ let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
 
-describe(describeName('Backup E2E tests'), () => {
+describe.only(describeName('Backup E2E tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
@@ -155,8 +155,8 @@ describe(describeName('Backup E2E tests'), () => {
                     .expect(201)
                     .then(async (response) => {
                         expect(response.body.data.comment).to.be.deep.equal('test comment');
-                        expect(await backupService.findOne(response.body.data.id)).not.to.be.null
                         await sleep(4000);
+                        expect(await backupService.findOne(response.body.data.id)).not.to.be.null
                     });
             });
         });
