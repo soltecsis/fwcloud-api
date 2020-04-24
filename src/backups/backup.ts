@@ -297,6 +297,11 @@ export class Backup implements Responsable {
                 password: dbConfig.pass,
                 database: dbConfig.name,
             },
+            dump: {
+                data: {
+                    maxRowsPerInsertStatement: 1000
+                }
+            },
             dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),
         });
     }
