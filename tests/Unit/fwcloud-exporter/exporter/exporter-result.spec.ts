@@ -28,21 +28,14 @@ describe(describeName('ExporterResult tests'), () => {
     describe('getTableWithEntities()', () => {
         it('should return all table names with entities which has been exported', () => {
             const exportResult = new ExporterResult();
-            exportResult.addTableData("table1", "FwCloud", []);
-            exportResult.addTableData("table2", "Firewall", []);
-            exportResult.addTableData("table3", null, []);
+            exportResult.addTableData("table1", []);
+            exportResult.addTableData("table2", []);
+            exportResult.addTableData("table3", []);
 
-            expect(exportResult.getTableWithEntities()).to.be.deep.eq([
-                {
-                    entityName: "FwCloud",
-                    tableName: "table1"
-                }, {
-                    entityName: "Firewall",
-                    tableName: "table2"
-                }, {
-                    entityName: null,
-                    tableName: "table3"
-                }
+            expect(exportResult.getTableNames()).to.be.deep.eq([
+                "table1",
+                "table2",
+                "table3"
             ]);
         });
     });

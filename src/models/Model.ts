@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DeepPartial, getMetadataArgsStorage } from "typeorm";
+import { DeepPartial, getMetadataArgsStorage, Column } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import ObjectHelpers from "../utils/object-helpers";
@@ -58,10 +58,10 @@ export default abstract class Model implements IModel {
      * @param tableName 
      * @param entityName 
      */
-    public static getEntitiyDefinition(tableName: string, entityName: string): typeof Model {
+    public static getEntitiyDefinition(tableName: string, entityName?: string): typeof Model {
         const matches: Array<TableMetadataArgs> = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
             const target = <any>item.target;
-            return tableName === item.name && entityName === target.name;
+            return tableName === item.name && ( !entityName || (entityName && entityName === target.name));
         });
 
         return matches.length > 0 ? <any>matches[0].target : null;
@@ -119,6 +119,18 @@ export default abstract class Model implements IModel {
         return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
             return column.target === this && column.options.primary === true;
         })
+    }
+
+    public static getPrimaryKey(propertyName: string): ColumnMetadataArgs {
+        const primaryKeys: Array<ColumnMetadataArgs> = this.getPrimaryKeys().filter((column: ColumnMetadataArgs) => {
+            return column.propertyName === propertyName;
+        });
+
+        if (primaryKeys.length === 0) {
+            return null;
+        }
+
+        return primaryKeys[0];
     }
 
     /**

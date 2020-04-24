@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export type ExporterTableResult = { entity: string, data: Array<object> };
-export type ExporterResultData = { [tableName: string]: ExporterTableResult };
+export type ExporterResultData = { [tableName: string]: Array<object> };
 
 export class ExporterResult {
     protected _results: ExporterResultData;
@@ -34,32 +33,26 @@ export class ExporterResult {
         return this._results;
     }
 
-    public addTableData(tableName: string, entityName: string, data: Array<object>): this {
+    public addTableData(tableName: string, data: Array<object>): this {
         if(this._results[tableName]) {
             throw new Error('Exporting a table which already has been exported');
         }
 
-        this._results[tableName] = {
-            entity: entityName,
-            data: data
-        }
-
+        this._results[tableName] = data
+        
         return this;
     }
 
-    public getTableResults(tableName: string): ExporterTableResult {
+    public getTableResults(tableName: string): Array<object> {
         return this._results.hasOwnProperty(tableName) ? this._results[tableName] : null;
     }
 
-    public getTableWithEntities(): Array<{tableName: string, entityName: string}> {
-        const names: Array<{tableName: string, entityName: string}> = [];
+    public getTableNames(): Array<string> {
+        const names: Array<string> = [];
 
 
         for(let tableName in this._results) {
-            names.push({
-                tableName: tableName,
-                entityName: this._results[tableName].entity
-            });
+            names.push(tableName);
         }
         return names;
     }

@@ -47,14 +47,14 @@ export class BulkDatabaseDelete {
             try {
                 await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-                for (let table in this._data) {
-                    const entity: string = this._data[table].entity;
-                    const rows: Array<object> = this._data[table].data;
+                for (let tableName in this._data) {
+                    let entity: typeof Model = Model.getEntitiyDefinition(tableName);
+                    const rows: Array<object> = this._data[tableName];
 
                     if (entity) {
-                        await this.processEntityRows(qr, table, entity, rows);
+                        await this.processEntityRows(qr, tableName, entity, rows);
                     } else {
-                        await this.processRows(qr, table, rows);
+                        await this.processRows(qr, tableName, rows);
                     }
                 }
 
@@ -67,26 +67,18 @@ export class BulkDatabaseDelete {
                 qr.release();
                 return reject(e);
             }
-
+            
             resolve();
         });
     }
 
-    protected async processEntityRows(queryRunner: QueryRunner, tableName: string, entityName: string, rows: Array<object>): Promise<void> {
+    protected async processEntityRows(queryRunner: QueryRunner, tableName: string, entity: typeof Model, rows: Array<object>): Promise<void> {
         
         if (rows.length <= 0) {
             return;
         }
 
-        let entity: typeof Model = Model.getEntitiyDefinition(tableName, entityName);
-
-        let models: Array<Model> = [];
-
-        for(let i = 0; i < rows.length; i++) {
-            models.push(<any>rows[i])
-        }
-
-        await queryRunner.manager.getRepository(entity).remove(models);
+        await queryRunner.manager.getRepository(entity).remove(<Array<Model>>rows);
     }
 
     protected async processRows(queryRunner: QueryRunner, table: string, rows: Array<object>): Promise<void> {

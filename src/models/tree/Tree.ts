@@ -33,7 +33,6 @@ var fwc_tree_node = require("./node.js");
 
 const tableName: string = "fwc_tree";
 
-@Entity(tableName)
 export class Tree extends Model {
 
     @PrimaryGeneratedColumn()

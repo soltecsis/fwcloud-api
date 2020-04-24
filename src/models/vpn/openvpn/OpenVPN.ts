@@ -30,7 +30,7 @@ import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
-import { OpenVPNOptions } from "./openvpn-options.model";
+import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRule } from "../../policy/PolicyRule";
 const sshTools = require('../../../utils/ssh');
@@ -105,8 +105,8 @@ export class OpenVPN extends Model {
     })
     crt: Crt;
 
-    @OneToOne(type => OpenVPNOptions, options => options.openVPN)
-    options: OpenVPNOptions
+    @OneToMany(type => OpenVPNOption, options => options.openVPN)
+    openVPNOptions: Array<OpenVPNOption>
 
     @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.openVPNs)
     @JoinTable({

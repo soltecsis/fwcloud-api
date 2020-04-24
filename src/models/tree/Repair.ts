@@ -34,7 +34,6 @@ var fwcloud;
 
 const tableName: string = "fwc_tree";
 
-@Entity(tableName)
 export class Repair extends Model {
 
     @PrimaryColumn()

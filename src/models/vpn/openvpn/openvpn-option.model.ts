@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinTable, ManyToMany, JoinColumn, OneToOne } from "typeorm";
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinTable, ManyToMany, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import Model from "../../Model";
 import { IPObj } from "../../ipobj/IPObj";
 import { OpenVPN } from "./OpenVPN";
@@ -28,28 +28,31 @@ import { OpenVPN } from "./OpenVPN";
 const tableName: string = 'openvpn_opt';
 
 @Entity(tableName)
-export class OpenVPNOptions extends Model {
+export class OpenVPNOption extends Model {
 
-    @PrimaryColumn({name: 'openvpn'})
+    @PrimaryGeneratedColumn()
+    id: number;
+    
+    @Column({name: 'openvpn'})
     openVPNId: number;
 
-    @OneToOne(type => OpenVPN, openVPN => openVPN.options)
+    @Column({name: 'ipobj'})
+    ipObjId: number;
+
+    @Column()
+    name: string;
+
+    @ManyToOne(type => OpenVPN, openVPN => openVPN.openVPNOptions)
     @JoinColumn({
         name: 'openvpn'
     })
     openVPN: OpenVPN;
-
-    @Column({name: 'ipobj'})
-    ipObjId: number;
 
     @ManyToOne(type => IPObj, ipObj => ipObj.optionsList)
     @JoinColumn({
         name: 'ipobj'
     })
     ipObj: IPObj;
-
-    @Column()
-    name: string;
 
     @Column()
     arg: string

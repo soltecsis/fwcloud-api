@@ -173,6 +173,13 @@ export class createOpenvpnTable1579701517852 implements MigrationInterface {
                     name: 'openvpn_opt',
                     columns: [
                         {
+                            name: 'id',
+                            type: 'int',
+                            isGenerated: true,
+                            generationStrategy: 'increment',
+                            isPrimary: true,
+                        },
+                        {
                             name: 'openvpn',
                             type: 'int',
                             length: '11',
