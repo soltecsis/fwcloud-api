@@ -149,7 +149,6 @@ describe(describeName('BackupService Unit tests'), async() => {
                 const b2: Backup = new Backup();
 
                 await b1.create(service.config.data_dir);
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 await b2.create(service.config.data_dir);
 
                 service['_config'].max_copies = 1;
@@ -174,7 +173,6 @@ describe(describeName('BackupService Unit tests'), async() => {
                 stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 15)).valueOf());
                 await b2.create(service.config.data_dir);
                 stubDate.restore();
-
 
                 expect(await service.applyRetentionPolicy()).to.have.length(2);
             });

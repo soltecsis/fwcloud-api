@@ -31,10 +31,6 @@ import { Application } from "../../../src/Application";
 import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
-import sinon from "sinon";
-import * as fs from "fs";
-import * as path from "path";
-import Sinon = require("sinon");
 
 let app: Application;
 let backupService: BackupService;
@@ -42,9 +38,6 @@ let loggedUser: User;
 let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
-
-let stubDate: Sinon.SinonStub;
-let stubExportDatabase: Sinon.SinonStub;
 
 describe(describeName('Backup E2E tests'), () => {
 
@@ -58,16 +51,7 @@ describe(describeName('Backup E2E tests'), () => {
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
-        stubDate = sinon.stub(Date, 'now').returns(100);
-        stubExportDatabase = sinon.stub(Backup.prototype, <any>"exportDatabase").callsFake(() => {
-            fs.writeFileSync(path.join(backupService.config.data_dir, Date.now().toString(), Backup.DUMP_FILENAME), "");
-        });       
     });
-
-    afterEach(async () => {
-        stubDate.restore();
-        stubExportDatabase.restore();
-    })
 
     describe('BackupController', () => {
 
@@ -90,8 +74,6 @@ describe(describeName('Backup E2E tests'), () => {
                 const backupService: BackupService = await app.getService<BackupService>(BackupService.name);
 
                 const backup1: Backup = await new Backup().create(backupService.config.data_dir);
-                
-                stubDate.returns(101); // Change Date.now() in order to create another backup
                 const backup2: Backup = await new Backup().create(backupService.config.data_dir);
 
                 return await request(app.express)
@@ -174,6 +156,7 @@ describe(describeName('Backup E2E tests'), () => {
                     .then(async (response) => {
                         expect(response.body.data.comment).to.be.deep.equal('test comment');
                         expect(await backupService.findOne(response.body.data.id)).not.to.be.null
+                        await sleep(4000);
                     });
             });
         });
