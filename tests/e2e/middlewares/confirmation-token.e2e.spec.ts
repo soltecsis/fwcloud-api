@@ -35,6 +35,8 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
             .post(_URL().getURL('backups.store'))
             .set('Cookie', [attachSession(adminUserSessionId)])
             .expect(201);
+
+        await sleep(4000);
     });
 
     it('should validates a request if the confirmation_token is attached to the request', async () => {
