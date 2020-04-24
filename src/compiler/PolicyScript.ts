@@ -99,6 +99,10 @@ export class PolicyScript {
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
                     if (data[i].comment)
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
+
+                    // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
+                    // is solved.
+                    /*
                     if (!parseInt(data[i].c_status_recompile)) // The compiled string in the database is ok.
                         ps += data[i].c_compiled;
                     else { // We must compile the rule.
@@ -108,6 +112,12 @@ export class PolicyScript {
                             ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
                         } catch (error) { return reject(error) }
                     }
+                    */
+                    try {
+                        // The rule compilation order is important, then we must wait until we have the promise fulfilled.
+                        // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
+                        ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
+                    } catch (error) { return reject(error) }
                 }
 
                 resolve(ps);
