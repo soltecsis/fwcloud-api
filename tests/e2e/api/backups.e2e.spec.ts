@@ -39,7 +39,7 @@ let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
 
-describe.only(describeName('Backup E2E tests'), () => {
+describe(describeName('Backup E2E tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
