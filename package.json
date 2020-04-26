@@ -1,7 +1,7 @@
 {
-  "name": "FWCloud.net-API",
-  "version": "0.8.5",
-  "description": "Documentation for the RESTful API of the FWCloud.net project.",
+  "name": "FWCloud-API",
+  "version": "1.0.0",
+  "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
     "start": "npm run smart-compilation && node dist/src/bin/fwcloud.js",
