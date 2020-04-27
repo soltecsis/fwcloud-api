@@ -39,7 +39,7 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import * as semver from "semver";
 import { ExporterResult } from "../fwcloud-exporter/database-exporter/exporter-result";
-import { Importer } from "../fwcloud-exporter/importer/importer";
+import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database-importer";
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 
@@ -336,7 +336,7 @@ export class Snapshot implements Responsable {
      */
     protected async restoreDatabaseData(): Promise<void> {
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
-        const importer: Importer = new Importer();
+        const importer: DatabaseImporter = new DatabaseImporter();
         
         const fwCloud: FwCloud = await importer.import(this.path);
 
