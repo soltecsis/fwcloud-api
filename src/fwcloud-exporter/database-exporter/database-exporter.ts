@@ -77,7 +77,7 @@ const EXPORTERS = [
     new FwcTreeExporter()
 ];
 
-export class Exporter {
+export class DatabaseExporter {
     protected _result: ExporterResult;
 
     public async export(fwcloudId: number): Promise<ExporterResult> {

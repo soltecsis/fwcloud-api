@@ -21,7 +21,7 @@
 */
 
 import { QueryRunner, Repository, DeepPartial } from "typeorm";
-import { ExporterResult } from "../exporter/exporter-result";
+import { ExporterResult } from "../database-exporter/exporter-result";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import Model from "../../models/Model";
 

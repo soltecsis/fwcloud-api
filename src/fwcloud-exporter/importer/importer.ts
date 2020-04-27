@@ -23,7 +23,7 @@
 import { Snapshot } from "../../snapshots/snapshot";
 import { DatabaseDataImporter } from "./database-data-importer";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { ExporterResult } from "../exporter/exporter-result";
+import { ExporterResult } from "../database-exporter/exporter-result";
 import { QueryRunner, DeepPartial } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";

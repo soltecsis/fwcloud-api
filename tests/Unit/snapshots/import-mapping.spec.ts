@@ -24,7 +24,7 @@ import { describeName, expect, testSuite } from "../../mocha/global-setup";
 import { ImportMapping } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/import-mapping";
 import { IdManager } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../src/database/database.service";
-import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
+import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
 
 let mapper: ImportMapping;
 let databaseService: DatabaseService;
