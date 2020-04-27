@@ -6,7 +6,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { Ca } from "../../../src/models/vpn/pki/Ca";
 import { PolicyRule } from "../../../src/models/policy/PolicyRule";
 
-describe.only(describeName('Model Unit Tests'), () => {
+describe(describeName('Model Unit Tests'), () => {
     describe('_getTableName()', () => {
         it('should return the entity table name', () => {
             expect(FwCloud._getTableName()).to.be.deep.eq('fwcloud');
