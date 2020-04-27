@@ -48,8 +48,11 @@ export default abstract class Model implements IModel {
     }
 
     public static _getTableName(): string {
-        const sampleInstance: Model = new (<any>this);
-        return sampleInstance.getTableName();
+        const data = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
+            return item.target === this
+        });
+
+        return data.length > 0 ? data[0].name : null;
     }
 
     /**
