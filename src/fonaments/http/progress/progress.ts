@@ -66,6 +66,7 @@ export class Progress<T> {
 
     protected _startMessage: string;
     protected _endMessage: string;
+    protected _dataCallback: () => any;
 
     constructor(response: T) {
         this._id = uuid.v1();
@@ -101,9 +102,10 @@ export class Progress<T> {
         return this._endMessage;
     }
 
-    public procedure(startMessage: string, procedure: GroupDescription, endMessage: string): Promise<void> {
+    public procedure(startMessage: string, procedure: GroupDescription, endMessage: string, dataCallback?: () => any): Promise<void> {
         this._startMessage = startMessage;
         this._endMessage = endMessage;
+        this._dataCallback = dataCallback ? dataCallback : null;
         
         this._startTask = new SequencedTask(this._taskEvents, procedure);
         return this.run();
@@ -155,8 +157,11 @@ export class Progress<T> {
             this._externalEmitter.emit('start', message);
         });
 
-        this._progressEvents.on('end', () => {
+        this._progressEvents.on('end', async () => {
+            const data: any = this._dataCallback ? await this._dataCallback() : null;
             const message: ProgressPayload = new EndProgressPayload(this);
+            message.data = data;
+            
             this._messages.push(message);
             this.sendMessagesToChannel();
             this.closeChannel();
