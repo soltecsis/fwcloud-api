@@ -7,7 +7,7 @@ export class ProgressPayload {
     task_id: string;
     message: string;
     type: TaskPayloadType;
-    data: object;
+    data: {[property: string]: any};
 
     constructor(payload: {task_id: string, message: string, type: TaskPayloadType}) {
         this.task_id = payload.task_id;

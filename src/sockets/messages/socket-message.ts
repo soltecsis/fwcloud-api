@@ -1,13 +1,7 @@
 import moment from "moment";
 import * as uuid from "uuid";
 
-export class SocketMessageInterface {
-    id: string;
-    timestamp: number;
-    channel: string;
-    payload: object
-}
-export class SocketMessage implements SocketMessageInterface {
+export class SocketMessage {
     id: string;
     timestamp: number;
     channel: string;

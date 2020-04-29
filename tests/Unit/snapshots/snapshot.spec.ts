@@ -32,6 +32,8 @@ import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
+import { Progress } from "../../../src/fonaments/http/progress/progress";
+import { EndProgressPayload } from "../../../src/fonaments/http/progress/messages/progress-messages";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -293,6 +295,20 @@ describe(describeName('Snapshot Unit Tests'), () => {
             const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
+        });
+    });
+
+    describe('progressRestore()', () => {
+        it('should send the new fwcloud id in the end message', (done) => {
+            Snapshot.create(service.config.data_dir, fwCloud, 'test').then((snapshot: Snapshot) => {
+                const progress: Progress<Snapshot> = snapshot.progressRestore();
+
+                progress.on('end', (payload: EndProgressPayload) => {
+                    expect(payload.data).to.haveOwnProperty('id');
+                    expect(payload.data.id).to.be.deep.eq(snapshot.fwCloud.id + 1);
+                    done();
+                });
+            });
         });
     });
 });
