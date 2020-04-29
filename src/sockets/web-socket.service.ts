@@ -3,15 +3,9 @@ import { Channel } from "./channels/channel";
 import io from 'socket.io';
 import { ChannelConnectResponse, ChannelConnectErrorResponse } from "./messages/channel-connect";
 import { SocketMessage } from "./messages/socket-message";
+import { ProgressPayload } from "../fonaments/http/progress/messages/progress-messages";
 
 export type Payload = object | ProgressPayload;
-
-export interface ProgressPayload {
-    type: 'start' | 'end' | 'task_start' | 'task_end' | 'error' | 'info'
-    task_id: string;
-    message: string;
-    data: object | null
-}
 
 export type MessageEvents = 'message:add' | 'message:remove';
 

@@ -28,10 +28,11 @@ export class Channel {
     protected _events: ChannelEventEmitter;
 
     protected _listener: EventEmitter | io.Socket;
-    protected _socketId: string;
+    public socketId: string;
 
     protected _isClosedRequested: boolean;
     protected _closed: boolean;
+    protected _closeTimeout: NodeJS.Timeout;
 
     protected constructor(webSocketService: WebSocketService) {
         this._id = uuid.v1();
@@ -41,6 +42,7 @@ export class Channel {
         this._events = new EventEmitter();
         this._closed = false;
         this._isClosedRequested = false;
+        this._listener === null;
     }
 
     get id(): string {
@@ -66,6 +68,7 @@ export class Channel {
 
         const message = new SocketMessage(payload, this._id);
         this._pendingMessages.push(message);
+        this.emitMessages();
         this._events.emit('message:add', message);
 
         return message;
@@ -75,12 +78,16 @@ export class Channel {
         return this._closed === false && this._isClosedRequested === false;
     }
 
-    public setListener(listener: EventEmitter | io.Socket): void {
-        if (isSocket(listener) && listener.id !== this._socketId) {
+    public setListener(listener: EventEmitter | io.Socket, autoemit = true): void {
+        if (isSocket(listener) && listener.id !== this.socketId) {
             throw new Error('Channel not allowed');
         }
 
         this._listener = listener;
+        
+        if (autoemit) {
+            this.emitMessages();    
+        }
     }
 
     public emitMessages() {
@@ -93,12 +100,17 @@ export class Channel {
                 this._events.emit('message:emited', messages[i]);
                 this._sentMessages.push(messages[i]);
             }
+
+            if(this._isClosedRequested) {
+                this._close();
+            }
         }
     }
 
     public close(graceTime: number = 0) {
-        if (graceTime > 0) {
-            setTimeout(() => { this._close();}, graceTime);
+        if (graceTime > 0 && !this._listener) {
+            this._closeTimeout = setTimeout(() => { this._close();}, graceTime);
+            this._isClosedRequested = true;
             return;
         }
 
@@ -108,8 +120,10 @@ export class Channel {
 
     protected _close() {
         this._closed = true;
+        this._isClosedRequested = true;
         this._events.emit('closed');
         this._events.removeAllListeners()
+        clearTimeout(this._closeTimeout);
     }
 
     public on(event: ChannelEvent, listener: (...args: any[]) => void): ChannelEventEmitter {

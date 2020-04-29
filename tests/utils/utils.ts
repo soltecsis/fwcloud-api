@@ -30,6 +30,9 @@ import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
 import { testSuite } from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
+import { Channel } from "../../src/sockets/channels/channel";
+import { WebSocketService } from "../../src/sockets/web-socket.service";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;
@@ -78,4 +81,24 @@ export function attachSession(id: string): string {
 export async function sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
     return;
+}
+
+export function waitChannelIsClosed(channel_id: string): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+        const webSocketService: WebSocketService = await testSuite.app.getService<WebSocketService>(WebSocketService.name);
+        const channel: Channel = webSocketService.getChannel(channel_id);
+
+        if (!channel) {
+            return resolve();
+        }
+
+        const eventEmitter: EventEmitter = new EventEmitter;
+
+        channel.setListener(eventEmitter);
+        channel.emitMessages();
+
+        channel.on('closed', () => {
+            return resolve();
+        });
+    });
 }

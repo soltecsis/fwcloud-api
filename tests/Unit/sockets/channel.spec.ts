@@ -15,7 +15,7 @@ describe(describeName('Channel Unit Tests'), () => {
     beforeEach(async() => {
         app = testSuite.app;
         webSocketService = await app.getService<WebSocketService>(WebSocketService.name);
-        channel = await Channel.make(webSocketService);
+        channel = Channel.make(webSocketService);
         listener = new EventEmitter();
     });
 
@@ -77,12 +77,13 @@ describe(describeName('Channel Unit Tests'), () => {
 
         it('should emit an event', (done) => {
             const message: SocketMessage = channel.addMessage({});
-            channel.setListener(listener);
 
             channel.on('message:emited', (item: SocketMessage) => {
                 expect(item).to.be.deep.eq(message)
                 done();
             });
+
+            channel.setListener(listener, false);
 
             channel.emitMessages();
         })
@@ -112,5 +113,21 @@ describe(describeName('Channel Unit Tests'), () => {
             await sleep(12);
             expect(channel.closed).to.be.true;
         });
-    })
+
+        it('should close after sending messages if close was requested', async () => {
+            channel.addMessage({});
+            channel.setListener(listener);
+            channel.close(1000);
+
+            channel.emitMessages();
+            expect(channel.closed).to.be.true;
+        });
+
+        it('should close regardless grace time if a listener is listening', async () => {
+            channel.setListener(listener);
+            channel.close(1000);
+
+            expect(channel.closed).to.be.true;
+        });
+    });
 });

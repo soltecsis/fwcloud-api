@@ -76,7 +76,7 @@ export class SnapshotController extends Controller {
             this._fwCloud
         );
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
+        return ResponseBuilder.buildResponse().status(201).progress(progress);
     }
 
     public async update(request: Request): Promise<ResponseBuilder> {
@@ -96,7 +96,7 @@ export class SnapshotController extends Controller {
 
         const progress: Progress<Snapshot> = this._snapshotService.restore(snapshot);
 
-        return ResponseBuilder.buildResponse().status(200).progress(progress, request.session.socket_id);
+        return ResponseBuilder.buildResponse().status(200).progress(progress);
     }
 
     public async destroy(request: Request): Promise<ResponseBuilder> {

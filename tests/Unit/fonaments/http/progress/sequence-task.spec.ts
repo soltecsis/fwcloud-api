@@ -60,21 +60,4 @@ describe(describeName('Sequence Task tests'), () => {
             expect(task.getTasks()).to.have.length(1);
         });
     });
-
-    describe('getSteps()', () => {
-
-        it('should return all task steps', () => {
-            const task = new SequencedTask(eventEmitter, (task: Task) => {
-                task.addTask(() => { return null; }, '', true);
-                task.addTask(() => { return null; }, '', true);
-                task.addTask(() => { return null; }, '', false);
-                task.parallel((task: Task) => {
-                    task.addTask(() => { return null; }, '', true);
-                    task.addTask(() => { return null; }, '', false);
-                })
-            });
-
-            expect(task.getSteps()).be.deep.eq(3);
-        });
-    });
 });
