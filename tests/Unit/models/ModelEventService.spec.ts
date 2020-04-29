@@ -36,12 +36,13 @@ import StringHelper from '../../../src/utils/string.helper';
 let app: Application;
 let repository: RepositoryService;
 
-beforeEach(async () => {
-    app = testSuite.app;
-    repository = await app.getService<RepositoryService>(RepositoryService.name);
-})
-
 describe(describeName('ModelEventService tests'), () => {
+    
+    before(async () => {
+        app = testSuite.app;
+        repository = await app.getService<RepositoryService>(RepositoryService.name);
+    });
+
     it('emit model event with a callback should run the callback', async () => {
         const name = StringHelper.randomize();
         const fwcloud = await FwCloud.insertFwcloud({

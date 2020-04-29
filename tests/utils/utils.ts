@@ -28,7 +28,7 @@ import cookie from "cookie";
 import signature from "cookie-signature";
 import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
-import { testSuite } from "../mocha/global-setup";
+import { testSuite, TestSuite} from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
 import { Channel } from "../../src/sockets/channels/channel";
 import { WebSocketService } from "../../src/sockets/web-socket.service";
@@ -95,10 +95,29 @@ export function waitChannelIsClosed(channel_id: string): Promise<void> {
         const eventEmitter: EventEmitter = new EventEmitter;
 
         channel.setListener(eventEmitter);
-        channel.emitMessages();
 
         channel.on('closed', () => {
             return resolve();
         });
+
+        channel.emitMessages();
     });
 }
+
+/**
+ * Run a FwCloud CLI Command and reload the application after call it. Notice CLI commands closes application
+ * 
+ * @param testSuite 
+ * @param fn 
+ */
+export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Promise<void>) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const _f = await fn();
+            await testSuite.runApplication();
+            return resolve();
+        } catch(e) {
+            return reject(e);
+        }
+    });
+};

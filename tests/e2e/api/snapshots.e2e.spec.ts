@@ -32,6 +32,9 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
 import * as path from "path";
+import Sinon = require("sinon");
+import sinon from "sinon";
+import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
 
 let app: Application;
 let loggedUser: User;
@@ -44,7 +47,8 @@ let fwCloud: FwCloud;
 let snapshotService: SnapshotService;
 
 describe(describeName('Snapshot E2E tests'), () => {
-
+    let stubExportDatabase: Sinon.SinonStub;
+    
     beforeEach(async () => {
         app = testSuite.app;
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
@@ -61,6 +65,16 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
+
+        stubExportDatabase = sinon.stub(Snapshot.prototype, <any>"exportFwCloudDatabaseData").callsFake(() => {
+            return new Promise<ExporterResult>((resolve, reject) => {
+                return resolve(new ExporterResult({}));
+            })
+        }); 
+    });
+
+    afterEach(async() => {
+        stubExportDatabase.restore();
     });
 
     describe('SnapshotController', () => {
@@ -211,7 +225,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should create a new snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                repository.for(User).save(loggedUser);
+                await repository.for(User).save(loggedUser);
 
                 await request(app.express)
                     .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))

@@ -34,12 +34,12 @@ let repositoryService: RepositoryService;
 let policyGroupRepository: PolicyGroupRepository;
 
 describe(describeName('PolicyRule tests'), () => {
-    beforeEach(async () => {
+    
+    before(async () => {
         app = testSuite.app;
-
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         policyGroupRepository = repositoryService.for(PolicyGroup);
-    })
+    });
 
     describe('unassignPolicyRulesBeforeRemove()', () => {
 

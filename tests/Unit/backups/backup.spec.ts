@@ -39,7 +39,7 @@ let service: BackupService;
 
 describe(describeName('Backup Unit tests'), () => {
 
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         service = await app.getService<BackupService>(BackupService.name);
     });
@@ -149,8 +149,6 @@ describe(describeName('Backup Unit tests'), () => {
             backup = await backup.restore();
 
             expect(await databaseService.connection.createQueryRunner().hasTable('ca')).to.be.true;
-
-            await databaseService.emptyDatabase();
         });
 
         it('should import pki directoies if it exists in the backup', async () => {

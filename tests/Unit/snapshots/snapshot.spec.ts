@@ -34,6 +34,7 @@ import { SnapshotNotCompatibleException } from "../../../src/snapshots/exception
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import { Progress } from "../../../src/fonaments/http/progress/progress";
 import { EndProgressPayload } from "../../../src/fonaments/http/progress/messages/progress-messages";
+import StringHelper from "../../../src/utils/string.helper";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -42,14 +43,16 @@ let service: SnapshotService;
 let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot Unit Tests'), () => {
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwcloudRepository = repositoryService.for(FwCloud);
+    });
 
+    beforeEach(async () => {
         fwCloud = fwcloudRepository.create({
-            name: 'testCloud'
+            name: StringHelper.randomize(10)
         });
 
         fwCloud = await fwcloudRepository.save(fwCloud);

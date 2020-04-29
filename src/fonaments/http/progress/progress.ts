@@ -193,7 +193,8 @@ export class Progress<T> {
             const message: ProgressPayload = new ErrorTaskPayload(task, error);
             this._messages.push(message);
             this.sendMessagesToChannel();
-            this._externalEmitter.emit('error', message);
+            this.closeChannel();
+            this._externalEmitter.emit('error', error);
         });
     }
 

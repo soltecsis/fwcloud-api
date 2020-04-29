@@ -25,6 +25,7 @@ import { testSuite, expect, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { MigrationRunCommand } from "../../../../src/cli/commands/migration-run.command";
 import { QueryRunner } from "typeorm";
+import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationRunCommand tests'), () => {
     it('should run the migrations', async() => {
@@ -36,16 +37,13 @@ describe(describeName('MigrationRunCommand tests'), () => {
         await queryRunner.release();
         await databaseService.emptyDatabase();
 
-        await new MigrationRunCommand().handler({
-            $0: "migration:run",
+        await runCLICommandIsolated(testSuite, async () => {
+            return new MigrationRunCommand().handler({
+                $0: "migration:run",
             _: []
-        });
+        })});
 
-        if(!queryRunner.connection.isConnected) {
-            await queryRunner.connection.connect();
-            queryRunner = queryRunner.connection.createQueryRunner();
-        }
-
+        queryRunner = databaseService.connection.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT name FROM migrations');
         await queryRunner.release();
         
