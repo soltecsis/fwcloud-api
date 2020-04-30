@@ -115,7 +115,7 @@
     "cookie": "0.4.0",
     "cookie-signature": "1.1.0",
     "gulp": "4.0.2",
-    "mocha": "7.0.1",
+    "mocha": "^7.1.2",
     "sinon": "9.0.0",
     "supertest": "4.0.2",
     "tree-kill": "1.2.2"
