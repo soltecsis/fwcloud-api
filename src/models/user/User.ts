@@ -27,6 +27,11 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOn
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
+
+import { PgpHelper } from '../../utils/pgp';
+import { PathHelper } from '../../utils/path-helpers';
+
+
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcrypt');
@@ -129,7 +134,7 @@ export class User extends Model {
         });
     }
 
-    //Add new customer
+    //Add new user
     public static insert(req) {
         return new Promise(async (resolve, reject) => {
             //New object with customer data
@@ -146,10 +151,18 @@ export class User extends Model {
                 allowed_from: req.body.allowed_from
             };
 
-            req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error, result) => {
-                if (error) return reject(error);
-                resolve(result.insertId);
-            });
+            try {
+                // PGP TESTS.
+                const pgp: PgpHelper = new PgpHelper(req.session.pgp);
+                //await pgp.init();
+                const msgEncrypted: string = await pgp.encrypt('Este es mi texto secretillo!!!!!');
+                const msg: string = await pgp.decrypt(msgEncrypted);
+
+                req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result.insertId);
+                });
+            } catch(error) { reject(error) }
         });
     }
 
