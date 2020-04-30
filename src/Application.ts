@@ -57,6 +57,7 @@ import { AuthorizationMiddleware } from './fonaments/authorization/authorization
 import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
+import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
@@ -99,7 +100,8 @@ export class Application extends AbstractApplication {
             CronServiceProvider,
             BackupServiceProvider,
             SnapshotServiceProvider,
-            WebSocketServiceProvider
+            WebSocketServiceProvider,
+            FirewallServiceProvider
         ]
     }
 

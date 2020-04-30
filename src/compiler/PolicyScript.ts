@@ -87,12 +87,16 @@ export class PolicyScript {
         });
     }
 
-    public static dump(req, type) {
+    public static dump(firewall: Firewall, type: number) {
         return new Promise((resolve, reject) => {
-            PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
+            if (!firewall.fwCloudId || !firewall.id) {
+                return reject();
+            }
+
+            PolicyCompilation.getPolicy_cs_type(firewall.fwCloudId, firewall.id, type, async (error, data) => {
                 if (error) return reject(error);
 
-                SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
+                //SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
                 for (var ps = "", i = 0; i < data.length; i++) {
                     SocketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
@@ -116,7 +120,7 @@ export class PolicyScript {
                     try {
                         // The rule compilation order is important, then we must wait until we have the promise fulfilled.
                         // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
+                        ps += await RuleCompiler.get(firewall.fwCloudId, firewall, type, data[i].id);
                     } catch (error) { return reject(error) }
                 }
 

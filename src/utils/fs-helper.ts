@@ -44,7 +44,21 @@ export class FSHelper {
             if (!stat || !stat.isDirectory()) {
                 throw new Error();
             }
-        } catch {
+        } catch(e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static fileExistsSync(filePath: fs.PathLike): boolean {
+        try {
+            const stat: fs.Stats = fs.statSync(filePath);
+
+            if (!stat || !stat.isFile()) {
+                throw new Error();
+            }
+        } catch(e) {
             return false;
         }
 
