@@ -34,7 +34,7 @@ import { PathHelper } from '../../utils/path-helpers';
 
 const fwcError = require('../../utils/error_table');
 
-var bcrypt = require('bcrypt');
+var bcrypt = require('bcryptjs');
 
 const tableName: string = "user";
 
@@ -154,7 +154,6 @@ export class User extends Model {
             try {
                 // PGP TESTS.
                 const pgp: PgpHelper = new PgpHelper(req.session.pgp);
-                //await pgp.init();
                 const msgEncrypted: string = await pgp.encrypt('Este es mi texto secretillo!!!!!');
                 const msg: string = await pgp.decrypt(msgEncrypted);
 

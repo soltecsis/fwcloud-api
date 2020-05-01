@@ -32,7 +32,7 @@ const fwcError = require('../../utils/error_table');
 
 const config = require('../../config/config');
 
-var bcrypt = require('bcrypt');
+var bcrypt = require('bcryptjs');
 
 
 /**
@@ -99,7 +99,7 @@ router.post('/login',async (req, res) => {
 				private: pgp.privateKey
 			};
 
-			res.status(200).json({"user": req.session.user_id, "role": data[0].role});
+			res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
 		} else {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;

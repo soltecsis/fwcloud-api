@@ -23,25 +23,33 @@
 const openpgp = require('openpgp');
 
 export class PgpHelper {
-    public publicKey: string;
-    public privateKey: string;
+    private _publicKey: string;
+    private _privateKey: string;
 
     constructor (keyPair?: {public: string, private: string}) {
         if (keyPair) {
-            this.publicKey = keyPair.public;
-            this.privateKey = keyPair.private;
+            this._publicKey = keyPair.public;
+            this._privateKey = keyPair.private;
         }
     }
 
-    public async init(rsaBits: number) {
+    get publicKey():string {
+        return this._publicKey;
+    }
+
+    get privateKey():string {
+        return this._privateKey;
+    }
+
+    public async init(rsaBits: number): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 const { publicKeyArmored, privateKeyArmored } = await openpgp.generateKey({
                     userIds: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }], 
                     rsaBits: rsaBits     
                 });
-                this.publicKey = publicKeyArmored;
-                this.privateKey = privateKeyArmored;
+                this._publicKey = publicKeyArmored;
+                this._privateKey = privateKeyArmored;
                 resolve();
             } catch (error) { reject(error) }
         });
@@ -52,7 +60,7 @@ export class PgpHelper {
             try {
                 const options = {
                     message: openpgp.message.fromText(msg), // input as Message object
-                    publicKeys: (await openpgp.key.readArmored(this.publicKey)).keys // for encryption
+                    publicKeys: (await openpgp.key.readArmored(this._publicKey)).keys // for encryption
                 };
                 const { data: msgEncrypted } = await openpgp.encrypt(options);
                 //console.log(msgEncrypted);
@@ -66,7 +74,7 @@ export class PgpHelper {
             try {
                 const options = {
                     message: await openpgp.message.readArmored(msgEncrypted), // parse armored message
-                    privateKeys: (await openpgp.key.readArmored(this.privateKey)).keys // for decryption
+                    privateKeys: (await openpgp.key.readArmored(this._privateKey)).keys // for decryption
                 }
                 const { data: msg } = await openpgp.decrypt(options);
                 //console.log(msg);
