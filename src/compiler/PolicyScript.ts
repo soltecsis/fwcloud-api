@@ -36,7 +36,7 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  */
 import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
-import { SocketTools } from '../utils/socket';
+import { EventEmitter } from 'events';
 
 export class PolicyScript {
 
@@ -83,7 +83,7 @@ export class PolicyScript {
         });
     }
 
-    public static dump(firewall: Firewall, type: number) {
+    public static dump(firewall: Firewall, type: number, event: EventEmitter) {
         return new Promise((resolve, reject) => {
             if (!firewall.fwCloudId || !firewall.id) {
                 return reject();
@@ -92,13 +92,14 @@ export class PolicyScript {
             PolicyCompilation.getPolicy_cs_type(firewall.fwCloudId, firewall.id, type, async (error, data) => {
                 if (error) return reject(error);
 
-                //SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
                 for (var ps = "", i = 0; i < data.length; i++) {
-                    SocketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
+                    
+                    event.emit('info', "Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
-                    if (data[i].comment)
+
+                    if (data[i].comment) {
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
+                    }
 
                     // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
                     // is solved.

@@ -62,19 +62,19 @@ export class Compiler {
                 stream.write("\n\necho \"INPUT CHAIN\"\n");
                 stream.write("echo \"-----------\"\n");
                 eventEmitter.emit('info', "<strong>INPUT CHAIN:</strong>\n");
-                let cs = await PolicyScript.dump(this._firewall, 1);
+                let cs = await PolicyScript.dump(this._firewall, 1, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"OUTPUT CHAIN\"\n");
                 stream.write("echo \"------------\"\n");
                 eventEmitter.emit('info', "<strong>OUTPUT CHAIN:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 2);
+                cs = await PolicyScript.dump(this._firewall, 2, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"FORWARD CHAIN\"\n");
                 stream.write("echo \"-------------\"\n");
                 eventEmitter.emit('info', "<strong>FORWARD CHAIN:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 3);
+                cs = await PolicyScript.dump(this._firewall, 3, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"********************\"\n");
@@ -84,13 +84,13 @@ export class Compiler {
                 stream.write("\n\necho \"SNAT\"\n");
                 stream.write("echo \"----\"\n");
                 eventEmitter.emit('info', "<strong>SNAT:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 4);
+                cs = await PolicyScript.dump(this._firewall, 4, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"DNAT\"\n");
                 stream.write("echo \"----\"\n");
                 eventEmitter.emit('info', "<strong>DNAT:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 5);
+                cs = await PolicyScript.dump(this._firewall, 5, eventEmitter);
 
                 stream.write(cs+"\n\n");
 
@@ -100,25 +100,24 @@ export class Compiler {
                 stream.write("echo \"***********************\"\n");
                 stream.write("echo \"* FILTER TABLE (IPv6) *\"\n");
                 stream.write("echo \"***********************\"\n");
-                /*SocketTools.msg("\n");
-                SocketTools.msg("\n");
-                SocketTools.msg("<strong>FILTER TABLE (IPv6):</strong>\n");*/
+                eventEmitter.emit('info', "\n\n");
+                eventEmitter.emit('info', "<strong>FILTER TABLE (IPv6):</strong>\n");
                 stream.write("\n\necho \"INPUT CHAIN\"\n");
                 stream.write("echo \"-----------\"\n");
                 eventEmitter.emit('info', "<strong>INPUT CHAIN:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 61);
+                cs = await PolicyScript.dump(this._firewall, 61, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"OUTPUT CHAIN\"\n");
                 stream.write("echo \"------------\"\n");
                 eventEmitter.emit('info', "<strong>OUTPUT CHAIN:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 62);
+                cs = await PolicyScript.dump(this._firewall, 62, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"FORWARD CHAIN\"\n");
                 stream.write("echo \"-------------\"\n");
                 eventEmitter.emit('info', "<strong>FORWARD CHAIN:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 63);
+                cs = await PolicyScript.dump(this._firewall, 63, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"********************\"\n");
@@ -128,13 +127,13 @@ export class Compiler {
                 stream.write("\n\necho \"SNAT\"\n");
                 stream.write("echo \"----\"\n");
                 eventEmitter.emit('info', "<strong>SNAT:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 64);
+                cs = await PolicyScript.dump(this._firewall, 64, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"DNAT\"\n");
                 stream.write("echo \"----\"\n");
                 eventEmitter.emit('info', "<strong>DNAT:</strong>\n");
-                cs = await PolicyScript.dump(this._firewall, 65);
+                cs = await PolicyScript.dump(this._firewall, 65, eventEmitter);
 
                 stream.write(cs+"\n}\n\n");
                 
