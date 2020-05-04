@@ -1,7 +1,7 @@
 import { Service } from "../../fonaments/services/service";
 import { Firewall } from "./Firewall";
-import { Progress } from "../../fonaments/http/progress/progress";
-import { Task } from "../../fonaments/http/progress/task";
+import { Progress, TasksEventEmitter } from "../../fonaments/http/progress/progress";
+import { Task, InternalTaskEventEmitter } from "../../fonaments/http/progress/task";
 import { FSHelper } from "../../utils/fs-helper";
 import * as path from "path";
 import * as fs from "fs";
@@ -47,8 +47,13 @@ export class FirewallService extends Service {
         }
         
         progress.procedure('Compiling firewall', (task: Task) => {
+            
             task.addTask(() => { return this.createFirewallPolicyDirectory(firewall) }, 'Creating directory');
-            task.addTask(() => { return (new Compiler(firewall).compile(this._headerPath, this._footerPath)) }, 'Compiling script');
+            
+            task.addTask((eventEmitter: InternalTaskEventEmitter) => {
+                return (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter)
+            }, 'Compiling script');
+
         }, 'Firewall compiled');
 
         return progress;
@@ -71,7 +76,7 @@ export class FirewallService extends Service {
         }, customSSHConfig);
         
         progress.procedure('Installing firewall policies', (task: Task) => {
-            task.addTask(() => (new Installer(firewall)).install(sshConfig), 'Installing script');
+            task.addTask((events: InternalTaskEventEmitter) => (new Installer(firewall)).install(sshConfig, events), 'Installing script');
         }, 'Firewall installed');
 
         return progress;
