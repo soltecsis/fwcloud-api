@@ -6,6 +6,18 @@ import { FSHelper } from "../../utils/fs-helper";
 import * as path from "path";
 import * as fs from "fs";
 import { Compiler } from "./compiler";
+import { Installer } from "./installer";
+import ObjectHelpers from "../../utils/object-helpers";
+import { getRepository } from "typeorm";
+import { IPObj } from "../ipobj/IPObj";
+import { InternalServerException } from "../../fonaments/exceptions/internal-server-exception";
+
+export type SSHConfig = {
+    host: string,
+    port: number,
+    username: string,
+    password: string
+};
 
 export class FirewallService extends Service {
     protected _dataDir: string;
@@ -21,6 +33,12 @@ export class FirewallService extends Service {
 
         return this;
     }
+
+    /**
+     * Compile a firewall
+     * 
+     * @param firewall 
+     */
     public compile(firewall: Firewall): Progress<Firewall> {
         const progress: Progress<Firewall> = new Progress(firewall);
         
@@ -36,6 +54,34 @@ export class FirewallService extends Service {
         return progress;
     }
 
+    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>): Promise<Progress<Firewall>> {
+        const progress: Progress<Firewall> = new Progress(firewall);
+
+        const ipObj: IPObj = await getRepository(IPObj).findOne({where: {id: firewall.install_ipobj}});
+
+        if (!ipObj) {
+            throw new InternalServerException('Firewall does not have address');
+        }
+
+        const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
+            host: ipObj.address,
+            port: firewall.install_port,
+            username: firewall.install_user,
+            password: firewall.install_pass
+        }, customSSHConfig);
+        
+        progress.procedure('Installing firewall policies', (task: Task) => {
+            task.addTask(() => (new Installer(firewall)).install(sshConfig), 'Installing script');
+        }, 'Firewall installed');
+
+        return progress;
+    }
+
+    /**
+     * Create compilation output directories
+     * 
+     * @param firewall 
+     */
     protected async createFirewallPolicyDirectory(firewall: Firewall): Promise<void> {
         const directoryPath: string = path.join(this._dataDir, firewall.fwCloudId.toString(), firewall.id.toString());
 
@@ -45,17 +91,5 @@ export class FirewallService extends Service {
 
         FSHelper.mkdirSync(directoryPath);
         fs.writeFileSync(path.join(directoryPath, this._scriptFilename), "");
-    }
-
-    protected async compileHeader(firewall: Firewall): Promise<void> {
-        const filePath: string = path.join(this._dataDir, firewall.fwCloudId.toString(), firewall.id.toString(), this._scriptFilename);
-
-        fs.appendFileSync(filePath, fs.readFileSync(this._headerPath, 'utf8'));
-    }
-
-    protected async compileFooter(firewall: Firewall): Promise<void> {
-        const filePath: string = path.join(this._dataDir, firewall.fwCloudId.toString(), firewall.id.toString(), this._scriptFilename);
-
-        fs.appendFileSync(filePath, fs.readFileSync(this._footerPath, 'utf8'));
     }
 }

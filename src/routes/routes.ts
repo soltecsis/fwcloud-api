@@ -66,6 +66,7 @@ export class Routes extends RouteCollection {
                 //Firewalls
                 router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
                     router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
+                    router.post('/install', FirewallController, 'install').name('firewalls.install');
                 });
 
 

@@ -38,10 +38,6 @@ import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { SocketTools } from '../utils/socket';
 
-const sshTools = require('../utils/ssh');
-
-var config = require('../config/config');
-
 export class PolicyScript {
 
     public static append(path) {
@@ -126,37 +122,6 @@ export class PolicyScript {
 
                 resolve(ps);
             });
-        });
-    }
-
-    public static install(req, SSHconn, firewall) {
-        return new Promise(async (resolve, reject) => {
-            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
-            try {
-                SocketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
-                await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
-
-                // Enable sh depuration if it is selected in firewalls/cluster options.
-                const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
-                const sh_debug = (options & 0x0008) ? ' -x' : '';
-
-                SocketTools.msg("Installing firewall script.\n");
-                await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " ./" + config.get('policy').script_name + " install");
-
-                SocketTools.msg("Loading firewall policy.\n");
-                const data = await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
-                    "sh" + sh_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
-                    "else sh" + sh_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
-
-                SocketTools.msg(data);
-                SocketTools.msgEnd();
-                resolve("DONE");
-            } catch (error) {
-                SocketTools.msg(`ERROR: ${error}\n`);
-                SocketTools.msgEnd();
-                reject(error);
-            }
         });
     }
 }
