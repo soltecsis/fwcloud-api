@@ -30,6 +30,7 @@ import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
 import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
+import { FirewallController } from "../controllers/firewalls/firewall.controller";
 
 export class Routes extends RouteCollection {
 
@@ -59,8 +60,17 @@ export class Routes extends RouteCollection {
                 router.get('/version', VersionController, 'show').name('versions.show');
             });
 
-            //Snapshots
             router.prefix('/fwclouds/:fwcloud(\\d+)', (router: RouterParser) => {
+
+                
+                //Firewalls
+                router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
+                    router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
+                    router.post('/install', FirewallController, 'install').name('firewalls.install');
+                });
+
+
+                //Snapshots
                 router.prefix('/snapshots', (router: RouterParser) => {
                     router.get('/', SnapshotController, 'index').name('snapshots.index');
                     router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');

@@ -94,12 +94,10 @@ export function waitChannelIsClosed(channel_id: string): Promise<void> {
 
         const eventEmitter: EventEmitter = new EventEmitter;
 
-        channel.setListener(eventEmitter);
-
         channel.on('closed', () => {
             return resolve();
         });
-
+        channel.setListener(eventEmitter);
         channel.emitMessages();
     });
 }

@@ -22,9 +22,15 @@
 
 import * as uuid from "uuid";
 import { TasksEventEmitter } from "./progress";
+import { EventEmitter } from "events";
 
-export type TaskDescription = () => Promise<any>;
+export type TaskDescription = (eventEmitter: InternalTaskEventEmitter) => Promise<any>;
 export type GroupDescription = (task: Task) => void
+
+export interface InternalTaskEventEmitter extends EventEmitter {
+    emit(event: 'info', ...args: any[]): boolean;
+    on(event: 'info', listener: (...args: any[]) => void): this;
+}
 
 export interface ITask {
     run(): Promise<any>;
@@ -39,9 +45,12 @@ export class Task implements ITask {
     readonly description: string;
     protected _eventEmitter: TasksEventEmitter;
 
+    protected _internalEmitter: InternalTaskEventEmitter;
+
     constructor(eventEmitter: TasksEventEmitter, fn: TaskDescription, description: string) {
         this._id = uuid.v1();
         this._eventEmitter = eventEmitter;
+        this._internalEmitter = new EventEmitter();
         this.description = description;
         this._fn = fn;
         this._tasks = [];
@@ -62,12 +71,21 @@ export class Task implements ITask {
     }
 
     public async run(): Promise<any> {
+
+        this._internalEmitter.on('info', (message: string) => {
+            this.emitInfoTask(this, message);
+        });
+
         this.emitStartedTask(this);
-        return this._fn().then(() => {
+        return this._fn(this._internalEmitter).then(() => {
             this.emitFinishedTask(this);
         }).catch(e => {
             this.emitErrorTask(this, e);
         });
+    }
+
+    protected emitInfoTask(task: Task, message: string): void {
+        this._eventEmitter.emit('info', task, message);
     }
 
     protected emitStartedTask(task: Task): void {

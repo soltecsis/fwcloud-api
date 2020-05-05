@@ -1,5 +1,4 @@
 import { WebSocketService } from "../web-socket.service";
-import { app } from "../../fonaments/abstract-application";
 import * as uuid from "uuid";
 import { SocketMessage } from "../messages/socket-message";
 import { EventEmitter } from "events";
@@ -19,7 +18,6 @@ function isSocket(object: any): object is io.Socket {
 }
 
 export class Channel {
-    protected _webSocketService: WebSocketService;
     protected _id: string;
 
     protected _pendingMessages: Array<SocketMessage>;
@@ -34,9 +32,8 @@ export class Channel {
     protected _closed: boolean;
     protected _closeTimeout: NodeJS.Timeout;
 
-    protected constructor(webSocketService: WebSocketService) {
+    constructor() {
         this._id = uuid.v1();
-        this._webSocketService = webSocketService;
         this._pendingMessages = [];
         this._sentMessages = [];
         this._events = new EventEmitter();
@@ -128,11 +125,5 @@ export class Channel {
 
     public on(event: ChannelEvent, listener: (...args: any[]) => void): ChannelEventEmitter {
         return this._events.on(event, listener);
-    }
-
-    public static make(webSocketService: WebSocketService): Channel {
-        const channel: Channel = new Channel(webSocketService);
-
-        return channel;
     }
 }

@@ -1,11 +1,10 @@
 import { Service } from "../fonaments/services/service";
 import { Channel } from "./channels/channel";
 import io from 'socket.io';
-import { ChannelConnectResponse, ChannelConnectErrorResponse } from "./messages/channel-connect";
+import { ChannelConnectResponse, ChannelConnectErrorResponse, ChannelConnectRequest } from "./messages/channel-connect";
 import { SocketMessage } from "./messages/socket-message";
-import { ProgressPayload } from "../fonaments/http/progress/messages/progress-messages";
 
-export type Payload = object | ProgressPayload;
+export type Payload = object;
 
 export type MessageEvents = 'message:add' | 'message:remove';
 
@@ -29,7 +28,7 @@ export class WebSocketService extends Service {
     }
 
     public createChannel(): Channel {
-        const channel: Channel = Channel.make(this);
+        const channel: Channel = new Channel();
         this._channels.push(channel);
 
         channel.on('closed', () => {
@@ -54,7 +53,7 @@ export class WebSocketService extends Service {
     public setSocketIO(socketIO: io.Server) {
         this._socketIO = socketIO;
 
-        this._socketIO.on('channel:connect', (socket: io.Socket, message: SocketMessage) => {
+        this._socketIO.on('channel:connect', (socket: io.Socket, message: ChannelConnectRequest) => {
             const channel: Channel = this.getChannel(message.id);
 
             try {

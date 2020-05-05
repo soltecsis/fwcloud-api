@@ -63,6 +63,8 @@ import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
+import { app } from '../../../fonaments/abstract-application';
+import { WebSocketService } from '../../../sockets/web-socket.service';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -282,6 +284,7 @@ router.put('/where', async (req, res) => {
  */
 router.put('/install', async(req, res) => {
 	try {
+		const channel = (await app().getService(WebSocketService.name)).createChannel();
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
@@ -305,7 +308,8 @@ router.put('/install', async(req, res) => {
 		// Update the install date.
 		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
-		res.status(204).end();
+		channel.close(30000);
+		res.status(204).send({'channel_id': channel.id}).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -315,6 +319,7 @@ router.put('/install', async(req, res) => {
  */
 router.put('/uninstall', async(req, res) => {
 	try {
+		const channel = (await app().getService(WebSocketService.name)).createChannel();
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		if (crt.type === 1) { // Client certificate
@@ -322,18 +327,19 @@ router.put('/uninstall', async(req, res) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await OpenVPN.uninstallCfg(req,openvpn_opt.arg,crt.cn);
+			await OpenVPN.uninstallCfg(req,openvpn_opt.arg,crt.cn, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await OpenVPN.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name);
+			await OpenVPN.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
 		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
-		res.status(204).end();
+		channel.close(30000);
+		res.status(204).send({'channel_id': channel.id}).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -344,6 +350,7 @@ router.put('/uninstall', async(req, res) => {
  */
 router.put('/ccdsync', async(req, res) => {
 	try {
+		const channel = (await app().getService(WebSocketService.name)).createChannel();
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
@@ -367,9 +374,12 @@ router.put('/ccdsync', async(req, res) => {
 
 		// Get the list of files into the client-config-dir directory.
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
-		await OpenVPN.ccdCompare(req,client_config_dir,clients)
+		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
 
-		res.status(204).end();
+		channel.close(30000);
+		res.status(204).send({
+			'channel_id': channel.id
+		}).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
