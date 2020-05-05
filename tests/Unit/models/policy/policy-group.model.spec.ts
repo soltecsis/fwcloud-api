@@ -28,6 +28,7 @@ import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import sinon from "sinon";
+import { getRepository } from "typeorm";
 
 let app: AbstractApplication;
 let repositoryService: RepositoryService;
@@ -69,12 +70,12 @@ describe(describeName('PolicyRule tests'), () => {
 
             let group: PolicyGroup = policyGroupRepository.create({
                 name: 'test',
-                firewall: (await repositoryService.for(Firewall).save({ name: 'test' }))
+                firewall: await getRepository(Firewall).save({ name: 'test' })
             });
 
-            group = await policyGroupRepository.save(group, { reload: true });
+            group = await getRepository(PolicyGroup).save(group, { reload: true });
 
-            await repositoryService.for(PolicyGroup).remove(group);
+            group = await getRepository(PolicyGroup).remove(group);
 
             expect(spy.calledOnce).to.be.true;
 

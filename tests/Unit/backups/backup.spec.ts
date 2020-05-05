@@ -29,7 +29,7 @@ import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository } from "typeorm";
+import { Repository, QueryRunner } from "typeorm";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -148,7 +148,11 @@ describe(describeName('Backup Unit tests'), () => {
 
             backup = await backup.restore();
 
-            expect(await databaseService.connection.createQueryRunner().hasTable('ca')).to.be.true;
+            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+
+            expect(await queryRunner.hasTable('ca')).to.be.true;
+            
+            await queryRunner.release();
         });
 
         it('should import pki directoies if it exists in the backup', async () => {

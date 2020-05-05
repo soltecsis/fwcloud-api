@@ -69,6 +69,8 @@ export class Importer {
 
         await Importer.importDataDirectories(snapshotPath, fwCloud, this._mapper);
 
+        await queryRunner.release();
+
         return fwCloud;
     }
 

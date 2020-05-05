@@ -28,6 +28,10 @@ import { QueryRunner } from "typeorm";
 import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationRunCommand tests'), () => {
+
+    after(async() => {
+        await testSuite.resetDatabaseData();
+    })
     it('should run the migrations', async() => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);

@@ -27,7 +27,7 @@ import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
 import { RepositoryService } from "../../src/database/repository.service";
-import { DeepPartial } from "typeorm";
+import { DeepPartial, getRepository } from "typeorm";
 import { testSuite, TestSuite} from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
 import { Channel } from "../../src/sockets/channels/channel";
@@ -36,9 +36,8 @@ import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;
-    const repository: RepositoryService = await _app.getService<RepositoryService>(RepositoryService.name);
     
-    const result: User = repository.for(User).create({
+    const result: User = getRepository(User).create({
         username: user.username ? user.username : StringHelper.randomize(10),
         email: StringHelper.randomize(10) + '@fwcloud.test',
         password: StringHelper.randomize(10),
@@ -48,7 +47,7 @@ export async function createUser(user: DeepPartial<User>): Promise<User> {
         confirmation_token: StringHelper.randomize(10)
     });
 
-    return await repository.for(User).save(result);
+    return await getRepository(User).save(result);
 }
 
 export function generateSession(user: User): string {

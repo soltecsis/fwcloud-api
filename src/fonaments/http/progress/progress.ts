@@ -69,6 +69,8 @@ export class Progress<T> {
     protected _endMessage: string;
     protected _dataCallback: () => any;
 
+    protected _finished: boolean;
+
     constructor(response: T) {
         this._id = uuid.v1();
         this._response = response;
@@ -77,6 +79,7 @@ export class Progress<T> {
         this._progressEvents = new EventEmitter();
         this._failed = false;
         this._messages = [];
+        this._finished = false;
     }
 
     get id(): string {
@@ -115,6 +118,11 @@ export class Progress<T> {
     public setChannel(channel: Channel): void {
         this._channel = channel;
         this.sendMessagesToChannel();
+        
+        //If the channel has been connected after run() process finishes.
+        if (this._finished) {
+            this.closeChannel();
+        }
     }
 
     public closeChannel(): void {
@@ -141,7 +149,8 @@ export class Progress<T> {
             
             this._progressEvents.emit('start')
             this._startTask.run().then(() => {
-                this._progressEvents.emit('end')
+                this._progressEvents.emit('end');
+                this._finished = true;
                 return resolve();
             }).catch((e) => {
                 return reject(e);

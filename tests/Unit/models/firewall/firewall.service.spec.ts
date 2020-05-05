@@ -122,6 +122,7 @@ describe(describeName('Firewall Service Unit Tests'), () => {
     describe('install()', () => {
         let sshRunCommandStub: sinon.SinonStub;
         let sshUploadFileStub: sinon.SinonStub;
+        
         before(async() => {
            sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
            sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');
@@ -143,10 +144,10 @@ describe(describeName('Firewall Service Unit Tests'), () => {
                 ipObjTypeId: 0
             }));
 
-            p1.then((ipObj: IPObj) => {
+            p1.then(async (ipObj: IPObj) => {
                 firewall.install_ipobj = ipObj.id;
 
-                firewallRepository.save(firewall);
+                await firewallRepository.save(firewall);
                 const spy = sinon.spy(Installer.prototype, 'install');
 
                 const progressPromise: Promise<Progress<any>> = service.install(firewall, {

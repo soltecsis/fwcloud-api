@@ -6,6 +6,7 @@ import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { Connection } from "typeorm";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import db from "../../database/database-manager";
 
 export class Compiler {
     protected _firewall: Firewall;
@@ -18,7 +19,6 @@ export class Compiler {
         return new Promise<void>(async (resolve, reject) => {
             const outputPath: string = this._firewall.getPolicyFilePath();
             var stream = fs.createWriteStream(outputPath);
-            const connection: Connection = (await app().getService<DatabaseService>(DatabaseService.name)).connection;
             
             stream.on('open', async () => {
                 /* Generate the policy script. */
@@ -37,7 +37,7 @@ export class Compiler {
                 }
 
                 // Generate default rules for mangle table
-                if (await PolicyRule.firewallWithMarkRules(connection ,this._firewall.id)) {
+                if (await PolicyRule.firewallWithMarkRules(db.getQuery() ,this._firewall.id)) {
                     eventEmitter.emit('info', "<strong>MANGLE TABLE:</strong>\n");
                     eventEmitter.emit('info', "Automatic rules.\n\n");
                     stream.write("\n\necho\n");

@@ -46,10 +46,8 @@ export class DatabaseDataImporter {
             }
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
-            await queryRunner.release();
         } catch (e) {
             await queryRunner.rollbackTransaction();
-            await queryRunner.release();
             throw e;
         }
         
