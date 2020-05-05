@@ -25,7 +25,8 @@ import { SequencedTask } from "./sequenced-task";
 import { GroupDescription, Task } from "./task";
 import { Channel } from "../../../sockets/channels/channel";
 import * as uuid from "uuid";
-import { StartProgressPayload, EndProgressPayload, StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload, ProgressPayload } from "./messages/progress-messages";
+import { StartProgressPayload, EndProgressPayload, StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload } from "./messages/progress-messages";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
 export type externalEventName = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'error';
 
@@ -159,8 +160,7 @@ export class Progress<T> {
 
         this._progressEvents.on('end', async () => {
             const data: any = this._dataCallback ? await this._dataCallback() : null;
-            const message: ProgressPayload = new EndProgressPayload(this);
-            message.data = data;
+            const message: ProgressPayload = new EndProgressPayload(this, data);
             
             this._messages.push(message);
             this.sendMessagesToChannel();
