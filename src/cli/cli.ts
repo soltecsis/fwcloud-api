@@ -29,7 +29,6 @@ import { MigrationCreateCommand } from "./commands/migration-create.command";
 import { MigrationRevertCommand } from "./commands/migration-revert.command";
 import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 import { RouteListCommand } from "./commands/route-list.command";
-import { TagVersionCommand } from "./commands/tag-version.command";
 import { KeysGenerateCommand } from "./commands/keys-generate.command";
 
 yargs
@@ -40,7 +39,6 @@ yargs
     .command(new MigrationRevertCommand())
     .command(new MigrationImportDataCommand())
     .command(new RouteListCommand())
-    .command(new TagVersionCommand())
     .command(new KeysGenerateCommand())
     .recommendCommands()
     .demandCommand(1)
