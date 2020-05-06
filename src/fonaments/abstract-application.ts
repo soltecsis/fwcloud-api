@@ -52,8 +52,6 @@ export function app<T extends AbstractApplication>(): T {
 
 
 export abstract class AbstractApplication {
-  static VERSION_FILENAME = 'version.json';
-
   protected _express: express.Application;
   protected _socketio: any;
   protected _config: any;
