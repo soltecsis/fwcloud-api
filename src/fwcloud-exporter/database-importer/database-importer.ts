@@ -36,6 +36,7 @@ import { FSHelper } from "../../utils/fs-helper";
 import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
 import Model from "../../models/Model";
+import * as fs from "fs";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
@@ -51,11 +52,10 @@ export class DatabaseImporter {
 
 
     public async import(snapshotPath: string): Promise<FwCloud> { 
-        const snapshot: Snapshot = await Snapshot.load(snapshotPath);
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         
-        let data: ExporterResult = snapshot.data;
+        let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshotPath, Snapshot.DATA_FILENAME)).toString()));
         
         this._idManager = await IdManager.make(queryRunner, data.getTableNames())
         this._mapper = new ImportMapping(this._idManager, data);
@@ -126,7 +126,7 @@ export class DatabaseImporter {
             const oldCaId: number = parseInt(PathHelper.directoryName(directory));
             const newCaId: number = mapper.getMappedId(Ca._getTableName(), Ca.getPrimaryKeys()[0].propertyName, oldCaId);
             const importDirectory: string = path.join(path.join(app().config.get('pki').data_dir, fwCloud.id.toString(), newCaId.toString()));
-            await FSHelper.copyDirectory(directory, importDirectory);
+            await FSHelper.copy(directory, importDirectory);
         }
     }
 
@@ -138,7 +138,7 @@ export class DatabaseImporter {
             const oldFirewallId: number = parseInt(PathHelper.directoryName(directory));
             const newFirewallId: number = mapper.getMappedId(Firewall._getTableName(), Firewall.getPrimaryKeys()[0].propertyName, oldFirewallId);
             const importDirectory: string = path.join(path.join(app().config.get('policy').data_dir, fwCloud.id.toString(), newFirewallId.toString()));
-            await FSHelper.copyDirectory(directory, importDirectory);
+            await FSHelper.copy(directory, importDirectory);
         }
     }
 }

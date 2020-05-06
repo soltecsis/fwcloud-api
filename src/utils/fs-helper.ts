@@ -81,13 +81,13 @@ export class FSHelper {
         return fse.removeSync(directoryPath);
     }
 
-    public static async copyDirectory(source: string, destination: string): Promise<void> {
+    public static async copy(source: string, destination: string): Promise<void> {
         return fse.copy(source, destination);
     }
 
     public static async moveDirectory(source: string, destination: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            FSHelper.copyDirectory(source, destination).then(() => {
+            FSHelper.copy(source, destination).then(() => {
                 FSHelper.rmDirectory(source).then(() => {
                     return resolve();
                 }).catch(e => reject(e));
@@ -97,22 +97,21 @@ export class FSHelper {
 
     public static async copyDirectoryIfExists(source: string, destination: string): Promise<void> {
         if (await this.directoryExists(source)) {
-            return await FSHelper.copyDirectory(source, destination);
+            return await FSHelper.copy(source, destination);
         }
     }
 
-    public static async directories(directory: string): Promise<Array<string>> {
+    public static directories(directory: string): Promise<Array<string>> {
         return new Promise<Array<string>>((resolve, reject) => {
-            fs.readdir(directory, {withFileTypes: true}, (err: NodeJS.ErrnoException, files: fs.Dirent[]) => {
-                if (err) {
-                    return reject(err);
-                }
-
-                const directories: Array<string> = files.filter(item => item.isDirectory())
+            try {
+                const directories: Array<string> = fs.readdirSync(directory, {withFileTypes: true})
+                    .filter(item => item.isDirectory())
                     .map(item => path.join(directory, item.name));
 
                 return resolve(directories);
-            });
+            } catch(e) {
+                return reject(e);
+            }
         });
     }
 }
