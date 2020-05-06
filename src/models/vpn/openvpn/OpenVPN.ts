@@ -32,10 +32,10 @@ import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
 import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import { PolicyRule } from "../../policy/PolicyRule";
 const sshTools = require('../../../utils/ssh');
-import { SocketTools } from '../../../utils/socket';
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
+import { ProgressInfoPayload, ProgressErrorPayload } from "../../../sockets/messages/socket-message";
+import { Channel } from "../../../sockets/channels/channel";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -423,75 +423,72 @@ export class OpenVPN extends Model {
     };
 
 
-    public static installCfg(req, cfg, dir, name, type, close_socketio) {
+    public static installCfg(req, cfg, dir, name, type, channel: Channel = new Channel()) {
         return new Promise(async (resolve, reject) => {
-            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                if (type === 1) // Client certificarte
-                    SocketTools.msg(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`);
-                else // Server certificate.
-                    SocketTools.msg(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`);
+                if (type === 1) { 
+                    // Client certificarte
+                    channel.addMessage(new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
+                } else {
+                    channel.addMessage(new ProgressInfoPayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
+                }
+                
                 await sshTools.uploadStringToFile(fwData.SSHconn, cfg, name);
 
                 const existsDir = await sshTools.runCommand(fwData.SSHconn, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
                 if (existsDir === "0") {
-                    SocketTools.msg(`Creating install directory.\n`);
+                    channel.addMessage(new ProgressInfoPayload(`Creating install directory.\n`));
                     await sshTools.runCommand(fwData.SSHconn, `sudo mkdir "${dir}"`);
                     await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root "${dir}"`);
                     await sshTools.runCommand(fwData.SSHconn, `sudo chmod 755 "${dir}"`);
                 }
 
-                SocketTools.msg(`Installing OpenVPN configuration file.\n`);
+                channel.addMessage(new ProgressInfoPayload(`Installing OpenVPN configuration file.\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo mv ${name} ${dir}/`);
 
-                SocketTools.msg(`Setting up file permissions.\n\n`);
+                channel.addMessage(new ProgressInfoPayload(`Setting up file permissions.\n\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root ${dir}/${name}`);
-                if (type === 1) // Client certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 644 ${dir}/${name}`);
-                else // Server certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 600 ${dir}/${name}`);
 
-                if (close_socketio) SocketTools.msgEnd();
+                if (type === 1) { 
+                    // Client certificate.
+                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 644 ${dir}/${name}`);
+                } else {
+                    // Server certificate.
+                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 600 ${dir}/${name}`);
+                }
+
                 resolve();
             } catch (error) {
-                SocketTools.msg(`ERROR: ${error}\n`);
-                SocketTools.msgEnd();
+                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });
     };
 
-    public static uninstallCfg(req, dir, name) {
+    public static uninstallCfg(req, dir, name, channel: Channel = new Channel()) {
         return new Promise(async (resolve, reject) => {
-            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                SocketTools.msg(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`);
+                channel.addMessage(new ProgressInfoPayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo rm -f "${dir}/${name}"`);
 
-                SocketTools.msgEnd();
                 resolve();
             } catch (error) {
-                SocketTools.msg(`ERROR: ${error}\n`);
-                SocketTools.msgEnd();
+                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });
     };
 
-    public static ccdCompare(req, dir, clients) {
+    public static ccdCompare(req, dir, clients, channel: Channel = new Channel()) {
         return new Promise(async (resolve, reject) => {
-            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                SocketTools.msg(`Comparing files with OpenVPN client configurations.\n`);
+                channel.addMessage(new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
                 const fileList = (await sshTools.runCommand(fwData.SSHconn, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
                 let found;
                 let notFoundList = "";
@@ -507,18 +504,17 @@ export class OpenVPN extends Model {
                 }
 
                 if (notFoundList) {
-                    SocketTools.msg(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config:
-          ${notFoundList}
-          </font></strong>`);
+                    channel.addMessage(new ProgressInfoPayload(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config:
+                        ${notFoundList}
+                        </font></strong>`));
                 }
-                else
-                    SocketTools.msg(`Ok.\n\n`);
+                else {
+                    channel.addMessage(new ProgressInfoPayload(`Ok.\n\n`));
+                }
 
-                SocketTools.msgEnd();
                 resolve(notFoundList);
             } catch (error) {
-                SocketTools.msg(`ERROR: ${error}\n`);
-                SocketTools.msgEnd();
+                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });

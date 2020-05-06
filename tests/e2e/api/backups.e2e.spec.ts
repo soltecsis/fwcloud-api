@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { generateSession, attachSession, createUser } from "../../utils/utils";
+import { generateSession, attachSession, createUser, waitChannelIsClosed } from "../../utils/utils";
 import '../../mocha/global-setup';
 import { expect, describeName } from "../../mocha/global-setup";
 import request = require("supertest");
@@ -32,6 +32,9 @@ import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
+import { Channel } from "../../../src/sockets/channels/channel";
+import { WebSocketService } from "../../../src/sockets/web-socket.service";
+import { WebSocketServiceProvider } from "../../../src/sockets/web-socket.provider";
 
 let app: Application;
 let backupService: BackupService;
@@ -156,12 +159,16 @@ describe(describeName('Backup E2E tests'), () => {
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
-                    .then(response => {
+                    .then(async response => {
                         expect(response.body.data.comment).to.be.deep.equal('test comment')
+                        await waitChannelIsClosed(response.body.channel_id);
                     })
 
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
             });
+        });
+
+        describe.skip('BackupController@restore', async() => {
         });
 
         describe('BackupController@destroy', async () => {

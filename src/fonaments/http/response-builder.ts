@@ -29,7 +29,6 @@ import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
-import { SocketManager } from "../../sockets/socket-manager";
 import { Progress } from "./progress/progress";
 
 interface ResponseBody {
@@ -55,10 +54,7 @@ export class ResponseBuilder {
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
-    protected _socket_id: string;
-
-    // Only used in handled request which uses a sockets
-    protected _event_id: string;
+    protected _progress: Progress<any>;
 
     private constructor() {
         this._app = app();
@@ -68,17 +64,20 @@ export class ResponseBuilder {
         return new ResponseBuilder();
     }
 
+    public getProgress(): Progress<any> {
+        return this._progress;
+    }
+
+    public hasProgress(): boolean {
+        return this._progress !== null && this._progress !== undefined;
+    }
+
     public status(status: number): ResponseBuilder {
         if (this._status) {
             throw new Error('Status already defined for the given response');
         }
 
         this._status = status;
-        return this;
-    }
-
-    public socket(socket: SocketManager): ResponseBuilder {
-        this._event_id = socket.event_id;
         return this;
     }
 
@@ -106,19 +105,8 @@ export class ResponseBuilder {
         return this;
     }
 
-    public progress(progress: Progress<any>, socket_id: string, customEventHandler?: (p: Progress<any>) => void): ResponseBuilder {
-        this._socket_id = socket_id;
-        const socket: SocketManager = SocketManager.init(this._socket_id);
-        this._event_id = socket.event_id;
-
-        if (!customEventHandler) {
-            progress.on('message', (payload) => {
-                socket.send(payload);
-            });
-        } else {
-            customEventHandler(progress);
-        }
-
+    public progress(progress: Progress<any>): ResponseBuilder {
+        this._progress = progress;
         this.body(progress.response);
 
         return this;
@@ -147,9 +135,9 @@ export class ResponseBuilder {
         return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
     }
 
-    protected attachEvent(): { event_id: string } {
-        if (this._event_id) {
-            return { event_id: this._event_id }
+    protected attachEvent(): { channel_id: string } {
+        if (this._progress) {
+            return { channel_id: this._progress.channel.id }
         }
 
         return null;

@@ -69,6 +69,8 @@ export class DatabaseImporter {
 
         await DatabaseImporter.importDataDirectories(snapshotPath, fwCloud, this._mapper);
 
+        await queryRunner.release();
+
         return fwCloud;
     }
 
@@ -98,10 +100,8 @@ export class DatabaseImporter {
             }
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
-            await queryRunner.release();
         } catch (e) {
             await queryRunner.rollbackTransaction();
-            await queryRunner.release();
             throw e;
         }
         

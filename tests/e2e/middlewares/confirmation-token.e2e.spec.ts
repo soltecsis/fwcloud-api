@@ -1,7 +1,7 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
 import { User } from "../../../src/models/user/User";
-import { createUser, generateSession, attachSession } from "../../utils/utils";
+import { createUser, generateSession, attachSession, waitChannelIsClosed } from "../../utils/utils";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { RepositoryService } from "../../../src/database/repository.service";
@@ -39,7 +39,10 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
                 comment: 'test comment'
             })
             .set('Cookie', [attachSession(adminUserSessionId)])
-            .expect(201);
+            .expect(201)
+            .then(async response => {
+                await waitChannelIsClosed(response.body.channel_id);
+            });
     });
 
     it('should validates a request if the confirmation_token is attached to the request', async () => {
@@ -52,7 +55,10 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
             })
             .set('x-fwc-confirm-token', adminUser.confirmation_token)
             .set('Cookie', [attachSession(adminUserSessionId)])
-            .expect(201);
+            .expect(201)
+            .then(async response => {
+                await waitChannelIsClosed(response.body.channel_id);
+            });
     });
 
     it('should return a new confirmation_token if a confirmation_token is not attached to the request', async () => {

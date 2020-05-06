@@ -35,7 +35,7 @@ export const expect = chai.expect;
 
 export const playgroundPath: string = path.join(process.cwd(), 'tests', 'playground');
 
-class TestSuite {
+export class TestSuite {
     public app: Application;
 
     public async runApplication(): Promise<Application> {
@@ -45,6 +45,20 @@ class TestSuite {
 
         this.app = await Application.run();
         return this.app;
+    }
+
+    public async resetDatabaseData(): Promise<void> {
+        if (this.app === null) {
+            await this.runApplication();
+        }
+
+        if (this.app) {
+            const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+
+            await dbService.runMigrations();
+            await dbService.removeData();
+            await dbService.feedDefaultData();
+        }
     }
 
     public async closeApplication(): Promise<void> {
@@ -79,35 +93,16 @@ before(async () => {
 
     const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     await dbService.emptyDatabase();
-    await dbService.runMigrations();
-    await dbService.feedDefaultData();
-    await testSuite.app.close();
-    testSuite.app = null;
+    
+    await testSuite.resetDatabaseData();
 });
 
 beforeEach(async () => {
     fse.removeSync(playgroundPath);
     fse.mkdirSync(playgroundPath);
-    await testSuite.runApplication();
-    fse.mkdirSync(testSuite.app.config.get('session').files_path);
+    testSuite.app.generateDirectories();
 })
 
-afterEach(async () => {
-    if (testSuite.app) {
-        let _app = testSuite.app;
-        const dbService: DatabaseService = await _app.getService<DatabaseService>(DatabaseService.name);
-
-        if (!dbService.connection.isConnected) {
-            await dbService.connection.connect();
-        }
-        
-        await dbService.runMigrations();
-
-        await dbService.removeData();
-        
-        await dbService.feedDefaultData();
-        
-        await testSuite.closeApplication();
-        fse.removeSync(playgroundPath);
-    }
-})
+after(async () => {
+    await testSuite.closeApplication();
+});

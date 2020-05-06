@@ -28,7 +28,7 @@ let app: AbstractApplication;
 let repositoryService: RepositoryService;
 
 describe.skip(describeName('PolicyRule tests'), () => {
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
 
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);

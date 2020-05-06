@@ -21,26 +21,69 @@
 */
 
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressState } from "./progress-state";
 import { SequencedTask } from "./sequenced-task";
-import { GroupDescription } from "./task";
+import { GroupDescription, Task } from "./task";
+import { Channel } from "../../../sockets/channels/channel";
+import * as uuid from "uuid";
+import { StartProgressPayload, EndProgressPayload, StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload } from "./messages/progress-messages";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
-export type progressEventName = 'start' | 'step' | 'event' | 'end';
+export type externalEventName = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'error';
+
+export type taskEventName = 'start' | 'end' | 'info' | 'error';
+
+export type progressEventName = 'start' | 'end';
+
+export interface ExternalEventEmitter extends EventEmitter {
+    emit(event: externalEventName, ...args: any[]): boolean;
+    on(event: externalEventName, listener: (...args: any[]) => void): this;
+}
+
+export interface TasksEventEmitter extends EventEmitter {
+    emit(event: taskEventName, ...args: any[]): boolean;
+    on(event: taskEventName, listener: (...args: any[]) => void): this;
+}
+
+export interface ProgressEventEmitter extends EventEmitter {
+    emit(event: progressEventName, ...args: any[]): boolean;
+    on(event: progressEventName, listener: (...args: any[]) => void): this;
+}
 
 export class Progress<T> {
     protected _response: T;
-    protected _externalEvents: EventEmitter;
-    protected _internalEvents: EventEmitter;
+    protected _id: string;
+    
+    protected _externalEmitter: ExternalEventEmitter;
+    protected _taskEvents: TasksEventEmitter;
+    protected _progressEvents: ProgressEventEmitter;
 
-    protected _state: ProgressState;
+    protected _messages: Array<ProgressPayload> = [];
 
     protected _failed: boolean;
 
+    protected _startTask: Task;
+    
+    protected _channel: Channel;
+
+    protected _startMessage: string;
+    protected _endMessage: string;
+    protected _dataCallback: () => any;
+
+    protected _finished: boolean;
+
     constructor(response: T) {
+        this._id = uuid.v1();
         this._response = response;
-        this._externalEvents = new EventEmitter();
-        this._internalEvents = new EventEmitter();
+        this._externalEmitter = new EventEmitter();
+        this._taskEvents = new EventEmitter();
+        this._progressEvents = new EventEmitter();
         this._failed = false;
+        this._messages = [];
+        this._finished = false;
+    }
+
+    get id(): string {
+        return this._id;
     }
 
     get response(): T {
@@ -51,45 +94,121 @@ export class Progress<T> {
         this._response = response;
     }
 
-    public async procedure(startText: string, procedure: GroupDescription, finishedText: string = null): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const task = new SequencedTask(this._internalEvents, procedure, finishedText);
-            this._state = new ProgressState(task.getSteps() + 1, 0, 102, startText);
-            
-            this._internalEvents.on('step', (message: string) => {
-                this.emitExternalEvent('message', this._state.updateState(message, 102, true));
-            });
+    get channel(): Channel {
+        return this._channel;
+    }
 
-            this._internalEvents.on('event', (message: string) => {
-                this.emitExternalEvent('message', this._state.updateState(message, 102, false));
-            });
+    get startMessage(): string {
+        return this._startMessage;
+    }
 
-            this.emitExternalEvent('start', this._state);
+    get endMessage(): string {
+        return this._endMessage;
+    }
+
+    public procedure(startMessage: string, procedure: GroupDescription, endMessage: string, dataCallback?: () => any): Promise<void> {
+        this._startMessage = startMessage;
+        this._endMessage = endMessage;
+        this._dataCallback = dataCallback ? dataCallback : null;
+        
+        this._startTask = new SequencedTask(this._taskEvents, procedure);
+        return this.run();
+    }
+
+    public setChannel(channel: Channel): void {
+        this._channel = channel;
+        this.sendMessagesToChannel();
+        
+        //If the channel has been connected after run() process finishes.
+        if (this._finished) {
+            this.closeChannel();
+        }
+    }
+
+    public closeChannel(): void {
+        if (this._channel) {
+            this.channel.close(30000);
+        }
+    }
+
+    protected sendMessagesToChannel(): void {
+        if (this._channel) {
+            const messages: Array<ProgressPayload> = this._messages;
+            this._messages = [];
+
+            for(let i = 0; i < messages.length; i++) {
+                this._channel.addMessage(messages[i]);
+            }
+        }
+    }
+
+    public async run(): Promise<void> {
+        return new Promise<void>(async (resolve, reject) => {
             
-            task.run().then(() => {
-                const message = this._state.updateState(finishedText, 200, false);
-                this.emitExternalEvent('message', message);
-                this.emitExternalEvent('end', message);
+            this.bindEvents();
+            
+            this._progressEvents.emit('start')
+            this._startTask.run().then(() => {
+                this._progressEvents.emit('end');
+                this._finished = true;
                 return resolve();
             }).catch((e) => {
-                this.emitExternalEvent('message', this._state.updateState('Error', 500, false));
-                this.emitExternalEvent('error', e);
-                this._failed = true;
                 return reject(e);
             });
+        });        
+    }
+
+    protected bindEvents(): void {
+
+        this._progressEvents.on('start', () => {
+            const message: ProgressPayload = new StartProgressPayload(this);
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this._externalEmitter.emit('start', message);
+        });
+
+        this._progressEvents.on('end', async () => {
+            const data: any = this._dataCallback ? await this._dataCallback() : null;
+            const message: ProgressPayload = new EndProgressPayload(this, data);
+            
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this.closeChannel();
+            this._externalEmitter.emit('end', message);
+        });
+
+        this._taskEvents.on('start', (task: Task) => {
+            const message: ProgressPayload = new StartTaskPayload(task);
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this._externalEmitter.emit('start_task', message);
+        });
+
+        this._taskEvents.on('info', (task: Task, info: string) => {
+            const message: ProgressPayload = new InfoTaskPayload(task, info);
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this._externalEmitter.emit('info', message);
+        });
+
+        this._taskEvents.on('end', (task: Task) => {
+            const message: ProgressPayload = new EndTaskPayload(task);
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this._externalEmitter.emit('end_task', message);
+        });
+
+        this._taskEvents.on('error', (task: Task, error: Error) => {
+            const message: ProgressPayload = new ErrorTaskPayload(task, error);
+            this._messages.push(message);
+            this.sendMessagesToChannel();
+            this.closeChannel();
+            this._externalEmitter.emit('error', error);
         });
     }
 
-    protected emitExternalEvent(event: 'start' | 'message' | 'end' | 'error', data: object): boolean {
-        if (!this._failed) {
-            return this._externalEvents.emit(event, data);
-        }
-
-        return false;
-    }
-
-    public on(event: "message" | "end" | "error", listener: (...args: any[]) => void): this {
-        this._externalEvents.on(event, listener);
+    public on(event: externalEventName, listener: (...args: any[]) => void): this {
+        this._externalEmitter.on(event, listener);
         return this;
     }
 

@@ -14,12 +14,12 @@ let repositoryService: RepositoryService;
 let fwCloudRepository: Repository<FwCloud>;
 
 describe(describeName('FwCloud Unit Tests'), () => {
-    beforeEach(async () => {
+    
+    before(async () => {
         app = testSuite.app;
-
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwCloudRepository = repositoryService.for(FwCloud);
-    })
+    });
 
     describe('removeDataDirectories()', () => {
         it('should remove fwcloud pki directory if it exists', async () => {

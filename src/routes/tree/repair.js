@@ -28,107 +28,120 @@ import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
-import { SocketTools } from '../../utils/socket';
+import { app } from '../../fonaments/abstract-application';
+import { WebSocketService } from '../../sockets/web-socket.service';
+import { ProgressErrorPayload, ProgressInfoPayload } from '../../sockets/messages/socket-message';
 const fwcError = require('../../utils/error_table');
 
 
 /* Rpair tree */
 router.put('/', async (req, res) =>{
-  SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-    
-	try {
-    if (req.body.type==='FDF')
-      SocketTools.msg('<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
-    else if (req.body.type==='FDO')
-      SocketTools.msg('<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
-    else if (req.body.type==='FDS')
-      SocketTools.msg('<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
-    else
+  const channel = (await app().getService(WebSocketService.name)).createChannel();
+
+  try {
+    if (req.body.type==='FDF') {
+      channel.addMessage(new ProgressInfoPayload(`<font color="blue">REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}</font>\n`));
+    } else if (req.body.type==='FDO') {
+      channel.addMessage(new ProgressInfoPayload(`<font color="blue">REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}</font>\n`));
+    } else if (req.body.type==='FDS') {
+      channel.addMessage(new ProgressInfoPayload(`<font color="blue">REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n`));
+    } else {
       throw fwcError.BAD_TREE_NODE_TYPE;
-    
+    }
+
     await Repair.initData(req);
 
-    SocketTools.msg('<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n');
-
-    const rootNodes = await Repair.checkRootNodes(req.dbCon);
+    channel.addMessage(new ProgressInfoPayload(`<font color="blue">REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'</font>\n`));
+    
+    const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
     // Verify that all tree not root nodes are part of a tree.
-    SocketTools.msg('<font color="blue">Checking tree struture.</font>\n');
-    await Repair.checkNotRootNodes(rootNodes);
+    channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking tree struture.</font>\n`));
+    await Repair.checkNotRootNodes(rootNodes, channel);
 
     for (let rootNode of rootNodes) {
-      if (rootNode.node_type==='FDF' && req.body.type==='FDF') { // Firewalls and clusters tree.
-        SocketTools.msg('<font color="blue">Checking folders.</font>\n');
-        await Repair.checkFirewallsFoldersContent(rootNode);
-        SocketTools.msg('<font color="blue">Checking firewalls and clusters tree.</font>\n');
-        await Repair.checkFirewallsInTree(rootNode);
-        await Repair.checkClustersInTree(rootNode);
-        SocketTools.msg('<font color="blue">Applying OpenVPN server prefixes.</font>\n');
+      if (rootNode.node_type==='FDF' && req.body.type==='FDF') { 
+        // Firewalls and clusters tree.
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking folders.</font>\n`));
+        
+        await Repair.checkFirewallsFoldersContent(rootNode, channel);
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking firewalls and clusters tree.</font>\n`));
+        
+        await Repair.checkFirewallsInTree(rootNode, channel);
+        await Repair.checkClustersInTree(rootNode, channel);
+        
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Applying OpenVPN server prefixes.</font>\n`));
+        
         const openvpn_srv_list = await OpenVPN.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
-          SocketTools.msg(`OpenVPN server: ${openvpn_srv.cn}\n`);
+          channel.addMessage(new ProgressInfoPayload(`OpenVPN server: ${openvpn_srv.cn}\n`));
           await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);
         }
         break;
       }
-      else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { // Objects tree.
-        SocketTools.msg('<font color="blue">Checking objects tree.</font>\n');
+      else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { 
+        // Objects tree.
+        
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking objects tree.</font>\n`));
+        
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
         const ids = await Tree.createObjectsTree(req.dbCon,req.body.fwcloud);
 
-        SocketTools.msg('<font color="blue">Checking addresses objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking addresses objects.</font>\n`));
         await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
 
-        SocketTools.msg('<font color="blue">Checking address ranges objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking address ranges objects.</font>\n`));
         await Repair.checkNonStdIPObj(ids.AddressesRanges,'OIR',6);
 
-        SocketTools.msg('<font color="blue">Checking network objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking network objects.</font>\n`));
         await Repair.checkNonStdIPObj(ids.Networks,'OIN',7);
 
-        SocketTools.msg('<font color="blue">Checking DNS objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking DNS objects.</font>\n`));
         await Repair.checkNonStdIPObj(ids.DNS,'ONS',9);
 
-        SocketTools.msg('<font color="blue">Checking host objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking host objects.</font>\n`));
         rootNode.id = ids.OBJECTS;
         await Repair.checkHostObjects(rootNode);
 
-        SocketTools.msg('<font color="blue">Checking mark objects.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking mark objects.</font>\n`));
         await Repair.checkNonStdIPObj(ids.Marks,'MRK',30);
 
-        SocketTools.msg('<font color="blue">Checking objects groups.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking objects groups.</font>\n`));
         await Repair.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
         break;
       }
-      else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { // Services tree.
-        SocketTools.msg('<font color="blue">Checking services tree.</font>\n');
+      else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { 
+        // Services tree.
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking services tree.</font>\n`));
+        
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
         const ids = await Tree.createServicesTree(req.dbCon,req.body.fwcloud);
 
-        SocketTools.msg('<font color="blue">Checking IP services.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking IP services.</font>\n`));
         await Repair.checkNonStdIPObj(ids.IP,'SOI',1);
 
-        SocketTools.msg('<font color="blue">Checking ICMP services.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking ICMP services.</font>\n`));
         await Repair.checkNonStdIPObj(ids.ICMP,'SOM',3);
 
-        SocketTools.msg('<font color="blue">Checking TCP services.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking TCP services.</font>\n`));
         await Repair.checkNonStdIPObj(ids.TCP,'SOT',2);
 
-        SocketTools.msg('<font color="blue">Checking UDP services.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking UDP services.</font>\n`));
         await Repair.checkNonStdIPObj(ids.UDP,'SOU',4);
 
-        SocketTools.msg('<font color="blue">Checking services groups.</font>\n');
+        channel.addMessage(new ProgressInfoPayload(`<font color="blue">Checking services groups.</font>\n`));
+        
         await Repair.checkNonStdIPObjGroup(ids.Groups,'SOG',21);
         break;
       }
     }
 
-    SocketTools.msgEnd();
-    res.status(204).end();
+    channel.close(30000);
+    res.status(204).send({"channel_id": channel.id}).end();
   } catch(error) { 
-    SocketTools.msg(`\nERROR: ${error}\n`);
-		SocketTools.msgEnd();
+    channel.addMessage(new ProgressErrorPayload(`\nERROR: ${error}\n`));
     res.status(400).json(error);
   }
 });

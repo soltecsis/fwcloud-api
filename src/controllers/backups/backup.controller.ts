@@ -70,7 +70,7 @@ export class BackupController extends Controller {
                 await this._backupService.applyRetentionPolicy();
             });
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
+        return ResponseBuilder.buildResponse().status(201).progress(progress);
     }
 
     /**
@@ -90,7 +90,7 @@ export class BackupController extends Controller {
                 this._app.config.set('maintenance_mode', false);
             });
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
+        return ResponseBuilder.buildResponse().status(201).progress(progress);
     }
 
     /**

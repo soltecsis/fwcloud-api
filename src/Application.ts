@@ -56,6 +56,8 @@ import { AuthorizationServiceProvider } from './fonaments/authorization/authoriz
 import { AuthorizationMiddleware } from './fonaments/authorization/authorization.middleware';
 import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
+import { WebSocketServiceProvider } from './sockets/web-socket.provider';
+import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
@@ -97,7 +99,9 @@ export class Application extends AbstractApplication {
             AuthorizationServiceProvider,
             CronServiceProvider,
             BackupServiceProvider,
-            SnapshotServiceProvider
+            SnapshotServiceProvider,
+            WebSocketServiceProvider,
+            FirewallServiceProvider
         ]
     }
 
@@ -150,7 +154,6 @@ export class Application extends AbstractApplication {
         this._express.use('/firewall', require('./routes/firewall/firewall'));
         this._express.use('/policy/rule', require('./routes/policy/rule'));
         this._express.use('/policy/compile', require('./routes/policy/compile'));
-        this._express.use('/policy/install', require('./routes/policy/install'));
         this._express.use('/policy/ipobj', require('./routes/policy/ipobj'));
         this._express.use('/policy/interface', require('./routes/policy/interface'));
         this._express.use('/policy/group', require('./routes/policy/group'));

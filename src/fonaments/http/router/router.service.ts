@@ -31,6 +31,8 @@ import { RequestValidation } from "../../validation/request-validation";
 import { ValidationException } from "../../exceptions/validation-exception";
 import { ResponseBuilder } from "../response-builder";
 import { URLHelper } from "./url-helper";
+import { WebSocketService } from "../../../sockets/web-socket.service";
+import { Channel } from "../../../sockets/channels/channel";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
@@ -127,7 +129,15 @@ export class RouterService extends Service {
                     throw new Error('Controller handler ' + route.controllerSignature.controller.name + '@' + route.controllerSignature.method + ' does not return a response');                    
                 }
 
-                return result.send(response);
+                if (result.hasProgress()) {
+                    const webSocketService: WebSocketService = await this._app.getService<WebSocketService>(WebSocketService.name);
+                    const channel: Channel = webSocketService.createChannel();
+                    channel.socketId = request.session.socketId;
+
+                    result.getProgress().setChannel(channel);
+                }
+
+                result.send(response);
 
             } catch (e) {
                 return next(e);

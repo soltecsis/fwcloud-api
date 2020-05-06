@@ -32,6 +32,9 @@ import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
+import { Progress } from "../../../src/fonaments/http/progress/progress";
+import { EndProgressPayload } from "../../../src/fonaments/http/progress/messages/progress-messages";
+import StringHelper from "../../../src/utils/string.helper";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -40,14 +43,16 @@ let service: SnapshotService;
 let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot Unit Tests'), () => {
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwcloudRepository = repositoryService.for(FwCloud);
+    });
 
+    beforeEach(async () => {
         fwCloud = fwcloudRepository.create({
-            name: 'testCloud'
+            name: StringHelper.randomize(10)
         });
 
         fwCloud = await fwcloudRepository.save(fwCloud);
@@ -293,6 +298,20 @@ describe(describeName('Snapshot Unit Tests'), () => {
             const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
+        });
+    });
+
+    describe('progressRestore()', () => {
+        it('should send the new fwcloud id in the end message', (done) => {
+            Snapshot.create(service.config.data_dir, fwCloud, 'test').then((snapshot: Snapshot) => {
+                const progress: Progress<Snapshot> = snapshot.progressRestore();
+
+                progress.on('end', (payload: EndProgressPayload) => {
+                    expect(payload.data).to.haveOwnProperty('id');
+                    expect(payload.data.id).to.be.deep.eq(snapshot.fwCloud.id + 1);
+                    done();
+                });
+            });
         });
     });
 });

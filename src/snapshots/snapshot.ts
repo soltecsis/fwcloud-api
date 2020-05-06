@@ -211,7 +211,11 @@ export class Snapshot implements Responsable {
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-        }, 'FwCloud snapshot restored');
+        }, 'FwCloud snapshot restored', () => {
+            return {
+                id: this._restoredFwCloud.id
+            };
+        });
 
         return progress;
     }
