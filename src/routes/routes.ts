@@ -31,6 +31,7 @@ import { VersionController } from "../controllers/version.controller";
 import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
+import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 
 export class Routes extends RouteCollection {
 
@@ -78,6 +79,12 @@ export class Routes extends RouteCollection {
                     router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
                     router.post('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
                     router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
+                });
+
+                //Exports
+                router.prefix('/export', (router: RouterParser) => {
+                    router.post('/', FwCloudExportController, 'store').name('fwclouds.exports.store');
+                    router.get('/:export', FwCloudExportController, 'download').name('fwclouds.exports.download');
                 });
             });
         });

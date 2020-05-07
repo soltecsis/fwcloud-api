@@ -30,11 +30,7 @@ import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { Channel } from "../../../src/sockets/channels/channel";
-import { WebSocketService } from "../../../src/sockets/web-socket.service";
-import { WebSocketServiceProvider } from "../../../src/sockets/web-socket.provider";
 
 let app: Application;
 let backupService: BackupService;
