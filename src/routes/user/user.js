@@ -27,9 +27,12 @@ const restrictedCheck = require('../../middleware/restricted');
 import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { PgpHelper } from '../../utils/pgp';
 const fwcError = require('../../utils/error_table');
 
-var bcrypt = require('bcrypt');
+const config = require('../../config/config');
+
+var bcrypt = require('bcryptjs');
 
 
 /**
@@ -88,7 +91,15 @@ router.post('/login',async (req, res) => {
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
-			res.status(200).json({"user": req.session.user_id, "role": data[0].role});
+
+			const pgp = new PgpHelper; 
+			await pgp.init(config.get('session').pgp_rsa_bits);
+			req.session.pgp = {
+				public: pgp.publicKey,
+				private: pgp.privateKey
+			};
+
+			res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
 		} else {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;
