@@ -17,6 +17,9 @@
     "snapshot": {
         "data_dir": "tests/playground/SNAPSHOT"
     },
+    "exporter": {
+        "data_dir": "tests/playground/EXPORTS"
+    },
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },

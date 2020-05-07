@@ -384,6 +384,15 @@ const config = convict({
       default: './DATA/snapshots',
       env: 'SNAPSHOT_DATA_DIR'
     },
+  },
+  // FwCloud Exporter configuration.
+  exporter: {
+    data_dir: {
+      doc: 'Directory for store the fwcloud files.',
+      format: String,
+      default: './DATA/EXPORTS',
+      env: 'EXPORTER_DATA_DIR'
+    },
   }    
 });
 

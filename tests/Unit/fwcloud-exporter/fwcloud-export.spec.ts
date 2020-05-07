@@ -9,12 +9,15 @@ import StringHelper from "../../../src/utils/string.helper";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { Snapshot } from "../../../src/snapshots/snapshot";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
+import { User } from "../../../src/models/user/User";
+import { createUser } from "../../utils/utils";
 
 describe(describeName('FwCloudExport Unit Tests'), () => {
     let app: Application;
     let fwCloud: FwCloud;
     let directory: string;
     let snapshotService: SnapshotService;
+    let user: User;
 
     before(async() => {
         app = testSuite.app;
@@ -22,7 +25,9 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
         fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
-        }))
+        }));
+
+        user = await createUser({});
     });
 
     beforeEach(async() => {
@@ -31,19 +36,19 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
     describe('create()', () => {
         it('should create the directory where the exportation is going to be created', async () => {
-            const fwcloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwcloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
 
             expect(FSHelper.directoryExistsSync(directory)).to.be.true;
         });
 
         it('should create the export directory within the directory defined', async () => {
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
 
             expect(FSHelper.directoryExistsSync(path.join(directory, fwCloudExport.id))).to.be.true;
         });
 
         it('should create a fwcloud snapshot data in the fwcloud directory within export directory', async () => {
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
 
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY))).to.be.true;
             expect(FSHelper.fileExistsSync(path.join(fwCloudExport.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_FILENAME))).to.be.true;
@@ -56,7 +61,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
             fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test'), "");
             fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), 'test'), "");
 
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
 
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_DIRECTORY))).to.be.true;
         });
@@ -65,16 +70,27 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
             const snapshot1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
             const snapshot2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
 
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.SNAPSHOTS_DIRECTORY, snapshot1.id.toString()))).to.be.true;
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.SNAPSHOTS_DIRECTORY, snapshot2.id.toString()))).to.be.true;
         });
+
+        it('should create export metadata file', async () => {
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
+
+            expect(FSHelper.fileExistsSync(fwCloudExport.metadataPath)).to.be.true;
+            expect(JSON.parse(fs.readFileSync(fwCloudExport.metadataPath).toString())).to.be.deep.eq({
+                timestamp: fwCloudExport.timestamp,
+                fwcloud_id: fwCloud.id,
+                user_id: user.id
+            });
+        })
     });
 
     describe('compress()', () => {
         it('should generate a compress file', async () => {
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud);
+            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
             const compressedFilePath: string = await fwCloudExport.compress();
 
             expect(FSHelper.fileExistsSync(compressedFilePath)).to.be.true;
@@ -86,7 +102,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
         let fwCloudExporter: FwCloudExport;
         
         beforeEach(async() => {
-            fwCloudExporter = await FwCloudExport.create(directory, fwCloud);
+            fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
         });
         
         it('should load the export directory', async () => {
@@ -103,7 +119,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
         beforeEach(async() => {
             snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud); 
-            fwCloudExporter = await FwCloudExport.create(directory, fwCloud);
+            fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
         });
 
         it('should import the fwcloud as a new fwcloud', async () => {

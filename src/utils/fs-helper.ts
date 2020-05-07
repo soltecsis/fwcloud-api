@@ -73,6 +73,10 @@ export class FSHelper {
         return fse.mkdirpSync(directoryPath);
     }
 
+    public static remove(source: string): Promise<void> {
+        return fse.remove(source);
+    }
+
     public static async rmDirectory(directoryPath: string): Promise<void> {
         return fse.remove(directoryPath);
     }

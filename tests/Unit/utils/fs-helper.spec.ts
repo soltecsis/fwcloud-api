@@ -107,4 +107,25 @@ describe(describeName('FsHelper Unit Tests'), () => {
             expect(fs.readFileSync(destinationPath).toString()).to.be.deep.eq("test");
         });
     });
+
+    describe('remove()', () => {
+        it('should remove a directory', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest');
+            
+            FSHelper.mkdirSync(sourcePath);
+            
+            await FSHelper.remove(sourcePath);
+
+            expect(FSHelper.directoryExistsSync(sourcePath)).to.be.false;
+        });
+
+        it('should remove a file', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest.txt');
+            
+            fs.writeFileSync(path.join(sourcePath), "test");
+            await FSHelper.remove(sourcePath);
+
+            expect(FSHelper.fileExistsSync(sourcePath)).to.be.false;
+        });
+    });
 });

@@ -6,8 +6,14 @@ import { FSHelper } from "../utils/fs-helper";
 import { Snapshot } from "../snapshots/snapshot";
 import archiver from 'archiver';
 import { DatabaseImporter } from "./database-importer/database-importer";
-import { getRepository } from "typeorm";
+import moment from "moment";
+import { User } from "../models/user/User";
 
+export type FwCloudExportMetadata = {
+    fwcloud_id: number;
+    timestamp: number;
+    user_id: number;
+}
 export class FwCloudExport {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
     static SNAPSHOTS_DIRECTORY = 'snapshots';
@@ -15,6 +21,9 @@ export class FwCloudExport {
     protected _id: string;
     protected _path: string;
     protected _loaded: boolean;
+    protected _timestamp: number;
+    protected _fwCloud: FwCloud;
+    protected _user: User;
 
     protected constructor(id: string, directory: string) {
         this._id = id;
@@ -30,31 +39,45 @@ export class FwCloudExport {
         return this._path;
     }
 
+    get exportPath(): string {
+        return `${this._path}.fwcloud`;
+    }
+
+    get metadataPath(): string {
+        return `${this._path}.json`;
+    }
+
     get loaded(): boolean {
         return this._loaded
     }
 
-    public async save(fwCloud: FwCloud): Promise<void> {
+    get timestamp(): number {
+        return this._timestamp;
+    }
+
+    public async save(fwCloud: FwCloud, user: User): Promise<void> {
+        this._timestamp = moment().valueOf();
+        this._fwCloud = fwCloud;
+        this._user = user;
+
         FSHelper.mkdirSync(this._path);
 
-        const snapshot: Snapshot = await Snapshot.create(this._path, fwCloud);
+        const snapshot: Snapshot = await Snapshot.create(this._path, this._fwCloud);
 
         await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_FILENAME), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_FILENAME));
         await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_DIRECTORY), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_DIRECTORY));
-
-        await this.copyFwCloudSnapshots(fwCloud);
+        await this.copyFwCloudSnapshots(this._fwCloud);
+        this.generateMetadataFile();
     }
 
     public compress(): Promise<string> {
 
         return new Promise<string>((resolve, reject) => {
-            const outputPath: string = this._path + '.fwcloud';
-
-            const output = fs.createWriteStream(outputPath);
+            const output = fs.createWriteStream(this.exportPath);
             const archive = archiver('zip', { zlib: { level: 9 } });
 
             output.on('close', async () => {
-                return resolve(outputPath);
+                return resolve(this.exportPath);
             });
 
             // good practice to catch warnings (ie stat failures and other non-blocking errors)
@@ -95,11 +118,22 @@ export class FwCloudExport {
         return fwCloudExport;
     }
 
-    public static async create(directory: string, fwCloud: FwCloud): Promise<FwCloudExport> {
+    public static async create(directory: string, fwCloud: FwCloud, user: User): Promise<FwCloudExport> {
         const id: string = uuid.v1();
         const fwCloudExport: FwCloudExport = new FwCloudExport(id, directory);
-        await fwCloudExport.save(fwCloud);
+        await fwCloudExport.save(fwCloud, user);
         return fwCloudExport;
+    }
+
+    protected generateMetadataFile(): void {
+        const metadata: FwCloudExportMetadata = {
+            timestamp: this._timestamp,
+            fwcloud_id: this._fwCloud.id,
+            user_id: this._user.id
+        }
+
+        fs.writeFileSync(this.metadataPath, JSON.stringify(metadata, null, 2));
+        return;
     }
 
     protected async copyFwCloudSnapshots(fwCloud: FwCloud): Promise<void> {
