@@ -5,6 +5,7 @@ import * as fs from "fs";
 import { FSHelper } from "../utils/fs-helper";
 import { Snapshot } from "../snapshots/snapshot";
 import archiver from 'archiver';
+import yauzl from 'yauzl';
 import { DatabaseImporter } from "./database-importer/database-importer";
 import moment from "moment";
 import { User } from "../models/user/User";
@@ -76,6 +77,7 @@ export class FwCloudExport implements Responsable {
 
         await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_FILENAME), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_FILENAME));
         await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_DIRECTORY), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_DIRECTORY));
+        await FSHelper.remove(path.dirname(snapshot.path));
         await this.copyFwCloudSnapshots(this._fwCloud);
         this.generateMetadataFile();
     }
@@ -106,7 +108,7 @@ export class FwCloudExport implements Responsable {
 
             // pipe archive data to the file
             archive.pipe(output);
-            
+
             archive.directory(this._path, false);
             archive.finalize();
         });
@@ -114,7 +116,7 @@ export class FwCloudExport implements Responsable {
 
     public async import(): Promise<FwCloud> {
         const importer: DatabaseImporter = new DatabaseImporter();
-        
+
         const fwCloud: FwCloud = await importer.import(path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
 
         await FSHelper.copyDirectoryIfExists(path.join(this._path, FwCloudExport.SNAPSHOTS_DIRECTORY), fwCloud.getSnapshotDirectoryPath());
@@ -126,6 +128,40 @@ export class FwCloudExport implements Responsable {
         fwCloudExport._loaded = true;
 
         return fwCloudExport;
+    }
+
+    public static loadCompressed(compressedFilePath: string): Promise<FwCloudExport> {
+        return new Promise<FwCloudExport>((resolve, reject) => {
+            const destinationPath: string = path.join(path.dirname(compressedFilePath), path.basename(compressedFilePath.replace('.fwcloud', '')));
+            yauzl.open(compressedFilePath, { lazyEntries: true }, function (err, zipfile) {
+                if (err) throw err;
+                zipfile.on("entry", function (entry) {
+                    if (/\/$/.test(entry.fileName)) {
+                        // Entry is a directory as file names end with '/'.
+                        FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
+                        zipfile.readEntry();
+                    } else {
+                        // file entry
+                        zipfile.openReadStream(entry, function (err, readStream) {
+                            if (err) throw err;
+                            readStream.on("end", function () {
+                                zipfile.readEntry();
+                            });
+                            const ws: fs.WriteStream = fs.createWriteStream(path.join(destinationPath, entry.fileName));
+                            readStream.pipe(ws);
+                        });
+                    }
+                });
+
+                zipfile.on('end', async () => {
+                    return resolve(await FwCloudExport.load(destinationPath))
+                });
+                
+                zipfile.readEntry();
+            });
+
+            return null;
+        });
     }
 
     public static async create(directory: string, fwCloud: FwCloud, user: User): Promise<FwCloudExport> {
@@ -147,10 +183,10 @@ export class FwCloudExport implements Responsable {
     }
 
     protected async copyFwCloudSnapshots(fwCloud: FwCloud): Promise<void> {
-        if(FSHelper.directoryExistsSync(fwCloud.getSnapshotDirectoryPath())) {
-            const snapshotPaths: Array<string> =    await FSHelper.directories(fwCloud.getSnapshotDirectoryPath());
+        if (FSHelper.directoryExistsSync(fwCloud.getSnapshotDirectoryPath())) {
+            const snapshotPaths: Array<string> = await FSHelper.directories(fwCloud.getSnapshotDirectoryPath());
 
-            for(let i = 0; i < snapshotPaths.length; i++) {
+            for (let i = 0; i < snapshotPaths.length; i++) {
                 const snapshotPath: string = snapshotPaths[i];
                 const destination: string = path.join(this._path, FwCloudExport.SNAPSHOTS_DIRECTORY, path.basename(snapshotPath));
 

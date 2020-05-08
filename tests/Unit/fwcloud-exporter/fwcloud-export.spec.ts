@@ -113,6 +113,24 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
         });
     });
 
+    describe('loadCompressed()', () => {
+        let fwCloudExport: FwCloudExport;
+
+        beforeEach(async() => {
+            fwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
+            await fwCloudExport.compress();
+            await FSHelper.remove(fwCloudExport.path);
+            await FSHelper.remove(fwCloudExport.metadataPath);
+        });
+
+        it('should unzip the file', async () => {
+            await FwCloudExport.loadCompressed(fwCloudExport.exportPath);
+            
+            expect(FSHelper.directoryExistsSync(fwCloudExport.path)).to.be.true;
+            expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY))).to.be.true;
+        });
+    });
+
     describe('import()', () => {
         let fwCloudExporter: FwCloudExport;
         let snapshot: Snapshot;
