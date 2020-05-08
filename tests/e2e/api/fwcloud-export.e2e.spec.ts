@@ -1,4 +1,4 @@
-import { describeName, testSuite } from "../../mocha/global-setup";
+import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
@@ -132,6 +132,41 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .expect('Content-Type', /application/)
                     .expect(404)
             })
+        });
+
+        describe.only('FwCloudExportController@import', () => {
+            let fwCloudExport: FwCloudExport;
+
+            beforeEach(async () => {
+                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser)
+            });
+
+            it('guest user should not import a fwcloud export file', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .expect(401);
+            });
+
+            it('regular user should not import a fwcloud export file', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .attach('file', fwCloudExport.exportPath)
+                    .set('Cookie', [attachSession(regularUserSessionId)])
+                    .expect(401)
+            });
+
+            it('admin user should import a fwcloud export file', async () => {
+                const fwCloudCount: number = (await getRepository(FwCloud).find()).length;
+
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .attach('file', fwCloudExport.exportPath)
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(201)
+                    .then(async response => {
+                        expect((await getRepository(FwCloud).find()).length).to.be.deep.eq(fwCloudCount + 1);
+                    });
+            });
         });
     });
 });

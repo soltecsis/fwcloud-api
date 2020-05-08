@@ -33,9 +33,10 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
         it('should create the export directory', async () => {
             FSHelper.rmDirectorySync(app.config.get('exporter').data_dir);
 
-            const service = await FwCloudExportService.make(app);
+            await FwCloudExportService.make(app);
 
             expect(FSHelper.directoryExistsSync(app.config.get('exporter').data_dir)).to.be.true;
+            expect(FSHelper.directoryExistsSync(app.config.get('exporter').upload_dir)).to.be.true;
         });
     });
 

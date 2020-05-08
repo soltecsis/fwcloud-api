@@ -10,6 +10,7 @@ import { NotFoundException } from "../../fonaments/exceptions/not-found-exceptio
 import { FSHelper } from "../../utils/fs-helper";
 import * as path from "path";
 import * as fs from "fs";
+import Busboy from 'busboy';
 
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
@@ -30,6 +31,7 @@ export class FwCloudExportController extends Controller {
 
     public async download(request: Request): Promise<ResponseBuilder> {
         const fwCloud: FwCloud = await getRepository(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
+        
         const metadataPath: string = path.join(this._fwCloudExportService.config.data_dir, request.params.export + '.json');
         const exportFilePath: string = path.join(this._fwCloudExportService.config.data_dir, request.params.export + '.fwcloud');
         
@@ -44,5 +46,25 @@ export class FwCloudExportController extends Controller {
         }
 
         return ResponseBuilder.buildResponse().download(exportFilePath);
+    }
+
+    public async import(request: Request): Promise<ResponseBuilder> {
+
+        (await FwCloudExportPolicy.import(request.session.user)).authorize();
+
+        return new Promise<ResponseBuilder>((resolve, reject) => {
+            var busboy = new Busboy({ headers: request.headers });
+            
+            busboy.on('file', async (input: string, file: NodeJS.ReadableStream, filename: string) => {
+                const destinationPath: string = path.join(this._fwCloudExportService.config.upload_dir, filename);
+                file.pipe(fs.createWriteStream(destinationPath));
+                
+                const fwCloud: FwCloud = await this._fwCloudExportService.import(destinationPath);
+
+                return resolve(ResponseBuilder.buildResponse().status(201).body(fwCloud));
+            });
+
+            request.pipe(busboy);
+        });
     }
 }

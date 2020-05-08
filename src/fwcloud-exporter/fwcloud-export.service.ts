@@ -5,7 +5,8 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 import { User } from "../models/user/User";
 
 export type ExporterConfig = {
-    data_dir: string
+    data_dir: string,
+    upload_dir: string
 }
 
 export class FwCloudExportService extends Service {
@@ -16,6 +17,10 @@ export class FwCloudExportService extends Service {
     public async build(): Promise<Service> {
         if (!FSHelper.directoryExistsSync(this.config.data_dir)) {
             FSHelper.mkdirSync(this.config.data_dir);
+        }
+
+        if (!FSHelper.directoryExistsSync(this.config.upload_dir)) {
+            FSHelper.mkdirSync(this.config.upload_dir);
         }
 
         return this;
@@ -38,5 +43,13 @@ export class FwCloudExportService extends Service {
             }, ttl);
         }
         return fwCloudExport;
+    }
+
+    public async import(filePath: string): Promise<FwCloud> {
+        const fwCloudExport: FwCloudExport = await FwCloudExport.loadCompressed(filePath);
+
+        const fwCloud: FwCloud = await fwCloudExport.import();
+
+        return fwCloud;
     }
 }

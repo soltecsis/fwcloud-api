@@ -61,32 +61,38 @@ export class Routes extends RouteCollection {
                 router.get('/version', VersionController, 'show').name('versions.show');
             });
 
-            router.prefix('/fwclouds/:fwcloud(\\d+)', (router: RouterParser) => {
-
+            router.prefix('/fwclouds', (router: RouterParser) => {
+                router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
                 
-                //Firewalls
-                router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
-                    router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
-                    router.post('/install', FirewallController, 'install').name('firewalls.install');
-                });
+                router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
+
+                    
+                    //Firewalls
+                    router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
+                        router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
+                        router.post('/install', FirewallController, 'install').name('firewalls.install');
+                    });
 
 
-                //Snapshots
-                router.prefix('/snapshots', (router: RouterParser) => {
-                    router.get('/', SnapshotController, 'index').name('snapshots.index');
-                    router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
-                    router.post('/', SnapshotController, 'store').name('snapshots.store');
-                    router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
-                    router.post('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
-                    router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
-                });
+                    //Snapshots
+                    router.prefix('/snapshots', (router: RouterParser) => {
+                        router.get('/', SnapshotController, 'index').name('snapshots.index');
+                        router.get('/:snapshot(\\d+)', SnapshotController, 'show').name('snapshots.show');
+                        router.post('/', SnapshotController, 'store').name('snapshots.store');
+                        router.put('/:snapshot(\\d+)', SnapshotController, 'update').name('snapshots.update');
+                        router.post('/:snapshot(\\d+)/restore', SnapshotController, 'restore').name('snapshots.restore');
+                        router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
+                    });
 
-                //Exports
-                router.prefix('/export', (router: RouterParser) => {
-                    router.post('/', FwCloudExportController, 'store').name('fwclouds.exports.store');
-                    router.get('/:export', FwCloudExportController, 'download').name('fwclouds.exports.download');
+                    //Exports
+                    router.prefix('/export', (router: RouterParser) => {
+                        router.post('/', FwCloudExportController, 'store').name('fwclouds.exports.store');
+                        router.get('/:export', FwCloudExportController, 'download').name('fwclouds.exports.download');
+                    });
                 });
             });
+
+
         });
     }
 }

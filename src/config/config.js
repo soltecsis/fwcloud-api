@@ -415,6 +415,12 @@ const config = convict({
       default: './DATA/EXPORTS',
       env: 'EXPORTER_DATA_DIR'
     },
+    upload_dir: {
+      doc: 'Directory for store uploaded fwcloud files',
+      format: String,
+      default: './DATA/EXPORTS/uploads',
+      env: 'EXPORTER_UPLOAD_DIR'
+    }
   }    
 });
 
