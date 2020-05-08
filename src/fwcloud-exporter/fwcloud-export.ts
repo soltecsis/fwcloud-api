@@ -8,13 +8,14 @@ import archiver from 'archiver';
 import { DatabaseImporter } from "./database-importer/database-importer";
 import moment from "moment";
 import { User } from "../models/user/User";
+import { Responsable } from "../fonaments/contracts/responsable";
 
 export type FwCloudExportMetadata = {
     fwcloud_id: number;
     timestamp: number;
     user_id: number;
 }
-export class FwCloudExport {
+export class FwCloudExport implements Responsable {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
     static SNAPSHOTS_DIRECTORY = 'snapshots';
 
@@ -29,6 +30,15 @@ export class FwCloudExport {
         this._id = id;
         this._path = path.join(directory, id);
         this._loaded = false;
+    }
+
+    toResponse(): object {
+        return {
+            id: this._id,
+            timestamp: this._timestamp,
+            fwcloud_id: this._fwCloud.id,
+            user_id: this._user.id
+        }
     }
 
     get id(): string {

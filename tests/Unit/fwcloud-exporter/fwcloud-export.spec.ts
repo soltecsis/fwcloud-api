@@ -2,7 +2,7 @@ import { describeName, testSuite, playgroundPath, expect } from "../../mocha/glo
 import { Application } from "../../../src/Application";
 import * as path from "path";
 import * as fs from "fs";
-import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
+import { FwCloudExport, FwCloudExportMetadata } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
@@ -134,6 +134,20 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
             expect(FSHelper.directoryExistsSync(restoredFwCloud.getSnapshotDirectoryPath())).to.be.true;
             expect(FSHelper.directoryExistsSync(path.join(restoredFwCloud.getSnapshotDirectoryPath(), snapshot.id.toString()))).to.be.true;
+        });
+    });
+
+    describe('toResponse()', () => {
+
+        it('should return the response object', async () => {
+            let fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
+
+            expect(fwCloudExport.toResponse()).to.be.deep.eq({
+                id: fwCloudExport.id,
+                timestamp: fwCloudExport.timestamp,
+                fwcloud_id: fwCloud.id,
+                user_id: user.id
+            })
         });
     });
 
