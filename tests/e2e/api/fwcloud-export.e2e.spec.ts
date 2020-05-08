@@ -134,7 +134,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
             })
         });
 
-        describe.only('FwCloudExportController@import', () => {
+        describe('FwCloudExportController@import', () => {
             let fwCloudExport: FwCloudExport;
 
             beforeEach(async () => {
