@@ -5,7 +5,7 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../src/utils/string.helper";
 import { getRepository } from "typeorm";
 import { User } from "../../../src/models/user/User";
-import { createUser, generateSession, attachSession } from "../../utils/utils";
+import { createUser, generateSession, attachSession, sleep } from "../../utils/utils";
 import { Application } from "../../../src/Application";
 import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloudExportService } from "../../../src/fwcloud-exporter/fwcloud-export.service";
@@ -121,6 +121,17 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .expect('Content-Type', /application/)
                     .expect(200)
             });
+
+            it('export file should not be available after ttl', async () => {
+                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser, 1);
+                await sleep(2);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect('Content-Type', /application/)
+                    .expect(404)
+            })
         });
     });
 });
