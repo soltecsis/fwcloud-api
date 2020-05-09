@@ -1097,7 +1097,7 @@ export class Firewall extends Model {
 	public static getInterfacesData(SSHconn) {
 		return new Promise(async (resolve, reject) => {
 			try {
-				const data: any = await sshTools.runCommand(SSHconn, "sudo ip a");
+				const data: any = await sshTools.runCommand(SSHconn, "ip a");
 				
 				// Before answer, parse data to see if we have get a valid answer.
 
