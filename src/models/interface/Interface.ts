@@ -501,7 +501,7 @@ export class Interface extends Model {
 						type: 5,
 						protocol: null,
 						address: '127.0.0.1',
-						netmask: '255.0.0.0',
+						netmask: '/8',
 						diff_serv: null,
 						ip_version: 4,
 						icmp_code: null,
@@ -740,28 +740,27 @@ export class Interface extends Model {
 				};
 
 				let match: RegExpMatchArray;
+				let matchNext: RegExpMatchArray;
 				let ifsRawData: string[] = [];
 				let ifsData: ifData_type[] = [];
 				let n: number = 0;
-				let prev_length: number = 0;
 				let currentData: string = "";
 
 				try {
 					// Set the pointer over the first interface.
 					// If we don't found it return empty result.
-					if (!(match = rawData.match(/\n[0-9]{1,4}\: /))) return resolve([]);
-					rawData = rawData.substring(match.index+1);
+					if (!(match = rawData.match(/^[0-9]{1,4}\: /))) return resolve([]);
+					rawData = rawData.substring(match.index);
 
 					// First see how many interfaces we have in the raw data received and fill 
 					// the ifsRawData array with the raw data for each interface.
-					for (;match = rawData.match(/\n[0-9]{1,4}\: /); n++) {
-						prev_length = match[0].length;
-						if (n === 0) continue;
-
-						ifsRawData.push(rawData.substring(prev_length-1,match.index));
-						rawData = rawData.substring(match.index+1);
+					for (;matchNext = rawData.match(/\n[0-9]{1,4}\: /); n++) {
+						match = rawData.match(/^[0-9]{1,4}\: /);
+						ifsRawData.push(rawData.substring(match[0].length,matchNext.index));
+						rawData = rawData.substring(matchNext.index+1);
 					}
-					ifsRawData.push(rawData.substring(prev_length-1,rawData.length));
+					match = rawData.match(/^[0-9]{1,4}\: /);
+					ifsRawData.push(rawData.substring(match[0].length,rawData.length));
 
 					// Process the raw data of each interface.
 					for (let i: number = 0; i<n; i++) {
