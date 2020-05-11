@@ -139,7 +139,7 @@ router.put('/', async (req, res) =>{
     }
 
     channel.close(30000);
-    res.status(204).send({"channel_id": channel.id}).end();
+    res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
     channel.addMessage(new ProgressErrorPayload(`\nERROR: ${error}\n`));
     res.status(400).json(error);
