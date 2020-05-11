@@ -155,7 +155,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .expect(401)
             });
 
-            it.only('admin user should import a fwcloud export file', async () => {
+            it('admin user should import a fwcloud export file', async () => {
                 const fwCloudCount: number = (await getRepository(FwCloud).find()).length;
 
                 return await request(app.express)
