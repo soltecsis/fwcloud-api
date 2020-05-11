@@ -155,7 +155,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('admin user should import a fwcloud export file', async () => {
+            it.only('admin user should import a fwcloud export file', async () => {
                 const fwCloudCount: number = (await getRepository(FwCloud).find()).length;
 
                 return await request(app.express)
@@ -167,6 +167,13 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                         expect((await getRepository(FwCloud).find()).length).to.be.deep.eq(fwCloudCount + 1);
                     });
             });
+
+            it('should return 422 if a file is not provided', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(422);
+            })
         });
     });
 });
