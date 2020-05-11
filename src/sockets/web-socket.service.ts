@@ -2,7 +2,6 @@ import { Service } from "../fonaments/services/service";
 import { Channel } from "./channels/channel";
 import io from 'socket.io';
 import { ChannelConnectResponse, ChannelConnectErrorResponse, ChannelConnectRequest } from "./messages/channel-connect";
-import { SocketMessage } from "./messages/socket-message";
 
 export type Payload = object;
 
@@ -53,16 +52,18 @@ export class WebSocketService extends Service {
     public setSocketIO(socketIO: io.Server) {
         this._socketIO = socketIO;
 
-        this._socketIO.on('channel:connect', (socket: io.Socket, message: ChannelConnectRequest) => {
-            const channel: Channel = this.getChannel(message.id);
-
-            try {
-                channel.setListener(socket);
-                socket.emit('channel:connect', new ChannelConnectResponse(channel));
-                channel.emitMessages();
-            } catch (error) {
-                socket.emit('channel:connect', new ChannelConnectErrorResponse(message.id));
-            }
+        this._socketIO.on('connection', socket => {
+            socket.on('channel:connect', (message: ChannelConnectRequest) => {
+                const channel: Channel = this.getChannel(message.id);
+    
+                try {
+                    channel.setListener(socket);
+                    socket.emit('channel:connect', new ChannelConnectResponse(channel));
+                    channel.emitMessages();
+                } catch (error) {
+                    socket.emit('channel:connect', new ChannelConnectErrorResponse(message.id));
+                }
+            });
         });
     }
 }

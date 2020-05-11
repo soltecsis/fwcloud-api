@@ -76,8 +76,8 @@ export class Channel {
     }
 
     public setListener(listener: EventEmitter | io.Socket, autoemit = true): void {
-        if (isSocket(listener) && listener.id !== this.socketId) {
-            throw new Error('Channel not allowed');
+        if (this._listener) {
+            throw new Error('Channel busy');
         }
 
         this._listener = listener;
