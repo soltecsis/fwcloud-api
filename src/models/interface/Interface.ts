@@ -518,6 +518,13 @@ export class Interface extends Model {
 						comment: 'IPv4 loopback interface address.'
 					};
 					await IPObj.insertIpobj(connection, ipobjData);
+
+					ipobjData.address = '::1';
+					ipobjData.netmask = '/128';
+					ipobjData.ip_version = 6;
+					ipobjData.comment = 'IPv6 loopback interface address.';
+					await IPObj.insertIpobj(connection, ipobjData);
+
 					resolve(interfaceId);
 				});
 			});
