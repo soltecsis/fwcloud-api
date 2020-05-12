@@ -142,9 +142,9 @@ export class Snapshot implements Responsable {
      * @param name
      * @param comment 
      */
-    public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
+    public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null, eventEmitter = new EventEmitter()): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        await snapshot.save(snapshot_directory, fwCloud, name, comment);
+        await snapshot.save(snapshot_directory, fwCloud, name, comment, eventEmitter);
 
         return Snapshot.load(snapshot.path);
     }

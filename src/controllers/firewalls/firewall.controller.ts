@@ -6,6 +6,7 @@ import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { FirewallService, SSHConfig } from "../../models/firewall/firewall.service";
 import { Progress } from "../../fonaments/http/progress/progress";
 import { FirewallPolicy } from "../../policies/firewall.policy";
+import { Channel } from "../../sockets/channels/channel";
 
 export class FirewallController extends Controller {
     
@@ -23,7 +24,9 @@ export class FirewallController extends Controller {
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-        firewall = await this.firewallService.compile(firewall);
+        const channel: Channel = await Channel.fromRequest(request);
+
+        firewall = await this.firewallService.compile(firewall, channel);
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }
@@ -36,12 +39,14 @@ export class FirewallController extends Controller {
 
         (await FirewallPolicy.install(firewall, request.session.user)).authorize();
 
+        const channel: Channel = await Channel.fromRequest(request);
+
         const customSSHConfig: Partial<SSHConfig> = {
             host: request.body.sshuser ? request.body.sshuser : undefined,
             password: request.body.sshpass ? request.body.sshpass : undefined
         }
 
-        firewall = await this.firewallService.install(firewall, customSSHConfig);
+        firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }

@@ -30,6 +30,7 @@ import { NotFoundException } from "../../fonaments/exceptions/not-found-exceptio
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { RepositoryService } from "../../database/repository.service";
 import { Progress } from "../../fonaments/http/progress/progress";
+import { Channel } from "../../sockets/channels/channel";
 
 export class SnapshotController extends Controller {
 
@@ -70,10 +71,13 @@ export class SnapshotController extends Controller {
     public async store(request: Request): Promise<ResponseBuilder> {
         (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
+        const channel: Channel = await Channel.fromRequest(request);
+
         const snapshot: Snapshot = await this._snapshotService.store(
             request.inputs.get('name'), 
             request.inputs.get('comment', null), 
-            this._fwCloud
+            this._fwCloud,
+            channel
         );
 
         return ResponseBuilder.buildResponse().status(201).body(snapshot);
@@ -94,7 +98,9 @@ export class SnapshotController extends Controller {
 
         (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
 
-        const fwCloud: FwCloud = await this._snapshotService.restore(snapshot);
+        const channel: Channel = await Channel.fromRequest(request);
+
+        const fwCloud: FwCloud = await this._snapshotService.restore(snapshot, channel);
 
         return ResponseBuilder.buildResponse().status(200).body(fwCloud);
     }

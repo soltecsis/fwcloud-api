@@ -93,8 +93,8 @@ export class SnapshotService extends Service {
         return snapshot;
     }
 
-    public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Snapshot> {
-        return Snapshot.create(this.config.data_dir, fwcloud, name, comment)
+    public async store(name: string, comment: string, fwcloud: FwCloud, eventEmitter: EventEmitter = new EventEmitter()): Promise<Snapshot> {
+        return Snapshot.create(this.config.data_dir, fwcloud, name, comment, eventEmitter)
     }
 
     public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {
