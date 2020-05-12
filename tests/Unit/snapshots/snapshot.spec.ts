@@ -32,8 +32,6 @@ import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
-import { Progress } from "../../../src/fonaments/http/progress/progress";
-import { EndProgressPayload } from "../../../src/fonaments/http/progress/messages/progress-messages";
 
 let app: Application;
 let fwCloud: FwCloud;
