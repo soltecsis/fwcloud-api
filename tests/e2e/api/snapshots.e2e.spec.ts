@@ -27,7 +27,7 @@ import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { User } from "../../../src/models/user/User";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { generateSession, attachSession, createUser, waitChannelIsClosed } from "../../utils/utils";
+import { generateSession, attachSession, createUser } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
@@ -37,6 +37,8 @@ import sinon from "sinon";
 import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
 import { DatabaseService } from "../../../src/database/database.service";
 import { getRepository } from "typeorm";
+import StringHelper from "../../../src/utils/string.helper";
+import { number } from "joi";
 
 let app: Application;
 let loggedUser: User;
@@ -54,11 +56,10 @@ describe(describeName('Snapshot E2E tests'), () => {
     beforeEach(async () => {
         app = testSuite.app;
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
-        const databaseService = await app.getService<DatabaseService>(DatabaseService.name);
-
+        
         fwCloud = await getRepository(FwCloud).save(
             getRepository(FwCloud).create({
-                name: 'fwcloud_test'
+                name: StringHelper.randomize(10)
             })
         );
         
@@ -242,8 +243,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                         expect(response.body.data).to.haveOwnProperty('id');
                         expect(response.body.data.comment).to.be.deep.eq('comment_test');
                         expect(response.body.data.name).to.be.deep.eq('name_test');
-
-                        await waitChannelIsClosed(response.body.channel_id);
                     })
             });
 
@@ -260,8 +259,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .then(async (response) => {
                         expect(response.body.data).to.haveOwnProperty('id');
                         expect(response.body.data).not.to.be.null;
-
-                        await waitChannelIsClosed(response.body.channel_id);
                     })
             });
         });
@@ -334,6 +331,7 @@ describe(describeName('Snapshot E2E tests'), () => {
             let s1: Snapshot;
 
             beforeEach(async () => {
+                stubExportDatabase.restore();
                 s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null)
             });
 
@@ -360,8 +358,8 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(200)
                     .then(async (response) => {
-                        expect(response.body.data.id).to.be.deep.equal(s1.id);
-                        await waitChannelIsClosed(response.body.channel_id);
+                        expect(response.body.data.id).to.be.an("number");
+                        expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
                     });
             });
 
@@ -371,8 +369,8 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(200)
                     .then(async (response) => {
-                        expect(response.body.data.id).to.be.deep.equal(s1.id);
-                        await waitChannelIsClosed(response.body.channel_id);
+                        expect(response.body.data.id).to.be.an("number");
+                        expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
                     });
             });
 

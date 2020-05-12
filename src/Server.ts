@@ -47,7 +47,9 @@ export class Server {
             if (this._config.get(this._type).enabled) {
                 this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
                 this.bootstrapEvents();
-                if (this._type === 'api_server') this.bootstrapSocketIO();
+                if (this._type === 'api_server') {
+                    await this.bootstrapSocketIO();
+                }
             }
             else console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
         } catch (error) {
@@ -91,24 +93,9 @@ export class Server {
         })
     }
 
-    private bootstrapSocketIO() {
+    private async bootstrapSocketIO() {
         const _io: io.Server = io(this._server);
-        (<Application>this._application).setSocketIO(_io);
-
-        _io.on('connection', socket => {
-            socket.request.session.socket_id = socket.id;
-            socket.request.session.save();
-
-            if (this._application.config.get('env') === 'dev') {
-                console.log('user connected', socket.id);
-            }
-            
-            socket.on('disconnect', () => {
-                if (this._application.config.get('env') === 'dev') {
-                    console.log('user disconnected', socket.id);
-                }
-            });
-        });
+        await (<Application>this._application).setSocketIO(_io);
     }
 
     protected validateApplicationConfiguration() {

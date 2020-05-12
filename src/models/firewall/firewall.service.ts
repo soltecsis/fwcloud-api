@@ -11,6 +11,8 @@ import ObjectHelpers from "../../utils/object-helpers";
 import { getRepository } from "typeorm";
 import { IPObj } from "../ipobj/IPObj";
 import { InternalServerException } from "../../fonaments/exceptions/internal-server-exception";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
+import f from "session-file-store";
 
 export type SSHConfig = {
     host: string,
@@ -39,14 +41,14 @@ export class FirewallService extends Service {
      * 
      * @param firewall 
      */
-    public compile(firewall: Firewall): Progress<Firewall> {
-        const progress: Progress<Firewall> = new Progress(firewall);
+    public async compile(firewall: Firewall, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
+        const progress: Progress = new Progress(eventEmitter);
         
         if (firewall.fwCloudId === undefined || firewall.fwCloudId === null) {
             throw new Error('Firewall does not belong to a fwcloud');
         }
         
-        progress.procedure('Compiling firewall', (task: Task) => {
+        await progress.procedure('Compiling firewall', (task: Task) => {
             
             task.addTask(() => { return this.createFirewallPolicyDirectory(firewall) }, 'Creating directory');
             
@@ -56,11 +58,11 @@ export class FirewallService extends Service {
 
         }, 'Firewall compiled');
 
-        return progress;
+        return firewall;
     }
 
-    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>): Promise<Progress<Firewall>> {
-        const progress: Progress<Firewall> = new Progress(firewall);
+    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
+        const progress: Progress = new Progress(eventEmitter);
 
         const ipObj: IPObj = await getRepository(IPObj).findOne({where: {id: firewall.install_ipobj}});
 
@@ -75,11 +77,11 @@ export class FirewallService extends Service {
             password: firewall.install_pass
         }, customSSHConfig);
         
-        progress.procedure('Installing firewall policies', (task: Task) => {
+        await progress.procedure('Installing firewall policies', (task: Task) => {
             task.addTask((events: InternalTaskEventEmitter) => (new Installer(firewall)).install(sshConfig, events), 'Installing script');
         }, 'Firewall installed');
 
-        return progress;
+        return firewall;
     }
 
     /**

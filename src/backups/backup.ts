@@ -43,6 +43,7 @@ import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
 import { PathHelper } from "../utils/path-helpers";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 const mysql_import = require('mysql-import');
 
 export interface BackupMetadata {
@@ -182,8 +183,8 @@ export class Backup implements Responsable {
      * 
      * @param backupDirectory Backup path
      */
-    progressCreate(backupDirectory: string): Progress<Backup> {
-        const progress = new Progress<Backup>(this);
+    public async create(backupDirectory: string, eventEmitter = new EventEmitter()): Promise<Backup> {
+        const progress = new Progress(eventEmitter);
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
@@ -194,57 +195,34 @@ export class Backup implements Responsable {
         this.createDirectorySync();
         this.exportMetadataFileSync();
 
-        progress.procedure('Creating backup', (task: Task) => {
+        await progress.procedure('Creating backup', (task: Task) => {
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.exportDatabase(); }, 'Database exported');
                 task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories exported');
             });
         }, 'Backup created');
 
-        return progress;
+        return await this.load(this._backupPath);
     }
 
-    public async create(backupDirectory: string): Promise<Backup> {
-
-        const progress: Progress<Backup> = this.progressCreate(backupDirectory);
-
-        return new Promise<Backup>((resolve, reject) => {
-            progress.on('end', async (_) => {
-                resolve(await this.load(progress.response.path));
-            });
-        });
-    }
-
-    progressRestore(): Progress<Backup> {
-        const progress = new Progress<Backup>(this);
+    /**
+     * Restores an existing backup
+     */
+    async restore(eventEmitter: EventEmitter = new EventEmitter()): Promise<Backup> {
+        const progress = new Progress(eventEmitter);
 
         if (this._exists) {
-            progress.procedure('Restoring backup', (task: Task) => {
+            await progress.procedure('Restoring backup', (task: Task) => {
                 task.parallel((task: Task) => {
                     task.addTask(() => { return this.importDatabase(); }, 'Database restored');
                     task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
                 })
             }, 'Backup restored');
 
-            return progress;
+            return this;
         }
 
         throw new BackupNotFoundException(this._backupPath);
-
-    }
-
-    /**
-     * Restores an existing backup
-     */
-    async restore(): Promise<Backup> {
-
-        const progress: Progress<Backup> = this.progressRestore();
-
-        return new Promise<Backup>((resolve, reject) => {
-            progress.on('end', (_) => {
-                resolve(progress.response);
-            });
-        });
     }
 
     /**

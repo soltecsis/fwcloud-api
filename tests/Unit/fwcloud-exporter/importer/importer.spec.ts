@@ -58,7 +58,7 @@ describe(describeName('Importer tests'), () => {
 
             let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
-            snapshot = await snapshot.restore();
+            await snapshot.restore();
 
             const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
             const newCA: Ca = await repositoryService.for(Ca).findOne({cn: ca.cn});
@@ -81,7 +81,7 @@ describe(describeName('Importer tests'), () => {
 
             let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
-            snapshot = await snapshot.restore();
+            await snapshot.restore();
 
             const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
             const newFirewall: Firewall = await repositoryService.for(Firewall).findOne({name: firewall.name});

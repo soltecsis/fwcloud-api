@@ -28,15 +28,14 @@ import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
-import { app } from '../../fonaments/abstract-application';
-import { WebSocketService } from '../../sockets/web-socket.service';
 import { ProgressErrorPayload, ProgressInfoPayload } from '../../sockets/messages/socket-message';
+import { Channel } from '../../sockets/channels/channel';
 const fwcError = require('../../utils/error_table');
 
 
 /* Rpair tree */
 router.put('/', async (req, res) =>{
-  const channel = (await app().getService(WebSocketService.name)).createChannel();
+  const channel = await Channel.fromRequest(req);
 
   try {
     if (req.body.type==='FDF') {
@@ -139,7 +138,7 @@ router.put('/', async (req, res) =>{
     }
 
     channel.close(30000);
-    res.status(204).send({"channel_id": channel.id}).end();
+    res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
     channel.addMessage(new ProgressErrorPayload(`\nERROR: ${error}\n`));
     res.status(400).json(error);

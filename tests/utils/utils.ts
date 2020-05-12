@@ -26,17 +26,11 @@ import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
-import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial, getRepository } from "typeorm";
 import { testSuite, TestSuite} from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
-import { Channel } from "../../src/sockets/channels/channel";
-import { WebSocketService } from "../../src/sockets/web-socket.service";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
-    const _app = testSuite.app;
-    
     const result: User = getRepository(User).create({
         username: user.username ? user.username : StringHelper.randomize(10),
         email: StringHelper.randomize(10) + '@fwcloud.test',
@@ -80,25 +74,6 @@ export function attachSession(id: string): string {
 export async function sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
     return;
-}
-
-export function waitChannelIsClosed(channel_id: string): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-        const webSocketService: WebSocketService = await testSuite.app.getService<WebSocketService>(WebSocketService.name);
-        const channel: Channel = webSocketService.getChannel(channel_id);
-
-        if (!channel) {
-            return resolve();
-        }
-
-        const eventEmitter: EventEmitter = new EventEmitter;
-
-        channel.on('closed', () => {
-            return resolve();
-        });
-        channel.setListener(eventEmitter);
-        channel.emitMessages();
-    });
 }
 
 /**
