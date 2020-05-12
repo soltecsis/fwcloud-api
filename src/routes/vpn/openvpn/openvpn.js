@@ -63,8 +63,7 @@ import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
-import { app } from '../../../fonaments/abstract-application';
-import { WebSocketService } from '../../../sockets/web-socket.service';
+import { Channel } from '../../../sockets/channels/channel';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -284,7 +283,7 @@ router.put('/where', async (req, res) => {
  */
 router.put('/install', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
@@ -319,7 +318,7 @@ router.put('/install', async(req, res) => {
  */
 router.put('/uninstall', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		if (crt.type === 1) { // Client certificate
@@ -350,7 +349,7 @@ router.put('/uninstall', async(req, res) => {
  */
 router.put('/ccdsync', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
