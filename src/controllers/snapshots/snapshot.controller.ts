@@ -70,13 +70,13 @@ export class SnapshotController extends Controller {
     public async store(request: Request): Promise<ResponseBuilder> {
         (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
-        const progress: Progress<Snapshot> = await this._snapshotService.store(
+        const snapshot: Snapshot = await this._snapshotService.store(
             request.inputs.get('name'), 
             request.inputs.get('comment', null), 
             this._fwCloud
         );
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress);
+        return ResponseBuilder.buildResponse().status(201).body(snapshot);
     }
 
     public async update(request: Request): Promise<ResponseBuilder> {
@@ -94,9 +94,9 @@ export class SnapshotController extends Controller {
 
         (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
 
-        const progress: Progress<Snapshot> = this._snapshotService.restore(snapshot);
+        const fwCloud: FwCloud = await this._snapshotService.restore(snapshot);
 
-        return ResponseBuilder.buildResponse().status(200).progress(progress);
+        return ResponseBuilder.buildResponse().status(200).body(fwCloud);
     }
 
     public async destroy(request: Request): Promise<ResponseBuilder> {

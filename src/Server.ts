@@ -96,21 +96,6 @@ export class Server {
     private async bootstrapSocketIO() {
         const _io: io.Server = io(this._server);
         await (<Application>this._application).setSocketIO(_io);
-
-        _io.on('connection', socket => {
-            socket.request.session.socket_id = socket.id;
-            socket.request.session.save();
-
-            if (this._application.config.get('env') === 'dev') {
-                console.log('user connected', socket.id);
-            }
-            
-            socket.on('disconnect', () => {
-                if (this._application.config.get('env') === 'dev') {
-                    console.log('user disconnected', socket.id);
-                }
-            });
-        });
     }
 
     protected validateApplicationConfiguration() {

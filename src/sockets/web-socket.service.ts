@@ -16,52 +16,32 @@ export class WebSocketService extends Service {
         return this;
     }
 
-    public async close(): Promise<void> {
-        for(let i = 0; i < this._channels.length; i++) {
-            this._channels[i].close();
-        }
-    }
-
     get channels(): Array<Channel> {
         return this._channels;
     }
 
-    public createChannel(): Channel {
-        const channel: Channel = new Channel();
-        this._channels.push(channel);
+    public getSocket(socketId: string): io.Socket {
+        if (this._socketIO.sockets.connected[socketId]) {
+            return this._socketIO.sockets.connected[socketId];
+        }
 
-        channel.on('closed', () => {
-            const index: number = this._channels.indexOf(channel);
-
-            if (index >= 0) {
-                this._channels.splice(index, 1);
-            }
-        });
-
-        return channel;
-    }
-
-    public getChannel(channel_id: string): Channel {
-        const channels = this._channels.filter((channel) => {
-            return channel.id === channel_id;
-        });
-
-        return channels.length > 0 ? channels[0] : null;
+        return null;
     }
 
     public setSocketIO(socketIO: io.Server) {
         this._socketIO = socketIO;
 
         this._socketIO.on('connection', socket => {
-            socket.on('channel:connect', (message: ChannelConnectRequest) => {
-                const channel: Channel = this.getChannel(message.id);
-    
-                try {
-                    channel.setListener(socket);
-                    socket.emit('channel:connect', new ChannelConnectResponse(channel));
-                    channel.emitMessages();
-                } catch (error) {
-                    socket.emit('channel:connect', new ChannelConnectErrorResponse(message.id));
+            socket.request.session.socket_id = socket.id;
+            socket.request.session.save();
+
+            if (this._app.config.get('env') === 'dev') {
+                console.log('user connected', socket.id);
+            }
+            
+            socket.on('disconnect', () => {
+                if (this._app.config.get('env') === 'dev') {
+                    console.log('user disconnected', socket.id);
                 }
             });
         });

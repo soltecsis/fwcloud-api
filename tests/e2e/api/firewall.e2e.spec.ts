@@ -2,7 +2,7 @@ import { describeName, testSuite } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
 import { User } from "../../../src/models/user/User";
 import request = require("supertest");
-import { createUser, generateSession, attachSession, waitChannelIsClosed } from "../../utils/utils";
+import { createUser, generateSession, attachSession } from "../../utils/utils";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
@@ -76,10 +76,7 @@ describe(describeName('Firewall E2E Tests'), () => {
                     firewall: firewall.id
                 }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
-                .expect(201)
-                .then(async response => {
-                    await waitChannelIsClosed(response.body.channel_id);
-                });
+                .expect(201);
         });
 
         it('admin user should compile a firewall', async () => {
@@ -89,10 +86,7 @@ describe(describeName('Firewall E2E Tests'), () => {
                     firewall: firewall.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(201)
-                .then(async response => {
-                    await waitChannelIsClosed(response.body.channel_id);
-                });
+                .expect(201);
         });
     });
 
@@ -138,10 +132,7 @@ describe(describeName('Firewall E2E Tests'), () => {
                     firewall: firewall.id
                 }))
                 .set('Cookie', [attachSession(loggedUserSessionId)])
-                .expect(201)
-                .then(async response => {
-                    await waitChannelIsClosed(response.body.channel_id);
-                });
+                .expect(201);
         });
 
         it('admin user should compile a firewall', async () => {
@@ -151,10 +142,7 @@ describe(describeName('Firewall E2E Tests'), () => {
                     firewall: firewall.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(201)
-                .then(async response => {
-                    await waitChannelIsClosed(response.body.channel_id);
-                });
+                .expect(201);
         });
     });
 

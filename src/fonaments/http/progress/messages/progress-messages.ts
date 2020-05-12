@@ -29,13 +29,13 @@ export class ErrorTaskPayload extends ProgressErrorPayload {
 }
 
 export class StartProgressPayload extends ProgressPayload {
-    constructor(progress: Progress<any>, data: object = null) {
+    constructor(progress: Progress, data: object = null) {
         super('start', progress.startMessage, data, progress.id)
     }
 }
 
 export class EndProgressPayload extends ProgressPayload {
-    constructor(progress: Progress<any>, data: object = null) {
+    constructor(progress: Progress, data: object = null) {
         super('end', progress.startMessage, data, progress.id)
     }
 }

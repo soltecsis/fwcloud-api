@@ -82,23 +82,3 @@ export async function sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
     return;
 }
-
-export function waitChannelIsClosed(channel_id: string): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-        const webSocketService: WebSocketService = await testSuite.app.getService<WebSocketService>(WebSocketService.name);
-        const channel: Channel = webSocketService.getChannel(channel_id);
-
-        if (!channel) {
-            return resolve();
-        }
-
-        const eventEmitter: EventEmitter = new EventEmitter;
-
-        channel.on('closed', () => {
-            return resolve();
-        });
-        
-        channel.setListener(eventEmitter);
-        channel.emitMessages();
-    });
-}

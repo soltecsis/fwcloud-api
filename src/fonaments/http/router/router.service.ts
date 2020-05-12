@@ -129,14 +129,6 @@ export class RouterService extends Service {
                     throw new Error('Controller handler ' + route.controllerSignature.controller.name + '@' + route.controllerSignature.method + ' does not return a response');                    
                 }
 
-                if (result.hasProgress()) {
-                    const webSocketService: WebSocketService = await this._app.getService<WebSocketService>(WebSocketService.name);
-                    const channel: Channel = webSocketService.createChannel();
-                    channel.socketId = request.session.socketId;
-
-                    result.getProgress().setChannel(channel);
-                }
-
                 result.send(response);
 
             } catch (e) {

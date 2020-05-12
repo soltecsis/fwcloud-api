@@ -1,129 +1,47 @@
-import { WebSocketService } from "../web-socket.service";
 import * as uuid from "uuid";
 import { SocketMessage } from "../messages/socket-message";
 import { EventEmitter } from "events";
+import { Request } from "express";
 import io from 'socket.io';
+import { app } from "../../fonaments/abstract-application";
+import { WebSocketService } from "../web-socket.service";
 
-export type ChannelEvent = 'closed' | 'message:add' | 'message:emited';
-
-export interface ChannelEventEmitter extends NodeJS.EventEmitter {
-    on(event: ChannelEvent, listener: (...args: any[]) => void): this;
-    emit(event: ChannelEvent, ...args: any[]): boolean;
-    off(event: ChannelEvent, listener: (...args: any[]) => void): this;
-}
-
-function isSocket(object: any): object is io.Socket {
-    return 'server' in object &&
-        'nsp' in object;
-}
-
-export class Channel {
+export class Channel extends EventEmitter {
     protected _id: string;
+    protected _listener: EventEmitter;
 
-    protected _pendingMessages: Array<SocketMessage>;
-    protected _sentMessages: Array<SocketMessage>;
-
-    protected _events: ChannelEventEmitter;
-
-    protected _listener: EventEmitter | io.Socket;
-    public socketId: string;
-
-    protected _isClosedRequested: boolean;
-    protected _closed: boolean;
-    protected _closeTimeout: NodeJS.Timeout;
-
-    constructor() {
+    constructor(id: string, listener: EventEmitter) {
+        super();
         this._id = uuid.v1();
-        this._pendingMessages = [];
-        this._sentMessages = [];
-        this._events = new EventEmitter();
-        this._closed = false;
-        this._isClosedRequested = false;
-        this._listener === null;
+        this._listener = listener;
     }
 
     get id(): string {
         return this._id;
     }
 
-    get pendingMessages(): Array<SocketMessage> {
-        return this._pendingMessages;
-    }
-
-    get sentMessages(): Array<SocketMessage> {
-        return this._sentMessages;
-    }
-
-    get closed(): boolean {
-        return this._closed;
-    }
-
-    public addMessage(payload: object): SocketMessage {
-        if (!this.isAcceptingMessages()) {
-            return null;
-        }
-
+    public message(payload: object): boolean {
         const message = new SocketMessage(payload, this._id);
-        this._pendingMessages.push(message);
-        this.emitMessages();
-        this._events.emit('message:add', message);
-
-        return message;
+        return this._listener.emit('message', message);
     }
 
-    protected isAcceptingMessages(): boolean {
-        return this._closed === false && this._isClosedRequested === false;
-    }
-
-    public setListener(listener: EventEmitter | io.Socket, autoemit = true): void {
-        if (this._listener) {
-            throw new Error('Channel busy');
+    public emit(event: string | symbol, ...args: any[]): boolean {
+        if (event === 'message') {
+            return this.message(args[0]);
         }
 
-        this._listener = listener;
+        return super.emit(event, ...args);
+    }
+
+    public static async fromRequest(request: Request): Promise<Channel> {
+        const websocketService: WebSocketService = await app().getService<WebSocketService>(WebSocketService.name);
+        const id: string = uuid.v1();
+        let listener: EventEmitter = new EventEmitter();
+        if (request.session.socketId) {
+            listener = websocketService.getSocket(request.session.socketId);
+        }
         
-        if (autoemit) {
-            this.emitMessages();    
-        }
+        return new Channel(id, listener);
     }
-
-    public emitMessages() {
-        if (this._listener) {
-            const messages = this._pendingMessages;
-            this._pendingMessages = [];
-
-            for (let i = 0; i < messages.length; i++) {
-                this._listener.emit(this._id, messages[i]);
-                this._events.emit('message:emited', messages[i]);
-                this._sentMessages.push(messages[i]);
-            }
-
-            if(this._isClosedRequested) {
-                this._close();
-            }
-        }
-    }
-
-    public close(graceTime: number = 0) {
-        if (graceTime > 0 && !this._listener) {
-            this._closeTimeout = setTimeout(() => { this._close();}, graceTime);
-            this._isClosedRequested = true;
-            return;
-        }
-
-        this._close();
-        return;
-    }
-
-    protected _close() {
-        this._closed = true;
-        this._isClosedRequested = true;
-        this._events.emit('closed');
-        this._events.removeAllListeners()
-        clearTimeout(this._closeTimeout);
-    }
-
-    public on(event: ChannelEvent, listener: (...args: any[]) => void): ChannelEventEmitter {
-        return this._events.on(event, listener);
-    }
+    
 }
