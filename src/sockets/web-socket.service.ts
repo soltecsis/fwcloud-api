@@ -32,7 +32,7 @@ export class WebSocketService extends Service {
         this._socketIO = socketIO;
 
         this._socketIO.on('connection', socket => {
-            socket.request.session.socket_id = socket.id;
+            socket.request.session.socketId = socket.id;
             socket.request.session.save();
 
             if (this._app.config.get('env') === 'dev') {
