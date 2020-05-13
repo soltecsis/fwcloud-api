@@ -24,8 +24,9 @@ import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { SequencedTask } from "./sequenced-task";
 import { GroupDescription, Task } from "./task";
 import { Channel } from "../../../sockets/channels/channel";
-import { StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload } from "./messages/progress-messages";
+import { StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload, StartProgressPayload, EndProgressPayload } from "./messages/progress-messages";
 import * as uuid from "uuid";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
 export type taskEventName = 'start' | 'end' | 'info' | 'error';
 
@@ -94,7 +95,9 @@ export class Progress {
             
             this.bindEvents();
             
+            this._progressEvents.emit('start')
             this._startTask.run().then(() => {
+                this._progressEvents.emit('end')
                 return resolve();
             }).catch((e) => {
                 return reject(e);
@@ -104,6 +107,15 @@ export class Progress {
 
     protected bindEvents(): void {
 
+        this._progressEvents.on('start', () => {
+            const message: ProgressPayload = new StartProgressPayload(this);
+            this._externalEmitter.emit('message', message);
+        });
+
+        this._progressEvents.on('end', async () => {
+            this._externalEmitter.emit('message', new EndProgressPayload(this));
+        });
+        
         this._taskEvents.on('start', (task: Task) => {
             this._externalEmitter.emit('message', new StartTaskPayload(task));
         });

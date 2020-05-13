@@ -12,7 +12,7 @@ export class Channel extends EventEmitter {
 
     constructor(id: string, listener: EventEmitter) {
         super();
-        this._id = uuid.v1();
+        this._id = id;
         this._listener = listener;
     }
 
@@ -22,7 +22,7 @@ export class Channel extends EventEmitter {
 
     public message(payload: object): boolean {
         const message = new SocketMessage(payload, this._id);
-        return this._listener.emit('message', message);
+        return this._listener.emit(this._id, message);
     }
 
     public emit(event: string | symbol, ...args: any[]): boolean {
