@@ -34,6 +34,7 @@ function interfaces_Data(data) {
     this.comment = data.comment;
     this.id_node = data.id_node;
     this.id_parent_node = data.id_parent_node;
+    this.mac = data.mac;
     try {
         this.standard = data.standard;
     } catch (err) {
@@ -41,8 +42,7 @@ function interfaces_Data(data) {
     }
     this.ipobjs = [];
 
-}
-;
+};
 
 
 
