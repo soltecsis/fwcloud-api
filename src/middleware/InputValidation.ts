@@ -37,30 +37,30 @@ export class InputValidation extends Middleware {
             return;
         }
 
-        const item1 = req.path.split('/')[1];
+        const item1 = req.url.split('/')[1];
         const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface',
             'ipobj', 'tree', 'vpn'];
 
         const item1_new_route_system = ['backups', 'version', 'fwclouds'];
 
         // Verify that item1 is in the valid list.
-        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1)) {
+        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
             res.status(404).json(fwcError.BAD_API_CALL);
             return;
         }
 
-        if (item1_new_route_system.includes(item1)) {
+        if (item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
             return next();
         }
 
         // URLs excluded of the input data validation process because don't have any data to be validated.
-        if ((req.method === 'GET' && req.path === '/fwcloud/all/get') ||
-            (req.method === 'GET' && req.path === '/firewall/all/get') ||
-            (req.method === 'GET' && req.path === '/cluster/all/get') ||
-            (req.method === 'GET' && req.path === '/ipobj/types') ||
-            (req.method === 'GET' && req.path === '/ipobj/positions/policy') ||
-            (req.method === 'GET' && req.path === '/policy/types') ||
-            (req.method === 'GET' && req.path === '/stream'))
+        if ((req.method === 'GET' && req.url === '/fwcloud/all/get') ||
+            (req.method === 'GET' && req.url === '/firewall/all/get') ||
+            (req.method === 'GET' && req.url === '/cluster/all/get') ||
+            (req.method === 'GET' && req.url === '/ipobj/types') ||
+            (req.method === 'GET' && req.url === '/ipobj/positions/policy') ||
+            (req.method === 'GET' && req.url === '/policy/types') ||
+            (req.method === 'GET' && req.url === '/stream'))
             return next();
 
         try {
