@@ -307,7 +307,6 @@ router.put('/install', async(req, res) => {
 		// Update the install date.
 		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
-		channel.close(30000);
 		res.status(200).send({'channel_id': channel.id});
 	} catch(error) { res.status(400).json(error) }
 });
@@ -337,7 +336,6 @@ router.put('/uninstall', async(req, res) => {
 		// Update the status flag for the OpenVPN configuration.
 		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
-		channel.close(30000);
 		res.status(200).send({'channel_id': channel.id}).end();
 	} catch(error) { res.status(400).json(error) }
 });
@@ -375,7 +373,6 @@ router.put('/ccdsync', async(req, res) => {
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
 		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
 
-		channel.close(30000);
 		res.status(200).send({
 			'channel_id': channel.id
 		}).end();
