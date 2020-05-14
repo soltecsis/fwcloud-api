@@ -750,7 +750,6 @@ export class Interface extends Model {
 				let matchNext: RegExpMatchArray;
 				let ifsRawData: string[] = [];
 				let ifsData: ifData_type[] = [];
-				let n: number = 0;
 				let currentData: string = "";
 
 				try {
@@ -761,7 +760,7 @@ export class Interface extends Model {
 
 					// First see how many interfaces we have in the raw data received and fill 
 					// the ifsRawData array with the raw data for each interface.
-					for (;matchNext = rawData.match(/\n[0-9]{1,4}\: /); n++) {
+					for (;matchNext = rawData.match(/\n[0-9]{1,4}\: /);) {
 						match = rawData.match(/^[0-9]{1,4}\: /);
 						ifsRawData.push(rawData.substring(match[0].length,matchNext.index));
 						rawData = rawData.substring(matchNext.index+1);
@@ -770,15 +769,13 @@ export class Interface extends Model {
 					ifsRawData.push(rawData.substring(match[0].length,rawData.length));
 
 					// Process the raw data of each interface.
-					for (let i: number = 0; i<n; i++) {
+					for (currentData of ifsRawData) {
 						let ifData: ifData_type = {
 							name: '',
 							mac: '',
 							ipv4: [],
 							ipv6: []
 						};
-
-						currentData = ifsRawData[i];
 
 						// Get the interface name.
 						if (!(match = currentData.match(/\: /))) 
