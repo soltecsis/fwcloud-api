@@ -92,23 +92,23 @@ export class Repair extends Model {
                 let ca_found = 0;
                 for (let node of nodes) {
                     if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         firewalls_found = 1;
                     }
                     else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         objects_found = 1;
                     }
                     else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         services_found = 1;
                     }
                     else if (node.name === 'CA' && node.node_type === 'FCA') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         ca_found = 1;
                     }
                     else {
-                        channel.emit('message', new ProgressInfoPayload(`Deleting invalid root node: ${JSON.stringify(node)}\n`));
+                        channel.emit('message', new ProgressInfoPayload(`Deleting invalid root node: ${node.id}\n`));
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                     }
 
@@ -171,11 +171,11 @@ export class Repair extends Model {
                             if (id_ancestor === -1 || id_ancestor === node.id || (++deep) > 100) {
                                 
                                 if (id_ancestor === -1) {
-                                    channel.emit('message', new ProgressInfoPayload(`Ancestor not found, deleting node: ${JSON.stringify(node)}\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Ancestor not found, deleting node: ${node.id}\n`));
                                 } else if (id_ancestor === node.id) {
-                                    channel.emit('message', new ProgressInfoPayload(`Deleting node in a loop: ${JSON.stringify(node)}\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Deleting node in a loop: ${node.id}\n`));
                                 } else if (deep > 100) {
-                                    channel.emit('message', new ProgressInfoPayload(`Deleting a too much deep node: ${JSON.stringify(node)}\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Deleting a too much deep node: ${node.id}\n`));
                                 }
 
                                 await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
@@ -192,7 +192,7 @@ export class Repair extends Model {
                             }
                         }
                         if (!root_node_found) {
-                            channel.emit('message', new ProgressInfoPayload(`Root node for this node is not correct. Deleting node: ${JSON.stringify(node)}\n'`));
+                            channel.emit('message', new ProgressInfoPayload(`Root node for this node is not correct. Deleting node: ${node.id}\n'`));
                             await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                             continue;
                         }
