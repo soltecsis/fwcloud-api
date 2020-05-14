@@ -505,9 +505,9 @@ export class OpenVPN extends Model {
                 }
 
                 if (notFoundList) {
-                    channel.emit('message', new ProgressInfoPayload(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config:
+                    channel.emit('message', new ProgressInfoPayload(`<strong>WARNING: Found files in the directory '${dir}' without OpenVPN config:
                         ${notFoundList}
-                        </font></strong>`));
+                        </strong>`));
                 }
                 else {
                     channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
