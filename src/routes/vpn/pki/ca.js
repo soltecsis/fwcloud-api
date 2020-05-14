@@ -27,6 +27,8 @@ var router = express.Router();
 const fwcError = require('../../../utils/error_table');
 import { Ca } from '../../../models/vpn/pki/Ca';
 import { Tree } from '../../../models/tree/Tree';
+import { app } from '../../../fonaments/abstract-application';
+import { WebSocketService } from '../../../sockets/web-socket.service';
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
@@ -51,9 +53,13 @@ router.post('/', async(req, res) => {
 		// Don't wait for the finish of this process because it takes several minutes.
 		Ca.runEasyRsaCmd(req, 'gen-dh')
 			.then(() => {
-				req.dbCon.query(`update ca set status=0 where id=${req.caId}`, (error, result) => {
-					const socket = req.app.get('socketio').sockets.connected[req.body.socketid];
-					if (socket) socket.emit('ca:dh:created', { caId: req.caId, caCn: req.body.cn });
+				req.dbCon.query(`update ca set status=0 where id=${req.caId}`, async (error, result) => {
+					const webSocketService = await app().getService(WebSocketService.name);
+
+					if (webSocketService.hasSocket(req.body.socketid)) {
+						const socket = webSocketService.getSocket([req.body.socketid]);
+						socket.emit('ca:dh:created', { caId: req.caId, caCn: req.body.cn });
+					}
 				});
 			});
 
