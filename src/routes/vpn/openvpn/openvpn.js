@@ -293,12 +293,12 @@ router.put('/install', async(req, res) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await OpenVPN.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true, channel);
+			await OpenVPN.installCfg(req,cfgDump.ccd, openvpn_opt.arg, crt.cn, 1, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await OpenVPN.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2,true, channel);
+			await OpenVPN.installCfg(req, cfgDump.cfg, req.openvpn.install_dir, req.openvpn.install_name, 2, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -363,7 +363,7 @@ router.put('/ccdsync', async(req, res) => {
 
 		for (let client of clients) {
 			let cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
-			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1,false);
+			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1, channel);
 
 			// Update the status flag for the OpenVPN configuration.
 			await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
