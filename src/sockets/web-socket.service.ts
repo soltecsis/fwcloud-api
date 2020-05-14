@@ -20,6 +20,10 @@ export class WebSocketService extends Service {
         return this._channels;
     }
 
+    public hasSocket(socketId: string): boolean {
+        return this.getSocket(socketId) !== null;
+    }
+
     public getSocket(socketId: string): io.Socket {
         if (this._socketIO.sockets.connected[socketId]) {
             return this._socketIO.sockets.connected[socketId];
