@@ -12,7 +12,6 @@ import { getRepository } from "typeorm";
 import { IPObj } from "../ipobj/IPObj";
 import { InternalServerException } from "../../fonaments/exceptions/internal-server-exception";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import f from "session-file-store";
 
 export type SSHConfig = {
     host: string,
@@ -52,7 +51,7 @@ export class FirewallService extends Service {
             
             task.addTask(() => { return this.createFirewallPolicyDirectory(firewall) }, 'Creating directory');
             
-            task.addTask((eventEmitter: InternalTaskEventEmitter) => {
+            task.addTask(() => {
                 return (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter)
             }, 'Compiling script');
 
@@ -78,7 +77,7 @@ export class FirewallService extends Service {
         }, customSSHConfig);
         
         await progress.procedure('Installing firewall policies', (task: Task) => {
-            task.addTask((events: InternalTaskEventEmitter) => (new Installer(firewall)).install(sshConfig, events), 'Installing script');
+            task.addTask(() => (new Installer(firewall)).install(sshConfig, eventEmitter), 'Installing script');
         }, 'Firewall installed');
 
         return firewall;

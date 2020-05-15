@@ -17,7 +17,7 @@ export class SocketMessage {
 
 export class SocketMessagePayload {}
 
-export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'error';
+export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'debug' | 'notice' | 'error';
 
 export class ProgressPayload extends SocketMessagePayload {
     readonly task_id?: string;
@@ -34,9 +34,21 @@ export class ProgressPayload extends SocketMessagePayload {
     }
 }
 
+export class ProgressNoticePayload extends ProgressPayload {
+    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
+        super('notice', message, data, task_id);
+    }
+}
+
 export class ProgressInfoPayload extends ProgressPayload {
     constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
         super('info', message, data, task_id);
+    }
+}
+
+export class ProgressDebugPayload extends ProgressPayload {
+    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
+        super('debug', message, data, task_id);
     }
 }
 
