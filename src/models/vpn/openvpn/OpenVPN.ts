@@ -36,6 +36,7 @@ const sshTools = require('../../../utils/ssh');
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { ProgressInfoPayload, ProgressErrorPayload } from "../../../sockets/messages/socket-message";
 import { Channel } from "../../../sockets/channels/channel";
+import { EventEmitter } from "events";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -423,32 +424,32 @@ export class OpenVPN extends Model {
     };
 
 
-    public static installCfg(req, cfg, dir, name, type, channel: Channel = new Channel()) {
+    public static installCfg(req, cfg, dir, name, type, channel: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
                 if (type === 1) { 
                     // Client certificarte
-                    channel.addMessage(new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
+                    channel.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
                 } else {
-                    channel.addMessage(new ProgressInfoPayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
+                    channel.emit('message', new ProgressInfoPayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
                 }
                 
                 await sshTools.uploadStringToFile(fwData.SSHconn, cfg, name);
 
                 const existsDir = await sshTools.runCommand(fwData.SSHconn, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
                 if (existsDir === "0") {
-                    channel.addMessage(new ProgressInfoPayload(`Creating install directory.\n`));
+                    channel.emit('message', new ProgressInfoPayload(`Creating install directory.\n`));
                     await sshTools.runCommand(fwData.SSHconn, `sudo mkdir "${dir}"`);
                     await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root "${dir}"`);
                     await sshTools.runCommand(fwData.SSHconn, `sudo chmod 755 "${dir}"`);
                 }
 
-                channel.addMessage(new ProgressInfoPayload(`Installing OpenVPN configuration file.\n`));
+                channel.emit('message', new ProgressInfoPayload(`Installing OpenVPN configuration file.\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo mv ${name} ${dir}/`);
 
-                channel.addMessage(new ProgressInfoPayload(`Setting up file permissions.\n\n`));
+                channel.emit('message', new ProgressInfoPayload(`Setting up file permissions.\n\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root ${dir}/${name}`);
 
                 if (type === 1) { 
@@ -461,34 +462,34 @@ export class OpenVPN extends Model {
 
                 resolve();
             } catch (error) {
-                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
+                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });
     };
 
-    public static uninstallCfg(req, dir, name, channel: Channel = new Channel()) {
+    public static uninstallCfg(req, dir, name, channel: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                channel.addMessage(new ProgressInfoPayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
+                channel.emit('message', new ProgressInfoPayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
                 await sshTools.runCommand(fwData.SSHconn, `sudo rm -f "${dir}/${name}"`);
 
                 resolve();
             } catch (error) {
-                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
+                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });
     };
 
-    public static ccdCompare(req, dir, clients, channel: Channel = new Channel()) {
+    public static ccdCompare(req, dir, clients, channel: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                channel.addMessage(new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
+                channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
                 const fileList = (await sshTools.runCommand(fwData.SSHconn, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
                 let found;
                 let notFoundList = "";
@@ -504,17 +505,17 @@ export class OpenVPN extends Model {
                 }
 
                 if (notFoundList) {
-                    channel.addMessage(new ProgressInfoPayload(`<strong><font color="purple">WARNING: Found files in the directory '${dir}' without OpenVPN config:
+                    channel.emit('message', new ProgressInfoPayload(`WARNING: Found files in the directory '${dir}' without OpenVPN config:
                         ${notFoundList}
-                        </font></strong>`));
+                        `));
                 }
                 else {
-                    channel.addMessage(new ProgressInfoPayload(`Ok.\n\n`));
+                    channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
                 }
 
                 resolve(notFoundList);
             } catch (error) {
-                channel.addMessage(new ProgressErrorPayload(`ERROR: ${error}\n`));
+                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
                 reject(error);
             }
         });

@@ -26,19 +26,15 @@ import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
-import { RepositoryService } from "../../src/database/repository.service";
-import { DeepPartial } from "typeorm";
-import { testSuite } from "../mocha/global-setup";
+import { DeepPartial, getRepository } from "typeorm";
+import { testSuite, TestSuite} from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
 import { Channel } from "../../src/sockets/channels/channel";
 import { WebSocketService } from "../../src/sockets/web-socket.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
-    const _app = testSuite.app;
-    const repository: RepositoryService = await _app.getService<RepositoryService>(RepositoryService.name);
-    
-    const result: User = repository.for(User).create({
+    const result: User = getRepository(User).create({
         username: user.username ? user.username : StringHelper.randomize(10),
         email: StringHelper.randomize(10) + '@fwcloud.test',
         password: StringHelper.randomize(10),
@@ -48,7 +44,7 @@ export async function createUser(user: DeepPartial<User>): Promise<User> {
         confirmation_token: StringHelper.randomize(10)
     });
 
-    return await repository.for(User).save(result);
+    return await getRepository(User).save(result);
 }
 
 export function generateSession(user: User): string {
@@ -83,22 +79,20 @@ export async function sleep(ms: number): Promise<void> {
     return;
 }
 
-export function waitChannelIsClosed(channel_id: string): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-        const webSocketService: WebSocketService = await testSuite.app.getService<WebSocketService>(WebSocketService.name);
-        const channel: Channel = webSocketService.getChannel(channel_id);
-
-        if (!channel) {
+/**
+ * Run a FwCloud CLI Command and reload the application after call it. Notice CLI commands closes application
+ * 
+ * @param testSuite 
+ * @param fn 
+ */
+export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Promise<void>) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const _f = await fn();
+            await testSuite.runApplication();
             return resolve();
+        } catch(e) {
+            return reject(e);
         }
-
-        const eventEmitter: EventEmitter = new EventEmitter;
-
-        channel.on('closed', () => {
-            return resolve();
-        });
-        
-        channel.setListener(eventEmitter);
-        channel.emitMessages();
     });
-}
+};

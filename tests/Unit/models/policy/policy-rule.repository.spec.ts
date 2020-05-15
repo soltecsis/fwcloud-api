@@ -34,7 +34,7 @@ let repositoryService: RepositoryService;
 
 describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         policyRuleRepository = repositoryService.for(PolicyRule);

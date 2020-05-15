@@ -32,6 +32,7 @@ import { CronService } from "./cron/cron.service";
 import * as fse from "fs-extra";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { Progress } from "../fonaments/http/progress/progress";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 const logger = require('log4js').getLogger("app");
 
@@ -129,20 +130,20 @@ export class BackupService extends Service {
     /**
      * Creates a new backup
      */
-    public create(comment?: string): Progress<Backup> {
+    public create(comment?: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<Backup> {
         const backup: Backup = new Backup();
         backup.setComment(comment ? comment : null);
         
-        return backup.progressCreate(this._config.data_dir);
+        return backup.create(this._config.data_dir, eventEmitter);
     }
 
     /**
      * 
      * @param backup Restores an existing backup
      */
-    public restore(backup: Backup): Progress<Backup> {
+    public restore(backup: Backup): Promise<Backup> {
         if (backup.exists()) {
-            return backup.progressRestore();
+            return backup.restore();
         }
 
         throw new BackupNotFoundException(backup.path);
@@ -157,8 +158,7 @@ export class BackupService extends Service {
      */
     public async applyRetentionPolicy(): Promise<Array<Backup>> {
         let deletedBackups: Array<Backup> = [];
-        const backups: Array<Backup> = await this.getAll();
-
+        
         if (this.shouldApplyRetentionPolicyByBackupCount()) {
             deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByBackupCount());
         }

@@ -2,7 +2,6 @@ import { Service } from "../fonaments/services/service";
 import { Channel } from "./channels/channel";
 import io from 'socket.io';
 import { ChannelConnectResponse, ChannelConnectErrorResponse, ChannelConnectRequest } from "./messages/channel-connect";
-import { SocketMessage } from "./messages/socket-message";
 
 export type Payload = object;
 
@@ -17,52 +16,38 @@ export class WebSocketService extends Service {
         return this;
     }
 
-    public async close(): Promise<void> {
-        for(let i = 0; i < this._channels.length; i++) {
-            this._channels[i].close();
-        }
-    }
-
     get channels(): Array<Channel> {
         return this._channels;
     }
 
-    public createChannel(): Channel {
-        const channel: Channel = new Channel();
-        this._channels.push(channel);
-
-        channel.on('closed', () => {
-            const index: number = this._channels.indexOf(channel);
-
-            if (index >= 0) {
-                this._channels.splice(index, 1);
-            }
-        });
-
-        return channel;
+    public hasSocket(socketId: string): boolean {
+        return this.getSocket(socketId) !== null;
     }
 
-    public getChannel(channel_id: string): Channel {
-        const channels = this._channels.filter((channel) => {
-            return channel.id === channel_id;
-        });
+    public getSocket(socketId: string): io.Socket {
+        if (this._socketIO.sockets.connected[socketId]) {
+            return this._socketIO.sockets.connected[socketId];
+        }
 
-        return channels.length > 0 ? channels[0] : null;
+        return null;
     }
 
     public setSocketIO(socketIO: io.Server) {
         this._socketIO = socketIO;
 
-        this._socketIO.on('channel:connect', (socket: io.Socket, message: ChannelConnectRequest) => {
-            const channel: Channel = this.getChannel(message.id);
+        this._socketIO.on('connection', socket => {
+            socket.request.session.socketId = socket.id;
+            socket.request.session.save();
 
-            try {
-                channel.setListener(socket);
-                socket.emit('channel:connect', new ChannelConnectResponse(channel));
-                channel.emitMessages();
-            } catch (error) {
-                socket.emit('channel:connect', new ChannelConnectErrorResponse(message.id));
+            if (this._app.config.get('env') === 'dev') {
+                console.log('user connected', socket.id);
             }
+            
+            socket.on('disconnect', () => {
+                if (this._app.config.get('env') === 'dev') {
+                    console.log('user disconnected', socket.id);
+                }
+            });
         });
     }
 }

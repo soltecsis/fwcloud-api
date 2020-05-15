@@ -27,7 +27,7 @@ const fwcError = require('../../utils/error_table');
 
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    const item = req.url.split('/');
+    const item = req.path.split('/');
     if (item[2]==='openvpn' || item[2]==='pki')
     try {
       return resolve (await require(`./${item[1]}/${item[2]}`).validate(req));

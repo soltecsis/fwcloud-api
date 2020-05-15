@@ -23,8 +23,9 @@
 import { MigrationCreateCommand } from "../../../../src/cli/commands/migration-create.command"
 import * as path from 'path';
 import * as fs from 'fs';
-import { expect, describeName } from "../../../mocha/global-setup";
+import { expect, describeName, testSuite } from "../../../mocha/global-setup";
 import { FSHelper } from "../../../../src/utils/fs-helper";
+import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationCreateCommand tests'), () => {
     const version: string = 'x.y.z';
@@ -43,7 +44,8 @@ describe(describeName('MigrationCreateCommand tests'), () => {
     });
     
     it('should create a migration file in the version migration directory', async() => {
-        const command = await new MigrationCreateCommand().handler({
+        await runCLICommandIsolated(testSuite, async () => {
+            return new MigrationCreateCommand().handler({
             $0: "migration:create",
             d: migrationDirectory,
             dir: migrationDirectory,
@@ -52,7 +54,7 @@ describe(describeName('MigrationCreateCommand tests'), () => {
             t: version,
             tag: version,
             _: []
-        });
+        })});
 
         const files = fs.readdirSync(path.join(process.cwd(), migrationDirectory, version));
 

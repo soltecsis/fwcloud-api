@@ -1184,8 +1184,9 @@ export class Tree extends Model {
     public static getNodeInfo(dbCon, fwcloud, node_type, id_obj) {
         return new Promise((resolve, reject) => {
             let sql = `SELECT * FROM ${tableName}
-			WHERE fwcloud=${fwcloud} AND node_type=${dbCon.escape(node_type)}
-			AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`;
+                WHERE fwcloud${(!fwcloud ? " IS NULL" : ("=" + fwcloud))} 
+                AND node_type=${dbCon.escape(node_type)}
+                AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`;
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);

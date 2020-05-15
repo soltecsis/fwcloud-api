@@ -30,6 +30,7 @@ import * as fs from "fs";
 import { Snapshot } from "../../../../src/snapshots/snapshot";
 import { SnapshotService } from "../../../../src/snapshots/snapshot.service";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
+import StringHelper from "../../../../src/utils/string.helper";
 
 describe(describeName('Importer tests'), () => {
     let repositoryService: RepositoryService;
@@ -43,12 +44,11 @@ describe(describeName('Importer tests'), () => {
     describe('import()', () => {
         it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
             const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
-                name: 'test'
+                name: StringHelper.randomize(10)
             }));
 
             const ca: Ca = await repositoryService.for(Ca).save(repositoryService.for(Ca).create({
-                name: 'test',
-                cn: 'test',
+                cn: StringHelper.randomize(10),
                 days: 1,
                 fwCloudId: fwCloud.id
             }));
@@ -58,21 +58,21 @@ describe(describeName('Importer tests'), () => {
 
             let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
-            snapshot = await snapshot.restore();
+            await snapshot.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: 'test'});
-            const newCA: Ca = await repositoryService.for(Ca).findOne({name: 'test', cn: 'test'});
+            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
+            const newCA: Ca = await repositoryService.for(Ca).findOne({cn: ca.cn});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()))).to.be.true;
         });
 
         it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
             const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
-                name: 'test'
+                name: StringHelper.randomize(10)
             }));
 
             const firewall: Firewall = await repositoryService.for(Firewall).save(repositoryService.for(Firewall).create({
-                name: 'test',
+                name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }));
 
@@ -81,10 +81,10 @@ describe(describeName('Importer tests'), () => {
 
             let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
-            snapshot = await snapshot.restore();
+            await snapshot.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: 'test'});
-            const newFirewall: Firewall = await repositoryService.for(Firewall).findOne({name: 'test'});
+            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
+            const newFirewall: Firewall = await repositoryService.for(Firewall).findOne({name: firewall.name});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()))).to.be.true;
         });
