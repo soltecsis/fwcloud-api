@@ -384,7 +384,15 @@ const config = convict({
       default: './DATA/snapshots',
       env: 'SNAPSHOT_DATA_DIR'
     },
-  }    
+  },
+  log: {
+    directory: {
+      doc: 'Directory where the logs are stored',
+      format: String,
+      default: './logs',
+      env: 'LOGS_DIRECTORY'
+    }
+  }
 });
 
 

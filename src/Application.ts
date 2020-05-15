@@ -59,9 +59,10 @@ import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { LogServiceProider } from './logs/log.provider';
+import { LogService } from './logs/log.service';
 
 export class Application extends AbstractApplication {
-    private _logger: Logger;
+    private _logger: LogService;
 
     public static async run(): Promise<Application> {
         try {
@@ -87,9 +88,7 @@ export class Application extends AbstractApplication {
     }
 
     public async close(): Promise<void> {
-        //log4js.shutdown(async () => {
         await super.close();
-        //});
     }
 
     protected providers(): Array<typeof ServiceProvider> {
@@ -132,16 +131,8 @@ export class Application extends AbstractApplication {
         ]
     }
 
-    private async registerLogger(): Promise<Logger> {
-        await log4js_extend(log4js, {
-            path: this._path,
-            format: "[@file:@line]"
-        });
-
-        this._express.use(log4js.connectLogger(log4js.getLogger("http"), { level: 'auto' }));
-        log4js.configure('./config/log4js_configuration.json');
-
-        return log4js.getLogger('app');
+    private async registerLogger(): Promise<LogService> {
+        return await this.getService<LogService>(LogService.name);
     }
 
     protected async registerRoutes() {

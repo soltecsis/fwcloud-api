@@ -1,9 +1,11 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import { LogService } from "../../../src/logs/log.service";
-import { AbstractApplication } from "../../../src/fonaments/abstract-application";
+import { FSHelper } from "../../../src/utils/fs-helper";
+import * as winston from "winston";
+import { Application } from "../../../src/Application";
 
 describe.only(describeName('LogService Unit Tests'), () => {
-    let app: AbstractApplication;
+    let app: Application;
     let service: LogService;
 
     beforeEach(async() => {
@@ -13,5 +15,41 @@ describe.only(describeName('LogService Unit Tests'), () => {
 
     it('should be provided as a service', async () => {
         expect(await app.getService<LogService>(LogService.name)).to.be.instanceOf(LogService);
+    });
+
+    it('should logger be accessible as application attribute', () => {
+        expect(app.logger).to.be.instanceOf(LogService);
+    });
+
+    describe('build()', () => {
+        it('should create the logs directory', async () => {
+            FSHelper.rmDirectorySync(app.config.get('log').directory);
+
+            await LogService.make(app);
+
+            expect(FSHelper.directoryExistsSync(app.config.get('log').directory)).to.be.true;
+        });
+
+        it('should instance the logger', async () => {
+            const _service: LogService = await LogService.make(app);
+
+            expect(_service.logger).not.to.be.undefined;
+        });
+    });
+
+    describe('enableTransport()', () => {
+        it('should enable the transport', () => {
+            service.enableGeneralTransport('file');
+
+            expect(service.logger.transports).to.have.length(1);
+            expect(service.logger.transports[0]).to.be.instanceOf(winston.transports.File);
+        });
+
+        it('should disable the transport', () => {
+            service.enableGeneralTransport('file');
+            service.disableGeneralTransport('file');
+
+            expect(service.logger.transports).to.have.length(0);
+        });
     });
 });
