@@ -29,7 +29,6 @@ import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
-import { Progress } from "./progress/progress";
 
 interface ResponseBody {
     status: number,
@@ -59,8 +58,7 @@ export class ResponseBuilder {
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
-    protected _progress: Progress<any>;
-
+    
     protected _fileAttached: FileAttached;
     
     private constructor() {
@@ -69,14 +67,6 @@ export class ResponseBuilder {
 
     public static buildResponse(): ResponseBuilder {
         return new ResponseBuilder();
-    }
-
-    public getProgress(): Progress<any> {
-        return this._progress;
-    }
-
-    public hasProgress(): boolean {
-        return this._progress !== null && this._progress !== undefined;
     }
 
     public status(status: number): ResponseBuilder {
@@ -125,13 +115,6 @@ export class ResponseBuilder {
         return this;
     }
 
-    public progress(progress: Progress<any>): ResponseBuilder {
-        this._progress = progress;
-        this.body(progress.response);
-
-        return this;
-    }
-
     public send(response: Response): ResponseBuilder {
         this._response = response;
 
@@ -161,15 +144,7 @@ export class ResponseBuilder {
             response: HttpCodeResponse.get(this._status),
         }
 
-        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
-    }
-
-    protected attachEvent(): { channel_id: string } {
-        if (this._progress) {
-            return { channel_id: this._progress.channel.id }
-        }
-
-        return null;
+        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload);
     }
 
     public toJSON(): ResponseBody {

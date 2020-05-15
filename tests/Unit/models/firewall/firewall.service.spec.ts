@@ -41,81 +41,49 @@ describe(describeName('Firewall Service Unit Tests'), () => {
         it('should throw an exception if the firewall does not belong to a fwcloud', async () => {
             const _f: Firewall = await firewallRepository.save(firewallRepository.create({ name: StringHelper.randomize(10) }));
 
-            function t() {
-                service.compile(_f);
-            }
-
-            expect(t).to.throw(Error);
+            await expect(service.compile(_f)).to.be.rejectedWith(Error);
         });
 
-        it('should create the firewall policy directory', (done) => {
-            service.compile(firewall).on('end', async (message: object) => {
-                try {
-                    const directoryExists: boolean = FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString()));
-                    expect(directoryExists).to.be.true;
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
+        it('should create the firewall policy directory', async () => {
+            await service.compile(firewall)
+            
+            const directoryExists: boolean = FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString()));
+            expect(directoryExists).to.be.true;
         });
 
-        it('should remove the policy directory if it already exists', (done) => {
+        it('should remove the policy directory if it already exists', async () => {
             const testFilePath: string = path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString(), 'test');
             FSHelper.mkdirSync(path.dirname(testFilePath));
             fs.writeFileSync(testFilePath, "");
 
-            service.compile(firewall).on('end', async (message: object) => {
-                try {
-                    expect(FSHelper.fileExistsSync(testFilePath)).to.be.false;
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
+            await service.compile(firewall)
+            expect(FSHelper.fileExistsSync(testFilePath)).to.be.false;
         });
 
-        it('should create script file', (done) => {
+        it('should create script file', async () => {
             const scriptPath: string = path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString(), app.config.get('policy').script_name);
 
-            service.compile(firewall).on('end', async (message: object) => {
-                try {
-                    expect(FSHelper.fileExistsSync(scriptPath)).to.be.true;
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
+            await service.compile(firewall)
+            expect(FSHelper.fileExistsSync(scriptPath)).to.be.true;
         });
 
-        it('should append headers into the script file', (done) => {
+        it('should append headers into the script file', async () => {
             const scriptPath: string = path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString(), app.config.get('policy').script_name);
 
-            service.compile(firewall).on('end', async (message: object) => {
-                try {
-                    const scriptData: string = fs.readFileSync(scriptPath).toString();
-                    const headers: string = fs.readFileSync(app.config.get('policy').header_file).toString();
-                    expect(scriptData).contain(headers);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
+            await service.compile(firewall)
+            
+            const scriptData: string = fs.readFileSync(scriptPath).toString();
+            const headers: string = fs.readFileSync(app.config.get('policy').header_file).toString();
+            expect(scriptData).contain(headers);
         });
 
-        it('should append footer into the script file', (done) => {
+        it('should append footer into the script file', async () => {
             const scriptPath: string = path.join(app.config.get('policy').data_dir, firewall.fwCloudId.toString(), firewall.id.toString(), app.config.get('policy').script_name);
 
-            service.compile(firewall).on('end', async (message: object) => {
-                try {
-                    const scriptData: string = fs.readFileSync(scriptPath).toString();
-                    const footers: string = fs.readFileSync(app.config.get('policy').footer_file).toString();
-                    expect(scriptData).contain(footers);
-                    done();
-                } catch (e) {
-                    done(e);
-                }
-            });
+            await service.compile(firewall)
+            const scriptData: string = fs.readFileSync(scriptPath).toString();
+            const footers: string = fs.readFileSync(app.config.get('policy').footer_file).toString();
+            expect(scriptData).contain(footers);
         });
     });
 
@@ -133,42 +101,33 @@ describe(describeName('Firewall Service Unit Tests'), () => {
             sshUploadFileStub.restore();
         });
 
-        it('should merge custom ssh config', (done) => {
+        it('should merge custom ssh config', async () => {
             firewall.install_pass = 'test';
             firewall.install_port = 9999;
             firewall.install_user = 'user';
 
-            const p1: Promise<IPObj> = getRepository(IPObj).save(getRepository(IPObj).create({
+            const ipObj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0
             }));
 
-            p1.then(async (ipObj: IPObj) => {
-                firewall.install_ipobj = ipObj.id;
+            firewall.install_ipobj = ipObj.id;
 
-                await firewallRepository.save(firewall);
-                const spy = sinon.spy(Installer.prototype, 'install');
+            firewallRepository.save(firewall);
+            const spy = sinon.spy(Installer.prototype, 'install');
 
-                const progressPromise: Promise<Progress<any>> = service.install(firewall, {
-                    username: 'user_2',
-                    password: 'test_2'
-                });
-
-                progressPromise.then((progress) => {
-                    progress.on('end', () => {
-                        try {
-                            expect(spy.calledWith({
-                                host: '0.0.0.0',
-                                port: 9999,
-                                username: 'user_2',
-                                password: 'test_2'
-                            })).to.be.true;
-                            done();
-                        } catch (e) { done(e); }
-                    });
-                });
+            await service.install(firewall, {
+                username: 'user_2',
+                password: 'test_2'
             });
+
+            expect(spy.calledWith({
+                host: '0.0.0.0',
+                port: 9999,
+                username: 'user_2',
+                password: 'test_2'
+            })).to.be.true;
         });
     });
 });

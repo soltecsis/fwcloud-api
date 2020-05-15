@@ -30,7 +30,7 @@ const fwcError = require('../../../utils/error_table');
 
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    const item = req.url.split('/');
+    const item = req.path.split('/');
     if (item[3]==='prefix') {
 			try {
 				return resolve (await require(`./${item[2]}/${item[3]}`).validate(req));
@@ -144,7 +144,7 @@ schema.validate = req => {
 			comment: sharedSch.comment
 		});
 
-		if (req.method==="POST" && req.url==='/vpn/openvpn') {
+		if (req.method==="POST" && req.path==='/vpn/openvpn') {
 			schema = schema.append({
 				openvpn: sharedSch.id.optional(), // Necessary when creating a new OpenVPN client configuration.
 				firewall: sharedSch.id,
@@ -156,7 +156,7 @@ schema.validate = req => {
 				node_id: sharedSch.id
 			});
 		} else if (req.method==="PUT") {
-			if (req.url==='/vpn/openvpn') {
+			if (req.path==='/vpn/openvpn') {
 				schema = schema.append({
 					openvpn: sharedSch.id,
 					install_dir: sharedSch.linux_path.optional(),
@@ -165,8 +165,8 @@ schema.validate = req => {
 					comment: sharedSch.comment
 				});
 			}
-			else if (req.url==='/vpn/openvpn/install' || req.url==='/vpn/openvpn/uninstall'
-					|| req.url==='/vpn/openvpn/ccdsync' || req.url==='/vpn/openvpn/status/get') {
+			else if (req.path==='/vpn/openvpn/install' || req.path==='/vpn/openvpn/uninstall'
+					|| req.path==='/vpn/openvpn/ccdsync' || req.path==='/vpn/openvpn/status/get') {
 				schema = schema.append({
 					firewall: sharedSch.id,
 					openvpn: sharedSch.id,
@@ -175,10 +175,10 @@ schema.validate = req => {
 					socketid: sharedSch.socketio_id.optional()
 				});
 			}
-			else if (req.url==='/vpn/openvpn/get' || req.url==='/vpn/openvpn/del' 
-					|| req.url==='/vpn/openvpn/ip/get' || req.url==='/vpn/openvpn/ipobj/get'
-					|| req.url==='/vpn/openvpn/restricted' || req.url==='/vpn/openvpn/file/get'
-					|| req.url==='/vpn/openvpn/info/get' || req.url==='/vpn/openvpn/where') {
+			else if (req.path==='/vpn/openvpn/get' || req.path==='/vpn/openvpn/del' 
+					|| req.path==='/vpn/openvpn/ip/get' || req.path==='/vpn/openvpn/ipobj/get'
+					|| req.path==='/vpn/openvpn/restricted' || req.path==='/vpn/openvpn/file/get'
+					|| req.path==='/vpn/openvpn/info/get' || req.path==='/vpn/openvpn/where') {
 				schema = schema.append({ openvpn: sharedSch.id });
 			}
 		} else return reject(fwcError.BAD_API_CALL);

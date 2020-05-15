@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { generateSession, attachSession, createUser, waitChannelIsClosed } from "../../utils/utils";
+import { generateSession, attachSession, createUser } from "../../utils/utils";
 import '../../mocha/global-setup';
 import { expect, describeName } from "../../mocha/global-setup";
 import request = require("supertest");
@@ -156,8 +156,7 @@ describe(describeName('Backup E2E tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
                     .then(async response => {
-                        expect(response.body.data.comment).to.be.deep.equal('test comment')
-                        await waitChannelIsClosed(response.body.channel_id);
+                        expect(response.body.data.comment).to.be.deep.equal('test comment');
                     })
 
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);

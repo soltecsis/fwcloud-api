@@ -42,6 +42,7 @@ import { ExporterResult } from "../fwcloud-exporter/database-exporter/exporter-r
 import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database-importer";
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -141,68 +142,30 @@ export class Snapshot implements Responsable {
      * @param name
      * @param comment 
      */
-    public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Snapshot> {
+    public static async create(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null, eventEmitter = new EventEmitter()): Promise<Snapshot> {
         const snapshot: Snapshot = new Snapshot;
-        const progress: Progress<Snapshot> = await snapshot.save(snapshot_directory, fwCloud, name, comment);
+        await snapshot.save(snapshot_directory, fwCloud, name, comment, eventEmitter);
 
-        return new Promise<Snapshot>((resolve, reject) => {
-            progress.on('end', async (_) => {
-                resolve(await Snapshot.load(progress.response.path));
-            });
-        });
-    }
-
-    /**
-     * Create a backup using progress
-     * 
-     * @param snapshot_directory Path without the fwcloud.id directory
-     * @param fwCloud 
-     * @param name 
-     * @param comment 
-     */
-    public static async progressCreate(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
-        const snapshot: Snapshot = new Snapshot;
-        return await snapshot.save(snapshot_directory, fwCloud, name, comment);
-    }
-
-    /**
-     * Restore using promises
-     */
-    public async restore(): Promise<Snapshot> {
-        const progress: Progress<Snapshot> = this.progressRestore();
-
-        return new Promise<Snapshot>((resolve, reject) => {
-            progress.on('end', (_) => {
-                return resolve(progress.response);
-            });
-
-            progress.on('error', (e) => {
-                return reject(e);
-            })
-        });
+        return Snapshot.load(snapshot.path);
     }
 
     /**
      * Restore using progress
      */
-    public progressRestore(): Progress<Snapshot> {
-        const progress: Progress<Snapshot> = new Progress<Snapshot>(this);
+    public async restore(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
+        const progress: Progress = new Progress(eventEmitter);
 
         if (!this._compatible) {
             throw new SnapshotNotCompatibleException(this);
         }
 
-        progress.procedure('Restoring snapshot', (task: Task) => {
+        await progress.procedure('Restoring snapshot', (task: Task) => {
             task.addTask(async () => {
-                return new Promise<void>(async (resolve, reject) => {
-                    const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
-                    backupService.create('Before snapshot (' + this.id + ') creation (beta)').on('end', () => {
-                        return resolve();
-                    });
-                }); 
+                const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
+                return backupService.create('Before snapshot (' + this.id + ') creation (beta)'); 
             }, 'Backup created (only on beta)')
-            task.addTask(() => { 
-                return this.restoreDatabaseData(); 
+            task.addTask(async () => { 
+                this._restoredFwCloud = await this.restoreDatabaseData();
             }, 'FwCloud restored from snapshot');
             task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
             task.parallel((task: Task) => {
@@ -211,13 +174,9 @@ export class Snapshot implements Responsable {
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-        }, 'FwCloud snapshot restored', () => {
-            return {
-                id: this._restoredFwCloud.id
-            };
-        });
+        }, 'FwCloud snapshot restored');
 
-        return progress;
+        return this._restoredFwCloud;
     }
 
     /**
@@ -294,8 +253,8 @@ export class Snapshot implements Responsable {
      * @param name 
      * @param comment 
      */
-    protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null): Promise<Progress<Snapshot>> {
-        const progress = new Progress<Snapshot>(this);
+    protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null, eventEmitter: EventEmitter = new EventEmitter()): Promise<Snapshot> {
+        const progress = new Progress(eventEmitter);
 
         this._fwCloud = fwCloud;
         this._date = moment();
@@ -316,14 +275,14 @@ export class Snapshot implements Responsable {
 
 
 
-        progress.procedure('Creating snapshot', (task: Task) => {
+        await progress.procedure('Creating snapshot', (task: Task) => {
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.copyFwCloudDataDirectories(); }, 'FwCloud data directories exported');
                 task.addTask(() => { return this.saveDataFile(); }, 'FwCloud database exported');
             });
         }, 'Snapshot created');
 
-        return progress;
+        return this;
     }
 
     /**
@@ -338,7 +297,7 @@ export class Snapshot implements Responsable {
     /**
      * Restore all snapshot data into the database
      */
-    protected async restoreDatabaseData(): Promise<void> {
+    protected async restoreDatabaseData(): Promise<FwCloud> {
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         const importer: DatabaseImporter = new DatabaseImporter();
         
@@ -351,7 +310,7 @@ export class Snapshot implements Responsable {
         oldFwCloud.users = [];
         await repositoryService.for(FwCloud).save(oldFwCloud);
 
-        this._restoredFwCloud = fwCloud;
+        return fwCloud;
     }
 
     /**

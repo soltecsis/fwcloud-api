@@ -27,6 +27,8 @@ import * as fs from "fs";
 import moment from "moment";
 import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 import ObjectHelpers from "../utils/object-helpers";
+import { FSHelper } from "../utils/fs-helper";
+import * as semver from "semver";
 
 export interface DatabaseConfig {
     host: string,
@@ -164,6 +166,20 @@ export class DatabaseService extends Service {
         }
 
         return;
+    }
+
+    public async getSchemaVersion(): Promise<string> {
+        let version: string = '0.0.0';
+
+        const directories: Array<string> = await FSHelper.directories(this._config.migration_directory);
+        for(let i = 0; i < directories.length; i++) {
+            const directoryName: string = path.basename(directories[i]);
+            if(semver.valid(directoryName) && semver.gte(directoryName, version)) {
+                version = directoryName;
+            }
+        }
+
+        return version;
     }
 
     protected getDefaultConnectionConfiguration(): ConnectionOptions {

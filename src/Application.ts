@@ -63,9 +63,9 @@ import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.
 export class Application extends AbstractApplication {
     private _logger: Logger;
 
-    public static async run(): Promise<Application> {
+    public static async run(path?: string): Promise<Application> {
         try {
-            const app: Application = new Application();
+            const app: Application = new Application(path);
             await app.bootstrap();
             return app;
         } catch (e) {

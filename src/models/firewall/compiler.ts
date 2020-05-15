@@ -6,7 +6,7 @@ import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { Connection } from "typeorm";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import db from "../../database/database-manager";
+import { ProgressInfoPayload } from "../../sockets/messages/socket-message";
 
 export class Compiler {
     protected _firewall: Firewall;
@@ -19,6 +19,7 @@ export class Compiler {
         return new Promise<void>(async (resolve, reject) => {
             const outputPath: string = this._firewall.getPolicyFilePath();
             var stream = fs.createWriteStream(outputPath);
+            const connection: Connection = (await app().getService<DatabaseService>(DatabaseService.name)).connection;
             
             stream.on('open', async () => {
                 /* Generate the policy script. */
@@ -31,15 +32,15 @@ export class Compiler {
                 
                 if (data.options & 0x0001) {
                     // Statefull firewall
-                    eventEmitter.emit('info', "<strong>--- STATEFUL FIREWALL ---</strong>\n\n");
+                    eventEmitter.emit('message', new ProgressInfoPayload("--- STATEFUL FIREWALL ---\n\n"));
                 } else {
-                    eventEmitter.emit('info', "<strong>--- STATELESS FIREWALL ---</strong>\n\n");
+                    eventEmitter.emit('message', new ProgressInfoPayload("--- STATELESS FIREWALL ---\n\n"));
                 }
 
                 // Generate default rules for mangle table
-                if (await PolicyRule.firewallWithMarkRules(db.getQuery() ,this._firewall.id)) {
-                    eventEmitter.emit('info', "<strong>MANGLE TABLE:</strong>\n");
-                    eventEmitter.emit('info', "Automatic rules.\n\n");
+                if (await PolicyRule.firewallWithMarkRules(connection ,this._firewall.id)) {
+                    eventEmitter.emit('message', new ProgressInfoPayload("MANGLE TABLE:\n"));
+                    eventEmitter.emit('message', new ProgressInfoPayload("Automatic rules.\n\n"));
                     stream.write("\n\necho\n");
                     stream.write("echo \"****************\"\n");
                     stream.write("echo \"* MANGLE TABLE *\"\n");
@@ -58,38 +59,38 @@ export class Compiler {
                 stream.write("echo \"***********************\"\n");
                 stream.write("echo \"* FILTER TABLE (IPv4) *\"\n");
                 stream.write("echo \"***********************\"\n");
-                eventEmitter.emit('info', "<strong>FILTER TABLE (IPv4):</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("FILTER TABLE (IPv4):\n"));
                 stream.write("\n\necho \"INPUT CHAIN\"\n");
                 stream.write("echo \"-----------\"\n");
-                eventEmitter.emit('info', "<strong>INPUT CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("INPUT CHAIN:\n"));
                 let cs = await PolicyScript.dump(this._firewall, 1, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"OUTPUT CHAIN\"\n");
                 stream.write("echo \"------------\"\n");
-                eventEmitter.emit('info', "<strong>OUTPUT CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("OUTPUT CHAIN:\n"));
                 cs = await PolicyScript.dump(this._firewall, 2, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"FORWARD CHAIN\"\n");
                 stream.write("echo \"-------------\"\n");
-                eventEmitter.emit('info', "<strong>FORWARD CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("FORWARD CHAIN:\n"));
                 cs = await PolicyScript.dump(this._firewall, 3, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"********************\"\n");
                 stream.write("echo \"* NAT TABLE (IPv4) *\"\n");
                 stream.write("echo \"********************\"\n");
-                eventEmitter.emit('info', "<strong>NAT TABLE (IPv4):</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("NAT TABLE (IPv4):\n"));
                 stream.write("\n\necho \"SNAT\"\n");
                 stream.write("echo \"----\"\n");
-                eventEmitter.emit('info', "<strong>SNAT:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("SNAT:\n"));
                 cs = await PolicyScript.dump(this._firewall, 4, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"DNAT\"\n");
                 stream.write("echo \"----\"\n");
-                eventEmitter.emit('info', "<strong>DNAT:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("DNAT:\n"));
                 cs = await PolicyScript.dump(this._firewall, 5, eventEmitter);
 
                 stream.write(cs+"\n\n");
@@ -100,39 +101,39 @@ export class Compiler {
                 stream.write("echo \"***********************\"\n");
                 stream.write("echo \"* FILTER TABLE (IPv6) *\"\n");
                 stream.write("echo \"***********************\"\n");
-                eventEmitter.emit('info', "\n\n");
-                eventEmitter.emit('info', "<strong>FILTER TABLE (IPv6):</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("\n\n"));
+                eventEmitter.emit('message', new ProgressInfoPayload("FILTER TABLE (IPv6):\n"));
                 stream.write("\n\necho \"INPUT CHAIN\"\n");
                 stream.write("echo \"-----------\"\n");
-                eventEmitter.emit('info', "<strong>INPUT CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("INPUT CHAIN:\n"));
                 cs = await PolicyScript.dump(this._firewall, 61, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"OUTPUT CHAIN\"\n");
                 stream.write("echo \"------------\"\n");
-                eventEmitter.emit('info', "<strong>OUTPUT CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("OUTPUT CHAIN:\n"));
                 cs = await PolicyScript.dump(this._firewall, 62, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"FORWARD CHAIN\"\n");
                 stream.write("echo \"-------------\"\n");
-                eventEmitter.emit('info', "<strong>FORWARD CHAIN:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("FORWARD CHAIN:\n"));
                 cs = await PolicyScript.dump(this._firewall, 63, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"********************\"\n");
                 stream.write("echo \"* NAT TABLE (IPv6) *\"\n");
                 stream.write("echo \"********************\"\n");
-                eventEmitter.emit('info', "<strong>NAT TABLE (IPv6):</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("NAT TABLE (IPv6):\n"));
                 stream.write("\n\necho \"SNAT\"\n");
                 stream.write("echo \"----\"\n");
-                eventEmitter.emit('info', "<strong>SNAT:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("SNAT:\n"));
                 cs = await PolicyScript.dump(this._firewall, 64, eventEmitter);
 
                 stream.write(cs + "\n\necho\n");
                 stream.write("echo \"DNAT\"\n");
                 stream.write("echo \"----\"\n");
-                eventEmitter.emit('info', "<strong>DNAT:</strong>\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("DNAT:\n"));
                 cs = await PolicyScript.dump(this._firewall, 65, eventEmitter);
 
                 stream.write(cs+"\n}\n\n");

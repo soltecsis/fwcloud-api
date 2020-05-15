@@ -35,6 +35,8 @@ import { Version } from "../version/version";
 import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { FSHelper } from "../utils/fs-helper";
+import { DatabaseService } from "../database/database.service";
+import { WebSocketService } from "../sockets/web-socket.service";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -51,8 +53,6 @@ export function app<T extends AbstractApplication>(): T {
 
 
 export abstract class AbstractApplication {
-  static VERSION_FILENAME = 'version.json';
-
   protected _express: express.Application;
   protected _socketio: any;
   protected _config: any;
@@ -96,11 +96,14 @@ export abstract class AbstractApplication {
     return this._services.get(name);
   }
 
-  public setSocketIO(socketIO: io.Server): io.Server {
+  public async setSocketIO(socketIO: io.Server): Promise<io.Server> {
     this._socketio = socketIO;
 
     const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
     sessionMiddleware.register(this);
+
+    const wsService: WebSocketService = await this.getService<WebSocketService>(WebSocketService.name);
+    wsService.setSocketIO(this._socketio);
 
     return this._socketio;
   }
@@ -132,7 +135,8 @@ export abstract class AbstractApplication {
 
   protected async loadVersion(): Promise<Version> {
     const version: Version = new Version();
-    await version.loadVersionFile(path.join(this.path, AbstractApplication.VERSION_FILENAME));
+    version.tag = JSON.parse(fs.readFileSync(path.join(this._path, 'package.json')).toString()).version;
+    version.schema = await (await this.getService<DatabaseService>(DatabaseService.name)).getSchemaVersion();
 
     return version;
   }

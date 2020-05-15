@@ -28,6 +28,7 @@ import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { Progress } from "../fonaments/http/progress/progress";
 import { FSHelper } from "../utils/fs-helper";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export type SnapshotConfig = {
     data_dir: string
@@ -92,16 +93,16 @@ export class SnapshotService extends Service {
         return snapshot;
     }
 
-    public async store(name: string, comment: string, fwcloud: FwCloud): Promise<Progress<Snapshot>> {
-        return await Snapshot.progressCreate(this.config.data_dir, fwcloud, name, comment)
+    public async store(name: string, comment: string, fwcloud: FwCloud, eventEmitter: EventEmitter = new EventEmitter()): Promise<Snapshot> {
+        return Snapshot.create(this.config.data_dir, fwcloud, name, comment, eventEmitter)
     }
 
     public async update(snapshot: Snapshot, newData: {name: string, comment: string}): Promise<Snapshot> {
         return await snapshot.update(newData);
     }
 
-    public restore(snapshot: Snapshot): Progress<Snapshot> {
-        return snapshot.progressRestore();
+    public restore(snapshot: Snapshot, eventEmitter: EventEmitter = new EventEmitter): Promise<FwCloud> {
+        return snapshot.restore(eventEmitter);
     }
 
     public async destroy(snapshot: Snapshot): Promise<Snapshot> {

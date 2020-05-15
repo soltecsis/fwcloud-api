@@ -26,14 +26,12 @@ import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository } from "typeorm";
+import { Repository, getRepository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
-import { Progress } from "../../../src/fonaments/http/progress/progress";
-import { EndProgressPayload } from "../../../src/fonaments/http/progress/messages/progress-messages";
 import StringHelper from "../../../src/utils/string.helper";
 
 let app: Application;
@@ -191,6 +189,14 @@ describe(describeName('Snapshot Unit Tests'), () => {
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
 
+        it('should return the restored fwcloud', async() => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            const restoredFwCloud: FwCloud = await snapshot.restore();
+
+            expect(restoredFwCloud.name).to.be.deep.equal(fwCloud.name);
+        });
+
         it('should remove the old fwcloud and all its dependencies', async () => {
             const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
@@ -298,20 +304,6 @@ describe(describeName('Snapshot Unit Tests'), () => {
             const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
-        });
-    });
-
-    describe('progressRestore()', () => {
-        it('should send the new fwcloud id in the end message', (done) => {
-            Snapshot.create(service.config.data_dir, fwCloud, 'test').then((snapshot: Snapshot) => {
-                const progress: Progress<Snapshot> = snapshot.progressRestore();
-
-                progress.on('end', (payload: EndProgressPayload) => {
-                    expect(payload.data).to.haveOwnProperty('id');
-                    expect(payload.data.id).to.be.deep.eq(snapshot.fwCloud.id + 1);
-                    done();
-                });
-            });
         });
     });
 });

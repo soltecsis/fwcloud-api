@@ -63,8 +63,7 @@ import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
-import { app } from '../../../fonaments/abstract-application';
-import { WebSocketService } from '../../../sockets/web-socket.service';
+import { Channel } from '../../../sockets/channels/channel';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -284,7 +283,7 @@ router.put('/where', async (req, res) => {
  */
 router.put('/install', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
@@ -294,12 +293,12 @@ router.put('/install', async(req, res) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await OpenVPN.installCfg(req,cfgDump.ccd,openvpn_opt.arg,crt.cn,1,true);
+			await OpenVPN.installCfg(req,cfgDump.ccd, openvpn_opt.arg, crt.cn, 1, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await OpenVPN.installCfg(req,cfgDump.cfg,req.openvpn.install_dir,req.openvpn.install_name,2,true);
+			await OpenVPN.installCfg(req, cfgDump.cfg, req.openvpn.install_dir, req.openvpn.install_name, 2, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -308,8 +307,7 @@ router.put('/install', async(req, res) => {
 		// Update the install date.
 		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
-		channel.close(30000);
-		res.status(204).send({'channel_id': channel.id}).end();
+		res.status(200).send({'channel_id': channel.id});
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -319,7 +317,7 @@ router.put('/install', async(req, res) => {
  */
 router.put('/uninstall', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
 		if (crt.type === 1) { // Client certificate
@@ -338,8 +336,7 @@ router.put('/uninstall', async(req, res) => {
 		// Update the status flag for the OpenVPN configuration.
 		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
-		channel.close(30000);
-		res.status(204).send({'channel_id': channel.id}).end();
+		res.status(200).send({'channel_id': channel.id}).end();
 	} catch(error) { res.status(400).json(error) }
 });
 
@@ -350,7 +347,7 @@ router.put('/uninstall', async(req, res) => {
  */
 router.put('/ccdsync', async(req, res) => {
 	try {
-		const channel = (await app().getService(WebSocketService.name)).createChannel();
+		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
@@ -366,7 +363,7 @@ router.put('/ccdsync', async(req, res) => {
 
 		for (let client of clients) {
 			let cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
-			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1,false);
+			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1, channel);
 
 			// Update the status flag for the OpenVPN configuration.
 			await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
@@ -376,8 +373,7 @@ router.put('/ccdsync', async(req, res) => {
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
 		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
 
-		channel.close(30000);
-		res.status(204).send({
+		res.status(200).send({
 			'channel_id': channel.id
 		}).end();
 	} catch(error) { res.status(400).json(error) }
