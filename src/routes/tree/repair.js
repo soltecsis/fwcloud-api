@@ -28,7 +28,7 @@ import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
-import { ProgressErrorPayload, ProgressInfoPayload } from '../../sockets/messages/socket-message';
+import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { Channel } from '../../sockets/channels/channel';
 const fwcError = require('../../utils/error_table');
 
@@ -41,35 +41,35 @@ router.put('/', async (req, res) =>{
     if (req.body.type==='FDF') {
       channel.emit('message', new ProgressInfoPayload(`REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
     } else if (req.body.type==='FDO') {
-      channel.emit('message', new ProgressInfoPayload(`REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
+      channel.emit('message', new ProgressNoticePayload(`REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
     } else if (req.body.type==='FDS') {
-      channel.emit('message', new ProgressInfoPayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
+      channel.emit('message', new ProgressNoticePayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
     } else {
       throw fwcError.BAD_TREE_NODE_TYPE;
     }
 
     await Repair.initData(req);
 
-    channel.emit('message', new ProgressInfoPayload(`REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
+    channel.emit('message', new ProgressNoticePayload(`REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
     
     const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
     // Verify that all tree not root nodes are part of a tree.
-    channel.emit('message', new ProgressInfoPayload(`Checking tree struture.\n`));
+    channel.emit('message', new ProgressNoticePayload(`Checking tree struture.\n`));
     await Repair.checkNotRootNodes(rootNodes, channel);
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF' && req.body.type==='FDF') { 
         // Firewalls and clusters tree.
-        channel.emit('message', new ProgressInfoPayload(`Checking folders.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking folders.\n`));
         
         await Repair.checkFirewallsFoldersContent(rootNode, channel);
-        channel.emit('message', new ProgressInfoPayload(`Checking firewalls and clusters tree.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking firewalls and clusters tree.\n`));
         
         await Repair.checkFirewallsInTree(rootNode, channel);
         await Repair.checkClustersInTree(rootNode, channel);
         
-        channel.emit('message', new ProgressInfoPayload(`Applying OpenVPN server prefixes.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Applying OpenVPN server prefixes.\n`));
         
         const openvpn_srv_list = await OpenVPN.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
@@ -81,56 +81,56 @@ router.put('/', async (req, res) =>{
       else if (rootNode.node_type==='FDO' && req.body.type==='FDO') { 
         // Objects tree.
         
-        channel.emit('message', new ProgressInfoPayload(`Checking objects tree.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking objects tree.\n`));
         
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
         const ids = await Tree.createObjectsTree(req.dbCon,req.body.fwcloud);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking addresses objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking addresses objects.\n`));
         await Repair.checkNonStdIPObj(ids.Addresses,'OIA',5);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking address ranges objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking address ranges objects.\n`));
         await Repair.checkNonStdIPObj(ids.AddressesRanges,'OIR',6);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking network objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking network objects.\n`));
         await Repair.checkNonStdIPObj(ids.Networks,'OIN',7);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking DNS objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking DNS objects.\n`));
         await Repair.checkNonStdIPObj(ids.DNS,'ONS',9);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking host objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking host objects.\n`));
         rootNode.id = ids.OBJECTS;
         await Repair.checkHostObjects(rootNode);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking mark objects.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking mark objects.\n`));
         await Repair.checkNonStdIPObj(ids.Marks,'MRK',30);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking objects groups.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking objects groups.\n`));
         await Repair.checkNonStdIPObjGroup(ids.Groups,'OIG',20);
         break;
       }
       else if (rootNode.node_type==='FDS' && req.body.type==='FDS') { 
         // Services tree.
-        channel.emit('message', new ProgressInfoPayload(`Checking services tree.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking services tree.\n`));
         
         // Remove the full tree an create it again from scratch.
         await Tree.deleteFwc_TreeFullNode({id: rootNode.id, fwcloud: req.body.fwcloud});
         const ids = await Tree.createServicesTree(req.dbCon,req.body.fwcloud);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking IP services.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking IP services.\n`));
         await Repair.checkNonStdIPObj(ids.IP,'SOI',1);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking ICMP services.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking ICMP services.\n`));
         await Repair.checkNonStdIPObj(ids.ICMP,'SOM',3);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking TCP services.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking TCP services.\n`));
         await Repair.checkNonStdIPObj(ids.TCP,'SOT',2);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking UDP services.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking UDP services.\n`));
         await Repair.checkNonStdIPObj(ids.UDP,'SOU',4);
 
-        channel.emit('message', new ProgressInfoPayload(`Checking services groups.\n`));
+        channel.emit('message', new ProgressNoticePayload(`Checking services groups.\n`));
         
         await Repair.checkNonStdIPObjGroup(ids.Groups,'SOG',21);
         break;
