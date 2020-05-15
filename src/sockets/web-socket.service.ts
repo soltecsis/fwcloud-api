@@ -20,6 +20,10 @@ export class WebSocketService extends Service {
         return this._channels;
     }
 
+    public hasSocket(socketId: string): boolean {
+        return this.getSocket(socketId) !== null;
+    }
+
     public getSocket(socketId: string): io.Socket {
         if (this._socketIO.sockets.connected[socketId]) {
             return this._socketIO.sockets.connected[socketId];
@@ -32,7 +36,7 @@ export class WebSocketService extends Service {
         this._socketIO = socketIO;
 
         this._socketIO.on('connection', socket => {
-            socket.request.session.socket_id = socket.id;
+            socket.request.session.socketId = socket.id;
             socket.request.session.save();
 
             if (this._app.config.get('env') === 'dev') {

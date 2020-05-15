@@ -44,12 +44,12 @@ export class InputValidation extends Middleware {
         const item1_new_route_system = ['backups', 'version', 'fwclouds'];
 
         // Verify that item1 is in the valid list.
-        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1.replace(/\?(\w|\=)+/, ''))) {
+        if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
             res.status(404).json(fwcError.BAD_API_CALL);
             return;
         }
 
-        if (item1_new_route_system.includes(item1.replace(/\?(\w|\=)+/, ''))) {
+        if (item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
             return next();
         }
 

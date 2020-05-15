@@ -152,12 +152,12 @@ export class PolicyPosition extends Model {
                 
                     //SELECT IPOBJ UNDER HOST/INTERFACE
                     `UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall, 
-                    rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
+                    rule, OIF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
                     FROM policy_r__ipobj P
                     inner join ipobj O on O.id=P.ipobj
                     inner join interface__ipobj II on II.ipobj=O.id
                     inner join interface I on I.id=II.interface
-                    inner join ipobj OF on OF.interface=I.id
+                    inner join ipobj OIF on OIF.interface=I.id
                     WHERE rule=${position.rule} AND position=${position.id} AND O.type=8 ` +
                     
                     //SELECT IPOBJ UNDER GROUP (NOT HOSTS)
@@ -170,13 +170,13 @@ export class PolicyPosition extends Model {
                     
                     //SELECT IPOBJ UNDER HOST IN GROUP 
                     `UNION SELECT ${position.fwcloud} as fwcloud, ${position.firewall} as firewall,
-                    rule, OF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
+                    rule, OIF.id as ipobj, P.ipobj_g, P.interface as interface, position, position_order, "O" as type
                     FROM policy_r__ipobj P
                     inner join ipobj__ipobjg G on G.ipobj_g=P.ipobj_g
                     inner join ipobj O on O.id=G.ipobj
                     inner join interface__ipobj II on II.ipobj=O.id
                     inner join interface I on I.id=II.interface
-                    inner join ipobj OF on OF.interface=I.id
+                    inner join ipobj OIF on OIF.interface=I.id
                     WHERE rule=${position.rule} AND position=${position.id} AND O.type=8 ` +
                     
                     //SELECT INTERFACES in  POSITION I

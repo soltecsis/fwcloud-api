@@ -26,7 +26,7 @@ describe(describeName('Channel Unit Tests'), () => {
         });
 
         it('should emit an event', (done) => {
-            listener.on('message', (message: SocketMessage) => {
+            listener.on(channel.id, (message: SocketMessage) => {
                 expect(message.payload).to.be.deep.eq({});
                 done();
             });

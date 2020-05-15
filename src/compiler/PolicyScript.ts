@@ -117,7 +117,7 @@ export class PolicyScript {
                     try {
                         // The rule compilation order is important, then we must wait until we have the promise fulfilled.
                         // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        ps += await RuleCompiler.get(firewall.fwCloudId, firewall, type, data[i].id);
+                        ps += await RuleCompiler.get(firewall.fwCloudId, firewall.id, type, data[i].id);
                     } catch (error) { return reject(error) }
                 }
 

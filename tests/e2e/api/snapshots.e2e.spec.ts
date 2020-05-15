@@ -32,13 +32,11 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
 import * as path from "path";
-import Sinon = require("sinon");
+import Sinon from "sinon";
 import sinon from "sinon";
 import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
-import { DatabaseService } from "../../../src/database/database.service";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
-import { number } from "joi";
 
 let app: Application;
 let loggedUser: User;

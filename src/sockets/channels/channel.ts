@@ -12,7 +12,7 @@ export class Channel extends EventEmitter {
 
     constructor(id: string, listener: EventEmitter) {
         super();
-        this._id = uuid.v1();
+        this._id = id;
         this._listener = listener;
     }
 
@@ -22,7 +22,8 @@ export class Channel extends EventEmitter {
 
     public message(payload: object): boolean {
         const message = new SocketMessage(payload, this._id);
-        return this._listener.emit('message', message);
+        console.log(message);
+        return this._listener.emit(this._id, message);
     }
 
     public emit(event: string | symbol, ...args: any[]): boolean {
@@ -36,8 +37,11 @@ export class Channel extends EventEmitter {
     public static async fromRequest(request: Request): Promise<Channel> {
         if (request.session.socketId && request.inputs.has('UUID')) {
             const websocketService: WebSocketService = await app().getService<WebSocketService>(WebSocketService.name);
-        
-            const listener: io.Socket = websocketService.getSocket(request.session.socketId);
+            let listener: EventEmitter = new EventEmitter();
+            
+            if(websocketService.hasSocket(request.session.socketId)) {
+                listener = websocketService.getSocket(request.session.socketId);
+            }
             const id: string = request.inputs.get('UUID', uuid.v1());
 
             return new Channel(id, listener)

@@ -50,7 +50,7 @@ export class Authorization extends Middleware {
                 throw fwcError.SESSION_EXPIRED;
             }
 
-            if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
+            if (!req.session.customer_id || !req.session.user_id || !req.session.username || !req.session.pgp) {
                 req.session.destroy(err => { });
                 throw fwcError.SESSION_BAD;
             }

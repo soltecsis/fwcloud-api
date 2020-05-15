@@ -92,23 +92,23 @@ export class Repair extends Model {
                 let ca_found = 0;
                 for (let node of nodes) {
                     if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         firewalls_found = 1;
                     }
                     else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         objects_found = 1;
                     }
                     else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         services_found = 1;
                     }
                     else if (node.name === 'CA' && node.node_type === 'FCA') {
-                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${JSON.stringify(node)} \n`));
+                        channel.emit('message', new ProgressInfoPayload(`Root node found: ${node.id} \n`));
                         ca_found = 1;
                     }
                     else {
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">Deleting invalid root node: ${JSON.stringify(node)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`Deleting invalid root node: ${node.id}\n`));
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                     }
 
@@ -124,7 +124,7 @@ export class Repair extends Model {
 
                 // The properties id_obj and obj_type must be null. If not we can repair it.
                 if (update_obj_to_null) {
-                    channel.emit('message', new ProgressInfoPayload(`<font color="red">Repairing root nodes (setting id_obj and obj_type to null).</font>\n`));
+                    channel.emit('message', new ProgressInfoPayload(`Repairing root nodes (setting id_obj and obj_type to null).\n`));
                     sql = 'update ' + tableName + ' set id_obj=NULL,obj_type=NULL' +
                         ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent is null';
                     dbCon.query(sql, (error, result) => {
@@ -171,11 +171,11 @@ export class Repair extends Model {
                             if (id_ancestor === -1 || id_ancestor === node.id || (++deep) > 100) {
                                 
                                 if (id_ancestor === -1) {
-                                    channel.emit('message', new ProgressInfoPayload(`<font color="red">Ancestor not found, deleting node: ${JSON.stringify(node)}</font>\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Ancestor not found, deleting node: ${node.id}\n`));
                                 } else if (id_ancestor === node.id) {
-                                    channel.emit('message', new ProgressInfoPayload(`<font color="red">Deleting node in a loop: ${JSON.stringify(node)}</font>\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Deleting node in a loop: ${node.id}\n`));
                                 } else if (deep > 100) {
-                                    channel.emit('message', new ProgressInfoPayload(`<font color="red">Deleting a too much deep node: ${JSON.stringify(node)}</font>\n`));
+                                    channel.emit('message', new ProgressInfoPayload(`Deleting a too much deep node: ${node.id}\n`));
                                 }
 
                                 await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
@@ -192,7 +192,7 @@ export class Repair extends Model {
                             }
                         }
                         if (!root_node_found) {
-                            channel.emit('message', new ProgressInfoPayload(`<font color="red">Root node for this node is not correct. Deleting node: ${JSON.stringify(node)}</font>\n'`));
+                            channel.emit('message', new ProgressInfoPayload(`Root node for this node is not correct. Deleting node: ${node.id}\n'`));
                             await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                             continue;
                         }
@@ -218,14 +218,14 @@ export class Repair extends Model {
 
                     if (nodes.length === 0) {
                         // No node found for this firewall.
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">No node found for firewall: ${JSON.stringify(firewall)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`No node found for firewall: ${JSON.stringify(firewall)}\n`));
                     } else {
                         if (nodes.length === 1) { // The common case, firewall referenced by only one node three.
                             if (nodes[0].parent_node_type === 'FDF' || nodes[0].parent_node_type === 'FD') {
                                 nodeId = nodes[0].id_parent;
                             }
                         } else if (nodes.length !== 1) {
-                            channel.emit('message', new ProgressInfoPayload(`<font color="red">Found several nodes for firewall: ${JSON.stringify(firewall)}</font>\n`));
+                            channel.emit('message', new ProgressInfoPayload(`Found several nodes for firewall: ${JSON.stringify(firewall)}\n`));
                         }
                         // Remove nodes for this firewall.
                         for (let node of nodes) {
@@ -234,7 +234,7 @@ export class Repair extends Model {
                     }
 
                     // Regenerate the tree.
-                    channel.emit('message', new ProgressInfoPayload(`Regenerating tree for firewall: ${JSON.stringify(firewall)} \n`));
+                    channel.emit('message', new ProgressInfoPayload(`Regenerating tree for firewall: ${firewall.id} \n`));
                     await Tree.insertFwc_Tree_New_firewall(fwcloud, nodeId, firewall.id);
                 } catch (err) { reject(err) }
                 resolve();
@@ -275,7 +275,7 @@ export class Repair extends Model {
 
                     if (nodes.length === 0) {
                         // No node found for this cluster.
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">No node found for cluster: ${JSON.stringify(cluster)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`No node found for cluster: ${JSON.stringify(cluster)}\n`));
                     } else {
                         if (nodes.length === 1) { 
                             // The common case, cluster referenced by only one node three.
@@ -283,7 +283,7 @@ export class Repair extends Model {
                                 nodeId = nodes[0].id_parent;
                             }
                         } else if (nodes.length !== 1) {
-                            channel.emit('message', new ProgressInfoPayload(`<font color="red">Found several nodes for cluster: ${JSON.stringify(cluster)}</font>\n`));
+                            channel.emit('message', new ProgressInfoPayload(`Found several nodes for cluster: ${JSON.stringify(cluster)}\n`));
                         }
 
                         // Remove nodes for this cluster.
@@ -292,7 +292,7 @@ export class Repair extends Model {
                         }
                     }
                     // Regenerate the tree.
-                    channel.emit('message', new ProgressInfoPayload(`Regenerating tree for cluster: ${JSON.stringify(cluster)} \n`));
+                    channel.emit('message', new ProgressInfoPayload(`Regenerating tree for cluster: ${cluster.id} \n`));
                     await Tree.insertFwc_Tree_New_cluster(fwcloud, nodeId, cluster.id);
                 } catch (err) { reject(err) }
                 resolve();
@@ -327,7 +327,7 @@ export class Repair extends Model {
                 let sql = '';
                 if (node.node_type === 'FW') {
                     if (node.obj_type !== 0) { // Verify that object type is correct.
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">Deleting node with bad obj_type: ${JSON.stringify(node)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`Deleting node with bad obj_type: ${JSON.stringify(node)}\n`));
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         return resolve(false);
                     }
@@ -335,7 +335,7 @@ export class Repair extends Model {
                 }
                 else if (node.node_type === 'CL') {
                     if (node.obj_type !== 100) { // Verify that object type is correct.
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">Deleting node with bad obj_type: ${JSON.stringify(node)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`Deleting node with bad obj_type: ${JSON.stringify(node)}\n`));
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         return resolve(false);
                     }
@@ -348,7 +348,7 @@ export class Repair extends Model {
                     if (error) return reject(error);
 
                     if (rows.length !== 1) {
-                        channel.emit('message', new ProgressInfoPayload(`<font color="red">Referenced object not found. Deleting node: ${JSON.stringify(node)}</font>\n`));
+                        channel.emit('message', new ProgressInfoPayload(`Referenced object not found. Deleting node: ${JSON.stringify(node)}\n`));
                         await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         resolve(false);
                     } else resolve(true);
@@ -369,7 +369,7 @@ export class Repair extends Model {
                     for (let node of nodes) {
                         // Into a folder we can have only more folders, firewalls or clusters.
                         if (node.node_type !== 'FD' && node.node_type !== 'FW' && node.node_type !== 'CL') {
-                            channel.emit('message', new ProgressInfoPayload(`<font color="red">This node type can not be into a folder. Deleting it: ${JSON.stringify(node)}</font>\n`));
+                            channel.emit('message', new ProgressInfoPayload(`This node type can not be into a folder. Deleting it: ${JSON.stringify(node)}\n`));
                             await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: fwcloud });
                         }
 
