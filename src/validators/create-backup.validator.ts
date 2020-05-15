@@ -29,7 +29,7 @@ export class CreateBackupValidator extends RequestValidation {
         return Joi.object({
             name: Joi.string().optional().max(64),
             comment: Joi.string().optional().max(255),
-            UUID: Joi.string().optional().max(255)
+            channel_id: Joi.string().optional().max(255)
         });
     }
 }
