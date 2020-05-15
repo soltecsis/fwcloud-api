@@ -58,6 +58,7 @@ import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
+import { LogServiceProider } from './logs/log.provider';
 
 export class Application extends AbstractApplication {
     private _logger: Logger;
@@ -93,6 +94,7 @@ export class Application extends AbstractApplication {
 
     protected providers(): Array<typeof ServiceProvider> {
         return [
+            LogServiceProider,
             DatabaseServiceProvider,
             RepositoryServiceProvider,
             RouterServiceProvider,
