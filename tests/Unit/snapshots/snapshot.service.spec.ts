@@ -35,7 +35,7 @@ let fwCloud2: FwCloud;
 
 describe(describeName('SnapshotService Unit Tests'), () => {
 
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
 
         service = await app.getService<SnapshotService>(SnapshotService.name);

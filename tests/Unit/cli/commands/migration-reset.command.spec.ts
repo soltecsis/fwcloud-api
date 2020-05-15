@@ -25,32 +25,38 @@ import { MigrationResetCommand } from "../../../../src/cli/commands/migration-re
 import { Application } from "../../../../src/Application";
 import { expect, testSuite, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
+import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationResetCommand tests'), () => {
     let app: Application;
-    let queryRunner: QueryRunner
-
-    beforeEach(async () => {
+    
+    before(async () => {
         app = testSuite.app;
-        const connection: Connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;
-        queryRunner = connection.createQueryRunner();
+    });
+
+    after(async() => {
+        await testSuite.resetDatabaseData();
     });
 
     it('should reset the database', async() => {
+        let connection: Connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;
+        let queryRunner: QueryRunner = connection.createQueryRunner();
+
         expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
         expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
 
-        const command = await new MigrationResetCommand().handler({
+        await runCLICommandIsolated(testSuite, async () => {
+            return new MigrationResetCommand().handler({
             $0: "migration:run",
             _: []
-        });
+        })});
 
-        if(!queryRunner.connection.isConnected) {
-            await queryRunner.connection.connect();
-            queryRunner = queryRunner.connection.createQueryRunner();
-        }
+        connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;
+        queryRunner = connection.createQueryRunner();
         
         expect(await queryRunner.getTable('ca')).to.be.undefined;
         expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
+
+        await queryRunner.release();
     });
 });

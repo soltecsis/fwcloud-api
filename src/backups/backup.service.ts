@@ -158,8 +158,7 @@ export class BackupService extends Service {
      */
     public async applyRetentionPolicy(): Promise<Array<Backup>> {
         let deletedBackups: Array<Backup> = [];
-        const backups: Array<Backup> = await this.getAll();
-
+        
         if (this.shouldApplyRetentionPolicyByBackupCount()) {
             deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByBackupCount());
         }

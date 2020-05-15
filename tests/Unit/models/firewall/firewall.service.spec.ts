@@ -90,6 +90,7 @@ describe(describeName('Firewall Service Unit Tests'), () => {
     describe('install()', () => {
         let sshRunCommandStub: sinon.SinonStub;
         let sshUploadFileStub: sinon.SinonStub;
+        
         before(async() => {
            sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
            sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');

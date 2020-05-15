@@ -32,6 +32,7 @@ import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
+import StringHelper from "../../../src/utils/string.helper";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -40,14 +41,16 @@ let service: SnapshotService;
 let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot Unit Tests'), () => {
-    beforeEach(async () => {
+    before(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
         repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
         fwcloudRepository = repositoryService.for(FwCloud);
+    });
 
+    beforeEach(async () => {
         fwCloud = fwcloudRepository.create({
-            name: 'testCloud'
+            name: StringHelper.randomize(10)
         });
 
         fwCloud = await fwcloudRepository.save(fwCloud);
