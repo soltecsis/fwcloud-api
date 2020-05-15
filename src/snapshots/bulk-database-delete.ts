@@ -25,7 +25,7 @@ import { app } from "../fonaments/abstract-application";
 import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult, Repository, EntityRepository } from "typeorm";
 import { RepositoryService } from "../database/repository.service";
 import Model from "../models/Model";
-import { ExporterResultData } from "../fwcloud-exporter/exporter/exporter-result";
+import { ExporterResultData } from "../fwcloud-exporter/database-exporter/exporter-result";
 
 export class BulkDatabaseDelete {
     protected _data: ExporterResultData;

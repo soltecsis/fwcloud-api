@@ -21,7 +21,7 @@
 */
 
 import { IdManager } from "./id-manager";
-import { ExporterResult } from "../../../exporter/exporter-result";
+import { ExporterResult } from "../../../database-exporter/exporter-result";
 
 export type IdMap = {old: any, new: any}
 export type EntityMap = {[propertyName: string]: Array<IdMap>};

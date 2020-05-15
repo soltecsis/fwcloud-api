@@ -21,11 +21,11 @@
 */
 
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { IdManager } from "../../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
+import { IdManager } from "../../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { RepositoryService } from "../../../../src/database/repository.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { QueryRunner } from "typeorm";
+import { QueryRunner, getRepository } from "typeorm";
 
 let databaseService: DatabaseService;
 let repositoryService: RepositoryService;
@@ -45,6 +45,8 @@ describe(describeName('IdManager Unit tests'), () => {
     
     describe('make()', () => {
         it('should set the next id = 1 if the table is empty', async () => {
+            await getRepository(FwCloud).remove(await getRepository(FwCloud).find());
+            
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
             expect(idManger["_ids"]).to.be.deep.equal({

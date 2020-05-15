@@ -21,10 +21,10 @@
 */
 
 import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/import-mapping";
-import { IdManager } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
+import { ImportMapping } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/import-mapping";
+import { IdManager } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../src/database/database.service";
-import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
+import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
 import { Repository, QueryRunner, SelectQueryBuilder } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { RepositoryService } from "../../../src/database/repository.service";

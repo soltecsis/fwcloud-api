@@ -34,7 +34,7 @@ import * as fs from "fs";
 import * as path from "path";
 import Sinon from "sinon";
 import sinon from "sinon";
-import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
+import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 

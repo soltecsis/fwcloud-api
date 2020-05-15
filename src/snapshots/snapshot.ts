@@ -30,7 +30,7 @@ import * as fs from "fs";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
-import { Exporter } from "../fwcloud-exporter/exporter/exporter";
+import { DatabaseExporter } from "../fwcloud-exporter/database-exporter/database-exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseDelete } from "./bulk-database-delete";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
@@ -38,8 +38,8 @@ import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import * as semver from "semver";
-import { ExporterResult } from "../fwcloud-exporter/exporter/exporter-result";
-import { Importer } from "../fwcloud-exporter/importer/importer";
+import { ExporterResult } from "../fwcloud-exporter/database-exporter/exporter-result";
+import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database-importer";
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
@@ -299,7 +299,7 @@ export class Snapshot implements Responsable {
      */
     protected async restoreDatabaseData(): Promise<FwCloud> {
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
-        const importer: Importer = new Importer();
+        const importer: DatabaseImporter = new DatabaseImporter();
         
         const fwCloud: FwCloud = await importer.import(this.path);
 
@@ -317,7 +317,7 @@ export class Snapshot implements Responsable {
      * Get all fwcloud data related from the database
      */
     protected async exportFwCloudDatabaseData(): Promise<ExporterResult> {
-        return (await new Exporter().export(this.fwCloud.id));   
+        return (await new DatabaseExporter().export(this.fwCloud.id));   
     }
 
     /**
