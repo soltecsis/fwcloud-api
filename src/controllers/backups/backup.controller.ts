@@ -27,6 +27,7 @@ import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
 import { Progress } from "../../fonaments/http/progress/progress";
+import { Channel } from "../../sockets/channels/channel";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -65,12 +66,11 @@ export class BackupController extends Controller {
      */
     public async store(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
-        const progress: Progress<Backup> = this._backupService.create(request.inputs.get('comment'))
-            .on('end', async (payload) => {
-                await this._backupService.applyRetentionPolicy();
-            });
+        const channel: Channel = await Channel.fromRequest(request);
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
+        const backup: Backup = await this._backupService.create(request.inputs.get('comment'), channel);
+
+        return ResponseBuilder.buildResponse().status(201).body(backup);
     }
 
     /**
@@ -81,16 +81,13 @@ export class BackupController extends Controller {
      */
     public async restore(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
-        const backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
+        let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         this._app.config.set('maintenance_mode', true);
 
-        const progress = this._backupService.restore(backup)
-            .on('end', async (payload) => {
-                this._app.config.set('maintenance_mode', false);
-            });
+        backup = await this._backupService.restore(backup);
 
-        return ResponseBuilder.buildResponse().status(201).progress(progress, request.session.socket_id);
+        return ResponseBuilder.buildResponse().status(201).body(backup);
     }
 
     /**

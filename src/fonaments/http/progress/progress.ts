@@ -21,76 +21,115 @@
 */
 
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressState } from "./progress-state";
 import { SequencedTask } from "./sequenced-task";
-import { GroupDescription } from "./task";
+import { GroupDescription, Task } from "./task";
+import { Channel } from "../../../sockets/channels/channel";
+import { StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload, StartProgressPayload, EndProgressPayload } from "./messages/progress-messages";
+import * as uuid from "uuid";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
-export type progressEventName = 'start' | 'step' | 'event' | 'end';
+export type taskEventName = 'start' | 'end' | 'info' | 'error';
 
-export class Progress<T> {
-    protected _response: T;
-    protected _externalEvents: EventEmitter;
-    protected _internalEvents: EventEmitter;
+export type progressEventName = 'start' | 'end';
 
-    protected _state: ProgressState;
+export interface ExternalEventEmitter extends EventEmitter {
+    emit(event: 'message', ...args: any[]): boolean;
+}
+
+export interface TasksEventEmitter extends EventEmitter {
+    emit(event: taskEventName, ...args: any[]): boolean;
+    on(event: taskEventName, listener: (...args: any[]) => void): this;
+}
+
+export interface ProgressEventEmitter extends EventEmitter {
+    emit(event: progressEventName, ...args: any[]): boolean;
+    on(event: progressEventName, listener: (...args: any[]) => void): this;
+}
+
+export class Progress {
+    protected _id: string;
+    protected _externalEmitter: ExternalEventEmitter;
+    protected _taskEvents: TasksEventEmitter;
+    protected _progressEvents: ProgressEventEmitter;
 
     protected _failed: boolean;
 
-    constructor(response: T) {
-        this._response = response;
-        this._externalEvents = new EventEmitter();
-        this._internalEvents = new EventEmitter();
+    protected _startTask: Task;
+    
+    protected _channel: Channel;
+
+    protected _startMessage: string;
+    protected _endMessage: string;
+    protected _dataCallback: () => any;
+
+    constructor(eventEmitter: EventEmitter) {
+        this._id = uuid.v1();
+        this._externalEmitter = eventEmitter;
+        this._taskEvents = new EventEmitter();
+        this._progressEvents = new EventEmitter();
         this._failed = false;
     }
 
-    get response(): T {
-        return this._response;
+    get id(): string {
+        return this._id;
+    }
+    
+    get startMessage(): string {
+        return this._startMessage;
     }
 
-    set response(response: T) {
-        this._response = response;
+    get endMessage(): string {
+        return this._endMessage;
     }
 
-    public async procedure(startText: string, procedure: GroupDescription, finishedText: string = null): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const task = new SequencedTask(this._internalEvents, procedure, finishedText);
-            this._state = new ProgressState(task.getSteps() + 1, 0, 102, startText);
-            
-            this._internalEvents.on('step', (message: string) => {
-                this.emitExternalEvent('message', this._state.updateState(message, 102, true));
-            });
+    public procedure(startMessage: string, procedure: GroupDescription, endMessage: string): Promise<void> {
+        this._startMessage = startMessage;
+        this._endMessage = endMessage;
+        
+        this._startTask = new SequencedTask(this._taskEvents, procedure);
+        return this.run();
+    }
 
-            this._internalEvents.on('event', (message: string) => {
-                this.emitExternalEvent('message', this._state.updateState(message, 102, false));
-            });
-
-            this.emitExternalEvent('start', this._state);
+    public async run(): Promise<void> {
+        return new Promise<void>(async (resolve, reject) => {
             
-            task.run().then(() => {
-                const message = this._state.updateState(finishedText, 200, false);
-                this.emitExternalEvent('message', message);
-                this.emitExternalEvent('end', message);
+            this.bindEvents();
+            
+            this._progressEvents.emit('start')
+            this._startTask.run().then(() => {
+                this._progressEvents.emit('end')
                 return resolve();
             }).catch((e) => {
-                this.emitExternalEvent('message', this._state.updateState('Error', 500, false));
-                this.emitExternalEvent('error', e);
-                this._failed = true;
                 return reject(e);
             });
+        });        
+    }
+
+    protected bindEvents(): void {
+
+        this._progressEvents.on('start', () => {
+            const message: ProgressPayload = new StartProgressPayload(this);
+            this._externalEmitter.emit('message', message);
+        });
+
+        this._progressEvents.on('end', async () => {
+            this._externalEmitter.emit('message', new EndProgressPayload(this));
+        });
+        
+        this._taskEvents.on('start', (task: Task) => {
+            this._externalEmitter.emit('message', new StartTaskPayload(task));
+        });
+
+        this._taskEvents.on('info', (task: Task, info: string) => {
+            this._externalEmitter.emit('message', new InfoTaskPayload(task, info));
+        });
+
+        this._taskEvents.on('end', (task: Task) => {
+            this._externalEmitter.emit('message', new EndTaskPayload(task));
+        });
+
+        this._taskEvents.on('error', (task: Task, error: Error) => {
+            this._externalEmitter.emit('message', new ErrorTaskPayload(task, error));
         });
     }
-
-    protected emitExternalEvent(event: 'start' | 'message' | 'end' | 'error', data: object): boolean {
-        if (!this._failed) {
-            return this._externalEvents.emit(event, data);
-        }
-
-        return false;
-    }
-
-    public on(event: "message" | "end" | "error", listener: (...args: any[]) => void): this {
-        this._externalEvents.on(event, listener);
-        return this;
-    }
-
 }

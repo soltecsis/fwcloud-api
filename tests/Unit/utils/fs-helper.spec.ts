@@ -59,4 +59,28 @@ describe(describeName('FsHelper Unit Tests'), () => {
             ]);
         });
     });
+
+    describe('fileExistsSync()', () => {
+        it('should return true if the file exists', () => {
+            const filePath: string = path.join(playgroundPath, 'test', 'file.txt');
+            FSHelper.mkdirSync(path.dirname(filePath));
+            fs.writeFileSync(filePath, "");
+
+            expect(FSHelper.fileExistsSync(filePath)).to.be.true;
+        });
+
+        it('should return false if the file does not exist', () => {
+            const filePath: string = path.join(playgroundPath, 'test', 'file.txt');
+            FSHelper.mkdirSync(path.dirname(filePath));
+
+            expect(FSHelper.fileExistsSync(filePath)).to.be.false;
+        });
+
+        it('should return false if the file is a directory', () => {
+            const filePath: string = path.join(playgroundPath, 'test', 'file.txt');
+            FSHelper.mkdirSync(path.dirname(filePath));
+            
+            expect(FSHelper.fileExistsSync(path.dirname(filePath))).to.be.false;
+        });
+    })
 })

@@ -20,43 +20,46 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import * as uuid from "uuid";
+import { TasksEventEmitter } from "./progress";
+import { EventEmitter } from "events";
 
-export type TaskDescription = () => Promise<any>;
+export type TaskDescription = (eventEmitter: InternalTaskEventEmitter) => Promise<any>;
 export type GroupDescription = (task: Task) => void
+
+export interface InternalTaskEventEmitter extends EventEmitter {
+    emit(event: 'info', ...args: any[]): boolean;
+    on(event: 'info', listener: (...args: any[]) => void): this;
+}
 
 export interface ITask {
     run(): Promise<any>;
     addTask(task: TaskDescription, finishedText: string, stepable: boolean): void;
     parallel(fn: GroupDescription, finishedText: string): void;
     sequence(fn: GroupDescription, finishedText: string): void;
-    getSteps(): number;
 }
 export class Task implements ITask {
+    protected _id: string;
     protected _tasks: Array<Task>;
     protected _fn: TaskDescription;
-    readonly finishedText: string;
-    readonly stepable: boolean;
+    readonly description: string;
+    protected _eventEmitter: TasksEventEmitter;
 
-    protected _eventEmitter: EventEmitter;
+    protected _internalEmitter: InternalTaskEventEmitter;
 
-    constructor(eventEmitter: EventEmitter, fn: TaskDescription, finishedText: string = null, stepable: boolean = false) {
+    constructor(eventEmitter: TasksEventEmitter, fn: TaskDescription, description: string) {
+        this._id = uuid.v1();
         this._eventEmitter = eventEmitter;
-        this.finishedText = finishedText;
-        this.stepable = stepable;
+        this._internalEmitter = new EventEmitter();
+        this.description = description;
         this._fn = fn;
         this._tasks = [];
     }
 
-    public getSteps(): number {
-        let result: number = 0;
-        for(let i = 0; i < this._tasks.length; i++) {
-            result = result + this._tasks[i].getSteps();
-        }
-
-        return result + (this.stepable ? 1 : 0);
+    get id(): string {
+        return this._id;
     }
-    
+
     addTask(task: TaskDescription, finishedText: string = null, stepable: boolean = true): void {
         throw new Error("Method not implemented.");
     }
@@ -68,18 +71,32 @@ export class Task implements ITask {
     }
 
     public async run(): Promise<any> {
-        return this._fn()
+
+        this._internalEmitter.on('info', (message: string) => {
+            this.emitInfoTask(this, message);
+        });
+
+        this.emitStartedTask(this);
+        return this._fn(this._internalEmitter).then(() => {
+            this.emitFinishedTask(this);
+        }).catch(e => {
+            this.emitErrorTask(this, e);
+        });
+    }
+
+    protected emitInfoTask(task: Task, message: string): void {
+        this._eventEmitter.emit('info', task, message);
+    }
+
+    protected emitStartedTask(task: Task): void {
+        this._eventEmitter.emit('start', task);
     }
 
     protected emitFinishedTask(task: Task): void {
-        if (task.stepable) {
-            this._eventEmitter.emit('step', task.finishedText);
-            return;
-        }
+       this._eventEmitter.emit('end', task);
+    }
 
-        if (task.finishedText) {
-            this._eventEmitter.emit('event', task.finishedText);
-            return;
-        }
+    protected emitErrorTask(task: Task, error: Error): void {
+        this._eventEmitter.emit('error', task, error);
     }
 }

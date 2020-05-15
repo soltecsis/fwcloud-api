@@ -32,6 +32,8 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import * as fs from "fs";
 import * as path from "path";
+import StringHelper from "../../../src/utils/string.helper";
+import { number } from "joi";
 
 let app: Application;
 let loggedUser: User;
@@ -52,7 +54,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
         fwCloud = await repository.for(FwCloud).save(
             repository.for(FwCloud).create({
-                name: 'fwcloud_test'
+                name: StringHelper.randomize(10)
             })
         );
 
@@ -224,7 +226,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .expect(201)
                     .then(async (response) => {
                         expect(response.body.data).to.haveOwnProperty('id');
-
                         expect(response.body.data.comment).to.be.deep.eq('comment_test');
                         expect(response.body.data.name).to.be.deep.eq('name_test');
                     })
@@ -242,7 +243,6 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .expect(201)
                     .then(async (response) => {
                         expect(response.body.data).to.haveOwnProperty('id');
-
                         expect(response.body.data).not.to.be.null;
                     })
             });
@@ -341,8 +341,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(200)
-                    .then((response) => {
-                        expect(response.body.data.id).to.be.deep.equal(s1.id);
+                    .then(async (response) => {
+                        expect(response.body.data.id).to.be.an("number");
+                        expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
                     });
             });
 
@@ -351,8 +352,9 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(200)
-                    .then((response) => {
-                        expect(response.body.data.id).to.be.deep.equal(s1.id);
+                    .then(async (response) => {
+                        expect(response.body.data.id).to.be.an("number");
+                        expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
                     });
             });
 

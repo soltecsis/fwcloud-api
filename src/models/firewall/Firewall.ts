@@ -39,6 +39,8 @@ import { RoutingRule } from "../routing/routing-rule.model";
 import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
+import * as path from "path";
+
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
@@ -140,6 +142,14 @@ export class Firewall extends Model {
 	
 	public getTableName(): string {
 		return tableName;
+	}
+
+	public getPolicyFilePath(): string {
+		if (this.fwCloudId && this.id) {
+			return path.join(app().config.get('policy').data_dir, this.fwCloudId.toString(), this.id.toString(), app().config.get('policy').script_name);
+		}
+
+		return null;
 	}
 
 	public async resetCompilationStatus(): Promise<Firewall> {

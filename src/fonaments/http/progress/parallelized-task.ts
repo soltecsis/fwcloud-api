@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "events";
 import { Task, GroupDescription, TaskDescription } from "./task";
 import { SequencedTask } from "./sequenced-task";
+import { TasksEventEmitter } from "./progress";
 
 export class ParalellizedTask extends Task {
-    constructor(eventEmitter: EventEmitter, fn: GroupDescription, finishedText: string = null) {
-        super(eventEmitter, null, finishedText, false);
+    constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {
+        super(eventEmitter, null, null);
         fn(this);
     }
 
@@ -34,16 +34,16 @@ export class ParalellizedTask extends Task {
         return this._tasks;
     }
 
-    public addTask(task: TaskDescription, finishedText: string = null, stepable: boolean = true): void {
-        this._tasks.push(new Task(this._eventEmitter, task, finishedText, stepable));
+    public addTask(task: TaskDescription, description: string = null): void {
+        this._tasks.push(new Task(this._eventEmitter, task, description));
     }
 
-    public parallel(fn: GroupDescription, finishedText: string = null): void {
-        this._tasks.push(new ParalellizedTask(this._eventEmitter, fn, finishedText));
+    public parallel(fn: GroupDescription, description: string = null): void {
+        this._tasks.push(new ParalellizedTask(this._eventEmitter, fn));
     }
 
-    public sequence(fn: GroupDescription, finishedText: string = null): void {
-        this._tasks.push(new SequencedTask(this._eventEmitter, fn, finishedText));
+    public sequence(fn: GroupDescription, description: string = null): void {
+        this._tasks.push(new SequencedTask(this._eventEmitter, fn));
     }
 
     public run(): Promise<any> {
@@ -53,11 +53,6 @@ export class ParalellizedTask extends Task {
             for(let i = 0; i < this._tasks.length; i++) {
                 const promise: Promise<any> = this._tasks[i].run();
                 promises.push(promise);
-                promise.then(() => {
-                    this.emitFinishedTask(this._tasks[i]);
-                }).catch(e => {
-                    return reject(e);
-                });
             }
 
             Promise.all(promises).then(() => {

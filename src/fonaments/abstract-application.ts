@@ -35,6 +35,7 @@ import { Version } from "../version/version";
 import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { FSHelper } from "../utils/fs-helper";
+import { WebSocketService } from "../sockets/web-socket.service";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -96,11 +97,14 @@ export abstract class AbstractApplication {
     return this._services.get(name);
   }
 
-  public setSocketIO(socketIO: io.Server): io.Server {
+  public async setSocketIO(socketIO: io.Server): Promise<io.Server> {
     this._socketio = socketIO;
 
     const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
     sessionMiddleware.register(this);
+
+    const wsService: WebSocketService = await this.getService<WebSocketService>(WebSocketService.name);
+    wsService.setSocketIO(this._socketio);
 
     return this._socketio;
   }

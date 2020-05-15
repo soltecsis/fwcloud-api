@@ -32,6 +32,9 @@ import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
 import { RepositoryService } from "../../../src/database/repository.service";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
+import { Channel } from "../../../src/sockets/channels/channel";
+import { WebSocketService } from "../../../src/sockets/web-socket.service";
+import { WebSocketServiceProvider } from "../../../src/sockets/web-socket.provider";
 
 let app: Application;
 let backupService: BackupService;
@@ -156,12 +159,15 @@ describe(describeName('Backup E2E tests'), () => {
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
-                    .then(response => {
-                        expect(response.body.data.comment).to.be.deep.equal('test comment')
+                    .then(async response => {
+                        expect(response.body.data.comment).to.be.deep.equal('test comment');
                     })
 
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
             });
+        });
+
+        describe.skip('BackupController@restore', async() => {
         });
 
         describe('BackupController@destroy', async () => {

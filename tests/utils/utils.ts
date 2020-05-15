@@ -30,6 +30,9 @@ import { RepositoryService } from "../../src/database/repository.service";
 import { DeepPartial } from "typeorm";
 import { testSuite } from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
+import { Channel } from "../../src/sockets/channels/channel";
+import { WebSocketService } from "../../src/sockets/web-socket.service";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
     const _app = testSuite.app;

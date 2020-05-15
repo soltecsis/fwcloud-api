@@ -29,8 +29,6 @@ import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
-import { SocketManager } from "../../sockets/socket-manager";
-import { Progress } from "./progress/progress";
 
 interface ResponseBody {
     status: number,
@@ -55,11 +53,7 @@ export class ResponseBuilder {
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
-    protected _socket_id: string;
-
-    // Only used in handled request which uses a sockets
-    protected _event_id: string;
-
+    
     private constructor() {
         this._app = app();
     }
@@ -74,11 +68,6 @@ export class ResponseBuilder {
         }
 
         this._status = status;
-        return this;
-    }
-
-    public socket(socket: SocketManager): ResponseBuilder {
-        this._event_id = socket.event_id;
         return this;
     }
 
@@ -106,24 +95,6 @@ export class ResponseBuilder {
         return this;
     }
 
-    public progress(progress: Progress<any>, socket_id: string, customEventHandler?: (p: Progress<any>) => void): ResponseBuilder {
-        this._socket_id = socket_id;
-        const socket: SocketManager = SocketManager.init(this._socket_id);
-        this._event_id = socket.event_id;
-
-        if (!customEventHandler) {
-            progress.on('message', (payload) => {
-                socket.send(payload);
-            });
-        } else {
-            customEventHandler(progress);
-        }
-
-        this.body(progress.response);
-
-        return this;
-    }
-
     public send(response: Response): ResponseBuilder {
         this._response = response;
 
@@ -144,15 +115,7 @@ export class ResponseBuilder {
             response: HttpCodeResponse.get(this._status),
         }
 
-        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload, this.attachEvent());
-    }
-
-    protected attachEvent(): { event_id: string } {
-        if (this._event_id) {
-            return { event_id: this._event_id }
-        }
-
-        return null;
+        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload);
     }
 
     public toJSON(): ResponseBody {

@@ -26,7 +26,7 @@ import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository } from "typeorm";
+import { Repository, getRepository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -184,6 +184,14 @@ describe(describeName('Snapshot Unit Tests'), () => {
             const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id + 1)
 
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
+        });
+
+        it('should return the restored fwcloud', async() => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            const restoredFwCloud: FwCloud = await snapshot.restore();
+
+            expect(restoredFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
 
         it('should remove the old fwcloud and all its dependencies', async () => {
