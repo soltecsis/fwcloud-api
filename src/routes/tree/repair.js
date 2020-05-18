@@ -43,14 +43,14 @@ router.put('/', async (req, res) =>{
     } else if (req.body.type==='FDO') {
       channel.emit('message', new ProgressNoticePayload(`REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
     } else if (req.body.type==='FDS') {
-      channel.emit('message', new ProgressNoticePayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
+      channel.emit('message', new ProgressNoticePayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
     } else {
       throw fwcError.BAD_TREE_NODE_TYPE;
     }
 
     await Repair.initData(req);
 
-    channel.emit('message', new ProgressNoticePayload(`REPAIRING TREE FOR CLOUD WITH ID: '+req.body.fwcloud+'\n`));
+    channel.emit('message', new ProgressNoticePayload(`REPAIRING TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
     
     const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
