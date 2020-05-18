@@ -1,10 +1,6 @@
 import { Firewall } from "./Firewall";
 import { PolicyScript } from "../../compiler/PolicyScript";
 import * as fs from "fs";
-import { PolicyRule } from "../policy/PolicyRule";
-import { app } from "../../fonaments/abstract-application";
-import { DatabaseService } from "../../database/database.service";
-import { Connection } from "typeorm";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { ProgressDebugPayload } from "../../sockets/messages/socket-message";
 
@@ -19,7 +15,6 @@ export class Compiler {
         return new Promise<void>(async (resolve, reject) => {
             const outputPath: string = this._firewall.getPolicyFilePath();
             var stream = fs.createWriteStream(outputPath);
-            const connection: Connection = (await app().getService<DatabaseService>(DatabaseService.name)).connection;
             
             stream.on('open', async () => {
                 /* Generate the policy script. */
@@ -38,7 +33,7 @@ export class Compiler {
                 }
 
                 // Generate default rules for mangle table
-                if (await PolicyRule.firewallWithMarkRules(connection ,this._firewall.id)) {
+                if (await this._firewall.hasMarkedRules()) {
                     eventEmitter.emit('message', new ProgressDebugPayload("<strong>MANGLE TABLE:</strong>\n"));
                     eventEmitter.emit('message', new ProgressDebugPayload("Automatic rules.\n\n"));
                     stream.write("\n\necho\n");
@@ -54,7 +49,6 @@ export class Compiler {
                     stream.write("$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
                 }
                 
-
                 stream.write("\n\necho\n");
                 stream.write("echo \"***********************\"\n");
                 stream.write("echo \"* FILTER TABLE (IPv4) *\"\n");

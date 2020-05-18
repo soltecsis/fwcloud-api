@@ -38,13 +38,13 @@ export default class Query {
             params = [];
         }
 
-        queryRunner.query(query, params).then((result) => {
-            queryRunner.release();
+        queryRunner.query(query, params).then(async (result) => {
+            await queryRunner.release();
             if (callback) {
                 callback(null, result);
             }
-        }).catch((err) => {
-            queryRunner.release();
+        }).catch(async (err) => {
+            await queryRunner.release();
             if (callback) {
                 callback(err, null);
             }
