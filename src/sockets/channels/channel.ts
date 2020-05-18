@@ -22,7 +22,6 @@ export class Channel extends EventEmitter {
 
     public message(payload: object): boolean {
         const message = new SocketMessage(payload, this._id);
-        console.log(message);
         return this._listener.emit(this._id, message);
     }
 
