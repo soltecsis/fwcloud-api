@@ -83,9 +83,13 @@ export class BackupController extends Controller {
         //TODO: Authorization
         let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
+        const channel: Channel = await Channel.fromRequest(request);
+
         this._app.config.set('maintenance_mode', true);
 
-        backup = await this._backupService.restore(backup);
+        backup = await this._backupService.restore(backup, channel);
+
+        this._app.config.set('maintenance_mode', false);
 
         return ResponseBuilder.buildResponse().status(201).body(backup);
     }
