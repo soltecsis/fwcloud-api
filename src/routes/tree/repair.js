@@ -51,8 +51,6 @@ router.put('/', async (req, res) =>{
 
     await Repair.initData(req);
 
-    channel.emit('message', new ProgressInfoPayload(`REPAIRING TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`, true));
-    
     const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
     // Verify that all tree not root nodes are part of a tree.

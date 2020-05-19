@@ -41,28 +41,17 @@ export class FirewallService extends Service {
      * @param firewall 
      */
     public async compile(firewall: Firewall, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const progress: Progress = new Progress(eventEmitter);
-        
         if (firewall.fwCloudId === undefined || firewall.fwCloudId === null) {
             throw new Error('Firewall does not belong to a fwcloud');
         }
         
-        await progress.procedure('Compiling firewall', (task: Task) => {
-            
-            task.addTask(() => { return this.createFirewallPolicyDirectory(firewall) }, 'Creating directory');
-            
-            task.addTask(() => {
-                return (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter)
-            }, 'Compiling script');
-
-        }, 'Firewall compiled');
+        await this.createFirewallPolicyDirectory(firewall);
+        await (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter);
 
         return firewall;
     }
 
     public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const progress: Progress = new Progress(eventEmitter);
-
         const ipObj: IPObj = await getRepository(IPObj).findOne({where: {id: firewall.install_ipobj}});
 
         if (!ipObj) {
@@ -76,9 +65,7 @@ export class FirewallService extends Service {
             password: firewall.install_pass
         }, customSSHConfig);
         
-        await progress.procedure('Installing firewall policies', (task: Task) => {
-            task.addTask(() => (new Installer(firewall)).install(sshConfig, eventEmitter), 'Installing script');
-        }, 'Firewall installed');
+        await (new Installer(firewall)).install(sshConfig, eventEmitter);
 
         return firewall;
     }
