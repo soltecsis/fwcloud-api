@@ -144,6 +144,10 @@ describe(describeName('Firewall E2E Tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(201);
         });
+
+        it.skip('should use custom credentials if they are provided', () => {
+
+        });
     });
 
 })
