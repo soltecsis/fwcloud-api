@@ -15,7 +15,7 @@ export class Installer {
     public async install(sshConfig: SSHConfig, eventEmitter: EventEmitter): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
-                eventEmitter.emit('message', new ProgressNoticePayload("Uploading firewall script (" + sshConfig.host + ")\n"));
+                eventEmitter.emit('message', new ProgressInfoPayload("Uploading firewall script (" + sshConfig.host + ")\n"));
                 await sshTools.uploadFile(sshConfig, this._firewall.getPolicyFilePath(), app().config.get('policy').script_name);
 
                 // Enable sh depuration if it is selected in firewalls/cluster options.
