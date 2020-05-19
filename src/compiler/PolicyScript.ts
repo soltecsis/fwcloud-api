@@ -37,7 +37,7 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
 import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { EventEmitter } from 'events';
-import { ProgressInfoPayload } from '../sockets/messages/socket-message';
+import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
 
 export class PolicyScript {
 
@@ -95,7 +95,7 @@ export class PolicyScript {
 
                 for (var ps = "", i = 0; i < data.length; i++) {
                     
-                    event.emit('message', new ProgressInfoPayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n"));
+                    event.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n"));
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
 
                     if (data[i].comment) {
