@@ -28,14 +28,16 @@ import { Repair } from '../../models/tree/Repair';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
-import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { Channel } from '../../sockets/channels/channel';
+import { StartProgressPayload } from '../../fonaments/http/progress/messages/progress-messages';
 const fwcError = require('../../utils/error_table');
 
 
 /* Rpair tree */
 router.put('/', async (req, res) =>{
   const channel = await Channel.fromRequest(req);
+  channel.emit('message', new ProgressPayload('start', 'Repairing tree'));
 
   try {
     if (req.body.type==='FDF') {
@@ -136,6 +138,8 @@ router.put('/', async (req, res) =>{
         break;
       }
     }
+
+    channel.emit('message', new ProgressPayload('end', 'Repairing tree'));
 
     res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
