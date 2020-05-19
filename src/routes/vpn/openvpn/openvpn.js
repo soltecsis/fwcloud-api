@@ -64,6 +64,7 @@ import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -286,8 +287,8 @@ router.put('/install', async(req, res) => {
 		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-
-		channel.emit('message', new ProgressPayload('start', 'Installing OpenVPN'));
+		
+		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
 
 		// Next we have to activate the OpenVPN configuration in the destination firewall/cluster.
 		if (crt.type === 1) { // Client certificate
@@ -309,7 +310,7 @@ router.put('/install', async(req, res) => {
 		// Update the install date.
 		await OpenVPN.updateOpenvpnInstallDate(req.dbCon, req.body.openvpn);
 
-		channel.emit('message', new ProgressPayload('end', 'Installing OpenVPN'));
+		channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
 		res.status(200).send();
 	} catch(error) { res.status(400).json(error) }
 });
@@ -323,7 +324,7 @@ router.put('/uninstall', async(req, res) => {
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 
-		channel.emit('message', new ProgressPayload('start', 'Uninstalling OpenVPN'));
+		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
 		if (crt.type === 1) { // Client certificate
 			// Obtain de configuration directory in the client-config-dir configuration option.
@@ -341,7 +342,7 @@ router.put('/uninstall', async(req, res) => {
 		// Update the status flag for the OpenVPN configuration.
 		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
-		channel.emit('message', new ProgressPayload('end', 'Uninstalling OpenVPN'));
+		channel.emit('message', new ProgressPayload('end', false, 'Uninstalling OpenVPN'));
 
 		res.status(200).send().end();
 	} catch(error) { res.status(400).json(error) }
@@ -357,7 +358,7 @@ router.put('/ccdsync', async(req, res) => {
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		
-		channel.emit('message', new ProgressPayload('start', 'Sync OpenVPN CCD'));
+		channel.emit('message', new ProgressPayload('start', false, 'Sync OpenVPN CCD'));
 
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
@@ -383,7 +384,7 @@ router.put('/ccdsync', async(req, res) => {
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
 		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
 
-		channel.emit('message', new ProgressPayload('end', 'Sync OpenVPN CCD'));
+		channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
 
 		res.status(200).send().end();
 	} catch(error) { res.status(400).json(error) }

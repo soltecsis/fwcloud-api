@@ -4,9 +4,9 @@ import { getRepository } from "typeorm";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { FirewallService, SSHConfig } from "../../models/firewall/firewall.service";
-import { Progress } from "../../fonaments/http/progress/progress";
 import { FirewallPolicy } from "../../policies/firewall.policy";
 import { Channel } from "../../sockets/channels/channel";
+import { ProgressPayload } from "../../sockets/messages/socket-message";
 
 export class FirewallController extends Controller {
     
@@ -28,6 +28,8 @@ export class FirewallController extends Controller {
 
         firewall = await this.firewallService.compile(firewall, channel);
 
+        channel.emit('message', new ProgressPayload('end', false, 'Compiling firewall'));
+
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }
 
@@ -47,6 +49,8 @@ export class FirewallController extends Controller {
         }
 
         firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
+
+        channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }

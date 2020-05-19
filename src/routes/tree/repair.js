@@ -136,7 +136,7 @@ router.put('/', async (req, res) =>{
       }
     }
 
-    channel.emit('message', new ProgressPayload('end', 'Repairing tree'));
+    channel.emit('message', new ProgressPayload('end', false, 'Repairing tree'));
 
     res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
