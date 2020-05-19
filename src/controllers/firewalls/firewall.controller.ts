@@ -42,7 +42,7 @@ export class FirewallController extends Controller {
         const channel: Channel = await Channel.fromRequest(request);
 
         const customSSHConfig: Partial<SSHConfig> = {
-            host: request.body.sshuser ? request.body.sshuser : undefined,
+            username: request.body.sshuser ? request.body.sshuser : undefined,
             password: request.body.sshpass ? request.body.sshpass : undefined
         }
 
