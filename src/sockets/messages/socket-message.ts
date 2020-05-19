@@ -17,43 +17,49 @@ export class SocketMessage {
 
 export class SocketMessagePayload {}
 
-export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'debug' | 'notice' | 'error';
+export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'notice' | 'info' | 'success' | 'warning' | 'error';
 
 export class ProgressPayload extends SocketMessagePayload {
     readonly task_id?: string;
     readonly type: StatusType;
+    readonly highlight: boolean;
     readonly message: string;
-    readonly data: {[property: string]: any};
 
-    constructor(type: StatusType, message: string, data: {[property: string]: any} = null, task_id: string = null) {
+    constructor(type: StatusType, hightlight: boolean = false, message: string, task_id: string = null) {
         super();
         this.type = type;
         this.message = message;
-        this.data = data;
+        this.highlight = hightlight;
         this.task_id = task_id;
     }
 }
 
 export class ProgressNoticePayload extends ProgressPayload {
-    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
-        super('notice', message, data, task_id);
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('notice', highlight, message, task_id);
     }
 }
 
 export class ProgressInfoPayload extends ProgressPayload {
-    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
-        super('info', message, data, task_id);
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('info', highlight, message, task_id);
     }
 }
 
-export class ProgressDebugPayload extends ProgressPayload {
-    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
-        super('debug', message, data, task_id);
+export class ProgressSuccessPayload extends ProgressPayload {
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('success', highlight, message, task_id);
+    }
+}
+
+export class ProgressWarningPayload extends ProgressPayload {
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('warning', highlight, message, task_id);
     }
 }
 
 export class ProgressErrorPayload extends ProgressPayload {
-    constructor(message: string, data: {[property: string]: any} = null, task_id: string = null) {
-        super('error', message, data, task_id);
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('error', highlight, message, task_id);
     }
 }
