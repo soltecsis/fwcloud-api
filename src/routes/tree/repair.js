@@ -30,7 +30,6 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { Channel } from '../../sockets/channels/channel';
-import { StartProgressPayload } from '../../fonaments/http/progress/messages/progress-messages';
 const fwcError = require('../../utils/error_table');
 
 
@@ -41,41 +40,41 @@ router.put('/', async (req, res) =>{
 
   try {
     if (req.body.type==='FDF') {
-      channel.emit('message', new ProgressInfoPayload(`REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
+      channel.emit('message', new ProgressInfoPayload(`REPAIRING FIREWALLS/CLUSTERS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`, true));
     } else if (req.body.type==='FDO') {
-      channel.emit('message', new ProgressNoticePayload(`REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
+      channel.emit('message', new ProgressInfoPayload(`REPAIRING OBJECTS TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`, true));
     } else if (req.body.type==='FDS') {
-      channel.emit('message', new ProgressNoticePayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
+      channel.emit('message', new ProgressInfoPayload(`REPAIRING SERVICES TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`, true));
     } else {
       throw fwcError.BAD_TREE_NODE_TYPE;
     }
 
     await Repair.initData(req);
 
-    channel.emit('message', new ProgressNoticePayload(`REPAIRING TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`));
+    channel.emit('message', new ProgressInfoPayload(`REPAIRING TREE FOR CLOUD WITH ID: ${req.body.fwcloud}\n`, true));
     
     const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
     // Verify that all tree not root nodes are part of a tree.
-    channel.emit('message', new ProgressNoticePayload(`Checking tree struture.\n`));
+    channel.emit('message', new ProgressInfoPayload(`Checking tree struture.\n`));
     await Repair.checkNotRootNodes(rootNodes, channel);
 
     for (let rootNode of rootNodes) {
       if (rootNode.node_type==='FDF' && req.body.type==='FDF') { 
         // Firewalls and clusters tree.
-        channel.emit('message', new ProgressNoticePayload(`Checking folders.\n`));
+        channel.emit('message', new ProgressInfoPayload(`Checking folders.\n`));
         
         await Repair.checkFirewallsFoldersContent(rootNode, channel);
-        channel.emit('message', new ProgressNoticePayload(`Checking firewalls and clusters tree.\n`));
+        channel.emit('message', new ProgressInfoPayload(`Checking firewalls and clusters tree.\n`));
         
         await Repair.checkFirewallsInTree(rootNode, channel);
         await Repair.checkClustersInTree(rootNode, channel);
         
-        channel.emit('message', new ProgressNoticePayload(`Applying OpenVPN server prefixes.\n`));
+        channel.emit('message', new ProgressInfoPayload(`Applying OpenVPN server prefixes.\n`));
         
         const openvpn_srv_list = await OpenVPN.getOpenvpnServersByCloud(req.dbCon,req.body.fwcloud);
         for (let openvpn_srv of openvpn_srv_list) {
-          channel.emit('message', new ProgressInfoPayload(`OpenVPN server: ${openvpn_srv.cn}\n`));
+          channel.emit('message', new ProgressNoticePayload(`OpenVPN server: ${openvpn_srv.cn}\n`));
           await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,openvpn_srv.id);
         }
         break;
@@ -143,7 +142,7 @@ router.put('/', async (req, res) =>{
 
     res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
-    channel.emit('message', new ProgressErrorPayload(`\nERROR: ${error}\n`));
+    channel.emit('message', new ProgressErrorPayload(`\nERROR: ${error}\n`, true));
     res.status(400).json(error);
   }
 });
