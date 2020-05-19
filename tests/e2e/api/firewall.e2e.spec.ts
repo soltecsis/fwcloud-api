@@ -122,7 +122,7 @@ describe(describeName('Firewall E2E Tests'), () => {
                 .expect(401);
         });
 
-        it('regular user should compile a firewall if it does belong to the fwcloud', async () => {
+        it('regular user should install a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
             await getRepository(User).save(loggedUser);
 
@@ -135,7 +135,10 @@ describe(describeName('Firewall E2E Tests'), () => {
                 .expect(201);
         });
 
-        it('admin user should compile a firewall', async () => {
+        it('admin user should install a firewall if user belongs to the fwcloud', async () => {
+            adminUser.fwClouds = [fwCloud];
+            await getRepository(User).save(adminUser);
+
             return await request(app.express)
                 .post(_URL().getURL('firewalls.install', {
                     fwcloud: firewall.fwCloudId,

@@ -48,7 +48,7 @@ export class FirewallController extends Controller {
             password: request.body.sshpass ? request.body.sshpass : undefined
         }
 
-        firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
+        firewall = await this.firewallService.install(firewall, customSSHConfig, request.session.user, channel);
 
         channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 

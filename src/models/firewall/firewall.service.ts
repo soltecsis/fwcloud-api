@@ -1,17 +1,14 @@
 import { Service } from "../../fonaments/services/service";
 import { Firewall } from "./Firewall";
-import { Progress, TasksEventEmitter } from "../../fonaments/http/progress/progress";
-import { Task, InternalTaskEventEmitter } from "../../fonaments/http/progress/task";
 import { FSHelper } from "../../utils/fs-helper";
 import * as path from "path";
 import * as fs from "fs";
 import { Compiler } from "./compiler";
 import { Installer } from "./installer";
 import ObjectHelpers from "../../utils/object-helpers";
-import { getRepository } from "typeorm";
-import { IPObj } from "../ipobj/IPObj";
-import { InternalServerException } from "../../fonaments/exceptions/internal-server-exception";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { User } from "../user/User";
+import db from "../../database/database-manager";
 
 export type SSHConfig = {
     host: string,
@@ -51,18 +48,23 @@ export class FirewallService extends Service {
         return firewall;
     }
 
-    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const ipObj: IPObj = await getRepository(IPObj).findOne({where: {id: firewall.install_ipobj}});
-
-        if (!ipObj) {
-            throw new InternalServerException('Firewall does not have address');
-        }
+    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, user: User, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
+        const data: any = await Firewall.getFirewall({
+            body: {
+                firewall: firewall.id,
+                fwcloud: firewall.fwCloudId
+            },
+            session: {
+                user_id: user.id
+            },
+            dbCon: db.getQuery()
+        });
 
         const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
-            host: ipObj.address,
-            port: firewall.install_port,
-            username: firewall.install_user,
-            password: firewall.install_pass
+            host: data.ip,
+            port: data.install_port,
+            username: data.install_user,
+            password: data.install_pass
         }, customSSHConfig);
         
         await (new Installer(firewall)).install(sshConfig, eventEmitter);
