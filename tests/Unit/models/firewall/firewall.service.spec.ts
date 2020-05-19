@@ -14,6 +14,8 @@ import sinon from "sinon";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { Progress } from "../../../../src/fonaments/http/progress/progress";
 import sshTools from '../../../../src/utils/ssh';
+import { User } from "../../../../src/models/user/User";
+import { createUser } from "../../../utils/utils";
 
 describe(describeName('Firewall Service Unit Tests'), () => {
     let app: Application;
@@ -90,10 +92,12 @@ describe(describeName('Firewall Service Unit Tests'), () => {
     describe('install()', () => {
         let sshRunCommandStub: sinon.SinonStub;
         let sshUploadFileStub: sinon.SinonStub;
+        let user: User;
         
         before(async() => {
            sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
            sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');
+           user = await createUser({role: 1}); 
         });
 
         after(async() => {
@@ -120,7 +124,7 @@ describe(describeName('Firewall Service Unit Tests'), () => {
             await service.install(firewall, {
                 username: 'user_2',
                 password: 'test_2'
-            });
+            }, user);
 
             expect(spy.calledWith({
                 host: '0.0.0.0',
