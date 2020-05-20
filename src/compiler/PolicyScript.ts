@@ -38,7 +38,7 @@ import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { SocketTools } from '../utils/socket';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { ProgressNoticePayload } from '../sockets/messages/socket-message';
+import { ProgressNoticePayload, ProgressInfoPayload, ProgressErrorPayload } from '../sockets/messages/socket-message';
 
 const sshTools = require('../utils/ssh');
 
@@ -127,32 +127,28 @@ export class PolicyScript {
         });
     }
 
-    public static install(req, SSHconn, firewall) {
+    public static install(req, SSHconn, firewall, eventEmitter: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
-            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
-
             try {
-                SocketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
+                eventEmitter.emit('message', new ProgressInfoPayload("Uploading firewall script (" + SSHconn.host + ")"));
                 await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
 
                 // Enable sh depuration if it is selected in firewalls/cluster options.
                 const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
                 const sh_debug = (options & 0x0008) ? ' -x' : '';
 
-                SocketTools.msg("Installing firewall script.\n");
+                eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
                 await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " ./" + config.get('policy').script_name + " install");
 
-                SocketTools.msg("Loading firewall policy.\n");
+                eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
                 const data = await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
                     "sh" + sh_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
                     "else sh" + sh_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
 
-                SocketTools.msg(data);
-                SocketTools.msgEnd();
+                eventEmitter.emit('message', new ProgressNoticePayload(data));
                 resolve("DONE");
             } catch (error) {
-                SocketTools.msg(`ERROR: ${error}\n`);
-                SocketTools.msgEnd();
+                eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: ${error}`));
                 reject(error);
             }
         });

@@ -55,6 +55,8 @@ var router = express.Router();
  */
 import { PolicyScript } from '../../compiler/PolicyScript';
 import { Firewall } from '../../models/firewall/Firewall';
+import { Channel } from '../../sockets/channels/channel';
+import { ProgressPayload } from '../../sockets/messages/socket-message';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -62,10 +64,13 @@ router.post('/', async (req, res) => {
   try {
     const data = await Firewall.getFirewallSSH(req);
 
-    await PolicyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id))
+    const channel = await Channel.fromRequest(req);
+
+    await PolicyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id), channel)
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     
+    channel.emit('message', new ProgressPayload('end', false, 'Firewall installed'));
 		res.status(204).end();
 	} catch(error) { res.status(400).json(error) }
 });
