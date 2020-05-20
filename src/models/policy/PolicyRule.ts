@@ -1117,6 +1117,15 @@ public static checkCatchAllRules(dbCon, firewall) {
 	});
 };
 
+//Allow all positions of a rule that are empty.
+public static firewallWithMarkRules(dbCon, firewall) {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`select id from ${tableName} where firewall=${firewall} and mark!=0`, (error, result) => {
+			if (error) return reject(error);
+			resolve((result.length>0) ? true : false);
+		});
+	});
+};
 
 //Move rules from one firewall to other.
 public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {

@@ -156,6 +156,7 @@ export class Application extends AbstractApplication {
         this._express.use('/firewall', require('./routes/firewall/firewall'));
         this._express.use('/policy/rule', require('./routes/policy/rule'));
         this._express.use('/policy/compile', require('./routes/policy/compile'));
+        this._express.use('/policy/install', require('./routes/policy/install'));
         this._express.use('/policy/ipobj', require('./routes/policy/ipobj'));
         this._express.use('/policy/interface', require('./routes/policy/interface'));
         this._express.use('/policy/group', require('./routes/policy/group'));

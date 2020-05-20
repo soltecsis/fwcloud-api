@@ -68,10 +68,11 @@ export class Routes extends RouteCollection {
 
                     
                     //Firewalls
-                    router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
+                    // Old way restored. These routes has been disabled temporarily
+                    /*router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
                         router.post('/compile', FirewallController, 'compile').name('firewalls.compile');
                         router.post('/install', FirewallController, 'install').name('firewalls.install');
-                    });
+                    });*/
 
 
                     //Snapshots
