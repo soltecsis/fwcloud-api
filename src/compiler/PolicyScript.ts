@@ -130,7 +130,7 @@ export class PolicyScript {
     public static install(req, SSHconn, firewall, eventEmitter: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {
-                eventEmitter.emit('message', new ProgressInfoPayload("Uploading firewall script (" + SSHconn.host + ")"));
+                eventEmitter.emit('message', new ProgressNoticePayload("Uploading firewall script (" + SSHconn.host + ")"));
                 await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
 
                 // Enable sh depuration if it is selected in firewalls/cluster options.
