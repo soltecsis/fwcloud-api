@@ -37,6 +37,8 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
 import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { SocketTools } from '../utils/socket';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 
 const sshTools = require('../utils/ssh');
 
@@ -87,7 +89,7 @@ export class PolicyScript {
         });
     }
 
-    public static dump(req, type) {
+    public static dump(req, type, eventEmitter: EventEmitter = new EventEmitter()) {
         return new Promise((resolve, reject) => {
             PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
                 if (error) return reject(error);
@@ -95,7 +97,7 @@ export class PolicyScript {
                 SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
                 for (var ps = "", i = 0; i < data.length; i++) {
-                    SocketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
+                    eventEmitter.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")"));
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
                     if (data[i].comment)
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";

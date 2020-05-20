@@ -74,8 +74,9 @@ import { PolicyScript } from '../../compiler/PolicyScript';
 
 const config = require('../../config/config');
 import { Firewall } from '../../models/firewall/Firewall';
-import { SocketTools } from '../../utils/socket';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+import { Channel } from '../../sockets/channels/channel';
+import { ProgressPayload, ProgressErrorPayload } from '../../sockets/messages/socket-message';
 const fwcError = require('../../utils/error_table');
 
 
@@ -108,9 +109,9 @@ router.put('/', (req, res) => {
 	path += "/" + config.get('policy').script_name;
 	var stream = fs.createWriteStream(path);
 
-	stream.on('open', async fd => {
-		SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
+	const channel = await Channel.fromRequest(req);
 
+	stream.on('open', async fd => {
 		try {
 			/* Generate the policy script. */
 			let data = await PolicyScript.append(config.get('policy').header_file);
@@ -119,15 +120,16 @@ router.put('/', (req, res) => {
 				"log \"FWCloud.net - Loading firewall policy generated: " + Date() + "\"\n}\n\n" +
 				"policy_load() {\n");
 			
-			if (data.options & 0x0001) // Statefull firewall
-				SocketTools.msg("<strong>--- STATEFUL FIREWALL ---</strong>\n\n");
-			else
-				SocketTools.msg("<strong>--- STATELESS FIREWALL ---</strong>\n\n");
+			if (data.options & 0x0001) { // Statefull firewall
+				channel.emit('message', new ProgressNoticePayload('--- STATEFUL FIREWALL ---', true));
+			} else {
+				channel.emit('message', new ProgressNoticePayload('--- STATELESS FIREWALL ---', true));
+			}
 
 			// Generate default rules for mangle table
 			if (await PolicyRule.firewallWithMarkRules(req.dbCon,req.body.firewall)) {
-				SocketTools.msg("<strong>MANGLE TABLE:</strong>\n");
-				SocketTools.msg("Automatic rules.\n\n");
+				eventEmitter.emit('message', new ProgressNoticePayload("MANGLE TABLE:", true));
+				eventEmitter.emit('message', new ProgressNoticePayload("Automatic rules."));
 				stream.write("\n\necho\n");
 				stream.write("echo \"****************\"\n");
 				stream.write("echo \"* MANGLE TABLE *\"\n");
@@ -146,39 +148,39 @@ router.put('/', (req, res) => {
 			stream.write("echo \"***********************\"\n");
 			stream.write("echo \"* FILTER TABLE (IPv4) *\"\n");
 			stream.write("echo \"***********************\"\n");
-			SocketTools.msg("<strong>FILTER TABLE (IPv4):</strong>\n");
+			eventEmitter.emit('message', new ProgressNoticePayload("FILTER TABLE (IPv4):", true));
 			stream.write("\n\necho \"INPUT CHAIN\"\n");
 			stream.write("echo \"-----------\"\n");
-			SocketTools.msg("<strong>INPUT CHAIN:</strong>\n");
-			let cs = await PolicyScript.dump(req,1);
+			eventEmitter.emit('message', new ProgressNoticePayload("INPUT CHAIN:", true));
+			let cs = await PolicyScript.dump(req, 1, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"OUTPUT CHAIN\"\n");
 			stream.write("echo \"------------\"\n");
-			SocketTools.msg("<strong>OUTPUT CHAIN:</strong>\n");
-			cs = await PolicyScript.dump(req,2);
+			eventEmitter.emit('message', new ProgressNoticePayload("OUTPUT CHAIN:", true));
+			cs = await PolicyScript.dump(req,2, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"FORWARD CHAIN\"\n");
 			stream.write("echo \"-------------\"\n");
-			SocketTools.msg("<strong>FORWARD CHAIN:</strong>\n");
-			cs = await PolicyScript.dump(req,3);
+			eventEmitter.emit('message', new ProgressNoticePayload("FORWARD CHAIN:", true));
+			cs = await PolicyScript.dump(req,3, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"********************\"\n");
 			stream.write("echo \"* NAT TABLE (IPv4) *\"\n");
 			stream.write("echo \"********************\"\n");
-			SocketTools.msg("<strong>NAT TABLE (IPv4):</strong>\n");
+			eventEmitter.emit('message', new ProgressNoticePayload("NAT TABLE (IPv4):", true));
 			stream.write("\n\necho \"SNAT\"\n");
 			stream.write("echo \"----\"\n");
-			SocketTools.msg("<strong>SNAT:</strong>\n");
-			cs = await PolicyScript.dump(req,4);
+			eventEmitter.emit('message', new ProgressNoticePayload("SNAT:", true));
+			cs = await PolicyScript.dump(req,4, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"DNAT\"\n");
 			stream.write("echo \"----\"\n");
-			SocketTools.msg("<strong>DNAT:</strong>\n");
-			cs = await PolicyScript.dump(req, 5);
+			eventEmitter.emit('message', new ProgressNoticePayload("DNAT:", true));
+			cs = await PolicyScript.dump(req, 5, channel);
 
 			stream.write(cs+"\n\n");
 
@@ -188,41 +190,41 @@ router.put('/', (req, res) => {
 			stream.write("echo \"***********************\"\n");
 			stream.write("echo \"* FILTER TABLE (IPv6) *\"\n");
 			stream.write("echo \"***********************\"\n");
-			SocketTools.msg("\n");
-			SocketTools.msg("\n");
-			SocketTools.msg("<strong>FILTER TABLE (IPv6):</strong>\n");
+			eventEmitter.emit('message', new ProgressNoticePayload(""));
+			eventEmitter.emit('message', new ProgressNoticePayload(""));
+			eventEmitter.emit('message', new ProgressNoticePayload("FILTER TABLE (IPv6):", true));
 			stream.write("\n\necho \"INPUT CHAIN\"\n");
 			stream.write("echo \"-----------\"\n");
-			SocketTools.msg("<strong>INPUT CHAIN:</strong>\n");
-			cs = await PolicyScript.dump(req,61);
+			eventEmitter.emit('message', new ProgressNoticePayload("INPUT CHAIN:", true));
+			cs = await PolicyScript.dump(req,61, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"OUTPUT CHAIN\"\n");
 			stream.write("echo \"------------\"\n");
-			SocketTools.msg("<strong>OUTPUT CHAIN:</strong>\n");
-			cs = await PolicyScript.dump(req,62);
+			eventEmitter.emit('message', new ProgressNoticePayload("OUTPUT CHAIN:", true));
+			cs = await PolicyScript.dump(req,62, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"FORWARD CHAIN\"\n");
 			stream.write("echo \"-------------\"\n");
-			SocketTools.msg("<strong>FORWARD CHAIN:</strong>\n");
-			cs = await PolicyScript.dump(req,63);
+			eventEmitter.emit('message', new ProgressNoticePayload("FORWARD CHAIN:", true));
+			cs = await PolicyScript.dump(req,63, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"********************\"\n");
 			stream.write("echo \"* NAT TABLE (IPv6) *\"\n");
 			stream.write("echo \"********************\"\n");
-			SocketTools.msg("<strong>NAT TABLE (IPv6):</strong>\n");
+			eventEmitter.emit('message', new ProgressNoticePayload("NAT TABLE (IPv6):", true));
 			stream.write("\n\necho \"SNAT\"\n");
 			stream.write("echo \"----\"\n");
-			SocketTools.msg("<strong>SNAT:</strong>\n");
-			cs = await PolicyScript.dump(req,64);
+			eventEmitter.emit('message', new ProgressNoticePayload("SNAT:", true));
+			cs = await PolicyScript.dump(req,64, channel);
 
 			stream.write(cs + "\n\necho\n");
 			stream.write("echo \"DNAT\"\n");
 			stream.write("echo \"----\"\n");
-			SocketTools.msg("<strong>DNAT:</strong>\n");
-			cs = await PolicyScript.dump(req, 65);
+			eventEmitter.emit('message', new ProgressNoticePayload("DNAT:", true));
+			cs = await PolicyScript.dump(req, 65, channel);
 
 			stream.write(cs+"\n}\n\n");
 			
@@ -238,11 +240,11 @@ router.put('/', (req, res) => {
 			// Update firewall compile date.
 			await Firewall.updateFirewallCompileDate(req.body.fwcloud,req.body.firewall);
 
-			SocketTools.msgEnd();
+			eventEmitter.emit('message', new ProgressPayload('end', false, "Compilation finished"));
 			res.status(204).end();
 		} catch(error) { 
-			SocketTools.msg(`\nERROR: ${error}\n`);
-			SocketTools.msgEnd();
+			ProgressErrorPayload
+			eventEmitter.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
 			res.status(400).json(error);		
 		}
 	}).on('error', error => {
