@@ -12,12 +12,9 @@ import * as fs from "fs";
 import { Installer } from "../../../../src/models/firewall/installer";
 import sinon from "sinon";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { Progress } from "../../../../src/fonaments/http/progress/progress";
 import sshTools from '../../../../src/utils/ssh';
-import { User } from "../../../../src/models/user/User";
-import { createUser } from "../../../utils/utils";
 
-describe(describeName('Firewall Service Unit Tests'), () => {
+describe.skip(describeName('Firewall Service Unit Tests'), () => {
     let app: Application;
     let service: FirewallService;
     let firewall: Firewall;
