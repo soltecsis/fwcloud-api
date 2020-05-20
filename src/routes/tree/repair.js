@@ -54,7 +54,7 @@ router.put('/', async (req, res) =>{
     const rootNodes = await Repair.checkRootNodes(req.dbCon, channel);
 
     // Verify that all tree not root nodes are part of a tree.
-    channel.emit('message', new ProgressInfoPayload(`Checking tree struture.\n`));
+    channel.emit('message', new ProgressInfoPayload(`Checking tree structure.\n`));
     await Repair.checkNotRootNodes(rootNodes, channel);
 
     for (let rootNode of rootNodes) {
