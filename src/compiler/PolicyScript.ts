@@ -36,7 +36,6 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  */
 import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
-import { SocketTools } from '../utils/socket';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressInfoPayload, ProgressErrorPayload } from '../sockets/messages/socket-message';
 
@@ -93,8 +92,6 @@ export class PolicyScript {
         return new Promise((resolve, reject) => {
             PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
                 if (error) return reject(error);
-
-                SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
                 for (var ps = "", i = 0; i < data.length; i++) {
                     eventEmitter.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")"));

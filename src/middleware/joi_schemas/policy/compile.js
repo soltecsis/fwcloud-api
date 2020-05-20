@@ -36,8 +36,17 @@ schema.validate = req => {
      });
     
     if (req.method==='PUT') {
-      if (req.url==='/policy/compile')
+      if (req.path==='/policy/compile') {
+        if (Object.keys(req.query).length > 1) {
+          return reject(fwcError.BAD_API_CALL);
+        }
+
+        if (Object.keys(req.query).length === 1 && Object.keys(req.query)[0] !== 'channel_id') {
+          return reject(fwcError.BAD_API_CALL);
+        }
+        
         schema = schema.append({ socketid: sharedSch.socketio_id.optional() });
+      }
       else if (req.url==='/policy/compile/rule')
         schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
       else return reject(fwcError.BAD_API_CALL);
