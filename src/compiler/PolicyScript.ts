@@ -36,8 +36,11 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  */
 import { RuleCompiler } from './RuleCompiler'
 import { Firewall } from '../models/firewall/Firewall';
-import { EventEmitter } from 'events';
-import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
+import { SocketTools } from '../utils/socket';
+
+const sshTools = require('../utils/ssh');
+
+var config = require('../config/config');
 
 export class PolicyScript {
 
@@ -84,23 +87,18 @@ export class PolicyScript {
         });
     }
 
-    public static dump(firewall: Firewall, type: number, event: EventEmitter) {
+    public static dump(req, type) {
         return new Promise((resolve, reject) => {
-            if (!firewall.fwCloudId || !firewall.id) {
-                return reject();
-            }
-
-            PolicyCompilation.getPolicy_cs_type(firewall.fwCloudId, firewall.id, type, async (error, data) => {
+            PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
                 if (error) return reject(error);
 
-                for (var ps = "", i = 0; i < data.length; i++) {
-                    
-                    event.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n"));
-                    ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
+                SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
 
-                    if (data[i].comment) {
+                for (var ps = "", i = 0; i < data.length; i++) {
+                    SocketTools.msg("Rule " + (i + 1) + " (ID: " + data[i].id + ")\n");
+                    ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
+                    if (data[i].comment)
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
-                    }
 
                     // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
                     // is solved.
@@ -118,12 +116,43 @@ export class PolicyScript {
                     try {
                         // The rule compilation order is important, then we must wait until we have the promise fulfilled.
                         // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        ps += await RuleCompiler.get(firewall.fwCloudId, firewall.id, type, data[i].id);
+                        ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
                     } catch (error) { return reject(error) }
                 }
 
                 resolve(ps);
             });
+        });
+    }
+
+    public static install(req, SSHconn, firewall) {
+        return new Promise(async (resolve, reject) => {
+            SocketTools.init(req); // Init the socket used for message notification by the socketTools module.
+
+            try {
+                SocketTools.msg("Uploading firewall script (" + SSHconn.host + ")\n");
+                await sshTools.uploadFile(SSHconn, config.get('policy').data_dir + "/" + req.body.fwcloud + "/" + firewall + "/" + config.get('policy').script_name, config.get('policy').script_name);
+
+                // Enable sh depuration if it is selected in firewalls/cluster options.
+                const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
+                const sh_debug = (options & 0x0008) ? ' -x' : '';
+
+                SocketTools.msg("Installing firewall script.\n");
+                await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " ./" + config.get('policy').script_name + " install");
+
+                SocketTools.msg("Loading firewall policy.\n");
+                const data = await sshTools.runCommand(SSHconn, "sudo sh" + sh_debug + " -c 'if [ -d /etc/fwcloud ]; then " +
+                    "sh" + sh_debug + " /etc/fwcloud/" + config.get('policy').script_name + " start; " +
+                    "else sh" + sh_debug + " /config/scripts/post-config.d/" + config.get('policy').script_name + " start; fi'")
+
+                SocketTools.msg(data);
+                SocketTools.msgEnd();
+                resolve("DONE");
+            } catch (error) {
+                SocketTools.msg(`ERROR: ${error}\n`);
+                SocketTools.msgEnd();
+                reject(error);
+            }
         });
     }
 }
