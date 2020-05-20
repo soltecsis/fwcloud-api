@@ -12,7 +12,7 @@ import { IPObj } from "../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import sshTools = require("../../../src/utils/ssh");
 
-describe(describeName('Firewall E2E Tests'), () => {
+describe.skip(describeName('Firewall E2E Tests'), () => {
     let app: Application;
     let loggedUser: User;
     let loggedUserSessionId: string;

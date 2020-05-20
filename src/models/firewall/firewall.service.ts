@@ -9,6 +9,8 @@ import ObjectHelpers from "../../utils/object-helpers";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { User } from "../user/User";
 import db from "../../database/database-manager";
+import { IPObj } from "../ipobj/IPObj";
+import { getRepository } from "typeorm";
 
 export type SSHConfig = {
     host: string,
@@ -48,26 +50,18 @@ export class FirewallService extends Service {
         return firewall;
     }
 
-    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, user: User, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const data: any = await Firewall.getFirewall({
-            body: {
-                firewall: firewall.id,
-                fwcloud: firewall.fwCloudId
-            },
-            session: {
-                user_id: user.id
-            },
-            dbCon: db.getQuery()
-        });
-
+    public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
+        const ipObj: IPObj = await getRepository(IPObj).findOne({id: firewall.install_ipobj, interfaceId: firewall.install_interface});
         const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
-            host: data.ip,
-            port: data.install_port,
-            username: data.install_user,
-            password: data.install_pass
+            host: ipObj.address,
+            port: firewall.install_port,
+            username: firewall.install_user,
+            password: firewall.install_pass
         }, customSSHConfig);
         
         await (new Installer(firewall)).install(sshConfig, eventEmitter);
+        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id,"&~2");
+        await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
         return firewall;
     }

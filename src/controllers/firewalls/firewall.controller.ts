@@ -17,6 +17,9 @@ export class FirewallController extends Controller {
     }
     
     public async compile(request: Request): Promise<ResponseBuilder> {
+        /**
+         * This method is not used temporarily
+         */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
@@ -34,6 +37,9 @@ export class FirewallController extends Controller {
     }
 
     public async install(request: Request): Promise<ResponseBuilder> {
+        /**
+         * This method is not used temporarily
+         */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
@@ -48,9 +54,7 @@ export class FirewallController extends Controller {
             password: request.body.sshpass ? request.body.sshpass : undefined
         }
 
-        firewall = await this.firewallService.install(firewall, customSSHConfig, request.session.user, channel);
-        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id,"&~2");
-        await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
+        firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
 
         channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 

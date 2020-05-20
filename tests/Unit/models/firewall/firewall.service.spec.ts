@@ -123,7 +123,7 @@ describe(describeName('Firewall Service Unit Tests'), () => {
             await service.install(firewall, {
                 username: 'user_2',
                 password: 'test_2'
-            }, new User());
+            });
 
             expect(spy.calledWith({
                 host: '0.0.0.0',
