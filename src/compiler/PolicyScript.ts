@@ -95,10 +95,13 @@ export class PolicyScript {
 
                 for (var ps = "", i = 0; i < data.length; i++) {
                     eventEmitter.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")"));
+                    
                     ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
-                    if (data[i].comment)
+                    
+                    if (data[i].comment) {
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
-
+                    }
+                    
                     // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
                     // is solved.
                     /*
