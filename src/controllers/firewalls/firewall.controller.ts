@@ -49,6 +49,8 @@ export class FirewallController extends Controller {
         }
 
         firewall = await this.firewallService.install(firewall, customSSHConfig, request.session.user, channel);
+        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id,"&~2");
+        await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
         channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
