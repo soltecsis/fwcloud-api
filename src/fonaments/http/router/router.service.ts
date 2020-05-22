@@ -123,13 +123,13 @@ export class RouterService extends Service {
                 const controllerInstance = new route.controllerSignature.controller(this._app);
                 await controllerInstance.make(request);
 
-                const result: ResponseBuilder = await controllerInstance[route.controllerSignature.method](request);
+                const builder: ResponseBuilder = await controllerInstance[route.controllerSignature.method](request);
 
-                if (!result) {
+                if (!builder) {
                     throw new Error('Controller handler ' + route.controllerSignature.controller.name + '@' + route.controllerSignature.method + ' does not return a response');                    
                 }
 
-                result.send(response);
+                builder.build(response).send();
 
             } catch (e) {
                 return next(e);

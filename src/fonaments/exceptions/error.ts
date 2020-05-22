@@ -20,42 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ExceptionBody } from "../http/response-builder";
-import { AbstractApplication, app } from "../abstract-application";
-
 export class FwCloudError extends Error {
-    protected _caused_by: FwCloudError;
-    protected _app: AbstractApplication;
-
-    constructor(message: string = null, caused_by: FwCloudError = null) {
-        super(message ? message : "");
-        this.name = this.constructor.name;
-        this._app = app();
-        this._caused_by = caused_by;
-    }
-
-    public fromError(error: Error): FwCloudError {
-        this.stack = error.stack;
-        this.message = error.message;
-        this.name = error.name;
-
-        return this;
-    }
     
-    public getExceptionDetails(): ExceptionBody {
-        const result: Partial<ExceptionBody> = {
-            name: this.constructor.name,
-            stack: this.stackToArray()
-        }
+    constructor(error: Error);
+    constructor(message: string, stack?: string);
+    constructor(errorOrMessage: Error | string = null, stack?: string) {
+        super(errorOrMessage instanceof Error ? errorOrMessage.message : errorOrMessage);
+        this.name = this.constructor.name;
 
-        if (this._caused_by) {
-            result.caused_by = this._caused_by.getExceptionDetails();
+        if (errorOrMessage instanceof Error) {
+            this.stack = errorOrMessage.stack;
         }
-
-        return <ExceptionBody>result;
+        
+        if(stack) {
+            this.stack = stack;
+        }
     }
 
-    protected stackToArray(): Array<string> {
+    public stackToArray(): Array<string> {
         const stack: string = this.stack;
         const results: Array<string> = [];
         const stackLines: Array<string> = stack.split("\n");

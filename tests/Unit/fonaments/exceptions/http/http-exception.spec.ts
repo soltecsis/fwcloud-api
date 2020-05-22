@@ -32,28 +32,4 @@ describe(describeName('HttpException Unit tests'), () => {
     beforeEach(async () => {
         app = testSuite.app;
     });
-
-
-    describe('toResponse()', () => {
-        it('details should not be present in the response if the application is production mode', async () => {
-            app.config.set('env', 'prod');
-
-            expect(new HttpException().toResponse().exception).is.undefined;
-
-            app.config.set('env', 'test');
-        });
-
-        it('details should be present in the response if the application is not in production mode', async () => {
-            app.config.set('env', 'dev');
-
-            expect(new HttpException().toResponse().exception).is.not.undefined;
-
-            app.config.set('env', 'test');
-        });
-
-        it('name should be retrieved from the caused_by exception', async () => {
-            expect(new HttpException(null, new NotFoundException()).toResponse().exception.name).to.be.deep.eq(HttpException.name);
-            expect(new HttpException(null, new NotFoundException()).toResponse().exception.caused_by.name).to.be.deep.eq(NotFoundException.name);
-        });
-    });
 });

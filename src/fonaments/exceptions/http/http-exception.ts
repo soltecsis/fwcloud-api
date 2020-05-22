@@ -20,37 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Responsable } from "../../contracts/responsable";
-import ObjectHelpers from "../../../utils/object-helpers";
-import { app } from "../../abstract-application";
-import { ErrorBody } from "../../http/response-builder";
 import { FwCloudError } from "../error";
 
-export class HttpException extends FwCloudError implements Responsable {
+export class HttpException extends FwCloudError {
     
     public status: number;
     
-    constructor(message: string = null, caused_by: FwCloudError = null) {
-        super(message, caused_by);
-        this._app = app();
-    }
-
-    toResponse(): ErrorBody {
-        return this.generateResponse();
-    }
-
-    protected response(): Object {
-        return {}
-    }
-
-    private generateResponse(): ErrorBody {
-        return <ErrorBody>ObjectHelpers.merge(
-            this.response(),
-            this.shouldAttachExceptionDetails() ? { exception: this.getExceptionDetails() } : null
-        );
-    }
-
-    private shouldAttachExceptionDetails(): boolean {
-        return this._app.config.get('env') !== 'prod';
+    constructor(message: string = null, status: number = 500, stack?: string) {
+        super(message, stack);
+        this.status = status;
     }
 }
