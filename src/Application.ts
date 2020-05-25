@@ -20,15 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from 'express';
-import httpProxy from 'http-proxy';
-
-import log4js, { Logger } from 'log4js';
-import log4js_extend from 'log4js-extend';
-
 import db from "./database/database-manager";
 
-import { AbstractApplication } from "./fonaments/abstract-application";
+import { AbstractApplication, app } from "./fonaments/abstract-application";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
@@ -58,12 +52,10 @@ import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
-import { LogServiceProider } from './logs/log.provider';
 import { LogService } from './logs/log.service';
+import { logger } from "./fonaments/abstract-application"
 
 export class Application extends AbstractApplication {
-    private _logger: LogService;
-
     public static async run(): Promise<Application> {
         try {
             const app: Application = new Application();
@@ -76,14 +68,16 @@ export class Application extends AbstractApplication {
         }
     }
 
-    get logger() {
-        return this._logger;
-    }
-
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
-        this._logger = await this.registerLogger();
-        await this.startDatabaseService()
+        await this.startDatabaseService();
+
+        (await this.getService<LogService>(LogService.name)).enableGeneralTransport('file');
+        this.logger.info(`------- Starting application -------`);
+        
+        (await this.getService<LogService>(LogService.name)).enableGeneralTransport('console');
+        this.logger.info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+        
         return this;
     }
 
@@ -93,7 +87,6 @@ export class Application extends AbstractApplication {
 
     protected providers(): Array<typeof ServiceProvider> {
         return [
-            LogServiceProider,
             DatabaseServiceProvider,
             RepositoryServiceProvider,
             RouterServiceProvider,
@@ -131,10 +124,6 @@ export class Application extends AbstractApplication {
         ]
     }
 
-    private async registerLogger(): Promise<LogService> {
-        return await this.getService<LogService>(LogService.name);
-    }
-
     protected async registerRoutes() {
         const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
         routerService.registerRoutes(Routes);
@@ -168,7 +157,6 @@ export class Application extends AbstractApplication {
         this._express.use('/vpn/pki/prefix', require('./routes/vpn/pki/prefix'));
         this._express.use('/vpn/openvpn', require('./routes/vpn/openvpn/openvpn'));
         this._express.use('/vpn/openvpn/prefix', require('./routes/vpn/openvpn/prefix'));
-        this._express.use('/backup', require('./routes/backup/backup'));
     }
 
     private async startDatabaseService() {

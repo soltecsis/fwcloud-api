@@ -3,7 +3,7 @@ import { ServiceContainer, ServiceBound } from "../fonaments/services/service-co
 import { LogService } from "./log.service";
 import { AbstractApplication } from "../fonaments/abstract-application";
 
-export class LogServiceProider extends ServiceProvider {
+export class LogServiceProvider extends ServiceProvider {
     public register(serviceContainer: ServiceContainer): ServiceBound {
         return serviceContainer.singleton(LogService.name, (app: AbstractApplication) => {
             return LogService.make(app);

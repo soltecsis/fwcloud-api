@@ -30,11 +30,10 @@ import Model from '../Model';
 import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import modelEventService from '../ModelEventService';
 import { FwCloud } from '../fwcloud/FwCloud';
-import { app } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
-import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -42,7 +41,6 @@ var interface_Data = require('../../models/data/data_interface');
 var ipobj_Data = require('../../models/data/data_ipobj');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 const fwcError = require('../../utils/error_table');
-var logger = require('log4js').getLogger("app");
 
 const tableName: string = "ipobj";
 
@@ -287,7 +285,7 @@ export class IPObj extends Model {
                     ' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
 
-                logger.debug("getIpobjPro -> ", sql);
+                logger().debug("getIpobjPro -> ", sql);
                 connection.query(sql, (error, row) => {
                     if (error) {
                         reject(error);
@@ -295,7 +293,7 @@ export class IPObj extends Model {
                         if (row.length > 0) {
                             //CHECK IF IPOBJ IS a HOST
                             if (row[0].type === 8) {
-                                logger.debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
+                                logger().debug("======== > ENCONTRADO HOST: " + position_ipobj.ipobj);
                                 //GET ALL HOST INTERFACES
                                 Interface.getInterfacesHost_Full_Pro(position_ipobj.ipobj, position_ipobj.fwcloud)
                                     .then(interfacesHost => {
@@ -312,14 +310,14 @@ export class IPObj extends Model {
                             } else {
                                 //RETURN IPOBJ DATA
                                 var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, 'O');
-                                //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                                //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                                 resolve(ipobj);
                             }
                         } else if (position_ipobj.type === 'I') {
                             //SEARCH INTERFACE DATA
                             Interface.getInterfaceFullPro(position_ipobj.firewall, position_ipobj.fwcloud, position_ipobj.ipobj)
                                 .then(dataInt => {
-                                    logger.debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                                    logger().debug("------- > ENCONTRADA INTERFACE: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                                     //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
                                     //RETURN INTERFACE DATA
                                     resolve(dataInt);
@@ -328,11 +326,11 @@ export class IPObj extends Model {
                                     resolve({})
                                 );
                         } else if (position_ipobj.type === 'O' && position_ipobj.ipobj_g > 0) {
-                            logger.debug("======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g);
+                            logger().debug("======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g);
                             //GET ALL GROUP's IPOBJS
                             IPObjGroup.getIpobj_g_Full_Pro(position_ipobj.fwcloud, position_ipobj.ipobj_g)
                                 .then(ipobjsGroup => {
-                                    logger.debug("-------------------------> FINAL de GROUP : " + position_ipobj.ipobj_g + " ----");
+                                    logger().debug("-------------------------> FINAL de GROUP : " + position_ipobj.ipobj_g + " ----");
                                     //RETURN IPOBJ GROUP DATA                                                                            
                                     var groupdata = new data_policy_position_ipobjs(position_ipobj, position_ipobj.position_order, 'G');
                                     groupdata.ipobjs = ipobjsGroup;
@@ -371,7 +369,7 @@ export class IPObj extends Model {
                         ' FROM interface I ' +
                         ' WHERE I.id = ' + connection.escape(position_ipobj.interface);
                 }
-                //logger.debug("getIpobjPro -> ", sql);
+                //logger().debug("getIpobjPro -> ", sql);
                 connection.query(sql, (error, row) => {
                     if (error) {
                         reject(error);
@@ -379,7 +377,7 @@ export class IPObj extends Model {
                         if (row.length > 0) {
                             //RETURN IPOBJ DATA
                             var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.type);
-                            //logger.debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
+                            //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                             resolve(ipobj);
 
                         } else {
@@ -421,7 +419,7 @@ export class IPObj extends Model {
             var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableName + ' G ' +
                 'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
                 ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
-            logger.debug(sql);
+            logger().debug(sql);
             connection.query(sql, (error, rows) => {
                 if (error)
                     AllDone(error, null);
@@ -432,7 +430,7 @@ export class IPObj extends Model {
 
                         var host_node = new host_Data(row);
 
-                        logger.debug(" ---> DENTRO de HOST: " + row.id + " NAME: " + row.name);
+                        logger().debug(" ---> DENTRO de HOST: " + row.id + " NAME: " + row.name);
                         var idhost = row.id;
                         host_node.interfaces = new Array();
 
@@ -443,7 +441,7 @@ export class IPObj extends Model {
 
                                 asyncMod.map(data_interfaces, (data_interface, callback2) => {
                                     //GET INTERFACES
-                                    logger.debug("--> DENTRO de INTERFACE id:" + data_interface.id + "  Name:" + data_interface.name + "  Type:" + data_interface.interface_type)
+                                    logger().debug("--> DENTRO de INTERFACE id:" + data_interface.id + "  Name:" + data_interface.name + "  Type:" + data_interface.interface_type)
 
                                     var interface_node = new interface_Data(data_interface);
                                     var idinterface = data_interface.id;
@@ -457,7 +455,7 @@ export class IPObj extends Model {
 
                                             asyncMod.map(data_ipobjs, (data_ipobj, callback2) => {
                                                 //GET OBJECTS
-                                                logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
+                                                logger().debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
                                                 var ipobj_node = new ipobj_Data(data_ipobj);
                                                 //Añadimos ipobj a array Interfaces
@@ -584,7 +582,7 @@ export class IPObj extends Model {
                 ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                 ' WHERE I.interface=' + connection.escape(idinterface) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                 ' ORDER BY I.id';
-            logger.debug(sql);
+            logger().debug(sql);
 
             connection.query(sql, (error, rows) => {
                 if (error)
@@ -617,7 +615,7 @@ export class IPObj extends Model {
                     ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
                     ' WHERE I.interface=' + connection.escape(data.id) + ' AND (I.fwcloud=' + connection.escape(fwcloud) + ' OR I.fwcloud IS NULL)' +
                     ' ORDER BY I.id';
-                //logger.debug("getAllIpobjsInterfacePro -> ", sql);
+                //logger().debug("getAllIpobjsInterfacePro -> ", sql);
                 var _interface = new interface_Data(data);
                 connection.query(sql, (error, rows) => {
                     if (error) return reject(error);
@@ -860,10 +858,10 @@ export class IPObj extends Model {
                     'inner join ipobj O on O.interface= I.id ' +
                     'set H.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
-                logger.debug(sql);
+                logger().debug(sql);
                 connection.query(sql, async (error, result) => {
                     if (error) {
-                        logger.debug(error);
+                        logger().debug(error);
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
@@ -888,10 +886,10 @@ export class IPObj extends Model {
                     'inner join ipobj O on O.interface= I.id ' +
                     'set I.updated_at= CURRENT_TIMESTAMP ' +
                     ' WHERE O.id = ' + connection.escape(id);
-                logger.debug(sql);
+                logger().debug(sql);
                 connection.query(sql, async (error, result) => {
                     if (error) {
-                        logger.debug(error);
+                        logger().debug(error);
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
@@ -936,18 +934,18 @@ export class IPObj extends Model {
      * */
     public static checkIpobjInGroup(ipobj, type, fwcloud, callback) {
 
-        logger.debug("CHECK DELETING FROM GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
+        logger().debug("CHECK DELETING FROM GROUP ipobj:" + ipobj + " Type:" + type + "  fwcloud:" + fwcloud);
         db.get((error, connection) => {
 
             var sql = 'SELECT count(*) as n FROM ' + tableName + ' I ' +
                 ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
                 ' WHERE I.id=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND I.fwcloud=' + connection.escape(fwcloud);
-            logger.debug(sql);
+            logger().debug(sql);
             connection.query(sql, (error, rows) => {
                 if (!error) {
                     if (rows.length > 0) {
                         if (rows[0].n > 0) {
-                            logger.debug("ALERT DELETING ipobj IN GROUP:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " GROUPS");
+                            logger().debug("ALERT DELETING ipobj IN GROUP:" + ipobj + " type: " + type + " fwcloud:" + fwcloud + " --> FOUND IN " + rows[0].n + " GROUPS");
                             callback(null, { "result": true });
                         } else {
                             callback(null, { "result": false });
@@ -955,7 +953,7 @@ export class IPObj extends Model {
                     } else
                         callback(null, { "result": false });
                 } else {
-                    logger.error(error);
+                    logger().error(error);
                     callback(null, { "result": false });
                 }
             });

@@ -27,9 +27,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
 import { FwCloud } from "../fwcloud/FwCloud";
+import { logger } from "../../fonaments/abstract-application";
 
-
-var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'cluster';
 
@@ -148,7 +147,7 @@ export class Cluster extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            logger.debug(clusterData);
+            logger().debug(clusterData);
             connection.query('INSERT INTO ' + tableName + ' SET ?', clusterData, (error, result) => {
                 if (error) {
                     callback(error, null);
@@ -219,11 +218,11 @@ export class Cluster extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            logger.debug("------>>>> DELETING CLUSTER: ", id);
+            logger().debug("------>>>> DELETING CLUSTER: ", id);
             var sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableName + ' T ' +
                 ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
                 ' WHERE T.id = ' + connection.escape(id);
-            logger.debug("SQL DELETE CLUSTER: ", sqlExists);
+            logger().debug("SQL DELETE CLUSTER: ", sqlExists);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from cluster to remove
                 if (row.length > 0) {

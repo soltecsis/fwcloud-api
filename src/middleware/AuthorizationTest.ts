@@ -25,7 +25,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthorizationException } from "../fonaments/exceptions/authorization-exception";
 import * as fs from "fs";
 import * as path from "path";
-import { app } from "../fonaments/abstract-application";
+import { app, logger } from "../fonaments/abstract-application";
 import { RepositoryService } from "../database/repository.service";
 import { User } from "../models/user/User";
 
@@ -66,7 +66,7 @@ export class AuthorizationTest extends Middleware {
                 req.session.user = await (await app().getService<RepositoryService>(RepositoryService.name)).for(User).findOne(session_data.user_id);
 
                 // If we arrive here, then the session is correct.
-                //logger.debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
+                logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
                 return next();
             }
 

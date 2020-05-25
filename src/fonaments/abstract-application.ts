@@ -32,10 +32,13 @@ import { Service } from "./services/service";
 import io from 'socket.io';
 import * as path from "path";
 import { Version } from "../version/version";
-import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
+import { SessionSocketMiddleware } from "../middleware/Session";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { FSHelper } from "../utils/fs-helper";
 import { WebSocketService } from "../sockets/web-socket.service";
+import winston from "winston";
+import { LogServiceProvider } from "../logs/log.provider";
+import { LogService } from "../logs/log.service";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -45,11 +48,17 @@ declare module 'express-serve-static-core' {
 }
 
 let _runningApplication: AbstractApplication = null;
-
 export function app<T extends AbstractApplication>(): T {
   return <T>_runningApplication;
 }
 
+export function logger(): winston.Logger {
+  if (app()) {
+    return app().logger;
+  }
+
+  return null;
+}
 
 export abstract class AbstractApplication {
   static VERSION_FILENAME = 'version.json';
@@ -60,6 +69,7 @@ export abstract class AbstractApplication {
   protected _path: string;
   protected _services: ServiceContainer;
   protected _version: Version;
+  protected _logger: winston.Logger;
 
   protected constructor(path: string = process.cwd()) {
     try {
@@ -93,6 +103,10 @@ export abstract class AbstractApplication {
     return this._version;
   }
 
+  get logger(): winston.Logger {
+    return this._logger;
+  }
+
   public async getService<T extends Service>(name: string): Promise<T> {
     return this._services.get(name);
   }
@@ -111,21 +125,18 @@ export abstract class AbstractApplication {
 
   public async bootstrap(): Promise<AbstractApplication> {
     this.generateDirectories();
+    
     this.startServiceContainer();
     this.registerProviders();
     await this.bootsrapServices();
+    
+    this._logger = (await this.getService<LogService>(LogService.name)).logger;
+
     this._version = await this.loadVersion();
+    
     this.registerMiddlewares('before');
     await this.registerRoutes();
     this.registerMiddlewares('after');
-
-    if (this._config.get('env') !== 'test') {
-      console.log('\n\n');
-      console.log(`FwCloud v${this.version.tag} (${this.config.get('env')})`);
-      console.log('Schema version: ' + this.version.schema);
-      console.log('Loaded application from ' + this._path);
-      console.log('\n\n');
-    }
 
     return this;
   }
@@ -142,8 +153,9 @@ export abstract class AbstractApplication {
   }
 
   protected registerProviders(): void {
-    for (let i = 0; i < this.providers().length; i++) {
-      const provider: ServiceProvider = new (this.providers()[i])()
+    const providers: Array<any> = [LogServiceProvider].concat(this.providers());
+    for (let i = 0; i < providers.length; i++) {
+      const provider: ServiceProvider = new (providers[i])()
       provider.register(this._services);
     }
   }

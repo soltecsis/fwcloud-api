@@ -34,13 +34,12 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
-import { app } from "../../fonaments/abstract-application";
+import { app, logger } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
 const fwcError = require('../../utils/error_table');
-var logger = require('log4js').getLogger("app");
 
 var tableName: string = "policy_r";
 
@@ -274,7 +273,7 @@ export class PolicyRule extends Model {
 
             connection.query(sql, (error, row) => {
                 if (error) {
-                    logger.debug(error);
+                    logger().debug(error);
                     callback(error, null);
                 } else
                     callback(null, row);
@@ -347,7 +346,7 @@ export class PolicyRule extends Model {
                 ' FROM ' + tableName + '  WHERE rule_order ' + nextRuleStr + connection.escape(order) + ' AND type= ' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall) + ' LIMIT 1';
             connection.query(sql, (error, row) => {
                 if (error) {
-                    logger.debug(error);
+                    logger().debug(error);
                     callback(error, null);
                 } else
                     callback(null, row);
@@ -366,7 +365,7 @@ export class PolicyRule extends Model {
                 whereGroup = ' AND group=' + connection.escape(idgroup);
             }
             var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' AND firewall=' + connection.escape(idfirewall) + whereGroup;
-            logger.debug(sql);
+            logger().debug(sql);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);

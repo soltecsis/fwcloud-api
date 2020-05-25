@@ -8,7 +8,7 @@ export type LogServiceConfig = {
 }
 
 export type Transport = winston.transports.ConsoleTransportInstance | winston.transports.FileTransportInstance;
-export type TransportCollection = {[name: string]: Transport}
+export type TransportCollection = { [name: string]: Transport }
 export type TransportName = 'file' | 'console';
 
 
@@ -28,14 +28,24 @@ export class LogService extends Service {
         this._transports = {
             file: new winston.transports.File({
                 filename: path.join(this._config.directory, 'fwcloud.log'),
-                format: winston.format.json()
+                format: winston.format.combine(
+                    winston.format.timestamp(),
+                    winston.format.align(),
+                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
+                )
             }),
             console: new winston.transports.Console({
-                format: winston.format.simple()
+                format: winston.format.combine(
+                    winston.format.timestamp(),
+                    winston.format.align(),
+                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
+                )
             })
         };
-        
-        this._logger = winston.createLogger({});
+
+        this._logger = winston.createLogger({
+            level: 'debug'
+        });
 
         return this;
     }

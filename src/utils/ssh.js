@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-var logger = require('log4js').getLogger("app");
+const logger = require('../fonaments/abstract-application').logger;
 
 //create object
 var sshTools = {};
@@ -32,7 +32,7 @@ sshTools.uploadFile = (SSHconn, srcFile, dstFile) => {
   var Client = require('ssh2').Client;
 	var conn = new Client();
 
-	logger.debug("SSH Upload File: ", srcFile, dstFile);
+	logger().debug("SSH Upload File: ", srcFile, dstFile);
 
 	return new Promise((resolve,reject) => { 
 		conn.on('ready', () => {

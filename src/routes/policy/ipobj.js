@@ -28,9 +28,8 @@ import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
-
-var logger = require('log4js').getLogger("app");
 var utilsModel = require("../../utils/utils.js");
 
 
@@ -106,7 +105,7 @@ async (req, res) => {
 		rule: rule
 	};
 
-	logger.debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+	logger().debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
 	var policy_r__ipobjData = {
 		rule: new_rule,

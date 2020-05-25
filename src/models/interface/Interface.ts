@@ -22,21 +22,16 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-var logger = require('log4js').getLogger("app");
-
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import modelEventService from "../ModelEventService";
-import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
-import { app } from "../../fonaments/abstract-application";
+import { app, logger } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
-import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
-import { string } from "joi";
-import { FwCloudError } from "../../fonaments/exceptions/error";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -151,7 +146,7 @@ export class Interface extends Model {
 				if (error)
 					callback(error, null);
 				else {
-					//logger.debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
+					//logger().debug("-----> BUSCANDO INTERFACES FIREWALL: ", idfirewall, " CLOUD: ", fwcloud);
 					//Bucle por interfaces
 					Promise.all(rows.map(data => IPObj.getAllIpobjsInterfacePro(data)))
 						.then(data => callback(null, data))
@@ -203,7 +198,7 @@ export class Interface extends Model {
 						Promise.all(rows.map(data => this.getInterfaceFullProData(data)))
 							.then(dataI => {
 								//dataI es una Inteface y sus ipobjs
-								//logger.debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
+								//logger().debug("-------------------------> FINAL INTERFACES UNDER HOST : ");
 								resolve(dataI);
 							})
 							.catch(e => {
@@ -233,10 +228,10 @@ export class Interface extends Model {
 				' left join cluster C on C.id=F.cluster ' +
 				' WHERE I.id = ' + connection.escape(id);
 
-			//logger.debug("INTERFACE SQL: " + sql);
+			//logger().debug("INTERFACE SQL: " + sql);
 			connection.query(sql, (error, row) => {
 				if (error) {
-					logger.debug("ERROR getinterface: ", error, "\n", sql);
+					logger().debug("ERROR getinterface: ", error, "\n", sql);
 					callback(error, null);
 				} else
 					callback(null, row);
@@ -296,19 +291,19 @@ export class Interface extends Model {
 					' left join firewall F on F.id=I.firewall ' +
 					' WHERE I.id = ' + connection.escape(id);
 				//' AND (I.firewall=' + connection.escape(idfirewall) + ' OR I.firewall is NULL)';
-				//logger.debug("getInterfaceFullPro ->", sql);
+				//logger().debug("getInterfaceFullPro ->", sql);
 				connection.query(sql, (error, row) => {
 					if (error)
 						reject(error);
 					else {
 						//GET ALL IPOBJ UNDER INTERFACE
-						//logger.debug("INTERFACE -> " , row[0]);
+						//logger().debug("INTERFACE -> " , row[0]);
 						IPObj.getAllIpobjsInterfacePro(row[0])
 							.then((dataI: any) => {
 								Promise.all(dataI.ipobjs.map(data => IPObj.getIpobjPro(data)))
 									.then(dataO => {
 										//dataI.ipobjs = dataO;
-										//logger.debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
+										//logger().debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
 										//resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
 										var _interface = new data_policy_position_ipobjs(row[0], 0, 'I');
 										_interface.ipobjs = dataO;
@@ -536,7 +531,7 @@ export class Interface extends Model {
 				'comment = ' + connection.escape(interfaceData.comment) + ', ' +
 				'mac = ' + connection.escape(interfaceData.mac) + ' ' +
 				' WHERE id = ' + interfaceData.id;
-			logger.debug(sql);
+			logger().debug(sql);
 			connection.query(sql, async (error, result) => {
 				if (error) {
 					callback(error, null);
@@ -637,7 +632,7 @@ export class Interface extends Model {
 						var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id) + ' AND interface_type=' + connection.escape(type) + ' AND firewall=' + connection.escape(idfirewall);
 						connection.query(sql, (error, result) => {
 							if (error) {
-								logger.debug(error);
+								logger().debug(error);
 								callback(error, null);
 							} else {
 								if (result.affectedRows > 0)

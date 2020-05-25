@@ -26,19 +26,36 @@ import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { ErrorMiddleware } from "../fonaments/http/middleware/Middleware";
 import { CorsException } from "./exceptions/cors.exception";
 import fwcError from '../utils/error_table';
+import { LogService } from "../logs/log.service";
 
 export class ErrorResponse extends ErrorMiddleware {
-    public handle(error: Error, req: Request, res: Response, next: NextFunction) {
+    public async handle(error: Error, req: Request, res: Response, next: NextFunction) {
+        const exceptionName: string = error.constructor ? error.constructor.name : 'Error';
+        (await this.app.getService<LogService>(LogService.name)).disableGeneralTransport('console');
+        
+        if(error.stack) {
+            const stackLine: Array<string> = error.stack.split('\n');
+            
+            for(let i = 0; i < stackLine.length; i++) {
+                this.app.logger.error(stackLine[i]);
+            }
+        } else {
+            this.app.logger.error(`${exceptionName}: ${error.message}`);
+        }
         
         //TODO
         if (error instanceof CorsException) {
             res.status(400).send(fwcError.NOT_ALLOWED_CORS);
+            (await this.app.getService<LogService>(LogService.name)).enableGeneralTransport('console');
             return;
         }
 
         const status: number = error instanceof HttpException ? error.status : 500;
         
-        return ResponseBuilder.buildResponse().status(status).error(error).send(res);
+        ResponseBuilder.buildResponse().status(status).error(error).send(res);
+        (await this.app.getService<LogService>(LogService.name)).enableGeneralTransport('console');
+
+        throw error;
     }
 
 }

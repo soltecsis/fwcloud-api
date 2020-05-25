@@ -25,9 +25,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMan
 import db from '../../database/database-manager';
 import * as path from "path";
 
-var logger = require('log4js').getLogger("app");
 import { User } from '../../models/user/User';
-import { app } from "../../fonaments/abstract-application";
+import { app, logger } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { Ca } from "../vpn/pki/Ca";
 import { Cluster } from "../firewall/Cluster";
@@ -229,8 +228,7 @@ export class FwCloud extends Model {
                     if (error)
                         reject(false);
                     else if (row && row.length > 0) {
-                        //logger.debug(row[0]);
-                        logger.debug("IDUSER: " + iduser);
+                        logger().debug("IDUSER: " + iduser);
                         if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser)) {
                             //Access OK, LOCKED by USER
                             resolve({ "access": true, "locked": true, "mylock": true, "locked_at": row[0].locked_at, "locked_by": row[0].locked_by });
@@ -276,7 +274,7 @@ export class FwCloud extends Model {
                             var row = rows[i];
                             var sqlupdate = 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
                             connection.query(sqlupdate, (error, result) => {
-                                logger.info("-----> UNLOCK FWCLOUD: " + row.id + " BY TIMEOT INACTIVITY of " + row.dif + "  Min LAST UPDATE: " + row.updated_at +
+                                logger().info("-----> UNLOCK FWCLOUD: " + row.id + " BY TIMEOT INACTIVITY of " + row.dif + "  Min LAST UPDATE: " + row.updated_at +
                                     "  LAST LOCK: " + row.locked_at + "  BY: " + row.locked_by);
                             });
                         }
@@ -418,7 +416,7 @@ export class FwCloud extends Model {
                         var sqlExists = 'SELECT C.id FROM ' + tableName + ' C ' +
                             ' INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=' + connection.escape(fwcloudData.iduser) +
                             ' WHERE C.id = ' + connection.escape(fwcloudData.fwcloud);
-                        logger.debug(sqlExists);
+                        logger().debug(sqlExists);
                         connection.query(sqlExists, (error, row) => {
                             if (row && row.length > 0) {
 
@@ -426,7 +424,7 @@ export class FwCloud extends Model {
                                     'locked_at = CURRENT_TIMESTAMP ,' +
                                     'locked_by = ' + connection.escape(fwcloudData.iduser) + ' ' +
                                     ' WHERE id = ' + fwcloudData.fwcloud;
-                                logger.debug(sql);
+                                logger().debug(sql);
                                 connection.query(sql, (error, result) => {
                                     if (error) {
                                         reject(error);

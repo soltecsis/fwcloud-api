@@ -26,10 +26,8 @@ import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, 
 import modelEventService from "../ModelEventService";
 import { IPObj } from "../ipobj/IPObj";
 import { RepositoryService } from "../../database/repository.service";
-import { app } from "../../fonaments/abstract-application";
+import { app, logger } from "../../fonaments/abstract-application";
 import { Interface } from "./Interface";
-
-var logger = require('log4js').getLogger("app");
 
 
 const tableName: string = 'interface__ipobj';
@@ -209,10 +207,10 @@ export class InterfaceIPObj extends Model {
 					'inner join interface__ipobj I on I.ipobj=H.id ' +
 					'set H.updated_at= CURRENT_TIMESTAMP ' +
 					' WHERE I.interface = ' + connection.escape(_interface);
-				logger.debug(sql);
+				logger().debug(sql);
 				connection.query(sql, async (error, result) => {
 					if (error) {
-						logger.debug(error);
+						logger().debug(error);
 						reject(error);
 					} else {
 						if (result.affectedRows > 0) {

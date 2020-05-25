@@ -26,7 +26,7 @@ import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
 import modelEventService from "../ModelEventService";
 import { PolicyPosition } from "./PolicyPosition";
 import { PolicyRule } from "./PolicyRule";
-var logger = require('log4js').getLogger("app");
+import { logger } from "../../fonaments/abstract-application";
 
 const tableName: string = 'policy_type';
 
@@ -144,7 +144,7 @@ export class PolicyType extends Model {
                     ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
                     ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
                 ' WHERE type = ' + policy_typeData.type;
-                logger.debug(sql);
+                logger().debug(sql);
             connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);

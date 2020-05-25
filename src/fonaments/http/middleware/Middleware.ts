@@ -51,14 +51,15 @@ export abstract class Middleware {
 export abstract class ErrorMiddleware {
     protected app: Application;
 
-    public abstract handle(error: any, req: Request, res: Response, next: NextFunction): void;
+    public async abstract handle(error: any, req: Request, res: Response, next: NextFunction): Promise<void>;
 
-    private safeHandler(error: any, req: Request, res: Response, next: NextFunction) {
+    private async safeHandler(error: any, req: Request, res: Response, next: NextFunction) {
         try {
-            const result = this.handle(error, req, res, next);
+            await this.handle(error, req, res, next);
         } catch (e) {
-            console.error(e);
-            throw e;
+            if (this.app.config.get('env') !== 'test') {
+                console.error(e.stack);
+            }
         }
     }
 

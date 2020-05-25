@@ -25,17 +25,10 @@
 var utilsModel = {};
 //Export the object
 module.exports = utilsModel;
-/**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
 
 import db from '../database/database-manager';
-var logger = require('log4js').getLogger("app");
 import { Firewall } from '../models/firewall/Firewall';
+import { logger } from '../fonaments/abstract-application';
 const config = require('../config/config');
 var crypto = require('crypto');
 const fs = require('fs');
@@ -132,16 +125,16 @@ utilsModel.decrypt = (text) => {
 utilsModel.decryptDataUserPass = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
-			logger.debug("DENTRO de decryptDataUserPass");
+			logger().debug("DENTRO de decryptDataUserPass");
 			if (data.install_user !== null) {
-				logger.debug("DECRYPT USER: ", data.install_user);
+				logger().debug("DECRYPT USER: ", data.install_user);
 				var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 				var decUser = decipher.update(data.install_user, 'hex', 'utf8');
 				decUser += decipher.final('utf8');
 				data.install_user = decUser;
 			}
 			if (data.install_pass !== null) {
-				logger.debug("DECRYPT PASS: ", data.install_pass);
+				logger().debug("DECRYPT PASS: ", data.install_pass);
 				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');

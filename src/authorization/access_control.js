@@ -28,9 +28,9 @@ export default accessCtrl;
 
 import { User } from '../models/user/User';
 import { Firewall } from '../models/firewall/Firewall';
-import { AuthorizationException } from '../fonaments/exceptions/authorization-exception';
+import { app, logger } from '../fonaments/abstract-application';
 const fwcError = require('../utils/error_table');
-const logger = require('log4js').getLogger("app");
+
 
 
 // Access control for fwclouds and firewalls.
@@ -46,10 +46,10 @@ accessCtrl.check = async (req, res, next) => {
 		(req.method === 'GET' && req.url === '/stream'))
 		return next();
 
-	logger.debug("---------------- RECEIVED HEADERS-----------------");
-	logger.debug("\n", req.headers);
-	logger.debug("--------------------------------------------------");
-	logger.debug("METHOD: " + req.method + "   PATHNAME: " + req.url);
+	logger().debug("---------------- RECEIVED HEADERS-----------------");
+	logger().debug("\n", req.headers);
+	logger().debug("--------------------------------------------------");
+	logger().debug("METHOD: " + req.method + "   PATHNAME: " + req.url);
 
 
 	// Check access to customer and user creation functionality.

@@ -12,7 +12,6 @@ import * as fs from "fs";
 import { Installer } from "../../../../src/models/firewall/installer";
 import sinon from "sinon";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { Progress } from "../../../../src/fonaments/http/progress/progress";
 import sshTools from '../../../../src/utils/ssh';
 
 describe(describeName('Firewall Service Unit Tests'), () => {

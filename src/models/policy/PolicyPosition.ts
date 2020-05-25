@@ -22,7 +22,6 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-var logger = require('log4js').getLogger("app");
 
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { Interface } from '../../models/interface/Interface';
@@ -40,6 +39,7 @@ import { PolicyRuleToOpenVPNPrefix } from "./PolicyRuleToOpenVPNPrefix";
 import { PolicyRuleToIPObj } from "./PolicyRuleToIPObj";
 import { PolicyRuleToOpenVPN } from "./PolicyRuleToOpenVPN";
 import { IPObjTypeToPolicyPosition } from "../ipobj/IPObjTypeToPolicyPosition";
+import { logger } from "../../fonaments/abstract-application";
 var data_policy_positions = require('../../models/data/data_policy_positions');
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
@@ -372,7 +372,7 @@ export class PolicyPosition extends Model {
                     'position_order = ' + connection.escape(policy_positionData.position_order) + ', ' +
                     'content = ' + connection.escape(policy_positionData.content) + ' ' +
                     ' WHERE id = ' + policy_positionData.id;
-            logger.debug(sql);
+            logger().debug(sql);
             connection.query(sql, (error, result) => {
                 if (error) {
                     callback(error, null);

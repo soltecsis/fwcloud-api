@@ -22,12 +22,10 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import modelEventService from "../ModelEventService";
 import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
 import { IPObjType } from "./IPObjType";
 import { PolicyPosition } from "../policy/PolicyPosition";
-
-var logger = require('log4js').getLogger("app");
+import { logger } from "../../fonaments/abstract-application";
 
 const tableName: string = 'ipobj_type__policy_position';
 
@@ -79,7 +77,7 @@ export class IPObjTypeToPolicyPosition extends Model {
         db.get((error, connection) => {
             if (error) callback(error, null);
             var sql = 'SELECT type, position, allowed FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
-            logger.debug(sql);
+            logger().debug(sql);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
