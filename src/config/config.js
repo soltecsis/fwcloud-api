@@ -34,6 +34,13 @@ const config = convict({
     env: 'NODE_ENV'
   },
 
+  debug: {
+    doc: 'Enable debug mode. It will log debug messages',
+    format: Boolean,
+    default: false,
+    env: 'NODE_DEBUG'
+  },
+
   maintenance_mode: {
     doc: 'Application maintenance mode',
     format: Boolean,
@@ -236,24 +243,6 @@ const config = convict({
       env: 'TYPEORM_PASSWORD',
       sensitive: true
     },
-    connectionLimit: {
-      doc: 'Database maximun connections.',
-      format: 'int',
-      default: 100,
-      env: 'TYPEORM_CONNECTION_LIMIT'
-    },
-    mode: {
-      doc: 'Database mode.',
-      format: String,
-      default: 'mode_production',
-      env: 'TYPEORM_MODE'
-    },
-    commitMode: {
-      doc: 'Database commint mode.',
-      format: 'int',
-      default: 1,
-      env: 'TYPEORM_COMMIT_MODE'
-    },
     migrations: {
       doc: 'Database migration file pattern',
       format: Array,
@@ -265,6 +254,12 @@ const config = convict({
       format: String,
       default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
+    },
+    debug: {
+      doc: 'Log the queries if debug mode is enabled',
+      format: Boolean,
+      default: false,
+      env: 'TYPEORM_DEBUG'
     }
   },
 
