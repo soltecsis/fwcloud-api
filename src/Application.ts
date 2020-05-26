@@ -77,6 +77,10 @@ export class Application extends AbstractApplication {
         
         (await this.getService<LogService>(LogService.name)).enableGeneralTransport('console');
         this.logger.info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+
+        if (this._config.get('env') !== 'dev') {
+            (await this.getService<LogService>(LogService.name)).disableGeneralTransport('console');
+        }
         
         return this;
     }

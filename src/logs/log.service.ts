@@ -2,9 +2,14 @@ import { Service } from "../fonaments/services/service";
 import { FSHelper } from "../utils/fs-helper";
 import * as winston from "winston";
 import * as path from "path";
+import { Request, Response } from "express";
+import moment from "moment";
 
 export type LogServiceConfig = {
-    directory: string
+    level: string,
+    directory: string,
+    maxFiles: number,
+    maxSize: number
 }
 
 export type Transport = winston.transports.ConsoleTransportInstance | winston.transports.FileTransportInstance;
@@ -32,7 +37,10 @@ export class LogService extends Service {
                     winston.format.timestamp(),
                     winston.format.align(),
                     winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
-                )
+                ),
+                maxsize: this._config.maxSize,
+                maxFiles: this._config.maxFiles,
+                tailable: true
             }),
             console: new winston.transports.Console({
                 format: winston.format.combine(
@@ -44,7 +52,8 @@ export class LogService extends Service {
         };
 
         this._logger = winston.createLogger({
-            level: 'debug'
+            level: this._config.level,
+            levels: winston.config.npm.levels,
         });
 
         return this;

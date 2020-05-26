@@ -34,13 +34,6 @@ const config = convict({
     env: 'NODE_ENV'
   },
 
-  debug: {
-    doc: 'Enable debug mode. It will log debug messages',
-    format: Boolean,
-    default: false,
-    env: 'NODE_DEBUG'
-  },
-
   maintenance_mode: {
     doc: 'Application maintenance mode',
     format: Boolean,
@@ -342,6 +335,7 @@ const config = convict({
       default: './lib/easy-rsa/easyrsa3/easyrsa',
     },
   },
+  
   // Backup configuration.
   backup: {
     data_dir: {
@@ -371,6 +365,7 @@ const config = convict({
       default: 30
     }
   },
+  
   // Snapshot configuration.
   snapshot: {
     data_dir: {
@@ -380,12 +375,32 @@ const config = convict({
       env: 'SNAPSHOT_DATA_DIR'
     },
   },
+
+  // Log configuration.
   log: {
+    level: {
+      doc: 'Log level',
+      format: ['error', 'warn', 'info', 'verbose', 'debug', 'silly'],
+      default: 'info',
+      env: 'LOGS_LEVEL'
+    },
     directory: {
       doc: 'Directory where the logs are stored',
       format: String,
       default: './logs',
       env: 'LOGS_DIRECTORY'
+    },
+    maxFiles: {
+      doc: 'Maximum number of logs to keep',
+      format: Number,
+      default: 2,
+      env: 'LOGS_MAXFILES'
+    },
+    maxSize: {
+      doc: 'Maximum size of the file after which it will rotate',
+      format: Number,
+      default: 1000000000,
+      env: 'LOGS_MAXSIZE'
     }
   }
 });

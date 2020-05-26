@@ -170,7 +170,7 @@ export class DatabaseService extends Service {
     }
 
     protected getDefaultConnectionConfiguration(): ConnectionOptions {
-        const loggerOptions: LoggerOptions = this._app.config.get('debug') && this._config.debug ? ["error", "query"] : ["error"];
+        const loggerOptions: ("error" | "query")[] = this._app.config.get('db.debug') === true ? ["error", "query"] : ["error"];
 
         return {
             type: 'mysql',
