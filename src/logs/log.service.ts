@@ -2,7 +2,6 @@ import { Service } from "../fonaments/services/service";
 import { FSHelper } from "../utils/fs-helper";
 import * as winston from "winston";
 import * as path from "path";
-import { Request, Response } from "express";
 import moment from "moment";
 
 export type LogServiceConfig = {
@@ -12,6 +11,8 @@ export type LogServiceConfig = {
     maxSize: number
 }
 
+export type LoggerType = 'default' | 'query' | 'http';
+
 export type Transport = winston.transports.ConsoleTransportInstance | winston.transports.FileTransportInstance;
 export type TransportCollection = { [name: string]: Transport }
 export type TransportName = 'file' | 'console';
@@ -19,7 +20,8 @@ export type TransportName = 'file' | 'console';
 
 export class LogService extends Service {
     protected _config: LogServiceConfig;
-    protected _logger: winston.Logger;
+    
+    protected _loggers: Partial<{default: winston.Logger, http: winston.Logger, query: winston.Logger}>;
 
     protected _transports: TransportCollection = {};
 
@@ -30,44 +32,92 @@ export class LogService extends Service {
             FSHelper.mkdirSync(this._config.directory);
         }
 
-        this._transports = {
-            file: new winston.transports.File({
-                filename: path.join(this._config.directory, 'fwcloud.log'),
-                format: winston.format.combine(
-                    winston.format.timestamp(),
-                    winston.format.align(),
-                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
-                ),
-                maxsize: this._config.maxSize,
-                maxFiles: this._config.maxFiles,
-                tailable: true
+        this._loggers = {
+            default: winston.createLogger({
+                level: this._config.level,
+                levels: winston.config.npm.levels,
+                transports: this.getDefaultTransports()
             }),
-            console: new winston.transports.Console({
+            /*http : winston.createLogger({
+                level: 'log',
+                levels: {log: 0},
+                transports: this.getHttpTransports()
+            }),*/
+            query: winston.createLogger({
+                level: 'query',
+                levels: {query: 0},
+                transports: this.getQueryTransports()
+            })
+        };
+
+        return this;
+    }
+
+    public getLogger(type: LoggerType = 'default'): winston.Logger {
+        return this._loggers[type];
+    }
+
+    protected getDefaultTransports(): Array<Transport> {
+        const transports: Array<Transport> = [];
+
+        transports.push(new winston.transports.File({
+            filename: path.join(this._config.directory, 'fwcloud.log'),
+            format: winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.align(),
+                winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
+            ),
+            maxsize: this._config.maxSize,
+            maxFiles: this._config.maxFiles,
+            tailable: true
+        }));
+
+        if (this._app.config.get('env') === 'dev') {
+            transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp(),
                     winston.format.align(),
                     winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
                 )
-            })
-        };
+            }));
+        }
 
-        this._logger = winston.createLogger({
-            level: this._config.level,
-            levels: winston.config.npm.levels,
-        });
-
-        return this;
+        return transports;
     }
 
-    get logger(): winston.Logger {
-        return this._logger;
+    protected getQueryTransports(): Array<Transport> {
+        const transports: Array<Transport> = [];
+        transports.push(new winston.transports.File({
+            filename: path.join(this._config.directory, 'query.log'),
+            format: winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.align(),
+                winston.format.printf((info) => `[${info.timestamp}]${info.message}`)
+            ),
+            maxsize: this._config.maxSize,
+            maxFiles: this._config.maxFiles,
+            tailable: true
+        }));
+
+        return transports;
     }
 
-    public enableGeneralTransport(transport: TransportName) {
-        this._logger.add(this._transports[transport]);
-    }
+    protected getHttpTransports(): Array<Transport> {
+        const transports: Array<Transport> = [];
+        transports.push(new winston.transports.File({
+            filename: path.join(this._config.directory, 'http.log'),
+            format: winston.format.combine(
+                winston.format.printf((info) => {
+                    const res = JSON.parse(info.message);
+                    
+                    return `${res.ip} - ${res.user} [${moment(info.timestamp)}] "${res.method} ${res.url} HTTP/${res.version} ${res.status} ${res.length}`
+                })
+            ),
+            maxsize: this._config.maxSize,
+            maxFiles: this._config.maxFiles,
+            tailable: true
+        }));
 
-    public disableGeneralTransport(transport: TransportName) {
-        this._logger.remove(this._transports[transport]);
+        return transports;
     }
 }

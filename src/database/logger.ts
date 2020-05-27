@@ -1,5 +1,4 @@
 import { FileLogger, QueryRunner } from "typeorm";
-import moment from "moment";
 import { logger } from "../fonaments/abstract-application";
 import { LoggerOptions } from "typeorm/logger/LoggerOptions";
 
@@ -25,7 +24,7 @@ export class DatabaseLogger extends FileLogger {
         strings = Array.isArray(strings) ? strings : [strings];
         
         for(let i = 0; i < strings.length; i++) {
-            logger().debug(strings[i]);
+            logger('query').log('log', strings[i]);
         }
     }
 
@@ -33,6 +32,7 @@ export class DatabaseLogger extends FileLogger {
         strings = Array.isArray(strings) ? strings : [strings];
         
         for(let i = 0; i < strings.length; i++) {
+            logger('query').log('query', strings[i]);
             logger().error(strings[i]);
         }
     }

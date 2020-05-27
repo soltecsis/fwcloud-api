@@ -52,8 +52,6 @@ import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
-import { LogService } from './logs/log.service';
-import { logger } from "./fonaments/abstract-application"
 
 export class Application extends AbstractApplication {
     public static async run(): Promise<Application> {
@@ -72,16 +70,9 @@ export class Application extends AbstractApplication {
         await super.bootstrap();
         await this.startDatabaseService();
 
-        (await this.getService<LogService>(LogService.name)).enableGeneralTransport('file');
-        this.logger.info(`------- Starting application -------`);
-        
-        (await this.getService<LogService>(LogService.name)).enableGeneralTransport('console');
-        this.logger.info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+        this.logger().info(`------- Starting application -------`);
+        this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
 
-        if (this._config.get('env') !== 'dev') {
-            (await this.getService<LogService>(LogService.name)).disableGeneralTransport('console');
-        }
-        
         return this;
     }
 

@@ -2,7 +2,6 @@ import * as uuid from "uuid";
 import { SocketMessage } from "../messages/socket-message";
 import { EventEmitter } from "events";
 import { Request } from "express";
-import io from 'socket.io';
 import { app } from "../../fonaments/abstract-application";
 import { WebSocketService } from "../web-socket.service";
 
@@ -22,7 +21,6 @@ export class Channel extends EventEmitter {
 
     public message(payload: object): boolean {
         const message = new SocketMessage(payload, this._id);
-        console.log(message);
         return this._listener.emit(this._id, message);
     }
 

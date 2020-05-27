@@ -38,7 +38,7 @@ import { FSHelper } from "../utils/fs-helper";
 import { WebSocketService } from "../sockets/web-socket.service";
 import winston from "winston";
 import { LogServiceProvider } from "../logs/log.provider";
-import { LogService } from "../logs/log.service";
+import { LogService, LoggerType } from "../logs/log.service";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -52,9 +52,9 @@ export function app<T extends AbstractApplication>(): T {
   return <T>_runningApplication;
 }
 
-export function logger(): winston.Logger {
+export function logger(type: LoggerType = 'default'): winston.Logger {
   if (app()) {
-    return app().logger;
+    return app().logger(type);
   }
 
   return null;
@@ -69,7 +69,7 @@ export abstract class AbstractApplication {
   protected _path: string;
   protected _services: ServiceContainer;
   protected _version: Version;
-  protected _logger: winston.Logger;
+  protected _logService: LogService;
 
   protected constructor(path: string = process.cwd()) {
     try {
@@ -103,8 +103,8 @@ export abstract class AbstractApplication {
     return this._version;
   }
 
-  get logger(): winston.Logger {
-    return this._logger;
+  logger(type: LoggerType = 'default'): winston.Logger {
+    return this._logService.getLogger(type);
   }
 
   public async getService<T extends Service>(name: string): Promise<T> {
@@ -130,7 +130,7 @@ export abstract class AbstractApplication {
     this.registerProviders();
     await this.bootsrapServices();
     
-    this._logger = (await this.getService<LogService>(LogService.name)).logger;
+    this._logService = await this.getService<LogService>(LogService.name);
 
     this._version = await this.loadVersion();
     

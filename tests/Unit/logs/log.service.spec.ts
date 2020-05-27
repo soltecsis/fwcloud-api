@@ -29,28 +29,7 @@ describe(describeName('LogService Unit Tests'), () => {
         it('should instance the logger', async () => {
             const _service: LogService = await LogService.make(app);
 
-            expect(_service.logger).not.to.be.undefined;
-        });
-    });
-
-    describe('enableTransport()', () => {
-        beforeEach(async() => {
-            service.disableGeneralTransport('file');
-            service.disableGeneralTransport('console');
-        });
-        
-        it('should enable the transport', () => {
-            service.enableGeneralTransport('file');
-
-            expect(service.logger.transports).to.have.length(1);
-            expect(service.logger.transports[0]).to.be.instanceOf(winston.transports.File);
-        });
-
-        it('should disable the transport', () => {
-            service.enableGeneralTransport('file');
-            service.disableGeneralTransport('file');
-
-            expect(service.logger.transports).to.have.length(0);
+            expect(_service.getLogger()).not.to.be.undefined;
         });
     });
 });
