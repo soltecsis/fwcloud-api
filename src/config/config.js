@@ -421,7 +421,35 @@ const config = convict({
       default: './DATA/EXPORTS/uploads',
       env: 'EXPORTER_UPLOAD_DIR'
     }
-  }    
+  },
+  
+  // Log configuration.
+  log: {
+    level: {
+      doc: 'Log level',
+      format: ['error', 'warn', 'info', 'verbose', 'debug', 'silly'],
+      default: 'info',
+      env: 'LOGS_LEVEL'
+    },
+    directory: {
+      doc: 'Directory where the logs are stored',
+      format: String,
+      default: './logs',
+      env: 'LOGS_DIRECTORY'
+    },
+    maxFiles: {
+      doc: 'Maximum number of logs to keep',
+      format: Number,
+      default: 2,
+      env: 'LOGS_MAXFILES'
+    },
+    maxSize: {
+      doc: 'Maximum size of the file after which it will rotate',
+      format: Number,
+      default: 1000000000,
+      env: 'LOGS_MAXSIZE'
+    }
+  }
 });
 
 

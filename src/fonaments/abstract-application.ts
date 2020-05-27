@@ -32,11 +32,12 @@ import { Service } from "./services/service";
 import io from 'socket.io';
 import * as path from "path";
 import { Version } from "../version/version";
-import { SessionMiddleware, SessionSocketMiddleware } from "../middleware/Session";
+import { SessionSocketMiddleware } from "../middleware/Session";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { FSHelper } from "../utils/fs-helper";
 import { DatabaseService } from "../database/database.service";
 import { WebSocketService } from "../sockets/web-socket.service";
+import { LogServiceProvider } from "../logs/log.provider";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -142,8 +143,9 @@ export abstract class AbstractApplication {
   }
 
   protected registerProviders(): void {
-    for (let i = 0; i < this.providers().length; i++) {
-      const provider: ServiceProvider = new (this.providers()[i])()
+    const providers: Array<any> = [LogServiceProvider].concat(this.providers());
+    for (let i = 0; i < providers.length; i++) {
+      const provider: ServiceProvider = new (providers[i])()
       provider.register(this._services);
     }
   }
