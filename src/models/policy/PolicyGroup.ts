@@ -24,7 +24,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, ManyToOne, JoinColumn, OneToMany, BeforeRemove } from 'typeorm';
 import db from '../../database/database-manager';
 
-import Logger from 'log4js';
 import Model from '../Model';
 import modelEventService from '../ModelEventService';
 import { PolicyRule } from './PolicyRule';
