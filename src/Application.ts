@@ -61,8 +61,6 @@ import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
 
 export class Application extends AbstractApplication {
-    private _logger: Logger;
-
     public static async run(path?: string): Promise<Application> {
         try {
             const app: Application = new Application(path);
@@ -75,21 +73,14 @@ export class Application extends AbstractApplication {
         }
     }
 
-    get logger() {
-        return this._logger;
-    }
-
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
-        this._logger = await this.registerLogger();
         await this.startDatabaseService()
         return this;
     }
 
     public async close(): Promise<void> {
-        //log4js.shutdown(async () => {
         await super.close();
-        //});
     }
 
     protected providers(): Array<typeof ServiceProvider> {
@@ -130,18 +121,6 @@ export class Application extends AbstractApplication {
             Throws404,
             ErrorResponse
         ]
-    }
-
-    private async registerLogger(): Promise<Logger> {
-        await log4js_extend(log4js, {
-            path: this._path,
-            format: "[@file:@line]"
-        });
-
-        this._express.use(log4js.connectLogger(log4js.getLogger("http"), { level: 'auto' }));
-        log4js.configure('./config/log4js_configuration.json');
-
-        return log4js.getLogger('app');
     }
 
     protected async registerRoutes() {

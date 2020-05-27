@@ -44,8 +44,8 @@ export class LogService extends Service {
                 transports: this.getHttpTransports()
             }),*/
             query: winston.createLogger({
-                level: 'query',
-                levels: {query: 0},
+                level: this._config.level,
+                levels: winston.config.npm.levels,
                 transports: this.getQueryTransports()
             })
         };
@@ -76,8 +76,7 @@ export class LogService extends Service {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp(),
-                    winston.format.align(),
-                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
+                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}: ${info.message}`)
                 )
             }));
         }
@@ -98,6 +97,15 @@ export class LogService extends Service {
             maxFiles: this._config.maxFiles,
             tailable: true
         }));
+
+        if (this._app.config.get('env') === 'dev') {
+            transports.push(new winston.transports.Console({
+                format: winston.format.combine(
+                    winston.format.timestamp(),
+                    winston.format.printf((info) => `[${info.timestamp}] ${info.message}`)
+                )
+            }));
+        }
 
         return transports;
     }

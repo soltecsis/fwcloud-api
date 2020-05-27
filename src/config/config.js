@@ -285,6 +285,12 @@ const config = convict({
       format: String,
       default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
+    },
+    debug: {
+      doc: 'Log the queries if debug mode is enabled',
+      format: Boolean,
+      default: true,
+      env: 'TYPEORM_DEBUG'
     }
   },
 

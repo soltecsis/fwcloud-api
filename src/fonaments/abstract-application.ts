@@ -137,14 +137,9 @@ export abstract class AbstractApplication {
     this.registerMiddlewares('before');
     await this.registerRoutes();
     this.registerMiddlewares('after');
-
-    if (this._config.get('env') !== 'test') {
-      console.log('\n\n');
-      console.log(`FwCloud v${this.version.tag} (${this.config.get('env')})`);
-      console.log('Schema version: ' + this.version.schema);
-      console.log('Loaded application from ' + this._path);
-      console.log('\n\n');
-    }
+    
+    this.logger().info(`------- Starting application -------`);
+    this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
 
     return this;
   }

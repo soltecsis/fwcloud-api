@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { logger } from "../fonaments/abstract-application";
+const logger = require("../fonaments/abstract-application").logger;
 
 //create object
 var sshTools = {};
