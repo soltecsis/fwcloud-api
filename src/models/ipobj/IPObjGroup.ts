@@ -22,9 +22,6 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-
-var logger = require('log4js').getLogger("app");
-
 import { IPObj } from './IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -33,7 +30,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import modelEventService from "../ModelEventService";
 import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany, ManyToOne } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
-import { app } from "../../fonaments/abstract-application";
+import { app, logger } from "../../fonaments/abstract-application";
 import { RepositoryService } from "../../database/repository.service";
 import { RoutingRuleToIPObj } from "../routing/routing-rule-to-ipobj.model";
 var asyncMod = require('async');
@@ -250,7 +247,7 @@ export class IPObjGroup extends Model {
                 var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableName + ' G ' +
                     'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
                     ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
-                //logger.debug(sql);
+                //logger().debug(sql);
                 connection.query(sql, (error, rows) => {
                     if (error)
                         reject(error);
@@ -261,7 +258,7 @@ export class IPObjGroup extends Model {
 
                             var group_node = new ipobj_g_Data(row);
 
-                            logger.debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
+                            logger().debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
                             var idgroup = row.id;
                             group_node.ipobjs = new Array();
                             //GET ALL GROUP OBJECTs
@@ -271,7 +268,7 @@ export class IPObjGroup extends Model {
 
                                     asyncMod.map(data_ipobjs, (data_ipobj, callback2) => {
                                         //GET OBJECTS
-                                        logger.debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
+                                        logger().debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
                                         var ipobj_node = new ipobj_Data(data_ipobj);
                                         //Añadimos ipobj a array Grupo

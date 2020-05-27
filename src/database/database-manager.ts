@@ -28,8 +28,6 @@ import * as Logger from "log4js";
 import { AbstractApplication } from '../fonaments/abstract-application';
 import { DatabaseService } from './database.service';
 
-const logger = Logger.getLogger("app");
-
 export class DatabaseManager {
 
     private _connected: boolean = false;

@@ -24,13 +24,14 @@
 //create object
 var backupModel = {};
 
+import { logger } from "../../fonaments/abstract-application";
+
 const dateFormat = require('dateformat');
 const mysqldump = require('mysqldump');
 const fs = require('fs');
 const fse = require('fs-extra');
 const mysql_import = require('mysql-import');
 const cronJob = require('cron').CronJob;
-const logger = require('log4js').getLogger("app");
 
 const config = require('../../config/config');
 const utilsModel = require('../../utils/utils');
@@ -183,7 +184,7 @@ backupModel.setSchedule = req => {
       backupCron.setTime(time);
       backupCron.start();
 
-      logger.info(`New backup cron task schedule: ${req.body.schedule}`);
+      logger().info(`New backup cron task schedule: ${req.body.schedule}`);
 
       resolve();
     } catch(error) { reject(error) }
@@ -192,21 +193,21 @@ backupModel.setSchedule = req => {
 
 backupModel.cronJob = async () => {
   try {
-	  logger.info("Starting BACKUP job.");
+	  logger().info("Starting BACKUP job.");
 	  const backup = await backupModel.fullBackup();
-    logger.info(`BACKUP job completed: ${backup}`);
-  } catch(error) { logger.error("BACKUP job ERROR: ", error.message) }
+    logger().info(`BACKUP job completed: ${backup}`);
+  } catch(error) { logger().error("BACKUP job ERROR: ", error.message) }
 }
 
 backupModel.initCron = async app => {
   try {
     const moment = require('moment-timezone');
     const schedule = await backupModel.getSchedule();
-    logger.info(`Starting backup cron task with the schedule: ${schedule}`);
+    logger().info(`Starting backup cron task with the schedule: ${schedule}`);
     let backupCron = new cronJob(schedule, backupModel.cronJob, null, true, moment.tz.guess());
     backupCron.start();
     app.set('backupCron',backupCron);
-  } catch(error) { logger.error("Backup cron init ERROR: ", error.message) }
+  } catch(error) { logger().error("Backup cron init ERROR: ", error.message) }
 }
 
 

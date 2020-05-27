@@ -30,10 +30,8 @@ import modelEventService from '../ModelEventService';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
 import { PolicyRuleRepository } from './policy-rule.repository';
-import { app } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
-
-const logger = Logger.getLogger("app");
 
 const tableName = "policy_g";
 
@@ -158,7 +156,7 @@ export class PolicyGroup extends Model {
 
 			connection.query(sqlExists, (error, row) => {
 				if (row && row.length > 0) {
-					logger.debug("GRUPO Existente: " + policy_gData.id);
+					logger().debug("GRUPO Existente: " + policy_gData.id);
 					callback(null, { "insertId": policy_gData.id });
 
 				} else {
@@ -168,7 +166,7 @@ export class PolicyGroup extends Model {
 							callback(error, null);
 						} else {
 							//devolvemos la última id insertada
-							logger.debug("CREADO nuevo GRUPO: " + result.insertId);
+							logger().debug("CREADO nuevo GRUPO: " + result.insertId);
 							callback(null, { "insertId": result.insertId });
 						}
 					});
@@ -229,7 +227,7 @@ export class PolicyGroup extends Model {
 				' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall);
 			connection.query(sql, (error, result) => {
 				if (error) {
-					logger.error(error);
+					logger().error(error);
 					callback(error, null);
 				} else {
 					if (result.affectedRows > 0) {

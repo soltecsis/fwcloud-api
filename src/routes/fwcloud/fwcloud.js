@@ -153,7 +153,6 @@ router.put('/', async(req, res) => {
 	} catch (error) { res.status(400).json(error) }
 });
 
-
 /**
  * @api {GET} /fwcloud/get Get allowed fwclouds
  * @apiName GetAllowedFwclouds
@@ -366,19 +365,19 @@ async(req, res) => {
 	FwcloudModel.updateFwcloudLock(fwcloudData)
 		.then(data => {
 			if (data.result) {
-				logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
+				logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
 				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD LOCKED OK', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			} else {
-				logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+				logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
 				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error locking', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			}
 		})
 		.catch(r => {
-			logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+			logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
 			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error locking', objModel, r, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});
@@ -427,19 +426,19 @@ async(req, res) => {
 	FwcloudModel.updateFwcloudUnlock(fwcloudData)
 		.then(data => {
 			if (data.result) {
-				logger.info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
+				logger().info("FWCLOUD: " + fwcloudData.id + "  UNLOCKED BY USER: " + fwcloudData.iduser);
 				api_resp.getJson(data, api_resp.ACR_UPDATED_OK, 'FWCLOUD UNLOCKED OK', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			} else {
-				logger.info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+				logger().info("NOT ACCESS FOR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
 				api_resp.getJson(data, api_resp.ACR_ERROR, 'Error unlocking', objModel, null, function(jsonResp) {
 					res.status(200).json(jsonResp);
 				});
 			}
 		})
 		.catch(error => {
-			logger.info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
+			logger().info("ERROR UNLOCKING FWCLOUD: " + fwcloudData.id + "  BY USER: " + fwcloudData.iduser);
 			api_resp.getJson(null, api_resp.ACR_ERROR, 'Error unlocking', objModel, error, function(jsonResp) {
 				res.status(200).json(jsonResp);
 			});

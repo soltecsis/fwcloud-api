@@ -38,6 +38,8 @@ import { FSHelper } from "../utils/fs-helper";
 import { DatabaseService } from "../database/database.service";
 import { WebSocketService } from "../sockets/web-socket.service";
 import { LogServiceProvider } from "../logs/log.provider";
+import { LoggerType, LogService } from "../logs/log.service";
+import winston from "winston";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -47,6 +49,14 @@ declare module 'express-serve-static-core' {
 }
 
 let _runningApplication: AbstractApplication = null;
+
+export function logger(type: LoggerType = 'default'): winston.Logger {
+  if (app()) {
+    return app().logger(type);
+  }
+
+  return null;
+}
 
 export function app<T extends AbstractApplication>(): T {
   return <T>_runningApplication;
@@ -60,6 +70,7 @@ export abstract class AbstractApplication {
   protected _path: string;
   protected _services: ServiceContainer;
   protected _version: Version;
+  protected _logService: LogService;
 
   protected constructor(path: string = process.cwd()) {
     try {
@@ -93,6 +104,10 @@ export abstract class AbstractApplication {
     return this._version;
   }
 
+  logger(type: LoggerType = 'default'): winston.Logger {
+    return this._logService.getLogger(type);
+  }
+
   public async getService<T extends Service>(name: string): Promise<T> {
     return this._services.get(name);
   }
@@ -114,7 +129,11 @@ export abstract class AbstractApplication {
     this.startServiceContainer();
     this.registerProviders();
     await this.bootsrapServices();
+
+    this._logService = await this.getService<LogService>(LogService.name);
+
     this._version = await this.loadVersion();
+    
     this.registerMiddlewares('before');
     await this.registerRoutes();
     this.registerMiddlewares('after');

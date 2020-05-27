@@ -28,9 +28,9 @@ export default accessCtrl;
 
 import { User } from '../models/user/User';
 import { Firewall } from '../models/firewall/Firewall';
-import { AuthorizationException } from '../fonaments/exceptions/authorization-exception';
+import { logger } from '../fonaments/abstract-application';
+
 const fwcError = require('../utils/error_table');
-const logger = require('log4js').getLogger("app");
 
 
 // Access control for fwclouds and firewalls.
@@ -46,10 +46,10 @@ accessCtrl.check = async (req, res, next) => {
 		(req.method === 'GET' && req.url === '/stream'))
 		return next();
 
-	logger.debug("---------------- RECEIVED HEADERS-----------------");
-	logger.debug("\n", req.headers);
-	logger.debug("--------------------------------------------------");
-	logger.debug("METHOD: " + req.method + "   PATHNAME: " + req.url);
+	logger().debug("---------------- RECEIVED HEADERS-----------------");
+	logger().debug("\n", req.headers);
+	logger().debug("--------------------------------------------------");
+	logger().debug("METHOD: " + req.method + "   PATHNAME: " + req.url);
 
 
 	// Check access to customer and user creation functionality.
@@ -319,44 +319,44 @@ function checkFwCloudAccess(req) {
 		FwcloudModel.getFwcloudAccess(iduser, fwcloud)
 			.then(resp => {
 				//{"access": true, "locked": false, , "mylock" : true  "locked_at": "", "locked_by": ""}
-				//logger.warn(resp);
-				logger.debug("UPDATE: " + update);
+				//logger().warn(resp);
+				logger().debug("UPDATE: " + update);
 				if (resp.access && !update) {
-					logger.warn("OK --> FWCLOUD ACCESS ALLOWED TO READ ");
+					logger().warn("OK --> FWCLOUD ACCESS ALLOWED TO READ ");
 					return resolve(true);
 				} else if (resp.access && resp.locked && resp.mylock) { //Acces ok an locked by user
-					logger.warn("OK --> FWCLOUD ACCESS ALLOWED and LOCKED ");
+					logger().warn("OK --> FWCLOUD ACCESS ALLOWED and LOCKED ");
 					return resolve(true);
 				} else if (resp.access && !resp.locked) { //Acces ok and No locked
 					//GET FWCLOUD LOCK
 					FwcloudModel.updateFwcloudLock(fwcloudData)
 						.then(data => {
 							if (data.result) {
-								logger.info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
-								logger.warn("OK --> FWCLOUD ACCESS ALLOWED and GET LOCKED ");
+								logger().info("FWCLOUD: " + fwcloudData.fwcloud + "  LOCKED BY USER: " + fwcloudData.iduser);
+								logger().warn("OK --> FWCLOUD ACCESS ALLOWED and GET LOCKED ");
 								return resolve(true);
 							} else {
-								logger.info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+								logger().info("NOT ACCESS FOR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
 								return reject(fwcError.other('Error locking'));
 							}
 						})
 						.catch(r => {
-							logger.info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
+							logger().info("ERROR LOCKING FWCLOUD: " + fwcloudData.fwcloud + "  BY USER: " + fwcloudData.iduser);
 							return reject(fwcError.other('Error locking'));
 						});
 				} else if (resp.access && resp.locked && !resp.mylock) { //Acces ok an locked by other user
-					logger.warn("KO --> FWCLOUD ACCESS LOCKED BY OTHER USER ");
+					logger().warn("KO --> FWCLOUD ACCESS LOCKED BY OTHER USER ");
 					return reject(fwcError.other('FWCLOUD ACCESS LOCK BY OTHER USER'));
 				} else if (!resp.access) { //Acces Error
-					logger.warn("KO --> FWCLOUD ACCESS NOT ALLOWED");
+					logger().warn("KO --> FWCLOUD ACCESS NOT ALLOWED");
 					return reject(fwcError.ACC_FWCLOUD);
 				}
-				logger.warn("--------------------------------------------------");
+				logger().warn("--------------------------------------------------");
 			})
 			.catch(resp => {
-				logger.warn(resp);
-				logger.warn("ERROR --> FWCLOUD ACCESS NOT ALLOWED ");
-				logger.warn("--------------------------------------------------");
+				logger().warn(resp);
+				logger().warn("ERROR --> FWCLOUD ACCESS NOT ALLOWED ");
+				logger().warn("--------------------------------------------------");
 				return reject(fwcError.ACC_FWCLOUD);
 			});
 	});

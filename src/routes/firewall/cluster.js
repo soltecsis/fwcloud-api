@@ -63,7 +63,6 @@ var router = express.Router();
  */
 import { Cluster } from '../../models/firewall/Cluster';
 
-var logger = require('log4js').getLogger("app");
 
 var utilsModel = require("../../utils/utils.js");
 
@@ -72,6 +71,7 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
+import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -172,7 +172,7 @@ const fwcError = require('../../utils/error_table');
 router.post('/', (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
-	logger.debug("JSON RECIBIDO: ", JsonData);
+	logger().debug("JSON RECIBIDO: ", JsonData);
 	//new objet with Cluster data
 	var clusterData = {
 		name: JsonData.clusterData.name,
@@ -472,7 +472,7 @@ router.put('/clustertofw', (req, res) => {
 			//////////////////////////////////
 			//UPDATE CLUSTER NODE STRUCTURE
 			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, (error, dataTree) => {
-				logger.debug("DATATREE: ", dataTree);
+				logger().debug("DATATREE: ", dataTree);
 				if (error)
 					return res.status(400).json(error);
 				else if (dataTree && dataTree.result) {
@@ -482,7 +482,7 @@ router.put('/clustertofw', (req, res) => {
 					firewallData.cluster = null;
 					firewallData.fwcloud = fwcloud;
 					firewallData.by_user = iduser;
-					//logger.debug("firewallData: ", firewallData);
+					//logger().debug("firewallData: ", firewallData);
 					Firewall.updateFirewallCluster(firewallData)
 						.then(() => {
 							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, (error, dataFC) => {

@@ -25,17 +25,6 @@
 var errorModel = {};
 
 /**
- * Property Logger to manage App logs
- *
- * @property logger
- * @type log4js/app
- * 
- */
-var logger = require('log4js').getLogger("app");
-
-
-
-/**
  *
  * @param {String } name is the name of the newly created error
  * @param {Function} [init] optional initialization function
