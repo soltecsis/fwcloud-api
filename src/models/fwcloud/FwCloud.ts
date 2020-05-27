@@ -127,6 +127,14 @@ export class FwCloud extends Model {
         return null;
     }
 
+    public getSnapshotDirectoryPath(): string {
+        if (this.id) {
+            return path.join(app().config.get('snapshot').data_dir, this.id.toString());
+        }
+
+        return null;
+    }
+
     /**
      * Get Fwcloud by User
      *  

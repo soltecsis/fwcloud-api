@@ -48,11 +48,18 @@ export interface ExceptionBody {
     caused_by?: ExceptionBody
 }
 
+interface FileAttached {
+    path: string;
+    filename?: string;
+}
+
 export class ResponseBuilder {
     protected _status: number;
     protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
+    
+    protected _fileAttached: FileAttached;
     
     private constructor() {
         this._app = app();
@@ -81,6 +88,19 @@ export class ResponseBuilder {
         return this;
     }
 
+    public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {
+        this._fileAttached = {
+            path: path,
+            filename: filename
+        };
+
+        return this;
+    }
+
+    public hasFileAttached(): boolean {
+        return this._fileAttached ? true: false;
+    }
+
     public error(error: Error): ResponseBuilder {
         if (this._payload) {
             throw new Error('Message already defined for the given response');
@@ -98,6 +118,10 @@ export class ResponseBuilder {
     public send(response: Response): ResponseBuilder {
         this._response = response;
 
+        if (this.hasFileAttached()) {
+            return this.sendDownload(this._response);
+        }
+
         if (!this._status) {
             throw new Error('Status not defined for the given response');
         }
@@ -106,6 +130,11 @@ export class ResponseBuilder {
 
         this._response.send(this.buildMessage());
 
+        return this;
+    }
+
+    protected sendDownload(response: Response): ResponseBuilder {
+        response.download(this._fileAttached.path, this._fileAttached.filename);
         return this;
     }
 

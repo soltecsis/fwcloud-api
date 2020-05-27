@@ -4,9 +4,9 @@ import { getRepository } from "typeorm";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { FirewallService, SSHConfig } from "../../models/firewall/firewall.service";
-import { Progress } from "../../fonaments/http/progress/progress";
 import { FirewallPolicy } from "../../policies/firewall.policy";
 import { Channel } from "../../sockets/channels/channel";
+import { ProgressPayload } from "../../sockets/messages/socket-message";
 
 export class FirewallController extends Controller {
     
@@ -17,6 +17,9 @@ export class FirewallController extends Controller {
     }
     
     public async compile(request: Request): Promise<ResponseBuilder> {
+        /**
+         * This method is not used temporarily
+         */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
@@ -28,10 +31,15 @@ export class FirewallController extends Controller {
 
         firewall = await this.firewallService.compile(firewall, channel);
 
+        channel.emit('message', new ProgressPayload('end', false, 'Compiling firewall'));
+
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }
 
     public async install(request: Request): Promise<ResponseBuilder> {
+        /**
+         * This method is not used temporarily
+         */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
@@ -42,11 +50,13 @@ export class FirewallController extends Controller {
         const channel: Channel = await Channel.fromRequest(request);
 
         const customSSHConfig: Partial<SSHConfig> = {
-            host: request.body.sshuser ? request.body.sshuser : undefined,
+            username: request.body.sshuser ? request.body.sshuser : undefined,
             password: request.body.sshpass ? request.body.sshpass : undefined
         }
 
         firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
+
+        channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }

@@ -139,9 +139,9 @@ export class BackupService extends Service {
      * 
      * @param backup Restores an existing backup
      */
-    public restore(backup: Backup): Promise<Backup> {
+    public restore(backup: Backup, eventEmitter: EventEmitter = new EventEmitter()): Promise<Backup> {
         if (backup.exists()) {
-            return backup.restore();
+            return backup.restore(eventEmitter);
         }
 
         throw new BackupNotFoundException(backup.path);
@@ -156,8 +156,7 @@ export class BackupService extends Service {
      */
     public async applyRetentionPolicy(): Promise<Array<Backup>> {
         let deletedBackups: Array<Backup> = [];
-        const backups: Array<Backup> = await this.getAll();
-
+        
         if (this.shouldApplyRetentionPolicyByBackupCount()) {
             deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByBackupCount());
         }

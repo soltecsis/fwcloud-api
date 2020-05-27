@@ -20,6 +20,10 @@ SYSTEMCTL=`which systemctl`
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 SYSCTL=`which sysctl`
 
+if [ -z "$HOSTNAME" ]; then
+  HOSTNAME=`hostname`
+fi
+
 log() {
   echo "$1"
   which "$LOGGER" >/dev/null 2>&1 && $LOGGER -p info "$1"

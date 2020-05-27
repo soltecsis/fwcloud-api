@@ -1,18 +1,16 @@
 import { Service } from "../../fonaments/services/service";
 import { Firewall } from "./Firewall";
-import { Progress, TasksEventEmitter } from "../../fonaments/http/progress/progress";
-import { Task, InternalTaskEventEmitter } from "../../fonaments/http/progress/task";
 import { FSHelper } from "../../utils/fs-helper";
 import * as path from "path";
 import * as fs from "fs";
 import { Compiler } from "./compiler";
 import { Installer } from "./installer";
 import ObjectHelpers from "../../utils/object-helpers";
-import { getRepository } from "typeorm";
-import { IPObj } from "../ipobj/IPObj";
-import { InternalServerException } from "../../fonaments/exceptions/internal-server-exception";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import f from "session-file-store";
+import { User } from "../user/User";
+import db from "../../database/database-manager";
+import { IPObj } from "../ipobj/IPObj";
+import { getRepository } from "typeorm";
 
 export type SSHConfig = {
     host: string,
@@ -42,34 +40,18 @@ export class FirewallService extends Service {
      * @param firewall 
      */
     public async compile(firewall: Firewall, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const progress: Progress = new Progress(eventEmitter);
-        
         if (firewall.fwCloudId === undefined || firewall.fwCloudId === null) {
             throw new Error('Firewall does not belong to a fwcloud');
         }
         
-        await progress.procedure('Compiling firewall', (task: Task) => {
-            
-            task.addTask(() => { return this.createFirewallPolicyDirectory(firewall) }, 'Creating directory');
-            
-            task.addTask((eventEmitter: InternalTaskEventEmitter) => {
-                return (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter)
-            }, 'Compiling script');
-
-        }, 'Firewall compiled');
+        await this.createFirewallPolicyDirectory(firewall);
+        await (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter);
 
         return firewall;
     }
 
     public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const progress: Progress = new Progress(eventEmitter);
-
-        const ipObj: IPObj = await getRepository(IPObj).findOne({where: {id: firewall.install_ipobj}});
-
-        if (!ipObj) {
-            throw new InternalServerException('Firewall does not have address');
-        }
-
+        const ipObj: IPObj = await getRepository(IPObj).findOne({id: firewall.install_ipobj, interfaceId: firewall.install_interface});
         const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
             host: ipObj.address,
             port: firewall.install_port,
@@ -77,9 +59,9 @@ export class FirewallService extends Service {
             password: firewall.install_pass
         }, customSSHConfig);
         
-        await progress.procedure('Installing firewall policies', (task: Task) => {
-            task.addTask((events: InternalTaskEventEmitter) => (new Installer(firewall)).install(sshConfig, events), 'Installing script');
-        }, 'Firewall installed');
+        await (new Installer(firewall)).install(sshConfig, eventEmitter);
+        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id,"&~2");
+        await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
         return firewall;
     }

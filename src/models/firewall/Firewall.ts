@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager, getRepository, Not, IsNull } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -34,7 +34,6 @@ import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
 import { FwCloud } from "../fwcloud/FwCloud";
 import { Cluster } from "./Cluster";
-import { Policy } from "../../fonaments/authorization/policy";
 import { RoutingRule } from "../routing/routing-rule.model";
 import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
@@ -158,6 +157,18 @@ export class Firewall extends Model {
 		this.installed_at = null;
 
 		return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
+	}
+
+	/**
+	 * Returns true if the firewall has at least one rule which is marked
+	 */
+	public async hasMarkedRules(): Promise<boolean> {
+		return (await getRepository(PolicyRule).find({
+			where: {
+				firewallId: this.id,
+				markId: Not(IsNull())
+			}
+		})).length > 0;
 	}
 
 	/**
@@ -1106,7 +1117,7 @@ export class Firewall extends Model {
 	public static getInterfacesData(SSHconn) {
 		return new Promise(async (resolve, reject) => {
 			try {
-				const data: any = await sshTools.runCommand(SSHconn, "sudo ip a");
+				const data: any = await sshTools.runCommand(SSHconn, "ip a");
 				
 				// Before answer, parse data to see if we have get a valid answer.
 

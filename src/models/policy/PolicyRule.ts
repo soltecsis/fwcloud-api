@@ -39,6 +39,8 @@ import { RepositoryService } from "../../database/repository.service";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
+import { DatabaseService } from "../../database/database.service";
+import Query from "../../database/Query";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
@@ -1113,7 +1115,6 @@ public static checkCatchAllRules(dbCon, firewall) {
 		resolve();
 	});
 };
-
 
 //Allow all positions of a rule that are empty.
 public static firewallWithMarkRules(dbCon, firewall) {

@@ -30,11 +30,8 @@ import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { Channel } from "../../../src/sockets/channels/channel";
-import { WebSocketService } from "../../../src/sockets/web-socket.service";
-import { WebSocketServiceProvider } from "../../../src/sockets/web-socket.provider";
+import Sinon = require("sinon");
 
 let app: Application;
 let backupService: BackupService;
@@ -167,7 +164,45 @@ describe(describeName('Backup E2E tests'), () => {
             });
         });
 
-        describe.skip('BackupController@restore', async() => {
+        describe('BackupController@restore', async() => {
+            let backup: Backup;
+
+            beforeEach(async () => {
+                backup = await backupService.create();
+            });
+
+            it('guest user should not restore a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.restore', {backup: backup.id}))
+                    .expect(401)
+            });
+
+            it('regular user should not restore a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.restore', {backup: backup.id}))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('admin user should restore a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.restore', {backup: backup.id}))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(201);
+            });
+
+            it('should call change maintenance_mode', async () => {
+                const spy: Sinon.SinonSpy = Sinon.spy(app.config, 'set');
+
+                await request(app.express)
+                    .post(_URL().getURL('backups.restore', {backup: backup.id}))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(201);
+
+                expect(spy.calledTwice).to.be.true;
+                expect(spy.calledWith('maintenance_mode', true));
+                expect(spy.calledWith('maintenance_mode', false));
+            });
         });
 
         describe('BackupController@destroy', async () => {

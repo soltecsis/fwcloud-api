@@ -21,37 +21,49 @@
 */
 
 import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/import-mapping";
-import { IdManager } from "../../../src/fwcloud-exporter/importer/terraformer/mapper/id-manager";
+import { ImportMapping } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/import-mapping";
+import { IdManager } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../src/database/database.service";
-import { ExporterResult } from "../../../src/fwcloud-exporter/exporter/exporter-result";
+import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
+import { Repository, QueryRunner, SelectQueryBuilder } from "typeorm";
+import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import { RepositoryService } from "../../../src/database/repository.service";
+import StringHelper from "../../../src/utils/string.helper";
 
-let mapper: ImportMapping;
 let databaseService: DatabaseService;
+let fwCloudRepository: Repository<FwCloud>;
 
 describe(describeName('Import mapping tests'), () => {
 
-    beforeEach(async () => {
-        databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-    });
-
     describe('newId()', () => {
 
+        before(async () => {
+            databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+            fwCloudRepository = (await testSuite.app.getService<RepositoryService>(RepositoryService.name)).for(FwCloud);
+        });
+
         it('should map the old id with a new id', async () => {
+            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+            const queryBuilder: SelectQueryBuilder<unknown> = databaseService.connection.createQueryBuilder('fwcloud', 'fwcloud').select('MAX(id)', 'id');
+
+            await fwCloudRepository.save({name: StringHelper.randomize(10)})
+            const maxId : any = (await queryBuilder.execute())[0].id;
+            
             const results: ExporterResult = new ExporterResult();
             results.addTableData('fwcloud', [{ id: 0 }])
-            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+            const mapper = new ImportMapping(await IdManager.make(queryRunner, [
                 'fwcloud'
             ]), results);
+            await queryRunner.release()
 
             const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
 
-            expect(newId).to.be.deep.eq(1);
+            expect(newId).to.be.deep.eq(maxId + 1);
             expect(mapper.maps).to.be.deep.eq({
                 'fwcloud': {
                     'id': [{
                         old: 0,
-                        new: 1
+                        new: maxId + 1
                     }]
                 }
             })

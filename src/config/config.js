@@ -200,6 +200,26 @@ const config = convict({
       format:  String,
       env: 'SESSION_FILES_PATH',
       default: './sessions'
+    },
+    pgp_rsa_bits: {
+      doc: 'Bits for generate the RSA PGP keys pair.',
+      format:  Number,
+      env: 'SESSION_PGP_RSA_BITS',
+      /* We can use 4096 bits, but with 2048 is enougth because requires less resources 
+			and covers the funcionality of avoid sending sensible data like ssh username and
+			password to the API without encryption. 
+      
+      WARNING: The more bits we use the longer it takes the login process.
+
+			We must have in mind that in a production enviroment it is highly 
+			advisable to use https secure communications and then sensible data already travels
+			encripted.
+			
+			With the use of PGP for encrypt sensible data (mainly ssh username and passwords) 
+			what we want is to do is add an additional security level and avoid that if the user looks 
+			at the API calls generated in his we browser (for example, using the web developer tools) 
+			he is able to see passwords in plain text in the body of the API requests. */    
+      default: 2048
     }
 	},
 
@@ -402,7 +422,23 @@ const config = convict({
       default: 1000000000,
       env: 'LOGS_MAXSIZE'
     }
-  }
+  },
+  
+  // FwCloud Exporter configuration.
+  exporter: {
+    data_dir: {
+      doc: 'Directory for store the fwcloud files.',
+      format: String,
+      default: './DATA/EXPORTS',
+      env: 'EXPORTER_DATA_DIR'
+    },
+    upload_dir: {
+      doc: 'Directory for store uploaded fwcloud files',
+      format: String,
+      default: './DATA/EXPORTS/uploads',
+      env: 'EXPORTER_UPLOAD_DIR'
+    }
+  }    
 });
 
 

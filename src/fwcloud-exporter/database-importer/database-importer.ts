@@ -21,9 +21,8 @@
 */
 
 import { Snapshot } from "../../snapshots/snapshot";
-import { DatabaseDataImporter } from "./database-data-importer";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { ExporterResult } from "../exporter/exporter-result";
+import { ExporterResult } from "../database-exporter/exporter-result";
 import { QueryRunner, DeepPartial } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
@@ -36,8 +35,10 @@ import { Firewall } from "../../models/firewall/Firewall";
 import { FSHelper } from "../../utils/fs-helper";
 import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
+import Model from "../../models/Model";
+import * as fs from "fs";
 
-export class Importer {
+export class DatabaseImporter {
     protected _mapper: ImportMapping;
     protected _idManager: IdManager;
     
@@ -51,11 +52,10 @@ export class Importer {
 
 
     public async import(snapshotPath: string): Promise<FwCloud> { 
-        const snapshot: Snapshot = await Snapshot.load(snapshotPath);
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         
-        let data: ExporterResult = snapshot.data;
+        let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshotPath, Snapshot.DATA_FILENAME)).toString()));
         
         this._idManager = await IdManager.make(queryRunner, data.getTableNames())
         this._mapper = new ImportMapping(this._idManager, data);
@@ -63,13 +63,49 @@ export class Importer {
 
         const terraformedData: ExporterResult = await (new Terraformer(queryRunner, this._mapper)).terraform(data);
         
-        await DatabaseDataImporter.import(queryRunner, terraformedData);
+        await this.importToDatabase(queryRunner, terraformedData);
         
         const fwCloud: FwCloud = await repositoryService.for(FwCloud).findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
 
-        await Importer.importDataDirectories(snapshotPath, fwCloud, this._mapper);
+        await DatabaseImporter.importDataDirectories(snapshotPath, fwCloud, this._mapper);
+
+        await queryRunner.release();
 
         return fwCloud;
+    }
+
+    /**
+     * Import data into the database
+     * 
+     * @param queryRunner 
+     * @param data 
+     */
+    protected async importToDatabase(queryRunner: QueryRunner, data: ExporterResult): Promise<void> {
+        
+        await queryRunner.startTransaction()
+        try {
+            
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+            for(let tableName in data.getAll()) {
+                const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+
+                if (entity) {
+                    await queryRunner.manager.getRepository(entity).save(data.getAll()[tableName], {chunk: 10000});
+                } else {
+                    for(let i = 0; i < data.getAll()[tableName].length; i++) {
+                        const row: object = data.getAll()[tableName][i];
+                        await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
+                    }
+                }
+            }
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.commitTransaction();
+        } catch (e) {
+            await queryRunner.rollbackTransaction();
+            throw e;
+        }
+        
+        return null;
     }
 
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
@@ -90,7 +126,7 @@ export class Importer {
             const oldCaId: number = parseInt(PathHelper.directoryName(directory));
             const newCaId: number = mapper.getMappedId(Ca._getTableName(), Ca.getPrimaryKeys()[0].propertyName, oldCaId);
             const importDirectory: string = path.join(path.join(app().config.get('pki').data_dir, fwCloud.id.toString(), newCaId.toString()));
-            await FSHelper.copyDirectory(directory, importDirectory);
+            await FSHelper.copy(directory, importDirectory);
         }
     }
 
@@ -102,7 +138,7 @@ export class Importer {
             const oldFirewallId: number = parseInt(PathHelper.directoryName(directory));
             const newFirewallId: number = mapper.getMappedId(Firewall._getTableName(), Firewall.getPrimaryKeys()[0].propertyName, oldFirewallId);
             const importDirectory: string = path.join(path.join(app().config.get('policy').data_dir, fwCloud.id.toString(), newFirewallId.toString()));
-            await FSHelper.copyDirectory(directory, importDirectory);
+            await FSHelper.copy(directory, importDirectory);
         }
     }
 }

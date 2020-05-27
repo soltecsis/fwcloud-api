@@ -26,7 +26,7 @@ import { AbstractApplication, app } from "./fonaments/abstract-application";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
-import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
+import { SessionMiddleware } from "./middleware/Session";
 import { CORS } from './middleware/cors.middleware';
 import { Authorization } from './middleware/Authorization';
 import { ConfirmationToken } from './middleware/confirmation-token.middleware';
@@ -52,11 +52,12 @@ import { RouterService } from './fonaments/http/router/router.service';
 import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
+import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
 
 export class Application extends AbstractApplication {
-    public static async run(): Promise<Application> {
+    public static async run(path?: string): Promise<Application> {
         try {
-            const app: Application = new Application();
+            const app: Application = new Application(path);
             await app.bootstrap();
             return app;
         } catch (e) {
@@ -90,7 +91,8 @@ export class Application extends AbstractApplication {
             BackupServiceProvider,
             SnapshotServiceProvider,
             WebSocketServiceProvider,
-            FirewallServiceProvider
+            FirewallServiceProvider,
+            FwCloudExportServiceProvider
         ]
     }
 
@@ -131,6 +133,7 @@ export class Application extends AbstractApplication {
         this._express.use('/firewall', require('./routes/firewall/firewall'));
         this._express.use('/policy/rule', require('./routes/policy/rule'));
         this._express.use('/policy/compile', require('./routes/policy/compile'));
+        this._express.use('/policy/install', require('./routes/policy/install'));
         this._express.use('/policy/ipobj', require('./routes/policy/ipobj'));
         this._express.use('/policy/interface', require('./routes/policy/interface'));
         this._express.use('/policy/group', require('./routes/policy/group'));

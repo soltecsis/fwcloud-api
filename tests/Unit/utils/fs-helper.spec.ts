@@ -79,8 +79,53 @@ describe(describeName('FsHelper Unit Tests'), () => {
         it('should return false if the file is a directory', () => {
             const filePath: string = path.join(playgroundPath, 'test', 'file.txt');
             FSHelper.mkdirSync(path.dirname(filePath));
-            
+
             expect(FSHelper.fileExistsSync(path.dirname(filePath))).to.be.false;
         });
-    })
-})
+    });
+
+
+    describe('copy()', () => {
+        it('should copy a directory', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest');
+            const destinationPath: string = path.join(playgroundPath, 'destinationTest');
+
+            FSHelper.mkdirSync(sourcePath);
+            fs.writeFileSync(path.join(sourcePath, 'test'), "test");
+            await FSHelper.copy(sourcePath, destinationPath);
+
+            expect(fs.readFileSync(path.join(destinationPath, 'test')).toString()).to.be.deep.eq("test");
+        });
+
+        it('should copy a file', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest.txt');
+            const destinationPath: string = path.join(playgroundPath, 'destinationTest');
+
+            fs.writeFileSync(path.join(sourcePath), "test");
+            await FSHelper.copy(sourcePath, destinationPath);
+
+            expect(fs.readFileSync(destinationPath).toString()).to.be.deep.eq("test");
+        });
+    });
+
+    describe('remove()', () => {
+        it('should remove a directory', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest');
+            
+            FSHelper.mkdirSync(sourcePath);
+            
+            await FSHelper.remove(sourcePath);
+
+            expect(FSHelper.directoryExistsSync(sourcePath)).to.be.false;
+        });
+
+        it('should remove a file', async () => {
+            const sourcePath: string = path.join(playgroundPath, 'sourceTest.txt');
+            
+            fs.writeFileSync(path.join(sourcePath), "test");
+            await FSHelper.remove(sourcePath);
+
+            expect(FSHelper.fileExistsSync(sourcePath)).to.be.false;
+        });
+    });
+});

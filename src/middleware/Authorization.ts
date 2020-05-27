@@ -26,6 +26,7 @@ import { User } from '../models/user/User';
 import { Request, Response, NextFunction } from "express";
 import { app, logger } from "../fonaments/abstract-application";
 import { RepositoryService } from "../database/repository.service";
+import { getRepository } from "typeorm";
 
 export class Authorization extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
@@ -50,7 +51,7 @@ export class Authorization extends Middleware {
                 throw fwcError.SESSION_EXPIRED;
             }
 
-            if (!req.session.customer_id || !req.session.user_id || !req.session.username) {
+            if (!req.session.customer_id || !req.session.user_id || !req.session.username || !req.session.pgp) {
                 req.session.destroy(err => { });
                 throw fwcError.SESSION_BAD;
             }
@@ -61,7 +62,7 @@ export class Authorization extends Middleware {
                 throw fwcError.SESSION_BAD;
             }
 
-            req.session.user = await (await app().getService<RepositoryService>(RepositoryService.name)).for(User).findOne(req.session.user_id);
+            req.session.user = await getRepository(User).findOne(req.session.user_id);
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             next();
