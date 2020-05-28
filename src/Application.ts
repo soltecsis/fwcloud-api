@@ -55,6 +55,7 @@ import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
+import { LogRequestMiddleware } from './middleware/log-request.middleware';
 
 export class Application extends AbstractApplication {
     public static async run(path?: string): Promise<Application> {
@@ -96,6 +97,7 @@ export class Application extends AbstractApplication {
 
     protected beforeMiddlewares(): Array<Middlewareable> {
         return [
+            LogRequestMiddleware,
             BodyParser,
             RequestBuilder,
             Compression,

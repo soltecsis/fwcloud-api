@@ -38,11 +38,11 @@ export class LogService extends Service {
                 levels: winston.config.npm.levels,
                 transports: this.getDefaultTransports()
             }),
-            /*http : winston.createLogger({
-                level: 'log',
-                levels: {log: 0},
+            http : winston.createLogger({
+                level: 'entry',
+                levels: {entry: 0},
                 transports: this.getHttpTransports()
-            }),*/
+            }),
             query: winston.createLogger({
                 level: this._config.level,
                 levels: winston.config.npm.levels,
@@ -115,11 +115,7 @@ export class LogService extends Service {
         transports.push(new winston.transports.File({
             filename: path.join(this._config.directory, 'http.log'),
             format: winston.format.combine(
-                winston.format.printf((info) => {
-                    const res = JSON.parse(info.message);
-                    
-                    return `${res.ip} - ${res.user} [${moment(info.timestamp)}] "${res.method} ${res.url} HTTP/${res.version} ${res.status} ${res.length}`
-                })
+                winston.format.printf((info) => `${info.message}`)
             ),
             maxsize: this._config.maxSize,
             maxFiles: this._config.maxFiles,

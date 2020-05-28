@@ -1,7 +1,7 @@
 import { Service } from "../fonaments/services/service";
 import { Channel } from "./channels/channel";
 import io from 'socket.io';
-import { ChannelConnectResponse, ChannelConnectErrorResponse, ChannelConnectRequest } from "./messages/channel-connect";
+import { logger } from "../fonaments/abstract-application";
 
 export type Payload = object;
 
@@ -40,12 +40,12 @@ export class WebSocketService extends Service {
             socket.request.session.save();
 
             if (this._app.config.get('env') === 'dev') {
-                console.log('user connected', socket.id);
+                logger().info('user connected', socket.id);
             }
             
             socket.on('disconnect', () => {
                 if (this._app.config.get('env') === 'dev') {
-                    console.log('user disconnected', socket.id);
+                    logger().info('user disconnected', socket.id);
                 }
             });
         });
