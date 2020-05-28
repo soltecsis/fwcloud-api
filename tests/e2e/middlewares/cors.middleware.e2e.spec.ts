@@ -42,7 +42,7 @@ describe(describeName('CORSMiddleware E2E test'), () => {
             .post(_URL().getURL('versions.show'))
             .expect(400)
             .expect((response) => {
-                expect(response.body.msg).to.be.deep.eq(fwcError.NOT_ALLOWED_CORS.msg)
+                expect(response.body.error).to.contains('Not allowed by CORS:')
             });
 
         stub.restore();

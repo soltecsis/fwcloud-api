@@ -41,12 +41,6 @@ export class ErrorResponse extends ErrorMiddleware {
             this.app.logger().error(`${exceptionName}: ${error.message}`);
         }
         
-        //TODO
-        if (error instanceof CorsException) {
-            res.status(400).send(fwcError.NOT_ALLOWED_CORS);
-            return;
-        }
-
         return ResponseBuilder.buildResponse().error(error).build(res).send();
     }
 

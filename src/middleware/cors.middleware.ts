@@ -21,7 +21,6 @@
 */
 
 import { Middleware } from "../fonaments/http/middleware/Middleware";
-import fwcError from '../utils/error_table';
 import cors, { CorsOptions } from 'cors';
 import { Request, Response, NextFunction } from "express";
 import { AbstractApplication } from "../fonaments/abstract-application";

@@ -108,6 +108,7 @@ export class ResponseBuilder {
         }
 
         this._status = (<HttpException>error).status;
+        this._error = <HttpException>error;
 
         return this;
     }
