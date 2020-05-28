@@ -36,7 +36,6 @@ import { In } from 'typeorm';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
-var logger = require('log4js').getLogger("app");
 
 /* Create New policy_r */
 router.post("/",

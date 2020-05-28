@@ -25,14 +25,13 @@ var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
-import { app } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';
 import { In } from 'typeorm';
 const fwcError = require('../../utils/error_table');
 const app = require('../../fonaments/abstract-application').app;
 
 
-var logger = require('log4js').getLogger("app");
 
 /* Create New PolicyGroup */
 router.post('/', async (req, res) => {
@@ -130,7 +129,7 @@ router.put("/del", async (req, res) => {
 	var idfirewall = req.body.firewall;
 	var id = req.body.id;
 
-	logger.debug("Removed all Policy from Group " + id);
+	logger().debug("Removed all Policy from Group " + id);
 	const policyGroup = await repository.for(PolicyGroup).findOne(id);
 
 	try {

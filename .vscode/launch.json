@@ -26,6 +26,7 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}/dist/src/bin/fwcloud.js",
+      "outputCapture": "std",
       "outFiles": [
         "${workspaceFolder}/dist/**/*.js"
       ]

@@ -23,6 +23,9 @@
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },
+    "log": {
+        "directory": "tests/playground/logs"
+    },
     "policy": {
         "data_dir": "tests/playground/DATA/policy"
     },

@@ -23,11 +23,7 @@
 import express from 'express';
 import httpProxy from 'http-proxy';
 
-import log4js, { Logger } from 'log4js';
-import log4js_extend from 'log4js-extend';
-
 import db from "./database/database-manager";
-
 import { AbstractApplication } from "./fonaments/abstract-application";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
@@ -59,10 +55,9 @@ import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
+import { LogRequestMiddleware } from './middleware/log-request.middleware';
 
 export class Application extends AbstractApplication {
-    private _logger: Logger;
-
     public static async run(path?: string): Promise<Application> {
         try {
             const app: Application = new Application(path);
@@ -75,21 +70,14 @@ export class Application extends AbstractApplication {
         }
     }
 
-    get logger() {
-        return this._logger;
-    }
-
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
-        this._logger = await this.registerLogger();
         await this.startDatabaseService()
         return this;
     }
 
     public async close(): Promise<void> {
-        //log4js.shutdown(async () => {
         await super.close();
-        //});
     }
 
     protected providers(): Array<typeof ServiceProvider> {
@@ -109,6 +97,7 @@ export class Application extends AbstractApplication {
 
     protected beforeMiddlewares(): Array<Middlewareable> {
         return [
+            LogRequestMiddleware,
             BodyParser,
             RequestBuilder,
             Compression,
@@ -130,18 +119,6 @@ export class Application extends AbstractApplication {
             Throws404,
             ErrorResponse
         ]
-    }
-
-    private async registerLogger(): Promise<Logger> {
-        await log4js_extend(log4js, {
-            path: this._path,
-            format: "[@file:@line]"
-        });
-
-        this._express.use(log4js.connectLogger(log4js.getLogger("http"), { level: 'auto' }));
-        log4js.configure('./config/log4js_configuration.json');
-
-        return log4js.getLogger('app');
     }
 
     protected async registerRoutes() {

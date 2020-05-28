@@ -29,6 +29,17 @@ import fwcError from '../utils/error_table';
 
 export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {
+        const exceptionName: string = error.constructor ? error.constructor.name : 'Error';
+
+        if(error.stack) {
+            const stackLine: Array<string> = error.stack.split('\n');
+
+            for(let i = 0; i < stackLine.length; i++) {
+                this.app.logger().error(stackLine[i]);
+            }
+        } else {
+            this.app.logger().error(`${exceptionName}: ${error.message}`);
+        }
         
         //TODO
         if (error instanceof CorsException) {
