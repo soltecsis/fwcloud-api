@@ -446,13 +446,13 @@ const config = convict({
     maxFiles: {
       doc: 'Maximum number of logs to keep',
       format: Number,
-      default: 2,
+      default: 5,
       env: 'LOGS_MAXFILES'
     },
     maxSize: {
       doc: 'Maximum size of the file after which it will rotate',
       format: Number,
-      default: 1000000000,
+      default: 100000000,
       env: 'LOGS_MAXSIZE'
     }
   }
