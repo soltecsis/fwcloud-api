@@ -29,6 +29,7 @@ import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 import ObjectHelpers from "../utils/object-helpers";
 import { FSHelper } from "../utils/fs-helper";
 import * as semver from "semver";
+import { DatabaseLogger } from "./logger";
 
 export interface DatabaseConfig {
     host: string,
@@ -37,7 +38,8 @@ export interface DatabaseConfig {
     pass: string,
     name: string,
     migrations: Array<string>,
-    migration_directory: string
+    migration_directory: string,
+    debug: boolean
 }
 
 export class DatabaseService extends Service {
@@ -183,6 +185,11 @@ export class DatabaseService extends Service {
     }
 
     protected getDefaultConnectionConfiguration(): ConnectionOptions {
+        const loggerOptions: ("error" | "query")[] = this.config.debug && 
+        (this._app.config.get('log.level') === 'debug' ||
+        this._app.config.get('log.level') === 'verbose' ||
+        this._app.config.get('log.level') === 'silly') ? ["error", "query"] : ["error"];
+
         return {
             type: 'mysql',
             host: this._config.host,
@@ -194,7 +201,7 @@ export class DatabaseService extends Service {
             synchronize: false,
             migrationsRun: false,
             dropSchema: false,
-            logging: ["error"],
+            logger: new DatabaseLogger(loggerOptions),
             migrations: this._config.migrations,
             cli: {
                 migrationsDir: this._config.migration_directory

@@ -27,7 +27,6 @@ import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Column, Entity, PrimaryColumn, ManyToOne, JoinTable, JoinColumn, OneToOne } from 'typeorm';
 import modelEventService from '../ModelEventService';
-var logger = require('log4js').getLogger("app");
 
 const tableName: string = 'policy_c';
 

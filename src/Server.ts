@@ -27,6 +27,7 @@ import * as fs from 'fs';
 import io from 'socket.io';
 import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
 import { WebServerApplication } from "./web-server-application";
+import { logger } from "./fonaments/abstract-application";
 
 export class Server {
     private _application: Application | WebServerApplication;
@@ -51,9 +52,9 @@ export class Server {
                     await this.bootstrapSocketIO();
                 }
             }
-            else console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
+            else logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
         } catch (error) {
-            console.error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
+            logger().error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
             process.exit(1);
         }
 
@@ -89,7 +90,7 @@ export class Server {
         });
 
         this._server.on('listening', () => {
-            console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL())
+            logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL())
         })
     }
 

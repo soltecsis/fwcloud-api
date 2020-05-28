@@ -33,8 +33,7 @@ import * as fse from "fs-extra";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { Progress } from "../fonaments/http/progress/progress";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-
-const logger = require('log4js').getLogger("app");
+import { logger } from "../fonaments/abstract-application";
 
 export interface BackupUpdateableConfig {
     schedule: string,
@@ -69,12 +68,12 @@ export class BackupService extends Service {
         this._schedule = this._config.schedule;
         this._task = async () => {
             try {
-                logger.info("Starting BACKUP job.");
+                logger().info("Starting BACKUP job.");
                 const backup = new Backup();
                 backup.setComment('Cron backup');
                 await backup.create(this._config.data_dir);
-                logger.info(`BACKUP job completed: ${backup.id}`);
-            } catch (error) { logger.error("BACKUP job ERROR: ", error.message) }
+                logger().info(`BACKUP job completed: ${backup.id}`);
+            } catch (error) { logger().error("BACKUP job ERROR: ", error.message) }
         }
 
         this._runningJob = this._cronService.addJob(this._schedule, this._task);
@@ -234,7 +233,7 @@ export class BackupService extends Service {
         const cronTime: CronTime = new CronTime(this._config.schedule);
         this._runningJob.setTime(cronTime);
         this._runningJob.start();
-        logger.info(`New backup cron task schedule: ${custom_config.schedule}`);
+        logger().info(`New backup cron task schedule: ${custom_config.schedule}`);
 
         return custom_config;
     }

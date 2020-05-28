@@ -21,14 +21,11 @@
 */
 
 
-import { Connection, createConnection, QueryRunner } from "typeorm";
+import { Connection, QueryRunner } from "typeorm";
 import * as config from "../config/config";
 import Query from "./Query";
-import * as Logger from "log4js";
 import { AbstractApplication } from '../fonaments/abstract-application';
 import { DatabaseService } from './database.service';
-
-const logger = Logger.getLogger("app");
 
 export class DatabaseManager {
 

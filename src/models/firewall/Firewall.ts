@@ -190,15 +190,14 @@ export class Firewall extends Model {
 				LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 				LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1
 				WHERE T.id=${req.body.firewall} AND T.fwcloud=${req.body.fwcloud}`;
-			//logger.debug(sql);
-
+			
 			req.dbCon.query(sql, (error, rows) => {
-				if (error) return reject(error);
-				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+			if (error) return reject(error);
+			if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
-				Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
-					.then(data => resolve(data[0]))
-					.catch(error => reject(error));
+			Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
+				.then(data => resolve(data[0]))
+				.catch(error => reject(error));
 			});
 		});
 	}
