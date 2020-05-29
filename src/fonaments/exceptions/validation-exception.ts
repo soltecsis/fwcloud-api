@@ -29,8 +29,10 @@ export interface InputErrorInterface {
     code: string;
 }
 export class ValidationException extends HttpException {
+    protected _errors: object;
     
-    constructor(message: string) {
+    constructor(message: string = "The given data was invalid", errors = {}) {
         super(message, 422);
+        this._errors = errors;
     }
 }
