@@ -21,6 +21,7 @@
 */
 
 import { FwCloudError } from "../error";
+import { ErrorPayload } from "../../http/response-builder";
 
 export class HttpException extends FwCloudError {
     
@@ -29,5 +30,12 @@ export class HttpException extends FwCloudError {
     constructor(message: string = null, status: number = 500, stack?: string) {
         super(message, stack);
         this.status = status;
+    }
+
+    public toResponse(): ErrorPayload {
+        return {
+            message: this.message,
+            stack: this.stackToArray()
+        };
     }
 }

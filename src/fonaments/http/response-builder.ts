@@ -38,9 +38,14 @@ interface ResponseBody {
     stack?: Array<string>
 }
 
-type ErrorPayload = {error: string, stack?: Array<string>};
 type DataPayload = {data: object};
 type DataCollectionPayload = {data: Array<object>};
+
+export interface ErrorPayload {
+    message: string,
+    stack?: Array<string>,
+    [k: string]: any
+}
 
 interface FileAttached {
     path: string;
@@ -181,12 +186,10 @@ export class ResponseBuilder {
     }
 
     protected buildErrorPayload(error: HttpException): ErrorPayload {
-        const result: {error: string, stack?: Array<string>} = {
-            error: error.message
-        };
+        const result: ErrorPayload = error.toResponse();
 
         if (app().config.get('env') !== 'prod') {
-            result.stack = error.stackToArray();
+            delete(result.stack);
         }
 
         return result;
