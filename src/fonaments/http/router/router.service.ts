@@ -158,7 +158,7 @@ export class RouterService extends Service {
             try {
                 await validationRequest.validate();
             } catch (e) {
-                throw new ValidationException(e);
+                throw new ValidationException("The given data was invalid");
             }
         }
     }
