@@ -30,7 +30,7 @@ import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
 import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
 import { CORS } from './middleware/cors.middleware';
-import { AuthenticationMiddleware } from './middleware/authentication.middleware';
+import { Authorization } from './middleware/Authorization';
 import { ConfirmationToken } from './middleware/confirmation-token.middleware';
 import { InputValidation } from './middleware/InputValidation';
 import { AccessControl } from './middleware/AccessControl';
@@ -42,7 +42,7 @@ import { ServiceProvider } from './fonaments/services/service-provider';
 import { BackupServiceProvider } from './backups/backup.provider';
 import { CronServiceProvider } from './backups/cron/cron.provider';
 import { Middlewareable } from './fonaments/http/middleware/Middleware';
-import { AuthenticationTestMiddleware } from './middleware/authentication-test.middleware';
+import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { SnapshotServiceProvider } from './snapshots/snapshot.provider';
 import { MaintenanceMiddleware } from './middleware/maintenance.middleware';
 import { DatabaseServiceProvider } from './database/database.provider';
@@ -107,7 +107,7 @@ export class Application extends AbstractApplication {
             AttachDatabaseConnection,
             SessionMiddleware,
             CORS,
-            this.config.get('env') !== 'test' ? AuthenticationMiddleware : AuthenticationTestMiddleware,
+            this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
             ConfirmationToken,
             InputValidation,
             AccessControl
