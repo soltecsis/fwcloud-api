@@ -29,6 +29,7 @@ import { app, logger } from "../fonaments/abstract-application";
 import { RepositoryService } from "../database/repository.service";
 import { User } from "../models/user/User";
 import { getRepository } from "typeorm";
+import { AuthenticationException } from "./exceptions/authentication.exception";
 
 type SessionData = {
     user_id: number,
@@ -36,7 +37,7 @@ type SessionData = {
     customer_id: number
 };
 
-export class AuthorizationTest extends Middleware {
+export class AuthenticationTestMiddleware extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         // Exclude the login route.
         if (req.method === 'POST' && req.path === '/user/login') {
@@ -48,13 +49,13 @@ export class AuthorizationTest extends Middleware {
                 const fwcloudCookie = this.getFwCloudCookie(req.headers.cookie);
 
                 if (!fwcloudCookie) {
-                    throw new AuthorizationException();
+                    throw new AuthenticationException();
                 }
 
                 const id: string = this.getSessionIdFromCookie(fwcloudCookie);
                 const session_path: string = path.join(this.app.config.get('session').files_path, id + '.json'); 
                 if (!fs.existsSync(session_path)) {
-                    throw new AuthorizationException();
+                    throw new AuthenticationException();
                 }
 
                 let session_data: SessionData = JSON.parse(fs.readFileSync(session_path).toString());
@@ -69,7 +70,7 @@ export class AuthorizationTest extends Middleware {
                 return next();
             }
 
-            throw new AuthorizationException();
+            throw new AuthenticationException();
         } catch (e) {
             next(e);
         }

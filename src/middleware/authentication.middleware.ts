@@ -26,8 +26,9 @@ import { User } from '../models/user/User';
 import { Request, Response, NextFunction } from "express";
 import { getRepository } from "typeorm";
 import { logger } from "../fonaments/abstract-application";
+import { AuthenticationException } from "./exceptions/authentication.exception";
 
-export class Authorization extends Middleware {
+export class AuthenticationMiddleware extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
         // Exclude the login route.
         if (req.method === 'POST' && req.path === '/user/login') {
@@ -45,25 +46,27 @@ export class Authorization extends Middleware {
         try {
             if (req.session.cookie.maxAge < 1) { // See if the session has expired.
                 req.session.destroy(err => { });
-                throw fwcError.SESSION_EXPIRED;
+                new AuthenticationException()
             }
 
             if (!req.session.customer_id || !req.session.user_id || !req.session.username || !req.session.pgp) {
                 req.session.destroy(err => { });
-                throw fwcError.SESSION_BAD;
+                new AuthenticationException()
             }
 
             const data: any = await User.getUserName(req.session.customer_id, req.session.username);
             if (data.length === 0) {
                 req.session.destroy(err => { });
-                throw fwcError.SESSION_BAD;
+                new AuthenticationException()
             }
 
             req.session.user = await getRepository(User).findOne(req.session.user_id);
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             next();
-        } catch (error) { res.status(400).json(error) }
+        } catch (e) {
+            next(e);
+        }
     }
 
 }

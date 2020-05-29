@@ -23,8 +23,7 @@
 import { HttpException } from "./http/http-exception";
 
 export class AuthorizationException extends HttpException {
-    constructor() {
-        super();
-        this.status = 401;
+    constructor(message: string = 'User not authorized') {
+        super(message, 401);
     }
 }
