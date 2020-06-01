@@ -22,8 +22,9 @@
 
 import { FwCloudError } from "../error";
 import { ErrorPayload } from "../../http/response-builder";
+import { Responsable } from "../../contracts/responsable";
 
-export class HttpException extends FwCloudError {
+export class HttpException extends FwCloudError implements Responsable {
     
     public status: number;
     
