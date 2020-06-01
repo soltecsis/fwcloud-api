@@ -43,9 +43,11 @@ describe(describeName('HttpException Unit tests'), () => {
         it('should not return the stack if the app is in prod mode', () => {
             const error = new HttpException();
 
-            sinon.stub(app.config, 'get').returns('prod');
+            const stub: sinon.SinonStub = sinon.stub(app.config, 'get').returns('prod');
 
             expect(error.toResponse()).not.to.haveOwnProperty('stack');
+
+            stub.restore();
         });
     });
 });
