@@ -33,23 +33,27 @@ import { FwCloudError } from "../exceptions/error";
 interface ResponseBody {
     status: number,
     response: string,
-    data?: object,
-    error?: string,
-    stack?: Array<string>
-}
-
-type DataPayload = {data: object};
-type DataCollectionPayload = {data: Array<object>};
-
-export interface ErrorPayload {
+    
+    data?: object | Array<object>,
+    
     message: string,
-    stack?: Array<string>,
-    [k: string]: any
+    errors?: object,
+    stack?: Array<string>
 }
 
 interface FileAttached {
     path: string;
     filename?: string;
+}
+
+interface DataPayload {
+    data: object | Array<object>
+}
+
+export interface ErrorPayload {
+    message: string,
+    errors?: object,
+    stack?: Array<string>
 }
 
 export class ResponseBuilder {
@@ -158,7 +162,7 @@ export class ResponseBuilder {
         return this.buildMessage();
     }
 
-    protected buildPayload(payload: any): ErrorPayload | DataPayload | DataCollectionPayload {
+    protected buildPayload(payload: any): ErrorPayload | DataPayload {
         if (this._error) {
             return this.buildErrorPayload(this._error);
         }
@@ -175,7 +179,7 @@ export class ResponseBuilder {
         return {data: data};
     }
 
-    protected buildArrayDataPayload(payload: Array<any>): DataCollectionPayload {
+    protected buildArrayDataPayload(payload: Array<any>): DataPayload {
         const result: Array<Object> = [];
 
         for (let i = 0; i < payload.length; i++) {

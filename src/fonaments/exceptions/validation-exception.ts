@@ -20,19 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ValidationError as JoiValidationError, ValidationErrorItem } from "joi";
 import { HttpException } from "./http/http-exception";
+import { ErrorPayload } from "../http/response-builder";
 
-export interface InputErrorInterface {
-    name: Array<string>,
-    message: string;
-    code: string;
-}
+export type InputErrors = Array<string>;
+export type ValidationErrors = {[input: string]: InputErrors}
+
 export class ValidationException extends HttpException {
     protected _errors: object;
     
-    constructor(message: string = "The given data was invalid", errors = {}) {
+    constructor(message: string = "The given data was invalid", errors: ValidationErrors = {}) {
         super(message, 422);
         this._errors = errors;
+    }
+
+    public toResponse(): ErrorPayload {
+        const obj = super.toResponse();
+        obj.errors = this._errors;
+
+        return obj;
     }
 }
