@@ -23,6 +23,7 @@
 import { FwCloudError } from "../error";
 import { ErrorPayload } from "../../http/response-builder";
 import { Responsable } from "../../contracts/responsable";
+import { app } from "../../abstract-application";
 
 export class HttpException extends FwCloudError implements Responsable {
     
@@ -34,9 +35,14 @@ export class HttpException extends FwCloudError implements Responsable {
     }
 
     public toResponse(): ErrorPayload {
-        return {
+        const response: ErrorPayload = {
             message: this.message,
-            stack: this.stackToArray()
         };
+
+        if (app().config.get('env') !== 'prod') {
+            response.stack = this.stackToArray()
+        }
+
+        return response;
     }
 }

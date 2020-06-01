@@ -190,12 +190,6 @@ export class ResponseBuilder {
     }
 
     protected buildErrorPayload(error: HttpException): ErrorPayload {
-        const result: ErrorPayload = error.toResponse();
-
-        if (app().config.get('env') !== 'prod') {
-            delete(result.stack);
-        }
-
-        return result;
+        return error.toResponse();
     }
 }
