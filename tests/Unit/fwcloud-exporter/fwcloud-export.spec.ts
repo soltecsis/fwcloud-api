@@ -2,7 +2,7 @@ import { describeName, testSuite, playgroundPath, expect } from "../../mocha/glo
 import { Application } from "../../../src/Application";
 import * as path from "path";
 import * as fs from "fs";
-import { FwCloudExport, FwCloudExportMetadata } from "../../../src/fwcloud-exporter/fwcloud-export";
+import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
@@ -75,17 +75,6 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.SNAPSHOTS_DIRECTORY, snapshot1.id.toString()))).to.be.true;
             expect(FSHelper.directoryExistsSync(path.join(fwCloudExport.path, FwCloudExport.SNAPSHOTS_DIRECTORY, snapshot2.id.toString()))).to.be.true;
         });
-
-        it('should create export metadata file', async () => {
-            const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
-
-            expect(FSHelper.fileExistsSync(fwCloudExport.metadataPath)).to.be.true;
-            expect(JSON.parse(fs.readFileSync(fwCloudExport.metadataPath).toString())).to.be.deep.eq({
-                timestamp: fwCloudExport.timestamp,
-                fwcloud_id: fwCloud.id,
-                user_id: user.id
-            });
-        })
     });
 
     describe('compress()', () => {
@@ -120,7 +109,6 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
             fwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
             await fwCloudExport.compress();
             await FSHelper.remove(fwCloudExport.path);
-            await FSHelper.remove(fwCloudExport.metadataPath);
         });
 
         it('should unzip the file', async () => {

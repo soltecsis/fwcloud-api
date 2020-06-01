@@ -36,10 +36,6 @@ export class FwCloudExportService extends Service {
                 if(FSHelper.fileExistsSync(fwCloudExport.exportPath)) {
                     FSHelper.remove(fwCloudExport.exportPath);
                 }
-
-                if(FSHelper.fileExistsSync(fwCloudExport.exportPath)) {
-                    FSHelper.remove(fwCloudExport.metadataPath);
-                }
             }, ttl);
         }
         return fwCloudExport;
