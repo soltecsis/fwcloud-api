@@ -33,19 +33,12 @@ import { FwCloudError } from "../exceptions/error";
 interface ResponseBody {
     status: number,
     response: string,
-    data?: object,
-    error?: ErrorBody
-}
-
-export interface ErrorBody {
-    [k: string]: any,
-    exception?: ExceptionBody,
-}
-
-export interface ExceptionBody {
-    name: string,
-    stack: Array<string>,
-    caused_by?: ExceptionBody
+    
+    data?: object | Array<object>,
+    
+    message: string,
+    errors?: object,
+    stack?: Array<string>
 }
 
 interface FileAttached {
@@ -53,11 +46,23 @@ interface FileAttached {
     filename?: string;
 }
 
+interface DataPayload {
+    data: object | Array<object>
+}
+
+export interface ErrorPayload {
+    message: string,
+    errors?: object,
+    stack?: Array<string>
+}
+
 export class ResponseBuilder {
-    protected _status: number;
-    protected _payload: object;
     protected _app: AbstractApplication;
     protected _response: Response;
+
+    protected _status: number;
+    protected _payload: object;
+    protected _error: HttpException;
     
     protected _fileAttached: FileAttached;
     
@@ -83,7 +88,7 @@ export class ResponseBuilder {
             throw new Error('Message already defined for the given response');
         }
 
-        this._payload = this.buildPayload(payload);
+        this._payload = payload;
 
         return this;
     }
@@ -102,24 +107,25 @@ export class ResponseBuilder {
     }
 
     public error(error: Error): ResponseBuilder {
-        if (this._payload) {
-            throw new Error('Message already defined for the given response');
-        }
-
         if (!(error instanceof FwCloudError)) {
-            error = new FwCloudError().fromError(error);
+            error = new FwCloudError(error);
         }
 
-        this._payload = { error: this.buildErrorPayload(<FwCloudError>error) };
+        // In case the exception is not an http exception we generate a 500 exception
+        if (!(error instanceof HttpException)) {
+            error = new InternalServerException(error.message, error.stack);
+        }
+
+        this._status = (<HttpException>error).status;
+        this._error = <HttpException>error;
 
         return this;
     }
 
-    public send(response: Response): ResponseBuilder {
+    public build(response: Response): ResponseBuilder {
         this._response = response;
 
         if (this.hasFileAttached()) {
-            this._response.download(this._fileAttached.path, this._fileAttached.filename);
             return this;
         }
 
@@ -129,9 +135,18 @@ export class ResponseBuilder {
 
         this._response.status(this._status);
 
-        this._response.send(this.buildMessage());
+        this._response.json(this.buildMessage());
 
         return this;
+    }
+
+    public send(): Response {
+        if (this.hasFileAttached()) {
+            this._response.download(this._fileAttached.path, this._fileAttached.filename);
+            return this._response;
+        }
+
+        this._response.send();
     }
 
     protected buildMessage(): ResponseBody {
@@ -140,50 +155,41 @@ export class ResponseBuilder {
             response: HttpCodeResponse.get(this._status),
         }
 
-        return <ResponseBody>ObjectHelpers.merge(envelope, this._payload);
+        return <ResponseBody>ObjectHelpers.merge(envelope, this.buildPayload(this._payload));
     }
 
     public toJSON(): ResponseBody {
         return this.buildMessage();
     }
 
-    protected buildPayload(payload: any): Object {
-        return { data: this.buildDataPayload(payload) };
+    protected buildPayload(payload: any): ErrorPayload | DataPayload {
+        if (this._error) {
+            return this.buildErrorPayload(this._error);
+        }
+        return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
     }
 
-    protected buildDataPayload(payload: Object): Object {
+    protected buildDataPayload(payload: Object): DataPayload {
         if (payload === null || payload === undefined) {
-            return {};
+            return {data: null};
         }
 
-        if (isArray(payload)) {
-            return this.buildArrayDataResponse(payload);
-        }
+        const data: object = isResponsable(payload) ? payload.toResponse() : payload;
 
-        if (isResponsable(payload)) {
-            return payload.toResponse();
-        }
-
-        return payload;
+        return {data: data};
     }
 
-    protected buildArrayDataResponse(payload: Array<any>): Array<Object> {
+    protected buildArrayDataPayload(payload: Array<any>): DataPayload {
         const result: Array<Object> = [];
 
         for (let i = 0; i < payload.length; i++) {
             result.push(isResponsable(payload[i]) ? payload[i].toResponse() : payload[i]);
         }
 
-        return result;
+        return {data: result};
     }
 
-    protected buildErrorPayload(payload: FwCloudError): ErrorBody {
-        if (payload instanceof HttpException) {
-            this._status = payload.status;
-            return payload.toResponse();
-        }
-
-        // In case the exception is not an http exception we generate a 500 exception
-        return this.buildErrorPayload(new InternalServerException(payload.message, payload));
+    protected buildErrorPayload(error: HttpException): ErrorPayload {
+        return error.toResponse();
     }
 }

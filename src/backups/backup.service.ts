@@ -123,7 +123,7 @@ export class BackupService extends Service {
             return backup;
         }
 
-        throw new NotFoundException();
+        throw new NotFoundException(`Backup ${id} not found`);
     }
 
     /**

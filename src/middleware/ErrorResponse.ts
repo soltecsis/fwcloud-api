@@ -41,15 +41,7 @@ export class ErrorResponse extends ErrorMiddleware {
             this.app.logger().error(`${exceptionName}: ${error.message}`);
         }
         
-        //TODO
-        if (error instanceof CorsException) {
-            res.status(400).send(fwcError.NOT_ALLOWED_CORS);
-            return;
-        }
-
-        const status: number = error instanceof HttpException ? error.status : 500;
-        
-        return ResponseBuilder.buildResponse().status(status).error(error).send(res);
+        return ResponseBuilder.buildResponse().error(error).build(res).send();
     }
 
 }

@@ -22,4 +22,8 @@
 
 import { HttpException } from "../../fonaments/exceptions/http/http-exception";
 
-export class CorsException extends HttpException { }
+export class CorsException extends HttpException {
+    constructor(origin: string) {
+        super('Not allowed by CORS: ' + origin, 400);
+    }
+}

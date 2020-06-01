@@ -23,7 +23,7 @@
 import { AbstractApplication } from "../../../../../src/fonaments/abstract-application";
 import { HttpException } from "../../../../../src/fonaments/exceptions/http/http-exception";
 import { expect, testSuite, describeName } from "../../../../mocha/global-setup";
-import { NotFoundException } from "../../../../../src/fonaments/exceptions/not-found-exception";
+import sinon from "sinon";
 
 let app: AbstractApplication;
 
@@ -33,27 +33,21 @@ describe(describeName('HttpException Unit tests'), () => {
         app = testSuite.app;
     });
 
-
     describe('toResponse()', () => {
-        it('details should not be present in the response if the application is production mode', async () => {
-            app.config.set('env', 'prod');
+        it('should return the stack if the app is not in prod mode', () => {
+            const error = new HttpException();
 
-            expect(new HttpException().toResponse().exception).is.undefined;
-
-            app.config.set('env', 'test');
+            expect(error.toResponse()).to.haveOwnProperty('stack');
         });
 
-        it('details should be present in the response if the application is not in production mode', async () => {
-            app.config.set('env', 'dev');
+        it('should not return the stack if the app is in prod mode', () => {
+            const error = new HttpException();
 
-            expect(new HttpException().toResponse().exception).is.not.undefined;
+            const stub: sinon.SinonStub = sinon.stub(app.config, 'get').returns('prod');
 
-            app.config.set('env', 'test');
-        });
+            expect(error.toResponse()).not.to.haveOwnProperty('stack');
 
-        it('name should be retrieved from the caused_by exception', async () => {
-            expect(new HttpException(null, new NotFoundException()).toResponse().exception.name).to.be.deep.eq(HttpException.name);
-            expect(new HttpException(null, new NotFoundException()).toResponse().exception.caused_by.name).to.be.deep.eq(NotFoundException.name);
+            stub.restore();
         });
     });
 });

@@ -26,7 +26,6 @@ import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import sinon from "sinon";
 import { CORS } from "../../../src/middleware/cors.middleware";
-import fwcError from '../../../src/utils/error_table';
 
 let app: Application;
 describe(describeName('CORSMiddleware E2E test'), () => {
@@ -42,7 +41,7 @@ describe(describeName('CORSMiddleware E2E test'), () => {
             .post(_URL().getURL('versions.show'))
             .expect(400)
             .expect((response) => {
-                expect(response.body.msg).to.be.deep.eq(fwcError.NOT_ALLOWED_CORS.msg)
+                expect(response.body.message).to.contains('Not allowed by CORS:')
             });
 
         stub.restore();

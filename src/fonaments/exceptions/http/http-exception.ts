@@ -20,37 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Responsable } from "../../contracts/responsable";
-import ObjectHelpers from "../../../utils/object-helpers";
-import { app } from "../../abstract-application";
-import { ErrorBody } from "../../http/response-builder";
 import { FwCloudError } from "../error";
+import { ErrorPayload } from "../../http/response-builder";
+import { Responsable } from "../../contracts/responsable";
+import { app } from "../../abstract-application";
 
 export class HttpException extends FwCloudError implements Responsable {
     
     public status: number;
     
-    constructor(message: string = null, caused_by: FwCloudError = null) {
-        super(message, caused_by);
-        this._app = app();
+    constructor(message: string = null, status: number = 500, stack?: string) {
+        super(message, stack);
+        this.status = status;
     }
 
-    toResponse(): ErrorBody {
-        return this.generateResponse();
-    }
+    public toResponse(): ErrorPayload {
+        const response: ErrorPayload = {
+            message: this.message,
+        };
 
-    protected response(): Object {
-        return {}
-    }
+        if (app().config.get('env') !== 'prod') {
+            response.stack = this.stackToArray()
+        }
 
-    private generateResponse(): ErrorBody {
-        return <ErrorBody>ObjectHelpers.merge(
-            this.response(),
-            this.shouldAttachExceptionDetails() ? { exception: this.getExceptionDetails() } : null
-        );
-    }
-
-    private shouldAttachExceptionDetails(): boolean {
-        return this._app.config.get('env') !== 'prod';
+        return response;
     }
 }
