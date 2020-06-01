@@ -119,7 +119,8 @@ export class ResponseBuilder {
         this._response = response;
 
         if (this.hasFileAttached()) {
-            return this.sendDownload(this._response);
+            this._response.download(this._fileAttached.path, this._fileAttached.filename);
+            return this;
         }
 
         if (!this._status) {
@@ -130,11 +131,6 @@ export class ResponseBuilder {
 
         this._response.send(this.buildMessage());
 
-        return this;
-    }
-
-    protected sendDownload(response: Response): ResponseBuilder {
-        response.download(this._fileAttached.path, this._fileAttached.filename);
         return this;
     }
 

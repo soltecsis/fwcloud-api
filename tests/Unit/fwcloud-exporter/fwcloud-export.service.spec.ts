@@ -47,7 +47,6 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
 
             expect(fwCloudExport).to.be.instanceOf(FwCloudExport);
             expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.true;
-            expect(FSHelper.fileExistsSync(fwCloudExport.metadataPath)).to.be.true;
         });
 
         it('should remove the export directory', async () => {
@@ -61,7 +60,6 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
 
             await sleep(4);
             expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.false;
-            expect(FSHelper.fileExistsSync(fwCloudExport.metadataPath)).to.be.false;
         });
 
     })

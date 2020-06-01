@@ -60,78 +60,17 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
                     .set('Cookie', [attachSession(regularUserSessionId)])
-                    .expect(201)
+                    .expect('Content-Type', /application/)
+                    .expect(200)
             });
 
             it('admin user can create a fwcloud export file', async () => {
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(201)
-            });
-        });
-
-        describe('FwCloudExportController@download',() => {
-            let fwCloudExport: FwCloudExport;
-
-            beforeEach(async () => {
-                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser)
-            });
-
-            it('guest user should not download a fwcloud export file', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .expect(401);
-            });
-
-            it('regular user which does not belong to the fwcloud should not download the fwcloud export file', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .set('Cookie', [attachSession(regularUserSessionId)])
-                    .expect(404)
-            });
-
-            it('regular user which belongs to the fwcloud should not download the fwcloud export file if it did not request', async () => {
-                const otherUser: User = await createUser({});
-                const otherUserSessionId: string = generateSession(otherUser);
-                otherUser.fwClouds = [fwCloud];
-                await getRepository(User).save(otherUser);
-
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .set('Cookie', [attachSession(otherUserSessionId)])
-                    .expect(404)
-            });
-
-            it('regular user which belongs to the fwcloud should download the fwcloud export file if it requested it', async () => {
-                regularUser.fwClouds = [fwCloud];
-                await getRepository(User).save(regularUser);
-
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .set('Cookie', [attachSession(regularUserSessionId)])
                     .expect('Content-Type', /application/)
                     .expect(200)
             });
-
-            it('admin user which belongs to the fwcloud should download the fwcloud export file', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect('Content-Type', /application/)
-                    .expect(200)
-            });
-
-            it('export file should not be available after ttl', async () => {
-                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser, 1);
-                await sleep(2);
-
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.exports.download', { fwcloud: fwCloud.id, export: fwCloudExport.id }))
-                    .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect('Content-Type', /application/)
-                    .expect(404)
-            })
         });
 
         describe('FwCloudExportController@import', () => {
