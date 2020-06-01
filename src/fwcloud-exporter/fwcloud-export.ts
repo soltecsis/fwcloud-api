@@ -11,11 +11,6 @@ import moment from "moment";
 import { User } from "../models/user/User";
 import { Responsable } from "../fonaments/contracts/responsable";
 
-export type FwCloudExportMetadata = {
-    fwcloud_id: number;
-    timestamp: number;
-    user_id: number;
-}
 export class FwCloudExport implements Responsable {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
     static SNAPSHOTS_DIRECTORY = 'snapshots';
@@ -54,10 +49,6 @@ export class FwCloudExport implements Responsable {
         return `${this._path}.fwcloud`;
     }
 
-    get metadataPath(): string {
-        return `${this._path}.json`;
-    }
-
     get loaded(): boolean {
         return this._loaded
     }
@@ -79,7 +70,6 @@ export class FwCloudExport implements Responsable {
         await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_DIRECTORY), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_DIRECTORY));
         await FSHelper.remove(path.dirname(snapshot.path));
         await this.copyFwCloudSnapshots(this._fwCloud);
-        this.generateMetadataFile();
     }
 
     public compress(): Promise<string> {
@@ -169,17 +159,6 @@ export class FwCloudExport implements Responsable {
         const fwCloudExport: FwCloudExport = new FwCloudExport(id, directory);
         await fwCloudExport.save(fwCloud, user);
         return fwCloudExport;
-    }
-
-    protected generateMetadataFile(): void {
-        const metadata: FwCloudExportMetadata = {
-            timestamp: this._timestamp,
-            fwcloud_id: this._fwCloud.id,
-            user_id: this._user.id
-        }
-
-        fs.writeFileSync(this.metadataPath, JSON.stringify(metadata, null, 2));
-        return;
     }
 
     protected async copyFwCloudSnapshots(fwCloud: FwCloud): Promise<void> {

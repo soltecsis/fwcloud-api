@@ -63,7 +63,7 @@ export class Routes extends RouteCollection {
 
             router.prefix('/fwclouds', (router: RouterParser) => {
                 router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
-                
+
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
 
                     
@@ -85,11 +85,7 @@ export class Routes extends RouteCollection {
                         router.delete('/:snapshot(\\d+)', SnapshotController, 'destroy').name('snapshots.destroy');
                     });
 
-                    //Exports
-                    router.prefix('/export', (router: RouterParser) => {
-                        router.post('/', FwCloudExportController, 'store').name('fwclouds.exports.store');
-                        router.get('/:export', FwCloudExportController, 'download').name('fwclouds.exports.download');
-                    });
+                    router.post('/export', FwCloudExportController, 'store').name('fwclouds.exports.store');
                 });
             });
 
