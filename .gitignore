@@ -1,6 +1,9 @@
 # Logs
 logs/
 
+# Temporary files
+/.tmp
+
 # IDE Settings
 .vscode/*
 !.vscode/launch.json

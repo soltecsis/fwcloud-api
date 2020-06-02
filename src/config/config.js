@@ -34,6 +34,15 @@ const config = convict({
     env: 'NODE_ENV'
   },
 
+  tmp: {
+    directory: {
+      doc: 'Temporal directory',
+      format: String,
+      default: './.tmp',
+      env: 'TMP_DIRECTORY'
+    }
+  },
+
   maintenance_mode: {
     doc: 'Application maintenance mode',
     format: Boolean,
