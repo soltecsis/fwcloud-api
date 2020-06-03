@@ -6,9 +6,6 @@ import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import { FwCloudExportPolicy } from "../../policies/fwcloud-export.policy";
 import { FwCloudExport } from "../../fwcloud-exporter/fwcloud-export";
-import * as path from "path";
-import * as fs from "fs";
-import Busboy from 'busboy';
 import { ValidationException } from "../../fonaments/exceptions/validation-exception";
 
 export class FwCloudExportController extends Controller {
@@ -38,6 +35,6 @@ export class FwCloudExportController extends Controller {
             return ResponseBuilder.buildResponse().status(201).body(fwCloud);
         }
 
-        throw new Error();
+        throw new ValidationException();
     }
 }

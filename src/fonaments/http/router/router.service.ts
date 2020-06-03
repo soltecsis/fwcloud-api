@@ -129,7 +129,7 @@ export class RouterService extends Service {
                     throw new Error('Controller handler ' + route.controllerSignature.controller.name + '@' + route.controllerSignature.method + ' does not return a response');                    
                 }
 
-                builder.build(response).send();
+                return builder.build(response).send();
 
             } catch (e) {
                 return next(e);

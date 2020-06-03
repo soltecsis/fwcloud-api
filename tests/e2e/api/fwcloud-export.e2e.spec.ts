@@ -61,7 +61,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
                     .set('Cookie', [attachSession(regularUserSessionId)])
                     .expect('Content-Type', /application/)
-                    .expect(200)
+                    .expect(201)
             });
 
             it('admin user can create a fwcloud export file', async () => {
@@ -69,7 +69,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect('Content-Type', /application/)
-                    .expect(200)
+                    .expect(201)
             });
         });
 

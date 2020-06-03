@@ -29,36 +29,46 @@ import * as uuid from "uuid";
 import path from "path";
 import { RequestFiles } from "../fonaments/http/request-files";
 import { FSHelper } from "../utils/fs-helper";
+import { logger } from "../fonaments/abstract-application";
 
 export class RequestBuilder extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         req.inputs = new RequestInputs(req);
         req.files = new RequestFiles();
         
-        var busboy = new Busboy({ headers: req.headers });
+        if (!req.headers["content-type"]) {
+            return next();
+        }
 
-        busboy.on('file', async (input: string, file: NodeJS.ReadableStream, filename: string) => {
-            const id: string = uuid.v4();
-            const uploadFile: NodeJS.ReadableStream = file;
-            const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
-            const destinationDirectory: string = path.dirname(destinationPath)
-            
-            FSHelper.mkdirSync(destinationDirectory);
+        try {
+            var busboy = new Busboy({ headers: req.headers });
 
-            uploadFile.pipe(fs.createWriteStream(destinationPath));
-            req.files.addFile(input, destinationPath);
+            busboy.on('file', async (input: string, file: NodeJS.ReadableStream, filename: string) => {
+                const id: string = uuid.v4();
+                const uploadFile: NodeJS.ReadableStream = file;
+                const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
+                const destinationDirectory: string = path.dirname(destinationPath)
+                
+                FSHelper.mkdirSync(destinationDirectory);
 
-            setTimeout(() => {
-                if (FSHelper.directoryExistsSync(destinationDirectory)) {
-                    FSHelper.rmDirectorySync(destinationDirectory);
-                }
-            }, 300000);
-        });
+                uploadFile.pipe(fs.createWriteStream(destinationPath));
+                req.files.addFile(input, destinationPath);
 
-        busboy.on('finish', () => {
-            next();
-        });
+                setTimeout(() => {
+                    if (FSHelper.directoryExistsSync(destinationDirectory)) {
+                        FSHelper.rmDirectorySync(destinationDirectory);
+                    }
+                }, 300000);
+            });
 
-        req.pipe(busboy);
+            busboy.on('finish', () => {
+                return next();
+            });
+
+            req.pipe(busboy);
+        } catch(e) {
+            logger().warn(e.message);
+            return next();
+        }
     }
 }
