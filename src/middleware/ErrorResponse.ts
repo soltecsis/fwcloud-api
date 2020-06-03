@@ -22,10 +22,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { ResponseBuilder } from "../fonaments/http/response-builder";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { ErrorMiddleware } from "../fonaments/http/middleware/Middleware";
-import { CorsException } from "./exceptions/cors.exception";
-import fwcError from '../utils/error_table';
 
 export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {
@@ -39,6 +36,13 @@ export class ErrorResponse extends ErrorMiddleware {
             }
         } else {
             this.app.logger().error(`${exceptionName}: ${error.message}`);
+        }
+
+        /**
+         * If a response has been already sent, then avoid modify response.
+         */
+        if (res.headersSent) {
+            return;    
         }
         
         return ResponseBuilder.buildResponse().error(error).build(res).send();

@@ -26,6 +26,9 @@
     "log": {
         "directory": "tests/playground/logs"
     },
+    "tmp": {
+        "directory": "tests/playground/.tmp"
+    },
     "policy": {
         "data_dir": "tests/playground/DATA/policy"
     },

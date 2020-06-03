@@ -125,15 +125,15 @@ export class ResponseBuilder {
     public build(response: Response): ResponseBuilder {
         this._response = response;
 
-        if (this.hasFileAttached()) {
-            return this;
-        }
-
         if (!this._status) {
             throw new Error('Status not defined for the given response');
         }
 
         this._response.status(this._status);
+
+        if (this.hasFileAttached()) {
+            return this;
+        }
 
         this._response.json(this.buildMessage());
 

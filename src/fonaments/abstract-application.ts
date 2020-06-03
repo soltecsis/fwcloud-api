@@ -40,11 +40,13 @@ import { WebSocketService } from "../sockets/web-socket.service";
 import { LogServiceProvider } from "../logs/log.provider";
 import { LoggerType, LogService } from "../logs/log.service";
 import winston from "winston";
+import { RequestFiles } from "./http/request-files";
 
 declare module 'express-serve-static-core' {
   interface Request {
     dbCon: Query,
-    inputs: RequestInputs
+    inputs: RequestInputs,
+    files: RequestFiles
   }
 }
 
@@ -224,12 +226,17 @@ export abstract class AbstractApplication {
    */
   public generateDirectories(): void {
     try {
-      FSHelper.mkdirSync('./logs');
       FSHelper.mkdirSync(this._config.get('policy').data_dir);
       FSHelper.mkdirSync(this._config.get('pki').data_dir);
       FSHelper.mkdirSync(this._config.get('session').files_path);
       FSHelper.mkdirSync(this._config.get('backup').data_dir);
       FSHelper.mkdirSync(this._config.get('snapshot').data_dir);
+      
+      if (FSHelper.directoryExistsSync(this._config.get('tmp').directory)) {
+        FSHelper.rmDirectorySync(this._config.get('tmp').directory);
+      }
+      FSHelper.mkdirSync(this._config.get('tmp').directory);
+      
     } catch (e) {
       console.error("Could not create the logs directory. ERROR: ", e.message);
       process.exit(1);
