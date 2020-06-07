@@ -427,9 +427,17 @@ export class Tree extends Model {
                 if (error) return reject(error);
 
                 try {
-                    for (let ipobj of result)
-                        await this.newNode(dbCon, null, ipobj.name, node_id, node_type, ipobj.id, ipobj_type);
-                    resolve();
+                    sql = `INSERT INTO ${tableName} (name,id_parent,node_type,id_obj,obj_type,fwcloud) VALUES `
+                    for (let ipobj of result) {
+                        //await this.newNode(dbCon, null, ipobj.name, node_id, node_type, ipobj.id, ipobj_type);
+                        sql += `(${dbCon.escape(ipobj.name.substring(0, 45))},${node_id} ,${dbCon.escape(node_type)},${ipobj.id},${ipobj_type},NULL),`;
+                    } 
+                    sql = sql.slice(0,-1);
+                    dbCon.query(sql, async (error, result) => {
+                        if (error) return reject(error);
+
+                        resolve();
+                    });
                 } catch (error) { return reject(error) }
             });
         });
