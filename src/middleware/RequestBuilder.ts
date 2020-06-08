@@ -53,29 +53,28 @@ export class RequestBuilder extends Middleware {
                 const destinationDirectory: string = path.dirname(destinationPath)
                 
                 FSHelper.mkdirSync(destinationDirectory);
-
+                
                 uploadFile.pipe(fs.createWriteStream(destinationPath));
                 req.files.addFile(input, destinationPath);
-                filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
-
-                if (finished && filesProcessing === 0) {
-                    return next();
-                }
-
+                
                 setTimeout(() => {
                     if (FSHelper.directoryExistsSync(destinationDirectory)) {
                         FSHelper.rmDirectorySync(destinationDirectory);
                     }
                 }, 300000);
+
+                filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
+                if (finished && filesProcessing === 0) {
+                    return next();
+                }
             });
 
             busboy.on('finish', () => {
-                if(filesProcessing > 0) {
-                    finished = true;
-                    return;
+                if(filesProcessing <= 0) {
+                    return next();
                 }
 
-                return next();
+                finished = true;
             });
 
             req.pipe(busboy);
