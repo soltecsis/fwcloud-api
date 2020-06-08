@@ -33,6 +33,8 @@ import { logger } from "../fonaments/abstract-application";
 
 export class RequestBuilder extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+        let filesProcessing: number = 0;
+        let finished: boolean = false;
         req.inputs = new RequestInputs(req);
         req.files = new RequestFiles();
         
@@ -44,6 +46,7 @@ export class RequestBuilder extends Middleware {
             var busboy = new Busboy({ headers: req.headers });
 
             busboy.on('file', async (input: string, file: NodeJS.ReadableStream, filename: string) => {
+                filesProcessing++;
                 const id: string = uuid.v4();
                 const uploadFile: NodeJS.ReadableStream = file;
                 const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
@@ -53,6 +56,11 @@ export class RequestBuilder extends Middleware {
 
                 uploadFile.pipe(fs.createWriteStream(destinationPath));
                 req.files.addFile(input, destinationPath);
+                filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
+
+                if (finished && filesProcessing === 0) {
+                    return next();
+                }
 
                 setTimeout(() => {
                     if (FSHelper.directoryExistsSync(destinationDirectory)) {
@@ -62,6 +70,11 @@ export class RequestBuilder extends Middleware {
             });
 
             busboy.on('finish', () => {
+                if(filesProcessing > 0) {
+                    finished = true;
+                    return;
+                }
+
                 return next();
             });
 
