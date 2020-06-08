@@ -30,9 +30,13 @@ import path from "path";
 import { RequestFiles } from "../fonaments/http/request-files";
 import { FSHelper } from "../utils/fs-helper";
 import { logger } from "../fonaments/abstract-application";
+import { EventEmitter } from "events";
 
 export class RequestBuilder extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+        let filesProcessing: number = 0;
+        let eventEmitter = new EventEmitter();
+        
         req.inputs = new RequestInputs(req);
         req.files = new RequestFiles();
         
@@ -43,26 +47,37 @@ export class RequestBuilder extends Middleware {
         try {
             var busboy = new Busboy({ headers: req.headers });
 
-            busboy.on('file', async (input: string, file: NodeJS.ReadableStream, filename: string) => {
+            busboy.on('file', (input: string, file: NodeJS.ReadableStream, filename: string) => {
+                filesProcessing++;
                 const id: string = uuid.v4();
                 const uploadFile: NodeJS.ReadableStream = file;
                 const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
                 const destinationDirectory: string = path.dirname(destinationPath)
                 
                 FSHelper.mkdirSync(destinationDirectory);
-
                 uploadFile.pipe(fs.createWriteStream(destinationPath));
                 req.files.addFile(input, destinationPath);
-
+                
                 setTimeout(() => {
                     if (FSHelper.directoryExistsSync(destinationDirectory)) {
                         FSHelper.rmDirectorySync(destinationDirectory);
                     }
                 }, 300000);
+
+                filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
+                
+                eventEmitter.emit('file:done');
             });
 
             busboy.on('finish', () => {
-                return next();
+                eventEmitter.on('file:done', () => {
+                    if(filesProcessing <= 0) {
+                        eventEmitter.removeAllListeners();
+                        return next();
+                    }
+                });
+
+                eventEmitter.emit('file:done');
             });
 
             req.pipe(busboy);
