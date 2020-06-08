@@ -36,7 +36,7 @@ export class RequestBuilder extends Middleware {
         req.inputs = new RequestInputs(req);
         req.files = new RequestFiles();
         
-        if (!req.headers["content-type"]) {
+        if (!req.headers["content-type"] || ! new RegExp(/^multipart\/form-data;/i).test(req.headers["content-type"])) {
             return next();
         }
 
