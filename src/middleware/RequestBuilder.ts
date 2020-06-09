@@ -53,20 +53,25 @@ export class RequestBuilder extends Middleware {
                 const uploadFile: NodeJS.ReadableStream = file;
                 const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
                 const destinationDirectory: string = path.dirname(destinationPath)
-                
+            
                 FSHelper.mkdirSync(destinationDirectory);
-                uploadFile.pipe(fs.createWriteStream(destinationPath));
-                req.files.addFile(input, destinationPath);
-                
-                setTimeout(() => {
-                    if (FSHelper.directoryExistsSync(destinationDirectory)) {
-                        FSHelper.rmDirectorySync(destinationDirectory);
-                    }
-                }, 300000);
+                const destinationStream: fs.WriteStream = fs.createWriteStream(destinationPath);
 
-                filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
+                destinationStream.on('close', () => {
+                    req.files.addFile(input, destinationPath);
+                    setTimeout(() => {
+                        if (FSHelper.directoryExistsSync(destinationDirectory)) {
+                            FSHelper.rmDirectorySync(destinationDirectory);
+                        }
+                    }, 300000);
+    
+                    filesProcessing = filesProcessing - 1 >= 0 ? filesProcessing -1 : 0;
+                    
+                    eventEmitter.emit('file:done');
+                });
+
+                uploadFile.pipe(destinationStream);
                 
-                eventEmitter.emit('file:done');
             });
 
             busboy.on('finish', () => {
@@ -82,8 +87,7 @@ export class RequestBuilder extends Middleware {
 
             req.pipe(busboy);
         } catch(e) {
-            logger().warn(e.message);
-            return next();
+            return next(e);
         }
     }
 }
