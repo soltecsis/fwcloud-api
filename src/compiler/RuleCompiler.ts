@@ -322,11 +322,15 @@ export class RuleCompiler {
             if (trans_port.length === 1 && trans_port[0].protocol !== 6 && trans_port[0].protocol !== 17)
                 return reject(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
 
-            var action = "";
+            let protocol:string = ' ';
+            if (trans_port.length === 1) 
+                protocol = (trans_port[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
+
+            let action:string = '';
             if (policy_type === POLICY_TYPE_SNAT)
-                action = "SNAT --to-source "
+                action = `SNAT${protocol}--to-source `;
             else
-                action = "DNAT --to-destination "
+                action = `DNAT${protocol}--to-destination `;
 
             if (trans_addr.length === 1)
                 action += (this.pre_compile_sd("", trans_addr, false, rule_ip_version)).str[0];
