@@ -35,3 +35,7 @@ BACKUP/
 # fwcloud tests
 tests/playground
 tests/.tmp
+
+# NSIS library.
+lib/nsis-3.05/fwcloud-vpn/fwcloud-vpn.exe
+lib/nsis-3.05/fwcloud-vpn/VPN/
