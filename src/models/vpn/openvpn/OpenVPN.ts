@@ -319,6 +319,20 @@ export class OpenVPN extends Model {
         });
     };
 
+
+    // Get data of OpenVPN servers of a firewall.
+    public static getOpenvpnServersByFirewall(dbCon, firewall) {
+        return new Promise((resolve, reject) => {
+            let sql = `select VPN.id,CRT.cn from openvpn VPN 
+                inner join crt CRT on CRT.id=VPN.crt
+                where VPN.firewall=${firewall} and CRT.type=2`;
+            dbCon.query(sql, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            });
+        });
+    };
+    
     // Get OpenVPN client configuration data.
     public static getOpenvpnInfo(dbCon, fwcloud, openvpn, type) {
         return new Promise((resolve, reject) => {
