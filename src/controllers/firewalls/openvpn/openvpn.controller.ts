@@ -33,7 +33,6 @@ export class OpenVPNController extends Controller {
         
         setTimeout(() => {
             if (FSHelper.directoryExistsSync(path.dirname(exePath))) {
-                console.log('Removing.... ' + path.dirname(exePath));
                 FSHelper.rmDirectorySync(path.dirname(exePath));
             }
         }, 30000);
