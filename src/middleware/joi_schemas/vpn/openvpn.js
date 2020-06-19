@@ -181,6 +181,8 @@ schema.validate = req => {
 					|| req.path==='/vpn/openvpn/info/get' || req.path==='/vpn/openvpn/where') {
 				schema = schema.append({ openvpn: sharedSch.id });
 			}
+			else if (req.path==='/vpn/openvpn/firewall/get') 
+				schema = schema.append({ firewall: sharedSch.id });
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {

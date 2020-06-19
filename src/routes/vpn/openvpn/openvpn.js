@@ -232,6 +232,16 @@ router.put('/info/get', async(req, res) => {
 });
 
 
+/**
+ * Get OpenVPN server's data under given firewall.
+ */
+router.put('/firewall/get', async(req, res) => {
+	try {
+		const data = await OpenVPN.getOpenvpnServersByFirewall(req.dbCon,req.body.firewall);
+		res.status(200).json(data);
+	} catch(error) { res.status(400).json(error) }
+});
+
 
 /**
  * Delete OpenVPN configuration.
