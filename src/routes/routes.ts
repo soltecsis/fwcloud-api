@@ -32,6 +32,8 @@ import { SnapshotController } from "../controllers/snapshots/snapshot.controller
 import { isLoggedIn } from "../gates/isLoggedIn";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
+import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
+import { CreateOpenVPNInstallerValidator } from "../validators/create-openvpn-installer.validator";
 
 export class Routes extends RouteCollection {
 
@@ -66,7 +68,15 @@ export class Routes extends RouteCollection {
 
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
 
-                    
+                    router.prefix('/firewalls', (router: RouterParser) => {
+                        router.prefix('/:firewall', (router:RouterParser) => {
+                            router.prefix('/openvpns', (router: RouterParser) => {
+                                router.prefix('/:openvpn', (router: RouterParser) => {
+                                    router.post('/installer', OpenVPNController, 'installer', CreateOpenVPNInstallerValidator).name('fwclouds.firewalls.openvpns.installer');
+                                })
+                            })
+                        })
+                    })
                     //Firewalls
                     // Old way restored. These routes has been disabled temporarily
                     /*router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
