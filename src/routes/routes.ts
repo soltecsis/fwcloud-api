@@ -69,9 +69,9 @@ export class Routes extends RouteCollection {
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
 
                     router.prefix('/firewalls', (router: RouterParser) => {
-                        router.prefix('/:firewall', (router:RouterParser) => {
+                        router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
                             router.prefix('/openvpns', (router: RouterParser) => {
-                                router.prefix('/:openvpn', (router: RouterParser) => {
+                                router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
                                     router.post('/installer', OpenVPNController, 'installer', CreateOpenVPNInstallerValidator).name('fwclouds.firewalls.openvpns.installer');
                                 })
                             })
