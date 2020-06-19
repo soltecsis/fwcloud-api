@@ -14,7 +14,7 @@
 !define ICON "fwcloud-vpn.ico"
 !define BANNER "banner.bmp"
 !define LICENSE_TXT "fwcloud-vpn_TC.txt"
-;!define CONFIG_FILE "fwcloud-vpn.ovpn"
+;!define CONFIG_FILE "fwcloud-vpn.ovpn" -- Now we use a command line parameter for this
 
 !define OpenVPN_VERSION "2.4.9" ; This is the version of openvpn.exe we include within the installer
 
@@ -32,10 +32,7 @@ var OpenVPN_Config_Path
 var OpenVPN_Upgrade_Needed
 var CONFIG_FILE
 
-
 Unicode True
-
-;ShowInstDetails show
 
 ######################################################################
 
@@ -153,9 +150,32 @@ LangString UNINSTALL_TEXT ${LANG_GERMAN} "Die FWCloud-VPN-Konfiguration wurde vo
 Function .onInit
 	!insertmacro MUI_LANGDLL_DISPLAY
 	InitPluginsDir
-;StrCpy $CONFIG_FILE '"${CONFIG_F}"'
-StrCpy $CONFIG_FILE `"${CONFIG_F}"`
+	StrCpy $CONFIG_FILE `"${CONFIG_F}"`
 FunctionEnd
+
+!macro RemoveSurroundingQuotes un
+Function ${un}RemoveSurroundingQuotes
+  Exch $0 ; The string we want to remove quotes from
+  Push $2 ; the first character
+  Push $3 ; the last character
+
+  StrCpy $2 $0 1
+  StrCpy $3 $0 "" -1
+
+  StrCmp $2 '"' 0 no_leading_quote
+    StrCmp $3 '"' 0 no_trailing_quote
+      StrCpy $0 $0 -1 1
+
+no_leading_quote:
+no_trailing_quote:
+  Pop $3
+  Pop $2
+  Exch $0
+FunctionEnd
+!macroend
+
+!insertmacro RemoveSurroundingQuotes ""
+!insertmacro RemoveSurroundingQuotes "un."
 
 Function Check_Version ; We check if our OpenVPN included version is newer 
 	StrCpy $OpenVPN_Path $0
@@ -190,7 +210,7 @@ Function FindOpenVPN
 
 	ReadRegStr $0 HKLM "SOFTWARE\OpenVPN" ""
         ${If} ${Errors}
-                ;MessageBox MB_OK "Clave no encontrada"
+                ;MessageBox MB_OK "Key not found"
 		StrCpy $OpenVPN_Upgrade_Needed "1"
                 Push "0" ; No OpenVPN instalation found 
 	${Else}
@@ -198,7 +218,7 @@ Function FindOpenVPN
 		Push $0 ; Save OpenVPN install_dir
 		ReadRegStr $0 HKLM "SOFTWARE\OpenVPN" "config_dir"
 		${If} ${Errors}
-			;MessageBox MB_OK "Clave no encontrada"
+			;MessageBox MB_OK "Key not found"
 			Push "0" ; No config_dir found
 		${Else}
 			MessageBox MB_OK|MB_ICONEXCLAMATION $(Msg_OpenVPN_Found)
@@ -207,10 +227,14 @@ Function FindOpenVPN
 				Push "0" ; No valid OpenVPN config_dir found
 			${Else}
 				Push $0  ; Saved config_dir that is in $0
-MessageBox MB_OK `IfFileExists $0\$CONFIG_FILE`
-				IfFileExists $0\$CONFIG_FILE 0 not_exists
-					Delete $0\$CONFIG_FILE.old
-					Rename $0\$CONFIG_FILE $0\$CONFIG_FILE.old
+
+				Push $CONFIG_FILE ; We remove quotes because IfFileExists and Delete don't like
+				Call RemoveSurroundingQuotes
+				Pop $R0
+
+				IfFileExists $0\$R0 0 not_exists
+					Delete '$0\$R0.old'
+					Rename '$0\$CONFIG_FILE' '$0\$CONFIG_FILE.old'
 					MessageBox MB_OK|MB_ICONINFORMATION $(Msg_Renamed)
 				not_exists: MessageBox MB_OK|MB_ICONINFORMATION $(Msg_OpenVPN_Not_Modified)
 			${EndIf}
@@ -231,7 +255,7 @@ Function un.FindOpenVPN
 
         ReadRegStr $0 HKLM "SOFTWARE\OpenVPN" ""
         ${If} ${Errors}
-                ;MessageBox MB_OK "Clave no encontrada"
+                ;MessageBox MB_OK "Key not found"
                 StrCpy $OpenVPN_Upgrade_Needed "1"
                 Push "0" ; No OpenVPN instalation found
         ${Else}
@@ -308,7 +332,6 @@ SectionEnd
 		Delete $InstDir\fwcloud-vpn.nsi
 		Delete $InstDir\opengui-fwcloud.exe
 		RmDir /r $InstDir\OpenVPN-versions
-		;RmDir /r $InstDir\VPN
 	FunctionEnd	
 
 
@@ -362,12 +385,21 @@ SectionEnd
 
 Section Uninstall
 
+StrCpy $CONFIG_FILE `"${CONFIG_F}"`
+
 Call un.FindOpenVPN ; Check if OpenVPN was installed before
 Pop $R0
+
 ${If} $R0 != "0" ; There is a valid OpenVPN config_dir
-	Delete $R0\$CONFIG_FILE
-	Delete $R0\$CONFIG_FILE.old
+
+	Push $CONFIG_FILE ; We remove quotes because Delete doesn't like
+	Call un.RemoveSurroundingQuotes
+	Pop $R2
+
+	Delete '$R0\$R2'
+	Delete '$R0\$R2.old'
         Pop $R1
+
         ${If} $R1 != "0" ; There is a valid installation dir
 		MessageBox MB_OK|MB_ICONEXCLAMATION "$(UNINSTALL_TEXT) $R1\Uninstall.exe"
 		;ExecWait '"$R1\Uninstall.exe" /S' $1
