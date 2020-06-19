@@ -33,6 +33,7 @@ import { isLoggedIn } from "../gates/isLoggedIn";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
+import { CreateOpenVPNInstallerValidator } from "../validators/create-openvpn-installer.validator";
 
 export class Routes extends RouteCollection {
 
@@ -71,7 +72,7 @@ export class Routes extends RouteCollection {
                         router.prefix('/:firewall', (router:RouterParser) => {
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn', (router: RouterParser) => {
-                                    router.get('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');
+                                    router.post('/installer', OpenVPNController, 'installer', CreateOpenVPNInstallerValidator).name('fwclouds.firewalls.openvpns.installer');
                                 })
                             })
                         })

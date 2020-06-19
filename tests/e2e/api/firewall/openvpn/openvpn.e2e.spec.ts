@@ -3,7 +3,6 @@ import { Application } from "../../../../../src/Application";
 import request = require("supertest");
 
 import { testSuite } from "../../../../mocha/global-setup";
-import { BackupService } from "../../../../../src/backups/backup.service";
 import { createUser, generateSession, attachSession } from "../../../../utils/utils";
 import { User } from "../../../../../src/models/user/User";
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
@@ -15,16 +14,12 @@ import StringHelper from "../../../../../src/utils/string.helper";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import sinon from "sinon";
-import { OpenVPNService } from "../../../../../src/models/vpn/openvpn/openvpn.service";
 import path = require("path");
 import * as fs from "fs-extra";
-import { FSHelper } from "../../../../../src/utils/fs-helper";
-import * as uuid from "uuid";
-import { OpenVPNController } from "../../../../../src/controllers/firewalls/openvpn/openvpn.controller";
+import { InstallerGenerator } from "../../../../../src/openvpn-installer/installer-generator";
 
-describe.only(describeName('OpenVPN E2E Tests'), () => {
+describe(describeName('OpenVPN E2E Tests'), () => {
     let app: Application;
-    let backupService: BackupService;
     let loggedUser: User;
     let loggedUserSessionId: string;
     let adminUser: User;
@@ -35,12 +30,14 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
     let openvpn: OpenVPN;
 
     let stubGenerateInstaller: sinon.SinonStub;
+    let stubOpenVPNDumpConfig: sinon.SinonStub;
 
     let mockExePath: string;
 
+    let connectioName: string = "test";
+
     beforeEach(async () => {
         app = testSuite.app;
-        backupService = await app.getService<BackupService>(BackupService.name);
         
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
@@ -71,13 +68,21 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
             }))
         }));
 
-        mockExePath = path.join(playgroundPath, 'openvpn.exe');
-        fs.writeFileSync(mockExePath, "test");
-        stubGenerateInstaller = sinon.stub(OpenVPNService.prototype, 'generateInstaller').returns(new Promise<string>((resolve) => { resolve(mockExePath);}))
+        mockExePath = path.join(playgroundPath, 'vpn', 'fwcloud-vpn.exe');
+
+        // @ts-ignore
+        stubGenerateInstaller = sinon.stub(InstallerGenerator.prototype, 'generate').callsFake(() => {
+            fs.mkdirpSync(path.dirname(mockExePath));
+            fs.writeFileSync(mockExePath, "")
+            return mockExePath;
+        });
+
+        stubOpenVPNDumpConfig = sinon.stub(OpenVPN, 'dumpCfg').returns(new Promise<string>(resolve => resolve('<test></test>')));
     });
 
     afterEach(() => {
         stubGenerateInstaller.restore();
+        stubOpenVPNDumpConfig.restore();
     })
 
     describe('OpenVPNController', () => {
@@ -85,7 +90,7 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
 
             it('guest user should not generate an installer', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id 
@@ -95,11 +100,14 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
 
             it('regular user which does not belong to the fwcloud should not generate an installer', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
+                    .send({
+                        connection_name: connectioName
+                    })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
@@ -109,58 +117,70 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
                 await getRepository(User).save(loggedUser);
 
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
+                    .send({
+                        connection_name: connectioName
+                    })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(201)
             });
 
             it('admin user should generate an installer', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
+                    .send({
+                        connection_name: connectioName
+                    })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
             });
 
             it('should return the openvpn installer', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
+                    .send({
+                        connection_name: connectioName
+                    })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect('Content-Type', /application/)
                     .expect(201)
             });
 
-            it('should copy the file to a temporary directory', async () => {
-                const outputPath: string = path.join(playgroundPath, "uuid", "installer.exe");
-                // @ts-ignore
-                const tmpPathStub: sinon.SinonStub = sinon.stub(OpenVPNController.prototype, 'generateTemporaryPath')
-                    .returns(outputPath as any);
-
-                await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+            it('should return 422 if the connection_name is not provided', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect('Content-Type', /application/)
-                    .expect(201)
-                    .then(() => {
-                        expect(FSHelper.fileExistsSync(outputPath)).to.be.true;
-                    })
+                    .expect(422)
+            });
 
-                tmpPathStub.restore();
+            it('should return 422 if the connection_name is not valid', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        openvpn: openvpn.id
+                    }))
+                    .send({
+                        connection_name: "-" + connectioName
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(422)
             });
 
             it('should return 404 if the openvpn does not belongs to the fwcloud', async () => {
@@ -174,11 +194,14 @@ describe.only(describeName('OpenVPN E2E Tests'), () => {
                 }));
 
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: otherFwCloud.id,
                         firewall: otherFirewall.id,
                         openvpn: openvpn.id
                     }))
+                    .send({
+                        connection_name: connectioName
+                    })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(404)
             });
