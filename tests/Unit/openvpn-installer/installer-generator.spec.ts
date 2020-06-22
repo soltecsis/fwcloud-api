@@ -108,6 +108,18 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
             }
 
             expect(f).not.to.throw(InvalidConnectionNameException)
+
+            f = () => {
+                generator = new InstallerGenerator(workspace, "1connect_Ion", "", outputPath);
+            }
+
+            expect(f).not.to.throw(InvalidConnectionNameException)
+
+            f = () => {
+                generator = new InstallerGenerator(workspace, "1connect_Ion1", "", outputPath);
+            }
+
+            expect(f).not.to.throw(InvalidConnectionNameException)
         });
     })
 
