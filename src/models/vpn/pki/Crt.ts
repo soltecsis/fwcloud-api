@@ -76,6 +76,16 @@ export class Crt extends Model {
         return tableName;
     }
 
+    // Validate if crt exits.
+    public static existsCRT(dbCon, ca, cn) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`SELECT id FROM ${tableName} WHERE ca=${ca} AND cn=${dbCon.escape(cn)}`, (error, result) => {
+                if (error) return reject(error);
+                resolve((result.length > 0) ? true : false);
+            });
+        });
+    }
+
     // Insert new certificate in the database.
     public static createCRT(req) {
         return new Promise((resolve, reject) => {
