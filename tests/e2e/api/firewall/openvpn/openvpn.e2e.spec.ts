@@ -28,6 +28,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let openvpn: OpenVPN;
+    let serverOpenVPN: OpenVPN;
 
     let stubGenerateInstaller: sinon.SinonStub;
     let stubOpenVPNDumpConfig: sinon.SinonStub;
@@ -54,7 +55,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
             fwCloudId: fwCloud.id
         }));
 
-        openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+        serverOpenVPN = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
             firewallId: firewall.id,
             crt: await getRepository(Crt).save(getRepository(Crt).create({
                 cn: StringHelper.randomize(10),
@@ -66,6 +67,21 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     days: 100,
                 }))
             }))
+        }));
+
+        openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+            firewallId: firewall.id,
+            crt: await getRepository(Crt).save(getRepository(Crt).create({
+                cn: StringHelper.randomize(10),
+                days: 100,
+                type: 0,
+                ca: await getRepository(Ca).save(getRepository(Ca).create({
+                    fwCloud: fwCloud,
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                }))
+            })),
+            parentId: serverOpenVPN.id
         }));
 
         mockExePath = path.join(playgroundPath, 'vpn', 'fwcloud-vpn.exe');
@@ -86,7 +102,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
     })
 
     describe('OpenVPNController', () => {
-        describe('BackupController@installer', () => {
+        describe('OpenVPNController@installer', () => {
 
             it('guest user should not generate an installer', async () => {
                 return await request(app.express)
@@ -197,6 +213,23 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
                         fwcloud: otherFwCloud.id,
                         firewall: otherFirewall.id,
+                        openvpn: openvpn.id
+                    }))
+                    .send({
+                        connection_name: connectioName
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(404)
+            });
+
+            it('should return 404 if the openvpn is a server', async () => {
+                openvpn.parentId = null;
+                await getRepository(OpenVPN).save(openvpn);
+
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.openvpns.installer', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
                         openvpn: openvpn.id
                     }))
                     .send({
