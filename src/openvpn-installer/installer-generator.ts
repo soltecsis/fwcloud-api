@@ -5,7 +5,7 @@ import { InvalidConnectionNameException } from "../../tests/Unit/openvpn-install
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class InstallerGenerator {
-    static connectionNameRegExp = new RegExp(/^[a-zA-Z]+([a-zA-Z-_]*[a-zA-Z]+)*$/);
+    static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]+([a-zA-Z0-9-_]*[a-zA-Z0-9]+)*$/);
     protected _workspace: string;
     protected _configFilename: string;
     protected _configPath: string;
