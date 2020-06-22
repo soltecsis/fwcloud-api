@@ -57,7 +57,7 @@ export class InstallerGenerator {
     }
 
     protected runCommand(configFilename: string) {
-        const command: string = `cd ${path.join(this._workspace, "fwcloud-vpn")}/ && ../Bin/makensis -DCONFIG "${configFilename}"`;
+        const command: string = `cd ${path.join(this._workspace, "fwcloud-vpn")}/ && ../Bin/makensis --DCONFIG_F="${configFilename}" fwcloud-vpn.nsi`;
 
         child_process.execSync(command);
     }
