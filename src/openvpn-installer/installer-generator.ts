@@ -2,10 +2,9 @@ import path from "path";
 import * as child_process from "child_process";
 import * as fs from "fs-extra";
 import { InvalidConnectionNameException } from "../../tests/Unit/openvpn-installer/exceptions/invalid-connection-name.exception";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class InstallerGenerator {
-    static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]+([a-zA-Z0-9-_]*[a-zA-Z0-9]+)*$/);
+    static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]{1}([a-zA-Z0-9-_]{2,30})[a-zA-Z0-9]{1}$/);
     protected _workspace: string;
     protected _configFilename: string;
     protected _configPath: string;

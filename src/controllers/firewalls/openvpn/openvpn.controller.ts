@@ -2,7 +2,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { OpenVPNPolicy } from "../../../policies/openvpn.policy";
-import { getRepository, createQueryBuilder, IsNull, Not } from "typeorm";
+import { getRepository } from "typeorm";
 import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { NotFoundException } from "../../../fonaments/exceptions/not-found-exception";
 import { OpenVPNService } from "../../../models/vpn/openvpn/openvpn.service";
