@@ -43,6 +43,10 @@ router.post('/', async(req, res) => {
 		if (req.tree_node.node_type !== 'CA' && req.tree_node.node_type !== 'PRE') 
 			throw fwcError.BAD_TREE_NODE_TYPE;
 
+    // Verify that we are not creating a cert that already exists for the same CA.
+		if (await Crt.existsCRT(req.dbCon,req.body.ca,req.body.cn)) 
+			throw fwcError.ALREADY_EXISTS;
+
 		// Add the new certificate to the database.
 		const id = await Crt.createCRT(req);
 
