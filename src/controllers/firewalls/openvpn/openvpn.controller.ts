@@ -2,7 +2,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { OpenVPNPolicy } from "../../../policies/openvpn.policy";
-import { getRepository, createQueryBuilder } from "typeorm";
+import { getRepository, createQueryBuilder, IsNull, Not } from "typeorm";
 import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { NotFoundException } from "../../../fonaments/exceptions/not-found-exception";
 import { OpenVPNService } from "../../../models/vpn/openvpn/openvpn.service";
@@ -20,9 +20,23 @@ export class OpenVPNController extends Controller {
             .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
             .andWhere("firewall.id = :firewallId", {firewallId: parseInt(req.params.firewall)})
             .andWhere('openvpn.id = :openvpnId', { openvpnId: parseInt(req.params.openvpn)})
+            .andWhere('openvpn.openvpn IS NOT NULL')
             .getOne();
 
         if (!openVPN) {
+            throw new NotFoundException();
+        }
+
+        const serverOpenVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
+            .leftJoinAndSelect("openvpn.firewall", "firewall")
+            .leftJoinAndSelect("firewall.fwCloud", "fwcloud")
+            .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
+            .andWhere("firewall.id = :firewallId", {firewallId: parseInt(req.params.firewall)})
+            .andWhere('openvpn.id = :openvpnId', { openvpnId: openVPN.parentId})
+            .andWhere('openvpn.openvpn IS NULL')
+            .getOne();
+
+        if (!serverOpenVPN) {
             throw new NotFoundException();
         }
 
