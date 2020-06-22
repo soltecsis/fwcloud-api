@@ -44,7 +44,10 @@ schema.validate = req => {
       });
     }
     else if (req.method==="PUT") {
-      schema = schema.append({ crt: sharedSch.id });
+      if (req.url==='/vpn/pki/crt/exists')
+        schema = schema.append({ ca: sharedSch.id, cn: sharedSch.cn });
+      else
+        schema = schema.append({ crt: sharedSch.id });
     } else return reject(fwcError.BAD_API_CALL);
 
     try {

@@ -66,6 +66,18 @@ router.put('/get', (req, res) => {
 	res.status(200).json(req.crt);
 });
 
+
+/* Verify if already exist a certificate with the indicated CN. */
+router.put('/exists', async (req, res) => {
+	try {
+		if (await Crt.existsCRT(req.dbCon,req.body.ca,req.body.cn)) 
+			res.status(200).end();
+		else 
+			res.status(404).end();
+		} catch(error) { res.status(400).json(error) }
+	});
+
+
 /**
  * Delete certificate.
  */
