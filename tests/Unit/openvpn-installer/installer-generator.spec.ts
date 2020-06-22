@@ -96,6 +96,14 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
             expect(f).to.throw(InvalidConnectionNameException)
         });
 
+        it('should throw an exception if the connection name length reaches the limit', () => {
+            let f = () => {
+                generator = new InstallerGenerator(workspace, "connectionconnectionconnectionconnection", "", outputPath);
+            }
+
+            expect(f).to.throw(InvalidConnectionNameException)
+        })
+
         it('should not throw an exception if the connection name is valid', () => {
             let f = () => {
                 generator = new InstallerGenerator(workspace, "connect-ion", "", outputPath);
