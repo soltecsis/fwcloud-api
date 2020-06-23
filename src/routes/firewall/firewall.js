@@ -78,6 +78,7 @@ import { Interface } from '../../models/interface/Interface';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+import { logger } from '../../fonaments/abstract-application';
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -184,7 +185,10 @@ router.post('/', async(req, res) => {
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
 
 		res.status(200).json(dataresp);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) { 
+		logger().error('Error creating firewall: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -278,7 +282,10 @@ router.put('/', async (req, res) => {
 		await	Tree.updateFwc_Tree_Firewall(req.dbCon, req.body.fwcloud, firewallData);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating firewall: ' + JSON.stringify(error)); 
+		res.status(400).json(error);
+	}
 });
 
 
@@ -340,7 +347,10 @@ router.put('/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting firewall data: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -427,7 +437,10 @@ router.put('/cloud/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting cloud firewalsl: ' + JSON.stringify(error)); 
+		res.status(400).json(error);
+	}
 });
 
 
@@ -512,7 +525,10 @@ router.put('/cloud/get', async (req, res) => {
  */
 router.put('/cluster/get', (req, res) => {
 	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error getting cluster firewalls: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 		
 		if (data && data.length > 0)
 			res.status(200).json(data);
@@ -583,7 +599,10 @@ router.put('/clone', async (req, res) => {
 		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error cloning firewall: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -610,7 +629,10 @@ router.put('/accesslock/get', async (req, res) => {
 			res.status(200).json(resp);
 		}
 		else res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error locked firewall status: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -654,7 +676,10 @@ router.put('/del',
 		try {
 			await Firewall.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
 			res.status(204).end();
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error removing firewall: ' + JSON.stringify(error));
+			res.status(400).json(error)
+		}
 	});
 
 
@@ -671,7 +696,10 @@ async (req, res) => {
 			res.status(200).json(data);
 	 	else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing cluster firewall: ' + JSON.stringify(error)); 
+		res.status(400).json(error);
+	}
 });
 
 /**
@@ -682,7 +710,10 @@ router.put('/export/get', async (req, res) => {
 	try {
 		const data = FirewallExport.exportFirewall(req.body.firewall);
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error exporting firewall: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;
