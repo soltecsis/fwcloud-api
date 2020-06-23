@@ -69,6 +69,7 @@ var utilsModel = require('../../utils/utils');
 import { Tree } from '../../models/tree/Tree';
 const restrictedCheck = require('../../middleware/restricted');
 import { User } from '../../models/user/User'
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 
@@ -108,7 +109,10 @@ router.post('/', async(req, res) => {
 		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
 
 		res.status(200).json({ "insertId": req.body.fwcloud });
-	} catch (error) { res.status(400).json(error); }
+	} catch (error) {
+		logger().error('Error creating fwcloud: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -150,7 +154,10 @@ router.put('/', async(req, res) => {
 
 		await FwCloud.updateFwcloud(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error updating fwcloud: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /**
@@ -202,7 +209,10 @@ router.get('/all/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting all fwcloud: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -249,8 +259,10 @@ router.put('/get', (req, res) => {
 
 		if (data && data.length > 0)
 			res.status(200).json(data[0]);
-		else
+		else {
+			logger().error('Error getting a fwcloud: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
+		}
 	});
 });
 
@@ -320,7 +332,10 @@ async(req, res) => {
 		await FwCloud.deleteFwcloud(req);
 
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error removing a fwcloud: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
