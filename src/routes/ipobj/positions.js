@@ -24,12 +24,16 @@
 var express = require('express');
 var router = express.Router();
 import { IPObjTypeToPolicyPosition } from '../../models/ipobj/IPObjTypeToPolicyPosition';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_type__policy_positions*/
 router.get('/policy', (req, res) => {
 	IPObjTypeToPolicyPosition.getIpobj_type__policy_positions((error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+            logger().error('Error getting all ipobj_type__policy_positions: ' + JSON.stringify(error));
+            return res.status(400).json(error);
+        }
 
 		if (data && data.length > 0)
 			res.status(200).json(data);
