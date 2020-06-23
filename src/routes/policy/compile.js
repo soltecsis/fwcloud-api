@@ -77,6 +77,7 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload, ProgressNoticePayload, ProgressErrorPayload } from '../../sockets/messages/socket-message';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 
@@ -88,7 +89,10 @@ router.put('/rule', async (req, res) => {
   	/* The get method of the RuleCompile model returns a promise. */
   	const data = await RuleCompiler.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		res.status(200).json({"result": true, "cs": data});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error compiling firewall rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
@@ -244,6 +248,7 @@ router.put('/', async (req, res) => {
 			res.status(204).end();
 		} catch(error) { 
 			channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
+			logger().error('Error compiling firewall: ' + JSON.stringify(error));
 			res.status(400).json(error);		
 		}
 	}).on('error', error => {
