@@ -55,6 +55,7 @@ router.post('/', async (req, res) => {
 		}
 		res.status(200).json({ "insertId": policyGroup.id });
 	} catch (e) {
+		logger().error('Error creating policy group: ' + e.message);
 		res.status(400).json(fwcError.NOT_FOUND);
 	}
 });
@@ -83,6 +84,7 @@ router.put('/', async (req, res) => {
 
 		res.status(204).end();
 	} catch (error) {
+		logger().error('Error updating policy group: ' + e.message);
 		res.status(400).json(fwcError.NOT_FOUND);
 	};
 });
@@ -102,7 +104,10 @@ router.put('/style', async (req, res) => {
 	try {
 		await repository.for(PolicyGroup).update({firewall: data.idfirewall, id: groupIds}, { groupstyle: style} );
 		res.status(204).end();
-	} catch (error) { res.status(400).json(fwcError.NOT_FOUND); }
+	} catch (error) {
+		logger().error('Error updating policy group style: ' + e.message);
+		res.status(400).json(fwcError.NOT_FOUND);
+	}
 });
 
 
@@ -118,6 +123,7 @@ router.put('/name', async (req, res) => {
 		});
 		res.status(204).end();
 	} catch (e) {
+		logger().error('Error updating policy group name: ' + e.message);
 		res.status(400).json(fwcError.NOT_FOUND);
 	}
 });
@@ -137,7 +143,10 @@ router.put("/del", async (req, res) => {
 			await repository.for(PolicyGroup).remove(policyGroup);
 			res.status(204).end();
 		}
-	} catch(error) { res.status(400).json(fwcError.NOT_FOUND) }
+	} catch(error) {
+		logger().error('Error removing policy group: ' + error.message);
+		res.status(400).json(fwcError.NOT_FOUND);
+	}
 });
 
 
@@ -152,7 +161,10 @@ router.put("/rules/del", async (req, res) => {
 			await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
 		}
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error removing policy group rules: ' + error.message);
+		res.status(400).json(error);
+	}
 });
 
 async function removeRules(idfirewall, idgroup, rulesIds) {
