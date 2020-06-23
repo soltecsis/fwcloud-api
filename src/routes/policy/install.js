@@ -57,6 +57,7 @@ import { PolicyScript } from '../../compiler/PolicyScript';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
+import { logger } from '../../fonaments/abstract-application';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -72,7 +73,10 @@ router.post('/', async (req, res) => {
     
     channel.emit('message', new ProgressPayload('end', false, 'Firewall installed'));
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+    logger().error('Error installing policies: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 /*----------------------------------------------------------------------------------------------------------------------*/
 
