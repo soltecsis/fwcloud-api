@@ -26,6 +26,7 @@ import { User } from '../models/user/User';
 import StringHelper from "../utils/string.helper";
 import { RepositoryService } from "../database/repository.service";
 import { Repository } from "typeorm";
+import { logger } from "../fonaments/abstract-application";
 
 export class ConfirmationToken extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
@@ -50,6 +51,7 @@ export class ConfirmationToken extends Middleware {
             res.status(403).json({ "fwc_confirm_token": newToken });
         
         } catch (error) { 
+            logger().error('Error during confirmation token middleware: ' + JSON.stringify(error));
             res.status(400).json(error) 
         }
     }
