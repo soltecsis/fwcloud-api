@@ -29,6 +29,7 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 const utilsModel = require("../../utils/utils.js");
 
@@ -48,7 +49,10 @@ async (req, res) => {
 		PolicyRule.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating new policy_r__openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -74,7 +78,10 @@ async (req, res) => {
 		const data = await PolicyRuleToOpenVPN.moveToNewPosition(req);
 
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating new policy_r__openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -89,7 +96,10 @@ async (req, res) => {
 	try { 
 		await PolicyRuleToOpenVPN.deleteFromRulePosition(req);
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating new policy_r__openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;
