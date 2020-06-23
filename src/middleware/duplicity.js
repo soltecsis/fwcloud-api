@@ -28,6 +28,7 @@ module.exports = duplicityCheck;
 
 const fwcError = require('../utils/error_table');
 const ip = require('ip');
+const { logger } = require('../fonaments/abstract-application');
 
 
 // Middleware for avoid ipobj duplicities.
@@ -101,7 +102,8 @@ duplicityCheck.ipobj = (req, res, next) => {
 			}
 			else next();
 		} catch(error) { 
-			error.data=rows; 
+			error.data=rows;
+			logger().error('Error during duplicity check: ' + JSON.stringify(error));
 			res.status(400).json(error);
 			delete error.data;
 		}
