@@ -452,10 +452,11 @@ export class Repair extends Model {
                             if (await OpenVPN.searchIPObjInOpenvpnOpt(dbCon, ipobj.id, 'ifconfig-push'))
                                 continue;
                         }
-                        else if (ipobj_type === 7) { // NETWORK
-                            if (await OpenVPN.searchIPObjInOpenvpnOpt(dbCon, ipobj.id, 'server'))
-                                continue;
-                        }
+                        // Include VPN LANs in objects tree.
+                        //else if (ipobj_type === 7) { // NETWORK
+                        //    if (await OpenVPN.searchIPObjInOpenvpnOpt(dbCon, ipobj.id, 'server'))
+                        //        continue;
+                        //}
 
                         await Tree.newNode(dbCon, fwcloud, ipobj.name, node_id, node_type, ipobj.id, ipobj_type);
                     }
