@@ -25,6 +25,7 @@ var express = require('express');
 var router = express.Router();
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
+import { logger } from '../../../fonaments/abstract-application';
 const restrictedCheck = require('../../../middleware/restricted');
 const fwcError = require('../../../utils/error_table');
 
@@ -49,7 +50,10 @@ router.post('/', async (req, res) => {
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
 
 		res.status(200).json({insertId: id});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -81,7 +85,10 @@ router.put('/', async (req, res) => {
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating a prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -92,7 +99,9 @@ router.put('/info/get', async(req, res) => {
 	try {
 		const data = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.prefix);
 		res.status(200).json(data[0]);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting prefix metadata: ' + JSON.stringify(error));
+		res.status(400).json(error) }
 });
 
 
@@ -110,7 +119,10 @@ async (req, res) => {
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.prefix.openvpn);
 	
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -125,7 +137,10 @@ router.put('/where', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting prefix references: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;
