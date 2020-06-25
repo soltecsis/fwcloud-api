@@ -181,8 +181,10 @@ router.post('/', (req, res) => {
 	};
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
-	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
+	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD') {
+		logger().error('Error creating a new node: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
+	}
 
 	Cluster.insertCluster(clusterData, async(error, dataNewCluster) => {
 		//get cluster info
@@ -216,8 +218,14 @@ router.post('/', (req, res) => {
 				}
 				await Tree.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, idcluster);
 				res.status(200).json(dataNewCluster);
-			} catch (error) { res.status(400).json(error) }
-		} else res.status(400).json(error);
+			} catch (error) { 
+				logger().error('Error creating a new cluster: ' + JSON.stringify(error));
+				res.status(400).json(error);
+			}
+		} else {
+			logger().error('Error creating a new cluster: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 });
 
@@ -285,7 +293,10 @@ router.put('/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(400).json(fwcError.NOT_FOUND);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting all cluster: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -338,11 +349,16 @@ router.put('/get', async (req, res) => {
 router.put('/cloud/get', async (req, res) => {
 	try {
 		const data = await Cluster.getClusterCloud(req);
-		if (data)
+		if (data) {
 			res.status(200).json(data);
-		else
+		} else {
+			logger().error('Error getting a cluster: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
-	} catch(error) { res.status(400).json(error) }
+		}
+	} catch(error) {
+		logger().error('Error getting a cluster: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -403,7 +419,10 @@ router.put('/', async (req, res) => {
 
 		await Tree.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating a cluster: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -416,7 +435,10 @@ router.put('/fwtocluster', async(req, res) => {
 
 	try {
 		firewallData = await Firewall.getFirewall(req);
-	} catch (error) { return res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error getting firewall data during firewall export to cluster: ' + JSON.stringify(error));
+		return res.status(400).json(error)
+	}
 
 	if (firewallData) {
 		//new objet with Cluster data
@@ -433,8 +455,10 @@ router.put('/fwtocluster', async(req, res) => {
 				//////////////////////////////////
 				//INSERT AND UPDATE CLUSTER NODE STRUCTURE
 				Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, (error, dataTree) => {
-					if (error)
+					if (error) {
+						logger().error('Error updating tree during firewall export to cluster: ' + JSON.stringify(error));
 						return res.status(400).json(error);
+					}
 					else if (dataTree && dataTree.result) {
 
 						//UPDATE CLUSTERS FIREWALL
@@ -448,10 +472,12 @@ router.put('/fwtocluster', async(req, res) => {
 							.then(() => res.status(200).json(data))
 							.catch(error => res.status(400).json(error));
 					} else {
+						logger().error('Error updating firewall cluster: ' + JSON.stringify(error));
 						res.status(400).json(error);
 					}
 				});
 			} else {
+				logger().error('Error creating firewall cluster: ' + JSON.stringify(error));
 				res.status(400).json(error);
 			}
 		});
@@ -473,8 +499,10 @@ router.put('/clustertofw', (req, res) => {
 			//UPDATE CLUSTER NODE STRUCTURE
 			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, (error, dataTree) => {
 				logger().debug("DATATREE: ", dataTree);
-				if (error)
+				if (error) {
+					logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
 					return res.status(400).json(error);
+				}
 				else if (dataTree && dataTree.result) {
 
 					//UPDATE CLUSTERS FIREWALL
@@ -494,11 +522,13 @@ router.put('/clustertofw', (req, res) => {
 					var resp = { "result": true, "insertId": firewallData.id };
 					res.status(200).json(resp);
 				} else {
+					logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
 					res.status(400).json(fwcError.NOT_FOUND);
 				}
 			});
 
 		} else {
+			logger().error('Error creating firewall from cluster: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
 		}
 	});
@@ -519,16 +549,24 @@ router.put('/clone', (req, res) => {
 	};
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
-	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD')
+	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD') {
+		logger().error('Error cloning cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
+	}
 
 	Firewall.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
+			return res.status(400).json(error);
+		}
 
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
 			Cluster.insertCluster(clusterData, async(error, data) => {
-				if (error) return res.status(400).json(error);
+				if (error) {
+					logger().error('Error creating cluster: ' + JSON.stringify(error));
+					return res.status(400).json(error);
+				}
 
 				//get cluster info
 				if (data && data.insertId) {
@@ -569,7 +607,10 @@ router.put('/clone', (req, res) => {
 
 						// If we arrive here all has gone fine.
 						res.status(200).json(dataresp);
-					} catch (error) { res.status(400).json(error) }
+					} catch (error) {
+						logger().error('Error creating cluster: ' + JSON.stringify(error));
+						res.status(400).json(error);
+					}
 				}
 			});
 		}
@@ -588,7 +629,10 @@ async (req, res) => {
 	try {
 		await Cluster.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
 		res.status(204).end();
-	}	catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error deleting cluster: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;

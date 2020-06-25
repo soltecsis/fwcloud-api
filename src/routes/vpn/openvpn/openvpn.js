@@ -65,6 +65,7 @@ const restrictedCheck = require('../../../middleware/restricted');
 import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import { logger } from '../../../fonaments/abstract-application';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -130,7 +131,10 @@ router.post('/', async(req, res) => {
 			await OpenVPN.createOpenvpnServerInterface(req,cfg);
 
 		res.status(200).json({insertId: cfg, TreeinsertId: nodeId});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a new openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -168,7 +172,10 @@ router.put('/', async(req, res) => {
 		await OpenVPN.updateOpenvpnStatus(req.dbCon,req.body.openvpn,"|1");
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating an openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -179,7 +186,10 @@ router.put('/get', async(req, res) => {
 	try {
 		const data = await OpenVPN.getCfg(req);
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting an openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -190,7 +200,10 @@ router.put('/file/get', async(req, res) => {
 	try {
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
  		res.status(200).json(cfgDump);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting openvpn configuration: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -206,7 +219,10 @@ router.put('/ipobj/get', async(req, res) => {
 				data.push(await IPObj.getIpobjInfo(req.dbCon,req.body.fwcloud,openvpn_opt.ipobj));
 		}
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting openvpn ipobj: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -217,7 +233,10 @@ router.put('/ip/get', async(req, res) => {
 	try {
 		const freeIP = await OpenVPN.freeVpnIP(req);
 		res.status(200).json(freeIP);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting openvpn free ip: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -228,7 +247,10 @@ router.put('/info/get', async(req, res) => {
 	try {
 		const data = await OpenVPN.getOpenvpnInfo(req.dbCon,req.body.fwcloud,req.body.openvpn,req.openvpn.type);
 		res.status(200).json(data[0]);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error getting openvpn metadata: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -239,7 +261,10 @@ router.put('/firewall/get', async(req, res) => {
 	try {
 		const data = await OpenVPN.getOpenvpnServersByFirewall(req.dbCon,req.body.firewall);
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting openvpn firewall data: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -271,7 +296,10 @@ async(req, res) => {
 		}
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 // API call for check deleting restrictions.
@@ -285,7 +313,10 @@ router.put('/where', async (req, res) => {
       res.status(200).json(data);
     else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting openvpn references: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 	
 
@@ -322,7 +353,10 @@ router.put('/install', async(req, res) => {
 
 		channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
 		res.status(200).send();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error installing openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -355,7 +389,10 @@ router.put('/uninstall', async(req, res) => {
 		channel.emit('message', new ProgressPayload('end', false, 'Uninstalling OpenVPN'));
 
 		res.status(200).send().end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error uninstalling openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /**
@@ -397,7 +434,10 @@ router.put('/ccdsync', async(req, res) => {
 		channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
 
 		res.status(200).send().end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error sync openvpn: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -418,7 +458,10 @@ router.put('/status/get', async(req, res) => {
 		const data = await OpenVPN.getStatusFile(req,status_file_path);
 
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error getting openvpn log file: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 

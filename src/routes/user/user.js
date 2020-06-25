@@ -28,6 +28,7 @@ import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 const config = require('../../config/config');
@@ -104,7 +105,10 @@ router.post('/login',async (req, res) => {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;
 		}
-	} catch(error) { res.status(401).json(error) }
+	} catch(error) {
+		logger().error('Error loggin in a user: ' + JSON.stringify(error));
+		res.status(401).json(error);
+	}
 });
 
 
@@ -198,7 +202,10 @@ router.post('', async (req, res) => {
 			await User.allowAllFwcloudAccess(req.dbCon,new_user_id);
 
 		res.status(200).json({"user": new_user_id});
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error creating a user: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -279,7 +286,10 @@ router.put('', async (req, res) => {
 			await User.allowAllFwcloudAccess(req.dbCon,req.body.user);
 
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error updating a user: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -312,7 +322,10 @@ router.put('/changepass', async (req, res) => {
 	try {
 		await User.changeLoggedUserPass(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error updating user credentials: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -374,7 +387,10 @@ router.put('/get', async (req, res) => {
 
 		const data = await User.get(req);
 		res.status(200).json(req.body.user ? data[0] : data);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error finding a user: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -416,7 +432,10 @@ async (req, res) => {
 
 		await User.delete(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error removing user: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -491,7 +510,10 @@ router.post('/fwcloud', async (req, res) => {
 
 		await User.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error enabling fwcloud access: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -521,7 +543,10 @@ router.put('/fwcloud/del', async (req, res) => {
 
 		await User.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error disabling fwcloud access: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -578,7 +603,10 @@ router.put('/fwcloud/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting user fwclouds: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;

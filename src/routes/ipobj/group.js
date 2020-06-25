@@ -42,6 +42,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
+import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -61,7 +62,10 @@ router.post("/", (req, res) => {
 	};
 
 	IPObjGroup.insertIpobj_g(ipobj_gData, async(error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error creating group: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 		//If saved ipobj_g Get data
 		if (data && data.insertId > 0) {
 			var id = data.insertId;
@@ -71,8 +75,14 @@ router.post("/", (req, res) => {
 				const node_id = await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, ipobj_gData);
 				var dataresp = { "insertId": id, "TreeinsertId": node_id };
 				res.status(200).json(dataresp);
-			} catch (error) { res.status(400).json(error) }
-		} else res.status(400).json(fwcError.NOT_FOUND);
+			} catch (error) {
+				logger().error('Error creating group: ' + JSON.stringify(error));
+				res.status(400).json(error);
+			}
+		} else {
+			logger().error('Error creating group: ' + JSON.stringify(fwcError.NOT_FOUND));
+			res.status(400).json(fwcError.NOT_FOUND);
+		}
 	});
 });
 
@@ -91,7 +101,10 @@ router.put('/', async(req, res) => {
 		await IPObjGroup.updateIpobj_g(req, ipobj_gData);
 		await Tree.updateFwc_Tree_OBJ(req, ipobj_gData);
 		res.status(204).end();
-	} catch (error) { return res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error updating group: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 });
 
 
@@ -101,9 +114,14 @@ router.put('/get', async(req, res) => {
 		const data = await IPObjGroup.getIpobj_g_Full(req.dbCon, req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
-		else
+		else {
+			logger().error('Error getting group by id: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
-	} catch (error) { return res.status(400).json(error) }
+		}
+	} catch (error) { 
+		logger().error('Error getting group by id: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 });
 
 /* Remove ipobj_g */
@@ -115,7 +133,10 @@ router.put("/del",
 			await Tree.orderTreeNodeDeleted(req.dbCon, req.body.fwcloud, req.body.id);
 			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, req.body.type);
 			res.status(204).end();
-		} catch (error) { return res.status(400).json(error) }
+		} catch (error) { 
+			logger().error('Error removing group: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 	});
 
 /* Search where is used Group  */
@@ -126,7 +147,10 @@ router.put('/where', async(req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) { 
+		logger().error('Error locating group references: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 // API call for check deleting restrictions.
@@ -183,7 +207,10 @@ router.put('/addto', async(req, res) => {
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error creating group: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -212,7 +239,10 @@ router.put('/delfrom', async(req, res) => {
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) { 
+		logger().error('Error removing group: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 

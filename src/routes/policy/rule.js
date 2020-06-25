@@ -33,6 +33,7 @@ import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { In } from 'typeorm';
+import { logger } from '../../fonaments/abstract-application';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -61,7 +62,10 @@ async (req, res) => {
 	try {
 		await PolicyRule.reorderAfterRuleOrder(req.dbCon, req.body.firewall, req.body.type, req.body.rule_order);
 		res.status(200).json(await PolicyRule.insertPolicy_r(policy_rData));
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /* Update policy_r that exist */
@@ -99,7 +103,10 @@ async (req, res) => {
 			throw fwcError.NOT_ALLOWED;
 
 		await PolicyRule.updatePolicy_r(req.dbCon, policy_rData);
-	} catch(error) { return res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating a rule: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 
 	// Recompile rule.
 	var accessData = {
@@ -110,7 +117,10 @@ async (req, res) => {
 		rule: policy_rData.id
 	};
 	PolicyRule.compilePolicy_r(accessData, (error, datac) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error updating a rule during compilation: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 		res.status(200).json(datac);
 	});
 });
@@ -121,7 +131,10 @@ router.put('/type/get', async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData(req);
 		res.status(200).json(policy);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error finding a rule: ' + JSON.stringify(error));
+		res.status(400).json(error)
+	}
 });
 
 
@@ -134,7 +147,10 @@ router.put('/get', async (req, res) => {
 			res.status(200).json(policy[0]);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error finding a rule by firewall and type and rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -146,7 +162,10 @@ router.put('/full/get', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error finding a rule by firewall and type and rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -160,7 +179,10 @@ async (req, res) => {
 		}
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing a rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -181,7 +203,10 @@ async (req, res) => {
 	try {
 		await policyRuleRepository.updateActive(rules, active)
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating activation rule flag: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -196,7 +221,10 @@ async (req, res) => {
 	try {
 		await policyRuleRepository.updateStyle(policyRules, style);
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating rule style: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -209,7 +237,10 @@ async (req, res) => {
 		for (let rule of req.body.rulesIds)
 			pasteOnRuleId = await ruleCopy(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error copying rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /* Move RULES */
@@ -227,7 +258,10 @@ async (req, res) => {
 			await ruleMove(req.dbCon, req.body.firewall, rule, ((req.body.pasteOffset===1)?pasteOnRuleId:req.body.pasteOnRuleId), req.body.pasteOffset);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error moving rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -261,7 +295,10 @@ async (req, res) => {
 		PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) { 
+		logger().error('Error negating/allowing rule: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {

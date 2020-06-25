@@ -27,6 +27,7 @@ import { Tree } from '../../models/tree/Tree';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { logger } from '../../fonaments/abstract-application';
 var _Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/node.js");
 const fwcError = require('../../utils/error_table');
@@ -81,7 +82,10 @@ router.put('/firewalls/get', async (req, res) => {
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
 		res.status(200).json(tree);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting firewall tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -138,7 +142,10 @@ router.put('/objects/get', async (req, res) => {
 		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
 		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting object tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -153,7 +160,10 @@ router.put('/services/get', async (req, res) => {
 		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
 		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting service tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -166,7 +176,10 @@ router.put('/ca/get', async (req, res) => {
 		await Tree.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
 		await Ca.getCAStatusNotZero(req,tree);
 		res.status(200).json(tree);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting CA tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -178,7 +191,10 @@ router.put('/node/get', async (req, res) => {
       res.status(200).json(data);
     else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting node tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 

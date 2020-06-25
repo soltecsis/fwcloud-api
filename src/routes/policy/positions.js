@@ -24,6 +24,7 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 /* Get all policy_positions by Type*/
@@ -33,9 +34,14 @@ router.put('/get', async(req, res) => {
         //If exists policy_position get data
         if (data && data.length > 0)
             res.status(200).json(data);
-        else
+        else {
+            logger().error('Error getting policy_positions by Type: ' + JSON.stringify(fwcError.NOT_FOUND));
             res.status(400).json(fwcError.NOT_FOUND);
-    } catch (error) { res.status(400).json(error) }
+        }
+    } catch (error) {
+        logger().error('Error getting policy_positions by Type: ' + JSON.stringify(error));
+        res.status(400).json(error);
+    }
 });
 
 module.exports = router;

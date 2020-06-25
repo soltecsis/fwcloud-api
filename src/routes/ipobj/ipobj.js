@@ -77,6 +77,7 @@ import { Tree } from '../../models/tree/Tree';
 import { IPObjType } from '../../models/ipobj/IPObjType';
 import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { logger } from '../../fonaments/abstract-application';
 const duplicityCheck = require('../../middleware/duplicity');
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -202,7 +203,10 @@ router.post("/",
 			}
 
 			res.status(200).json(dataresp);
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error creating an ipobj: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -320,7 +324,10 @@ router.put('/',
 			await Tree.updateFwc_Tree_OBJ(req, ipobjData); //UPDATE TREE    
 
 			res.status(200).json(data_return);
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error updating an ipobj: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -347,7 +354,10 @@ router.put('/get', async(req, res) => {
 			res.status(200).json(data[0]);
 		else
 			res.status(400).json(fwcError.NOT_FOUND);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error finding an ipobj: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -417,7 +427,10 @@ router.put('/del',
 			await Tree.deleteObjFromTree(fwcloud, id, type);
 			const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(fwcloud, null);
 			res.status(200).json(not_zero_status_fws);
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error removing an ipobj: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -444,7 +457,10 @@ router.put('/where', async(req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error ipobj references: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 // API call for check deleting restrictions.

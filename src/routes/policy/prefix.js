@@ -30,6 +30,7 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
+import { logger } from '../../fonaments/abstract-application';
 const utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
 
@@ -48,7 +49,10 @@ async (req, res) => {
 		PolicyRule.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating new policy_r__openvpn_prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -77,7 +81,10 @@ async (req, res) => {
 		const data = await PolicyRuleToOpenVPNPrefix.moveToNewPosition(req);
 
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating policy_r__openvpn_prefix position: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -92,7 +99,10 @@ async (req, res) => {
 	try { 
 		await PolicyRuleToOpenVPNPrefix.deleteFromRulePosition(req);
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing policy_r__openvpn_prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;

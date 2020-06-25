@@ -27,6 +27,7 @@ var router = express.Router();
 import { Mark } from '../../models/ipobj/Mark';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
+import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -50,7 +51,10 @@ router.post('/', async (req, res) => {
 		let nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.body.name, req.body.node_id, 'MRK', id, 30);
 
 		res.status(200).json({insertId: id, TreeinsertId: nodeId});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating new mark: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -72,7 +76,10 @@ router.put('/', async (req, res) => {
 		await Mark.modifyMark(req);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating new mark: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -83,7 +90,10 @@ router.put('/get', async(req, res) => {
 	try {
 		const data = await Mark.getMark(req.dbCon,req.body.mark);
 		res.status(200).json(data);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting a mark: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -99,7 +109,10 @@ async (req, res) => {
 		await Tree.deleteObjFromTree(req.body.fwcloud,req.body.mark,30);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing a mark: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -114,7 +127,10 @@ router.put('/where', async (req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error locating mark references: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;

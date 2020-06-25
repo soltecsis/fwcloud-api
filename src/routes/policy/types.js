@@ -24,6 +24,7 @@
 var express = require('express');
 var router = express.Router();
 import { PolicyType } from '../../models/policy/PolicyType';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 
@@ -45,8 +46,10 @@ router.get('/:type', (req, res) => {
 	PolicyType.getPolicy_type(type, (error, data) => {
     if (data && data.length > 0)
       res.status(200).json(data);
-    else
-			res.status(400).json(fwcError.NOT_FOUND);
+    else {
+      logger().error('Error finding policy_type: ' + JSON.stringify(fwcError.NOT_FOUND));
+      res.status(400).json(fwcError.NOT_FOUND);
+    }
 	});
 });
 
@@ -56,8 +59,10 @@ router.get('/name/:name', (req, res) => {
 	PolicyType.getPolicy_typeName(name, (error, data) => {
     if (data && data.length > 0)
       res.status(200).json(data);
-    else
-			res.status(400).json(fwcError.NOT_FOUND);
+    else {
+      logger().error('Error finding policy_type by name: ' + JSON.stringify(fwcError.NOT_FOUND));
+      res.status(400).json(fwcError.NOT_FOUND);
+    }
 	});
 });
 

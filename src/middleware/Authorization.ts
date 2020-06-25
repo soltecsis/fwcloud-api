@@ -63,7 +63,10 @@ export class Authorization extends Middleware {
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             next();
-        } catch (error) { res.status(400).json(error) }
+        } catch (error) {
+            logger().error('Error during authorization middleware: ' + JSON.stringify(error));
+            res.status(400).json(error);
+        }
     }
 
 }

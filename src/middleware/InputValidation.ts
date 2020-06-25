@@ -23,16 +23,19 @@
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import fwcError from '../utils/error_table';
 import { Request, Response, NextFunction } from "express";
+import { logger } from "../fonaments/abstract-application";
 
 export class InputValidation extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         // The FWCloud.net API only supports these HTTP methods.
         if (req.method !== 'POST' && req.method !== 'GET' && req.method !== 'PUT' && req.method !== 'DELETE') {
+            logger().error('Error during input validation check: ' + JSON.stringify(fwcError.NOT_ACCEPTED_METHOD));
             res.status(400).json(fwcError.NOT_ACCEPTED_METHOD);
             return;
         }
 
         if ((req.method === 'GET' || req.method === 'DELETE') && Object.keys(req.body).length !== 0){
+            logger().error('Error during input validation check: ' + JSON.stringify(fwcError.BODY_MUST_BE_EMPTY));
             res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
             return;
         }
@@ -45,6 +48,7 @@ export class InputValidation extends Middleware {
 
         // Verify that item1 is in the valid list.
         if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
+            logger().error('Error during input validation check: ' + JSON.stringify(fwcError.BAD_API_CALL));
             res.status(404).json(fwcError.BAD_API_CALL);
             return;
         }
@@ -70,10 +74,13 @@ export class InputValidation extends Middleware {
             // If we arrive here then input data has been sucessfully validated.  
             next();
         } catch (error) {
-            if (error.code === "MODULE_NOT_FOUND")
+            logger().error('Error during input validation check: ' + JSON.stringify(error));
+            
+            if (error.code === "MODULE_NOT_FOUND") {
                 res.status(400).json(fwcError.MODULE_NOT_FOUND);
-            else
+            } else {
                 res.status(400).json(error);
+            }
         }
     }
 }

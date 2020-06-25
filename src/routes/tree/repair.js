@@ -30,6 +30,7 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { Tree } from '../../models/tree/Tree';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { Channel } from '../../sockets/channels/channel';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 
@@ -141,6 +142,7 @@ router.put('/', async (req, res) =>{
     res.status(200).send({"channel_id": channel.id});
   } catch(error) { 
     channel.emit('message', new ProgressErrorPayload(`\nERROR: ${error}\n`, true));
+    logger().error('Error repairing tree: ' + JSON.stringify(error));
     res.status(400).json(error);
   }
 });

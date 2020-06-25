@@ -29,6 +29,7 @@ import { Ca } from '../../../models/vpn/pki/Ca';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
 import { Tree } from '../../../models/tree/Tree';
+import { logger } from '../../../fonaments/abstract-application';
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
@@ -57,7 +58,10 @@ router.post('/', async(req, res) => {
 		await CaPrefix.applyCrtPrefixes(req,req.body.ca);
 
 		res.status(200).json({insertId: id});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a certificate: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /* Get certificate information */
@@ -74,8 +78,11 @@ router.put('/exists', async (req, res) => {
 			res.status(200).end();
 		else 
 			res.status(404).end();
-		} catch(error) { res.status(400).json(error) }
-	});
+	} catch(error) {
+		logger().error('Error checking a certificate existence: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
+});
 
 
 /**
@@ -101,7 +108,10 @@ async(req, res) => {
 
 		// Answer to the API request.
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing a certificate: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 // API call for check deleting restrictions.

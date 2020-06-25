@@ -76,7 +76,10 @@ async (req, res) => {
 			else
 				throw fwcError.NOT_FOUND;
 		}
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating ipobj: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -130,7 +133,10 @@ async (req, res) => {
 		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
-	} catch(error) { return res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 
 	if (content1 === content2) { //SAME POSITION
 		PolicyRuleToIPObj.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
@@ -149,9 +155,18 @@ async (req, res) => {
 					} catch(error) { return res.status(400).json(error) }
 
 					res.status(200).json(data);
-				} else if (!data.allowed) return res.status(400).json(fwcError.NOT_ALLOWED);
-				else return res.status(400).json(fwcError.NOT_FOUND);
-			} else return res.status(400).json(error);
+				} else if (!data.allowed) {
+					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
+					return res.status(400).json(fwcError.NOT_ALLOWED);
+				}
+				else {
+					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_FOUND));
+					return res.status(400).json(fwcError.NOT_FOUND);
+				}
+			} else {
+				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
 		});
 	} else { //DIFFERENTS POSITIONS
 		if (content1 === 'I' && content2 === 'O') {
@@ -169,7 +184,10 @@ async (req, res) => {
 			var data;
 			try {
 				data = await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-			} catch(error) { return res.status(400).json(error) }
+			} catch(error) {
+				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
 
 			//If saved policy_r__ipobj Get data
 			if (data) {
@@ -186,15 +204,33 @@ async (req, res) => {
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
 								await PolicyRule.allowEmptyRulePositions(req);
-							} catch(error) { return res.status(400).json(error) }
+							} catch(error) {
+								logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+								return res.status(400).json(error);
+							}
 
 							res.status(200).json(data);
-						} else return res.status(400).json(error);
+						} else {
+							logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+							return res.status(400).json(error);
+						}
 					});
-				} else if (!data.allowed) return res.status(400).json(fwcError.NOT_ALLOWED);
-				else return res.status(400).json(fwcError.NOT_FOUND);
-			} else return res.status(400).json(error);
-		} else return res.status(400).json(fwcError.NOT_ALLOWED);
+				} else if (!data.allowed) {
+					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
+					return res.status(400).json(fwcError.NOT_ALLOWED);
+				}
+				else {
+					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_FOUND));
+					return res.status(400).json(fwcError.NOT_FOUND);
+				}
+			} else {
+				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
+		} else {
+			logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
+			return res.status(400).json(fwcError.NOT_ALLOWED);
+		}
 	}
 });
 
@@ -217,8 +253,10 @@ utilsModel.disableFirewallCompileStatus,
 			var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
 			PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 			res.status(200).json(data);
-		} else 
+		} else {
+			logger().error('Error updating ipobj order: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
+		}
 	});
 });
 
@@ -259,9 +297,14 @@ utilsModel.disableFirewallCompileStatus,
 				} catch(error) { return res.status(400).json(error) }
 				
 				res.status(200).json(data);
-			} else if (data.msg === "notExist") 
+			} else if (data.msg === "notExist") {
+				logger().error('Error updating removing policy_r__ipobj: ' + JSON.stringify(fwcError.NOT_FOUND));
 				res.status(400).json(fwcError.NOT_FOUND);
-		} else res.status(400).json(error);
+			}
+		} else {
+			logger().error('Error updating removing policy_r__ipobj: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 });
 

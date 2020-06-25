@@ -28,6 +28,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
+import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 var utilsModel = require("../../utils/utils.js");
@@ -56,7 +57,10 @@ async (req, res) => {
 			else
 				throw fwcError.NOT_FOUND;
 			} else throw fwcError.NOT_ALLOWED;
-		} catch(error) { res.status(400).json(error) }
+		} catch(error) {
+			logger().error('Error creating new policy_r__interface: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -85,7 +89,10 @@ async(req, res) => {
 		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 		content1 = data.content1;
 		content2 = data.content2;	
-	} catch(error) { return res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating position: ' + JSON.stringify(error));
+		return res.status(400).json(error); 
+	}
 
 	if (content1 === content2) { //SAME POSITION
 		PolicyRuleToInterface.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
@@ -102,9 +109,16 @@ async(req, res) => {
 
 					res.status(200).json(data);
 				} else if (!data.allowed) {
+					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
 					return res.status(400).json(fwcError.NOT_ALLOWED);
-				} else return res.status(400).json(fwcError.NOT_FOUND);
-			} else return res.status(400).json(error);
+				} else {
+					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_FOUND));
+					return res.status(400).json(fwcError.NOT_FOUND);
+				}
+			} else {
+				logger().error('Error updating position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
 		});
 	} else { //DIFFERENTS POSITIONS
 		if (content1 === 'O' && content2 === 'I') {
@@ -120,7 +134,10 @@ async(req, res) => {
 			var data;
 			try {
 				data = await PolicyRuleToInterface.insertPolicy_r__interface(firewall, policy_r__interfaceData);
-			} catch(error) { return res.status(400).json(error) }
+			} catch(error) { 
+				logger().error('Error updating position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
 			//If saved policy_r__interface Get data
 			if (data) {
 				if (data.result) {
@@ -136,12 +153,22 @@ async(req, res) => {
 							} catch(error) { return res.status(400).json(error) }
 
 							res.status(200).json(data);
-						} else return res.status(400).json(error);
+						} else {
+							logger().error('Error updating position: ' + JSON.stringify(error));
+							return res.status(400).json(error);
+						}
 					});
 				} else if (!data.allowed) {
+					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
 					return res.status(400).json(fwcError.NOT_ALLOWED);
-				} else return res.status(400).json(fwcError.NOT_FOUND);
-			} else return res.status(400).json(error);
+				} else {
+					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_FOUND));
+					return res.status(400).json(fwcError.NOT_FOUND);
+				}
+			} else {
+				logger().error('Error updating position: ' + JSON.stringify(error));
+				return res.status(400).json(error);
+			}
 		}
 	}
 });
@@ -158,12 +185,18 @@ utilsModel.disableFirewallCompileStatus,
 	var new_order = req.body.new_order;
 
 	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, (error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error updating order: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 		//If saved policy_r__interface saved ok, get data
 		if (data && data.result) {
 			PolicyRule.compilePolicy_r(rule, (error, datac) => {});
 			res.status(200).json(data);
-		} else res.status(400).json(error);
+		} else {
+			logger().error('Error updating order: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 });
 
@@ -186,12 +219,24 @@ utilsModel.disableFirewallCompileStatus,
 				// If after the delete we have empty rule positions, then remove them from the negate position list.
 				try {
 					await PolicyRule.allowEmptyRulePositions(req);
-				} catch(error) { return res.status(400).json(error) }
+				} catch(error) { 
+					logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
+					return res.status(400).json(error);
+				}
 
 				res.status(200).json(data);
-			} else if (data.msg === "notExist") res.status(400).json(fwcError.NOT_FOUND);
-			else res.status(400).json(error);
-		} else res.status(400).json(error);
+			} else if (data.msg === "notExist") {
+				logger().error('Error removing policy_r__interface: ' + JSON.stringify(fwcError.NOT_FOUND));
+				res.status(400).json(fwcError.NOT_FOUND);
+			}
+			else {
+				logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
+				res.status(400).json(error);
+			}
+		} else {
+			logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 });
 

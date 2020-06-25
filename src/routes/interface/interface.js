@@ -28,6 +28,7 @@ import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { Tree } from '../../models/tree/Tree';
 import { IPObj } from '../../models/ipobj/IPObj';
+import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -41,14 +42,20 @@ router.put('/fw/all/get', async(req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error getting all firewall interfaces: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
 /* Get all interfaces by firewall and IPOBJ under interfaces*/
 router.put('/fw/full/get', (req, res) => {
 	Interface.getInterfacesFull(req.body.firewall, req.body.fwcloud, (error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error getting firewall interfaces and its ipobjs: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 
 		if (data && data.length > 0)
 			res.status(200).json(data);
@@ -63,16 +70,24 @@ router.put('/fw/get', async(req, res) => {
 		const data = await Interface.getInterface(req.body.fwcloud, req.body.id);
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
-		else
+		else {
+			logger().error('Error getting interface firewall: ' + JSON.stringify(fwcError.NOT_FOUND));
 			res.status(400).json(fwcError.NOT_FOUND);
-	} catch (error) { res.status(400).json(error) }
+		}
+	} catch (error) {
+		logger().error('Error getting interface firewall: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
 /* Get all interfaces by HOST*/
 router.put('/host/all/get', (req, res) => {
 	Interface.getInterfacesHost(req.body.host, req.body.fwcloud, (error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error getting host interfaces: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 
 		if (data && data.length > 0)
 			res.status(200).json(data);
@@ -84,7 +99,10 @@ router.put('/host/all/get', (req, res) => {
 /* Get interface by id and HOST*/
 router.put('/host/get', (req, res) => {
 	Interface.getInterfaceHost(req.body.host, req.body.fwcloud, req.body.id, (error, data) => {
-		if (error) return res.status(400).json(error);
+		if (error) {
+			logger().error('Error getting host interface by id: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
 
 		if (data && data.length == 1)
 			res.status(200).json(data[0]);
@@ -105,8 +123,10 @@ router.post("/", async(req, res) => {
 
 	// Verify that the node tree information is consistent with the information in the request.
 	try {
-		if (!(await Tree.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host))))
+		if (!(await Tree.verifyNodeInfo(node_parent, fwcloud, ((host === null || host === undefined) ? firewall : host)))) {
+			logger().error('Error creating new interface: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
+		}
 
 		//Create New objet with data interface
 		var interfaceData = {
@@ -143,8 +163,14 @@ router.post("/", async(req, res) => {
 			interfaceData.type = interfaceData.interface_type;
 			const node_id = await Tree.insertFwc_TreeOBJ(req, node_parent, node_order, node_type, interfaceData);
 			res.status(200).json({ "insertId": insertId, "TreeinsertId": node_id });
-		} else { return res.status(400).end() }
-	} catch (error) { res.status(400).json(error) }
+		} else {
+			logger().error('Error creating new interface');
+			return res.status(400).end();
+		}
+	} catch (error) {
+		logger().error('Error creating new interface: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 /* Update interface that exist */
@@ -163,7 +189,10 @@ router.put('/', (req, res) => {
 
 	if ((interfaceData.id !== null) && (fwcloud !== null)) {
 		Interface.updateInterface(interfaceData, async(error, data) => {
-			if (error) return res.status(400).json(error);
+			if (error) {
+				logger().error('Error updating interface: ' + JSON.stringify(error));
+				return res.status(400).json(error)
+			};
 			//If saved interface saved ok, get data
 			if (data && data.result) {
 				try {
@@ -178,9 +207,15 @@ router.put('/', (req, res) => {
 
 					res.status(200).json(data_return);
 				} catch (error) { res.status(400).json(error) }
-			} else res.status(400).end();
+			} else {
+				logger().error('Error updating new interface');
+				res.status(400).end();
+			};
 		});
-	} else res.status(400).end();
+	} else {
+		logger().error('Error updating interface');
+		res.status(400).end();
+	}
 });
 
 
@@ -193,7 +228,10 @@ router.put('/fw/del',
 			await Interface.deleteInterfaceFW(req.dbCon, req.body.id);
 			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 10);
 			res.status(204).end();
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error removing firewall interface: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -207,7 +245,10 @@ router.put("/host/del",
 			await Interface.deleteInterfaceHOST(req.dbCon, req.body.id);
 			await Tree.deleteObjFromTree(req.body.fwcloud, req.body.id, 11);
 			res.status(204).end();
-		} catch (error) { res.status(400).json(error) }
+		} catch (error) {
+			logger().error('Error removing host interface: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
 	});
 
 
@@ -219,7 +260,10 @@ router.put('/where', async(req, res) => {
 			res.status(200).json(data);
 		else
 			res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error getting the places where interface is used: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -242,7 +286,10 @@ router.put('/autodiscover', async(req, res) => {
 		const ifsData = await Interface.ifsDataToJson(rawData);
 
 		res.status(200).json(ifsData);
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error getting network interface information: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;

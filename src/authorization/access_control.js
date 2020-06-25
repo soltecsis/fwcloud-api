@@ -66,6 +66,7 @@ accessCtrl.check = async (req, res, next) => {
 	 	if (await User.isLoggedUserAdmin(req))
 			return next();
 		
+		logger().debug("Error during access_control: " + JSON.stringify(fwcError.NOT_ADMIN_USER));
 		return res.status(400).json(fwcError.NOT_ADMIN_USER);
 	}
 
@@ -140,7 +141,10 @@ accessCtrl.check = async (req, res, next) => {
 		}
 		
 		next()
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().debug("Error during access_control: " + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 };
 
 // Check access to the firewalls cluster.
