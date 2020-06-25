@@ -26,6 +26,7 @@ var router = express.Router();
 
 const fwcError = require('../../../utils/error_table');
 import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
+import { logger } from '../../../fonaments/abstract-application';
 
 /**
  * Create a new crt prefix container.
@@ -43,7 +44,10 @@ router.post('/', async (req, res) => {
 		await CaPrefix.applyCrtPrefixes(req,req.body.ca);
 
 		res.status(200).json({insertId: id});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a crt prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -64,7 +68,10 @@ router.put('/', async (req, res) => {
 		await CaPrefix.applyCrtPrefixes(req,req.prefix.ca);
 
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error updating a crt prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -80,7 +87,10 @@ router.put('/del', async (req, res) => {
 		await CaPrefix.applyCrtPrefixes(req,req.prefix.ca);
 	
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing a crt prefix: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 module.exports = router;
