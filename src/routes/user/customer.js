@@ -24,6 +24,7 @@
 var express = require('express');
 var router = express.Router();
 import { Customer } from '../../models/user/Customer';
+import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -82,7 +83,10 @@ router.post('', async (req, res) => {
 		
 		await Customer.insert(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error creating a customer: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -140,7 +144,10 @@ router.put('', async (req, res) => {
 
 		await Customer.update(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error updating a customer: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -206,7 +213,10 @@ router.put('/get', async (req, res) => {
 
 		const data = await Customer.get(req);
 		res.status(200).json(req.body.customer ? data[0] : data);
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error finding a customer: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -253,7 +263,10 @@ async (req, res) => {
 
 		await Customer.delete(req);
 		res.status(204).end();
-	} catch (error) { res.status(400).json(error) }
+	} catch (error) {
+		logger().error('Error removing a customer: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
