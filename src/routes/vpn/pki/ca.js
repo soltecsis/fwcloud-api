@@ -27,7 +27,7 @@ var router = express.Router();
 const fwcError = require('../../../utils/error_table');
 import { Ca } from '../../../models/vpn/pki/Ca';
 import { Tree } from '../../../models/tree/Tree';
-import { app } from '../../../fonaments/abstract-application';
+import { app, logger } from '../../../fonaments/abstract-application';
 import { WebSocketService } from '../../../sockets/web-socket.service';
 const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
@@ -67,7 +67,10 @@ router.post('/', async(req, res) => {
 		const nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.body.cn, req.body.node_id, 'CA', req.caId, 300);
 
 		res.status(200).json({insertId: req.caId, TreeinsertId: nodeId});
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error creating a ca: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -96,7 +99,10 @@ async(req, res) => {
 
 		// Answer to the API request.
 		res.status(204).end();
-	} catch(error) { res.status(400).json(error) }
+	} catch(error) {
+		logger().error('Error removing a ca: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 // API call for check deleting restrictions.
