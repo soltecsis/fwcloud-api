@@ -78,7 +78,10 @@ utilsModel.disableFirewallCompileStatus = (req, res, next) => {
 		firewall=req.body.rulesData.firewall;
 	Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3")
 	.then(() => next())
-	.catch(error => res.status(400).json(error));
+	.catch(error => {
+		logger().error('Error disabling firewall compile status: ' + JSON.stringify(error));
+		res.status(400).json(error)
+	});
 };
 
 utilsModel.checkFirewallAccessTree = (iduser, fwcloud, firewall) => {
