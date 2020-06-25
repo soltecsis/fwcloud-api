@@ -20,13 +20,8 @@
 
 !define INSTALL_DIR "$PROGRAMFILES64\${APP_NAME}"
 !define INSTALL_TYPE "SetShellVarContext all"
-!define REG_ROOT "HKLM"
-!define REG_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAIN_APP_EXE}"
-!define UNINSTALL_PATH "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
-!define REG_START_MENU "Start Menu Folder"
 
 ; User vars can only be global
-var SM_Folder
 var OpenVPN_Path
 var OpenVPN_Config_Path
 var OpenVPN_Upgrade_Needed
@@ -50,7 +45,6 @@ Name "${APP_NAME}"
 Caption "${APP_NAME}"
 OutFile "${INSTALLER_NAME}"
 BrandingText "${APP_NAME}"
-InstallDirRegKey "${REG_ROOT}" "${REG_APP_PATH}" ""
 InstallDir "${INSTALL_DIR}"
 
 ######################################################################
@@ -73,10 +67,12 @@ InstallDir "${INSTALL_DIR}"
 !define MUI_FINISHPAGE_LINK_LOCATION ${WEB_SITE}
 
 Function LaunchWeb
+	SetOutPath $TEMP
 	ExecShell "open" "${WEB_SITE}" SW_SHOWNORMAL
 FunctionEnd
 
 Function LaunchApp
+	SetOutPath $TEMP
 	ExecShell "" "$OpenVPN_Path\bin\openvpn-gui.exe"
 FunctionEnd
 
@@ -91,21 +87,8 @@ FunctionEnd
 	!insertmacro MUI_PAGE_LICENSE "${LICENSE_TXT}"
 !endif
 
-!insertmacro MUI_PAGE_DIRECTORY
-
-!ifdef REG_START_MENU
-	!define MUI_STARTMENUPAGE_DEFAULTFOLDER "${APP_NAME}"
-	!define MUI_STARTMENUPAGE_REGISTRY_ROOT "${REG_ROOT}"
-	!define MUI_STARTMENUPAGE_REGISTRY_KEY "${UNINSTALL_PATH}"
-	!define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "${REG_START_MENU}"
-	!insertmacro MUI_PAGE_STARTMENU Application $SM_Folder
-!endif
-
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-!insertmacro MUI_UNPAGE_FINISH
 
 ######################################################################
 
@@ -140,11 +123,6 @@ LangString VISIT_TEXT ${LANG_SPANISH} "Visite nuestro sitio Web para obtener má
 LangString VISIT_TEXT ${LANG_FRENCH} "Visitez notre site web pour plus d'informations"
 LangString VISIT_TEXT ${LANG_GERMAN} "Besuchen Sie unsere Website für weitere Informationen"
 
-LangString UNINSTALL_TEXT ${LANG_ENGLISH} "FWCloud-VPN configuration has been removed from your computer $\r$\n$\r$\n FWCloud-VPN makes use of OpenVPN. This may still be required on your computer and will not be uninstalled $\r$\n$\r$\n If you want to remove it you can do it by running: "
-LangString UNINSTALL_TEXT ${LANG_SPANISH} "Se eliminado la configuración de FWCloud-VPN de su equipo $\r$\n$\r$\n FWCloud-VPN hace uso de OpenVPN. Este podría seguir siendo necesario en su equipo y no se desinstalará $\r$\n$\r$\n Si desea eliminarlo puede hacerlo ejecutando: "
-LangString UNINSTALL_TEXT ${LANG_FRENCH} "La configuration FWCloud-VPN a été supprimée de votre ordinateur $\r$\n$\r$\n FWCloud-VPN utilise OpenVPN. Cela peut toujours être requis sur votre ordinateur et ne sera pas désinstallé $\r$\n$\r$\n Si vous souhaitez le supprimer, vous pouvez le faire en exécutant: "
-LangString UNINSTALL_TEXT ${LANG_GERMAN} "Die FWCloud-VPN-Konfiguration wurde von Ihrem Computer entfernt. $\r$\n$\r$\n FWCloud-VPN verwendet OpenVPN. Dies ist möglicherweise weiterhin auf Ihrem Computer erforderlich und wird nicht deinstalliert $\r$\n$\r$\n Wenn Sie es entfernen möchten, können Sie es ausführen, indem Sie es ausführen: "
-
 ######################################################################
 
 Function .onInit
@@ -175,7 +153,6 @@ FunctionEnd
 !macroend
 
 !insertmacro RemoveSurroundingQuotes ""
-!insertmacro RemoveSurroundingQuotes "un."
 
 Function Check_Version ; We check if our OpenVPN included version is newer 
 	StrCpy $OpenVPN_Path $0
@@ -188,6 +165,11 @@ Function Check_Version ; We check if our OpenVPN included version is newer
         FileWrite $0 'for /f "tokens=2" %%i in (t_v.txt) do set Version=%%i $\r$\n'
         FileWrite $0 "echo %Version% $\r$\n"
         FileClose $0
+
+	FileOpen $0 stop.bat w
+	FileWrite $0 "@echo off $\r$\n"
+        FileWrite $0 "taskkill /F /IM openvpn-gui.exe $\r$\n"
+	FileClose $0
 
 	;ExecShellWait "" "check_version.bat" "" SW_HIDE
 	nsExec::ExecToStack '"check_version.bat"'
@@ -222,6 +204,7 @@ Function FindOpenVPN
 			Push "0" ; No config_dir found
 		${Else}
 			MessageBox MB_OK|MB_ICONEXCLAMATION $(Msg_OpenVPN_Found)
+			ExecShellWait "" "stop.bat" "" SW_HIDE
 			${If} $0 == ""
 				;MessageBox MB_OK "Exists but it is empty"
 				Push "0" ; No valid OpenVPN config_dir found
@@ -235,8 +218,8 @@ Function FindOpenVPN
 				IfFileExists $0\$R0 0 not_exists
 					Delete '$0\$R0.old'
 					Rename '$0\$CONFIG_FILE' '$0\$CONFIG_FILE.old'
-					MessageBox MB_OK|MB_ICONINFORMATION $(Msg_Renamed)
-				not_exists: MessageBox MB_OK|MB_ICONINFORMATION $(Msg_OpenVPN_Not_Modified)
+					;MessageBox MB_OK|MB_ICONINFORMATION $(Msg_Renamed)
+				not_exists: ;MessageBox MB_OK|MB_ICONINFORMATION $(Msg_OpenVPN_Not_Modified)
 			${EndIf}
 		${EndIf}
 	${EndIf}
@@ -245,39 +228,6 @@ Function FindOpenVPN
 		SetRegView LastUsed
 	${EndIf}
 	;Pop $0
-FunctionEnd
-
-Function un.FindOpenVPN
-        ;Push $0
-        ${If} ${RunningX64}
-                SetRegView 64
-        ${EndIf}
-
-        ReadRegStr $0 HKLM "SOFTWARE\OpenVPN" ""
-        ${If} ${Errors}
-                ;MessageBox MB_OK "Key not found"
-                StrCpy $OpenVPN_Upgrade_Needed "1"
-                Push "0" ; No OpenVPN instalation found
-        ${Else}
-                Push $0 ; Save OpenVPN install_dir
-                ReadRegStr $0 HKLM "SOFTWARE\OpenVPN" "config_dir"
-                ${If} ${Errors}
-                        ;MessageBox MB_OK "Clave no encontrada"
-                        Push "0" ; No config_dir found
-                ${Else}
-                        ${If} $0 == ""
-                                ;MessageBox MB_OK "Exists but it is empty"
-                                Push "0" ; No valid OpenVPN config_dir found
-                        ${Else}
-                                Push $0  ; Saved config_dir that is in $0
-                        ${EndIf}
-                ${EndIf}
-        ${EndIf}
-
-        ${If} ${RunningX64}
-                SetRegView LastUsed
-        ${EndIf}
-        ;Pop $0
 FunctionEnd
 
 ######################################################################
@@ -325,115 +275,17 @@ Section -MainProgram
 SectionEnd
 
 	Function .onInstSuccess
+		SetOutPath $TEMP
 		Delete $InstDir\launcher.bat
 		Delete $InstDir\check_version.bat
 		Delete $InstDir\t_v.txt
 		Delete $InstDir\banner.bmp
+		Delete $InstDir\fwcloud-vpn.ico
+		Delete $InstDir\fwcloud-vpn_TC.txt
 		Delete $InstDir\fwcloud-vpn.nsi
 		Delete $InstDir\opengui-fwcloud.exe
 		RmDir /r $InstDir\OpenVPN-versions
+		Delete $InstDir\stop.bat
+		RmDir /r $InstDir
 	FunctionEnd	
-
-
-######################################################################
-
-Section -Icons_Reg
-SetOutPath "$INSTDIR"
-WriteUninstaller "$INSTDIR\uninstall-FW.exe"
-
-!ifdef REG_START_MENU
-	!insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-	CreateDirectory "$SMPROGRAMS\$SM_Folder"
-	;CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
-	;CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
-	CreateShortCut "$SMPROGRAMS\$SM_Folder\Terms & Conditions ${APP_NAME}.lnk" "$INSTDIR\${LICENSE_TXT}" 
-	CreateShortCut "$SMPROGRAMS\$SM_Folder\Uninstall ${APP_NAME}.lnk" "$INSTDIR\uninstall-FW.exe" "$INSTDIR\${ICON}"
-
-	!ifdef WEB_SITE
-		WriteIniStr "$INSTDIR\${APP_NAME} Website.url" "InternetShortcut" "URL" "${WEB_SITE}"
-		CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} Website.url"
-	!endif
-	!insertmacro MUI_STARTMENU_WRITE_END
-!endif
-
-!ifndef REG_START_MENU
-	CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-	;CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
-	;CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
-	CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk" "$INSTDIR\${LICENSE_TXT}"
-	CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk" "$INSTDIR\uninstall-FW.exe" "$INSTDIR\$ICON"
-
-	!ifdef WEB_SITE
-		WriteIniStr "$INSTDIR\${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
-		CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} website.url"
-	!endif
-!endif
-
-WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR\${MAIN_APP_EXE}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayName" "${APP_NAME}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" "$INSTDIR\uninstall-FW.exe"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayIcon" "$INSTDIR\${MAIN_APP_EXE}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayVersion" "${VERSION}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "Publisher" "${COMP_NAME}"
-
-!ifdef WEB_SITE
-	WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "URLInfoAbout" "${WEB_SITE}"
-!endif
-SectionEnd
-
-######################################################################
-
-Section Uninstall
-
-StrCpy $CONFIG_FILE `"${CONFIG_F}"`
-
-Call un.FindOpenVPN ; Check if OpenVPN was installed before
-Pop $R0
-
-${If} $R0 != "0" ; There is a valid OpenVPN config_dir
-
-	Push $CONFIG_FILE ; We remove quotes because Delete doesn't like
-	Call un.RemoveSurroundingQuotes
-	Pop $R2
-
-	Delete '$R0\$R2'
-	Delete '$R0\$R2.old'
-        Pop $R1
-
-        ${If} $R1 != "0" ; There is a valid installation dir
-		MessageBox MB_OK|MB_ICONEXCLAMATION "$(UNINSTALL_TEXT) $R1\Uninstall.exe"
-		;ExecWait '"$R1\Uninstall.exe" /S' $1
-	${EndIF}
-${EndIF}
-
-${INSTALL_TYPE}
-
-RmDir /r "$INSTDIR"
-
-!ifdef REG_START_MENU
-	!insertmacro MUI_STARTMENU_GETFOLDER "Application" $SM_Folder
-	;Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk"
-	Delete "$SMPROGRAMS\$SM_Folder\Uninstall ${APP_NAME}.lnk"
-	!ifdef WEB_SITE
-		Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk"
-	!endif
-	;Delete "$DESKTOP\${APP_NAME}.lnk"
-
-	RmDir "$SMPROGRAMS\$SM_Folder"
-!endif
-
-!ifndef REG_START_MENU
-	;Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
-	Delete "$SMPROGRAMS\${APP_NAME}\Uninstall ${APP_NAME}.lnk"
-	!ifdef WEB_SITE
-		Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME} Website.lnk"
-	!endif
-	;Delete "$DESKTOP\${APP_NAME}.lnk"
-
-	RmDir "$SMPROGRAMS\${APP_NAME}"
-!endif
-
-DeleteRegKey ${REG_ROOT} "${REG_APP_PATH}"
-DeleteRegKey ${REG_ROOT} "${UNINSTALL_PATH}"
-SectionEnd
 
