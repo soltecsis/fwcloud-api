@@ -90,8 +90,14 @@ export class Server {
         });
 
         this._server.on('listening', () => {
-            logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL())
-        })
+            logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL());
+
+            // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
+            // So, we print out the message directly
+            if (this._config.get('env') === 'prod') {
+                console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL());
+            }
+        });
     }
 
     private async bootstrapSocketIO() {
