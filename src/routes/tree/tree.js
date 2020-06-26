@@ -198,7 +198,7 @@ router.put('/node/get', async (req, res) => {
 });
 
 // Get objects node information.
-router.get('/node/getByNodeType', async (req, res) => {
+router.put('/node/getByNodeType', async (req, res) => {
 	try {
 		const data = await Tree.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type);
 		if (data && data.length > 0) {
