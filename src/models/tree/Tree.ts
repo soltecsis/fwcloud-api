@@ -1195,10 +1195,10 @@ export class Tree extends Model {
                 WHERE fwcloud${(!fwcloud ? " IS NULL" : ("=" + fwcloud))} 
                 AND node_type=${dbCon.escape(node_type)}`;
 
-            if (typeof id_obj !== undefined) {
+            if (id_obj !== undefined) {
                 sql = sql + ` AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`
             }
-            
+
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);
