@@ -399,8 +399,10 @@ export class OpenVPN extends Model {
                             if (opt.ipobj) {
                                 // Get the ipobj data.
                                 const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
-                                if (ipobj.type === 7) // Network
-                                    cfg_line += ' ' + ipobj.address + ' ' + ipobj.netmask;
+                                if (ipobj.type === 7) { // Network
+                                    const netmask = (ipobj.netmask[0]==='/') ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask : ipobj.netmask;
+                                    cfg_line += ' ' + ipobj.address + ' ' + netmask;
+                                }
                                 else if (ipobj.type === 5) { // Address
                                     cfg_line += ' ' + ipobj.address;
                                     if (opt.name === 'ifconfig-push')
@@ -572,8 +574,8 @@ export class OpenVPN extends Model {
         return new Promise((resolve, reject) => {
             // Search for the VPN LAN and mask.
             let sql = `select OBJ.address,OBJ.netmask from openvpn_opt OPT
-      inner join ipobj OBJ on OBJ.id=OPT.ipobj
-      where OPT.openvpn=${req.body.openvpn} and OPT.ipobj is not null`;
+                inner join ipobj OBJ on OBJ.id=OPT.ipobj
+                where OPT.openvpn=${req.body.openvpn} and OPT.name='server' and OPT.ipobj is not null`;
             req.dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
 
@@ -581,16 +583,17 @@ export class OpenVPN extends Model {
                 if (result.length === 0) return reject(fwcError.other('OpenVPN LAN not found'));
 
                 // net will contain information about the VPN network.
-                const netmask = result[0].netmask;
-                const net = ip.subnet(result[0].address, netmask);
+                const ipobj = result[0];
+                const netmask = (ipobj.netmask[0]==='/') ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask : ipobj.netmask;
+                const net = ip.subnet(ipobj.address, netmask);
                 net.firstLong = ip.toLong(net.firstAddress) + 1; // The first usable IP is for the OpenVPN server.
                 net.lastLong = ip.toLong(net.lastAddress);
 
                 // Obtain the VPN LAN used IPs.
                 sql = `select OBJ.address from openvpn VPN
-        inner join openvpn_opt OPT on OPT.openvpn=VPN.id
-        inner join ipobj OBJ on OBJ.id=OPT.ipobj
-        where VPN.openvpn=${req.body.openvpn} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
+                    inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+                    inner join ipobj OBJ on OBJ.id=OPT.ipobj
+                    where VPN.openvpn=${req.body.openvpn} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
                 req.dbCon.query(sql, (error, result) => {
                     if (error) return reject(error);
 
