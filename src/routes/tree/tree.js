@@ -197,5 +197,20 @@ router.put('/node/get', async (req, res) => {
 	}
 });
 
+// Get objects node information.
+router.put('/node/getByNodeType', async (req, res) => {
+	try {
+		const data = await Tree.getNodeInfo(req.dbCon,req.body.fwcloud,req.body.node_type);
+		if (data && data.length > 0) {
+			res.status(200).json(data);
+		} else {
+			res.status(204).end();
+		}
+	} catch(error) {
+		logger().error('Error getting node tree: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
+});
+
 
 module.exports = router;
