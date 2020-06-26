@@ -1189,12 +1189,16 @@ export class Tree extends Model {
 
 
     //Get ipobjects node info.
-    public static getNodeInfo(dbCon, fwcloud, node_type, id_obj) {
+    public static getNodeInfo(dbCon, fwcloud, node_type, id_obj?) {
         return new Promise((resolve, reject) => {
             let sql = `SELECT * FROM ${tableName}
                 WHERE fwcloud${(!fwcloud ? " IS NULL" : ("=" + fwcloud))} 
-                AND node_type=${dbCon.escape(node_type)}
-                AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`;
+                AND node_type=${dbCon.escape(node_type)}`;
+
+            if (typeof id_obj !== undefined) {
+                sql = sql + ` AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`
+            }
+            
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);
