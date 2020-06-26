@@ -139,9 +139,16 @@ export abstract class AbstractApplication {
     this.registerMiddlewares('before');
     await this.registerRoutes();
     this.registerMiddlewares('after');
-    
+
     this.logger().info(`------- Starting application -------`);
     this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+
+    // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
+    // So, we print out the message directly 
+    if (this._config.get('env') === 'prod') {
+      console.log(`------- Starting application -------`);
+      console.log(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+    }
 
     return this;
   }
