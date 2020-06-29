@@ -29,8 +29,8 @@ export class FwCloudExportController extends Controller {
 
         (await FwCloudExportPolicy.import(request.session.user)).authorize();
 
-        if (request.files.has("file")) {
-            const fwCloud: FwCloud = await this._fwCloudExportService.import(request.files.get("file").filepath);
+        if (request.body.file) {
+            const fwCloud: FwCloud = await this._fwCloudExportService.import(request.body.file.filepath);
 
             return ResponseBuilder.buildResponse().status(201).body(fwCloud);
         }
