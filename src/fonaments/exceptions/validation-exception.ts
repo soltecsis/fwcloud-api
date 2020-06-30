@@ -22,16 +22,14 @@
 
 import { HttpException } from "./http/http-exception";
 import { ErrorPayload } from "../http/response-builder";
-
-export type InputErrors = Array<string>;
-export type ValidationErrors = {[input: string]: InputErrors}
+import { ErrorBag } from "../validation/error-bag";
 
 export class ValidationException extends HttpException {
     protected _errors: object;
     
-    constructor(message: string = "The given data was invalid", errors: ValidationErrors = {}) {
+    constructor(message: string = "The given data was invalid", errors: ErrorBag = new ErrorBag()) {
         super(message, 422);
-        this._errors = errors;
+        this._errors = errors.all();
     }
 
     public toResponse(): ErrorPayload {

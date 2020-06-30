@@ -7,6 +7,7 @@ import { getRepository } from "typeorm";
 import { FwCloudExportPolicy } from "../../policies/fwcloud-export.policy";
 import { FwCloudExport } from "../../fwcloud-exporter/fwcloud-export";
 import { ValidationException } from "../../fonaments/exceptions/validation-exception";
+import { Validate } from "../../decorators/validate.decorator";
 
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
@@ -15,6 +16,7 @@ export class FwCloudExportController extends Controller {
         this._fwCloudExportService = await this._app.getService<FwCloudExportService>(FwCloudExportService.name);
     }
 
+    @Validate({})
     public async store(request: Request): Promise<ResponseBuilder> {
         const fwCloud: FwCloud = await getRepository(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
 
@@ -25,6 +27,7 @@ export class FwCloudExportController extends Controller {
         return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath);
     }
 
+    @Validate({})
     public async import(request: Request): Promise<ResponseBuilder> {
 
         (await FwCloudExportPolicy.import(request.session.user)).authorize();

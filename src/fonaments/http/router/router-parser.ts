@@ -23,7 +23,6 @@
 import { Gate } from "./gate";
 import { PathParams } from "express-serve-static-core"
 import { Controller } from "../controller";
-import { RequestValidation } from "../../validation/request-validation";
 import { Route, RequestHandlerCallback } from "./route";
 import { HttpMethod } from "./router.service";
 import { FunctionHelper } from "../../../utils/FunctionHelper";
@@ -90,59 +89,59 @@ export class RouterParser {
         this._routes = this._routes.concat(parser.routes);
     }
 
-    public post(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public post(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public post(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public post(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('POST', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public post(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('POST', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public get(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public get(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public get(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public get(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('GET', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public get(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('GET', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public all(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public all(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public all(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public all(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('ALL', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public all(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('ALL', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public options(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public options(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public options(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public options(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('OPTIONS', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public options(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('OPTIONS', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public delete(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public delete(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public delete(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public delete(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('DELETE', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public delete(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('DELETE', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public head(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public head(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public head(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public head(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('HEAD', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public head(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('HEAD', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public patch(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public patch(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public patch(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public patch(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('PATCH', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public patch(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('PATCH', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
-    public put(pathParams: PathParams, controller: typeof Controller, method: string, validation?: typeof RequestValidation): RouterParser
+    public put(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser
     public put(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser
-    public put(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string, validation?: typeof RequestValidation): RouterParser {
-        this.newControllerHandler('PUT', this.generatePathParamsWithPrefix(pathParams), controller, method, validation);
+    public put(pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback, method?: string): RouterParser {
+        this.newControllerHandler('PUT', this.generatePathParamsWithPrefix(pathParams), controller, method);
         return this;
     }
 
@@ -161,15 +160,15 @@ export class RouterParser {
         return pathParam.replace(/\/$/, ""); //Remove trailing slash if exists
     }
 
-    protected newControllerHandler(httpMethod: HttpMethod, pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback , method: string, validation?: typeof RequestValidation): Route {
+    protected newControllerHandler(httpMethod: HttpMethod, pathParams: PathParams, controller: typeof Controller | RequestHandlerCallback , method: string): Route {
         this.commitCurrentRoute();
 
         if (FunctionHelper.isCallback(controller)) {
-            this._currentRoute = this.buildCallbackHandler(httpMethod, pathParams, this._gates, <RequestHandlerCallback>controller, validation);
+            this._currentRoute = this.buildCallbackHandler(httpMethod, pathParams, this._gates, <RequestHandlerCallback>controller);
             return this._currentRoute;
         }
 
-        this._currentRoute = this.buildControllerHandlerRoute(httpMethod, pathParams,this._gates, <typeof Controller>controller, method, validation);
+        this._currentRoute = this.buildControllerHandlerRoute(httpMethod, pathParams,this._gates, <typeof Controller>controller, method);
         return this._currentRoute;
     }
 
@@ -181,29 +180,21 @@ export class RouterParser {
         }
     }
 
-    protected buildCallbackHandler(httpMethod: HttpMethod, pathParams: PathParams, gates: Array<typeof Gate>, callback: RequestHandlerCallback, validation?: typeof RequestValidation): Route {
+    protected buildCallbackHandler(httpMethod: HttpMethod, pathParams: PathParams, gates: Array<typeof Gate>, callback: RequestHandlerCallback): Route {
         const route: Route = new Route().setHttpMethod(httpMethod).setPathParams(pathParams).setCallbackHandler(callback);
 
         route.setGates(gates);
 
-        if (validation) {
-            route.setRequestValidation(validation);
-        }
-
         return route;
     }
 
-    protected buildControllerHandlerRoute(httpMethod: HttpMethod, pathParams: PathParams, gates: Array<typeof Gate>, controller: typeof Controller, method: string, validation?: typeof RequestValidation): Route {
+    protected buildControllerHandlerRoute(httpMethod: HttpMethod, pathParams: PathParams, gates: Array<typeof Gate>, controller: typeof Controller, method: string): Route {
         const route: Route = new Route().setHttpMethod(httpMethod).setPathParams(pathParams).setControllerHandler({
             controller: controller,
             method: method
         });
 
         route.setGates(gates);
-
-        if (validation) {
-            route.setRequestValidation(validation);
-        }
 
         return route;
     }

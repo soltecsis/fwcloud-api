@@ -1,7 +1,7 @@
 import { describeName, expect } from "../../../../mocha/global-setup";
 import { ErrorBag } from "../../../../../src/fonaments/validation/error-bag";
 
-describe.only(describeName('Error Bag Unit Tests'), () => {
+describe(describeName('Error Bag Unit Tests'), () => {
     let errorBag: ErrorBag;
     
     

@@ -1,9 +1,8 @@
 import { describeName, expect } from "../../../../../mocha/global-setup";
-import { Required } from "../../../../../../src/fonaments/validation/rules/required.rule";
 import { Rule } from "../../../../../../src/fonaments/validation/rules/rule";
 import { Regexp } from "../../../../../../src/fonaments/validation/rules/regexp.rule";
 
-describe.only(describeName('Regexp Rule Unit Test'), () => {
+describe(describeName('Regexp Rule Unit Test'), () => {
     let rule: Rule = new Regexp(/[a-zA-Z]+/);
 
     describe('passes()', () => {

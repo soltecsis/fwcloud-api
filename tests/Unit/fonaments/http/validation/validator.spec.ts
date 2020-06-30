@@ -23,7 +23,7 @@ class InvalidRule extends Rule {
     
 }
 
-describe.only(describeName('Validator Unit Test'), () => {
+describe(describeName('Validator Unit Test'), () => {
     describe('isValid()', () => {
         it('should return false if a rule is not valid', async () => {
             const validator: Validator = new Validator({"input": "value"}, {
@@ -59,6 +59,17 @@ describe.only(describeName('Validator Unit Test'), () => {
             expect(validator.errors.get("input")).to.be.deep.eq([
                 "input is invalid."
             ])
-        })
+        });
+
+        it('should return false if an input does not have validation and is strict mode', async () => {
+            const validator: Validator = new Validator({"input": "value", "input2": "input"}, {
+                "input": [new ValidRule()]
+            });
+
+            expect(await validator.isValid()).to.be.false;
+            expect(validator.errors.get("input2")).to.be.deep.eq([
+                "input2 unexpected."
+            ]);
+        });
     });
 });

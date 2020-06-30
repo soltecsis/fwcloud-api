@@ -23,8 +23,6 @@
 import { RouteCollection } from "../fonaments/http/router/route-collection";
 import { BackupController } from "../controllers/backups/backup.controller";
 import { BackupConfigController } from "../controllers/backups/backup-config.controller";
-import { CreateBackupValidator } from "../validators/create-backup.validator";
-import { UpdateBackupConfigValidator } from "../validators/update-backup-config.validator";
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
@@ -33,7 +31,6 @@ import { isLoggedIn } from "../gates/isLoggedIn";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
-import { CreateOpenVPNInstallerValidator } from "../validators/create-openvpn-installer.validator";
 
 export class Routes extends RouteCollection {
 
@@ -47,7 +44,7 @@ export class Routes extends RouteCollection {
                 router.prefix('/backups', (router: RouterParser) => {
                     //Backups
                     router.get('/', BackupController, 'index').name('backups.index');
-                    router.post('/', BackupController, 'store', CreateBackupValidator).name('backups.store');
+                    router.post('/', BackupController, 'store').name('backups.store');
                     router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
                     router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
                     router.delete('/:backup(\\d+)', BackupController, 'destroy').name('backups.destroy');
@@ -55,7 +52,7 @@ export class Routes extends RouteCollection {
                     // Backups Config
                     router.prefix('/config', (router: RouterParser) => {
                         router.get('/', BackupConfigController, 'show').name('backups.config.show');
-                        router.put('/', BackupConfigController, 'update', UpdateBackupConfigValidator).name('backups.config.update');
+                        router.put('/', BackupConfigController, 'update').name('backups.config.update');
                     });
                 });
 
@@ -72,7 +69,7 @@ export class Routes extends RouteCollection {
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
-                                    router.post('/installer', OpenVPNController, 'installer', CreateOpenVPNInstallerValidator).name('fwclouds.firewalls.openvpns.installer');
+                                    router.post('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');
                                 })
                             })
                         })

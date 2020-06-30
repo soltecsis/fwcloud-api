@@ -24,7 +24,6 @@ import { HttpMethod, RouterService } from "./router.service";
 import { PathParams } from "express-serve-static-core"
 import { Controller } from "../controller";
 import { Request, Response, NextFunction, Application } from "express";
-import { RequestValidation } from "../../validation/request-validation";
 import { Gate } from "./gate";
 import { AbstractApplication, app } from "../../abstract-application";
 import { ParamNotValidException } from "./exceptions/param-not-valid.exception";
@@ -107,11 +106,6 @@ export class Route {
 
     public setCallbackHandler(callback: RequestHandlerCallback): Route {
         this._callback = callback;
-        return this;
-    }
-
-    public setRequestValidation(validator: typeof RequestValidation): Route {
-        this._validator = validator;
         return this;
     }
 

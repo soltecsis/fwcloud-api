@@ -2,7 +2,7 @@ import { describeName, expect } from "../../../../../mocha/global-setup";
 import { Required } from "../../../../../../src/fonaments/validation/rules/required.rule";
 import { Rule } from "../../../../../../src/fonaments/validation/rules/rule";
 
-describe.only(describeName('Required Rule Unit Test'), () => {
+describe(describeName('Required Rule Unit Test'), () => {
     let rule: Rule = new Required();
 
     describe('passes()', () => {

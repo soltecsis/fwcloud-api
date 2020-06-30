@@ -26,4 +26,8 @@ export class ErrorBag {
 
         return [];
     }
+
+    public all(): {[input: string]: Array<string>} {
+        return this._errors;
+    }
 }
