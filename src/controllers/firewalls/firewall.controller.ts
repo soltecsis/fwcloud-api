@@ -7,6 +7,8 @@ import { FirewallService, SSHConfig } from "../../models/firewall/firewall.servi
 import { FirewallPolicy } from "../../policies/firewall.policy";
 import { Channel } from "../../sockets/channels/channel";
 import { ProgressPayload } from "../../sockets/messages/socket-message";
+import { Validate } from "../../decorators/validate.decorator";
+import { String } from "../../fonaments/validation/rules/string.rule";
 
 export class FirewallController extends Controller {
     
@@ -16,6 +18,9 @@ export class FirewallController extends Controller {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
     }
     
+    @Validate({
+        channel_id: [new String()]
+    })
     public async compile(request: Request): Promise<ResponseBuilder> {
         /**
          * This method is not used temporarily
@@ -36,6 +41,9 @@ export class FirewallController extends Controller {
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }
 
+    @Validate({
+        channel_id: [new String()]
+    })
     public async install(request: Request): Promise<ResponseBuilder> {
         /**
          * This method is not used temporarily
