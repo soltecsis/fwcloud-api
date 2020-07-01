@@ -210,14 +210,14 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
 
             app().config.set('openvpn.installer.osslsigncode.path', "binPath");
             app().config.set('openvpn.installer.osslsigncode.cert_path', 'cert_path');
-            app().config.set('openvpn.installer.osslsigncode.i', 'i');
-            app().config.set('openvpn.installer.osslsigncode.n', 'n');
+            app().config.set('openvpn.installer.osslsigncode.url', 'url');
+            app().config.set('openvpn.installer.osslsigncode.description', 'description');
 
             generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
 
             generator.generate(true);
 
-            expect(stubSignCommand.calledWith("binPath", "cert_path", "i", "n")).to.be.true;
+            expect(stubSignCommand.calledWith("binPath", "cert_path", "url", "description")).to.be.true;
 
             stubShouldSign.restore();
             stubSignCommand.restore();
