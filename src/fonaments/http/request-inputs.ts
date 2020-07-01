@@ -27,19 +27,15 @@ export class RequestInputs {
 
     private _req: Request;
 
-    private _inputs: Object;
-
     constructor(req: Request) {
         this._req = req;
-        this._inputs = {};
-        this.bindRequestInputs();
     }
 
     /**
      * Returns all inputs
      */
     public all(): Object {
-        return this._inputs;
+        return ObjectHelpers.merge(this._req.body, this._req.query);;
     }
 
     /**
@@ -49,7 +45,15 @@ export class RequestInputs {
      * @param defaultValue Default value
      */
     public get(name: string, defaultValue: any = undefined): any {
-        return this._inputs[name] ? this._inputs[name] : defaultValue;
+        if (Object.prototype.hasOwnProperty.call(this._req.body, name)) {
+            return this._req.body[name];
+        }
+
+        if (Object.prototype.hasOwnProperty.call(this._req.query, name)) {
+            return this._req.query[name];
+        }
+
+        return defaultValue;
     }
 
     /**
@@ -58,10 +62,6 @@ export class RequestInputs {
      * @param name Input name
      */
     public has(name: string): boolean {
-        return this._inputs.hasOwnProperty(name);
-    }
-
-    private bindRequestInputs() {
-        this._inputs = ObjectHelpers.merge(this._req.body, this._req.query);
+        return Object.prototype.hasOwnProperty.call(this._req.body, name) || Object.prototype.hasOwnProperty.call(this._req.query, name)
     }
 }

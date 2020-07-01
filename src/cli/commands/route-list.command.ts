@@ -25,7 +25,6 @@ import { Application } from "../../Application";
 import { RouterService, HttpMethod } from "../../fonaments/http/router/router.service";
 import { PathParams } from "express-serve-static-core"
 import { Gate } from "../../fonaments/http/router/gate";
-import { RequestValidation } from "../../fonaments/validation/request-validation";
 import { Route } from "../../fonaments/http/router/route";
 
 interface RouteRow {
@@ -33,8 +32,7 @@ interface RouteRow {
     pathParams: PathParams,
     handler: string,
     name: string,
-    gates: Array<string>,
-    validator: typeof RequestValidation
+    gates: Array<string>
 };
 
 
@@ -66,8 +64,7 @@ export class RouteListCommand implements yargs.CommandModule {
                     pathParams: route.pathParams,
                     handler: route.isControllerHandler() ? route.controllerSignature.controller.name + '@' + route.controllerSignature.method : 'callback',
                     name: route.name,
-                    gates: route.gates.map((gate: typeof Gate) => { return gate.name }),
-                    validator: route.validator ? route.validator.name : null
+                    gates: route.gates.map((gate: typeof Gate) => { return gate.name })
                 });
             }
 

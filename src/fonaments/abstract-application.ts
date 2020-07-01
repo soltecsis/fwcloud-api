@@ -40,13 +40,11 @@ import { WebSocketService } from "../sockets/web-socket.service";
 import { LogServiceProvider } from "../logs/log.provider";
 import { LoggerType, LogService } from "../logs/log.service";
 import winston from "winston";
-import { RequestFiles } from "./http/request-files";
 
 declare module 'express-serve-static-core' {
   interface Request {
     dbCon: Query,
-    inputs: RequestInputs,
-    files: RequestFiles
+    inputs: RequestInputs
   }
 }
 

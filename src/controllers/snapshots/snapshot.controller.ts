@@ -29,8 +29,11 @@ import { Request } from "express";
 import { NotFoundException } from "../../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { RepositoryService } from "../../database/repository.service";
-import { Progress } from "../../fonaments/http/progress/progress";
 import { Channel } from "../../sockets/channels/channel";
+import { Validate } from "../../decorators/validate.decorator";
+import { Required } from "../../fonaments/validation/rules/required.rule";
+import { String } from "../../fonaments/validation/rules/string.rule";
+import { Max } from "../../fonaments/validation/rules/max.rule";
 
 export class SnapshotController extends Controller {
 
@@ -44,6 +47,7 @@ export class SnapshotController extends Controller {
         this._fwCloud = await this._repositoryService.for(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
     }
 
+    @Validate({})
     public async index(request: Request): Promise<ResponseBuilder> {
         const snapshots: Array<Snapshot> = await this._snapshotService.getAll(this._fwCloud);
 
@@ -58,6 +62,7 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
+    @Validate({})
     public async show(request: Request): Promise<ResponseBuilder> {
         const snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
@@ -68,6 +73,10 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(snapshot);
     }
 
+    @Validate({
+        name: [new Required(), new String(), new Max(64)],
+        comment: [new String(), new Max(255)]
+    })
     public async store(request: Request): Promise<ResponseBuilder> {
         (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
@@ -83,6 +92,10 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(201).body(snapshot);
     }
 
+    @Validate({
+        name: [new Required(), new String(), new Max(64)],
+        comment: [new String(), new Max(255)]
+    })
     public async update(request: Request): Promise<ResponseBuilder> {
         let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
@@ -93,6 +106,7 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(snapshot);
     }
 
+    @Validate({})
     public async restore(request: Request): Promise<ResponseBuilder> {
         let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 
@@ -105,6 +119,7 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(fwCloud);
     }
 
+    @Validate({})
     public async destroy(request: Request): Promise<ResponseBuilder> {
         let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 

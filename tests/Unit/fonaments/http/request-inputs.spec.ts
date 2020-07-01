@@ -44,7 +44,10 @@ describe(describeName('Request tests'), () => {
 
     describe('has()', () => {
         it('should return false if an input does not exist', async () => {
-            const req: any = {}
+            const req: any = {
+                body: {},
+                query: {}
+            }
 
             const request = new RequestInputs(req);
 
@@ -55,7 +58,8 @@ describe(describeName('Request tests'), () => {
             const req: any = {
                 body: {
                     "testInput": "testInput",
-                }
+                },
+                query: {}
             }
 
             const request = new RequestInputs(req);
@@ -85,7 +89,8 @@ describe(describeName('Request tests'), () => {
             const req: any = {
                 body: {
                     "testInput": "testInput",
-                }
+                },
+                query: {}
             }
 
             const request = new RequestInputs(req);
@@ -94,7 +99,10 @@ describe(describeName('Request tests'), () => {
         });
 
         it('should return undefined if the input does not exists', async () => {
-            const req: any = {}
+            const req: any = {
+                body: {},
+                query: {}
+            }
 
             const request = new RequestInputs(req);
 
@@ -102,7 +110,10 @@ describe(describeName('Request tests'), () => {
         });
 
         it('should return a default value if the input does not exists and a default value is provided', async () => {
-            const req: any = {}
+            const req: any = {
+                body: {},
+                query: {}
+            }
 
             const request = new RequestInputs(req);
 

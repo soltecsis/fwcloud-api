@@ -27,10 +27,9 @@ import Busboy from 'busboy';
 import * as fs from "fs";
 import * as uuid from "uuid";
 import path from "path";
-import { RequestFiles } from "../fonaments/http/request-files";
 import { FSHelper } from "../utils/fs-helper";
-import { logger } from "../fonaments/abstract-application";
 import { EventEmitter } from "events";
+import { FileInfo } from "../fonaments/http/files/file-info";
 
 export class RequestBuilder extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -38,7 +37,6 @@ export class RequestBuilder extends Middleware {
         let eventEmitter = new EventEmitter();
         
         req.inputs = new RequestInputs(req);
-        req.files = new RequestFiles();
         
         if (!req.headers["content-type"] || ! new RegExp(/^multipart\/form-data;/i).test(req.headers["content-type"])) {
             return next();
@@ -58,7 +56,7 @@ export class RequestBuilder extends Middleware {
                 const destinationStream: fs.WriteStream = fs.createWriteStream(destinationPath);
 
                 destinationStream.on('close', () => {
-                    req.files.addFile(input, destinationPath);
+                    req.body[input] = new FileInfo(destinationPath);
                     setTimeout(() => {
                         if (FSHelper.directoryExistsSync(destinationDirectory)) {
                             FSHelper.rmDirectorySync(destinationDirectory);
