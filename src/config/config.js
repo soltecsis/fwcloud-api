@@ -471,28 +471,28 @@ const config = convict({
     installer: {
       osslsigncode: {
         path: {
-          doc: 'osslsigncode bin path',
+          doc: 'osslsigncode bin path. If is null, it will look if is present in $PATH',
           format: "*",
           default: null,
           env: 'OSSLSIGNCODE_PATH'
         },
         cert_path: {
           doc: 'Cartificate path used to sign the executable',
-          format: "*",
-          default: null,
+          format: String,
+          default: './config/tls/fwcloud-exec-sign.pfx',
           env: 'OSSLSIGNCODE_CERT_PATH'
         },
-        n: {
-          doc: '-n argument',
-          format: "*",
-          default: null,
-          env: 'OSSLSIGNCODE_N'
+        description: {
+          doc: 'Description',
+          format: String,
+          default: 'FWCloud-VPN',
+          env: 'OSSLSIGNCODE_DESCRIPTION'
         },
-        i: {
-          doc: '-i argument',
-          format: "*",
-          default: null,
-          env: 'OSSLSIGNCODE_I'
+        url: {
+          doc: 'URL',
+          format: String,
+          default: 'https://fwcloud.net',
+          env: 'OSSLSIGNCODE_URL'
         }
       }
     }
