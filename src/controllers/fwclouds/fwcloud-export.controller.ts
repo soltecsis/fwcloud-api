@@ -6,7 +6,6 @@ import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import { FwCloudExportPolicy } from "../../policies/fwcloud-export.policy";
 import { FwCloudExport } from "../../fwcloud-exporter/fwcloud-export";
-import { ValidationException } from "../../fonaments/exceptions/validation-exception";
 import { Validate } from "../../decorators/validate.decorator";
 import { Required } from "../../fonaments/validation/rules/required.rule";
 import { File } from "../../fonaments/validation/rules/file.rule";

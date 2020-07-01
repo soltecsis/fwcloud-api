@@ -49,7 +49,7 @@ export class RequestInputs {
             return this._req.body[name];
         }
 
-        if (Object.prototype.hasOwnProperty.call(this._req.body, name)) {
+        if (Object.prototype.hasOwnProperty.call(this._req.query, name)) {
             return this._req.query[name];
         }
 
