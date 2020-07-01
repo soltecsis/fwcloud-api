@@ -464,6 +464,38 @@ const config = convict({
       default: 100000000,
       env: 'LOGS_MAXSIZE'
     }
+  },
+
+  // OpenVPN configuration
+  openvpn: {
+    installer: {
+      osslsigncode: {
+        path: {
+          doc: 'osslsigncode bin path',
+          format: "*",
+          default: null,
+          env: 'OSSLSIGNCODE_PATH'
+        },
+        cert_path: {
+          doc: 'Cartificate path used to sign the executable',
+          format: "*",
+          default: null,
+          env: 'OSSLSIGNCODE_CERT_PATH'
+        },
+        n: {
+          doc: '-n argument',
+          format: "*",
+          default: null,
+          env: 'OSSLSIGNCODE_N'
+        },
+        i: {
+          doc: '-i argument',
+          format: "*",
+          default: null,
+          env: 'OSSLSIGNCODE_I'
+        }
+      }
+    }
   }
 });
 
