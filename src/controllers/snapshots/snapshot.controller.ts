@@ -75,7 +75,8 @@ export class SnapshotController extends Controller {
 
     @Validate({
         name: [new Required(), new String(), new Max(64)],
-        comment: [new String(), new Max(255)]
+        comment: [new String(), new Max(255)],
+        channel_id: [new String()]
     })
     public async store(request: Request): Promise<ResponseBuilder> {
         (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
@@ -106,7 +107,9 @@ export class SnapshotController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(snapshot);
     }
 
-    @Validate({})
+    @Validate({
+        channel_id: [new String()]
+    })
     public async restore(request: Request): Promise<ResponseBuilder> {
         let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
 

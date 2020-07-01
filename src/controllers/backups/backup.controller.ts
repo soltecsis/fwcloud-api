@@ -87,7 +87,9 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    @Validate({})
+    @Validate({
+        channel_id: [new String()]
+    })
     public async restore(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
