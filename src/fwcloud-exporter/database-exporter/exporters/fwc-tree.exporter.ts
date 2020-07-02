@@ -23,7 +23,7 @@
 import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
 import { FwcTree } from "../../../models/tree/fwc-tree.model";
-import { SelectQueryBuilder, Connection, QueryRunner, QueryBuilder } from "typeorm";
+import { SelectQueryBuilder, Connection, QueryRunner } from "typeorm";
 
 export class FwcTreeExporter extends TableExporter {
 
@@ -45,6 +45,12 @@ export class FwcTreeExporter extends TableExporter {
         return qb;
     }
 
+    /**
+     * Get all node ids which are required by the fwcloud.
+     * 
+     * @param connection 
+     * @param fwCloudId 
+     */
     public static async getNodesId(connection: Connection, fwCloudId: number): Promise<Array<number>> {
         const queryRunner: QueryRunner = connection.createQueryRunner();
         let ids: Array<number> = [];
@@ -54,22 +60,30 @@ export class FwcTreeExporter extends TableExporter {
             return item.id;
         }));
 
-        for(let i = 0; i < parentIds.length; i++) {
-            const childIds: Array<{id: number}> = await queryRunner.query(`
-                SELECT id
-                FROM (SELECT * FROM fwc_tree ft ORDER BY id_parent , id) fwc_sorted,
-                    (select @pv := ?) initialisation
-                WHERE FIND_IN_SET(id_parent, @pv)
-                and LENGTH (@pv := concat(@pv, ',', id))
-                `, [parentIds[i].id]
-            );
-
-            ids = ids.concat(childIds.map((item: {id: number}) => {
-                return item.id;
-            }));
-        }
+        ids = ids.concat(await this.getChildNodeIds(queryRunner, fwCloudId, ids));
 
         await queryRunner.release();
         return ids;
+    }
+
+    protected static async getChildNodeIds(qr: QueryRunner, fwCloudId: number, ids: Array<number>): Promise<Array<number>> {
+        if (ids.length === 0) {
+            return [];
+        }
+        
+        let childIds: Array<number> = (await qr.query(`
+            SELECT id
+            FROM fwc_tree
+            WHERE fwcloud = ?
+            AND id_parent IN (?)
+        `, [fwCloudId, ids])).map((row: {id: number}) => {
+            return row.id
+        });
+
+        if (childIds.length > 0) {
+            childIds = childIds.concat(await this.getChildNodeIds(qr, fwCloudId, childIds));
+        }
+
+        return childIds;
     }
 }

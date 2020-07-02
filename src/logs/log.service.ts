@@ -63,8 +63,9 @@ export class LogService extends Service {
         transports.push(new winston.transports.File({
             filename: path.join(this._config.directory, 'fwcloud.log'),
             format: winston.format.combine(
-                winston.format.timestamp(),
-                winston.format.align(),
+                winston.format.timestamp({
+                    format: 'DD/MM/YYYY HH:mm:ss'
+                }),
                 winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
             ),
             maxsize: this._config.maxSize,
@@ -75,7 +76,9 @@ export class LogService extends Service {
         if (this._app.config.get('env') === 'dev') {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
-                    winston.format.timestamp(),
+                    winston.format.timestamp({
+                        format: 'DD/MM/YYYY HH:mm:ss'
+                    }),
                     winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}: ${info.message}`)
                 )
             }));
@@ -89,7 +92,9 @@ export class LogService extends Service {
         transports.push(new winston.transports.File({
             filename: path.join(this._config.directory, 'query.log'),
             format: winston.format.combine(
-                winston.format.timestamp(),
+                winston.format.timestamp({
+                    format: 'DD/MM/YYYY HH:mm:ss'
+                }),
                 winston.format.align(),
                 winston.format.printf((info) => `[${info.timestamp}]${info.message}`)
             ),
@@ -101,7 +106,9 @@ export class LogService extends Service {
         if (this._app.config.get('env') === 'dev') {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
-                    winston.format.timestamp(),
+                    winston.format.timestamp({
+                        format: 'DD/MM/YYYY HH:mm:ss'
+                    }),
                     winston.format.printf((info) => `[${info.timestamp}] ${info.message}`)
                 )
             }));
