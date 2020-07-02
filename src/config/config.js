@@ -464,6 +464,38 @@ const config = convict({
       default: 100000000,
       env: 'LOGS_MAXSIZE'
     }
+  },
+
+  // OpenVPN configuration
+  openvpn: {
+    installer: {
+      osslsigncode: {
+        path: {
+          doc: 'osslsigncode bin path. If is null, it will look if is present in $PATH',
+          format: "*",
+          default: null,
+          env: 'OSSLSIGNCODE_PATH'
+        },
+        cert_path: {
+          doc: 'Cartificate path used to sign the executable',
+          format: String,
+          default: './config/tls/fwcloud-exec-sign.pfx',
+          env: 'OSSLSIGNCODE_CERT_PATH'
+        },
+        description: {
+          doc: 'Description',
+          format: String,
+          default: 'FWCloud-VPN',
+          env: 'OSSLSIGNCODE_DESCRIPTION'
+        },
+        url: {
+          doc: 'URL',
+          format: String,
+          default: 'https://fwcloud.net',
+          env: 'OSSLSIGNCODE_URL'
+        }
+      }
+    }
   }
 });
 

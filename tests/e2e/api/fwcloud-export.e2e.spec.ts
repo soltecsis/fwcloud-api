@@ -91,7 +91,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .post(_URL().getURL('fwclouds.exports.import'))
                     .attach('file', fwCloudExport.exportPath)
                     .set('Cookie', [attachSession(regularUserSessionId)])
-                    .expect(401)
+                    .expect(401);
             });
 
             it('admin user should import a fwcloud export file', async () => {

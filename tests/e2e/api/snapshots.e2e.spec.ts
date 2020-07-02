@@ -212,13 +212,12 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .expect(401);
             });
 
-            it('regular user should no create a new snapshot if the user does not belong to fwcloud', async () => {
+            it('regular user should not create a new snapshot if the user does not belong to fwcloud', async () => {
                 await request(app.express)
                     .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(401);
@@ -232,8 +231,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(201)
@@ -249,8 +247,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(201)
@@ -258,6 +255,18 @@ describe(describeName('Snapshot E2E tests'), () => {
                         expect(response.body.data).to.haveOwnProperty('id');
                         expect(response.body.data).not.to.be.null;
                     })
+            });
+
+            it('channel_id should be valid as input', async () => {
+                await request(app.express)
+                .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
+                .send({
+                    name: 'name_test',
+                    comment: 'comment_test',
+                    channel_id: StringHelper.randomize(10)
+                })
+                .set('Cookie', attachSession(adminUserSessionId))
+                .expect(201);
             });
         });
 
@@ -280,8 +289,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(401)
@@ -295,8 +303,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(loggedUserSessionId))
                     .expect(200)
@@ -312,8 +319,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .send({
                         name: 'name_test',
-                        comment: 'comment_test',
-                        fwCloudId: fwCloud.id
+                        comment: 'comment_test'
                     })
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(200)
@@ -381,6 +387,16 @@ describe(describeName('Snapshot E2E tests'), () => {
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(422);
+            });
+
+            it('channel_id should be valid as input', async () => {
+                await request(app.express)
+                .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
+                .send({
+                    channel_id: StringHelper.randomize(10)
+                })
+                .set('Cookie', attachSession(adminUserSessionId))
+                .expect(200);
             })
         });
 

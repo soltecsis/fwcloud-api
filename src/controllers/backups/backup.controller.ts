@@ -26,8 +26,10 @@ import { app } from "../../fonaments/abstract-application";
 import { Backup } from "../../backups/backup";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
-import { Progress } from "../../fonaments/http/progress/progress";
 import { Channel } from "../../sockets/channels/channel";
+import { Validate } from "../../decorators/validate.decorator";
+import { Max } from "../../fonaments/validation/rules/max.rule";
+import { String } from "../../fonaments/validation/rules/string.rule";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -42,7 +44,8 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    public async index(request: Request): Promise<ResponseBuilder> {
+    @Validate({})
+     public async index(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
         const backups: Array<Backup> = await this._backupService.getAll();
@@ -50,6 +53,7 @@ export class BackupController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(backups);
     }
 
+    @Validate({})
     public async show(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 
@@ -64,6 +68,10 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
+    @Validate({
+        comment: [new String(), new Max(255)],
+        channel_id: [new String(), new Max(255)]
+    })
     public async store(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         const channel: Channel = await Channel.fromRequest(request);
@@ -79,6 +87,9 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
+    @Validate({
+        channel_id: [new String()]
+    })
     public async restore(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
         let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
@@ -100,6 +111,7 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
+    @Validate({})
     public async destroy(request: Request): Promise<ResponseBuilder> {
         //TODO: Authorization
 

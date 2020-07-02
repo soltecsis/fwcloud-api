@@ -23,16 +23,14 @@
 import { Service } from "../../services/service";
 import { Request, Response, NextFunction } from "express";
 import { RouteCollection as RouteDefinition, RouteCollectionable } from "./route-collection";
-import { Routes } from "../../../routes/routes";
 import { RouterParser } from "./router-parser";
 import { Route } from "./route";
 import { AuthorizationException } from "../../exceptions/authorization-exception";
-import { RequestValidation } from "../../validation/request-validation";
-import { ValidationException } from "../../exceptions/validation-exception";
 import { ResponseBuilder } from "../response-builder";
 import { URLHelper } from "./url-helper";
-import { WebSocketService } from "../../../sockets/web-socket.service";
-import { Channel } from "../../../sockets/channels/channel";
+import { Validator } from "../../validation/validator";
+import { HttpException } from "../../exceptions/http/http-exception";
+import { getFWCloudMetadata } from "../../../metadata/metadata";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
@@ -153,13 +151,12 @@ export class RouterService extends Service {
     }
 
     public async validateInput(route: Route, request: Request): Promise<void> {
-        if (route.validator) {
-            const validationRequest: RequestValidation = new route.validator(request);
-            try {
-                await validationRequest.validate();
-            } catch (e) {
-                throw new ValidationException();
-            }
+        const validations = getFWCloudMetadata.validations[route.controllerSignature.controller.name + '@' + route.controllerSignature.method];
+        
+        if (!validations) {
+            throw new HttpException(`Request ${route.pathParams} not validated`, 501);
         }
+
+        await ((new Validator(request.inputs.all(), validations)).validate());
     }
 }

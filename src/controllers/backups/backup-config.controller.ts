@@ -24,6 +24,10 @@ import { Controller } from "../../fonaments/http/controller";
 import { BackupService, BackupUpdateableConfig } from "../../backups/backup.service";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
+import { Validate } from "../../decorators/validate.decorator";
+import { String } from "../../fonaments/validation/rules/string.rule";
+import { Number } from "../../fonaments/validation/rules/number.rule";
+import { Required } from "../../fonaments/validation/rules/required.rule";
 
 export class BackupConfigController extends Controller {
     
@@ -38,6 +42,7 @@ export class BackupConfigController extends Controller {
      * @param request 
      * @param response 
      */
+    @Validate({})
     public async show(request: Request): Promise<ResponseBuilder> {
         const config: BackupUpdateableConfig = this._backupService.getCustomizedConfig();
 
@@ -50,6 +55,11 @@ export class BackupConfigController extends Controller {
      * @param request 
      * @param response 
      */
+    @Validate({
+        schedule: [new String(), new Required()],
+        max_days: [new Number(), new Required()],
+        max_copies: [new Number(), new Required()]
+    })
     public async update(request: Request): Promise<ResponseBuilder> {
         await this._backupService.updateConfig(request.body);
         const config = this._backupService.config;

@@ -6,6 +6,7 @@ import * as fs from "fs-extra";
 import { InstallerGenerator } from "../../../src/openvpn-installer/installer-generator";
 import { InvalidConnectionNameException } from "./exceptions/invalid-connection-name.exception";
 import sinon from "sinon";
+import { app } from "../../../src/fonaments/abstract-application";
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
     let workspace: string;
@@ -21,7 +22,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
         connectionName = "connectionTest";
         
         // @ts-ignore
-        stubGenerateCommand = sinon.stub(InstallerGenerator.prototype, 'runCommand').callsFake(() => {
+        stubGenerateCommand = sinon.stub(InstallerGenerator.prototype, 'generateExecutable').callsFake(() => {
             fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "")
         });
     });
@@ -165,7 +166,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
         it('should clean files if script throws an exception', () => {
             stubGenerateCommand.restore();
             //@ts-ignore
-            stubGenerateCommand = sinon.stub(InstallerGenerator.prototype, 'runCommand').callsFake(() => {
+            stubGenerateCommand = sinon.stub(InstallerGenerator.prototype, 'generateExecutable').callsFake(() => {
                 throw new Error();
             });
 
@@ -178,6 +179,63 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
             expect(f).to.throw(Error);
             expect(fs.existsSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"))).to.be.false;
             expect(fs.existsSync(path.join(workspace, "fwcloud-vpn", connectionName + ".ovpn"))).to.be.false;
-        })
+        });
+
+        it('should generate a sign executable', async () => {
+            // @ts-ignore
+            const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+            //@ts-ignore
+            const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
+                fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
+            });
+
+            generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
+
+            generator.generate(true);
+
+            expect(fs.existsSync(outputPath)).to.be.true;
+            expect(fs.readFileSync(outputPath).toString()).to.be.eq("signed");
+
+            stubShouldSign.restore();
+            stubSignCommand.restore();
+        });
+
+        it('should call sign command with all arguments', async () => {
+            // @ts-ignore
+            const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+            //@ts-ignore
+            const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
+                fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
+            });
+
+            app().config.set('openvpn.installer.osslsigncode.path', "binPath");
+            app().config.set('openvpn.installer.osslsigncode.cert_path', 'cert_path');
+            app().config.set('openvpn.installer.osslsigncode.url', 'url');
+            app().config.set('openvpn.installer.osslsigncode.description', 'description');
+
+            generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
+
+            generator.generate(true);
+
+            expect(stubSignCommand.calledWith("binPath", "cert_path", "url", "description")).to.be.true;
+
+            stubShouldSign.restore();
+            stubSignCommand.restore();
+        });
+
+        it('should not sign the executable if generate() is called without sign flag', async () => {
+            // @ts-ignore
+            const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+            //@ts-ignore
+            const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
+                fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
+            });
+
+            generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
+
+            generator.generate(false);
+
+            expect(stubSignCommand.called).to.be.false;
+        });
     });
 });
