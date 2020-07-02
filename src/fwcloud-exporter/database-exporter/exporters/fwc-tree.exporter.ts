@@ -67,6 +67,10 @@ export class FwcTreeExporter extends TableExporter {
     }
 
     protected static async getChildNodeIds(qr: QueryRunner, fwCloudId: number, ids: Array<number>): Promise<Array<number>> {
+        if (ids.length === 0) {
+            return [];
+        }
+        
         let childIds: Array<number> = (await qr.query(`
             SELECT id
             FROM fwc_tree
