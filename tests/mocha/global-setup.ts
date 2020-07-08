@@ -30,6 +30,7 @@ import StringHelper from "../../src/utils/string.helper";
 
 chai.should();
 chai.use(ChaiAsPromised);
+chai.use(require('chai-json-schema'));
 
 export const expect = chai.expect;
 
