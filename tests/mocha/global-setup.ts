@@ -22,6 +22,7 @@
 
 import * as chai from "chai";
 import ChaiAsPromised from "chai-as-promised";
+import ChaiJsonSchema from "chai-json-schema";
 import { Application } from "../../src/Application";
 import { DatabaseService } from "../../src/database/database.service";
 import * as fse from "fs-extra";
@@ -30,6 +31,7 @@ import StringHelper from "../../src/utils/string.helper";
 
 chai.should();
 chai.use(ChaiAsPromised);
+chai.use(ChaiJsonSchema);
 
 export const expect = chai.expect;
 
