@@ -9,7 +9,7 @@ import { createUser, generateSession, attachSession, sleep } from "../../../util
 import { Application } from "../../../../src/Application";
 import fwc_tree_node = require("../../../../src/models/tree/node");
 
-describe.only(describeName('FwCloud Management E2E Tests'), () => {
+describe(describeName('FwCloud Management E2E Tests'), () => {
 	let app: Application;
 	let fwcloud_id: number;
 	let adminUser: User;
