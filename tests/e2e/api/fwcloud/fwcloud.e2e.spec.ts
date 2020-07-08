@@ -118,6 +118,7 @@ describe.only(describeName('FwCloud Management E2E Tests'), () => {
                         expect(response.body[0]).to.have.property("comment").which.is.equal(fwcData.comment);
                     });
 
+            });
         });
     });
 });
