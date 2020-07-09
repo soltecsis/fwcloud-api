@@ -41,8 +41,9 @@ export class FwcTreeExporter extends TableExporter {
         if (this._ids.length > 0) {
             return qb.whereInIds(this._ids);
         }
-        
-        return qb;
+
+        //As this._ids is empty, then we return a query which returns an empty set of rows
+        return qb.whereInIds([-1]);
     }
 
     /**

@@ -81,6 +81,7 @@ export class Task implements ITask {
             this.emitFinishedTask(this);
         }).catch(e => {
             this.emitErrorTask(this, e);
+            throw e;
         });
     }
 

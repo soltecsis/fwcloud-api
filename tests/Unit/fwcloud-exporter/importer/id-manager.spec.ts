@@ -23,20 +23,24 @@
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { IdManager } from "../../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../../src/database/database.service";
-import { RepositoryService } from "../../../../src/database/repository.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { QueryRunner, getRepository } from "typeorm";
-
-let databaseService: DatabaseService;
-let repositoryService: RepositoryService;
+import { before } from "mocha";
 
 describe(describeName('IdManager Unit tests'), () => {
     let queryRunner: QueryRunner;
 
+    before(async () => {
+        const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+        await dbService.emptyDatabase();
+        
+        await testSuite.resetDatabaseData();
+        
+    });
+
     beforeEach(async() => {
-        databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-        queryRunner = databaseService.connection.createQueryRunner();
-        repositoryService = await testSuite.app.getService<RepositoryService>(RepositoryService.name);
+        const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+        queryRunner = dbService.connection.createQueryRunner();
     });
 
     afterEach(async() => {
@@ -45,8 +49,6 @@ describe(describeName('IdManager Unit tests'), () => {
     
     describe('make()', () => {
         it('should set the next id = 1 if the table is empty', async () => {
-            await getRepository(FwCloud).remove(await getRepository(FwCloud).find());
-            
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
             expect(idManger["_ids"]).to.be.deep.equal({
@@ -57,7 +59,7 @@ describe(describeName('IdManager Unit tests'), () => {
         });
 
         it('should set the next id = MAX()+1 if the table is not empty', async () => {
-            await repositoryService.for(FwCloud).save({ id: 100, name: 'test' });
+            await getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
@@ -78,7 +80,7 @@ describe(describeName('IdManager Unit tests'), () => {
 
     describe('getNewId()', () => {
         it('should return the new id', async () => {
-            await repositoryService.for(FwCloud).save({ id: 100, name: 'test' });
+            await  getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
@@ -86,7 +88,7 @@ describe(describeName('IdManager Unit tests'), () => {
         });
 
         it('should increment the id', async () => {
-            await repositoryService.for(FwCloud).save({ id: 100, name: 'test' });
+            await getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
