@@ -77,7 +77,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 		adminUserSessionId = generateSession(adminUser);
 	});
 
-	describe.only('IpobjDuplicity',() => {
+	describe('IpobjDuplicity',() => {
 		describe('IpobjDuplicity@address',() => {			
 			it('guest user should not create a fwcloud', async () => {
 				return await request(app.express)
