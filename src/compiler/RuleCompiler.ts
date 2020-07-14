@@ -464,10 +464,12 @@ export class RuleCompiler {
                         action = ACTION[data[0].action];
                         if (action === "ACCEPT") {
                             if (data[0].options & 0x0001) // Stateful rule.
-                                stateful = "-m state --state NEW ";
+                                //stateful = "-m state --state NEW ";
+                                stateful = "-m conntrack --ctstate  NEW ";
                             else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
-                                stateful = "-m state --state NEW ";
-                        }
+                                //stateful = "-m state --state NEW ";
+                                stateful = "-m conntrack --ctstate  NEW ";
+                            }
                         else if (action === "ACCOUNTING") {
                             acc_chain = "FWCRULE" + rule + ".ACC";
                             action = acc_chain;
@@ -486,7 +488,8 @@ export class RuleCompiler {
                 }
 
                 if (parseInt(data[0].special) === 1) // Special rule for ESTABLISHED,RELATED packages.
-                    cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
+                    //cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
+                    cs_trail = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${action}\n`;
                 else
                     cs_trail = `${stateful} -j ${action}\n`;
 

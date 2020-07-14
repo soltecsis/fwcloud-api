@@ -30,12 +30,14 @@ import { PolicyRuleToIpObjTerraformer } from "./table-terraformers/policy-rule-t
 import { FwcTree } from "../../../models/tree/fwc-tree.model";
 import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
 import { PolicyRuleToIPObj } from "../../../models/policy/PolicyRuleToIPObj";
+import { Firewall } from "../../../models/firewall/Firewall";
+import { FirewallTerraformer } from "./table-terraformers/firewall.terraformer";
 
 const TERRAFORMERS: {[tableName: string]: typeof TableTerraformer} = {};
 TERRAFORMERS[FwcTree._getTableName()] = FwcTreeTerraformer;
 TERRAFORMERS[IPObjGroup._getTableName()] = IpObjGroupTerraformer;
 TERRAFORMERS[PolicyRuleToIPObj._getTableName()] = PolicyRuleToIpObjTerraformer;
-
+TERRAFORMERS[Firewall._getTableName()] = FirewallTerraformer;
 
 export class Terraformer {
     protected _queryRunner: QueryRunner;
