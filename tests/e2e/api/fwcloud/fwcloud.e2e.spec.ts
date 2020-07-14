@@ -1,9 +1,6 @@
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import request = require("supertest");
 import { _URL } from "../../../../src/fonaments/http/router/router.service";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import StringHelper from "../../../../src/utils/string.helper";
-import { getRepository } from "typeorm";
 import { User } from "../../../../src/models/user/User";
 import { createUser, generateSession, attachSession, sleep } from "../../../utils/utils";
 import { Application } from "../../../../src/Application";
@@ -70,8 +67,22 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 	});
 
 	describe('FwCloudManagement',() => {
-		describe('FwCloudManagement@operations',() => {
-			
+		describe('FwCloudManagement@create',() => {			
+			it('guest user should not create a fwcloud', async () => {
+				return await request(app.express)
+					.post('/fwcloud')
+					.send(fwcData)
+					.expect(401);
+			});
+
+			it('regular user should not create a fwcloud', async () => {
+				return await request(app.express)
+					.post('/fwcloud')
+					.send(fwcData)
+					.set('Cookie', [attachSession(regularUserSessionId)])
+					.expect(400, {fwcErr: 1008, msg: "You are not an admin user"});
+			});
+
 			it('admin user should create a fwcloud', async () => {
 				return await request(app.express)
 					.post('/fwcloud')
@@ -85,8 +96,25 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 						fwcloud_id = response.body.insertId;
 					});
 			});
+		});
 
-			it('get single fwcloud data', async () => {
+
+		describe('FwCloudManagement@show',() => {
+			it('guest user shoult not get single fwcloud data', async () => {
+				return await request(app.express)
+					.put('/fwcloud/get')
+					.send({ fwcloud: fwcloud_id })
+					.expect(401);
+			});
+
+			it('guest user shoult not get all fwclouds data', async () => {
+				return await request(app.express)
+					.put('/fwcloud/all/get')
+					.send({ fwcloud: fwcloud_id })
+					.expect(401);
+			});
+
+			it('admin user should get single fwcloud data', async () => {
 				return await request(app.express)
 					.put('/fwcloud/get')
 					.send({ fwcloud: fwcloud_id })
@@ -101,7 +129,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					});
 			});
 
-			it('get all fwclouds data', async () => {
+			it('admin user should get all fwclouds data', async () => {
 				return await request(app.express)
 					.get('/fwcloud/all/get')
 					.set('Cookie', [attachSession(adminUserSessionId)])
@@ -117,8 +145,28 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 						expect(response.body[0]).to.have.property("comment").which.is.equal(fwcData.comment);
 					});
 			});
+		});
 
-			it('update fwcloud data', async () => {
+
+		describe('FwCloudManagement@update',() => {
+			it('guest user should not modify a fwcloud', async () => {
+				fwcDataUpdate.fwcloud = fwcloud_id;
+				return await request(app.express)
+					.put('/fwcloud')
+					.send(fwcDataUpdate)
+					.expect(401);
+			});	
+
+			it('regular user should not modify a fwcloud', async () => {
+				fwcDataUpdate.fwcloud = fwcloud_id;
+				return await request(app.express)
+					.put('/fwcloud')
+					.send(fwcDataUpdate)
+					.set('Cookie', [attachSession(regularUserSessionId)])
+					.expect(400, {fwcErr: 7000, msg: "FWCloud access not allowed"});
+			});	
+	
+			it('admin user shoult update fwcloud data', async () => {
 				fwcDataUpdate.fwcloud = fwcloud_id;
 				return await request(app.express)
 					.put('/fwcloud')
@@ -141,8 +189,28 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 						expect(response.body).to.have.property("comment").which.is.equal(fwcDataUpdate.comment);
 					});
 			});
+		});
 
-			it('delete empty fwcloud', async () => {
+
+		describe('FwCloudManagement@delete',() => {
+			it('guest user should not delete a fwcloud', async () => {
+				fwcDataUpdate.fwcloud = fwcloud_id;
+				return await request(app.express)
+					.put('/fwcloud/del')
+					.send({ fwcloud: fwcloud_id })
+					.expect(401);
+			});
+
+			it('regular user should not delete a fwcloud', async () => {
+				fwcDataUpdate.fwcloud = fwcloud_id;
+				return await request(app.express)
+					.put('/fwcloud/del')
+					.send({ fwcloud: fwcloud_id })
+					.set('Cookie', [attachSession(regularUserSessionId)])
+					.expect(400, {fwcErr: 7000, msg: "FWCloud access not allowed"});
+			});
+
+			it('admin user should delete empty fwcloud', async () => {
 				return await request(app.express)
 					.put('/fwcloud/del')
 					.send({ fwcloud: fwcloud_id })
@@ -157,51 +225,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					.set('Cookie', [attachSession(adminUserSessionId)])
 					.expect(400,{fwcErr: 7000, msg: "FWCloud access not allowed"});
 			});
-
-		});
-	});
-
-
-	describe('FwCloudManagement@accessControl',() => {
-		it('admin user should create a fwcloud', async () => {
-			return await request(app.express)
-				.post('/fwcloud')
-				.send(fwcData)
-				.set('Cookie', [attachSession(adminUserSessionId)])
-				.expect('Content-Type', /json/)
-				.expect(200)
-				.then(response => {
-					expect(response.body).to.be.jsonSchema(fwcloudCreationSchema); 
-					expect(response.body).to.have.property("insertId").which.is.a('number').above(0).and.satisfy(Number.isInteger);
-					fwcloud_id = response.body.insertId;
-				});
-		});
-
-		it('manager user should not create a fwcloud', async () => {
-			return await request(app.express)
-				.post('/fwcloud')
-				.send(fwcData)
-				.set('Cookie', [attachSession(regularUserSessionId)])
-				.expect(400, {fwcErr: 1008, msg: "You are not an admin user"});
-		});
-
-		it('manager user should not modify a fwcloud', async () => {
-			fwcDataUpdate.fwcloud = fwcloud_id;
-			return await request(app.express)
-				.put('/fwcloud')
-				.send(fwcDataUpdate)
-				.set('Cookie', [attachSession(regularUserSessionId)])
-				.expect(400, {fwcErr: 7000, msg: "FWCloud access not allowed"});
-		});
-
-
-		it('manager user should not delete a fwcloud', async () => {
-			fwcDataUpdate.fwcloud = fwcloud_id;
-			return await request(app.express)
-				.put('/fwcloud/del')
-				.send({ fwcloud: fwcloud_id })
-				.set('Cookie', [attachSession(regularUserSessionId)])
-				.expect(400, {fwcErr: 7000, msg: "FWCloud access not allowed"});
 		});
 	});
 });
