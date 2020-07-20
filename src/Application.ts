@@ -57,6 +57,7 @@ import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
 import { LogRequestMiddleware } from './middleware/log-request.middleware';
 import { OpenVPNServiceProvider } from './models/vpn/openvpn/openvpn.provider';
+import { FwCloudServiceProvider } from './models/fwcloud/fwcloud.provider';
 
 export class Application extends AbstractApplication {
     public static async run(path?: string): Promise<Application> {
@@ -93,7 +94,8 @@ export class Application extends AbstractApplication {
             WebSocketServiceProvider,
             FirewallServiceProvider,
             FwCloudExportServiceProvider,
-            OpenVPNServiceProvider
+            OpenVPNServiceProvider,
+            FwCloudServiceProvider
         ]
     }
 
