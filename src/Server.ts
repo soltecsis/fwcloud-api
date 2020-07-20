@@ -132,4 +132,8 @@ export class Server {
         + ':' 
         + this._application.config.get(this._type).port;
     }
+
+    get server(): https.Server | http.Server {
+        return this._server;
+    }
 }
