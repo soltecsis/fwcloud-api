@@ -46,6 +46,7 @@ async function start() {
 
     const webApp = await loadWebApplication();
     const web_server: Server = startServer(webApp,'web_server');
+    webApp.proxySetup(web_server.server);
 }
 
 

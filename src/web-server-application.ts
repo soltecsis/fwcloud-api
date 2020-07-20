@@ -23,11 +23,13 @@
 import express from 'express';
 import httpProxy from 'http-proxy';
 import { ClientRequest, OutgoingHttpHeaders } from 'http';
-import { ref } from 'joi';
+import https from 'https';
+import http from 'http';
 
 
 export class WebServerApplication {
     private _express: any;
+    public _server: https.Server | http.Server;
     private _config: any;
     private _proxy: any;
 
@@ -42,7 +44,6 @@ export class WebServerApplication {
                 secure: false,
                 ws: true
             });
-            this.proxySetup();
 
         } catch (e) {
             console.error('Web Server Application startup failed: ' + e.message);
@@ -50,8 +51,9 @@ export class WebServerApplication {
         }
     }
 
-    private proxySetup(): void {
+    public proxySetup(server: https.Server | http.Server): void {
         try {
+            
             // Proxy API calls.
             this._express.all('/api/*', (req, res) => {
                 //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
@@ -60,13 +62,19 @@ export class WebServerApplication {
             });
 
             // Proxy shocket.io calls.
-            this._express.all('/socket.io/*', (req, res) => {
-                //console.log(`Proxing request: ${req.url}`);
-                this._proxy.web(req, res);
+            // proxy HTTP GET / POST
+            this._express.get('/socket.io/*', (req, res) => {
+                //console.log("Proxying GET request", req.url);
+                this._proxy.web(req, res, { target: this._config.get('web_server').api_url});
+            });
+            this._express.post('/socket.io/*', (req, res) => {
+                //console.log("Proxying POST request", req.url);
+                this._proxy.web(req, res, { target: this._config.get('web_server').api_url});
             });
 
             // Proxy websockets
-            this._express.on('upgrade', (req, socket, head) => {
+            // ATENTION: Very important, the event must be over the server object, NOT over the express handler function.
+            server.on('upgrade', (req, socket, head) => {
                 //console.log(`Proxying upgrade request: ${req.url}`);
                 this._proxy.ws(req, socket, head);
             });
