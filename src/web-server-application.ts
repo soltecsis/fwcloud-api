@@ -29,7 +29,6 @@ import http from 'http';
 
 export class WebServerApplication {
     private _express: any;
-    public _server: https.Server | http.Server;
     private _config: any;
     private _proxy: any;
 
