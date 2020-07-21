@@ -2,11 +2,15 @@ import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { RepositoryService } from "../../../../src/database/repository.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Repository } from "typeorm";
+import { Repository, getRepository } from "typeorm";
 import { FSHelper } from "../../../../src/utils/fs-helper";
 import * as fs from "fs";
 import * as path from "path";
 import sinon from "sinon";
+import StringHelper from "../../../../src/utils/string.helper";
+import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
+import { Tree } from "../../../../src/models/tree/Tree";
+import db from "../../../../src/database/database-manager";
 
 
 let app: AbstractApplication;
@@ -59,6 +63,17 @@ describe(describeName('FwCloud Unit Tests'), () => {
             await fwCloudRepository.remove(fwCloud);
 
             expect(spy.calledOnce).to.be.true;
+        });
+    });
+
+    describe('create event', () => {
+        it('should create the fwcloud data directories', async () => {
+            const fwCloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+                name: StringHelper.randomize(10)
+            }));
+
+            expect(fs.existsSync(fwCloud.getPolicyDirectoryPath())).to.be.true;
+            expect(fs.existsSync(fwCloud.getPkiDirectoryPath())).to.be.true;
         });
     });
 });

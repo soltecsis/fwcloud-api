@@ -2,6 +2,7 @@ import { Service } from "../../fonaments/services/service";
 import { getRepository, DeepPartial } from "typeorm";
 import { FwCloud } from "./FwCloud";
 import { User } from "../user/User";
+import { Tree } from "../tree/Tree";
 
 export class FwCloudService extends Service {
     
@@ -11,7 +12,9 @@ export class FwCloudService extends Service {
     public async store(data: DeepPartial<FwCloud>): Promise<FwCloud> {
         let fwCloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create(data));
 
+        // Data directories are created by typeorm listener
         await this.grantAdminAccess(fwCloud);
+        await Tree.createAllTreeCloud(fwCloud);
 
         return fwCloud;
     }

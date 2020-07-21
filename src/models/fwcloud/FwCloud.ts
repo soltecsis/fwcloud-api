@@ -21,10 +21,10 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne, BeforeRemove } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne, BeforeRemove, AfterInsert } from "typeorm";
 import db from '../../database/database-manager';
 import * as path from "path";
-
+import * as fs from "fs-extra";
 import { User } from '../../models/user/User';
 import { app, logger } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
@@ -35,6 +35,7 @@ import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "../ipobj/IPObj";
 import { Mark } from "../ipobj/Mark";
 import { FSHelper } from "../../utils/fs-helper";
+
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
@@ -111,6 +112,17 @@ export class FwCloud extends Model {
         FSHelper.rmDirectorySync(this.getPolicyDirectoryPath());
     }
 
+    @AfterInsert()
+    async createDataDirectories() {
+        fs.mkdirpSync(this.getPkiDirectoryPath());
+        fs.mkdirpSync(this.getPolicyDirectoryPath());
+    }
+
+    /**
+     * Returns the fwcloud PKI data directory
+     * 
+     * @return {string}
+     */
     public getPkiDirectoryPath(): string {
         if (this.id) {
             return path.join(app().config.get('pki').data_dir, this.id.toString());
@@ -119,6 +131,11 @@ export class FwCloud extends Model {
         return null;
     }
 
+    /**
+     * Returns the fwcloud Policy data directory
+     * 
+     * @return {string}
+     */
     public getPolicyDirectoryPath(): string {
         if (this.id) {
             return path.join(app().config.get('policy').data_dir, this.id.toString());
@@ -127,6 +144,11 @@ export class FwCloud extends Model {
         return null;
     }
 
+    /**
+     * Returns the fwcloud snapshot directory
+     * 
+     * @return {string}
+     */
     public getSnapshotDirectoryPath(): string {
         if (this.id) {
             return path.join(app().config.get('snapshot').data_dir, this.id.toString());

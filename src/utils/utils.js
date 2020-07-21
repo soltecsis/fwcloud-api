@@ -178,29 +178,6 @@ utilsModel.createBackupDataDir = backupId => {
   });
 };
 
-utilsModel.createFwcloudDataDir = fwcloud => {
-	return new Promise(async (resolve, reject) => {
-		var path='';
-		try {
-			path = config.get('policy').data_dir;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
-			path += "/" + fwcloud;
-			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
-			fs.mkdirSync(path);
-
-			path = config.get('pki').data_dir;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
-			path += "/" + fwcloud;
-			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
-			fs.mkdirSync(path);
-
-			resolve();
-		} catch(error) { reject(error) }
-  });
-};
-
 utilsModel.removeFwcloudDataDir = fwcloud => {
 	return new Promise(async (resolve, reject) => {
 		try {

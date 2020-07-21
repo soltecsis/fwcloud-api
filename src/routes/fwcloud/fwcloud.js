@@ -74,49 +74,6 @@ const fwcError = require('../../utils/error_table');
 
 
 /**
- * @api {POST} /fwcloud New fwcloud
- * @apiName NewFwcloud
- *  * @apiGroup FWCLOUD
- * 
- * @apiDescription Create a new FWCloud.<br>
- * One FWCloud is an agrupation of logical IP objects.
- *
- * @apiParam {String} name FWCloud's name.
- * @apiParam {String} image Image vinculated to this FWCloud..
- * @apiParam {String} comment FWCloud's comment. 
- * 
- * @apiParamExample {json} Request-Example:
- * {
- *   "name": "FWCloud-01",
- *   "image": "",
- *   "comment": "My first FWCloud."
- * }
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "insertId": 1
- * } 
- */
-router.post('/', async(req, res) => {
-	try {
-		// Only users with the administrator role can create a new fwcloud.
-		if (!await User.isLoggedUserAdmin(req))
-			throw fwcError.NOT_ADMIN_USER;
-
-		req.body.fwcloud = await FwCloud.insertFwcloud(req);
-		await Tree.createAllTreeCloud(req);
-		await utilsModel.createFwcloudDataDir(req.body.fwcloud);
-
-		res.status(200).json({ "insertId": req.body.fwcloud });
-	} catch (error) {
-		logger().error('Error creating fwcloud: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
-
-
-/**
  * @api {PUT} /fwcloud Update fwcloud
  * @apiName UpdateFwcloud
  *  * @apiGroup FWCLOUD

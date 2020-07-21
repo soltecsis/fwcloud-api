@@ -27,12 +27,13 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { createUser } from "../../../utils/utils";
+import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
 
 
 let app: AbstractApplication;
 let service: FwCloudService;
 
-describe.only(describeName('FwCloudService Unit tests'), async() => {
+describe(describeName('FwCloudService Unit tests'), async() => {
 
     beforeEach(async() => {
         app = testSuite.app;
@@ -48,7 +49,9 @@ describe.only(describeName('FwCloudService Unit tests'), async() => {
 
     describe('store()', () => {
         it('should create a fwcloud', async () => {
-            const fwCloud: FwCloud = await service.store(StringHelper.randomize(10));
+            const fwCloud: FwCloud = await service.store({
+                name: StringHelper.randomize(10)
+            });
 
             expect(await getRepository(FwCloud).findOne(fwCloud.id)).not.to.be.null;
         });
@@ -57,12 +60,26 @@ describe.only(describeName('FwCloudService Unit tests'), async() => {
             const admin = await createUser({ role: 1 });
             const regular = await createUser({ role: 0 });
 
-            let fwCloud: FwCloud = await service.store(StringHelper.randomize(10));
+            let fwCloud: FwCloud = await service.store({
+                name: StringHelper.randomize(10)
+            });
             
             fwCloud = await getRepository(FwCloud).findOne(fwCloud.id, {relations: ['users']});
 
             expect(fwCloud.users.filter(user => user.id === regular.id)).to.have.length(0);
             expect(fwCloud.users.filter(user => user.id === admin.id)).to.have.length(1);
+        });
+
+        it('should create the fwcloud tree node', async () => {
+            const fwCloud: FwCloud = await service.store({
+                name: StringHelper.randomize(10)
+            });
+
+            expect(await getRepository(FwcTree).find({
+                where: {
+                    fwCloudId: fwCloud.id
+                }
+            })).not.to.have.length(0);
         });
     });
 });
