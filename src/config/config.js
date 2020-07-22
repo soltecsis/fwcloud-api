@@ -294,12 +294,6 @@ const config = convict({
       format: String,
       default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
-    },
-    debug: {
-      doc: 'Log the queries if debug mode is enabled',
-      format: Boolean,
-      default: true,
-      env: 'TYPEORM_DEBUG'
     }
   },
 
@@ -445,6 +439,18 @@ const config = convict({
       format: ['error', 'warn', 'info', 'verbose', 'debug', 'silly'],
       default: 'info',
       env: 'LOGS_LEVEL'
+    },
+    queries: {
+      doc: 'Log queries',
+      format: Boolean,
+      default: false,
+      env: 'LOG_QUERIES'
+    },
+    stdout: {
+      doc: 'Broadcast logs to stdout',
+      format: Boolean,
+      default: false,
+      env: 'LOG_STDOUT'
     },
     directory: {
       doc: 'Directory where the logs are stored',

@@ -44,7 +44,7 @@ export class LogService extends Service {
                 transports: this.getHttpTransports()
             }),
             query: winston.createLogger({
-                level: this._config.level,
+                level: 'info',
                 levels: winston.config.npm.levels,
                 transports: this.getQueryTransports()
             })
@@ -73,7 +73,7 @@ export class LogService extends Service {
             tailable: true
         }));
 
-        if (this._app.config.get('env') === 'dev') {
+        if (this._app.config.get('log.stdout')) {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp({
@@ -103,7 +103,7 @@ export class LogService extends Service {
             tailable: true
         }));
 
-        if (this._app.config.get('env') === 'dev') {
+        if (this._app.config.get('log.stdout')) {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp({

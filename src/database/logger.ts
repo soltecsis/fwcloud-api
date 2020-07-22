@@ -24,7 +24,7 @@ export class DatabaseLogger extends FileLogger {
         strings = Array.isArray(strings) ? strings : [strings];
         
         for(let i = 0; i < strings.length; i++) {
-            logger('query').debug(strings[i]);
+            logger('query').info(strings[i]);
         }
     }
 
