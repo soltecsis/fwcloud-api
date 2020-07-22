@@ -143,7 +143,7 @@ export abstract class AbstractApplication {
 
     // If stdout log mode is not enabled, log messages are not shown in terminal. As a result, user doesn't know when application has started.
     // So, we print out the message directly 
-    if (this._config.get('log.stdout') === false) {
+    if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
       console.log(`------- Starting application -------`);
       console.log(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
     }
