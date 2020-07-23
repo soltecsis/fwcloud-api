@@ -135,7 +135,7 @@ export class User extends Model {
     }
 
     //Add new user
-    public static insert(req) {
+    public static _insert(req) {
         return new Promise(async (resolve, reject) => {
             //New object with customer data
             var salt = bcrypt.genSaltSync(10);
@@ -224,7 +224,7 @@ export class User extends Model {
     }
 
 
-    public static update(req) {
+    public static _update(req) {
         return new Promise(async (resolve, reject) => {
             let crypt_pass = '';
             if (req.body.password) {
@@ -277,7 +277,7 @@ export class User extends Model {
     }
 
 
-    public static delete(req) {
+    public static _delete(req) {
         return new Promise(async (resolve, reject) => {
             req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error, result) => {
                 if (error) return reject(error);

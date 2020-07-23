@@ -31,6 +31,7 @@ import { isLoggedIn } from "../gates/isLoggedIn";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
+import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
 
 export class Routes extends RouteCollection {
 
@@ -61,9 +62,11 @@ export class Routes extends RouteCollection {
             });
 
             router.prefix('/fwclouds', (router: RouterParser) => {
+                router.post('/', FwCloudController, 'store').name('fwclouds.store');
                 router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
 
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
+                    router.put('/', FwCloudController, 'update').name('fwclouds.update');
 
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {

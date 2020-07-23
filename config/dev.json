@@ -9,5 +9,10 @@
   "session": {
     "force_HTTPS" : false    
   },
-  "confirmation_token": false
+  "confirmation_token": false,
+  
+  "log": {
+    "stdout": true,
+    "queries": false
+  }
 }

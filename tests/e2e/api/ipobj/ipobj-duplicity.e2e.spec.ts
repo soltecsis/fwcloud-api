@@ -69,7 +69,6 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 
 		fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
 		//fwcTree = await getRepository(Tree).find({fwcloud:fwCloud.id});
-		console.log(fwCloud);
 	});
 
 	beforeEach(async() => {
