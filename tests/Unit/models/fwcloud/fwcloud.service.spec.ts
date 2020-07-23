@@ -82,4 +82,42 @@ describe(describeName('FwCloudService Unit tests'), async() => {
             })).not.to.have.length(0);
         });
     });
+
+    describe('update()', () => {
+        let fwCloud: FwCloud;
+
+        beforeEach(async () => {
+            fwCloud = await (getRepository(FwCloud).create({
+                name: StringHelper.randomize(10)
+            })).save();
+        });
+
+        it('should update a fwcloud', async () => {
+            const newName: string = StringHelper.randomize(10);
+            const newComment: string = StringHelper.randomize(10);
+
+            await service.update(fwCloud, {
+                name: newName,
+                comment: newComment
+            });
+
+            fwCloud = await FwCloud.findOne(fwCloud.id);
+
+            expect(fwCloud.name).to.be.eq(newName);
+            expect(fwCloud.comment).to.be.eq(newComment);
+        });
+
+        it('should return the updated fwcloud', async () => {
+            const newName: string = StringHelper.randomize(10);
+            const newComment: string = StringHelper.randomize(10);
+
+            fwCloud = await service.update(fwCloud, {
+                name: newName,
+                comment: newComment
+            });
+
+            expect(fwCloud.name).to.be.eq(newName);
+            expect(fwCloud.comment).to.be.eq(newComment);
+        });
+    });
 });

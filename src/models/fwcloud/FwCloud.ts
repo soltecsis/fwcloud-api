@@ -367,44 +367,6 @@ export class FwCloud extends Model {
     }
 
     /**
-     * UPDATE Fwcloud
-     *  
-     * @method updateFwcloud
-     * 
-     * @param iduser {Integer}  User identifier
-     * @param fwcloudData {Fwcloud Object}  Fwcloud Object data
-     *       @param fwcloudData.id {NULL} 
-     *       @param fwcloudData.name {string} Fwcloud Name
-     * @param {Function} callback    Function callback response
-     * 
-     *       callback(error, Rows)
-     * 
-     * @return {CALLBACK RESPONSE}
-     * 
-     * @example
-     * #### RESPONSE OK:
-     *    
-     *       callback(null, {"result": true});
-     *       
-     * #### RESPONSE ERROR:
-     *    
-     *       callback(error, null);
-     *       
-     */
-    public static updateFwcloud(req) {
-        return new Promise((resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
-                image=${req.dbCon.escape(req.body.image)},
-                comment=${req.dbCon.escape(req.body.comment)}
-                WHERE id=${req.body.fwcloud}`;
-            req.dbCon.query(sql, (error, result) => {
-                if (error) return reject(error);
-                resolve();
-            });
-        });
-    }
-
-    /**
      * UPDATE Fwcloud lock status
      *  
      * @method updateFwcloudLock

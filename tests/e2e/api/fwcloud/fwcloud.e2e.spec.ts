@@ -121,51 +121,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 			});
 		});
 
-
-		describe('FwCloudManagement@update',() => {
-			it('guest user should not modify a fwcloud', async () => {
-				fwcDataUpdate.fwcloud = fwCloud.id;
-				return await request(app.express)
-					.put('/fwcloud')
-					.send(fwcDataUpdate)
-					.expect(401);
-			});	
-
-			it('regular user should not modify a fwcloud', async () => {
-				fwcDataUpdate.fwcloud = fwCloud.id;
-				return await request(app.express)
-					.put('/fwcloud')
-					.send(fwcDataUpdate)
-					.set('Cookie', [attachSession(regularUserSessionId)])
-					.expect(400, {fwcErr: 7000, msg: "FWCloud access not allowed"});
-			});	
-	
-			it('admin user shoult update fwcloud data', async () => {
-				fwcDataUpdate.fwcloud = fwCloud.id;
-				return await request(app.express)
-					.put('/fwcloud')
-					.send(fwcDataUpdate)
-					.set('Cookie', [attachSession(adminUserSessionId)])
-					.expect(204);
-			});
-
-			it.skip('verify updated fwcloud data', async () => {
-				return await request(app.express)
-					.put('/fwcloud/get')
-					.send({ fwcloud: fwCloud.id })
-					.set('Cookie', [attachSession(adminUserSessionId)])
-					.expect(200)
-					.then(response => {
-						//console.log(response.body);
-						expect(response.body).to.be.jsonSchema(fwcloudDataSchema); 
-						expect(response.body).to.have.property("name").which.is.equal(fwcDataUpdate.name);
-						expect(response.body).to.have.property("image").which.is.equal(fwcDataUpdate.image);
-						expect(response.body).to.have.property("comment").which.is.equal(fwcDataUpdate.comment);
-					});
-			});
-		});
-
-
 		describe('FwCloudManagement@delete',() => {
 			it('guest user should not delete a fwcloud', async () => {
 				fwcDataUpdate.fwcloud = fwCloud.id;

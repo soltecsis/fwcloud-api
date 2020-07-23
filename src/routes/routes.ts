@@ -66,6 +66,7 @@ export class Routes extends RouteCollection {
                 router.post('/import', FwCloudExportController, 'import').name('fwclouds.exports.import');
 
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
+                    router.put('/', FwCloudController, 'update').name('fwclouds.update');
 
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {

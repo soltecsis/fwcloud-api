@@ -32,4 +32,24 @@ export class FwCloudController extends Controller {
 
         return ResponseBuilder.buildResponse().status(201).body(fwCloud);
     }
+
+    @Validate({
+        name: [new Required(), new String()],
+        image: [new String()],
+        comment: [new String()] 
+    })
+    public async update(request: Request): Promise<ResponseBuilder> {
+
+        (await FwCloudPolicy.update(request.session.user)).authorize();
+        
+        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+
+        fwCloud = await this._fwCloudService.update(fwCloud, {
+            name: request.body.name,
+            image: request.body.image,
+            comment: request.body.comment
+        });
+
+        return ResponseBuilder.buildResponse().status(200).body(fwCloud);
+    }
 }

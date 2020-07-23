@@ -1,5 +1,5 @@
 import { Service } from "../../fonaments/services/service";
-import { getRepository, DeepPartial } from "typeorm";
+import { DeepPartial } from "typeorm";
 import { FwCloud } from "./FwCloud";
 import { User } from "../user/User";
 import { Tree } from "../tree/Tree";
@@ -10,11 +10,19 @@ export class FwCloudService extends Service {
      * Creates and store a new FwCloud
      */
     public async store(data: DeepPartial<FwCloud>): Promise<FwCloud> {
-        let fwCloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create(data));
-
+        let fwCloud: FwCloud = FwCloud.create(data);
+        await fwCloud.save();
+        
         // Data directories are created by typeorm listener
         await this.grantAdminAccess(fwCloud);
         await Tree.createAllTreeCloud(fwCloud);
+
+        return FwCloud.findOne(fwCloud.id);
+    }
+
+    public async update(fwCloud: FwCloud, data: DeepPartial<FwCloud>): Promise<FwCloud> {
+        fwCloud = Object.assign(fwCloud, data);
+        await fwCloud.save();
 
         return fwCloud;
     }
@@ -25,9 +33,9 @@ export class FwCloudService extends Service {
      * @param fwCloud FwCloud resource
      */
     protected async grantAdminAccess(fwCloud: FwCloud): Promise<FwCloud> {
-        const users: Array<User> = await getRepository(User).find({where: {role: 1}});
+        const users: Array<User> = await User.find({where: {role: 1}});
 
         fwCloud.users = users;
-        return await getRepository(FwCloud).save(fwCloud);
+        return await fwCloud.save();
     }
 }

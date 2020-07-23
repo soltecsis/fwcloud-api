@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DeepPartial, getMetadataArgsStorage, Column } from "typeorm";
+import { DeepPartial, getMetadataArgsStorage, BaseEntity } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import ObjectHelpers from "../utils/object-helpers";
@@ -40,7 +40,7 @@ const defaultToJSONOptions: ToJSONOptions = {
     removeNullFields: false
 }
 
-export default abstract class Model implements IModel {
+export default abstract class Model extends BaseEntity implements IModel {
     public abstract getTableName(): string;
 
     public static methodExists(method: string): boolean {
@@ -84,7 +84,13 @@ export default abstract class Model implements IModel {
         for(let i = 0; i < propertyReferences.length; i++) {
             const propertyName: string = propertyReferences[i].propertyName;
             if (this.hasOwnProperty(propertyName) && this[propertyName] !== null) {
-                result[propertyName] = this[propertyName];
+                let value: any = this[propertyName];
+                
+                if (value instanceof Date) {
+                    value = (value as Date).toISOString();
+                }
+                
+                result[propertyName] = value;
                 continue;
             }
 

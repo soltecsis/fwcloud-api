@@ -81,7 +81,7 @@ router.post('', async (req, res) => {
 		if (await Customer.existsName(req.dbCon,req.body.name))
 			throw fwcError.ALREADY_EXISTS_NAME;
 		
-		await Customer.insert(req);
+		await Customer._insert(req);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error creating a customer: ' + JSON.stringify(error));
@@ -142,7 +142,7 @@ router.put('', async (req, res) => {
 		if (customer_id_new_name && customer_id_new_name!=req.body.customer)
 			throw fwcError.ALREADY_EXISTS_NAME;
 
-		await Customer.update(req);
+		await Customer._update(req);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error updating a customer: ' + JSON.stringify(error));
@@ -261,7 +261,7 @@ async (req, res) => {
 		if (!(await Customer.existsId(req.dbCon,req.body.customer)))
 			throw fwcError.NOT_FOUND;
 
-		await Customer.delete(req);
+		await Customer._delete(req);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error removing a customer: ' + JSON.stringify(error));

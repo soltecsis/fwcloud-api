@@ -72,51 +72,6 @@ import { User } from '../../models/user/User'
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
-
-/**
- * @api {PUT} /fwcloud Update fwcloud
- * @apiName UpdateFwcloud
- *  * @apiGroup FWCLOUD
- * 
- * @apiDescription Update FWCloud information.
- *
- * @apiParam {Number} fwcloud Id of the FWCloud that we want modify.
- * @apiParam {String} name FWCloud's name.
- * @apiParam {String} image Image vinculated to this FWCloud..
- * @apiParam {String} comment FWCloud's comment. 
- * 
- * @apiParamExample {json} Request-Example:
- * {
- *   "fwcloud": 1,
- *   "name": "FWCloud-Updated",
- *   "image": "",
- *   "comment": "Comment for the updated fwcloud."
- * }
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 204 No Content
- * 
- * @apiErrorExample {json} Error-Response:
- * HTTP/1.1 400 Bad Request
- * {
- *    "fwcErr": 7000,
- *    "msg": "FWCloud access not allowed"
- * }
- */
-router.put('/', async(req, res) => {
-	try {
-		// Only users with the administrator role can update a fwcloud.
-		if (!await User.isLoggedUserAdmin(req))
-			throw fwcError.NOT_ADMIN_USER;
-
-		await FwCloud.updateFwcloud(req);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error updating fwcloud: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
-});
-
 /**
  * @api {GET} /fwcloud/get Get allowed fwclouds
  * @apiName GetAllowedFwclouds

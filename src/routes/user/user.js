@@ -195,7 +195,7 @@ router.post('', async (req, res) => {
 		if (await User.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
 			throw fwcError.ALREADY_EXISTS;
 
-		const new_user_id = await User.insert(req);
+		const new_user_id = await User._insert(req);
 
 		// If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
 		if (req.body.role===1)
@@ -279,7 +279,7 @@ router.put('', async (req, res) => {
 		if (req.body.user===req.session.user_id && req.body.role!==1)
 			throw fwcError.other('It is not allowed to change the role of the logged user');
 
-		await User.update(req);
+		await User._update(req);
 
 		// If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
 		if (req.body.role===1)
@@ -430,7 +430,7 @@ async (req, res) => {
 		if (req.body.user===req.session.user_id)
 			throw fwcError.other('It is not allowed to delete the logged user');
 
-		await User.delete(req);
+		await User._delete(req);
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error removing user: ' + JSON.stringify(error));
