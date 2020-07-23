@@ -67,7 +67,7 @@ export class Customer extends Model {
     }
 
     //Add new customer
-    public static insert(req) {
+    public static _insert(req) {
         return new Promise(async (resolve, reject) => {
             //New object with customer data
             var customerData = {
@@ -110,7 +110,7 @@ export class Customer extends Model {
 
 
     //Update customer
-    public static update = req => {
+    public static _update = req => {
         return new Promise(async (resolve, reject) => {
             let sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
@@ -138,7 +138,7 @@ export class Customer extends Model {
     }
 
 
-    public static delete(req) {
+    public static _delete(req) {
         return new Promise(async (resolve, reject) => {
             req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error, result) => {
                 if (error) return reject(error);

@@ -26,6 +26,7 @@ import Model from "../Model";
 import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
+import { FwCloud } from '../fwcloud/FwCloud';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 var _Tree = require('easy-tree');
@@ -400,20 +401,22 @@ export class Tree extends Model {
         });
     }
 
-    public static createAllTreeCloud(req) {
+    public static createAllTreeCloud(fwCloud: FwCloud) {
+        const dbCon: Query = db.getQuery();
+
         return new Promise(async (resolve, reject) => {
             try {
                 // FIREWALLS
-                await this.newNode(req.dbCon, req.body.fwcloud, 'FIREWALLS', null, 'FDF', null, null);
+                await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
 
                 // OBJECTS
-                await this.createObjectsTree(req.dbCon, req.body.fwcloud);
+                await this.createObjectsTree(dbCon, fwCloud.id);
 
                 // SERVICES
-                await this.createServicesTree(req.dbCon, req.body.fwcloud);
+                await this.createServicesTree(dbCon, fwCloud.id);
 
                 // Creating root node for CA (Certification Authorities).
-                await this.newNode(req.dbCon, req.body.fwcloud, 'CA', null, 'FCA', null, null);
+                await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
                 resolve();
             } catch (error) { return reject(error) }
         });
