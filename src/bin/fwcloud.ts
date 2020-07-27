@@ -41,12 +41,16 @@ function startServer(app: Application | WebServerApplication, type: 'api_server'
 }
 
 async function start() {
+    let config = require('../config/config');
+
     const apiApp = await loadApiApplication();
     const api_server: Server = startServer(apiApp,'api_server');
 
-    const webApp = await loadWebApplication();
-    const web_server: Server = startServer(webApp,'web_server');
-    webApp.proxySetup(web_server.server);
+    if (config.get('web_server').enabled) {
+        const webApp = await loadWebApplication();
+        const web_server: Server = startServer(webApp,'web_server');
+        webApp.proxySetup(web_server.server);
+    }
 }
 
 
