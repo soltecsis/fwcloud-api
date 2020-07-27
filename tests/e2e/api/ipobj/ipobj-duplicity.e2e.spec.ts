@@ -14,7 +14,7 @@ import fwc_tree_node = require("../../../../src/models/tree/node");
 import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
 import db from "../../../../src/database/database-manager";
 
-describe.only(describeName('Ipobj duplicity E2E Tests'), () => {
+describe(describeName('Ipobj duplicity E2E Tests'), () => {
 	let app: Application;
 	let fwCloud: FwCloud;
 	let fwcTree: Tree;
