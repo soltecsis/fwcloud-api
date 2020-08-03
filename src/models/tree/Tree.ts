@@ -81,6 +81,25 @@ export class Tree extends Model {
         });
     }
 
+    //Get fwcloud root node bye type.
+    public static getNodeByNameAndType(fwcloud, name, type) {
+        const dbCon: Query = db.getQuery();
+
+        return new Promise((resolve, reject) => {
+            var sql = `SELECT T.*, P.order_mode FROM ${tableName} T
+                inner join fwcloud C on C.id=T.fwcloud
+                LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
+                WHERE T.fwcloud=${fwcloud} AND T.name=${dbCon.escape(name)} AND T.node_type=${dbCon.escape(type)}`;
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                if (rows.lenght === 0) return reject(fwcError.other(`Node not found`));
+                if (rows.lenght > 1) return reject(fwcError.other(`Found more than one nodes`));
+                resolve(rows[0]);
+            });
+        });
+    }
+    
     public static hasChilds(req, node_id) {
         return new Promise((resolve, reject) => {
             req.dbCon.query(`SELECT count(*) AS n FROM ${tableName} WHERE id_parent=${node_id}`, (error, result) => {
