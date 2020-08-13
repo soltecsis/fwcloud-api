@@ -27,45 +27,71 @@ import { IPObjType } from "../../../../models/ipobj/IPObjType";
 import { RepositoryService } from "../../../../database/repository.service";
 import { app } from "../../../../fonaments/abstract-application";
 import { Firewall } from "../../../../models/firewall/Firewall";
+import { Ca } from "../../../../models/vpn/pki/Ca";
+import { Cluster } from "../../../../models/firewall/Cluster";
+import { Crt } from "../../../../models/vpn/pki/Crt";
+import Model from "../../../../models/Model";
+import { Interface } from "../../../../models/interface/Interface";
+import { OpenVPN } from "../../../../models/vpn/openvpn/OpenVPN";
+import { IPObj } from "../../../../models/ipobj/IPObj";
+import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
+import { Mark } from "../../../../models/ipobj/Mark";
+import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
+import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
 
 export class FwcTreeTerraformer extends TableTerraformer {
     public ipObjTypes: Array<IPObjType>;
 
-    protected _typeToTableNameMapping: {[type: string]: string} = {
-        'FIREWALL' : 'firewall',
-        
-        'CLUSTER' : 'cluster',
-        
-        'CA': 'ca',
-        
-        'IP': 'ipobj',
-        'TCP': 'ipobj',
-        'ICMP': 'ipobj',
-        'UDP': 'ipobj',
-        'ADDRESS': 'ipobj',
-        'ADDRESS RANGE': 'ipobj',
-        'NETWORK': 'ipobj',
-        'HOST': 'ipobj',
-        'DNS': 'ipobj',
-
-        'INTERFACE FIREWALL': 'interface',
-        'INTERFACE HOST': 'interface',
-
-        'GROUP OBJECTS': 'ipobj_g',
-        'GROUP SERVICES': 'ipobj_g',
-
-        'IPTABLES MARKS': 'mark',
-
-        'CRT_CLIENT': 'crt',
-        'CRT_SERVER': 'crt',
-
-        'OPENVPN CONFIG': 'openvpn',
-        'OPENVPN CLI': 'openvpn',
-        'OPENVPN SRV': 'openvpn',
-
-        'CRT PREFIX FOLDER': 'ca_prefix',
-
-        'OPENVPN SERVER PREFIX': 'openvpn_prefix'
+    protected _typeToTableNameMapping: {[type: string]: typeof Model} = {
+        'CA': Ca,
+        'CL': Cluster,
+        'CRT': Crt,
+        'FCA': null,
+        'FCF': Firewall,
+        'FCR': null,
+        'FD': null,
+        'FDC': null,
+        'FDF': null,
+        'FDI': Firewall,
+        'FDO': null,
+        'FDS': null,
+        'FDT': null,
+        'FP': Firewall,
+        'FP6': Firewall,
+        'FW': Firewall,
+        'IFF': Interface,
+        'IFH': Interface,
+        'MRK': Mark,
+        'ND6': Firewall,
+        'NS6': Firewall,
+        'NT': null,
+        'NTD': Firewall,
+        'NTS': Firewall,
+        'OCL': OpenVPN,
+        'OIA': IPObj,
+        'OIG': IPObjGroup,
+        'OIH': IPObj,
+        'OIN': IPObj,
+        'OIR': IPObj,
+        'ONS': IPObj,
+        'OPN': Firewall,
+        'OSR': OpenVPN,
+        'PF': Firewall,
+        'PF6': Firewall,
+        'PI': Firewall,
+        'PI6': Firewall,
+        'PO': Firewall,
+        'PO6': Firewall,
+        'PRE': CaPrefix,
+        'PRO': OpenVPNPrefix,
+        'RR': null,
+        'SOC': null,
+        'SOG': IPObjGroup,
+        'SOI': IPObj,
+        'SOM': IPObj,
+        'SOT': IPObj,
+        'SOU': IPObj,
+        'STD': null
     }
 
     public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<FwcTreeTerraformer> {
@@ -73,10 +99,6 @@ export class FwcTreeTerraformer extends TableTerraformer {
         const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper);
         terraformer.ipObjTypes = await repositoryService.for(IPObjType).find();
         return terraformer;
-    }
-
-    protected getIPObjTypeTable(ipObjType: IPObjType): string {
-        return this._typeToTableNameMapping.hasOwnProperty(ipObjType.type) ? this._typeToTableNameMapping[ipObjType.type] : null;
     }
 
     protected getCustomHandlers(): TerraformHandlerCollection {
@@ -88,25 +110,13 @@ export class FwcTreeTerraformer extends TableTerraformer {
          * it calls the mapper in order to get the terraformed id
          */
         result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
-            if (row.hasOwnProperty('ipObjTypeId') && row.ipObjTypeId !== null) {
-
-                const matches: Array<IPObjType> = this.ipObjTypes.filter((item: IPObjType) => {
-                    return item.id === row['ipObjTypeId'];
-                });
-
-                if (matches.length === 1) {
-                    const tableType: string = this.getIPObjTypeTable(matches[0]);
-                    if (tableType) {
-                        return mapper.getMappedId(tableType, IPObjType.getPrimaryKeys()[0].propertyName, value);
-                    }
-
-                    throw new Error('Mapping not available for type ' + matches[0]);
-                }
-
-                return value;
+            if (row.hasOwnProperty('node_type') && 
+                row.node_type !== null &&
+                this._typeToTableNameMapping.hasOwnProperty(row.node_type) &&
+                this._typeToTableNameMapping[row.node_type] !== null) {
+                    const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
+                    return mapper.getMappedId(referencedEntity._getTableName(), referencedEntity.getPrimaryKeys()[0].propertyName, value)
             }
-
-            return mapper.getMappedId(Firewall._getTableName(), Firewall.getPrimaryKeys()[0].propertyName, value);
         }
 
         return result;
