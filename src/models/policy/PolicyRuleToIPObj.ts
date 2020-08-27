@@ -373,7 +373,7 @@ export class PolicyRuleToIPObj extends Model {
     public static insertPolicy_r__ipobj(policy_r__ipobjData) {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
-            this.checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, data) => {
+            this.checkIpobjPosition(policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, data) => {
                 if (error) return reject(error);
                 const allowed = data;
                 if (allowed) {
@@ -383,7 +383,7 @@ export class PolicyRuleToIPObj extends Model {
                         connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__ipobjData, async (error, result) => {
                             if (error) return reject(error);
                             if (result.affectedRows > 0) {
-                                await modelEventService.emit('create', PolicyRuleToIPObj, policy_r__ipobjData);
+                                //await modelEventService.emit('create', PolicyRuleToIPObj, policy_r__ipobjData);
                                 this.OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
                                 resolve({ "result": true, "allowed": 1 });
                             } else {
@@ -505,7 +505,7 @@ export class PolicyRuleToIPObj extends Model {
     public static updatePolicy_r__ipobj(rule, ipobj, ipobj_g, _interface, position, position_order, policy_r__ipobjData, callback) {
         //Check if IPOBJ TYPE is ALLOWED in this Position
         //checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
-        this.checkIpobjPosition(policy_r__ipobjData.rule, policy_r__ipobjData.ipobj, null, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, data) => {
+        this.checkIpobjPosition(policy_r__ipobjData.ipobj, null, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, data) => {
             if (error) {
                 callback(error, null);
             } else {
@@ -591,51 +591,31 @@ export class PolicyRuleToIPObj extends Model {
     };
     //Update policy_r__ipobj POSITION
     //When Update position we order New and Old POSITION
-    public static updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, _interface, position, position_order, new_rule, new_position, new_order, callback) {
-        //Check if IPOBJ TYPE is ALLOWED in this Position    
-        this.checkIpobjPosition(new_rule, ipobj, ipobj_g, _interface, new_position, (error, data) => {
-            if (error) {
-                callback(error, null);
-            } else {
-                const allowed = data;
-                if (allowed) {
-                    db.get((error, connection) => {
-                        if (error)
-                            callback(error, null);
-                        var sql = 'UPDATE ' + tableModel + ' SET ' +
-                            'rule = ' + connection.escape(new_rule) + ', ' +
-                            'position = ' + connection.escape(new_position) + ', ' +
-                            'position_order = ' + connection.escape(new_order) + ' ' +
-                            ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
-                            ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
-                            ' AND interface=' + connection.escape(_interface);
-                        logger().debug(sql);
-                        connection.query(sql, async (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            } else {
-                                if (result.affectedRows > 0) {
-                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                                        rule: rule,
-                                        ipobj: ipobj,
-                                        ipobj_g: ipobj_g,
-                                        interface: _interface
-                                    });
-                                    //Order New position
-                                    this.OrderList(new_order, new_rule, new_position, 999999, ipobj, ipobj_g, _interface);
-                                    //Order Old position
-                                    this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
-                                    callback(null, { "result": true });
-                                } else {
-                                    callback(null, { "result": false });
-                                }
-                            }
-                        });
-                    });
-                } else {
-                    callback(null, { "result": false, "allowed": 0 });
-                }
-            }
+    public static updatePolicy_r__ipobj_position(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, new_rule, new_position, new_order) {
+        return new Promise((resolve, reject) => {
+            //Check if IPOBJ TYPE is ALLOWED in this Position    
+            this.checkIpobjPosition(ipobj, ipobj_g, _interface, new_position, (error, data) => {
+                if (error) return reject(error);
+                if (!data) return reject(fwcError.NOT_ALLOWED);
+
+                var sql = `UPDATE ${tableModel} SET
+                    rule=${dbCon.escape(new_rule)}, position=${dbCon.escape(new_position)}, 
+                    position_order=${dbCon.escape(new_order)}
+                    WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
+                    AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}
+                    AND interface=${dbCon.escape(_interface)}`;
+                dbCon.query(sql, async (error, result) => {
+                    if (error) return reject(error);
+
+                    if (result.affectedRows > 0) {
+                        //Order New position
+                        this.OrderList(new_order, new_rule, new_position, 999999, ipobj, ipobj_g, _interface);
+                        //Order Old position
+                        this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
+                        resolve();
+                    } else reject(fwcError.NOT_FOUND);
+                });
+            });
         });
     };
 
@@ -670,12 +650,6 @@ export class PolicyRuleToIPObj extends Model {
                     if (error) {
                         reject(error);
                     }
-                    //TODO: Improve the criteria in order to fit the previous query
-                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                        rule: rule,
-                        position: position,
-                        position_order: Between(order1, order2)
-                    });
                     resolve(result);
                 });
             });
@@ -683,7 +657,7 @@ export class PolicyRuleToIPObj extends Model {
     }
 
 
-    private static checkIpobjPosition(rule, ipobj, ipobj_g, _interface, position, callback) {
+    private static checkIpobjPosition(ipobj, ipobj_g, _interface, position, callback) {
         db.get((error, connection) => {
             if (error) return callback(error, 0);
 

@@ -285,11 +285,6 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: rule,
-                                        interface: _interface,
-                                        position: old_position
-                                    })
                                     //Order New position
                                     this.OrderList(new_order, new_rule, new_position, 999999, _interface);
 
@@ -419,7 +414,6 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    //await modelEventService.emit('delete', PolicyRuleToInterface, models);
                                     this.OrderList(999999, rule, position, old_order, _interface);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {

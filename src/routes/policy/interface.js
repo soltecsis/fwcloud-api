@@ -82,7 +82,7 @@ async(req, res) => {
 	try {
 		// Invalidate compilation of the affected rules.
 		await PolicyCompilation.deletePolicy_c(rule);
-		await PolicyCompilation.deletePolicy_c(new_rule);
+		if (rule != new_rule) await PolicyCompilation.deletePolicy_c(new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		// Get positions content.

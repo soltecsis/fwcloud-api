@@ -98,9 +98,6 @@ async (req, res) => {
 	var new_position = req.body.new_position;
 	var new_order = req.body.new_order;
 
-	var content1 = 'O',
-		content2 = 'O';
-
 	var accessData = {
 		sessionID: req.sessionID,
 		iduser: req.session.user_id,
@@ -109,7 +106,7 @@ async (req, res) => {
 		rule: rule
 	};
 
-	logger().debug("POLICY_R-IPOBJS  MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
+	//logger().debug("POLICY_R-IPOBJS MOVING FROM POSITION " + position + "  TO POSITION: " + new_position);
 
 	var policy_r__ipobjData = {
 		rule: new_rule,
@@ -120,56 +117,25 @@ async (req, res) => {
 		position_order: new_order
 	};
 
+	let data;
+
 	try {
-		// Invalidate compilation of the affected rules.
+		// Invalidate compilation of the affected rules and change compilation/installation status.
 		await PolicyCompilation.deletePolicy_c(rule);
-		await PolicyCompilation.deletePolicy_c(new_rule);
+		if (rule != new_rule) await PolicyCompilation.deletePolicy_c(new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		if (await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData))
 			throw fwcError.ALREADY_EXISTS;
 
 		// Get positions content.
-		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
-		content1 = data.content1;
-		content2 = data.content2;	
-	} catch(error) {
-		logger().error('Error updating ipobj position: ' + JSON.stringify(error));
-		return res.status(400).json(error);
-	}
+		const psts = await PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 
-	if (content1 === content2) { //SAME POSITION
-		PolicyRuleToIPObj.updatePolicy_r__ipobj_position(rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
-			//If saved policy_r__ipobj saved ok, get data
-			if (data) {
-				if (data.result) {
-					PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-					if (accessData.rule != new_rule) {
-						accessData.rule = new_rule;
-						PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-					}
-
-					// If after the move we have empty rule positions, then remove them from the negate position list.
-					try {
-						await PolicyRule.allowEmptyRulePositions(req);
-					} catch(error) { return res.status(400).json(error) }
-
-					res.status(200).json(data);
-				} else if (!data.allowed) {
-					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
-					return res.status(400).json(fwcError.NOT_ALLOWED);
-				}
-				else {
-					logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_FOUND));
-					return res.status(400).json(fwcError.NOT_FOUND);
-				}
-			} else {
-				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
-				return res.status(400).json(error);
-			}
-		});
-	} else { //DIFFERENTS POSITIONS
-		if (content1 === 'I' && content2 === 'O') {
+		if (psts.content1 === psts.content2) { // MOVE BETWEEN POSITIONS WITH THE SAME CONTENT TYPE
+			await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(req.dbCon,rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order);
+			// If after the move we have empty rule positions, then remove them from the negate position list.
+			await PolicyRule.allowEmptyRulePositions(req);
+		} else if (psts.content1 === 'I' && psts.content2 === 'O') { // MOVE BETWEEN POSITIONS WITH DIFFERENT CONTENT TYPE
 			//Create New Position 'O'
 			//Create New objet with data policy_r__ipobj
 			var policy_r__ipobjData = {
@@ -181,13 +147,7 @@ async (req, res) => {
 				position_order: new_order
 			};
 
-			var data;
-			try {
-				data = await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-			} catch(error) {
-				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
-				return res.status(400).json(error);
-			}
+			data = await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
 
 			//If saved policy_r__ipobj Get data
 			if (data) {
@@ -195,11 +155,6 @@ async (req, res) => {
 					//Delete position 'I'
 					PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, position_order, async (error, data) => {
 						if (data && data.result) {
-							PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-							if (accessData.rule != new_rule) {
-								accessData.rule = new_rule;
-								PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
-							}
 
 							// If after the move we have empty rule positions, then remove them from the negate position list.
 							try {
@@ -209,7 +164,6 @@ async (req, res) => {
 								return res.status(400).json(error);
 							}
 
-							res.status(200).json(data);
 						} else {
 							logger().error('Error updating ipobj position: ' + JSON.stringify(error));
 							return res.status(400).json(error);
@@ -227,11 +181,22 @@ async (req, res) => {
 				logger().error('Error updating ipobj position: ' + JSON.stringify(error));
 				return res.status(400).json(error);
 			}
-		} else {
-			logger().error('Error updating ipobj position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
-			return res.status(400).json(fwcError.NOT_ALLOWED);
+		}	else { // NOT ALLOWED TO MOVE BETWEEN THIS POSITIONS BECAUSE THE CONTENT TYPE
+			throw fwcError.NOT_ALLOWED;
 		}
+
+	} catch(error) {
+		logger().error('Error updating ipobj position: ' + JSON.stringify(error));
+		return res.status(400).json(error);
 	}
+
+	PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+	if (accessData.rule != new_rule) {
+		accessData.rule = new_rule;
+		PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
+	}
+
+	res.status(200).json({});
 });
 
 /* Update ORDER policy_r__ipobj that exist */
