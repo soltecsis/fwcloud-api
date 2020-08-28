@@ -685,7 +685,6 @@ export class PolicyRule extends Model {
 
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', PolicyRule, policy_rData.id)
                 resolve();
             });
         });

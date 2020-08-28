@@ -31,6 +31,7 @@ import { RepositoryService } from '../../database/repository.service';
 import { PolicyRule } from './PolicyRule';
 import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
+const fwcError = require('../../utils/error_table');
 
 var asyncMod = require('async');
 
@@ -156,25 +157,19 @@ export class PolicyRuleToInterface extends Model {
     public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData) {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position
-            this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, (error, data) => {
+            this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, (error, allowed) => {
                 if (error) return reject(error);
-                const allowed = data;
-                if (allowed) {
-                    db.get((error, connection) => {
+                if (!allowed) return reject(fwcError.NOT_ALLOWED);
+                db.get((error, connection) => {
+                    if (error) return reject(error);
+                    connection.query('INSERT INTO ' + tableName + ' SET ?', policy_r__interfaceData, async (error, result) => {
                         if (error) return reject(error);
-                        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_r__interfaceData, async (error, result) => {
-                            if (error) return reject(error);
-                            if (result.affectedRows > 0) {
-                                await modelEventService.emit('create', PolicyRuleToInterface, policy_r__interfaceData);
-                                this.OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
-                                resolve({ "result": true, "allowed": "1" });
-                            } else
-                                resolve({ "result": false, "allowed": "1" });
-                        });
+                        if (result.affectedRows > 0) {
+                            this.OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
+                            resolve();
+                        } else reject(fwcError.NOT_FOUND);
                     });
-                } else {
-                    reject({ "result": false, "allowed": "0" });
-                }
+                });
             });
         });
     };
@@ -197,7 +192,6 @@ export class PolicyRuleToInterface extends Model {
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
-                            await modelEventService.emit('create', PolicyRuleToInterface, p_interfaceData);
                             this.OrderList(p_interfaceData.position_order, p_interfaceData.rule, p_interfaceData.position, 999999, p_interfaceData.interface);
 
                             resolve({ "result": true, "allowed": "1" });
@@ -246,10 +240,6 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: policy_r__interfaceData.rule,
-                                        interface: policy_r__interfaceData.interface
-                                    })
                                     this.OrderList(policy_r__interfaceData.position_order, rule, null, old_position_order, _interface);
                                     callback(null, { "result": true });
                                 } else {
@@ -264,51 +254,28 @@ export class PolicyRuleToInterface extends Model {
     };
 
     //Update policy_r__interface POSITION AND RULE
-    public static updatePolicy_r__interface_position(idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
+    public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
+        return new Promise((resolve, reject) => {
+            //Check if IPOBJ TYPE is ALLOWED in this Position
+            this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, (error, allowed) => {
+                if (error) return reject(error);
+                if (!allowed) return reject(fwcError.NOT_FOUND);
 
-        //Check if IPOBJ TYPE is ALLOWED in this Position
-        this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, (error, data) => {
-            if (error) {
-                callback(error, null);
-            } else {
-                const allowed = data;
-                if (allowed) {
-                    db.get((error, connection) => {
-                        if (error) return callback(error, null);
+                var sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
+                    rule=${dbCon.escape(new_rule)}, position_order=${dbCon.escape(new_order)}
+                    WHERE rule=${rule} AND interface=${_interface} AND position=${dbCon.escape(old_position)}`;
+                dbCon.query(sql, async (error, result) => {
+                    if (error) return reject(error);
+                    if (result.affectedRows > 0) {
+                        //Order New position
+                        this.OrderList(new_order, new_rule, new_position, 999999, _interface);
+                        //Order OLD position
+                        this.OrderList(999999, rule, old_position, old_position_order, _interface);
 
-                        var sql = 'UPDATE ' + tableName + ' SET position = ' + connection.escape(new_position) + ',' +
-                            'rule = ' + connection.escape(new_rule) + ', ' +
-                            'position_order = ' + connection.escape(new_order) + ' ' +
-                            ' WHERE rule = ' + rule + ' AND  interface = ' + _interface + ' AND position=' + connection.escape(old_position);
-                        connection.query(sql, async (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            } else {
-                                if (result.affectedRows > 0) {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: rule,
-                                        interface: _interface,
-                                        position: old_position
-                                    })
-                                    //Order New position
-                                    this.OrderList(new_order, new_rule, new_position, 999999, _interface);
-
-                                    logger().debug("ORDENANDO OLD POSITION");
-                                    logger().debug(result);
-                                    //Order OLD position
-                                    this.OrderList(999999, rule, old_position, old_position_order, _interface);
-
-                                    callback(null, { "result": true, "allowed": 1 });
-                                } else {
-                                    callback(null, { "result": false, "allowed": 1 });
-                                }
-                            }
-                        });
-                    });
-                } else {
-                    callback(null, { "result": false, "allowed": 0 });
-                }
-            }
+                        resolve();
+                    } else reject(fwcError.NOT_FOUND);
+                });
+            });
         });
     };
 
@@ -327,10 +294,6 @@ export class PolicyRuleToInterface extends Model {
                 if (error) {
                     callback(error, null);
                 } else {
-                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                        rule: rule,
-                        interface: _interface
-                    })
                     callback(null, { "result": true });
                 }
             });
@@ -365,12 +328,6 @@ export class PolicyRuleToInterface extends Model {
                     if (error) {
                         reject(error);
                     } else {
-                        await modelEventService.emit('update', PolicyRuleToInterface, {
-                            rule: rule,
-                            position: position,
-                            position_order: Between(order1, order2),
-                            interface: Not(_interface)
-                        })
                         resolve(result);
                     }
                 });
@@ -396,12 +353,12 @@ export class PolicyRuleToInterface extends Model {
     }
 
     //Remove policy_r__interface with id to remove
-    public static deletePolicy_r__interface(rule, _interface, position, old_order, callback) {
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(_interface) + ' AND position=' + connection.escape(position);
-            connection.query(sqlExists, (error, row) => {
+    public static deletePolicy_r__interface(dbCon, rule, _interface, position, old_order, callback) {
+        return new Promise((resolve, reject) => {
+            var sqlExists = `SELECT * FROM ${tableName} 
+                WHERE rule=${dbCon.escape(rule)} AND  interface=${dbCon.escape(_interface)}
+                AND position=${dbCon.escape(position)}`;
+            dbCon.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     db.get(async (error, connection) => {
@@ -412,25 +369,19 @@ export class PolicyRuleToInterface extends Model {
                             interfaceId: _interface,
                             policyPosition: position
                         });
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND  interface = ' + connection.escape(_interface) + ' AND position=' + connection.escape(position);
-                        logger().debug(sql);
+                        var sql = `DELETE FROM ${tableName}
+                            WHERE rule=${connection.escape(rule)} 
+                            AND interface=${connection.escape(_interface)} 
+                            AND position=${connection.escape(position)}`;
                         connection.query(sql, async (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            } else {
-                                if (result.affectedRows > 0) {
-                                    //await modelEventService.emit('delete', PolicyRuleToInterface, models);
-                                    this.OrderList(999999, rule, position, old_order, _interface);
-                                    callback(null, { "result": true, "msg": "deleted" });
-                                } else {
-                                    callback(null, { "result": false, "msg": "notExist" });
-                                }
-                            }
+                            if (error) return reject(error);
+                            if (result.affectedRows > 0) {
+                                this.OrderList(999999, rule, position, old_order, _interface);
+                                resolve();
+                            } else reject(fwcError.NOT_FOUND);
                         });
                     });
-                } else {
-                    callback(null, { "result": false, "msg": "notExist" });
-                }
+                } else reject(fwcError.NOT_FOUND);
             });
         });
     };
@@ -459,7 +410,6 @@ export class PolicyRuleToInterface extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('delete', PolicyRuleToInterface, models);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
                                     callback(null, { "result": false });
@@ -499,11 +449,6 @@ export class PolicyRuleToInterface extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: row.rule,
-                                        position: row.position,
-                                        interface: row.interface
-                                    })
                                     callback1();
                                 }
                             });
@@ -553,11 +498,6 @@ export class PolicyRuleToInterface extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: row.rule,
-                                        position: row.position,
-                                        interface: row.interface
-                                    })
                                     callback1();
                                 }
                             });
@@ -610,11 +550,6 @@ export class PolicyRuleToInterface extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToInterface, {
-                                        rule: row.rule,
-                                        position: row.position,
-                                        interface: row.interface
-                                    });
                                     callback1();
                                 }
                             });

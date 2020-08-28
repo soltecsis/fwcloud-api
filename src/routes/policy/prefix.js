@@ -74,13 +74,13 @@ async (req, res) => {
 
 		// Invalidate compilation of the affected rules.
 		await PolicyCompilation.deletePolicy_c(req.body.rule);
-		await PolicyCompilation.deletePolicy_c(req.body.new_rule);
+		if (req.body.rule != req.body.new_rule) await PolicyCompilation.deletePolicy_c(req.body.new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		// Move OpenVPN configuration object to the new position.
 		const data = await PolicyRuleToOpenVPNPrefix.moveToNewPosition(req);
 
-		res.status(200).json(data);
+		res.status(204).end();
 	} catch(error) {
 		logger().error('Error updating policy_r__openvpn_prefix position: ' + JSON.stringify(error));
 		res.status(400).json(error);

@@ -144,11 +144,6 @@ export class PolicyRuleToOpenVPN extends Model {
                 WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPN, {
-                    rule: req.body.rule,
-                    openvpn: req.body.openvpn,
-                    position: req.body.position
-                });
                 resolve();
             });
         });
