@@ -63,7 +63,7 @@ async (req, res) => {
 	try { 
 		// Invalidate compilation of the affected rules.
 		await PolicyCompilation.deletePolicy_c(req.body.rule);
-		await PolicyCompilation.deletePolicy_c(req.body.new_rule);
+		if (req.body.rule != req.body.new_rule) await PolicyCompilation.deletePolicy_c(req.body.new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		if (await PolicyRuleToOpenVPN.checkExistsInPosition(req.dbCon,req.body.new_rule,req.body.openvpn,req.body.new_position))
@@ -75,9 +75,9 @@ async (req, res) => {
 			throw fwcError.BAD_POSITION;
 
 		// Move OpenVPN configuration object to the new position.
-		const data = await PolicyRuleToOpenVPN.moveToNewPosition(req);
+		await PolicyRuleToOpenVPN.moveToNewPosition(req);
 
-		res.status(200).json(data);
+		res.status(204).end();
 	} catch(error) {
 		logger().error('Error creating new policy_r__openvpn: ' + JSON.stringify(error));
 		res.status(400).json(error);

@@ -144,11 +144,6 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
                 WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', PolicyRuleToOpenVPNPrefix, {
-                    rule: req.body.rule,
-                    prefix: req.body.prefix,
-                    position: req.body.position
-                });
                 resolve();
             });
         });
