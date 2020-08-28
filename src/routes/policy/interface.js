@@ -46,18 +46,10 @@ async (req, res) => {
 	};
 
 	try {
-		const data = await PolicyRuleToInterface.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
-		//If saved policy_r__interface Get data
-		if (data && data.result) {
-			if (data.result) {
-				PolicyRule.compilePolicy_r(policy_r__interfaceData.rule, (error, datac) => {});
-				res.status(200).json(data);
-			} else if (!data.allowed)
-				throw fwcError.NOT_ALLOWED;
-			else
-				throw fwcError.NOT_FOUND;
-			} else throw fwcError.NOT_ALLOWED;
-		} catch(error) {
+		await PolicyRuleToInterface.insertPolicy_r__interface(req.body.firewall, policy_r__interfaceData);
+		PolicyRule.compilePolicy_r(policy_r__interfaceData.rule, (error, datac) => {});
+		res.status(204).end();
+	} catch(error) {
 			logger().error('Error creating new policy_r__interface: ' + JSON.stringify(error));
 			res.status(400).json(error);
 		}
@@ -77,8 +69,6 @@ async(req, res) => {
 	var new_order = req.body.new_order;
 	var firewall = req.body.firewall;
 
-	var content1 = 'O', content2 = 'O';
-
 	try {
 		// Invalidate compilation of the affected rules.
 		await PolicyCompilation.deletePolicy_c(rule);
@@ -86,42 +76,11 @@ async(req, res) => {
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		// Get positions content.
-		const data = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
-		content1 = data.content1;
-		content2 = data.content2;	
-	} catch(error) {
-		logger().error('Error updating position: ' + JSON.stringify(error));
-		return res.status(400).json(error); 
-	}
+		const psts = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 
-	if (content1 === content2) { //SAME POSITION
-		PolicyRuleToInterface.updatePolicy_r__interface_position(firewall, rule, interface, position, position_order, new_rule, new_position, new_order, async (error, data) => {
-			//If saved policy_r__ipobj saved ok, get data
-			if (data) {
-				if (data.result) {
-					PolicyRule.compilePolicy_r(rule, (error, datac) => {});
-					if (rule != new_rule) PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
-
-					// If after the move we have empty rule positions, then remove them from the negate position list.
-					try {
-						await PolicyRule.allowEmptyRulePositions(req);
-					} catch(error) { return res.status(400).json(error) }
-
-					res.status(200).json(data);
-				} else if (!data.allowed) {
-					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
-					return res.status(400).json(fwcError.NOT_ALLOWED);
-				} else {
-					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_FOUND));
-					return res.status(400).json(fwcError.NOT_FOUND);
-				}
-			} else {
-				logger().error('Error updating position: ' + JSON.stringify(error));
-				return res.status(400).json(error);
-			}
-		});
-	} else { //DIFFERENTS POSITIONS
-		if (content1 === 'O' && content2 === 'I') {
+		if (psts.content1 === psts.content2) { //SAME POSITION CONTENT TYPE
+			await PolicyRuleToInterface.updatePolicy_r__interface_position(req.dbCon, firewall, rule, interface, position, position_order, new_rule, new_position, new_order);
+		} else if (psts.content1 === 'O' && psts.content2 === 'I') { //DIFFERENTS POSITIONS CONTENT TYPE
 			//Create New Position 'I'
 			//Create New objet with data policy_r__interface
 			var policy_r__interfaceData = {
@@ -130,47 +89,24 @@ async(req, res) => {
 				position: new_position,
 				position_order: new_order
 			};
-
-			var data;
-			try {
-				data = await PolicyRuleToInterface.insertPolicy_r__interface(firewall, policy_r__interfaceData);
-			} catch(error) { 
-				logger().error('Error updating position: ' + JSON.stringify(error));
-				return res.status(400).json(error);
-			}
-			//If saved policy_r__interface Get data
-			if (data) {
-				if (data.result) {
-					//delete Position 'O'
-					PolicyRuleToIPObj.deletePolicy_r__ipobj(rule, -1, -1, interface, position, position_order, async (error, data) => {
-						if (data && data.result) {
-							PolicyRule.compilePolicy_r(rule, (error, datac) => {});
-							if (rule != new_rule) PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
-
-							// If after the move we have empty rule positions, then remove them from the negate position list.
-							try {
-								await PolicyRule.allowEmptyRulePositions(req);
-							} catch(error) { return res.status(400).json(error) }
-
-							res.status(200).json(data);
-						} else {
-							logger().error('Error updating position: ' + JSON.stringify(error));
-							return res.status(400).json(error);
-						}
-					});
-				} else if (!data.allowed) {
-					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_ALLOWED));
-					return res.status(400).json(fwcError.NOT_ALLOWED);
-				} else {
-					logger().error('Error updating position: ' + JSON.stringify(fwcError.NOT_FOUND));
-					return res.status(400).json(fwcError.NOT_FOUND);
-				}
-			} else {
-				logger().error('Error updating position: ' + JSON.stringify(error));
-				return res.status(400).json(error);
-			}
+			await PolicyRuleToInterface.insertPolicy_r__interface(firewall, policy_r__interfaceData);
+			await	PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, -1, -1, interface, position, position_order);
+		} else { // NOT ALLOWED TO MOVE BETWEEN THESE POSITIONS BECAUSE THE CONTENT TYPE
+			throw fwcError.NOT_ALLOWED;
 		}
+	
+		// If after the move we have empty rule positions, then remove them from the negate position list.
+		await PolicyRule.allowEmptyRulePositions(req);
+
+	} catch(error) {
+		logger().error('Error updating position: ' + JSON.stringify(error));
+		return res.status(400).json(error); 
 	}
+
+	PolicyRule.compilePolicy_r(rule, (error, datac) => {});
+	if (rule != new_rule) PolicyRule.compilePolicy_r(new_rule, (error, datac) => {});
+
+	res.status(204).end();
 });
 
 
@@ -204,40 +140,23 @@ utilsModel.disableFirewallCompileStatus,
 /* Remove policy_r__interface */
 router.put("/del",
 utilsModel.disableFirewallCompileStatus,
-(req, res) => {
+async (req, res) => {
 	//Id from policy_r__interface to remove
 	var rule = req.body.rule;
 	var interface = req.body.interface;
 	var position = req.body.position;
 	var old_order = req.body.position_order;
 
-	PolicyRuleToInterface.deletePolicy_r__interface(rule, interface, position, old_order, async (error, data) => {
-		if (data) {
-			if (data.msg === "deleted") {
-				PolicyRule.compilePolicy_r(rule, (error, datac) => {});
-
-				// If after the delete we have empty rule positions, then remove them from the negate position list.
-				try {
-					await PolicyRule.allowEmptyRulePositions(req);
-				} catch(error) { 
-					logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
-					return res.status(400).json(error);
-				}
-
-				res.status(200).json(data);
-			} else if (data.msg === "notExist") {
-				logger().error('Error removing policy_r__interface: ' + JSON.stringify(fwcError.NOT_FOUND));
-				res.status(400).json(fwcError.NOT_FOUND);
-			}
-			else {
-				logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
-				res.status(400).json(error);
-			}
-		} else {
-			logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
-			res.status(400).json(error);
-		}
-	});
+	try {
+		await PolicyRuleToInterface.deletePolicy_r__interface(req.dbCon, rule, interface, position, old_order);
+		PolicyRule.compilePolicy_r(rule, (error, datac) => {});
+		// If after the delete we have empty rule positions, then remove them from the negate position list.
+		await PolicyRule.allowEmptyRulePositions(req);
+		res.status(204).end();
+	} catch(error) { 
+		logger().error('Error removing policy_r__interface: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 });
 
 module.exports = router;

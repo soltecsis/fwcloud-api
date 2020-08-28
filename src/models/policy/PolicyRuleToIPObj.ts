@@ -373,27 +373,20 @@ export class PolicyRuleToIPObj extends Model {
     public static insertPolicy_r__ipobj(policy_r__ipobjData) {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
-            this.checkIpobjPosition(policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, data) => {
+            this.checkIpobjPosition(policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, allowed) => {
                 if (error) return reject(error);
-                const allowed = data;
-                if (allowed) {
-                    db.get((error, connection) => {
-                        if (error) return reject(error);
+                if (!allowed) return reject(fwcError.NOT_ALLOWED);
+                db.get((error, connection) => {
+                    if (error) return reject(error);
 
-                        connection.query('INSERT INTO ' + tableModel + ' SET ?', policy_r__ipobjData, async (error, result) => {
-                            if (error) return reject(error);
-                            if (result.affectedRows > 0) {
-                                //await modelEventService.emit('create', PolicyRuleToIPObj, policy_r__ipobjData);
-                                this.OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
-                                resolve({ "result": true, "allowed": 1 });
-                            } else {
-                                resolve({ "result": false, "allowed": 1 });
-                            }
-                        });
+                    connection.query(`INSERT INTO ${tableModel} SET ?`, policy_r__ipobjData, async (error, result) => {
+                        if (error) return reject(error);
+                        if (result.affectedRows > 0) {
+                            this.OrderList(policy_r__ipobjData.position_order, policy_r__ipobjData.rule, policy_r__ipobjData.position, 999999, policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface);
+                            resolve();
+                        } else reject(fwcError.NOT_ALLOWED);
                     });
-                } else {
-                    resolve({ "result": true, "allowed": 0 });
-                }
+                });
             });
         });
     };
@@ -708,47 +701,37 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     //Remove policy_r__ipobj 
-    public static deletePolicy_r__ipobj(rule, ipobj, ipobj_g, _interface, position, position_order, callback) {
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableModel +
-                ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
-                ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position);
-            connection.query(sqlExists, (error, row) => {
+    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, callback) {
+        return new Promise(async (resolve, reject) => {
+            var sqlExists = `SELECT * FROM ${tableModel}
+                WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
+                AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}`;
+            dbCon.query(sqlExists, async (error, row) => {
+                if (error) return reject(error);
+
                 //If exists Id from policy_r__ipobj to remove
                 if (row) {
-                    db.get(async (error, connection) => {
-                        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-                        const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            policyRuleId: rule,
-                            ipObjId: ipobj,
-                            ipObjGroupId: ipobj_g,
-                            policyPositionId: position,
-                            interfaceId: _interface
-                        });
-                        const sql = 'DELETE FROM ' + tableModel +
-                            ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
-                            ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
-                            ' AND interface=' + connection.escape(_interface);
-                        connection.query(sql, async (error, result) => {
-                            if (error) {
-                                callback(error, null);
-                            } else {
-                                if (result.affectedRows > 0) {
-                                    //await modelEventService.emit('delete', PolicyRuleToIPObj, models);
-                                    this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
-                                    callback(null, { "result": true, "msg": "deleted" });
-                                } else {
-                                    callback(null, { "result": false, "msg": "notExist" });
-                                }
-                            }
-                        });
+                    const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
+                            (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
+                    const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
+                        policyRuleId: rule,
+                        ipObjId: ipobj,
+                        ipObjGroupId: ipobj_g,
+                        policyPositionId: position,
+                        interfaceId: _interface
                     });
-                } else {
-                    callback(null, { "result": false, "msg": "notExist" });
-                }
+                    const sql = `DELETE FROM ${tableModel}
+                        WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
+                        AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}
+                        AND interface=${dbCon.escape(_interface)}`;
+                    dbCon.query(sql, (error, result) => {
+                        if (error) return reject(error);
+                        if (result.affectedRows > 0) {
+                            this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
+                            resolve();
+                        } else reject(fwcError.NOT_FOUND);   
+                    });
+                } else reject(fwcError.NOT_FOUND);
             });
         });
     };
