@@ -1017,45 +1017,56 @@ public static allowEmptyRulePositions(req) {
 // Check special rules for stateful firewalls.
 public static checkStatefulRules(dbCon, firewall, options) {
 	return new Promise(async (resolve, reject) => {
-		// If this a stateful firewall verify that the stateful special rules exists.
-		if (options & 0x0001) { // Statefull firewall
-			let sql = `select id from ${tableName} where firewall=${firewall} and special=1`;
-			dbCon.query(sql, async (error, result) => {
-				if (error) return reject(error);
+        // In first place make sure that the firewall is not in a cluster
+        // or if it is part of a cluster that it is the master node of the cluster.
+        let sql = `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`;
+        dbCon.query(sql, async (error, result) => {
+            if (error) return reject(error);
 
-				if (result.length===0) { 
-					// If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
-					var policy_rData = {
-						id: null,
-						idgroup: null,
-						firewall: firewall,
-						rule_order: 1,
-						action: 1, // ACCEPT
-						time_start: null,
-						time_end: null,
-						active: 1,
-						options: 0,
-						comment: 'Stateful firewall rule.',
-						type: 1,
-						special: 1,
-						style: null
-					};					
-					try {
-						for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-							await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-							await this.insertPolicy_r(policy_rData);
-						}
-					} catch(error) { return reject(error) }
-				}
-				resolve();
-			});
-		} else { // Stateless firewall
-			// Or remove them if this is not a stateful firewall.
-			dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=1`, (error, result) => {
-				if (error) return reject(error);
-				resolve();
-			});
-		}
+            // No result means that the firewall is part of a cluster and it is not the master node.
+            // In this case nothing must be done, for this reason finish the promise.
+            if (result.length===0) return resolve();
+
+            // If this a stateful firewall verify that the stateful special rules exists.
+            if (options & 0x0001) { // Statefull firewall
+                sql = `select id from ${tableName} where firewall=${firewall} and special=1`;
+                dbCon.query(sql, async (error, result) => {
+                    if (error) return reject(error);
+
+                    if (result.length===0) { 
+                        // If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
+                        var policy_rData = {
+                            id: null,
+                            idgroup: null,
+                            firewall: firewall,
+                            rule_order: 1,
+                            action: 1, // ACCEPT
+                            time_start: null,
+                            time_end: null,
+                            active: 1,
+                            options: 0,
+                            comment: 'Stateful firewall rule.',
+                            type: 1,
+                            special: 1,
+                            style: null
+                        };					
+                        try {
+                            for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                                await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+                                await this.insertPolicy_r(policy_rData);
+                            }
+                        } catch(error) { return reject(error) }
+                    }
+                    resolve();
+                });
+            } else { // Stateless firewall
+                // Or remove them if this is not a stateful firewall.
+                dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=1`, (error, result) => {
+                    if (error) return reject(error);
+                    resolve();
+                });
+            }
+        });
 	});
 };
 
