@@ -10,6 +10,7 @@ import { Validate } from "../../decorators/validate.decorator";
 import { Required } from "../../fonaments/validation/rules/required.rule";
 import { File } from "../../fonaments/validation/rules/file.rule";
 import { FileInfo } from "../../fonaments/http/files/file-info";
+import moment from "moment";
 
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
@@ -26,7 +27,7 @@ export class FwCloudExportController extends Controller {
 
         const fwCloudExport: FwCloudExport = await this._fwCloudExportService.create(fwCloud, request.session.user, 30000);
 
-        return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath);
+        return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath, 'fwcloud_' + fwCloud.id + '_' + moment().unix());
     }
 
     @Validate({
