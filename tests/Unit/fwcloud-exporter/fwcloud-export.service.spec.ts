@@ -61,6 +61,32 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
             await sleep(4);
             expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.false;
         });
+    });
 
-    })
+    describe('import()', () => {
+        let fwCloudExport: FwCloudExport;
+        
+        beforeEach(async () => {
+            fwCloudExport = await service.create(fwCloud, user);
+        });
+
+        it('should import the fwcloud', async () => {
+            const currentFwClouds: number = (await FwCloud.find()).length;
+            await service.import(fwCloudExport.exportPath, user);
+
+            expect((await FwCloud.find()).length).to.be.eq(currentFwClouds + 1);
+        });
+
+        it('should assign the fwcloud to the user', async () => {
+            user = await User.findOne({where: {id: user.id}, relations: ['fwClouds']});
+            
+            const fwcloudAssigned = user.fwClouds.length;
+
+            await service.import(fwCloudExport.exportPath, user);
+
+            user = await User.findOne({where: {id: user.id}, relations: ['fwClouds']});
+
+            expect(user.fwClouds.length).to.be.eq(fwcloudAssigned + 1);
+        });
+    });
 });
