@@ -50,7 +50,7 @@ export class FwCloudExportController extends Controller {
 
         const fwCloudExport: FwCloudExport = await this._fwCloudExportService.create(fwCloud, request.session.user, 30000);
 
-        return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath, 'fwcloud_' + fwCloud.id + '_' + moment().unix());
+        return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath, 'fwcloud_' + fwCloud.id + '_' + moment().unix() + '.fwcloud');
     }
 
     @Validate({
