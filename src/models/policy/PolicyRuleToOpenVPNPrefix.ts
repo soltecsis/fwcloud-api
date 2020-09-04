@@ -110,7 +110,6 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             };
             req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPNPrefix, policyPrefix);
                 resolve(result.insertId);
             });
         });
@@ -162,7 +161,6 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('delete', PolicyRuleToOpenVPNPrefix, models); 
                 resolve();
             });
         });
@@ -177,7 +175,6 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
             });
             dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('delete', PolicyRuleToOpenVPNPrefix, models);
                 resolve();
             });
         });

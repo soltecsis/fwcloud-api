@@ -36,7 +36,7 @@ import StringHelper from '../../../src/utils/string.helper';
 let app: Application;
 let repository: RepositoryService;
 
-describe(describeName('ModelEventService tests'), () => {
+describe.skip(describeName('ModelEventService tests'), () => {
     
     before(async () => {
         app = testSuite.app;

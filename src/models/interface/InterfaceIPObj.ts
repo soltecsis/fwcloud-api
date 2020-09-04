@@ -213,15 +213,6 @@ export class InterfaceIPObj extends Model {
 						reject(error);
 					} else {
 						if (result.affectedRows > 0) {
-							const interfaceIPObjRepository: Repository<InterfaceIPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(InterfaceIPObj);
-							const interfaceToIpObjs: InterfaceIPObj[] = await interfaceIPObjRepository.find({
-								interfaceId: _interface
-							})
-
-							for(let i = 0; i < interfaceToIpObjs.length; i++) {
-								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipObjId);
-							}
 							resolve({ "result": true });
 						} else {
 							resolve({ "result": false });

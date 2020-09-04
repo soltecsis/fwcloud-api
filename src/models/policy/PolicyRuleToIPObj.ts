@@ -470,7 +470,6 @@ export class PolicyRuleToIPObj extends Model {
                         resolve({ "result": false, "allowed": 1 });
                     } else {
                         if (result.affectedRows > 0) {
-                            await modelEventService.emit('create', PolicyRuleToIPObj, p_ipobjData);
                             this.OrderList(p_ipobjData.position_order, p_ipobjData.rule, p_ipobjData.position, 999999, p_ipobjData.ipobj, p_ipobjData.ipobj_g, p_ipobjData.interface);
                             resolve({ "result": true });
                         } else {
@@ -522,13 +521,6 @@ export class PolicyRuleToIPObj extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                                        rule: rule,
-                                        ipobj: ipobj,
-                                        ipobj_g: ipobj_g,
-                                        position: position,
-                                        interface: _interface
-                                    });
                                     if (position !== policy_r__ipobjData.position) {
                                         //ordenamos posicion antigua
                                         this.OrderList(999999, rule, position, position_order, ipobj, ipobj_g, _interface);
@@ -566,13 +558,6 @@ export class PolicyRuleToIPObj extends Model {
                     callback(error, null);
                 } else {
                     if (result.affectedRows > 0) {
-                        await modelEventService.emit('update', PolicyRuleToIPObj, {
-                            rule: rule,
-                            ipobj: ipobj,
-                            ipobj_g: ipobj_g,
-                            position: position,
-                            interface: _interface
-                        });
                         this.OrderList(new_order, rule, position, position_order, ipobj, ipobj_g, _interface);
                         callback(null, { "result": true });
                     } else {
@@ -762,7 +747,6 @@ export class PolicyRuleToIPObj extends Model {
                                 callback(error, null);
                             } else {
                                 if (result.affectedRows > 0) {
-                                    await modelEventService.emit('delete', PolicyRuleToIPObj, models);
                                     callback(null, { "result": true, "msg": "deleted" });
                                 } else {
                                     callback(null, { "result": false });
@@ -800,13 +784,6 @@ export class PolicyRuleToIPObj extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                                        rule: row.rule,
-                                        ipobj: row.ipobj,
-                                        ipobj_g: row.ipobj_g,
-                                        position: row.position,
-                                        interface: row.interface
-                                    });
                                     callback1();
                                 }
                             });
@@ -853,13 +830,6 @@ export class PolicyRuleToIPObj extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                                        rule: row.rule,
-                                        ipobj: row.ipobj,
-                                        ipobj_g: row.ipobj_g,
-                                        position: row.position,
-                                        interface: row.interface
-                                    });
                                     callback1();
                                 }
                             });
@@ -909,13 +879,6 @@ export class PolicyRuleToIPObj extends Model {
                                 if (error) {
                                     callback1();
                                 } else {
-                                    await modelEventService.emit('update', PolicyRuleToIPObj, {
-                                        rule: row.rule,
-                                        ipobj: row.ipobj,
-                                        ipobj_g: row.ipobj_g,
-                                        position: row.position,
-                                        interface: row.interface
-                                    });
                                     callback1();
                                 }
                             });

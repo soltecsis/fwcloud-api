@@ -107,23 +107,6 @@ export class Interface extends Model {
 		return tableName;
 	}
 
-	public async onUpdate() {
-		const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = (await app().getService<RepositoryService>(RepositoryService.name))
-			.for(PolicyRuleToInterface);
-
-		const policyRuleToInterfaces: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({interfaceId: this.id});
-		for(let i = 0; i < policyRuleToInterfaces.length; i++) {
-			await modelEventService.emit('update', PolicyRuleToInterface, policyRuleToInterfaces[i])
-		}
-
-		const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = (await app().getService<RepositoryService>(RepositoryService.name))
-			.for(PolicyRuleToIPObj);
-		const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({interfaceId: this.id});
-		for(let i = 0; i < policyRuleToIPObjs.length; i++) {
-			await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
-		}
-	}
-
 	//Get All interface by firewall
 	public static getInterfaces(dbCon, fwcloud, firewall): Promise<Array<any>> {
 		return new Promise((resolve, reject) => {
@@ -548,7 +531,6 @@ export class Interface extends Model {
 					callback(error, null);
 				} else {
 					if (result.affectedRows > 0) {
-						await modelEventService.emit('update', Interface, interfaceData.id);
 						callback(null, { "result": true });
 					} else {
 						callback(null, { "result": false });
@@ -726,9 +708,6 @@ export class Interface extends Model {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, async (error, result) => {
 				if (error) return reject(error);
-				await modelEventService.emit('update', Interface, {
-					firewall: src_firewall
-				});
 				resolve();
 			});
 		});

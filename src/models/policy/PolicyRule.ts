@@ -715,11 +715,6 @@ export class PolicyRule extends Model {
                         ' AND rule_order' + cond;
                     connection.query(sql, async (error, result) => {
                         if (error) return reject(error);
-                        await modelEventService.emit('update', PolicyRule, {
-                            firewall: firewall,
-                            type: type,
-                            rule_order: cond
-                        });
                         resolve(free_rule_order);
                     });
                 });
@@ -744,11 +739,6 @@ export class PolicyRule extends Model {
                             ' AND rule_order>' + result[0].rule_order;
                         connection.query(sql, async (error, result) => {
                             if (error) return reject(error);
-                            await modelEventService.emit('update', PolicyRule, {
-                                firewall: firewall,
-                                type: type,
-                                rule_order: MoreThan(result_rule_order)
-                            });
                             resolve(free_rule_order);
                         });
                     } else return reject(fwcError.other('Rule not found'))
@@ -764,11 +754,6 @@ export class PolicyRule extends Model {
                 ' AND rule_order>=' + rule_order;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', PolicyRule, {
-                    firewall: firewall,
-                    type: type,
-                    rule_order: MoreThanOrEqual(rule_order)
-                })
                 resolve();
             });
         });
@@ -879,10 +864,6 @@ export class PolicyRule extends Model {
                 if (error) {
                     callback(error, null);
                 } else {
-                    await modelEventService.emit('update', PolicyRule, {
-                        fw_apply_to: null,
-                        firewall: idfirewall
-                    });
                     callback(null, { "result": true });
                 }
             });
@@ -925,7 +906,6 @@ public static repointApplyTo(rowData) {
 
 				connection.query(sql, async (error, rows1) => {
                     if (error) return reject(error);
-                    await modelEventService.emit('update', PolicyRule, rowData.id)
                     resolve(rows1);
 				});
 			});
@@ -956,11 +936,7 @@ public static negateRulePosition(dbCon, firewall, rule, position) {
 			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
 			dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', PolicyRule, {
-                    id: rule,
-                    firewall: firewall
-                });
-				resolve();
+                resolve();
 			});
 		});
 	});
@@ -988,11 +964,7 @@ public static allowRulePosition(dbCon, firewall, rule, position) {
 			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
 			dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', PolicyRule, {
-                    id: rule,
-                    firewall: firewall
-                });
-				resolve();
+                resolve();
 			});
 		});
 	});

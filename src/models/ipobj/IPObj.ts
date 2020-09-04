@@ -170,23 +170,6 @@ export class IPObj extends Model {
         return this.id < 100000;
     }
 
-    public async onUpdate() {
-        
-        const ipObjToIPObjGroupRepository: Repository<IPObjToIPObjGroup> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjToIPObjGroup);
-        const ipobj_to_ipobj_group: IPObjToIPObjGroup[] = await ipObjToIPObjGroupRepository.find({ipObjGroupId: this.id});
-        for(let i = 0; i < ipobj_to_ipobj_group.length; i++) {
-            await modelEventService.emit('update', IPObjToIPObjGroup, ipobj_to_ipobj_group[i])
-        }
-
-        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-        const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({ipObjId: this.id});
-        for(let i = 0; i < policyRuleToIPObjs.length; i++) {
-            await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
-        }
-	}
-
     /**
      * Get ipobj by Ipobj id
      * 
@@ -763,10 +746,6 @@ export class IPObj extends Model {
                 ' WHERE id = ' + ipobjData.id + ' AND fwcloud=' + ipobjData.fwcloud;
             req.dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('update', IPObj, {
-                    id: ipobjData.id,
-                    fwcloud: ipobjData.fwcloud
-                })
                 resolve();
             });
         });
@@ -866,7 +845,6 @@ export class IPObj extends Model {
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
-                            await modelEventService.emit('update', IPObj, id);
                             resolve({ "result": true });
                         } else {
                             resolve({ "result": false });
@@ -894,12 +872,6 @@ export class IPObj extends Model {
                         reject(error);
                     } else {
                         if (result.affectedRows > 0) {
-                            const ipObjRepository: Repository<IPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObj);
-                            const ipobj: IPObj = await ipObjRepository.findOne(id);
-                            if (ipobj && ipobj.interface) {
-                                await modelEventService.emit('update', Interface, ipobj.interface);
-                            }
                             resolve({ "result": true });
                         } else {
                             resolve({ "result": false });
