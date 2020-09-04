@@ -41,10 +41,14 @@ export class FwCloudExportService extends Service {
         return fwCloudExport;
     }
 
-    public async import(filePath: string): Promise<FwCloud> {
+    public async import(filePath: string, user: User): Promise<FwCloud> {
         const fwCloudExport: FwCloudExport = await FwCloudExport.loadCompressed(filePath);
 
         const fwCloud: FwCloud = await fwCloudExport.import();
+
+        user = await User.findOne({where: {id: user.id}, relations: ['fwClouds']})
+        user.fwClouds.push(fwCloud);
+        await user.save();
 
         return fwCloud;
     }
