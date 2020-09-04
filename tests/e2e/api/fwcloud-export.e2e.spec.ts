@@ -1,3 +1,25 @@
+/*!
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
@@ -9,6 +31,8 @@ import { createUser, generateSession, attachSession, sleep } from "../../utils/u
 import { Application } from "../../../src/Application";
 import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloudExportService } from "../../../src/fwcloud-exporter/fwcloud-export.service";
+import * as fs from "fs-extra";
+import * as path from "path";
 
 describe(describeName('FwCloudExport E2E Tests'), () => {
     let app: Application;
@@ -112,7 +136,17 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .post(_URL().getURL('fwclouds.exports.import'))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(422);
-            })
+            });
+
+            it('should return 422 if the file does not have .fwcloud extension', async () => {
+                const _path: string = path.join(path.dirname(fwCloudExport.exportPath), 'file.other');
+                fs.moveSync(fwCloudExport.exportPath, _path);
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .attach('file', _path)
+                    .expect(422);
+            });
         });
     });
 });

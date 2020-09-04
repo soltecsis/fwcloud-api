@@ -20,32 +20,28 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export abstract class Rule {
-    
-    protected _data: object;
+import { Rule } from "./rule";
+import { FileInfo } from "../../http/files/file-info";
 
-    constructor() {
-        this._data = {};
+export class Extension extends Rule
+{
+    protected _extension: string;
+
+    constructor(extension: string) {
+        super();
+        this._extension = extension;
     }
 
-    public context(data: object) {
-        this._data = data;
+    public async passes(attribute: string, value: any): Promise<boolean> {
+        if (value === undefined || value === null || value instanceof FileInfo === false) {
+            return true;
+        }
+
+        return value.filepath.endsWith(`.${this._extension}`);    
     }
 
-    /**
-     * Returns whether value is a valid value.
-     * 
-     * @param attribute 
-     * @param value 
-     */
-    public abstract async passes(attribute: string, value: any): Promise<boolean>;
+    public message(attribute: string, value: any): string {
+        return `${attribute} must have '.${this._extension}' extension.`
+    }
     
-    /**
-     * Returns the validation error message when value is not a valid value.
-     * 
-     * @param attribute 
-     * @param value 
-     */
-    public abstract message(attribute: string, value: any): string;
-
 }
