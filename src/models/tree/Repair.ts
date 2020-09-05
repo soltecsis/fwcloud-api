@@ -485,4 +485,26 @@ export class Repair extends Model {
         });
     };
 
+    // Remove orphan nodes (nodes wich id_parent points to a non existing node with this id_parnet value).
+    public static deleteOrphanNodes(channel: EventEmitter = new EventEmitter()) {
+        return new Promise((resolve, reject) => {
+            let sql:string = `select id,fwcloud from ${tableName}
+                where id_parent is not null and id_parent not in (select id from fwc_tree)`;
+            dbCon.query(sql, async (error, result) => {
+                if (error) return reject(error);
+
+                // If wee have orphan nodes, remove them.
+                if (result && (result.length)>0) {
+                    channel.emit('message', new ProgressNoticePayload(`Removing ${result.length} orphan nodes.\n`));
+
+                    try {
+                        for (let node of result)
+                            await Tree.deleteFwc_TreeFullNode({ id: node.id, fwcloud: node.fwcloud });
+                    } catch(error) { return reject(error) }
+                } 
+                
+                resolve();
+            });
+        });
+    };
 }
