@@ -137,6 +137,9 @@ router.put('/', async (req, res) =>{
       }
     }
 
+    // Remove orphan nodes.
+    await Repair.deleteOrphanNodes(channel);
+
     channel.emit('message', new ProgressPayload('end', false, 'Repairing tree'));
 
     res.status(200).send({"channel_id": channel.id});
