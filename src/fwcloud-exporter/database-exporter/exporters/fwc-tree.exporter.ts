@@ -23,7 +23,7 @@
 import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
 import { FwcTree } from "../../../models/tree/fwc-tree.model";
-import { SelectQueryBuilder, Connection, QueryRunner } from "typeorm";
+import { SelectQueryBuilder, Connection, QueryRunner, In, IsNull } from "typeorm";
 
 export class FwcTreeExporter extends TableExporter {
 
@@ -55,9 +55,10 @@ export class FwcTreeExporter extends TableExporter {
     public static async getNodesId(connection: Connection, fwCloudId: number): Promise<Array<number>> {
         const queryRunner: QueryRunner = connection.createQueryRunner();
         let ids: Array<number> = [];
-        const parentIds: Array<{id: number}> = await queryRunner.query(`SELECT id FROM fwc_tree WHERE fwcloud = ? AND id_parent IS NULL`, [fwCloudId]);
-
-        ids = ids.concat(parentIds.map((item: {id: number}) => {
+        
+        const parents: Array<FwcTree> = (await FwcTree.find({where: {fwCloudId: fwCloudId, parentId: IsNull()}}));
+        
+        ids = ids.concat(parents.map((item: FwcTree) => {
             return item.id;
         }));
 
@@ -72,12 +73,7 @@ export class FwcTreeExporter extends TableExporter {
             return [];
         }
         
-        let childIds: Array<number> = (await qr.query(`
-            SELECT id
-            FROM fwc_tree
-            WHERE fwcloud = ?
-            AND id_parent IN (?)
-        `, [fwCloudId, ids])).map((row: {id: number}) => {
+        let childIds: Array<number> = (await FwcTree.find({where: {parentId: In(ids)}})).map((row: FwcTree) => {
             return row.id
         });
 
