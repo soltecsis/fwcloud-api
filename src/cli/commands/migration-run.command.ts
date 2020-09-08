@@ -24,7 +24,7 @@ import * as process from "process";
 import * as yargs from "yargs";
 import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
 import * as config from "../../config/config"
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 
 

@@ -21,7 +21,7 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import * as path from "path";
 import { promises as fs, Stats } from "fs";
 import * as crypto from "crypto";

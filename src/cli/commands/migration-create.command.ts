@@ -24,7 +24,7 @@ import * as process from "process";
 import * as yargs from "yargs";
 import * as Path from 'path';
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 
 

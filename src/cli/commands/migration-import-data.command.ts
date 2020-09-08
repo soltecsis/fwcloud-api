@@ -21,7 +21,7 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 
 
