@@ -20,14 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpMethod, RouterService } from "./router.service";
+import { HttpMethod } from "./router.service";
 import { PathParams } from "express-serve-static-core"
 import { Controller } from "../controller";
-import { Request, Response, NextFunction, Application } from "express";
+import { Request, Response } from "express";
 import { Gate } from "./gate";
 import { AbstractApplication, app } from "../../abstract-application";
 import { ParamNotValidException } from "./exceptions/param-not-valid.exception";
 import { ParamMissingException } from "./exceptions/param-missing.exception";
+import { HTTPApplication } from "../../http-application";
 
 export class ControllerHandlerSignature {
     controller: typeof Controller;
@@ -58,7 +59,7 @@ export class Route {
         this._gates = [];
         this._name = null;
         this._app = app();
-        this._router = app().express;
+        this._router = app<HTTPApplication>().express;
     }
 
     get name(): string {

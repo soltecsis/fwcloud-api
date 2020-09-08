@@ -20,15 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from 'express';
-import httpProxy from 'http-proxy';
-
 import db from "./database/database-manager";
-import { AbstractApplication } from "./fonaments/abstract-application";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
-import { SessionMiddleware, SessionSocketMiddleware } from "./middleware/Session";
+import { SessionMiddleware } from "./middleware/Session";
 import { CORS } from './middleware/cors.middleware';
 import { Authorization } from './middleware/Authorization';
 import { ConfirmationToken } from './middleware/confirmation-token.middleware';
@@ -58,8 +54,9 @@ import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.
 import { LogRequestMiddleware } from './middleware/log-request.middleware';
 import { OpenVPNServiceProvider } from './models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from './models/fwcloud/fwcloud.provider';
+import { HTTPApplication } from './fonaments/http-application';
 
-export class Application extends AbstractApplication {
+export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
         try {
             const app: Application = new Application(path);
@@ -74,12 +71,21 @@ export class Application extends AbstractApplication {
 
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
-        await this.startDatabaseService()
-        return this;
-    }
+        await this.startDatabaseService();
 
-    public async close(): Promise<void> {
-        await super.close();
+        this.logger().info(`------- Starting application -------`);
+        this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+
+        // If stdout log mode is not enabled, log messages are not shown in terminal. 
+        // As a result, user doesn't know when application has started.
+        // So, we print out the message directly 
+        if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
+            console.log(`------- Starting application -------`);
+            console.log(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+        }
+
+
+        return this;
     }
 
     protected providers(): Array<typeof ServiceProvider> {
@@ -123,43 +129,6 @@ export class Application extends AbstractApplication {
             Throws404,
             ErrorResponse
         ]
-    }
-
-    protected async registerRoutes() {
-        const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
-        routerService.registerRoutes(Routes);
-
-        //OLD Routes
-        this._express.use('/user', require('./routes/user/user'));
-        this._express.use('/customer', require('./routes/user/customer'));
-        this._express.use('/fwcloud', require('./routes/fwcloud/fwcloud'));
-        this._express.use('/cluster', require('./routes/firewall/cluster'));
-        this._express.use('/firewall', require('./routes/firewall/firewall'));
-        this._express.use('/policy/rule', require('./routes/policy/rule'));
-        this._express.use('/policy/compile', require('./routes/policy/compile'));
-        this._express.use('/policy/install', require('./routes/policy/install'));
-        this._express.use('/policy/ipobj', require('./routes/policy/ipobj'));
-        this._express.use('/policy/interface', require('./routes/policy/interface'));
-        this._express.use('/policy/group', require('./routes/policy/group'));
-        this._express.use('/policy/types', require('./routes/policy/types'));
-        this._express.use('/policy/positions', require('./routes/policy/positions'));
-        this._express.use('/policy/openvpn', require('./routes/policy/openvpn'));
-        this._express.use('/policy/prefix', require('./routes/policy/prefix'));
-        this._express.use('/interface', require('./routes/interface/interface'));
-        this._express.use('/ipobj', require('./routes/ipobj/ipobj'));
-        this._express.use('/ipobj/group', require('./routes/ipobj/group'));
-        this._express.use('/ipobj/types', require('./routes/ipobj/types'));
-        this._express.use('/ipobj/positions', require('./routes/ipobj/positions'));
-        this._express.use('/ipobj/mark', require('./routes/ipobj/mark'));
-        this._express.use('/tree', require('./routes/tree/tree'));
-        this._express.use('/tree/folder', require('./routes/tree/folder'));
-        this._express.use('/tree/repair', require('./routes/tree/repair'));
-        this._express.use('/vpn/pki/ca', require('./routes/vpn/pki/ca'));
-        this._express.use('/vpn/pki/crt', require('./routes/vpn/pki/crt'));
-        this._express.use('/vpn/pki/prefix', require('./routes/vpn/pki/prefix'));
-        this._express.use('/vpn/openvpn', require('./routes/vpn/openvpn/openvpn'));
-        this._express.use('/vpn/openvpn/prefix', require('./routes/vpn/openvpn/prefix'));
-        this._express.use('/backup', require('./routes/backup/backup'));
     }
 
     private async startDatabaseService() {
