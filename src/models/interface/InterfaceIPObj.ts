@@ -23,7 +23,6 @@
 import Model from "../Model";
 import db from '../../database/database-manager';
 import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository, Repository, ManyToOne, JoinColumn } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { IPObj } from "../ipobj/IPObj";
 import { RepositoryService } from "../../database/repository.service";
 import { app, logger } from "../../fonaments/abstract-application";
@@ -213,15 +212,6 @@ export class InterfaceIPObj extends Model {
 						reject(error);
 					} else {
 						if (result.affectedRows > 0) {
-							const interfaceIPObjRepository: Repository<InterfaceIPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(InterfaceIPObj);
-							const interfaceToIpObjs: InterfaceIPObj[] = await interfaceIPObjRepository.find({
-								interfaceId: _interface
-							})
-
-							for(let i = 0; i < interfaceToIpObjs.length; i++) {
-								await modelEventService.emit('update', IPObj, interfaceToIpObjs[i].ipObjId);
-							}
 							resolve({ "result": true });
 						} else {
 							resolve({ "result": false });

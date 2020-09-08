@@ -24,7 +24,6 @@
 import db from '../../database/database-manager';
 import Model from '../Model';
 import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
-import modelEventService from '../ModelEventService';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app, logger } from '../../fonaments/abstract-application';
 import { RepositoryService } from '../../database/repository.service';

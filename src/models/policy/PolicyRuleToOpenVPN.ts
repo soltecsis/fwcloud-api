@@ -21,7 +21,6 @@
 */
 
 import Model from "../Model";
-import modelEventService from "../ModelEventService";
 import { Entity, Column, getRepository, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";
@@ -110,7 +109,6 @@ export class PolicyRuleToOpenVPN extends Model {
             };
             req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, async (error, result) => {
                 if (error) return reject(error);
-                await modelEventService.emit('create', PolicyRuleToOpenVPN, policyOpenvpn);
                 resolve(result.insertId);
             });
         });
@@ -162,7 +160,6 @@ export class PolicyRuleToOpenVPN extends Model {
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('delete', PolicyRuleToOpenVPN, models);
                 resolve();
             });
         });
@@ -177,7 +174,6 @@ export class PolicyRuleToOpenVPN extends Model {
             });
             dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);
-                await modelEventService.emit('delete', PolicyRuleToOpenVPN, models);
                 resolve();
             });
         });

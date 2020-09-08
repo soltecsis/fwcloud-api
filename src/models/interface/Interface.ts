@@ -27,7 +27,6 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import modelEventService from "../ModelEventService";
 import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { app, logger } from "../../fonaments/abstract-application";
@@ -105,23 +104,6 @@ export class Interface extends Model {
    
 	public getTableName(): string {
 		return tableName;
-	}
-
-	public async onUpdate() {
-		const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = (await app().getService<RepositoryService>(RepositoryService.name))
-			.for(PolicyRuleToInterface);
-
-		const policyRuleToInterfaces: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({interfaceId: this.id});
-		for(let i = 0; i < policyRuleToInterfaces.length; i++) {
-			await modelEventService.emit('update', PolicyRuleToInterface, policyRuleToInterfaces[i])
-		}
-
-		const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = (await app().getService<RepositoryService>(RepositoryService.name))
-			.for(PolicyRuleToIPObj);
-		const policyRuleToIPObjs: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({interfaceId: this.id});
-		for(let i = 0; i < policyRuleToIPObjs.length; i++) {
-			await modelEventService.emit('update', PolicyRuleToIPObj, policyRuleToIPObjs[i])
-		}
 	}
 
 	//Get All interface by firewall
@@ -548,7 +530,6 @@ export class Interface extends Model {
 					callback(error, null);
 				} else {
 					if (result.affectedRows > 0) {
-						await modelEventService.emit('update', Interface, interfaceData.id);
 						callback(null, { "result": true });
 					} else {
 						callback(null, { "result": false });
@@ -726,9 +707,6 @@ export class Interface extends Model {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, async (error, result) => {
 				if (error) return reject(error);
-				await modelEventService.emit('update', Interface, {
-					firewall: src_firewall
-				});
 				resolve();
 			});
 		});

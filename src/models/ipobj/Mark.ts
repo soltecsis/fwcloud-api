@@ -22,7 +22,6 @@
 
 import Model from "../Model";
 import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { PolicyRule } from "../policy/PolicyRule";
 

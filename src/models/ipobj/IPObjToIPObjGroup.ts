@@ -23,7 +23,6 @@
 import Model from "../Model";
 import db from '../../database/database-manager';
 import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository, ManyToOne, JoinTable, JoinColumn } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { IPObjGroup } from "./IPObjGroup";
 import { RepositoryService } from "../../database/repository.service";
 import { app } from "../../fonaments/abstract-application";
@@ -70,36 +69,6 @@ export class IPObjToIPObjGroup extends Model {
     
     public getTableName(): string {
         return tableName;
-    }
-
-    public async onCreate() {
-        const ipObjGroupRepository: Repository<IPObjGroup> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
-        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipObjGroupId});
-
-        for(let i = 0; i < ipobj_group.length; i++) {
-            await modelEventService.emit('create', IPObjGroup, ipobj_group[i]);
-        }
-    }
-
-    public async onUpdate() {
-        const ipObjGroupRepository: Repository<IPObjGroup> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
-        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipObjGroupId});
-
-        for(let i = 0; i < ipobj_group.length; i++) {
-            await modelEventService.emit('update', IPObjGroup, ipobj_group[i]);
-        }
-    }
-
-    public async onDelete() {
-        const ipObjGroupRepository: Repository<IPObjGroup> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(IPObjGroup);
-        const ipobj_group: IPObjGroup[] = await ipObjGroupRepository.find({id: this.ipObjGroupId});
-
-        for(let i = 0; i < ipobj_group.length; i++) {
-            await modelEventService.emit('delete', IPObjGroup, ipobj_group[i]);
-        }
     }
 
     //Add new ipobj__ipobjg

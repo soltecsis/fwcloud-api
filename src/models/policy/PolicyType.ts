@@ -23,7 +23,6 @@
 import Model from "../Model";
 import db from '../../database/database-manager';
 import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { PolicyPosition } from "./PolicyPosition";
 import { PolicyRule } from "./PolicyRule";
 import { logger } from "../../fonaments/abstract-application";

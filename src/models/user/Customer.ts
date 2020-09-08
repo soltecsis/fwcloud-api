@@ -22,7 +22,6 @@
 
 import Model from "../Model";
 import { PrimaryColumn, PrimaryGeneratedColumn, Column, Entity, OneToMany } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { User } from "./User";
 const tableName: string = "customer";
 
