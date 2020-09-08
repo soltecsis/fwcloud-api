@@ -22,7 +22,6 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import modelEventService from '../ModelEventService';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';

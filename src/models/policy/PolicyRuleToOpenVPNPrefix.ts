@@ -22,7 +22,6 @@
 
 import Model from "../Model";
 import { Column, getRepository, Entity, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
-import modelEventService from "../ModelEventService";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";

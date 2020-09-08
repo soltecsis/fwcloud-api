@@ -29,7 +29,6 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 
 import { IPObj } from '../../models/ipobj/IPObj';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
-import modelEventService from "../ModelEventService";
 import { PolicyType } from "./PolicyType";
 import { IPObjType } from "../ipobj/IPObjType";
 import { PolicyRuleToInterface } from "./PolicyRuleToInterface";

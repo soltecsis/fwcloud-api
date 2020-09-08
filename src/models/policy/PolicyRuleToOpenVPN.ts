@@ -21,7 +21,6 @@
 */
 
 import Model from "../Model";
-import modelEventService from "../ModelEventService";
 import { Entity, Column, getRepository, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";

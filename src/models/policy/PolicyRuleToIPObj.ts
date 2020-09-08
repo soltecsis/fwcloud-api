@@ -25,7 +25,6 @@ import Model from '../Model';
 import { Interface } from '../../models/interface/Interface';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import modelEventService from '../ModelEventService';
 import { PolicyRuleToInterface } from './PolicyRuleToInterface';
 import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyCompilation } from './PolicyCompilation';

@@ -22,7 +22,6 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import modelEventService from "../ModelEventService";
 import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
 import { IPObjType } from "./IPObjType";
 import { PolicyPosition } from "../policy/PolicyPosition";

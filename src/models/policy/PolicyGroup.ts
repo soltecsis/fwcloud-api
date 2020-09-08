@@ -25,7 +25,6 @@ import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateCol
 import db from '../../database/database-manager';
 
 import Model from '../Model';
-import modelEventService from '../ModelEventService';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
 import { PolicyRuleRepository } from './policy-rule.repository';
