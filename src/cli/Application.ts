@@ -64,4 +64,10 @@ export class Application extends CLIApplication {
             FwCloudServiceProvider
         ]
     }
+
+    public async bootstrap(): Promise<CLIApplication> {
+        await super.bootstrap();
+        console.log('Running CLI: v' + this.version.tag);
+        return this;
+    }
 }
