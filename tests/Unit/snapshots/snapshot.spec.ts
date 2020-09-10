@@ -33,6 +33,8 @@ import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import StringHelper from "../../../src/utils/string.helper";
+import Sinon from "sinon";
+import * as semver from "semver";
 
 let app: Application;
 let fwCloud: FwCloud;
@@ -304,6 +306,27 @@ describe(describeName('Snapshot Unit Tests'), () => {
             const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
+        });
+    });
+
+    describe('isCompatible()', () => {
+        it('should throw an exception if the snapshot schema is not defined', async () => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            snapshot["_schema"] = null;
+
+            expect(snapshot.isCompatible).to.throw(Error);
+        });
+
+        it('should return true if the schema is compatible', async () => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            expect(snapshot.isCompatible()).to.be.true;
+        });
+
+        it('should return false if the schema is not compatible', async () => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            snapshot["_schema"] = '0.0.0';
+            
+            expect(snapshot.isCompatible()).to.be.false;
         });
     });
 });

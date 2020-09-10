@@ -51,11 +51,11 @@ export class DatabaseImporter {
     }
 
 
-    public async import(snapshotPath: string): Promise<FwCloud> { 
+    public async import(snapshot: Snapshot): Promise<FwCloud> { 
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         
-        let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshotPath, Snapshot.DATA_FILENAME)).toString()));
+        let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
         
         this._idManager = await IdManager.make(queryRunner, data.getTableNames())
         this._mapper = new ImportMapping(this._idManager, data);
@@ -67,7 +67,7 @@ export class DatabaseImporter {
         
         const fwCloud: FwCloud = await repositoryService.for(FwCloud).findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
 
-        await DatabaseImporter.importDataDirectories(snapshotPath, fwCloud, this._mapper);
+        await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
 
         await queryRunner.release();
 

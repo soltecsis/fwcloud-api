@@ -10,6 +10,7 @@ import { DatabaseImporter } from "./database-importer/database-importer";
 import moment from "moment";
 import { User } from "../models/user/User";
 import { Responsable } from "../fonaments/contracts/responsable";
+import { SnapshotNotCompatibleException } from "../snapshots/exceptions/snapshot-not-compatible.exception";
 
 export class FwCloudExport implements Responsable {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
@@ -57,6 +58,12 @@ export class FwCloudExport implements Responsable {
         return this._timestamp;
     }
 
+    /**
+     * Generates a fwcloud export directory
+     * 
+     * @param fwCloud 
+     * @param user 
+     */
     public async save(fwCloud: FwCloud, user: User): Promise<void> {
         this._timestamp = moment().valueOf();
         this._fwCloud = fwCloud;
@@ -65,13 +72,15 @@ export class FwCloudExport implements Responsable {
         FSHelper.mkdirSync(this._path);
 
         const snapshot: Snapshot = await Snapshot.create(this._path, this._fwCloud);
-
-        await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_FILENAME), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_FILENAME));
-        await FSHelper.copy(path.join(snapshot.path, Snapshot.DATA_DIRECTORY), path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.DATA_DIRECTORY));
+        await FSHelper.copy(snapshot.path, path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
         await FSHelper.remove(path.dirname(snapshot.path));
         await this.copyFwCloudSnapshots(this._fwCloud);
     }
 
+    /**
+     * Generates a compressed version of the export directory in the same path but fwcloud extension
+     * @returns Promise<String> The fwcloud file path
+     */
     public compress(): Promise<string> {
 
         return new Promise<string>((resolve, reject) => {
@@ -104,10 +113,19 @@ export class FwCloudExport implements Responsable {
         });
     }
 
+    /**
+     * Imports a fwcloud
+     */
     public async import(): Promise<FwCloud> {
         const importer: DatabaseImporter = new DatabaseImporter();
 
-        const fwCloud: FwCloud = await importer.import(path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
+        const snapshot: Snapshot = await Snapshot.load(path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
+
+        if (!snapshot.isCompatible()) {
+            throw new SnapshotNotCompatibleException(snapshot);
+        }
+
+        const fwCloud: FwCloud = await importer.import(snapshot);
 
         await FSHelper.copyDirectoryIfExists(path.join(this._path, FwCloudExport.SNAPSHOTS_DIRECTORY), fwCloud.getSnapshotDirectoryPath());
         return fwCloud;
