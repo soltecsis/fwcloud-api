@@ -386,7 +386,7 @@ describe(describeName('Snapshot E2E tests'), () => {
                 await request(app.express)
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(adminUserSessionId))
-                    .expect(422);
+                    .expect(400);
             });
 
             it('channel_id should be valid as input', async () => {

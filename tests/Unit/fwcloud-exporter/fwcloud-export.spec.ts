@@ -11,6 +11,8 @@ import { Snapshot } from "../../../src/snapshots/snapshot";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { User } from "../../../src/models/user/User";
 import { createUser } from "../../utils/utils";
+import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
+import Sinon from "sinon";
 
 describe(describeName('FwCloudExport Unit Tests'), () => {
     let app: Application;
@@ -140,6 +142,19 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
             expect(FSHelper.directoryExistsSync(restoredFwCloud.getSnapshotDirectoryPath())).to.be.true;
             expect(FSHelper.directoryExistsSync(path.join(restoredFwCloud.getSnapshotDirectoryPath(), snapshot.id.toString()))).to.be.true;
+        });
+
+        it('should throw an exception if the export is not compatible', async () => {
+            fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
+            
+            const stub = Sinon.stub(Snapshot.prototype, 'isCompatible').returns(false);
+
+            const t = () => {
+                return fwCloudExporter.import(); 
+            }
+
+            await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
+            stub.restore();
         });
     });
 

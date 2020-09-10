@@ -147,6 +147,19 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .attach('file', _path)
                     .expect(422);
             });
+
+            it('should return 400 if the export file is not compatible', async () => {
+                const schema: string = app["_version"].schema;
+                app["_version"].schema = '0.0.0';
+                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser)
+                app["_version"].schema = schema;
+
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.exports.import'))
+                    .attach('file', fwCloudExport.exportPath)
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(400);
+            });
         });
     });
 });
