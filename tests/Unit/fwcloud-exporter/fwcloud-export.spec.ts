@@ -82,10 +82,10 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
     describe('compress()', () => {
         it('should generate a compress file', async () => {
             const fwCloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
-            const compressedFilePath: string = await fwCloudExport.compress();
+            await fwCloudExport.compress();
 
-            expect(FSHelper.fileExistsSync(compressedFilePath)).to.be.true;
-            expect(compressedFilePath).to.be.deep.eq(fwCloudExport.path + '.fwcloud');
+            expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.true;
+            expect(fwCloudExport.exportPath).to.be.deep.eq(fwCloudExport.path + '.fwcloud');
         });
     });
 

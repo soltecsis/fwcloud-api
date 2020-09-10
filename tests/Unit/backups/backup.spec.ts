@@ -110,6 +110,7 @@ describe(describeName('Backup Unit tests'), () => {
                 version: app.version.tag,
                 schema: app.version.schema,
                 comment: 'test comment',
+                imported: false
             });
         });
     });
@@ -237,7 +238,8 @@ describe(describeName('Backup Unit tests'), () => {
                 date: backup.date.utc(),
                 comment: backup.comment,
                 version: backup.version,
-                schema: backup.schema
+                schema: backup.schema,
+                imported: false
             })
         });
     });
