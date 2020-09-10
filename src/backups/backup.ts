@@ -42,7 +42,6 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
-import { PathHelper } from "../utils/path-helpers";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 const mysql_import = require('mysql-import');
 
@@ -52,6 +51,7 @@ export interface BackupMetadata {
     version: string;
     comment: string;
     schema: string;
+    imported: boolean;
 }
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
@@ -67,6 +67,7 @@ export class Backup implements Responsable {
     protected _comment: string;
     protected _version: string;
     protected _schema: string;
+    protected _imported: boolean;
 
     constructor() {
         this._id = null;
@@ -78,6 +79,7 @@ export class Backup implements Responsable {
         this._comment = null;
         this._version = null;
         this._schema = null;
+        this._imported = false;
     }
 
     toResponse(): Object {
@@ -87,7 +89,8 @@ export class Backup implements Responsable {
             schema: this._schema ? this._schema : null,
             name: this._name,
             date: this._date.utc(),
-            comment: this._comment
+            comment: this._comment,
+            imported: this._imported
         }
     }
 
@@ -132,6 +135,10 @@ export class Backup implements Responsable {
         return this._comment;
     }
 
+    get imported(): boolean {
+        return this._imported;
+    }
+
     public setComment(comment: string) {
         this._comment = comment;
     }
@@ -160,6 +167,7 @@ export class Backup implements Responsable {
             this._exists = true;
             this._version = metadata.version;
             this._schema = metadata.schema;
+            this._imported = metadata.imported ?? false;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
@@ -254,7 +262,8 @@ export class Backup implements Responsable {
             timestamp: this._date.valueOf(),
             version: app<Application>().version.tag,
             schema: app<Application>().version.schema,
-            comment: this._comment
+            comment: this._comment,
+            imported: false,
         };
 
         fs.writeFileSync(path.join(this._backupPath, Backup.METADATA_FILENAME), JSON.stringify(metadata, null, 2))
