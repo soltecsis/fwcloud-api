@@ -26,7 +26,7 @@ import { app } from "../fonaments/abstract-application";
 import { FSHelper } from "../utils/fs-helper";
 import moment from "moment";
 import * as path from "path";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
@@ -173,13 +173,13 @@ export class Snapshot implements Responsable {
             task.addTask(async () => { 
                 this._restoredFwCloud = await this.restoreDatabaseData();
             }, 'FwCloud restored from snapshot');
-            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'Firewalls compilation flags reset');
                 task.addTask(() => { 
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
+            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
         }, 'FwCloud snapshot restored');
 
         return this._restoredFwCloud;
@@ -408,7 +408,9 @@ export class Snapshot implements Responsable {
     protected async migrateSnapshots(oldFwCloud: FwCloud, newFwCloud: FwCloud): Promise<void> {
         const snapshotDirectory: string = (await app().getService<SnapshotService>(SnapshotService.name)).config.data_dir;
 
-        return FSHelper.moveDirectory(path.join(snapshotDirectory, oldFwCloud.id.toString()), path.join(snapshotDirectory, newFwCloud.id.toString()));
+        if(fs.existsSync(oldFwCloud.getSnapshotDirectoryPath())) {
+            return fs.moveSync(path.join(snapshotDirectory, oldFwCloud.id.toString()), path.join(snapshotDirectory, newFwCloud.id.toString()));
+        }
     }
 
     toResponse(): object {
