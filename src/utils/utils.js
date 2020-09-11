@@ -183,6 +183,7 @@ utilsModel.removeFwcloudDataDir = fwcloud => {
 		try {
 			await utilsModel.deleteFolder(config.get('policy').data_dir+'/'+fwcloud);
 			await utilsModel.deleteFolder(config.get('pki').data_dir+'/'+fwcloud);
+			await utilsModel.deleteFolder(config.get('snapshot').data_dir+'/'+fwcloud);
 			resolve();
 		} catch(error) { reject(error) }
   });
