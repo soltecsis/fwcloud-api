@@ -250,23 +250,23 @@ describe(describeName('Backup E2E tests'), () => {
 
             it('guest user should not download a backup', async () => {
                 await request(app.express)
-                    .get(_URL().getURL('backups.download', {backup: backup.id}))
+                    .get(_URL().getURL('backups.export', {backup: backup.id}))
                     .expect(401)
             });
 
             it('regular user should not download a backup', async () => {
                 await request(app.express)
-                    .get(_URL().getURL('backups.download', {backup: backup.id}))
+                    .get(_URL().getURL('backups.export', {backup: backup.id}))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
             });
 
             it('admin user should download a backup', async () => {
                 await request(app.express)
-                    .delete(_URL().getURL('backups.destroy', {backup: backup.id}))
+                    .get(_URL().getURL('backups.export', {backup: backup.id}))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect('Content-Type', /application/)
-                    .expect(200);
+                    .expect(201);
             });
         });
     });

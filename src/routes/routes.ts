@@ -28,7 +28,6 @@ import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
 import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
-import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
 import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
@@ -46,10 +45,11 @@ export class Routes extends RouteCollection {
                     //Backups
                     router.get('/', BackupController, 'index').name('backups.index');
                     router.post('/', BackupController, 'store').name('backups.store');
+                    router.post('/import', BackupController, 'import').name('backups.import');
                     router.get('/:backup(\\d+)', BackupController, 'show').name('backups.show');
                     router.post('/:backup(\\d+)/restore', BackupController, 'restore').name('backups.restore');
                     router.delete('/:backup(\\d+)', BackupController, 'destroy').name('backups.destroy');
-                    router.get('/:backup(\\d+)/download', BackupController, 'download').name('backups.download');
+                    router.get('/:backup(\\d+)/export', BackupController, 'export').name('backups.export');
 
                     // Backups Config
                     router.prefix('/config', (router: RouterParser) => {

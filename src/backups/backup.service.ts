@@ -24,7 +24,7 @@ import { Service } from "../fonaments/services/service";
 import { DatabaseService } from "../database/database.service";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { Backup } from "./backup";
+import { Backup, BackupMetadata } from "./backup";
 import moment, { Moment } from "moment";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { CronTime, CronJob } from "cron";
@@ -176,6 +176,27 @@ export class BackupService extends Service {
         }
 
         return `${destinationPath}.zip`;
+    }
+
+    public async import(zippedFilePath: string): Promise<Backup> {
+        const outputPath: string = path.join(path.dirname(zippedFilePath), 'backup');
+        
+        await Zip.unzip(zippedFilePath, outputPath);
+        
+        // Check whether the file contains a backup
+        await (new Backup()).load(outputPath);
+        
+        const id: number = moment().valueOf();
+
+        const metadata: BackupMetadata = fs.readJSONSync(path.join(outputPath, Backup.METADATA_FILENAME));
+        metadata.imported = true;
+        metadata.timestamp = id;
+        fs.writeJSONSync(path.join(outputPath, Backup.METADATA_FILENAME), metadata);
+        
+        // Move content to backups directory
+        fs.moveSync(outputPath, path.join(this._config.data_dir, id.toString()));
+        
+        return this.findOne(id);
     }
 
     /**

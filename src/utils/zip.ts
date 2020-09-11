@@ -17,13 +17,13 @@ export class Zip {
         return new Promise<void>((resolve, reject) => {
 
             yauzl.open(zipPath, { lazyEntries: true }, function (err, zipfile) {
-                if(!fs.existsSync(destinationPath)) {
-                    FSHelper.mkdirSync(destinationPath);
-                }
-                
                 if (err) {
                     return reject(err);
                 };
+
+                if(!fs.existsSync(destinationPath)) {
+                    FSHelper.mkdirSync(destinationPath);
+                }
                 
                 zipfile.on("entry", (entry) => {
                     if (/\/$/.test(entry.fileName)) {
