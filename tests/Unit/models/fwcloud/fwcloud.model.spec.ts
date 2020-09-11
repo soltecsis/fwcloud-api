@@ -56,10 +56,10 @@ describe(describeName('FwCloud Unit Tests'), () => {
         });
 
         it('should be called before remove', async () => {
-            const spy = sinon.spy(FwCloud.prototype, "removeDataDirectories");
-
             const fwCloud: FwCloud = await fwCloudRepository.save(fwCloudRepository.create({ name: 'test' }));
             
+            const spy = sinon.spy(FwCloud.prototype, "removeDataDirectories");
+
             await fwCloudRepository.remove(fwCloud);
 
             expect(spy.calledOnce).to.be.true;
