@@ -22,7 +22,7 @@
 
 import { Service } from "../fonaments/services/service";
 import { DatabaseService } from "../database/database.service";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import * as path from "path";
 import { Backup } from "./backup";
 import moment, { Moment } from "moment";
@@ -34,6 +34,8 @@ import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 import { Progress } from "../fonaments/http/progress/progress";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { logger } from "../fonaments/abstract-application";
+import * as uuid from "uuid";
+import { Zip } from "../utils/zip";
 
 export interface BackupUpdateableConfig {
     schedule: string,
@@ -150,6 +152,30 @@ export class BackupService extends Service {
 
     public async destroy(backup: Backup): Promise<Backup> {
         return await backup.destroy();
+    }
+
+    public async export(backup: Backup, ttl: number = 0): Promise<string> {
+        const id: string = uuid.v4();
+        
+        //Copy backup into the tmp directory
+        const destinationPath: string = path.join(this._app.config.get('tmp.directory'), id, path.basename(backup.path));
+        const destinationZippedPath: string = `${destinationPath}.zip`;
+        
+        fs.mkdirpSync(destinationPath);
+        fs.copySync(backup.path, destinationPath);
+
+        await Zip.zip(destinationPath, destinationZippedPath);
+        fs.removeSync(destinationPath);
+
+        if (ttl > 0) {
+            setTimeout(() => {
+                if(fs.existsSync(destinationZippedPath)) {
+                    fs.removeSync(destinationZippedPath);
+                }
+            }, ttl);
+        }
+
+        return `${destinationPath}.zip`;
     }
 
     /**

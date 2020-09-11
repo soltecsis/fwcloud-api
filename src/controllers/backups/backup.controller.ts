@@ -46,8 +46,6 @@ export class BackupController extends Controller {
      */
     @Validate({})
      public async index(request: Request): Promise<ResponseBuilder> {
-        //TODO: Authorization
-
         const backups: Array<Backup> = await this._backupService.getAll();
 
         return ResponseBuilder.buildResponse().status(200).body(backups);
@@ -55,8 +53,6 @@ export class BackupController extends Controller {
 
     @Validate({})
     public async show(request: Request): Promise<ResponseBuilder> {
-        //TODO: Authorization
-
         const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         return ResponseBuilder.buildResponse().status(200).body(backup);
@@ -73,7 +69,6 @@ export class BackupController extends Controller {
         channel_id: [new String(), new Max(255)]
     })
     public async store(request: Request): Promise<ResponseBuilder> {
-        //TODO: Authorization
         const channel: Channel = await Channel.fromRequest(request);
 
         const backup: Backup = await this._backupService.create(request.inputs.get('comment'), channel);
@@ -91,7 +86,6 @@ export class BackupController extends Controller {
         channel_id: [new String()]
     })
     public async restore(request: Request): Promise<ResponseBuilder> {
-        //TODO: Authorization
         let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
         const channel: Channel = await Channel.fromRequest(request);
@@ -113,12 +107,19 @@ export class BackupController extends Controller {
      */
     @Validate({})
     public async destroy(request: Request): Promise<ResponseBuilder> {
-        //TODO: Authorization
-
         let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         backup = await this._backupService.destroy(backup);
 
         return ResponseBuilder.buildResponse().status(200).body(backup);
+    }
+
+    @Validate({})
+    public async download(request: Request): Promise<ResponseBuilder> {
+        let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+
+        const exportFilePath: string = await this._backupService.export(backup, 30000);
+
+        return ResponseBuilder.buildResponse().status(201).download(exportFilePath, `backup_${backup.id}.zip`);
     }
 }

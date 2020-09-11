@@ -140,6 +140,20 @@ describe(describeName('BackupService Unit tests'), async() => {
             });
         });
 
+        describe('download()', async () => {
+            let backup: Backup;
+
+            beforeEach(async () => {
+                backup = await service.create();
+            });
+
+            it('should generate a zipped file', async () => {
+                const p: string = await service.export(backup);
+
+                expect(fs.existsSync(p)).to.be.true;
+            });
+        });
+
         describe('applyRetentionPolicy()', () => {
 
             it('should remove a backup if retention policy by backup counts is enabled', async () => {

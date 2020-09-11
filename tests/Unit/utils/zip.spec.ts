@@ -4,7 +4,7 @@ import { Zip } from "../../../src/utils/zip";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import * as fs from "fs-extra";
 
-describe.only(describeName('Zip Unit Tests'), async () => {
+describe(describeName('Zip Unit Tests'), async () => {
     let pathToBeZipped: string = path.join(playgroundPath, 'to_zip');
 
     beforeEach(async () => {
