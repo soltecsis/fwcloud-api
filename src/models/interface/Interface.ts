@@ -498,15 +498,15 @@ export class Interface extends Model {
 						options: null,
 						comment: 'IPv4 loopback interface address.'
 					};
-					await IPObj.insertIpobj(connection, ipobjData);
+					const ipv4Id = await IPObj.insertIpobj(connection, ipobjData);
 
 					ipobjData.address = '::1';
 					ipobjData.netmask = '/128';
 					ipobjData.ip_version = 6;
 					ipobjData.comment = 'IPv6 loopback interface address.';
-					await IPObj.insertIpobj(connection, ipobjData);
+					const ipv6Id = await IPObj.insertIpobj(connection, ipobjData);
 
-					resolve(interfaceId);
+					resolve({ "ifId": interfaceId, "ipv4Id": ipv4Id, "ipv6Id": ipv6Id });
 				});
 			});
 		});

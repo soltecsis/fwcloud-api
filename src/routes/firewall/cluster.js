@@ -169,7 +169,7 @@ const fwcError = require('../../utils/error_table');
  *   "msg": "Tree node access not allowed"
  * }
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
 	var JsonData = req.body;
 	var fwnodes = JsonData.clusterData.fwnodes;
 	logger().debug("JSON RECIBIDO: ", JsonData);
@@ -186,47 +186,41 @@ router.post('/', (req, res) => {
 		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 	}
 
-	Cluster.insertCluster(clusterData, async(error, dataNewCluster) => {
-		//get cluster info
-		if (dataNewCluster && dataNewCluster.insertId) {
-			var idcluster = dataNewCluster.insertId;
+	try {
+		const clusterId = await Cluster.insertCluster(clusterData);
+		let loData = {};
 
-			try {
-				for (let firewallData of fwnodes) {
-					firewallData.cluster = idcluster;
-					firewallData.fwcloud = req.body.fwcloud;
-					firewallData.by_user = req.session.user_id;
-					firewallData.status = 3;
-					firewallData.options = JsonData.clusterData.options;
+		for (let firewallData of fwnodes) {
+			firewallData.cluster = clusterId;
+			firewallData.fwcloud = req.body.fwcloud;
+			firewallData.by_user = req.session.user_id;
+			firewallData.status = 3;
+			firewallData.options = JsonData.clusterData.options;
 
-					firewallData = await Firewall.checkBodyFirewall(firewallData, true);
+			firewallData = await Firewall.checkBodyFirewall(firewallData, true);
 
-					firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
-					firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
+			firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
+			firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-					let idfirewall = await Firewall.insertFirewall(firewallData);
-					await Firewall.updateFWMaster(req.session.user_id, req.body.fwcloud, idcluster, idfirewall, firewallData.fwmaster);
+			const idfirewall = await Firewall.insertFirewall(firewallData);
 
-					if (firewallData.fwmaster === 1) {
-						// Create the loop backup interface.
-						const loInterfaceId = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
-						// Create the default policy rules.							
-						await PolicyRule.insertDefaultPolicy(idfirewall, loInterfaceId, firewallData.options);
-						// Create the directory used for store firewall data.
-						await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
-					}
-				}
-				await Tree.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, idcluster);
-				res.status(200).json(dataNewCluster);
-			} catch (error) { 
-				logger().error('Error creating a new cluster: ' + JSON.stringify(error));
-				res.status(400).json(error);
+			await Firewall.updateFWMaster(req.session.user_id, req.body.fwcloud, clusterId, idfirewall, firewallData.fwmaster);
+
+			if (firewallData.fwmaster === 1) {
+				// Create the loop backup interface.
+				loData = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
+				// Create the default policy rules.							
+				await PolicyRule.insertDefaultPolicy(idfirewall, loData.ifId, firewallData.options);
+				// Create the directory used for store firewall data.
+				await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 			}
-		} else {
-			logger().error('Error creating a new cluster: ' + JSON.stringify(error));
-			res.status(400).json(error);
 		}
-	});
+		await Tree.insertFwc_Tree_New_cluster(req.body.fwcloud, req.body.node_id, clusterId);
+		res.status(200).json({ "insertId": clusterId, "loData": loData });
+	} catch (error) { 
+		logger().error('Error creating a new cluster: ' + JSON.stringify(error));
+		res.status(400).json(error);
+	}
 });
 
 
@@ -432,56 +426,48 @@ router.put('/fwtocluster', async(req, res) => {
 	var fwcloud = req.body.fwcloud;
 	var firewall = req.body.firewall;
 	var firewallData;
+	var clusterData;
+	var clusterId;
 
 	try {
 		firewallData = await Firewall.getFirewall(req);
-	} catch (error) {
-		logger().error('Error getting firewall data during firewall export to cluster: ' + JSON.stringify(error));
-		return res.status(400).json(error)
-	}
-
-	if (firewallData) {
-		//new objet with Cluster data
-		var clusterData = {
+		clusterData = {
 			name: "Cluster " + firewallData.name,
 			comment: "New cluster from Firewall : " + firewallData.name,
 			fwcloud: fwcloud
 		};
+	
+		clusterId = await Cluster.insertCluster(clusterData);
+	} catch (error) {
+		logger().error('Error during firewall convert to cluster: ' + JSON.stringify(error));
+		return res.status(400).json(error);
+	}
 
-		Cluster.insertCluster(clusterData, (error, data) => {
-			//get cluster info
-			if (data && data.insertId) {
-				var idcluster = data.insertId;
-				//////////////////////////////////
-				//INSERT AND UPDATE CLUSTER NODE STRUCTURE
-				Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, idcluster, firewall, (error, dataTree) => {
-					if (error) {
-						logger().error('Error updating tree during firewall export to cluster: ' + JSON.stringify(error));
-						return res.status(400).json(error);
-					}
-					else if (dataTree && dataTree.result) {
+	//////////////////////////////////
+	//INSERT AND UPDATE CLUSTER NODE STRUCTURE
+	Tree.updateFwc_Tree_convert_firewall_cluster(fwcloud, req.body.node_id, clusterId, firewall, async (error, dataTree) => {
+		if (error) {
+			logger().error('Error updating tree during firewall export to cluster: ' + JSON.stringify(error));
+			return res.status(400).json(error);
+		}
+		else if (dataTree && dataTree.result) {
 
-						//UPDATE CLUSTERS FIREWALL
-						//-------------------------------------------
-						firewallData.cluster = idcluster;
-						firewallData.fwcloud = fwcloud;
-						firewallData.by_user = iduser;
+			//UPDATE CLUSTERS FIREWALL
+			//-------------------------------------------
+			firewallData.cluster = clusterId;
+			firewallData.fwcloud = fwcloud;
+			firewallData.by_user = iduser;
 
-						Firewall.updateFirewallCluster(firewallData)
-							.then(() => Firewall.updateFWMaster(iduser, fwcloud, idcluster, firewall, 1))
-							.then(() => res.status(200).json(data))
-							.catch(error => res.status(400).json(error));
-					} else {
-						logger().error('Error updating firewall cluster: ' + JSON.stringify(error));
-						res.status(400).json(error);
-					}
-				});
-			} else {
-				logger().error('Error creating firewall cluster: ' + JSON.stringify(error));
-				res.status(400).json(error);
-			}
-		});
-	} else res.status(204).end();
+			try {
+				await Firewall.updateFirewallCluster(firewallData);
+				await Firewall.updateFWMaster(iduser, fwcloud, clusterId, firewall, 1);
+				res.status(200).json(data);
+			} catch(error) { return res.status(400).json(error);} 
+		} else {
+			logger().error('Error updating firewall cluster: ' + JSON.stringify(error));
+			res.status(400).json(error);
+		}
+	});
 });
 
 /* New FIREWALL FROM CLUSTER */
@@ -554,7 +540,7 @@ router.put('/clone', (req, res) => {
 		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 	}
 
-	Firewall.getFirewallCluster(iduser, idCluster, (error, firewallDataArry) => {
+	Firewall.getFirewallCluster(iduser, idCluster, async(error, firewallDataArry) => {
 		if (error) {
 			logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 			return res.status(400).json(error);
@@ -562,57 +548,47 @@ router.put('/clone', (req, res) => {
 
 		//Get Data
 		if (firewallDataArry && firewallDataArry.length > 0) {
-			Cluster.insertCluster(clusterData, async(error, data) => {
-				if (error) {
-					logger().error('Error creating cluster: ' + JSON.stringify(error));
-					return res.status(400).json(error);
-				}
+			try {
+				var newClusterId = await Cluster.insertCluster(clusterData);
 
-				//get cluster info
-				if (data && data.insertId) {
-					try {
-						var dataresp = { "insertId": data.insertId };
-						var newidcluster = data.insertId;
-						// Clone cluster nodes.
-						for (let firewallData of firewallDataArry) {
-							firewallData.cluster = newidcluster;
-							firewallData.fwcloud = fwcloud;
-							firewallData.by_user = iduser;
+				// Clone cluster nodes.
+				for (let firewallData of firewallDataArry) {
+					firewallData.cluster = newClusterId;
+					firewallData.fwcloud = fwcloud;
+					firewallData.by_user = iduser;
 
-							//CLONE FWMASTER
-							let data = await Firewall.cloneFirewall(iduser, firewallData);
+					//CLONE FWMASTER
+					let data = await Firewall.cloneFirewall(iduser, firewallData);
 
-							idNewFirewall = data.insertId;
-							oldFirewall = firewallData.id;
-							// This function will update the cluster id of the new firewall.
-							firewallData.id = idNewFirewall;
-							await Firewall.updateFirewallCluster(firewallData);
+					idNewFirewall = data.insertId;
+					oldFirewall = firewallData.id;
+					// This function will update the cluster id of the new firewall.
+					firewallData.id = idNewFirewall;
+					await Firewall.updateFirewallCluster(firewallData);
 
-							// If we are cloning the master firewall, then clone interfaces, policy, etc.
-							if (firewallData.fwmaster) {
-								fwNewMaster = idNewFirewall;
-								await Firewall.updateFWMaster(iduser, fwcloud, newidcluster, idNewFirewall, 1);
-								//CLONE INTERFACES
-								let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
-								await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
-								await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
-							}
-						}
-
-						//INSERT FIREWALL NODE STRUCTURE
-						await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newidcluster);
-
-						// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
-						await PolicyRule.updateApplyToRules(newidcluster, fwNewMaster);
-
-						// If we arrive here all has gone fine.
-						res.status(200).json(dataresp);
-					} catch (error) {
-						logger().error('Error creating cluster: ' + JSON.stringify(error));
-						res.status(400).json(error);
+					// If we are cloning the master firewall, then clone interfaces, policy, etc.
+					if (firewallData.fwmaster) {
+						fwNewMaster = idNewFirewall;
+						await Firewall.updateFWMaster(iduser, fwcloud, newClusterId, idNewFirewall, 1);
+						//CLONE INTERFACES
+						let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+						await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
+						await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 					}
 				}
-			});
+
+				//INSERT FIREWALL NODE STRUCTURE
+				await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
+
+				// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
+				await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
+
+				// If we arrive here all has gone fine.
+				res.status(200).json({ "insertId": newClusterId });
+			} catch (error) {
+				logger().error('Error creating cluster: ' + JSON.stringify(error));
+				res.status(400).json(error);
+			}
 		}
 	});
 });

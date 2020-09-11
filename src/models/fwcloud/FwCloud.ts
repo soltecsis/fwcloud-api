@@ -110,12 +110,16 @@ export class FwCloud extends Model {
     public removeDataDirectories() {
         FSHelper.rmDirectorySync(this.getPkiDirectoryPath());
         FSHelper.rmDirectorySync(this.getPolicyDirectoryPath());
+        FSHelper.rmDirectorySync(this.getSnapshotDirectoryPath());
     }
 
     @AfterInsert()
     async createDataDirectories() {
+        // Make sure that doesn't exists any data directory of the just created FWCloud.
+        this.removeDataDirectories();
         fs.mkdirpSync(this.getPkiDirectoryPath());
         fs.mkdirpSync(this.getPolicyDirectoryPath());
+        fs.mkdirpSync(this.getSnapshotDirectoryPath());
     }
 
     /**
