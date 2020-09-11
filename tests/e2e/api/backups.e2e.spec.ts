@@ -22,7 +22,7 @@
 
 import { generateSession, attachSession, createUser } from "../../utils/utils";
 import '../../mocha/global-setup';
-import { expect, describeName } from "../../mocha/global-setup";
+import { expect, describeName, playgroundPath } from "../../mocha/global-setup";
 import request = require("supertest");
 import { User } from "../../../src/models/user/User";
 import { Backup } from "../../../src/backups/backup";
@@ -32,6 +32,8 @@ import moment from "moment";
 import { testSuite } from "../../mocha/global-setup";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import Sinon = require("sinon");
+import * as path from "path";
+import { Zip } from "../../../src/utils/zip";
 
 let app: Application;
 let backupService: BackupService;
@@ -241,7 +243,7 @@ describe(describeName('Backup E2E tests'), () => {
             })
         });
        
-        describe('BackupController@download', async () => {
+        describe('BackupController@export', async () => {
             let backup: Backup;
 
             beforeEach(async () => {
@@ -266,6 +268,39 @@ describe(describeName('Backup E2E tests'), () => {
                     .get(_URL().getURL('backups.export', {backup: backup.id}))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect('Content-Type', /application/)
+                    .expect(201);
+            });
+        });
+
+        describe('BackupController@import', async () => {
+            let backup: Backup;
+            let zippedPath: string = path.join(playgroundPath, 'backup.zip');
+
+            beforeEach(async () => {
+                backup = await backupService.create();
+                await Zip.zip(backup.path, zippedPath);    
+            });
+
+            it('guest user should not import a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.import'))
+                    .attach('file', zippedPath)
+                    .expect(401)
+            });
+
+            it('regular user should not download a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.import'))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .attach('file', zippedPath)
+                    .expect(401)
+            });
+
+            it('admin user should download a backup', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('backups.import'))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .attach('file', zippedPath)
                     .expect(201);
             });
         });
