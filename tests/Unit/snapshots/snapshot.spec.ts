@@ -46,6 +46,8 @@ describe(describeName('Snapshot Unit Tests'), () => {
         fwCloud = await FwCloud.save(FwCloud.create({
             name: StringHelper.randomize(10)
         }));
+
+        fwCloud = await FwCloud.findOne(fwCloud.id);
     });
 
     describe('create()', () => {
@@ -241,8 +243,8 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
-            firewall = Firewall.find({ fwCloudId: newFwCloud.id })[0];
-            firewall2 = Firewall.find({ fwCloudId: newFwCloud.id })[1];
+            firewall = (await Firewall.find({ fwCloudId: newFwCloud.id }))[0];
+            firewall2 = (await Firewall.find({ fwCloudId: newFwCloud.id }))[1];
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.compiled_at).to.be.null;
