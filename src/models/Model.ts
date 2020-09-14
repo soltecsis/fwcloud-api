@@ -286,10 +286,4 @@ export default abstract class Model extends BaseEntity implements IModel {
 
         return relations[0];
     }
-
-    public async onCreate(): Promise<void> { }
-
-    public async onUpdate(): Promise<void> { }
-
-    public async onDelete(): Promise<void> { }
 }
