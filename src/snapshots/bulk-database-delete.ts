@@ -22,14 +22,12 @@
 
 import { DatabaseService } from "../database/database.service";
 import { app } from "../fonaments/abstract-application";
-import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult, Repository, EntityRepository } from "typeorm";
-import { RepositoryService } from "../database/repository.service";
+import { QueryRunner } from "typeorm";
 import Model from "../models/Model";
 import { ExporterResultData } from "../fwcloud-exporter/database-exporter/exporter-result";
 
 export class BulkDatabaseDelete {
     protected _data: ExporterResultData;
-    protected _repositoryService: RepositoryService;
     protected _databaseService: DatabaseService;
 
     constructor(data: ExporterResultData) {
@@ -39,7 +37,6 @@ export class BulkDatabaseDelete {
     public async run(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             this._databaseService = await app().getService<DatabaseService>(DatabaseService.name);
-            this._repositoryService = await app().getService<RepositoryService>(RepositoryService.name);
             const qr: QueryRunner = this._databaseService.connection.createQueryRunner();
 
             await qr.startTransaction();

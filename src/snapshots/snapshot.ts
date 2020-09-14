@@ -28,13 +28,11 @@ import moment from "moment";
 import * as path from "path";
 import * as fs from "fs-extra";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { RepositoryService } from "../database/repository.service";
 import { Application } from "../Application";
 import { DatabaseExporter } from "../fwcloud-exporter/database-exporter/database-exporter";
 import { Progress } from "../fonaments/http/progress/progress";
 import { BulkDatabaseDelete } from "./bulk-database-delete";
 import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
-import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import * as semver from "semver";
@@ -43,6 +41,7 @@ import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { getCustomRepository } from "typeorm";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -195,15 +194,13 @@ export class Snapshot implements Responsable {
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
         const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
         
-        const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-
         const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
         const dataContent: string = fs.readFileSync(dataPath).toString();
 
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwCloud =fwCloudId ?  await repository.for(FwCloud).findOne(fwCloudId) : null;
+        this._fwCloud =fwCloudId ? await FwCloud.findOne(fwCloudId) : null;
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
@@ -304,17 +301,17 @@ export class Snapshot implements Responsable {
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(): Promise<FwCloud> {
-        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         const importer: DatabaseImporter = new DatabaseImporter();
         
         const fwCloud: FwCloud = await importer.import(this);
 
-        const oldFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(this.fwCloud.id, {relations: ['users']});
+        const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
 
         fwCloud.users = oldFwCloud.users;
-        await repositoryService.for(FwCloud).save(fwCloud);
+        await fwCloud.save();
+        
         oldFwCloud.users = [];
-        await repositoryService.for(FwCloud).save(oldFwCloud);
+        await oldFwCloud.save();
 
         return fwCloud;
     }
@@ -396,10 +393,9 @@ export class Snapshot implements Responsable {
      */
     protected async resetCompiledStatus(): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
-            const repository: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name)
-            const fwcloud: FwCloud = await repository.for(FwCloud).findOneOrFail(this._restoredFwCloud.id, { relations: ['clusters', 'firewalls'] });
+            const fwcloud: FwCloud = await FwCloud.findOneOrFail(this._restoredFwCloud.id, { relations: ['clusters', 'firewalls'] });
 
-            await (<FirewallRepository>repository.for(Firewall)).markAsUncompiled(fwcloud.firewalls);
+            await getCustomRepository(FirewallRepository).markAsUncompiled(fwcloud.firewalls);
 
             return resolve();
         });

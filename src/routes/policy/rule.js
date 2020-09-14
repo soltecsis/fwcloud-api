@@ -23,8 +23,6 @@
 
 var express = require('express');
 var router = express.Router();
-import db from '../../database/database-manager';
-import { RepositoryService } from '../../database/repository.service';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
@@ -32,8 +30,10 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-import { In } from 'typeorm';
+import { getCustomRepository, In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
+import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
+import PolicyGroupRepository from '../../repositories/PolicyGroupRepository';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -190,8 +190,7 @@ async (req, res) => {
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
-	rules = await policyRuleRepository.find({
+	rules = await PolicyRule.find({
 		where: {
 			id: In(req.body.rulesIds),
 			firewallId: req.body.firewall,
@@ -201,7 +200,7 @@ async (req, res) => {
 	const active = req.body.active !== 1 ? 0 : req.body.active;
 
 	try {
-		await policyRuleRepository.updateActive(rules, active)
+		await getCustomRepository(PolicyRuleRepository).updateActive(rules, active)
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error updating activation rule flag: ' + JSON.stringify(error));
@@ -214,12 +213,11 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
 	var style = req.body.style;
-	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
+	var policyRules = await PolicyRule.find({where: {id: In(req.body.rulesIds)}});
 
 	try {
-		await policyRuleRepository.updateStyle(policyRules, style);
+		await getCustomRepository(PolicyRuleRepository).updateStyle(policyRules, style);
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error updating rule style: ' + JSON.stringify(error));
@@ -351,7 +349,6 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 }
 
 async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	const repository = await app().getService(RepositoryService.name);
 	return new Promise(async (resolve, reject) => {
 		try {
 			// Get rule data of rule over which we are running the move action (up or down of this rule).
@@ -382,9 +379,9 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
 			if (pasteOffset!=0 && moveRule.idgroup) {
-				const policyGroup = await repository.for(PolicyGroup).findOne(moveRule.idgroup);
+				const policyGroup = await PolicyGroup.findOne(moveRule.idgroup);
 				if (policyGroup) {
-					await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
+					await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
 				}
 			}
 

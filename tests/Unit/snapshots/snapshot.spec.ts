@@ -25,39 +25,27 @@ import * as fs from "fs";
 import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
-import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository, getRepository } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import StringHelper from "../../../src/utils/string.helper";
-import Sinon from "sinon";
-import * as semver from "semver";
 
 let app: Application;
 let fwCloud: FwCloud;
-let fwcloudRepository: Repository<FwCloud>;
 let service: SnapshotService;
-let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot Unit Tests'), () => {
     before(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
-        repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-        fwcloudRepository = repositoryService.for(FwCloud);
     });
 
     beforeEach(async () => {
-        fwCloud = fwcloudRepository.create({
+        fwCloud = await FwCloud.save(FwCloud.create({
             name: StringHelper.randomize(10)
-        });
-
-        fwCloud = await fwcloudRepository.save(fwCloud);
-        fwCloud = await fwcloudRepository.findOne(fwCloud.id);
-
+        }));
     });
 
     describe('create()', () => {
@@ -186,7 +174,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id + 1)
+            const importedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1)
 
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
@@ -204,7 +192,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            expect(await fwcloudRepository.findOne(fwCloud.id)).to.be.undefined;
+            expect(await FwCloud.findOne(fwCloud.id)).to.be.undefined;
         });
 
         it('should remove the old fwcloud data directories', async () => {
@@ -235,30 +223,26 @@ describe(describeName('Snapshot Unit Tests'), () => {
         });
 
         it('should mark as uncompiled all fwcloud firewalls', async () => {
-            let firewall: Firewall = repositoryService.for(Firewall).create({
+            let firewall: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test',
                 status: 1,
                 fwCloudId: fwCloud.id
-            });
+            }));
 
-            let firewall2: Firewall = repositoryService.for(Firewall).create({
+            let firewall2: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test2',
                 status: 1,
                 fwCloudId: fwCloud.id
-            });
-
-            await repositoryService.for(Firewall).save([firewall, firewall2]);
-            firewall = await repositoryService.for(Firewall).findOne(firewall.id);
-            firewall2 = await repositoryService.for(Firewall).findOne(firewall2.id);
+            }));
 
             let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
-            firewall = (await repositoryService.for(Firewall).find({ fwCloudId: newFwCloud.id }))[0];
-            firewall2 = (await repositoryService.for(Firewall).find({ fwCloudId: newFwCloud.id }))[1];
+            firewall = Firewall.find({ fwCloudId: newFwCloud.id })[0];
+            firewall2 = Firewall.find({ fwCloudId: newFwCloud.id })[1];
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.compiled_at).to.be.null;
@@ -271,15 +255,13 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
         it('should migrate snapshot from the old fwcloud to the new one', async () => {
             const snapshotService: SnapshotService = await app.getService<SnapshotService>(SnapshotService.name);
-            const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
-
+            
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
             let snaphost2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost2.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(fs.existsSync(snaphost1.path)).to.be.false;
             expect(fs.existsSync(snaphost2.path)).to.be.false;
@@ -287,23 +269,21 @@ describe(describeName('Snapshot Unit Tests'), () => {
         });
 
         it('should not copy the policy directory if data directory is not present in the snapshot', async () => {
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath())).to.be.false;
         });
 
         it('should not copy the pki directory if data directory is not present in the snapshot', async () => {
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
         });

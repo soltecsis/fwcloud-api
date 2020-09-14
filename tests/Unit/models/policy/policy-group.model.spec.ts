@@ -22,45 +22,38 @@
 
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { RepositoryService } from "../../../../src/database/repository.service";
-import PolicyGroupRepository from "../../../../src/repositories/PolicyGroupRepository";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import sinon from "sinon";
-import { getRepository } from "typeorm";
 
 let app: AbstractApplication;
-let repositoryService: RepositoryService;
-let policyGroupRepository: PolicyGroupRepository;
 
 describe(describeName('PolicyRule tests'), () => {
     
     before(async () => {
         app = testSuite.app;
-        repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-        policyGroupRepository = repositoryService.for(PolicyGroup);
     });
 
     describe('unassignPolicyRulesBeforeRemove()', () => {
 
         it('should unassign all policy rules which belongs to the group', async () => {
-            let group: PolicyGroup = policyGroupRepository.create({
+            let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
                 name: 'test',
-                firewall: (await repositoryService.for(Firewall).save({ name: 'test' }))
-            });
+                firewall: await Firewall.save(Firewall.create({ name: 'test' }))
+            }));
 
-            group = await policyGroupRepository.save(group, { reload: true });
-
-            let rule: PolicyRule = await repositoryService.for(PolicyRule).save({
+            await group.save();
+            
+            let rule: PolicyRule = await PolicyRule.save(PolicyRule.create({
                 rule_order: 0,
                 action: 1,
                 policyGroup: group
-            });
+            }));
 
             await group.unassignPolicyRulesBeforeRemove();
 
-            rule = await repositoryService.for(PolicyRule).findOne(rule.id);
+            rule = await PolicyRule.findOne(rule.id);
 
             expect(rule.policyGroupId).to.be.null;
         });
@@ -68,14 +61,12 @@ describe(describeName('PolicyRule tests'), () => {
         it('should be called before be removed', async () => {
             const spy = sinon.spy(PolicyGroup.prototype, "unassignPolicyRulesBeforeRemove");
 
-            let group: PolicyGroup = policyGroupRepository.create({
+            let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
                 name: 'test',
-                firewall: await getRepository(Firewall).save({ name: 'test' })
-            });
+                firewall: await Firewall.save(Firewall.create({ name: 'test' }))
+            }));
 
-            group = await getRepository(PolicyGroup).save(group, { reload: true });
-
-            group = await getRepository(PolicyGroup).remove(group);
+            await group.remove();
 
             expect(spy.calledOnce).to.be.true;
 

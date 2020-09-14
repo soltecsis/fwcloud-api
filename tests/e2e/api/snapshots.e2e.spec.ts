@@ -26,7 +26,6 @@ import request = require("supertest");
 import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { User } from "../../../src/models/user/User";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { generateSession, attachSession, createUser } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
@@ -43,7 +42,6 @@ let loggedUser: User;
 let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
-let repository: RepositoryService;
 
 let fwCloud: FwCloud;
 let snapshotService: SnapshotService;

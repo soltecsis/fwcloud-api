@@ -31,15 +31,12 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
-import { app, logger } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
+import { logger } from "../../fonaments/abstract-application";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
-import { DatabaseService } from "../../database/database.service";
-import Query from "../../database/Query";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
@@ -152,12 +149,6 @@ export class PolicyRule extends Model {
 
 
     private static clon_data: any;
-
-    public async onUpdate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.id}, {status_compiled: 0});
-    }
 
     public getTableName(): string {
         return tableName;
@@ -871,249 +862,249 @@ export class PolicyRule extends Model {
 
     //Update apply_to fields of a cloned cluster to point to the new cluster nodes.
     public static updateApplyToRules(clusterNew, fwNewMaster) {
-	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
-			if (error) return reject(error);
-			let sql = 'select P.id,P.fw_apply_to,(select name from firewall where id=P.fw_apply_to) as name,' + clusterNew + ' as clusterNew FROM ' + tableName + ' P' +
-				' INNER JOIN firewall F on F.id=P.firewall' +
-				' WHERE P.fw_apply_to is not NULL AND P.firewall=' + connection.escape(fwNewMaster) + ' AND F.cluster=' + connection.escape(clusterNew);
-			connection.query(sql, (error, rows) => {
-				if (error) return reject(error);
-				//Bucle for rules with fw_apply_to defined.
-				Promise.all(rows.map(data => this.repointApplyTo(data)))
-					.then(data => resolve(data))
-					.catch(e => reject(e));
-			});
-		});
-	});
-};
-
-public static repointApplyTo(rowData) {
-	return new Promise((resolve, reject) => {
-		db.get((error, connection) => {
-			if (error) return reject(error);
-
-			let sql = 'select id FROM firewall' +
-				' WHERE cluster=' + connection.escape(rowData.clusterNew) + ' AND name=' + connection.escape(rowData.name);
-			connection.query(sql, (error, rows) => {
-				if (error) return reject(error);
-
-				if (rows.length === 1)
-					sql = 'UPDATE ' + tableName + ' set fw_apply_to=' + connection.escape(rows[0].id) + ' WHERE id=' + connection.escape(rowData.id);
-				else // We have not found the node in the new cluster.
-					sql = 'UPDATE ' + tableName + ' set fw_apply_to=NULL WHERE id=' + connection.escape(rowData.id);
-
-				connection.query(sql, async (error, rows1) => {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
+                let sql = 'select P.id,P.fw_apply_to,(select name from firewall where id=P.fw_apply_to) as name,' + clusterNew + ' as clusterNew FROM ' + tableName + ' P' +
+                    ' INNER JOIN firewall F on F.id=P.firewall' +
+                    ' WHERE P.fw_apply_to is not NULL AND P.firewall=' + connection.escape(fwNewMaster) + ' AND F.cluster=' + connection.escape(clusterNew);
+                connection.query(sql, (error, rows) => {
                     if (error) return reject(error);
-                    resolve(rows1);
-				});
-			});
-		});
-	});
-};
+                    //Bucle for rules with fw_apply_to defined.
+                    Promise.all(rows.map(data => this.repointApplyTo(data)))
+                        .then(data => resolve(data))
+                        .catch(e => reject(e));
+                });
+            });
+        });
+    };
 
-//Negate rule position.
-public static negateRulePosition(dbCon, firewall, rule, position) {
-	return new Promise((resolve, reject) => {
-		let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
-		dbCon.query(sql, (error, result) => {
-			if (error) return reject(error);
-			if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
-			
-			let negate;
-			if (!(result[0].negate))
-				negate = `${position}`;
-			else {
-				let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
-				// If the position that we want negate is already in the list, don't add again to the list.
-				for (let pos of negate_position_list) {
-					if (pos === position) return resolve();
-				}
-				negate =`${result[0].negate} ${position}`;
-			}
-
-			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-			dbCon.query(sql, async (error, result) => {
+    public static repointApplyTo(rowData) {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
                 if (error) return reject(error);
-                resolve();
-			});
-		});
-	});
-};
 
-//Allow rule position.
-public static allowRulePosition(dbCon, firewall, rule, position) {
-	return new Promise((resolve, reject) => {
-		let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
-		dbCon.query(sql, (error, result) => {
-			if (error) return reject(error);
-			if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
+                let sql = 'select id FROM firewall' +
+                    ' WHERE cluster=' + connection.escape(rowData.clusterNew) + ' AND name=' + connection.escape(rowData.name);
+                connection.query(sql, (error, rows) => {
+                    if (error) return reject(error);
 
-			// Rule position negated list is empty.
-			if (!(result[0].negate)) return resolve();
+                    if (rows.length === 1)
+                        sql = 'UPDATE ' + tableName + ' set fw_apply_to=' + connection.escape(rows[0].id) + ' WHERE id=' + connection.escape(rowData.id);
+                    else // We have not found the node in the new cluster.
+                        sql = 'UPDATE ' + tableName + ' set fw_apply_to=NULL WHERE id=' + connection.escape(rowData.id);
 
-			let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
-			let new_negate_position_list = [];
-			for (let pos of negate_position_list) {
-				if (pos !== position)
-					new_negate_position_list.push(pos);
-			}
-			let negate = (new_negate_position_list.length===0) ? null : new_negate_position_list.join(' ');
+                    connection.query(sql, async (error, rows1) => {
+                        if (error) return reject(error);
+                        resolve(rows1);
+                    });
+                });
+            });
+        });
+    };
 
-			sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-			dbCon.query(sql, async (error, result) => {
+    //Negate rule position.
+    public static negateRulePosition(dbCon, firewall, rule, position) {
+        return new Promise((resolve, reject) => {
+            let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
+            dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
-                resolve();
-			});
-		});
-	});
-};
+                if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
+                
+                let negate;
+                if (!(result[0].negate))
+                    negate = `${position}`;
+                else {
+                    let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
+                    // If the position that we want negate is already in the list, don't add again to the list.
+                    for (let pos of negate_position_list) {
+                        if (pos === position) return resolve();
+                    }
+                    negate =`${result[0].negate} ${position}`;
+                }
 
-//Allow all positions of a rule that are empty.
-public static allowEmptyRulePositions(req) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			req.body.type = await this.getPolicyRuleType(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
-			let data = await this.getPolicyData(req);
-			for (let pos of data[0].positions) {
-				if (pos.ipobjs.length===0)
-					await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
-			}
-		} catch(error) { return reject(error) }
-
-		resolve();
-	});
-}
-
-// Check special rules for stateful firewalls.
-public static checkStatefulRules(dbCon, firewall, options) {
-	return new Promise(async (resolve, reject) => {
-        // In first place make sure that the firewall is not in a cluster
-        // or if it is part of a cluster that it is the master node of the cluster.
-        let sql = `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`;
-        dbCon.query(sql, async (error, result) => {
-            if (error) return reject(error);
-
-            // No result means that the firewall is part of a cluster and it is not the master node.
-            // In this case nothing must be done, for this reason finish the promise.
-            if (result.length===0) return resolve();
-
-            // If this a stateful firewall verify that the stateful special rules exists.
-            if (options & 0x0001) { // Statefull firewall
-                sql = `select id from ${tableName} where firewall=${firewall} and special=1`;
+                sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
                 dbCon.query(sql, async (error, result) => {
                     if (error) return reject(error);
-
-                    if (result.length===0) { 
-                        // If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
-                        var policy_rData = {
-                            id: null,
-                            idgroup: null,
-                            firewall: firewall,
-                            rule_order: 1,
-                            action: 1, // ACCEPT
-                            time_start: null,
-                            time_end: null,
-                            active: 1,
-                            options: 0,
-                            comment: 'Stateful firewall rule.',
-                            type: 1,
-                            special: 1,
-                            style: null
-                        };					
-                        try {
-                            for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-                                await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-                                await this.insertPolicy_r(policy_rData);
-                            }
-                        } catch(error) { return reject(error) }
-                    }
                     resolve();
                 });
-            } else { // Stateless firewall
-                // Or remove them if this is not a stateful firewall.
-                dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=1`, (error, result) => {
+            });
+        });
+    };
+
+    //Allow rule position.
+    public static allowRulePosition(dbCon, firewall, rule, position) {
+        return new Promise((resolve, reject) => {
+            let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
+            dbCon.query(sql, (error, result) => {
+                if (error) return reject(error);
+                if (result.length!==1) return reject(fwcError.other('Firewall rule not found'));
+
+                // Rule position negated list is empty.
+                if (!(result[0].negate)) return resolve();
+
+                let negate_position_list = result[0].negate.split(' ').map(val => { return parseInt(val) });
+                let new_negate_position_list = [];
+                for (let pos of negate_position_list) {
+                    if (pos !== position)
+                        new_negate_position_list.push(pos);
+                }
+                let negate = (new_negate_position_list.length===0) ? null : new_negate_position_list.join(' ');
+
+                sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
+                dbCon.query(sql, async (error, result) => {
                     if (error) return reject(error);
                     resolve();
                 });
-            }
+            });
         });
-	});
-};
+    };
 
-// Check if exists the catch all special rule by firewall and type.
-public static existsCatchAllSpecialRule(dbCon, firewall, type) {
-	return new Promise((resolve, reject) => {
-		dbCon.query(`select id from ${tableName} where firewall=${firewall} and type=${type} and special=2`, async (error, result) => {
-			if (error) return reject(error);
-			resolve(result.length>0 ? result[0].id : 0);
-		});
-	});
-};
+    //Allow all positions of a rule that are empty.
+    public static allowEmptyRulePositions(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                req.body.type = await this.getPolicyRuleType(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
+                let data = await this.getPolicyData(req);
+                for (let pos of data[0].positions) {
+                    if (pos.ipobjs.length===0)
+                        await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
+                }
+            } catch(error) { return reject(error) }
 
-// Check that the catch-all special rule exists. If not, create it.
-public static checkCatchAllRules(dbCon, firewall) {
-	return new Promise(async (resolve, reject) => {
-		var policy_rData = {
-			id: null,
-			idgroup: null,
-			firewall: firewall,
-			rule_order: null,
-			action: null,
-			time_start: null,
-			time_end: null,
-			active: 1,
-			options: 0,
-			comment: 'Catch-all rule.',
-			type: null,
-			special: 2,
-			style: null
-		};
+            resolve();
+        });
+    }
 
-		try {
-			for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-				if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
-					policy_rData.action = 1 // ACCEPT
-				else 
-					policy_rData.action = 2 // DENY
-				policy_rData.rule_order = (await this.getLastRuleOrder(dbCon, firewall, policy_rData.type));
-				const rule_id = await this.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type);
+    // Check special rules for stateful firewalls.
+    public static checkStatefulRules(dbCon, firewall, options) {
+        return new Promise(async (resolve, reject) => {
+            // In first place make sure that the firewall is not in a cluster
+            // or if it is part of a cluster that it is the master node of the cluster.
+            let sql = `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`;
+            dbCon.query(sql, async (error, result) => {
+                if (error) return reject(error);
 
-				if (!rule_id) {
-					// If catch-all special rule don't exists create it.
-					policy_rData.rule_order++;
-					await this.insertPolicy_r(policy_rData);
-				} else {
-					// If catch-all rule exists, verify that is the last one.
-					const rule_data: any = await this.getPolicy_r(dbCon, firewall, rule_id);
-					if (rule_data.rule_order < policy_rData.rule_order) {
-						// If it is not the last one, move to the last one position.
-						await this.updatePolicy_r(dbCon,{"id": rule_id, "rule_order": policy_rData.rule_order+1})
-					}
-				}
-			}
-		} catch(error) { return reject(error) }
-		resolve();
-	});
-};
+                // No result means that the firewall is part of a cluster and it is not the master node.
+                // In this case nothing must be done, for this reason finish the promise.
+                if (result.length===0) return resolve();
 
-//Allow all positions of a rule that are empty.
-public static firewallWithMarkRules(dbCon, firewall) {
-	return new Promise((resolve, reject) => {
-		dbCon.query(`select id from ${tableName} where firewall=${firewall} and mark!=0`, (error, result) => {
-			if (error) return reject(error);
-			resolve((result.length>0) ? true : false);
-		});
-	});
-};
+                // If this a stateful firewall verify that the stateful special rules exists.
+                if (options & 0x0001) { // Statefull firewall
+                    sql = `select id from ${tableName} where firewall=${firewall} and special=1`;
+                    dbCon.query(sql, async (error, result) => {
+                        if (error) return reject(error);
 
-//Move rules from one firewall to other.
-public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
-	return new Promise((resolve, reject) => {
-		dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
-			if (error) return reject(error);
-			resolve();
-		});
-	});
-}
+                        if (result.length===0) { 
+                            // If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
+                            var policy_rData = {
+                                id: null,
+                                idgroup: null,
+                                firewall: firewall,
+                                rule_order: 1,
+                                action: 1, // ACCEPT
+                                time_start: null,
+                                time_end: null,
+                                active: 1,
+                                options: 0,
+                                comment: 'Stateful firewall rule.',
+                                type: 1,
+                                special: 1,
+                                style: null
+                            };					
+                            try {
+                                for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                                    await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+                                    await this.insertPolicy_r(policy_rData);
+                                }
+                            } catch(error) { return reject(error) }
+                        }
+                        resolve();
+                    });
+                } else { // Stateless firewall
+                    // Or remove them if this is not a stateful firewall.
+                    dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=1`, (error, result) => {
+                        if (error) return reject(error);
+                        resolve();
+                    });
+                }
+            });
+        });
+    };
+
+    // Check if exists the catch all special rule by firewall and type.
+    public static existsCatchAllSpecialRule(dbCon, firewall, type) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`select id from ${tableName} where firewall=${firewall} and type=${type} and special=2`, async (error, result) => {
+                if (error) return reject(error);
+                resolve(result.length>0 ? result[0].id : 0);
+            });
+        });
+    };
+
+    // Check that the catch-all special rule exists. If not, create it.
+    public static checkCatchAllRules(dbCon, firewall) {
+        return new Promise(async (resolve, reject) => {
+            var policy_rData = {
+                id: null,
+                idgroup: null,
+                firewall: firewall,
+                rule_order: null,
+                action: null,
+                time_start: null,
+                time_end: null,
+                active: 1,
+                options: 0,
+                comment: 'Catch-all rule.',
+                type: null,
+                special: 2,
+                style: null
+            };
+
+            try {
+                for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                    if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
+                        policy_rData.action = 1 // ACCEPT
+                    else 
+                        policy_rData.action = 2 // DENY
+                    policy_rData.rule_order = (await this.getLastRuleOrder(dbCon, firewall, policy_rData.type));
+                    const rule_id = await this.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type);
+
+                    if (!rule_id) {
+                        // If catch-all special rule don't exists create it.
+                        policy_rData.rule_order++;
+                        await this.insertPolicy_r(policy_rData);
+                    } else {
+                        // If catch-all rule exists, verify that is the last one.
+                        const rule_data: any = await this.getPolicy_r(dbCon, firewall, rule_id);
+                        if (rule_data.rule_order < policy_rData.rule_order) {
+                            // If it is not the last one, move to the last one position.
+                            await this.updatePolicy_r(dbCon,{"id": rule_id, "rule_order": policy_rData.rule_order+1})
+                        }
+                    }
+                }
+            } catch(error) { return reject(error) }
+            resolve();
+        });
+    };
+
+    //Allow all positions of a rule that are empty.
+    public static firewallWithMarkRules(dbCon, firewall) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`select id from ${tableName} where firewall=${firewall} and mark!=0`, (error, result) => {
+                if (error) return reject(error);
+                resolve((result.length>0) ? true : false);
+            });
+        });
+    };
+
+    //Move rules from one firewall to other.
+    public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    };
 }

@@ -21,15 +21,14 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, ManyToOne, JoinColumn, OneToMany, BeforeRemove } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, BeforeRemove, getCustomRepository } from 'typeorm';
 import db from '../../database/database-manager';
 
 import Model from '../Model';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
 import { PolicyRuleRepository } from './policy-rule.repository';
-import { app, logger } from '../../fonaments/abstract-application';
-import { RepositoryService } from '../../database/repository.service';
+import { logger } from '../../fonaments/abstract-application';
 
 const tableName = "policy_g";
 
@@ -90,8 +89,8 @@ export class PolicyGroup extends Model {
 
 	@BeforeRemove()
 	async unassignPolicyRulesBeforeRemove() {
-		const policyRuleRepository: PolicyRuleRepository = await (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRule);
-		const policyRules: Array<PolicyRule> = await policyRuleRepository.find({where: {
+		const policyRuleRepository: PolicyRuleRepository = getCustomRepository(PolicyRuleRepository);
+		const policyRules: Array<PolicyRule> = await PolicyRule.find({where: {
 			policyGroupId: this.id
 		}});
 

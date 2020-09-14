@@ -21,7 +21,6 @@
 */
 
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { RepositoryService } from "../../../../src/database/repository.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { FSHelper } from "../../../../src/utils/fs-helper";
@@ -33,25 +32,25 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import StringHelper from "../../../../src/utils/string.helper";
 
 describe(describeName('Importer tests'), () => {
-    let repositoryService: RepositoryService;
     let snapshotService: SnapshotService;
     
     beforeEach(async() => {
-        repositoryService = await testSuite.app.getService<RepositoryService>(RepositoryService.name);
         snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);
     });
 
     describe('import()', () => {
         it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
-            const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
+            const fwCloud: FwCloud = FwCloud.create({
                 name: StringHelper.randomize(10)
-            }));
+            });
+            await fwCloud.save();
 
-            const ca: Ca = await repositoryService.for(Ca).save(repositoryService.for(Ca).create({
+            const ca: Ca = Ca.create({
                 cn: StringHelper.randomize(10),
                 days: 1,
                 fwCloudId: fwCloud.id
-            }));
+            });
+            await ca.save();
 
             FSHelper.mkdirSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()));
             fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), 'test.txt'), "test");
@@ -60,21 +59,23 @@ describe(describeName('Importer tests'), () => {
 
             await snapshot.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
-            const newCA: Ca = await repositoryService.for(Ca).findOne({cn: ca.cn});
+            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
+            const newCA: Ca = await Ca.findOne({cn: ca.cn});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()))).to.be.true;
         });
 
         it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
-            const fwCloud: FwCloud = await repositoryService.for(FwCloud).save(repositoryService.for(FwCloud).create({
+            const fwCloud: FwCloud = FwCloud.create({
                 name: StringHelper.randomize(10)
-            }));
+            });
+            await fwCloud.save();
 
-            const firewall: Firewall = await repositoryService.for(Firewall).save(repositoryService.for(Firewall).create({
+            const firewall: Firewall = Firewall.create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
-            }));
+            });
+            await firewall.save();
 
             FSHelper.mkdirSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()));
             fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString(), 'test.txt'), "test");
@@ -83,8 +84,8 @@ describe(describeName('Importer tests'), () => {
 
             await snapshot.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne({name: fwCloud.name});
-            const newFirewall: Firewall = await repositoryService.for(Firewall).findOne({name: firewall.name});
+            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
+            const newFirewall: Firewall = await Firewall.findOne({name: firewall.name});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()))).to.be.true;
         });

@@ -28,7 +28,7 @@ import { In, EntityRepository } from "typeorm";
 @EntityRepository(Firewall)
 export class FirewallRepository extends Repository<Firewall> {
     public async markAsUncompiled(Firewall: Firewall): Promise<Firewall>;
-    public async markAsUncompiled(Firewalls: Array<Firewall>): Promise<Firewall>;
+    public async markAsUncompiled(Firewalls: Array<Firewall>): Promise<Firewall[]>;
     public async markAsUncompiled(oneOrMany: Firewall | Array<Firewall>): Promise<Firewall | Array<Firewall>> {
         const entities: Array<Firewall> = isArray(oneOrMany) ? oneOrMany: [oneOrMany];
 

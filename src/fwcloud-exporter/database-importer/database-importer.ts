@@ -29,7 +29,6 @@ import { DatabaseService } from "../../database/database.service";
 import { Terraformer } from "./terraformer/terraformer";
 import { IdManager } from "./terraformer/mapper/id-manager";
 import { ImportMapping } from "./terraformer/mapper/import-mapping";
-import { RepositoryService } from "../../database/repository.service";
 import * as path from "path";
 import { Firewall } from "../../models/firewall/Firewall";
 import { FSHelper } from "../../utils/fs-helper";
@@ -53,7 +52,6 @@ export class DatabaseImporter {
 
     public async import(snapshot: Snapshot): Promise<FwCloud> { 
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
-        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
         
@@ -65,7 +63,7 @@ export class DatabaseImporter {
         
         await this.importToDatabase(queryRunner, terraformedData);
         
-        const fwCloud: FwCloud = await repositoryService.for(FwCloud).findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
+        const fwCloud: FwCloud = await FwCloud.findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
 
         await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
 

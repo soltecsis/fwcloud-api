@@ -25,8 +25,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthorizationException } from "../fonaments/exceptions/authorization-exception";
 import * as fs from "fs";
 import * as path from "path";
-import { app, logger } from "../fonaments/abstract-application";
-import { RepositoryService } from "../database/repository.service";
+import { logger } from "../fonaments/abstract-application";
 import { User } from "../models/user/User";
 import { getRepository } from "typeorm";
 

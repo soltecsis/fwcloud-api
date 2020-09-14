@@ -23,7 +23,6 @@
 import { In, EntityRepository } from "typeorm";
 import { PolicyRule } from "./PolicyRule";
 import { PolicyGroup } from "./PolicyGroup";
-import Model from "../Model";
 import { isArray } from "util";
 import { Repository } from "../../database/repository";
 

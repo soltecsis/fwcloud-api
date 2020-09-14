@@ -28,8 +28,7 @@ import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository, QueryRunner } from "typeorm";
+import { QueryRunner } from "typeorm";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -189,22 +188,18 @@ describe(describeName('Backup Unit tests'), () => {
         })
 
         it('should remove compilation status from firewalls', async () => {
-            const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
-            const firewallRepository: Repository<Firewall> = repositoryService.for(Firewall);
+            let fwCloud: FwCloud = FwCloud.create({ name: 'test' });
+            await fwCloud.save();
 
-            let fwCloud: FwCloud = fwCloudRepository.create({ name: 'test' });
-            fwCloud = await fwCloudRepository.save(fwCloud, { reload: true });
-
-            let firewall: Firewall = firewallRepository.create({ name: 'test', fwCloud: fwCloud, status: 1, installed_at: moment().utc().format(), compiled_at: moment().utc().format() });
-            firewall = await firewallRepository.save(firewall, { reload: true });
+            let firewall: Firewall = Firewall.create({ name: 'test', fwCloud: fwCloud, status: 1, installed_at: moment().utc().format(), compiled_at: moment().utc().format() });
+            await firewall.save();
 
             let backup: Backup = new Backup();
             backup = await backup.create(service.config.data_dir);
 
             backup = await backup.restore();
 
-            firewall = await firewallRepository.findOne(firewall.id);
+            firewall = await Firewall.findOne(firewall.id);
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.installed_at).to.be.null;

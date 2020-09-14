@@ -22,10 +22,8 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository, ManyToOne, JoinTable, JoinColumn } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn } from "typeorm";
 import { IPObjGroup } from "./IPObjGroup";
-import { RepositoryService } from "../../database/repository.service";
-import { app } from "../../fonaments/abstract-application";
 import { IPObj } from "./IPObj";
 
 const tableName: string = 'ipobj__ipobjg';

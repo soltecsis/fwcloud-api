@@ -24,8 +24,6 @@ import { Middleware } from "../fonaments/http/middleware/Middleware";
 import { Request, Response, NextFunction } from "express";
 import { User } from '../models/user/User';
 import StringHelper from "../utils/string.helper";
-import { RepositoryService } from "../database/repository.service";
-import { Repository } from "typeorm";
 import { logger } from "../fonaments/abstract-application";
 
 export class ConfirmationToken extends Middleware {
@@ -90,10 +88,8 @@ export class ConfirmationToken extends Middleware {
      * @param sessionId 
      */
     protected async generateNewConfirmationToken(user: User, sessionId: string): Promise<string> {
-        const userRepository: Repository<User> = (await this.app.getService<RepositoryService>(RepositoryService.name)).for(User);
-        
         user.confirmation_token = sessionId + "_" + StringHelper.randomize(20);
-        await userRepository.save(user);
+        await user.save();
 
         return user.confirmation_token;
     }
