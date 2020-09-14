@@ -46,7 +46,6 @@ import { AuthorizationTest } from './middleware/AuthorizationTest';
 import { SnapshotServiceProvider } from './snapshots/snapshot.provider';
 import { MaintenanceMiddleware } from './middleware/maintenance.middleware';
 import { DatabaseServiceProvider } from './database/database.provider';
-import { RepositoryServiceProvider } from './database/repository.provider';
 import { RouterServiceProvider } from './fonaments/http/router/router.provider';
 import { AuthorizationServiceProvider } from './fonaments/authorization/authorization.provider';
 import { AuthorizationMiddleware } from './fonaments/authorization/authorization.middleware';
@@ -85,7 +84,6 @@ export class Application extends AbstractApplication {
     protected providers(): Array<typeof ServiceProvider> {
         return [
             DatabaseServiceProvider,
-            RepositoryServiceProvider,
             RouterServiceProvider,
             AuthorizationServiceProvider,
             CronServiceProvider,
