@@ -25,7 +25,6 @@ import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOpt
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
-import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 import ObjectHelpers from "../utils/object-helpers";
 import { FSHelper } from "../utils/fs-helper";
 import * as semver from "semver";
@@ -205,7 +204,6 @@ export class DatabaseService extends Service {
             },
             entities: [
                 path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
-                FirewallTest
             ]
         }
     }

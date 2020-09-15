@@ -30,7 +30,6 @@ import { IPObj } from '../../models/ipobj/IPObj';
 import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { app, logger } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
 import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 import { string } from "joi";

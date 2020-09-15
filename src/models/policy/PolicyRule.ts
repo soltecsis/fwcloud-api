@@ -34,7 +34,6 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { RuleCompiler } from "../../compiler/RuleCompiler";
 import { app, logger } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
@@ -152,12 +151,6 @@ export class PolicyRule extends Model {
 
 
     private static clon_data: any;
-
-    public async onUpdate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.id}, {status_compiled: 0});
-    }
 
     public getTableName(): string {
         return tableName;

@@ -2,7 +2,6 @@ import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { Application } from "../../../../src/Application";
 import { FirewallService } from "../../../../src/models/firewall/firewall.service";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { RepositoryService } from "../../../../src/database/repository.service";
 import { Repository, getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
@@ -18,14 +17,12 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
     let app: Application;
     let service: FirewallService;
     let firewall: Firewall;
-    let firewallRepository: Repository<Firewall>;
-
+    
     beforeEach(async () => {
         app = testSuite.app;
         service = await app.getService<FirewallService>(FirewallService.name);
-        firewallRepository = (await app.getService<RepositoryService>(RepositoryService.name)).for(Firewall);
-
-        firewall = await firewallRepository.save(firewallRepository.create({
+        
+        firewall = await Firewall.save(Firewall.create({
             name: StringHelper.randomize(10),
             fwCloudId: (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id
         }));
@@ -38,7 +35,7 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
     describe('compile()', () => {
 
         it('should throw an exception if the firewall does not belong to a fwcloud', async () => {
-            const _f: Firewall = await firewallRepository.save(firewallRepository.create({ name: StringHelper.randomize(10) }));
+            const _f: Firewall = await Firewall.save(Firewall.create({ name: StringHelper.randomize(10) }));
 
             await expect(service.compile(_f)).to.be.rejectedWith(Error);
         });
@@ -113,8 +110,8 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
             }));
 
             firewall.install_ipobj = ipObj.id;
+            await firewall.save();
 
-            await firewallRepository.save(firewall);
             const spy = sinon.spy(Installer.prototype, 'install');
 
             await service.install(firewall, {

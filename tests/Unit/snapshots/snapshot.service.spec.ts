@@ -25,7 +25,6 @@ import { Snapshot } from "../../../src/snapshots/snapshot";
 import { Application } from "../../../src/Application";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
 
 let app: Application;
@@ -39,20 +38,15 @@ describe(describeName('SnapshotService Unit Tests'), () => {
         app = testSuite.app;
 
         service = await app.getService<SnapshotService>(SnapshotService.name);
-        const repository: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-        const fwcloudRepository = repository.for(FwCloud);
-
-        fwCloud = fwcloudRepository.create({
+        
+        fwCloud = await FwCloud.save(FwCloud.create({
             name: 'testCloud'
-        });
+        }));
 
-        fwCloud = await fwcloudRepository.save(fwCloud);
-
-        fwCloud2 = fwcloudRepository.create({
+        fwCloud2 = await FwCloud.save(FwCloud.create({
             name: 'testCloud2'
-        });
+        }));
 
-        fwCloud2 = await fwcloudRepository.save(fwCloud2);
     });
 
     describe('make()', () => {
