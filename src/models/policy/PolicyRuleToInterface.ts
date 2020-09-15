@@ -26,7 +26,6 @@ import Model from '../Model';
 import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app, logger } from '../../fonaments/abstract-application';
-import { RepositoryService } from '../../database/repository.service';
 import { PolicyRule } from './PolicyRule';
 import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
@@ -83,21 +82,6 @@ export class PolicyRuleToInterface extends Model {
 
     public getTableName(): string {
         return tableName;
-    }
-
-    public async onCreate() {
-        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onUpdate() {
-        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onDelete() {
-        const repository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await repository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Get All policy_r__interface by policy_r
@@ -361,13 +345,6 @@ export class PolicyRuleToInterface extends Model {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     db.get(async (error, connection) => {
-                        const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
-                        const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
-                            policyRuleId: rule,
-                            interfaceId: _interface,
-                            policyPosition: position
-                        });
                         var sql = `DELETE FROM ${tableName}
                             WHERE rule=${connection.escape(rule)} 
                             AND interface=${connection.escape(_interface)} 
@@ -397,11 +374,6 @@ export class PolicyRuleToInterface extends Model {
                 if (row) {
                     logger().debug("DELETING INTERFACES FROM RULE: " + rule);
                     db.get(async (error, connection) => {
-                        const policyRuleToInterfaceRepository: Repository<PolicyRuleToInterface> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToInterface);
-                        const models: PolicyRuleToInterface[] = await policyRuleToInterfaceRepository.find({
-                            policyRuleId: rule
-                        });
                         var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
                         connection.query(sql, async (error, result) => {
                             if (error) {

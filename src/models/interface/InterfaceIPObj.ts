@@ -24,7 +24,6 @@ import Model from "../Model";
 import db from '../../database/database-manager';
 import { Column, MoreThan, MoreThanOrEqual, LessThan, LessThanOrEqual, Between, Entity, PrimaryColumn, getRepository, Repository, ManyToOne, JoinColumn } from "typeorm";
 import { IPObj } from "../ipobj/IPObj";
-import { RepositoryService } from "../../database/repository.service";
 import { app, logger } from "../../fonaments/abstract-application";
 import { Interface } from "./Interface";
 

@@ -27,11 +27,9 @@ import { DatabaseService } from "../../../src/database/database.service";
 import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
 import { Repository, QueryRunner, SelectQueryBuilder } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { RepositoryService } from "../../../src/database/repository.service";
 import StringHelper from "../../../src/utils/string.helper";
 
 let databaseService: DatabaseService;
-let fwCloudRepository: Repository<FwCloud>;
 
 describe(describeName('Import mapping tests'), () => {
 
@@ -39,14 +37,13 @@ describe(describeName('Import mapping tests'), () => {
 
         before(async () => {
             databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-            fwCloudRepository = (await testSuite.app.getService<RepositoryService>(RepositoryService.name)).for(FwCloud);
         });
 
         it('should map the old id with a new id', async () => {
             const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
             const queryBuilder: SelectQueryBuilder<unknown> = databaseService.connection.createQueryBuilder('fwcloud', 'fwcloud').select('MAX(id)', 'id');
 
-            await fwCloudRepository.save({name: StringHelper.randomize(10)})
+            await FwCloud.save(FwCloud.create({name: StringHelper.randomize(10)}));
             const maxId : any = (await queryBuilder.execute())[0].id;
             
             const results: ExporterResult = new ExporterResult();

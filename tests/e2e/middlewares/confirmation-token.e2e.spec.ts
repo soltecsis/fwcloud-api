@@ -4,7 +4,6 @@ import { User } from "../../../src/models/user/User";
 import { createUser, generateSession, attachSession } from "../../utils/utils";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { Repository } from "typeorm";
 
 let app: Application;
@@ -72,9 +71,8 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
 
     it('should generate a new confirmation token if the user does not have confirmation token', async () => {
         app.config.set('confirmation_token', true);
-        const userRepository: Repository<User> = (await app.getService<RepositoryService>(RepositoryService.name)).for(User);
         adminUser.confirmation_token = null;
-        await userRepository.save(adminUser);
+        await adminUser.save();
 
         await request(app.express)
             .post(_URL().getURL('backups.store'))
@@ -85,7 +83,7 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
             .expect(403)
             .then(async (response) => {
                 expect(response.body).to.haveOwnProperty('fwc_confirm_token');
-                adminUser = await userRepository.findOne(adminUser.id);
+                adminUser = await User.findOne(adminUser.id);
                 expect(response.body.fwc_confirm_token).to.be.deep.eq(adminUser.confirmation_token);
             });
     })

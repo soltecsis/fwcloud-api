@@ -30,7 +30,6 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany, ManyToOne } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { app, logger } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
 import { RoutingRuleToIPObj } from "../routing/routing-rule-to-ipobj.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');

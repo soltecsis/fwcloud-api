@@ -36,8 +36,7 @@ import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { RepositoryService } from "../database/repository.service";
-import { Repository } from "typeorm";
+import { getCustomRepository, Repository } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
@@ -314,15 +313,13 @@ export class Backup implements Responsable {
                 await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
 
                 //Change compilation status from firewalls
-                const firewallRepository: FirewallRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(Firewall);
-                const firewalls: Array<Firewall> = await firewallRepository.find();
+                const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
+                const firewalls: Array<Firewall> = await Firewall.find();
                 await firewallRepository.markAsUncompiled(firewalls);
 
                 //Remove all compiled rules
-                const policyCompilationRepository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-                const policyCompilations: Array<PolicyCompilation> = await policyCompilationRepository.find();
-                await policyCompilationRepository.remove(policyCompilations);
-
+                await PolicyCompilation.remove(await PolicyCompilation.find());
+                
                 //TODO: Make all VPNs pending of install.
                 resolve();
             } catch (e) {
