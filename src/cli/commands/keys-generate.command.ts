@@ -26,38 +26,30 @@ import * as path from "path";
 import { promises as fs, Stats } from "fs";
 import * as crypto from "crypto";
 import { logger } from "../../fonaments/abstract-application";
+import { Command } from "../command";
 /**
  * Runs migration command.
  */
-export class KeysGenerateCommand implements yargs.CommandModule {
-
+export class KeysGenerateCommand extends Command {
+    
     static ENV_FILENAME: string = '.env';
     static KEY_LENGTH: number = 30;
     static SESSION_SECRET_ENV_VARIABLE = 'SESSION_SECRET';
     static CRYPT_SECRET_ENV_VARIABLE = 'CRYPT_SECRET';
 
-    command = "keys:generate";
-    describe = "Generates random keys";
+    public name: string = "keys:generate";
+    public description: string = "Generates random keys";
 
-    builder(args: yargs.Argv) {
-        return args
-    }
+    async handle(args: yargs.Arguments) {
+        const envFilePath: string = path.join(this._app.path, KeysGenerateCommand.ENV_FILENAME);
 
-    async handler(args: yargs.Arguments) {
-        const app: Application = await Application.run();
-        const envFilePath: string = path.join(app.path, KeysGenerateCommand.ENV_FILENAME);
-
-        try {
-            const stat: Stats = await fs.stat(envFilePath)
-            if (stat && !stat.isFile()) {
-                throw new Error();
-            }
-        } catch(e) {
+        const stat: Stats = await fs.stat(envFilePath)
+        if (stat && !stat.isFile()) {
             throw new Error('File ' + envFilePath + ' does not exists');
         }
-
-        const session_secret = await KeysGenerateCommand.generateRandomString();
-        const crypt_secret = await KeysGenerateCommand.generateRandomString();
+        
+        const session_secret = await this.generateRandomString();
+        const crypt_secret = await this.generateRandomString();
 
         let envContent: string = (await fs.readFile(envFilePath)).toString();
 
@@ -66,12 +58,11 @@ export class KeysGenerateCommand implements yargs.CommandModule {
 
         await fs.writeFile(envFilePath, envContent);
         
-        await app.close();
-        logger().info(`Application key generated.`);
+        this.output.success(`Application key generated.`);
         return;
     }
 
-    static async generateRandomString(): Promise<String> {
+    protected async generateRandomString(): Promise<String> {
         return new Promise((resolve, reject) => {
             crypto.randomBytes(KeysGenerateCommand.KEY_LENGTH, (err: Error, buff: Buffer) => {
                 if (err) {

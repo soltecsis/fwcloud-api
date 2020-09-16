@@ -44,7 +44,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value('tests/playground/env_invent');
 
         await expect(runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
                 $0: "key:generate",
                 _: []
             })
@@ -52,12 +52,12 @@ describe(describeName('KeysGenerateCommand tests'), () => {
     });
 
     it('should generate a SESSION_SECRET random key in the .env file', async() => {
-        const stubMethod = sinon.stub(KeysGenerateCommand, <any> 'generateRandomString').returns("key");
+        const stubMethod = sinon.stub(KeysGenerateCommand.prototype, <any> 'generateRandomString').returns("key");
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
 
         
         await runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
             $0: "key:generate",
             _: []
         })});
@@ -75,12 +75,12 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         envData = envData.replace(new RegExp('^SESSION_SECRET=(.)*\n', 'm'), `SESSION_SECRET   =\n`);
         fse.writeFileSync(testEnvPath, envData);
         
-        const stubMethod = sinon.stub(KeysGenerateCommand, <any> 'generateRandomString').returns("key");
+        const stubMethod = sinon.stub(KeysGenerateCommand.prototype, <any> 'generateRandomString').returns("key");
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
 
         
         await runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
             $0: "key:generate",
             _: []
         })});
@@ -94,11 +94,11 @@ describe(describeName('KeysGenerateCommand tests'), () => {
     });
 
     it('should generate a CRYPT_SECRET random key in the .env file', async() => {
-        const stubMethod = sinon.stub(KeysGenerateCommand, <any> 'generateRandomString').returns("key");
+        const stubMethod = sinon.stub(KeysGenerateCommand.prototype, <any> 'generateRandomString').returns("key");
         const stubVar = sinon.stub(KeysGenerateCommand, <any> 'ENV_FILENAME').value(testEnvPath);
 
         await runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
             $0: "key:generate",
             _: []
         })});
@@ -118,7 +118,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         fse.writeFileSync(testEnvPath, envData);
 
         await runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
             $0: "key:generate",
             _: []
         })});
@@ -136,7 +136,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
         fse.writeFileSync(testEnvPath, envData);
 
         await runCLICommandIsolated(testSuite, async () => {
-            return new KeysGenerateCommand().handler({
+            return new KeysGenerateCommand().safeHandle({
             $0: "keys:generate",
             _: []
         })});

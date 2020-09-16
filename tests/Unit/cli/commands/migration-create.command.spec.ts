@@ -23,13 +23,13 @@
 import { MigrationCreateCommand } from "../../../../src/cli/commands/migration-create.command"
 import * as path from 'path';
 import * as fs from 'fs';
-import { expect, describeName, testSuite } from "../../../mocha/global-setup";
+import { expect, describeName, testSuite, playgroundPath } from "../../../mocha/global-setup";
 import { FSHelper } from "../../../../src/utils/fs-helper";
 import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationCreateCommand tests'), () => {
     const version: string = 'x.y.z';
-    const migrationDirectory = path.join('tests', '.tmp');
+    const migrationDirectory = path.join(playgroundPath, '.tmp');
 
     beforeEach(() => {
         try {
@@ -45,14 +45,14 @@ describe(describeName('MigrationCreateCommand tests'), () => {
     
     it('should create a migration file in the version migration directory', async() => {
         await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationCreateCommand().handler({
+            return new MigrationCreateCommand().safeHandle({
             $0: "migration:create",
-            d: migrationDirectory,
-            dir: migrationDirectory,
             n: 'migration_test',
             name: 'migration_test',
             t: version,
             tag: version,
+            d: migrationDirectory,
+            directory: migrationDirectory,
             _: []
         })});
 

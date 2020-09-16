@@ -22,28 +22,73 @@
 */
 
 
-import * as yargs from "yargs";
+import yargs = require('yargs');
 import { MigrationResetCommand } from "./commands/migration-reset-command";
 import { MigrationRunCommand } from "./commands/migration-run.command";
 import { MigrationCreateCommand } from "./commands/migration-create.command";
-import { MigrationRevertCommand } from "./commands/migration-revert.command";
+import { MigrationRollbackCommand } from "./commands/migration-rollback.command";
 import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 import { RouteListCommand } from "./commands/route-list.command";
 import { KeysGenerateCommand } from "./commands/keys-generate.command";
+import { Command, Option } from "./command";
 
-yargs
-    .usage("Usage: $0 <command> [options]")
-    .command(new MigrationResetCommand())
-    .command(new MigrationRunCommand())
-    .command(new MigrationCreateCommand())
-    .command(new MigrationRevertCommand())
-    .command(new MigrationImportDataCommand())
-    .command(new RouteListCommand())
-    .command(new KeysGenerateCommand())
-    .recommendCommands()
-    .demandCommand(1)
-    .strict()
-    .alias("v", "version")
-    .help("h")
-    .alias("h", "help")
-    .argv;
+const commands: typeof Command[] = [
+    MigrationResetCommand,
+    MigrationRollbackCommand,
+    MigrationRunCommand,
+    MigrationCreateCommand,
+    MigrationImportDataCommand,
+    RouteListCommand,
+    KeysGenerateCommand
+];
+
+class CLI {
+    public load()
+    {
+        let cli: yargs.Argv = yargs.usage("Usage: $0 <command> [options]");
+
+        cli = this.parseCommands(cli, commands);
+
+        cli.recommendCommands()
+            .demandCommand(1)
+            .strict()
+            .help()
+            .alias("h", "help")
+            .alias("v", "version")
+            .argv;
+
+        return cli;
+    }
+
+    protected parseCommands(cli: yargs.Argv, commands: typeof Command[]): yargs.Argv {
+        commands.forEach((commmand: typeof Command) => {
+            // @ts-ignore: command is not abstract
+            const instance: Command = new commmand();
+            const name: string = instance.name;
+            const description: string = instance.description;
+            const options: Option[] = instance.getOptions();
+            
+            cli.command(name, description, (yargs: yargs.Argv) => {
+                options.forEach((option: Option) => {
+                    yargs.option(option.name, {
+                        alias: option.alias ?? undefined,
+                        type: option.type ?? undefined,
+                        describe: option.description,
+                        demandOption: option.required ?? false,
+                        default: option.default ?? undefined
+                    });
+                });
+                
+                return yargs;
+            }, async (yargs) => {
+                await instance.safeHandle(yargs);
+            });
+        });
+        
+        return cli;
+    }
+}
+
+const cli = new CLI();
+cli.load();
+

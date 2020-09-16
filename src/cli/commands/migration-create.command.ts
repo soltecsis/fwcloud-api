@@ -26,67 +26,42 @@ import * as Path from 'path';
 import * as originalCommand from 'typeorm/commands/MigrationCreateCommand';
 import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
+import { Command, Option } from "../command";
 
 
 /**
  * Runs migration command.
  */
-export class MigrationCreateCommand implements yargs.CommandModule {
+export class MigrationCreateCommand extends Command {
+    public name: string = "migration:create";
+    public description: string = "Create a new migration";
 
-    command = "migration:create";
-    describe = "Create a new migration";
+    async handle(args: yargs.Arguments) {
+        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
+        let version = args.tag ? args.tag as string : this._app.version.tag;
 
-    builder(args: yargs.Argv) {
-        return args
-            .option("n", {
-                alias: "name",
-                describe: "Name of the migration class.",
-                demand: true
-            })
-            .option("d", {
-                alias: "dir",
-                describe: "Directory where migration should be created."
-            })
-            .option('t', {
-                alias: 'tag',
-                describe: 'Version which migration belongs to.',
-                default: null
-            });            
+        const directory:string = args.directory as string ? args.directory : databaseService.config.migration_directory
+            
+        if (!directory) {
+            throw new Error('Migration directory not found: ' + directory);
+        }
+
+
+        const path = Path.join(directory, version);
+
+        args.d = path;
+        args.dir = path;
+
+        await new originalCommand.MigrationCreateCommand().handler(args);
+
+        this.output.success('Migration file created');
     }
 
-    async handler(args: yargs.Arguments) {
-        const app: Application = await Application.run();
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-        let version = args.tag ? args.tag as string : app.version.tag;
-
-        try {
-            let directory: string = args.dir ? args.dir.toString() : null;
-
-
-
-            // if directory is not set then try to open tsconfig and find default path there
-            if (!directory) {
-                try {
-                    directory = databaseService.config.migration_directory
-                } catch (err) { }
-            }
-
-            if (!directory) {
-                throw new Error('Migration directory not found');
-            }
-
-
-            const path = Path.join(directory, args.tag as string);
-
-            args.d = path;
-            args.dir = path;
-
-            await new originalCommand.MigrationCreateCommand().handler(args);
-
-        } catch (err) {
-            console.log("Error during migration creation:");
-            console.error(err);
-            process.exit(1);
-        }
+    public getOptions(): Option[] {
+        return [
+            { name: 'name', alias: 'n', description: 'Migration name', required: true },
+            { name: 'tag', alias: 't', description: 'Schema version which migration belongs to', required: true},
+            { name: 'directory', alias: 'd', description: 'Custom migration directory', required: false}
+        ]
     }
 }

@@ -71,8 +71,6 @@ export class Application extends CLIApplication {
         this.setCLIConfiguration();
         await super.bootstrap();
 
-        this.logger().info(`------- Starting CLI v${this.version.tag} -------`);
-        
         const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
 
         routerService.registerRoutes(Routes);

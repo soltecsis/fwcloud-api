@@ -46,7 +46,7 @@ describe(describeName('MigrationResetCommand tests'), () => {
         expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
 
         await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationResetCommand().handler({
+            return new MigrationResetCommand().safeHandle({
             $0: "migration:run",
             _: []
         })});
