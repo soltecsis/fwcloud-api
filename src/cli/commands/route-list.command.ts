@@ -21,7 +21,7 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../../Application";
+import { Application } from "../../cli/Application";
 import { RouterService, HttpMethod } from "../../fonaments/http/router/router.service";
 import { PathParams } from "express-serve-static-core"
 import { Gate } from "../../fonaments/http/router/gate";

@@ -34,6 +34,8 @@ import { FwCloudExportServiceProvider } from '../fwcloud-exporter/fwcloud-export
 import { OpenVPNServiceProvider } from '../models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from '../models/fwcloud/fwcloud.provider';
 import { CLIApplication } from "../fonaments/cli-application";
+import { RouterService } from '../fonaments/http/router/router.service';
+import { Routes } from '../routes/routes';
 
 export class Application extends CLIApplication {
     public static async run(path?: string): Promise<Application> {
@@ -68,6 +70,11 @@ export class Application extends CLIApplication {
     public async bootstrap(): Promise<CLIApplication> {
         await super.bootstrap();
         console.log('Running CLI: v' + this.version.tag);
+
+        const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
+
+        routerService.registerRoutes(Routes);
+
         return this;
     }
 }
