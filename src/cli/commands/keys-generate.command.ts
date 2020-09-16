@@ -25,6 +25,7 @@ import { Application } from "../Application";
 import * as path from "path";
 import { promises as fs, Stats } from "fs";
 import * as crypto from "crypto";
+import { logger } from "../../fonaments/abstract-application";
 /**
  * Runs migration command.
  */
@@ -66,6 +67,7 @@ export class KeysGenerateCommand implements yargs.CommandModule {
         await fs.writeFile(envFilePath, envContent);
         
         await app.close();
+        logger().info(`Application key generated.`);
         return;
     }
 

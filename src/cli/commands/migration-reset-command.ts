@@ -24,6 +24,7 @@ import * as yargs from "yargs";
 import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 import { Connection } from "typeorm";
+import { logger } from "../../fonaments/abstract-application";
 
 
 /**
@@ -44,8 +45,10 @@ export class MigrationResetCommand implements yargs.CommandModule {
         const connection: Connection = await databaseService.getConnection({name: 'cli'}) 
         
         try {
+            logger().info(`Removing database...`);
             await databaseService.resetMigrations(connection);
             await app.close();
+            logger().info(`Removing database...done.`);
         } catch (err) {
             console.log("Error during migration run:");
             console.error(err);

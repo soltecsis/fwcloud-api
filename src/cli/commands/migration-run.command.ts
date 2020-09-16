@@ -26,6 +26,7 @@ import { Connection, ConnectionOptionsReader, createConnection, MigrationExecuto
 import * as config from "../../config/config"
 import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
+import { logger } from "../../fonaments/abstract-application";
 
 
 /**
@@ -56,8 +57,10 @@ export class MigrationRunCommand implements yargs.CommandModule {
         const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
         try {
+            logger().info(`Running pending migrations...`);
             await databaseService.runMigrations(connection);
             await app.close();
+            logger().info(`Running pending migrations...done.`);
         } catch (err) {
             console.log("Error during migration run:");
             console.error(err);

@@ -68,13 +68,20 @@ export class Application extends CLIApplication {
     }
 
     public async bootstrap(): Promise<CLIApplication> {
+        this.setCLIConfiguration();
         await super.bootstrap();
-        console.log('Running CLI: v' + this.version.tag);
 
+        this.logger().info(`------- Starting CLI v${this.version.tag} -------`);
+        
         const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
 
         routerService.registerRoutes(Routes);
 
         return this;
+    }
+
+    protected setCLIConfiguration()
+    {
+        this.config.set('log.stdout', this._config.get('env') !== 'test');
     }
 }

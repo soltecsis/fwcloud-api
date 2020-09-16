@@ -23,6 +23,7 @@
 import * as yargs from "yargs";
 import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
+import { logger } from "../../fonaments/abstract-application";
 
 
 /**
@@ -43,8 +44,10 @@ export class MigrationImportDataCommand implements yargs.CommandModule {
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
         
         try {
+            logger().info(`Importing default data...`);
             await databaseService.feedDefaultData();
-            process.exit(0);
+            await app.close();
+            logger().info(`Importing default data...done.`);
         } catch (err) {
             console.log("Error during migration run:");
             console.error(err);
