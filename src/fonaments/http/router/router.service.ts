@@ -111,7 +111,6 @@ export class RouterService extends Service {
             this._express.use('/vpn/pki/prefix', require('../../../routes/vpn/pki/prefix'));
             this._express.use('/vpn/openvpn', require('../../../routes/vpn/openvpn/openvpn'));
             this._express.use('/vpn/openvpn/prefix', require('../../../routes/vpn/openvpn/prefix'));
-            this._express.use('/backup', require('../../../routes/backup/backup'));
         }
     }
 
