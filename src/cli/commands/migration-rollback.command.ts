@@ -21,36 +21,34 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 import { Connection } from "typeorm";
+import { Command, Option } from "../command";
 
 /**
  * Runs migration command.
  */
-export class MigrationRevertCommand implements yargs.CommandModule {
+export class MigrationRollbackCommand extends Command {
+    
+    public name: string = "migration:rollback";
+    public description: string = "Rollback migrations";
 
-    command = "migration:revert";
-    describe = "Revert a migration";
+    async handle(args: yargs.Arguments) {
+        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
+        const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
-    builder(args: yargs.Argv) {
-        return args;
+        for(let i = 0; i < (args.steps as number); i++) {
+            await connection.undoLastMigration();
+        }
+
+        this.output.success(`Rollback ${args.steps as number} migration(s).`)
     }
 
-    async handler(args: yargs.Arguments) {
-        const app: Application = await Application.run();
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'});
-        
-        try {
-            await connection.undoLastMigration();
-
-            await app.close();
-        } catch (err) {
-            console.log("Error during migration run:");
-            console.error(err);
-            process.exit(1);
-        }
+    public getOptions(): Option[] {
+        return [
+            { name: 'steps', alias: 's', description: 'Rollback steps', required: false, default: 1 }
+        ]
     }
 
 }

@@ -24,17 +24,17 @@ import { AbstractApplication } from "../../../../src/fonaments/abstract-applicat
 import { testSuite, expect, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { QueryRunner } from "typeorm";
-import { MigrationRevertCommand } from "../../../../src/cli/commands/migration-revert.command";
+import { MigrationRollbackCommand } from "../../../../src/cli/commands/migration-rollback.command";
 import { runCLICommandIsolated } from "../../../utils/utils";
 
-describe(describeName('MigrationRevertCommand tests'), () => {
+describe(describeName('MigrationRollbackCommand tests'), () => {
 
     after(async() => {
         await testSuite.resetDatabaseData();
     });
 
 
-    it('should revert a migration', async() => {
+    it('should rollback multiple migrations', async () => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
@@ -47,16 +47,19 @@ describe(describeName('MigrationRevertCommand tests'), () => {
         await queryRunner.release();
         
         await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationRevertCommand().handler({
-                $0: "migration:revert",
-            _: []
-        })});
+            return new MigrationRollbackCommand().safeHandle({
+                $0: "migration:rollback",
+                steps: 3,
+                s: 3,
+                _: []
+            })
+        });
 
         
         queryRunner  = databaseService.connection.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();
         
-        expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 1);
-    });
+        expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 3);
+    })
 });

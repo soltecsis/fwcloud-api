@@ -1,4 +1,4 @@
-/*
+/*!
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
@@ -20,25 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from "yargs";
-import { Application } from "../Application";
-import { DatabaseService } from "../../database/database.service";
-import { logger } from "../../fonaments/abstract-application";
-import { Command } from "../command";
+import { AbstractApplication } from "./abstract-application";
 
-
-/**
- * Runs migration command.
- */
-export class MigrationImportDataCommand extends Command {
-    public name: string = "migration:data";
-    public description: string = "Import default data";
-
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        
-        await databaseService.feedDefaultData();
-        this.output.success(`Default data imported.`);
-    }
-
-}
+export abstract class CLIApplication extends AbstractApplication {}

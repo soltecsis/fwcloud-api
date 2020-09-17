@@ -23,12 +23,12 @@
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import cors, { CorsOptions } from 'cors';
 import { Request, Response, NextFunction } from "express";
-import { AbstractApplication } from "../fonaments/abstract-application";
 import { CorsException } from "./exceptions/cors.exception";
+import { HTTPApplication } from "../fonaments/http-application";
 
 export class CORS extends Middleware {
 
-    public register(app: AbstractApplication) {
+    public register(app: HTTPApplication) {
         this.app = app;
 
         const options: CorsOptions = {

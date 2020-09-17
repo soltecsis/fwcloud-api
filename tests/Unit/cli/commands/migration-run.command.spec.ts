@@ -42,7 +42,7 @@ describe(describeName('MigrationRunCommand tests'), () => {
         await databaseService.emptyDatabase();
 
         await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationRunCommand().handler({
+            return new MigrationRunCommand().safeHandle({
                 $0: "migration:run",
             _: []
         })});

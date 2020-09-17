@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../abstract-application";
-import { Request, Response, NextFunction } from "express";
+import { NextFunction } from "express";
 import { Socket } from "socket.io";
+import { HTTPApplication } from "../../http-application";
 
 export abstract class SocketMiddleware {
-    protected app: AbstractApplication;
+    protected app: HTTPApplication;
 
     public abstract handle(socket: Socket, next: NextFunction): void;
 
@@ -38,7 +38,7 @@ export abstract class SocketMiddleware {
         }
     }
 
-    public register(app: AbstractApplication) {
+    public register(app: HTTPApplication) {
         this.app = app;
         
         app.socketio.use((socket: Socket, next: NextFunction) => {
