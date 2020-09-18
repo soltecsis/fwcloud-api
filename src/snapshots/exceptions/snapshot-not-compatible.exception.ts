@@ -27,7 +27,7 @@ import { HttpException } from "../../fonaments/exceptions/http/http-exception";
 export class SnapshotNotCompatibleException extends HttpException {
     public snapshot: Snapshot;
     constructor(snapshot: Snapshot) {
-        super(`Snapshot version not compatible: ${snapshot.schema} -> ${app().version.schema}`, 400);
+        super(`Snapshot version not compatible`, 400);
         this.snapshot = snapshot;
     }
 }

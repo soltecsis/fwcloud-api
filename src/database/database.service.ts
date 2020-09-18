@@ -131,7 +131,11 @@ export class DatabaseService extends Service {
         const queryRunner: QueryRunner = connection.createQueryRunner();
 
         const migrationExecutor: MigrationExecutor = new MigrationExecutor(connection, queryRunner);
-        return await migrationExecutor.getExecutedMigrations()
+        const migrations: Migration[] = await migrationExecutor.getExecutedMigrations();
+        
+        await queryRunner.release();
+        
+        return migrations;
     }
 
     public async resetMigrations(connection: Connection = null): Promise<void> {
