@@ -30,7 +30,9 @@ import { MigrationRollbackCommand } from "./commands/migration-rollback.command"
 import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
 import { RouteListCommand } from "./commands/route-list.command";
 import { KeysGenerateCommand } from "./commands/keys-generate.command";
-import { Command, Option } from "./command";
+import { Argument, Command, Option } from "./command";
+import { BackupCreateCommand } from './commands/backup-create.command';
+import { BackupRestoreCommand } from './commands/backup-restore.command';
 
 const commands: typeof Command[] = [
     MigrationResetCommand,
@@ -39,7 +41,9 @@ const commands: typeof Command[] = [
     MigrationCreateCommand,
     MigrationImportDataCommand,
     RouteListCommand,
-    KeysGenerateCommand
+    KeysGenerateCommand,
+    BackupCreateCommand,
+    BackupRestoreCommand
 ];
 
 class CLI {
@@ -67,8 +71,9 @@ class CLI {
             const name: string = instance.name;
             const description: string = instance.description;
             const options: Option[] = instance.getOptions();
-            
-            cli.command(name, description, (yargs: yargs.Argv) => {
+            const args: Argument[] = instance.getArguments();
+
+            cli.command(this.generateName(name, args), description, (yargs: yargs.Argv) => {
                 options.forEach((option: Option) => {
                     yargs.option(option.name, {
                         alias: option.alias ?? undefined,
@@ -76,6 +81,12 @@ class CLI {
                         describe: option.description,
                         demandOption: option.required ?? false,
                         default: option.default ?? undefined
+                    });
+                });
+
+                args.forEach((arg: Argument) => {
+                    yargs.positional(arg.name, {
+                        describe: arg.description
                     });
                 });
                 
@@ -86,6 +97,20 @@ class CLI {
         });
         
         return cli;
+    }
+
+    protected generateName(name: string, args: Argument[]): string {
+        let result: string = name;
+
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].required) {
+                result = `${result} <${args[i].name}>`
+            } else {
+                result = `${result} [${args[i].name}]`
+            }
+        }
+
+        return result;
     }
 }
 

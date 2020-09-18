@@ -25,7 +25,7 @@ import { Application } from "./Application";
 import { Output } from "./output";
 
 export type Option = {name: string, alias?: string, description: string, type?: "array" | "count" | PositionalOptionsType, required?: boolean, default?: any}
-export type Argument = any;
+export type Argument = {name: string, description: string, required: boolean };
 
 export abstract class Command {
     protected output: Output;
