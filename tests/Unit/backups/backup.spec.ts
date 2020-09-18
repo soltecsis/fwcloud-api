@@ -28,7 +28,7 @@ import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { Repository, QueryRunner } from "typeorm";
+import { Repository, QueryRunner, Migration } from "typeorm";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -61,7 +61,7 @@ describe(describeName('Backup Unit tests'), () => {
             expect(fs.existsSync(backup.path)).to.be.true;
         });
 
-        it('should create a dump file', async () => {
+        it('should create a dump data file', async () => {
             let backup: Backup = new Backup();
             backup = await backup.create(service.config.data_dir);
             expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.true;
@@ -107,7 +107,6 @@ describe(describeName('Backup Unit tests'), () => {
                 name: backup.name,
                 timestamp: backup.timestamp,
                 version: app.version.tag,
-                schema: app.version.schema,
                 comment: 'test comment',
             });
         });
@@ -137,12 +136,19 @@ describe(describeName('Backup Unit tests'), () => {
     });
 
     describe('restore()', () => {
+        let backup: Backup;
+        let databaseService: DatabaseService
 
-        it('should import the database', async () => {
-            const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-            let backup: Backup = new Backup();
+        beforeEach(async () => {
+            backup = new Backup();
             backup = await backup.create(service.config.data_dir);
 
+            databaseService = await app.getService<DatabaseService>(DatabaseService.name);
+            
+            
+        })
+
+        it('should import the database', async () => {
             await databaseService.emptyDatabase();
 
             backup = await backup.restore();
@@ -204,6 +210,20 @@ describe(describeName('Backup Unit tests'), () => {
             expect(firewall.compiled_at).to.be.null;
 
         });
+    
+        it('should run migrations', async () => {
+            const migrations: Migration[] = await databaseService.getExecutedMigrations();
+
+            await databaseService.rollbackMigrations(3);
+            
+            backup = new Backup();
+            await backup.create(service.config.data_dir);
+            await backup.restore();
+
+            const newMigrations: Migration[] = await databaseService.getExecutedMigrations();
+            
+            expect(newMigrations.length).to.be.deep.eq(migrations.length);
+        });
     });
 
     describe('delete()', () => {
@@ -230,7 +250,6 @@ describe(describeName('Backup Unit tests'), () => {
                 date: backup.date.utc(),
                 comment: backup.comment,
                 version: backup.version,
-                schema: backup.schema
             })
         });
     });

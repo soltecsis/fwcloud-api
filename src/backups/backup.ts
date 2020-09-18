@@ -36,7 +36,7 @@ import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { getCustomRepository, Repository } from "typeorm";
+import { getCustomRepository, Migration, Repository } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
@@ -50,8 +50,8 @@ export interface BackupMetadata {
     timestamp: number;
     version: string;
     comment: string;
-    schema: string;
 }
+
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
     static METADATA_FILENAME: string = 'backup.json';
@@ -65,8 +65,7 @@ export class Backup implements Responsable {
     protected _dumpFilename: string;
     protected _comment: string;
     protected _version: string;
-    protected _schema: string;
-
+    
     constructor() {
         this._id = null;
         this._name = null;
@@ -76,14 +75,12 @@ export class Backup implements Responsable {
         this._dumpFilename = null;
         this._comment = null;
         this._version = null;
-        this._schema = null;
     }
 
     toResponse(): Object {
         return {
             id: this._id,
             version: this._version,
-            schema: this._schema ? this._schema : null,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment
@@ -92,10 +89,6 @@ export class Backup implements Responsable {
 
     get version(): string {
         return this._version;
-    }
-
-    get schema(): string {
-        return this._schema;
     }
 
     /**
@@ -158,7 +151,6 @@ export class Backup implements Responsable {
             this._comment = metadata.comment;
             this._exists = true;
             this._version = metadata.version;
-            this._schema = metadata.schema;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
             return this;
@@ -187,7 +179,6 @@ export class Backup implements Responsable {
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
-        this._schema = app<Application>().version.schema;
         this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
@@ -212,10 +203,14 @@ export class Backup implements Responsable {
 
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
-                task.parallel((task: Task) => {
-                    task.addTask(() => { return this.importDatabase(); }, 'Database restored');
-                    task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                task.sequence((task: Task) => {
+                    task.parallel((task: Task) => {
+                        task.addTask(() => { return this.importDatabase(); }, 'Database restored');
+                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                    });
+                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migrated');
                 })
+                
             }, 'Backup restored');
 
             return this;
@@ -252,7 +247,6 @@ export class Backup implements Responsable {
             name: this._name,
             timestamp: this._date.valueOf(),
             version: app<Application>().version.tag,
-            schema: app<Application>().version.schema,
             comment: this._comment
         };
 
@@ -326,6 +320,11 @@ export class Backup implements Responsable {
                 reject(e);
             }
         });
+    }
+
+    protected async runMigrations(): Promise<Migration[]> {
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        return await databaseService.runMigrations();
     }
 
     /**

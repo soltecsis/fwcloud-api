@@ -42,14 +42,15 @@ import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { getCustomRepository } from "typeorm";
+import { getCustomRepository, Migration } from "typeorm";
+import { DatabaseService } from "../database/database.service";
 
 export type SnapshotMetadata = {
     timestamp: number,
     name: string,
     comment: string,
     version: string,
-    schema: string
+    migrations: string[];
 };
 
 export class Snapshot implements Responsable {
@@ -69,7 +70,9 @@ export class Snapshot implements Responsable {
     protected _fwCloud: FwCloud;
     protected _version: string;
 
-    protected _schema: string;
+    protected _compatible: boolean;
+
+    protected _migrations: string[];
 
     protected _path: string;
     protected _exists: boolean;
@@ -88,7 +91,7 @@ export class Snapshot implements Responsable {
         this._exists = false;
         this._version = null;
         this._data = null;
-        this._schema = null;
+        this._compatible = false;
     }
 
     get name(): string {
@@ -127,17 +130,12 @@ export class Snapshot implements Responsable {
         return this._data;
     }
 
-    get schema(): string {
-        return this._schema;
+    get compatible(): boolean {
+        return this._compatible;
     }
 
-    public isCompatible(): boolean {
-        if(this.schema) {
-            const currentSchemaVersion: string = app().version.schema;
-            return semver.eq(this.schema, currentSchemaVersion);
-        }
-
-        throw new Error('Snapshot schema is not defined');
+    get migrations(): string [] {
+        return this._migrations;
     }
 
     /**
@@ -161,7 +159,7 @@ export class Snapshot implements Responsable {
     public async restore(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
         const progress: Progress = new Progress(eventEmitter);
 
-        if (!this.isCompatible()) {
+        if (!this.compatible) {
             throw new SnapshotNotCompatibleException(this);
         }
 
@@ -191,6 +189,9 @@ export class Snapshot implements Responsable {
      * @param snapshotPath The path must contain the fwcloud.id directory
      */
     protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
+        const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        const executedMigrations: Migration[] = await databaseService.getExecutedMigrations();
+
         const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
         const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
         const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
@@ -205,12 +206,17 @@ export class Snapshot implements Responsable {
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
+        this._migrations = snapshotMetadata.migrations ?? [];
         this._exists = true;
+        this._compatible = this.checkCompatibility(this._migrations, executedMigrations.map(migration => migration.name));
         this._data = new ExporterResult(JSON.parse(dataContent));
-        this._schema = snapshotMetadata.schema
-
+        
         return this;
     }
+
+    protected checkCompatibility(snapshotMigrations: string[], executedMigrations: string[]): boolean {
+        return snapshotMigrations.length === executedMigrations.length;
+    } 
 
     /**
      * Update the snapshot metadata
@@ -258,6 +264,8 @@ export class Snapshot implements Responsable {
      */
     protected async save(snapshot_directory: string, fwCloud: FwCloud, name: string = null, comment: string = null, eventEmitter: EventEmitter = new EventEmitter()): Promise<Snapshot> {
         const progress = new Progress(eventEmitter);
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        const executedMigrations: Migration[] = await databaseService.getExecutedMigrations();
 
         this._fwCloud = fwCloud;
         this._date = moment();
@@ -266,7 +274,9 @@ export class Snapshot implements Responsable {
         this._name = name ? name : this._date.utc().format();
         this._comment = comment;
         this._version = app<Application>().version.tag;
-        this._schema = app<Application>().version.schema;
+        this._migrations = executedMigrations.map((migration: Migration) => {
+            return migration.name;
+        });
         
         if (FSHelper.directoryExistsSync(this._path)) {
             throw new Error('Snapshot with id = ' + this._id + ' already exists');
@@ -285,6 +295,9 @@ export class Snapshot implements Responsable {
         }, 'Snapshot created');
 
         this._exists = true;
+        this._compatible = this.checkCompatibility(this._migrations, executedMigrations.map((migration: Migration) => {
+            return migration.name;
+        }));
 
         return this;
     }
@@ -345,7 +358,7 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            schema: this._schema
+            migrations: this._migrations
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
@@ -378,16 +391,6 @@ export class Snapshot implements Responsable {
     }
 
     /**
-     * Checks if the given schemaVersion is the same as the schemaVersion generated by the databaseService
-     * @param schema 
-     */
-    protected checkSchemaCompatible(schema: string): boolean {
-        const currentSchemaVersion: string = app().version.schema;
-
-        return semver.eq(schema, currentSchemaVersion);
-    }
-
-    /**
      * Resets the firewalls compilation & installation status
      */
     protected async resetCompiledStatus(): Promise<void> {
@@ -416,8 +419,7 @@ export class Snapshot implements Responsable {
             fwcloud_id: this._fwCloud.id,
             date: this._date,
             version: this._version,
-            schema: this._schema,
-            compatible: this.isCompatible(),
+            compatible: this.compatible,
         }
     }
 }
