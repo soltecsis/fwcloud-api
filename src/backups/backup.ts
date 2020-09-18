@@ -36,7 +36,7 @@ import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { getCustomRepository, Repository } from "typeorm";
+import { getCustomRepository, Migration, Repository } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
@@ -212,10 +212,14 @@ export class Backup implements Responsable {
 
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
-                task.parallel((task: Task) => {
-                    task.addTask(() => { return this.importDatabase(); }, 'Database restored');
-                    task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                task.sequence((task: Task) => {
+                    task.parallel((task: Task) => {
+                        task.addTask(() => { return this.importDatabase(); }, 'Database restored');
+                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                    });
+                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migrated');
                 })
+                
             }, 'Backup restored');
 
             return this;
@@ -326,6 +330,11 @@ export class Backup implements Responsable {
                 reject(e);
             }
         });
+    }
+
+    protected async runMigrations(): Promise<Migration[]> {
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        return await databaseService.runMigrations();
     }
 
     /**

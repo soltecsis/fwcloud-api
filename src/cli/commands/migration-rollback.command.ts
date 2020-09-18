@@ -38,9 +38,7 @@ export class MigrationRollbackCommand extends Command {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
         const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
-        for(let i = 0; i < (args.steps as number); i++) {
-            await connection.undoLastMigration();
-        }
+        await databaseService.rollbackMigrations(args.steps as number, connection);
 
         this.output.success(`Rollback ${args.steps as number} migration(s).`)
     }
